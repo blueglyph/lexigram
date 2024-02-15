@@ -78,6 +78,9 @@ impl ReNode {
 
 impl Display for ReNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if let Some(id) = self.id {
+            write!(f, "{id}:")?;
+        }
         self.op.fmt(f)
     }
 }
@@ -98,15 +101,20 @@ impl DfaBuilder {
         builder
     }
 
-    // fn calc_edges(&mut self) {
-    //     let mut id = 0;
-    //
-    // }
-    //
-    // pub fn build_dfa(&mut self) {
-    //     self.calc_edges();
-    // }
-    //
+    fn calc_leaf_id(&mut self) {
+        let mut id = 0;
+        for node in self.re.iter_depth_mut() {
+            if node.data.is_leaf() {
+                id += 1;
+                node.data.id = Some(id);
+            }
+        }
+    }
+
+    pub fn build_dfa(&mut self) {
+        self.calc_leaf_id();
+    }
+
     // pub fn print(&self) {
     //     self.re.print();
     //     self.print_tables();

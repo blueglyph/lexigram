@@ -47,6 +47,14 @@ mod test_node {
         assert_eq!(tree_to_string(&re), "&(&(&(&(*(|('a','b')),'a'),'b'),'b'),<end>)");
     }
 
+    #[test]
+    fn dfa_id() {
+        let re = build_re();
+        let mut dfa = DfaBuilder::new(re);
+        dfa.calc_leaf_id();
+        assert_eq!(tree_to_string(&dfa.re), "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
+    }
+
     // #[test]
     // fn test_basic() {
     //     let n1 = ReNode::str("abcd");
