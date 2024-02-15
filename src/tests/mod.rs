@@ -7,20 +7,29 @@
 mod vectree;
 use crate::*;
 
-fn node_to_string<T: Display>(tree: &VecTree<T>, index: usize) -> String {
-    let mut result = tree.get(index).to_string();
+fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
+    let node = tree.get(index);
+    let mut result = String::new();
+    if !basic {
+        if node.nullable.is_none() {
+            result.push('?');
+        } else if node.nullable.unwrap() {
+            result.push('!');
+        }
+    }
+    result.push_str(&node.to_string());
     let children = tree.children(index);
     if !children.is_empty() {
         result.push_str("(");
-        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c)).collect::<Vec<_>>().join(","));
+        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c, basic)).collect::<Vec<_>>().join(","));
         result.push_str(")");
     }
     result
 }
 
-fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
+fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
     if tree.len() > 0 {
-        node_to_string(tree, 0)
+        node_to_string(tree, 0, basic)
     } else {
         "None".to_string()
     }
@@ -44,15 +53,23 @@ mod test_node {
     #[test]
     fn dfa_builder() {
         let re = build_re();
-        assert_eq!(tree_to_string(&re), "&(&(&(&(*(|('a','b')),'a'),'b'),'b'),<end>)");
+        assert_eq!(tree_to_string(&re, false), "?&(?&(?&(?&(?*(?|(?'a',?'b')),?'a'),?'b'),?'b'),?<end>)");
     }
 
     #[test]
     fn dfa_id() {
         let re = build_re();
         let mut dfa = DfaBuilder::new(re);
-        dfa.calc_leaf_id();
-        assert_eq!(tree_to_string(&dfa.re), "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
+        dfa.calc_node();
+        assert_eq!(tree_to_string(&dfa.re, true), "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
+    }
+
+    #[test]
+    fn dfa_nullable() {
+        let re = build_re();
+        let mut dfa = DfaBuilder::new(re);
+        dfa.calc_node();
+        assert_eq!(tree_to_string(&dfa.re, false), "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
     }
 
     // #[test]

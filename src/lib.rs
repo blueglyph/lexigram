@@ -37,6 +37,14 @@ impl ReType {
     pub fn is_leaf(&self) -> bool {
         matches!(self, ReType::Empty | ReType::End | ReType::Char(_) | ReType::String(_))
     }
+
+    pub fn is_nullable(&self) -> Option<bool> {
+        match self {
+            ReType::Empty | ReType::Star => Some(true),
+            ReType::End | ReType::Char(_) | ReType::String(_) => Some(false),
+            _ => None
+        }
+    }
 }
 
 impl Display for ReType {
@@ -101,18 +109,27 @@ impl DfaBuilder {
         builder
     }
 
-    fn calc_leaf_id(&mut self) {
+    fn calc_node(&mut self) {
         let mut id = 0;
-        for node in self.re.iter_depth_mut() {
-            if node.data.is_leaf() {
+        for inode in self.re.iter_depth_mut() {
+            if inode.data.is_leaf() {
                 id += 1;
-                node.data.id = Some(id);
+                inode.data.id = Some(id);
+            }
+            if let Some(nullable) = inode.data.op.is_nullable() {
+                inode.data.nullable = Some(nullable);
+            } else {
+                inode.data.nullable = match &inode.data.op {
+                    ReType::Concat => Some(inode.iter_children_data().all(|child| child.nullable.unwrap())),
+                    ReType::Or => Some(inode.iter_children_data().any(|child| child.nullable.unwrap())),
+                    op => panic!("{:?} should have a fixed nullable property", op)
+                }
             }
         }
     }
 
     pub fn build_dfa(&mut self) {
-        self.calc_leaf_id();
+        self.calc_node();
     }
 
     // pub fn print(&self) {
