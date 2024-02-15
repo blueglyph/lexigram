@@ -18,9 +18,9 @@ mod vectree;
 /// See also:
 /// - Ref: https://en.wikipedia.org/wiki/Comparison_of_parser_generators
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub enum ReType {
-    Empty,
+    #[default] Empty,
     End,
     Char(char),
     String(String),
@@ -61,18 +61,18 @@ impl Display for ReType {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Default)]
 pub struct ReNode {
     id: Option<usize>,
     op: ReType,
-    firstpos: Vec<usize>,
-    lastpos: Vec<usize>,
+    firstpos: HashSet<usize>,
+    lastpos: HashSet<usize>,
     nullable: Option<bool>
 }
 
 impl ReNode {
     pub fn new(node: ReType) -> ReNode {
-        ReNode { id: None, op: node, firstpos: Vec::new(), lastpos: Vec::new(), nullable: None }
+        ReNode { id: None, op: node, firstpos: HashSet::new(), lastpos: HashSet::new(), nullable: None }
     }
 
     pub fn is_leaf(&self) -> bool {
@@ -115,6 +115,22 @@ impl DfaBuilder {
             if inode.data.is_leaf() {
                 id += 1;
                 inode.data.id = Some(id);
+                inode.data.firstpos.insert(id);
+                inode.data.lastpos.insert(id);
+            } else {
+                match inode.data.op {
+                    ReType::Concat => {
+
+                    }
+                    ReType::Star => {
+                        let firstpos = inode.iter_children_data().next().unwrap().firstpos.iter().map(|&n| n).collect::<Vec<_>>();
+                        inode.data.firstpos.extend(firstpos);
+                    }
+                    ReType::Or => {
+
+                    }
+                    _ => {}
+                }
             }
             if let Some(nullable) = inode.data.op.is_nullable() {
                 inode.data.nullable = Some(nullable);

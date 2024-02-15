@@ -47,6 +47,39 @@ fn build_re() -> VecTree<ReNode> {
     re
 }
 
+fn debug_tree(tree: &VecTree<ReNode>) -> String {
+    let mut result = String::new();
+    let size = tree.len();
+    for i in 0..size {
+        let node = tree.get(i);
+        result.push_str(&format!("{i:3} "));
+        if let Some(id) = node.id {
+            result.push_str(&format!("{id}:"));
+        }
+        if node.nullable.unwrap_or(false) {
+            result.push('!');
+        }
+        result.push_str(&node.op.to_string());
+        let children = tree.children(i).iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
+        if children.len() > 0 {
+            result.push_str(" -> ");
+            result.push_str(&children);
+        }
+        let firstpos = node.firstpos.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
+        if firstpos.len() > 0 {
+            result.push_str(" fp:");
+            result.push_str(&firstpos);
+        }
+        let lastpos = node.lastpos.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
+        if lastpos.len() > 0 {
+            result.push_str(" lp:");
+            result.push_str(&lastpos);
+        }
+        result.push('\n');
+    }
+    result
+}
+
 mod test_node {
     use super::*;
 
@@ -70,6 +103,7 @@ mod test_node {
         let mut dfa = DfaBuilder::new(re);
         dfa.calc_node();
         assert_eq!(tree_to_string(&dfa.re, false), "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
+        println!("{:}", debug_tree(&dfa.re));
     }
 
     // #[test]
