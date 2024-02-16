@@ -11,6 +11,7 @@ use crate::take_until::TakeUntilIterator;
 mod tests;
 mod vectree;
 mod take_until;
+mod macros;
 
 /// Regular expressions / DFA, See:
 /// - https://blog.burntsushi.net/regex-internals/
@@ -136,7 +137,21 @@ impl DfaBuilder {
                             lastpos.extend(&child.lastpos);
                         }
                         inode.data.lastpos.extend(lastpos);
-
+                        // followpos:
+                        // for all pairs of consecutive children {c[i], c[i+1]},
+                        //     for all j in c[i].lastpos
+                        //         followpos[j].extend(c[i+1].firstpos)
+                        let mut iter = inode.iter_children_data();
+                        let mut a = iter.next().unwrap();   // a is c[i]
+                        while let Some(b) = iter.next() {   // b is c[i+1]
+                            for j in &a.lastpos {
+                                if !self.followpos.contains_key(j) {
+                                    self.followpos.insert(*j, HashSet::new());
+                                }
+                                self.followpos.get_mut(j).unwrap().extend(&b.firstpos);
+                            }
+                            a = b;
+                        }
                     }
                     ReType::Star => {
                         // firstpos, lastpos identical to child's
@@ -144,6 +159,15 @@ impl DfaBuilder {
                         inode.data.firstpos.extend(firstpos);
                         let lastpos = inode.iter_children_data().next().unwrap().lastpos.iter().map(|&n| n).collect::<Vec<_>>();
                         inode.data.lastpos.extend(lastpos);
+                        // followpos:
+                        // for all i in *.lastpos,
+                        //     followpos[i].extend(*.firstpos)
+                        for i in &inode.data.lastpos {
+                            if !self.followpos.contains_key(i) {
+                                self.followpos.insert(*i, HashSet::new());
+                            }
+                            self.followpos.get_mut(i).unwrap().extend(&inode.data.firstpos);
+                        }
                     }
                     ReType::Or => {
                         // firstpos, lastpost = union of children's

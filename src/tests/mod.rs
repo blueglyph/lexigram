@@ -210,6 +210,32 @@ mod test_node {
         }
     }
 
+    #[test]
+    fn dfa_followpos() {
+        let expected = vec!{
+            hashmap![
+                1 => hashset![1, 2, 3],
+                2 => hashset![1, 2, 3],
+                3 => hashset![4],
+                4 => hashset![5],
+                5 => hashset![6]
+            ],
+            hashmap![
+                1 => hashset![1, 2, 3],
+                2 => hashset![1, 2, 3],
+                3 => hashset![4],
+                4 => hashset![5],
+                5 => hashset![6]
+            ]
+        };
+        for test_id in 0..=1 {
+            let re = build_re(test_id);
+            let mut dfa = DfaBuilder::new(re);
+            dfa.calc_node();
+            assert_eq!(dfa.followpos, expected[test_id]);
+        }
+    }
+
     // just prints the debug info
     #[ignore]
     #[test]
@@ -219,6 +245,14 @@ mod test_node {
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node();
             println!("{test_id}: {}\n{:}", tree_to_string(&dfa.re, true), debug_tree(&dfa.re));
+            let mut keys = dfa.followpos.keys().map(|&k| k).collect::<Vec<_>>();
+            keys.sort();
+            for k in keys {
+                let mut followpos = dfa.followpos.get(&k).unwrap().iter().map(|&id| id).collect::<Vec<_>>();
+                followpos.sort();
+                println!("followpos[{k}]: {}", followpos.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(","));
+            }
+            println!();
         }
     }
 
