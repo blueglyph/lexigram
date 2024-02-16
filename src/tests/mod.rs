@@ -5,6 +5,7 @@
 #![cfg(test)]
 
 mod vectree;
+
 use crate::*;
 
 fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
@@ -65,12 +66,16 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
             result.push_str(" -> ");
             result.push_str(&children);
         }
-        let firstpos = node.firstpos.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
+        let mut firstpos = node.firstpos.iter().collect::<Vec<_>>();
+        firstpos.sort();
+        let firstpos = firstpos.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
         if firstpos.len() > 0 {
             result.push_str(" fp:");
             result.push_str(&firstpos);
         }
-        let lastpos = node.lastpos.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
+        let mut lastpos = node.lastpos.iter().collect::<Vec<_>>();
+        lastpos.sort();
+        let lastpos = lastpos.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
         if lastpos.len() > 0 {
             result.push_str(" lp:");
             result.push_str(&lastpos);
@@ -103,6 +108,42 @@ mod test_node {
         let mut dfa = DfaBuilder::new(re);
         dfa.calc_node();
         assert_eq!(tree_to_string(&dfa.re, false), "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
+    }
+
+    #[test]
+    fn dfa_firstpos() {
+        let re = build_re();
+        let mut dfa = DfaBuilder::new(re);
+        dfa.calc_node();
+        let mut result = Vec::new();
+        for inode in dfa.re.iter_depth() {
+            let mut firstpos = inode.data.firstpos.iter().map(|n| *n).collect::<Vec<_>>();
+            firstpos.sort();
+            result.push(firstpos)
+        }
+        assert_eq!(result, vec![
+            vec![1], vec![2],   // a, b
+            vec![1, 2],         // |
+            vec![1, 2],         // *
+            vec![3],            // a
+            vec![1, 2, 3],      // &
+            vec![4],            // b
+            vec![1, 2, 3],      // &
+            vec![5],            // b
+            vec![1, 2, 3],      // &
+            vec![6],            // <end>
+            vec![1, 2, 3]       // &
+        ]);
+    }
+
+
+    // just prints the debug info
+    #[ignore]
+    #[test]
+    fn print_debug_calc() {
+        let re = build_re();
+        let mut dfa = DfaBuilder::new(re);
+        dfa.calc_node();
         println!("{:}", debug_tree(&dfa.re));
     }
 

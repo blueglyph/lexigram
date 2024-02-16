@@ -6,9 +6,11 @@
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use crate::vectree::VecTree;
+use crate::take_until::TakeUntilIterator;
 
 mod tests;
 mod vectree;
+mod take_until;
 
 /// Regular expressions / DFA, See:
 /// - https://blog.burntsushi.net/regex-internals/
@@ -120,14 +122,27 @@ impl DfaBuilder {
             } else {
                 match inode.data.op {
                     ReType::Concat => {
-
+                        // firstpos from children: take in order all nullables and the 1st non-nullable
+                        let firstpos = inode.iter_children_data().take_until(|&n| !n.nullable.unwrap())
+                            .map(|n| &n.firstpos)
+                            .fold(HashSet::<usize>::new(), |mut acc, x| {
+                                acc.extend(x);
+                                acc
+                            });
+                        inode.data.firstpos.extend(firstpos);
                     }
                     ReType::Star => {
                         let firstpos = inode.iter_children_data().next().unwrap().firstpos.iter().map(|&n| n).collect::<Vec<_>>();
                         inode.data.firstpos.extend(firstpos);
                     }
                     ReType::Or => {
-
+                        let firstpos = inode.iter_children_data()
+                            .map(|n| &n.firstpos)
+                            .fold(HashSet::<usize>::new(), |mut acc, x| {
+                                acc.extend(x);
+                                acc
+                            });
+                        inode.data.firstpos.extend(firstpos);
                     }
                     _ => {}
                 }
