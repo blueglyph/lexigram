@@ -36,15 +36,32 @@ fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
     }
 }
 
-fn build_re() -> VecTree<ReNode> {
+fn build_re(test: usize) -> VecTree<ReNode> {
     let mut re = VecTree::new();
-    let f = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
-    let e = re.add_iter(f, [ReNode::new(ReType::Concat), ReNode::new(ReType::End)])[0];
-    let d = re.add_iter(e, [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
-    let c = re.add_iter(d, [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
-    let b = re.add_iter(c, [ReNode::new(ReType::Star), ReNode::new(ReType::Char('a'))])[0];
-    let a = re.add(b, ReNode::new(ReType::Or));
-    re.add_iter(a, [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+    match test {
+        0 => {
+            let f = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
+            let e = re.add_iter(f, [ReNode::new(ReType::Concat), ReNode::new(ReType::End)])[0];
+            let d = re.add_iter(e, [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
+            let c = re.add_iter(d, [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
+            let b = re.add_iter(c, [ReNode::new(ReType::Star), ReNode::new(ReType::Char('a'))])[0];
+            let a = re.add(b, ReNode::new(ReType::Or));
+            re.add_iter(a, [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+        },
+        1 => {
+            let c = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
+            let b = re.add_iter(c, [
+                ReNode::new(ReType::Star),
+                ReNode::new(ReType::Char('a')),
+                ReNode::new(ReType::Char('b')),
+                ReNode::new(ReType::Char('b')),
+                ReNode::new(ReType::End)
+            ])[0];
+            let a = re.add(b, ReNode::new(ReType::Or));
+            re.add_iter(a, [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+        },
+        _ => panic!("test {test} doesn't exist")
+    }
     re
 }
 
@@ -53,7 +70,7 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
     let size = tree.len();
     for i in 0..size {
         let node = tree.get(i);
-        result.push_str(&format!("{i:3} "));
+        result.push_str(&format!("[{i:3}] "));
         if let Some(id) = node.id {
             result.push_str(&format!("{id}:"));
         }
@@ -63,8 +80,9 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
         result.push_str(&node.op.to_string());
         let children = tree.children(i).iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
         if children.len() > 0 {
-            result.push_str(" -> ");
+            result.push_str(" -> [");
             result.push_str(&children);
+            result.push(']');
         }
         let mut firstpos = node.firstpos.iter().collect::<Vec<_>>();
         firstpos.sort();
@@ -90,13 +108,13 @@ mod test_node {
 
     #[test]
     fn dfa_builder() {
-        let re = build_re();
+        let re = build_re(0);
         assert_eq!(tree_to_string(&re, false), "?&(?&(?&(?&(?*(?|(?'a',?'b')),?'a'),?'b'),?'b'),?<end>)");
     }
 
     #[test]
     fn dfa_id() {
-        let re = build_re();
+        let re = build_re(0);
         let mut dfa = DfaBuilder::new(re);
         dfa.calc_node();
         assert_eq!(tree_to_string(&dfa.re, true), "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
@@ -104,72 +122,104 @@ mod test_node {
 
     #[test]
     fn dfa_nullable() {
-        let re = build_re();
-        let mut dfa = DfaBuilder::new(re);
-        dfa.calc_node();
-        assert_eq!(tree_to_string(&dfa.re, false), "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
+        let expected = vec![
+            "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)",
+            "&(!*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end>)"
+        ];
+        for test_id in 0..=1 {
+            let re = build_re(test_id);
+            let mut dfa = DfaBuilder::new(re);
+            dfa.calc_node();
+            assert_eq!(tree_to_string(&dfa.re, false), expected[test_id]);
+        }
     }
 
     #[test]
     fn dfa_firstpos() {
-        let re = build_re();
-        let mut dfa = DfaBuilder::new(re);
-        dfa.calc_node();
-        let mut result = Vec::new();
-        for inode in dfa.re.iter_depth() {
-            let mut firstpos = inode.data.firstpos.iter().map(|n| *n).collect::<Vec<_>>();
-            firstpos.sort();
-            result.push(firstpos)
+        let expected = vec![
+            vec![
+                vec![1], vec![2],   // a, b
+                vec![1, 2],         // |
+                vec![1, 2],         // *
+                vec![3],            // a
+                vec![1, 2, 3],      // &
+                vec![4],            // b
+                vec![1, 2, 3],      // &
+                vec![5],            // b
+                vec![1, 2, 3],      // &
+                vec![6],            // <end>
+                vec![1, 2, 3],      // &
+            ],
+            vec![
+                vec![1], vec![2],                   // a, b
+                vec![1, 2],                         // |
+                vec![1, 2],                         // *
+                vec![3], vec![4], vec![5], vec![6], // a, b, b, <end>
+                vec![1, 2, 3],                      // &
+            ]
+        ];
+        for test_id in 0..=1 {
+            let re = build_re(test_id);
+            let mut dfa = DfaBuilder::new(re);
+            dfa.calc_node();
+            let mut result = Vec::new();
+            for inode in dfa.re.iter_depth() {
+                let mut firstpos = inode.data.firstpos.iter().map(|n| *n).collect::<Vec<_>>();
+                firstpos.sort();
+                result.push(firstpos)
+            }
+            assert_eq!(result, expected[test_id]);
         }
-        assert_eq!(result, vec![
-            vec![1], vec![2],   // a, b
-            vec![1, 2],         // |
-            vec![1, 2],         // *
-            vec![3],            // a
-            vec![1, 2, 3],      // &
-            vec![4],            // b
-            vec![1, 2, 3],      // &
-            vec![5],            // b
-            vec![1, 2, 3],      // &
-            vec![6],            // <end>
-            vec![1, 2, 3]       // &
-        ]);
     }
 
     #[test]
     fn dfa_lastpos() {
-        let re = build_re();
-        let mut dfa = DfaBuilder::new(re);
-        dfa.calc_node();
-        let mut result = Vec::new();
-        for inode in dfa.re.iter_depth() {
-            let mut lastpos = inode.data.lastpos.iter().map(|n| *n).collect::<Vec<_>>();
-            lastpos.sort();
-            result.push(lastpos)
+        let expected = vec![
+            vec![
+                vec![1], vec![2],   // a, b
+                vec![1, 2],         // |
+                vec![1, 2],         // *
+                vec![3],            // a
+                vec![3],            // &
+                vec![4],            // b
+                vec![4],            // &
+                vec![5],            // b
+                vec![5],            // &
+                vec![6],            // <end>
+                vec![6],            // &
+            ],
+            vec![
+                vec![1], vec![2],                   // a, b
+                vec![1, 2],                         // |
+                vec![1, 2],                         // *
+                vec![3], vec![4], vec![5], vec![6], // a, b, b, <end>
+                vec![6],                            // &
+            ]
+        ];
+        for test_id in 0..=1 {
+            let re = build_re(test_id);
+            let mut dfa = DfaBuilder::new(re);
+            dfa.calc_node();
+            let mut result = Vec::new();
+            for inode in dfa.re.iter_depth() {
+                let mut lastpos = inode.data.lastpos.iter().map(|n| *n).collect::<Vec<_>>();
+                lastpos.sort();
+                result.push(lastpos)
+            }
+            assert_eq!(result, expected[test_id]);
         }
-        assert_eq!(result, vec![
-            vec![1], vec![2],   // a, b
-            vec![1, 2],         // |
-            vec![1, 2],         // *
-            vec![3],            // a
-            vec![3],            // &
-            vec![4],            // b
-            vec![4],            // &
-            vec![5],            // b
-            vec![5],            // &
-            vec![6],            // <end>
-            vec![6]             // &
-        ]);
     }
 
     // just prints the debug info
     #[ignore]
     #[test]
     fn print_debug_calc() {
-        let re = build_re();
-        let mut dfa = DfaBuilder::new(re);
-        dfa.calc_node();
-        println!("{:}", debug_tree(&dfa.re));
+        for test_id in 0..=1 {
+            let re = build_re(test_id);
+            let mut dfa = DfaBuilder::new(re);
+            dfa.calc_node();
+            println!("{test_id}: {}\n{:}", tree_to_string(&dfa.re, true), debug_tree(&dfa.re));
+        }
     }
 
     // #[test]
