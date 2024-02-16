@@ -122,13 +122,10 @@ impl DfaBuilder {
             } else {
                 match inode.data.op {
                     ReType::Concat => {
-                        // firstpos from children: take in order all nullables and the 1st non-nullable
-                        let firstpos = inode.iter_children_data().take_until(|&n| !n.nullable.unwrap())
-                            .map(|n| &n.firstpos)
-                            .fold(HashSet::<usize>::new(), |mut acc, x| {
-                                acc.extend(x);
-                                acc
-                            });
+                        let mut firstpos = HashSet::<usize>::new();
+                        for child in inode.iter_children_data().take_until(|&n| !n.nullable.unwrap()) {
+                            firstpos.extend(&child.firstpos);
+                        }
                         inode.data.firstpos.extend(firstpos);
                     }
                     ReType::Star => {
@@ -136,15 +133,13 @@ impl DfaBuilder {
                         inode.data.firstpos.extend(firstpos);
                     }
                     ReType::Or => {
-                        let firstpos = inode.iter_children_data()
-                            .map(|n| &n.firstpos)
-                            .fold(HashSet::<usize>::new(), |mut acc, x| {
-                                acc.extend(x);
-                                acc
-                            });
+                        let mut firstpos = HashSet::<usize>::new();
+                        for child in inode.iter_children_data() {
+                            firstpos.extend(&child.firstpos);
+                        }
                         inode.data.firstpos.extend(firstpos);
                     }
-                    _ => {}
+                    _ => panic!("{:?}: no way to compute firstpos/...", inode.data)
                 }
             }
             if let Some(nullable) = inode.data.op.is_nullable() {
