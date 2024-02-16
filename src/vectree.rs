@@ -144,7 +144,7 @@ pub struct NodeProxy<T, TRef> {
 }
 
 impl<T, TRef> NodeProxy<T, TRef> {
-    pub fn iter_children(&self) -> impl Iterator<Item = NodeProxy<T, &T>> {
+    pub fn iter_children(&self) -> impl DoubleEndedIterator<Item = NodeProxy<T, &T>> {
         assert!(self.index < self.tree_size);
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&index| NodeProxy {
@@ -155,7 +155,7 @@ impl<T, TRef> NodeProxy<T, TRef> {
         })
     }
 
-    pub fn iter_children_data(&self) -> impl Iterator<Item = &T> {
+    pub fn iter_children_data(&self) -> impl DoubleEndedIterator<Item = &T> {
         assert!(self.index < self.tree_size);
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&c| self.get(c))

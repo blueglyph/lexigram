@@ -122,22 +122,39 @@ impl DfaBuilder {
             } else {
                 match inode.data.op {
                     ReType::Concat => {
+                        // firstpos = union of all firstpos until the first non-nullable child (included)
                         let mut firstpos = HashSet::<usize>::new();
                         for child in inode.iter_children_data().take_until(|&n| !n.nullable.unwrap()) {
                             firstpos.extend(&child.firstpos);
                         }
                         inode.data.firstpos.extend(firstpos);
+                        // lastpos = union of all lastpos until the first non-nullable child (included), starting from the end
+                        let mut lastpos = HashSet::<usize>::new();
+                        for child in inode.iter_children_data().rev().take_until(|&n| !n.nullable.unwrap()) {
+                            lastpos.extend(&child.lastpos);
+                        }
+                        inode.data.lastpos.extend(lastpos);
+
                     }
                     ReType::Star => {
+                        // firstpos, lastpos identical to child's
                         let firstpos = inode.iter_children_data().next().unwrap().firstpos.iter().map(|&n| n).collect::<Vec<_>>();
                         inode.data.firstpos.extend(firstpos);
+                        let lastpos = inode.iter_children_data().next().unwrap().lastpos.iter().map(|&n| n).collect::<Vec<_>>();
+                        inode.data.lastpos.extend(lastpos);
                     }
                     ReType::Or => {
+                        // firstpos, lastpost = union of children's
                         let mut firstpos = HashSet::<usize>::new();
                         for child in inode.iter_children_data() {
                             firstpos.extend(&child.firstpos);
                         }
                         inode.data.firstpos.extend(firstpos);
+                        let mut lastpos = HashSet::<usize>::new();
+                        for child in inode.iter_children_data() {
+                            lastpos.extend(&child.lastpos);
+                        }
+                        inode.data.lastpos.extend(lastpos);
                     }
                     _ => panic!("{:?}: no way to compute firstpos/...", inode.data)
                 }

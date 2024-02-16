@@ -140,4 +140,17 @@ mod tests {
         let result = tree_to_string(&tree);
         assert_eq!(result, "ROOT(a(a1,a2),b,C(c1,c2))");
     }
+
+    #[test]
+    fn node_proxy_double_ended() {
+        let tree = build_tree();
+        let mut result1 = Vec::new();
+        let mut result2 = Vec::new();
+        for inode in tree.iter_depth() {
+            result1.push(format!("{}:{}", inode.data, &inode.iter_children_data().rev().map(|s| s.to_string()).collect::<Vec<_>>().join(",")));
+            result2.push(format!("{}:{}", inode.data, &inode.iter_children().rev().map(|s| s.data.to_string()).collect::<Vec<_>>().join(",")));
+        }
+        assert_eq!(result1, vec!["a1:", "a2:", "a:a2,a1", "b:", "c1:", "c2:", "c:c2,c1", "root:c,b,a"]);
+        assert_eq!(result1, result2);
+    }
 }

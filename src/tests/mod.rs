@@ -136,6 +136,31 @@ mod test_node {
         ]);
     }
 
+    #[test]
+    fn dfa_lastpos() {
+        let re = build_re();
+        let mut dfa = DfaBuilder::new(re);
+        dfa.calc_node();
+        let mut result = Vec::new();
+        for inode in dfa.re.iter_depth() {
+            let mut lastpos = inode.data.lastpos.iter().map(|n| *n).collect::<Vec<_>>();
+            lastpos.sort();
+            result.push(lastpos)
+        }
+        assert_eq!(result, vec![
+            vec![1], vec![2],   // a, b
+            vec![1, 2],         // |
+            vec![1, 2],         // *
+            vec![3],            // a
+            vec![3],            // &
+            vec![4],            // b
+            vec![4],            // &
+            vec![5],            // b
+            vec![5],            // &
+            vec![6],            // <end>
+            vec![6]             // &
+        ]);
+    }
 
     // just prints the debug info
     #[ignore]
