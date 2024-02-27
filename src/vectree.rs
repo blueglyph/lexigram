@@ -1,17 +1,18 @@
-// Copyright 2023 Redglyph
-//
-
+use std::cell::{Cell, UnsafeCell};
 use std::fmt::{Display, Formatter};
-use std::ops::{Index, IndexMut};
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut, Index, IndexMut};
+use std::ptr::NonNull;
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug)]
 pub struct VecTree<T> {
-    nodes: Vec<Node<T>>
+    nodes: Vec<Node<T>>,
+    borrows: Cell<u32>
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(Debug)]
 pub struct Node<T> {
-    data: T,
+    data: UnsafeCell<T>,
     children: Vec<usize>
 }
 
@@ -25,16 +26,16 @@ enum VisitNode<T> {
 
 impl<T> VecTree<T> {
     pub fn new() -> Self {
-        VecTree { nodes: Vec::new() }
+        VecTree { nodes: Vec::new(), borrows: Cell::new(0) }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        VecTree { nodes: Vec::with_capacity(capacity) }
+        VecTree { nodes: Vec::with_capacity(capacity), borrows: Cell::new(0) }
     }
 
     pub fn set_root(&mut self, item: T) -> Result<usize, ()> {
         if self.nodes.is_empty() {
-            let node = Node { data: item, children: Vec::new() };
+            let node = Node { data: UnsafeCell::new(item), children: Vec::new() };
             self.nodes.push(node);
             Ok(0)
         } else {
@@ -45,14 +46,10 @@ impl<T> VecTree<T> {
     pub fn add(&mut self, parent_index: usize, item: T) -> usize {
         let index = self.nodes.len();
         self.nodes[parent_index].children.push(index);
-        let node = Node::new(item);
+        let node = Node { data: UnsafeCell::new(item), children: Vec::new() };
         self.nodes.push(node);
         index
     }
-
-    // pub fn concat<T>(items: T) -> ReNodeId where T: IntoIterator<Item = ReNodeId> {
-    //         ReNodeId::new(ReNode::Concat(items.into_iter().collect()))
-    //     }
 
     pub fn add_iter<U: IntoIterator<Item = T>>(&mut self, parent_index: usize, items: U) -> &[usize] {
         for item in items {
@@ -66,27 +63,23 @@ impl<T> VecTree<T> {
     }
 
     pub fn get(&self, index: usize) -> &T {
-        &self.nodes.get(index).unwrap().data
+        unsafe { &*self.nodes.get(index).unwrap().data.get() }
     }
 
     pub fn get_mut(&mut self, index: usize) -> &mut T {
-        &mut self.nodes.get_mut(index).unwrap().data
+        self.nodes.get_mut(index).unwrap().data.get_mut()
     }
 
     pub fn children(&self, index: usize) -> &[usize] {
         &self.nodes.get(index).unwrap().children
     }
 
-    pub fn iter_children(&self, index: usize) -> impl Iterator<Item = &Node<T>> {
+    pub fn iter_children(&self, index: usize) -> impl DoubleEndedIterator<Item = &Node<T>> {
         self.nodes.get(index).unwrap().children.iter().map(|&i| self.nodes.get(i).unwrap())
     }
 }
 
 impl<T> Node<T> {
-    pub fn new(data: T) -> Self {
-        Node { data, children: Vec::new() }
-    }
-
     pub fn has_children(&self) -> bool {
         !self.children.is_empty()
     }
@@ -120,155 +113,365 @@ impl<T: Display> Display for VisitNode<T> {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Common to mutable and immutable iterators
+// Iterators
 
-/// Post-order, depth-first search iterator type for `TreeRef` = `&VecTree<T>` or `&mut VecTree<T>`
-pub struct VecTreeIter<TreeRef> {
+pub struct VecTreeIter<TData> {
     stack: Vec<VisitNode<usize>>,
     next: Option<VisitNode<usize>>,
-    tree: TreeRef
+    data: TData
 }
 
-impl<TreeRef> VecTreeIter<TreeRef> {
-    pub fn new(tree: TreeRef) -> Self {
-        VecTreeIter { stack: Vec::new(), next: Some(VisitNode::Down(0)), tree }
+pub trait TreeDataIter {
+    type TProxy;
+    fn get_children(&self, index: usize) -> &[usize];
+    fn get_size(&self) -> usize;
+    fn create_proxy(&self, index: usize) -> Self::TProxy;
+}
+
+impl<'a, TData: TreeDataIter> Iterator for VecTreeIter<TData> {
+    type Item = TData::TProxy;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while let Some(node_dir) = self.next {
+            let index_option = match node_dir {
+                VisitNode::Down(index) => {
+                    let children = self.data.get_children(index);
+                    if children.is_empty() {
+                        Some(index.clone())
+                    } else {
+                        self.stack.push(VisitNode::Up(index.clone()));
+                        for index in children.iter().rev() {
+                            self.stack.push(VisitNode::Down(*index));
+                        }
+                        None
+                    }
+                }
+                VisitNode::Up(index) => {
+                    Some(index)
+                }
+            };
+            self.next = self.stack.pop();
+            if let Some(index) = index_option {
+                return Some(self.data.create_proxy(index));
+            }
+        }
+        None
     }
 }
 
-/// Iterator return type for `TRef` = `&T` or `&mut T`
-pub struct NodeProxy<T, TRef> {
-    pub index: usize,
-    pub data: TRef,
-    tree_node_ptr: *const Node<T>,
-    tree_size: usize
-}
-
-impl<T, TRef> NodeProxy<T, TRef> {
-    pub fn iter_children(&self) -> impl DoubleEndedIterator<Item = NodeProxy<T, &T>> {
-        assert!(self.index < self.tree_size);
-        let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
-        children.iter().map(|&index| NodeProxy {
-            index,
-            data: self.get(index),
-            tree_node_ptr: self.tree_node_ptr,
-            tree_size: self.tree_size
-        })
+impl<'a, T> VecTree<T> {
+    pub fn iter_depth_simple(&'a self) -> VecTreeIter<IterDataSimple<'a, T>> {
+        VecTreeIter::<IterDataSimple<'a, T>>::new(self)
     }
 
-    pub fn iter_children_data(&self) -> impl DoubleEndedIterator<Item = &T> {
-        assert!(self.index < self.tree_size);
-        let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
-        children.iter().map(|&c| self.get(c))
+    pub fn iter_depth(&self) -> VecTreeIter<IterData<'a, T>> {
+        VecTreeIter::<IterData<'a, T>>::new(&self)
     }
 
-    #[inline]
-    fn get(&self, index: usize) -> &T {
-        assert!(index < self.tree_size);
-        unsafe { &(*self.tree_node_ptr.add(index)).data }
+    pub fn iter_depth_simple_mut(&'a mut self) -> VecTreeIter<IterDataSimpleMut<'a, T>> {
+        VecTreeIter::<IterDataSimpleMut<'a, T>>::new(self)
+    }
+
+    pub fn iter_depth_mut(&'a mut self) -> VecTreeIter<IterDataMut<'a, T>> {
+        VecTreeIter::<IterDataMut<'a, T>>::new(self)
     }
 }
 
 // ---------------------------------------------------------------------------------------------
 // Immutable iterator
 
-impl<'a, T> VecTree<T> {
-    pub fn iter_depth(&'a self) -> VecTreeIter<&'a VecTree<T>> {
-        VecTreeIter::new(self)
+impl<'a, T> VecTreeIter<IterDataSimple<'a, T>> {
+    fn new(tree: &'a VecTree<T>) -> Self {
+        VecTreeIter {
+            stack: Vec::new(),
+            next: Some(VisitNode::Down(0)),
+            data: IterDataSimple { tree },
+        }
     }
 }
 
-// Post-order, depth-first search immutable iterator for `VecTree<T>`
-impl<'a, T> Iterator for VecTreeIter<&'a VecTree<T>> {
-    type Item = NodeProxy<T, &'a T>;
+pub struct IterDataSimple<'a, T> {
+    tree: &'a VecTree<T>,
+}
 
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(node_dir) = self.next {
-            let index_option = match node_dir {
-                VisitNode::Down(index) => {
-                    let children = unsafe {
-                        assert!(index < self.tree.nodes.len());
-                        let node = self.tree.nodes.as_ptr().add(index);
-                        &node.as_ref().unwrap().children
-                    };
-                    if children.is_empty() {
-                        Some(index.clone())
-                    } else {
-                        self.stack.push(VisitNode::Up(index.clone()));
-                        for index in children.iter().rev() {
-                            self.stack.push(VisitNode::Down(*index));
-                        }
-                        None
-                    }
-                }
-                VisitNode::Up(index) => {
-                    Some(index)
-                }
-            };
-            self.next = self.stack.pop();
-            if let Some(index) = index_option {
-                assert!(index < self.tree.nodes.len());
-                return Some(NodeProxy {
-                    index,
-                    data: unsafe { &(*self.tree.nodes.as_ptr().add(index)).data },
-                    tree_node_ptr: self.tree.nodes.as_ptr(),
-                    tree_size: self.tree.len(),
-                })
-            }
+impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
+    type TProxy = NodeProxySimple<'a, T>;
+
+    fn get_children(&self, index: usize) -> &[usize] {
+        assert!(index < self.tree.len());
+        unsafe { &(*self.tree.nodes.as_ptr().add(index)).children }
+    }
+
+    fn get_size(&self) -> usize {
+        self.tree.len()
+    }
+
+    fn create_proxy(&self, index: usize) -> Self::TProxy {
+        return NodeProxySimple {
+            index,
+            data: unsafe { NonNull::new_unchecked((*self.tree.nodes.as_ptr().add(index)).data.get()) },
+            _marker: PhantomData
         }
-        None
+    }
+}
+
+pub struct NodeProxySimple<'a, T> {
+    pub index: usize,
+    data: NonNull<T>,
+    _marker: PhantomData<&'a T>
+}
+
+impl<T> Deref for NodeProxySimple<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.data.as_ref() }
+    }
+}
+
+// -- with children
+
+impl<'a, T> VecTreeIter<IterData<'a, T>> {
+    fn new(tree: &VecTree<T>) -> Self {
+        VecTreeIter {
+            stack: Vec::new(),
+            next: Some(VisitNode::Down(0)),
+            data: IterData {
+                tree_nodes_ptr: tree.nodes.as_ptr(),
+                tree_size: tree.nodes.len(),
+                _marker: PhantomData
+            },
+        }
+    }
+}
+
+pub struct IterData<'a, T> {
+    tree_nodes_ptr: *const Node<T>,
+    tree_size: usize,
+    _marker: PhantomData<&'a T>
+}
+
+impl<'a, T> TreeDataIter for IterData<'a, T> {
+    type TProxy = NodeProxy<'a, T>;
+
+    fn get_children(&self, index: usize) -> &[usize] {
+        assert!(index < self.tree_size);
+        unsafe {
+            &self.tree_nodes_ptr.add(index).as_ref().unwrap().children
+        }
+    }
+
+    fn get_size(&self) -> usize {
+        self.tree_size
+    }
+
+    fn create_proxy(&self, index: usize) -> Self::TProxy {
+        return NodeProxy {
+            index,
+            data: unsafe { NonNull::new_unchecked((*self.tree_nodes_ptr.add(index)).data.get()) },
+            tree_node_ptr: self.tree_nodes_ptr,
+            tree_size: self.tree_size,
+            _marker: PhantomData
+        }
+    }
+}
+
+pub struct NodeProxy<'a, T> {
+    pub index: usize,
+    data: NonNull<T>,
+    tree_node_ptr: *const Node<T>,
+    tree_size: usize,
+    _marker: PhantomData<&'a T>
+}
+
+impl<'a, T> NodeProxy<'a, T> {
+    pub fn iter_children(&self) -> impl DoubleEndedIterator<Item=NodeProxy<'_, T>> {
+        assert!(self.index < self.tree_size);
+        let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
+        children.iter().map(|&index| NodeProxy {
+            index,
+            data: unsafe { NonNull::new_unchecked((*self.tree_node_ptr.add(index)).data.get()) },
+            tree_node_ptr: self.tree_node_ptr,
+            tree_size: self.tree_size,
+            _marker: PhantomData
+        })
+    }
+
+    pub fn iter_children_simple(&self) -> impl DoubleEndedIterator<Item=&T> {
+        assert!(self.index < self.tree_size);
+        let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
+        children.iter().map(|&c| unsafe { &*(*self.tree_node_ptr.add(c)).data.get() })
+    }
+}
+
+impl<T> Deref for NodeProxy<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.data.as_ref() }
     }
 }
 
 // ---------------------------------------------------------------------------------------------
 // Mutable iterator
 
-impl<'a, T> VecTree<T> {
-    pub fn iter_depth_mut(&'a mut self) -> VecTreeIter<&'a mut VecTree<T>> {
-        VecTreeIter::new(self)
+impl<'a, T> VecTreeIter<IterDataSimpleMut<'a, T>> {
+    fn new(tree: &'a mut VecTree<T>) -> Self {
+        VecTreeIter {
+            stack: Vec::new(),
+            next: Some(VisitNode::Down(0)),
+            data: IterDataSimpleMut { tree },
+        }
     }
 }
 
-// Post-order, depth-first search mutable iterator for `VecTree<T>`
-impl<'a, T> Iterator for VecTreeIter<&'a mut VecTree<T>> {
-    type Item = NodeProxy<T, &'a mut T>;
+pub struct IterDataSimpleMut<'a, T> {
+    tree: &'a mut VecTree<T>,
+}
 
-    fn next(&mut self) -> Option<Self::Item> {
-        while let Some(node_dir) = self.next {
-            let index_option = match node_dir {
-                VisitNode::Down(index) => {
-                    let children = unsafe {
-                        assert!(index < self.tree.nodes.len());
-                        let node = self.tree.nodes.as_ptr().add(index);
-                        &node.as_ref().unwrap().children
-                    };
-                    if children.is_empty() {
-                        Some(index.clone())
-                    } else {
-                        self.stack.push(VisitNode::Up(index.clone()));
-                        for index in children.iter().rev() {
-                            self.stack.push(VisitNode::Down(*index));
-                        }
-                        None
-                    }
-                }
-                VisitNode::Up(index) => {
-                    Some(index)
-                }
-            };
-            self.next = self.stack.pop();
-            if let Some(index) = index_option {
-                assert!(index < self.tree.nodes.len());
-                return Some(NodeProxy {
-                    index,
-                    data: unsafe { &mut (*self.tree.nodes.as_mut_ptr().add(index)).data },
-                    tree_node_ptr: self.tree.nodes.as_ptr(),
-                    tree_size: self.tree.len(),
-                })
-            }
+impl<'a, T> TreeDataIter for IterDataSimpleMut<'a, T> {
+    type TProxy = NodeProxySimpleMut<'a, T>;
+
+    fn get_children(&self, index: usize) -> &[usize] {
+        assert!(index < self.tree.len());
+        unsafe { &(*self.tree.nodes.as_ptr().add(index)).children }
+    }
+
+    fn get_size(&self) -> usize {
+        self.tree.len()
+    }
+
+    fn create_proxy(&self, index: usize) -> Self::TProxy {
+        return NodeProxySimpleMut {
+            index,
+            data: unsafe { NonNull::new_unchecked((*self.tree.nodes.as_ptr().add(index)).data.get()) },
+            _marker: PhantomData
         }
-        None
+    }
+}
+
+pub struct NodeProxySimpleMut<'a, T> {
+    pub index: usize,
+    data: NonNull<T>,
+    _marker: PhantomData<&'a mut T>     // must be invariant for T
+}
+
+impl<T> Deref for NodeProxySimpleMut<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.data.as_ref() }
+    }
+}
+
+impl<T> DerefMut for NodeProxySimpleMut<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.data.as_mut() }
+    }
+}
+
+// -- with children
+
+impl<'a, T> VecTreeIter<IterDataMut<'a, T>> {
+    fn new(tree: &'a mut VecTree<T>) -> Self {
+        VecTreeIter {
+            stack: Vec::new(),
+            next: Some(VisitNode::Down(0)),
+            data: IterDataMut {
+                tree_nodes_ptr: tree.nodes.as_mut_ptr(),
+                tree_size: tree.nodes.len(),
+                borrows: &tree.borrows,
+                _marker: PhantomData
+            },
+        }
+    }
+}
+
+pub struct IterDataMut<'a, T> {
+    tree_nodes_ptr: *mut Node<T>,
+    tree_size: usize,
+    borrows: &'a Cell<u32>,
+    _marker: PhantomData<&'a mut T>     // must be invariant for T
+}
+
+impl<'a, T> TreeDataIter for IterDataMut<'a, T> {
+    type TProxy = NodeProxyMut<'a, T>;
+
+    fn get_children(&self, index: usize) -> &[usize] {
+        assert!(index < self.tree_size);
+        unsafe {
+            &self.tree_nodes_ptr.add(index).as_ref().unwrap().children
+        }
+    }
+
+    fn get_size(&self) -> usize {
+        self.tree_size
+    }
+
+    fn create_proxy(&self, index: usize) -> Self::TProxy {
+        let c = self.borrows.get() + 1;
+        self.borrows.set(c);
+        return NodeProxyMut {
+            index,
+            data: unsafe { NonNull::new_unchecked((*self.tree_nodes_ptr.add(index)).data.get()) },
+            tree_node_ptr: self.tree_nodes_ptr,
+            tree_size: self.tree_size,
+            borrows: self.borrows,
+            _marker: PhantomData
+        }
+    }
+}
+
+pub struct NodeProxyMut<'a, T> {
+    pub index: usize,
+    data: NonNull<T>,
+    tree_node_ptr: *const Node<T>,
+    tree_size: usize,
+    borrows: &'a Cell<u32>,
+    _marker: PhantomData<&'a mut T>     // must be invariant for T
+}
+
+impl<'a, T> NodeProxyMut<'a, T> {
+    pub fn iter_children(&self) -> impl DoubleEndedIterator<Item = NodeProxy<'_, T>> {
+        assert!(self.index < self.tree_size);
+        let c = self.borrows.get();
+        assert!(c <= 1, "{} extra pending mutable reference(s) on children when requesting immutable references on them", c - 1);
+        let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
+        children.iter().map(|&index| NodeProxy {
+            index,
+            data: unsafe { NonNull::new_unchecked((*self.tree_node_ptr.add(index)).data.get()) },
+            tree_node_ptr: self.tree_node_ptr,
+            tree_size: self.tree_size,
+            _marker: PhantomData
+        })
+    }
+
+    pub fn iter_children_simple(&self) -> impl DoubleEndedIterator<Item=&T> {
+        assert!(self.index < self.tree_size);
+        let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
+        children.iter().map(|&c| unsafe { &*(*self.tree_node_ptr.add(c)).data.get() })
+    }
+}
+
+impl<T> Deref for NodeProxyMut<'_, T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        unsafe { self.data.as_ref() }
+    }
+}
+
+impl<T> DerefMut for NodeProxyMut<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe { self.data.as_mut() }
+    }
+}
+
+impl<T> Drop for NodeProxyMut<'_, T> {
+    fn drop(&mut self) {
+        let c = self.borrows.get() - 1;
+        self.borrows.set(c);
     }
 }
 
 // ---------------------------------------------------------------------------------------------
-

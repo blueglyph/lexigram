@@ -29,10 +29,8 @@ fn build_tree() -> VecTree<String> {
     let a = tree.add(root, "a".to_string());
     let _ = tree.add(root, "b".to_string());
     let c = tree.add(root, "c".to_string());
-    tree.add(a, "a1".to_string());
-    tree.add(a, "a2".to_string());
-    tree.add(c, "c1".to_string());
-    tree.add(c, "c2".to_string());
+    tree.add_iter(a, ["a1".to_string(), "a2".to_string()]);
+    tree.add_iter(c, ["c1", "c2"].map(|s| s.to_string()));
     tree
 }
 
@@ -40,29 +38,52 @@ fn build_tree() -> VecTree<String> {
 mod tests {
     use super::*;
 
-    // NOT NECESSARY: set MIRIFLAGS=-Zmiri-tree-borrows
-    // cargo +nightly miri test --lib tree7_vec_mutitem::tests::iter_depth_children_simple -- --exact
+    #[test]
+    fn test_build_tree() {
+        let tree = build_tree();
+        assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1,c2))");
+    }
+
+    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_children_simple -- --exact
     #[test]
     fn iter_depth_children_simple() {
         let tree = build_tree();
-        assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1,c2))");
-
         let mut result = String::new();
-        for inode in tree.iter_depth() {
-            let main_lineage = inode.data.to_lowercase().starts_with('c')
-                || inode.iter_children_data().any(|n| n.to_lowercase().starts_with('c'));
-            if main_lineage {
-                result.push_str(&inode.data.to_uppercase());
-            } else {
-                result.push_str(&inode.data);
-            }
+        let mut result_index = vec![];
+        for inode in tree.iter_depth_simple() {
+            result.push_str(&inode.to_uppercase());
             result.push(',');
+            result_index.push(inode.index);
         }
-        assert_eq!(result, "a1,a2,a,b,C1,C2,C,ROOT,");
+        assert_eq!(result, "A1,A2,A,B,C1,C2,C,ROOT,");
+        assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // NOT NECESSARY: set MIRIFLAGS=-Zmiri-tree-borrows
-    // cargo +nightly miri test --lib tree7_vec_mutitem::tests::iter_depth_children -- --exact
+    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_children_direct -- --exact
+    #[test]
+    fn iter_depth_children_direct() {
+        let tree = build_tree();
+        let mut result = String::new();
+        let mut result_index = vec![];
+        for inode in tree.iter_depth() {
+            let main_lineage = inode.to_lowercase().starts_with('c')
+                || inode.iter_children().any(|n| n.to_lowercase().starts_with('c'));
+            let main_lineage_simple = inode.to_lowercase().starts_with('c')
+                || inode.iter_children_simple().any(|n| n.to_lowercase().starts_with('c'));
+            assert_eq!(main_lineage, main_lineage_simple);
+            if main_lineage {
+                result.push_str(&inode.to_uppercase());
+            } else {
+                result.push_str(&inode);
+            }
+            result.push(',');
+            result_index.push(inode.index);
+        }
+        assert_eq!(result, "a1,a2,a,b,C1,C2,C,ROOT,");
+        assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
+    }
+
+    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_children -- --exact
     #[test]
     fn iter_depth_children() {
         let tree = build_tree();
@@ -71,70 +92,122 @@ mod tests {
             // condition: any child j begins with 'c' and has all j's children k begin with 'c'
             let sub_is_c = inode.iter_children()
                 .any(|j| {
-                    j.data.to_lowercase().starts_with('c') &&
-                        j.iter_children_data().all(|k| k.to_lowercase().starts_with('c'))
+                    j.to_lowercase().starts_with('c') &&
+                        j.iter_children().all(|k| k.to_lowercase().starts_with('c'))
                 });
             if sub_is_c {
-                result.push_str(&inode.data.to_uppercase());
+                result.push_str(&inode.to_uppercase());
             } else {
-                result.push_str(&inode.data);
+                result.push_str(&inode);
             }
             result.push(',');
         }
         assert_eq!(result, "a1,a2,a,b,c1,c2,C,ROOT,");
     }
 
-    // NOT NECESSARY: set MIRIFLAGS=-Zmiri-tree-borrows
-    // cargo +nightly miri test --lib tree7_vec_mutitem::tests::iter_depth_mut_children_simple -- --exact
+    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children_simple -- --exact
     #[test]
     fn iter_depth_mut_children_simple() {
         let mut tree = build_tree();
-        for inode in tree.iter_depth_mut() {
-            let main_lineage = inode.data.to_lowercase().starts_with('c')
-                || inode.iter_children_data().any(|n| n.to_lowercase().starts_with('c'));
+        let mut result_index = vec![];
+        for mut inode in tree.iter_depth_simple_mut() {
+            *inode = inode.to_uppercase();
+            result_index.push(inode.index);
+        }
+        let result = tree_to_string(&tree);
+        assert_eq!(result, "ROOT(A(A1,A2),B,C(C1,C2))");
+        assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
+    }
+
+    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children_direct -- --exact
+    #[test]
+    fn iter_depth_mut_children_direct() {
+        let mut tree = build_tree();
+        let mut result_index = vec![];
+        for mut inode in tree.iter_depth_mut() {
+            let main_lineage = inode.to_lowercase().starts_with('c')
+                || inode.iter_children().any(|n| n.to_lowercase().starts_with('c'));
+            let main_lineage_simple = inode.to_lowercase().starts_with('c')
+                || inode.iter_children_simple().any(|n| n.to_lowercase().starts_with('c'));
+            assert_eq!(main_lineage, main_lineage_simple);
             if main_lineage {
-                *inode.data = inode.data.to_uppercase();
+                *inode = inode.to_uppercase();
             }
+            result_index.push(inode.index);
         }
         let result = tree_to_string(&tree);
         assert_eq!(result, "ROOT(a(a1,a2),b,C(C1,C2))");
+        assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // NOT NECESSARY: set MIRIFLAGS=-Zmiri-tree-borrows
-    // cargo +nightly miri test --lib tree7_vec_mutitem::tests::iter_depth_mut_children -- --exact
+    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children -- --exact
     #[test]
     fn iter_depth_mut_children() {
         let mut tree = build_tree();
-        for inode in tree.iter_depth_mut() {
+        for mut inode in tree.iter_depth_mut() {
             // condition: any child j begins with 'c' and has all j's children k begin with 'c'
             let sub_is_c = inode.iter_children()
                 .any(|j| {
-                    j.data.to_lowercase().starts_with('c') &&
-                        j.iter_children_data().all(|k| k.to_lowercase().starts_with('c'))
+                    j.to_lowercase().starts_with('c') &&
+                        j.iter_children().all(|k| k.to_lowercase().starts_with('c'))
                 });
             if sub_is_c {
-                *inode.data = inode.data.to_uppercase();
+                *inode = inode.to_uppercase();
             }
         }
         let result = tree_to_string(&tree);
         assert_eq!(result, "ROOT(a(a1,a2),b,C(c1,c2))");
     }
 
-    // NOT NECESSARY: set MIRIFLAGS=-Zmiri-tree-borrows
-    // cargo +nightly miri test --lib tree7_vec_mutitem::tests::iter_depth_mut_children_miri -- --exact
+    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children_simple_miri -- --exact
+    #[test]
+    fn iter_depth_mut_children_simple_miri() {
+        let mut tree = build_tree();
+        let inodes = tree.iter_depth_simple_mut().collect::<Vec<_>>();
+        for mut inode in inodes {
+            *inode = inode.to_uppercase();
+        }
+        let result = tree_to_string(&tree);
+        assert_eq!(result, "ROOT(A(A1,A2),B,C(C1,C2))");
+    }
+
+    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children_miri -- --exact
     #[test]
     fn iter_depth_mut_children_miri() {
         let mut tree = build_tree();
         let inodes = tree.iter_depth_mut().collect::<Vec<_>>();
-        for inode in inodes {
+        for mut inode in inodes {
+            *inode = inode.to_uppercase();
+        }
+        let result = tree_to_string(&tree);
+        assert_eq!(result, "ROOT(A(A1,A2),B,C(C1,C2))");
+    }
+}
+
+#[cfg(test)]
+mod borrow {
+    use super::*;
+
+    #[test]
+    #[should_panic(expected="pending mutable reference(s) on children")]
+    fn iter_depth_mut_children_bad() {
+        let mut tree = build_tree();
+        let inodes = tree.iter_depth_mut().collect::<Vec<_>>();
+        for mut inode in inodes {
             // condition: any child j begins with 'c' and has all j's children k begin with 'c'
             let sub_is_c = inode.iter_children()
                 .any(|j| {
-                    j.data.to_lowercase().starts_with('c') &&
-                        j.iter_children_data().all(|k| k.to_lowercase().starts_with('c'))
+                    //----------------------------------------------------------------------
+                    // SHOULD PANIC: we want immutable reference to children while there are
+                    //               pending mutable references (in inodes):
+                    // j.to_lowercase().starts_with('c') &&
+                    //     j.iter_children_data().all(|k| k.to_lowercase().starts_with('c'))
+                    j.to_lowercase().starts_with('c') &&
+                        j.iter_children().all(|k| k.to_lowercase().starts_with('c'))
+                    //----------------------------------------------------------------------
                 });
             if sub_is_c {
-                *inode.data = inode.data.to_uppercase();
+                *inode = inode.to_uppercase();
             }
         }
         let result = tree_to_string(&tree);
@@ -142,15 +215,62 @@ mod tests {
     }
 
     #[test]
-    fn node_proxy_double_ended() {
-        let tree = build_tree();
-        let mut result1 = Vec::new();
-        let mut result2 = Vec::new();
-        for inode in tree.iter_depth() {
-            result1.push(format!("{}:{}", inode.data, &inode.iter_children_data().rev().map(|s| s.to_string()).collect::<Vec<_>>().join(",")));
-            result2.push(format!("{}:{}", inode.data, &inode.iter_children().rev().map(|s| s.data.to_string()).collect::<Vec<_>>().join(",")));
+    #[should_panic(expected="pending mutable reference(s) on children when requesting immutable references on them")]
+    fn iter_depth_mut_borrow() {
+        let mut tree = build_tree();
+        {
+            // a1,a2,a,b,c1,c2,c,root
+            let mut inodes = tree.iter_depth_mut();
+            let mut a1_write = inodes.next().unwrap();  // taking   a1
+            inodes.next();                              // skipping a2
+            let a_write = inodes.next().unwrap();       // taking   a
+            //----------------------------------------------------------------------
+            // SHOULD PANIC: we want immutable reference to children while there are
+            //               pending mutable references (a1_write):
+            // let a1_read = a_write.iter_children_data().nth(0).unwrap(); // another ref to a1
+            let a1_read = a_write.iter_children().nth(0).unwrap(); // another ref to a1
+            //----------------------------------------------------------------------
+            let a1_a = a1_read.clone();
+            println!("using a1_write");
+            *a1_write = "A1".to_string();               // !!
+            let a1_b = a1_read.clone();
+            assert_eq!(a1_a, "a1");                     // might fail
+            assert_eq!(a1_b, "A1");                     // might fail
         }
-        assert_eq!(result1, vec!["a1:", "a2:", "a:a2,a1", "b:", "c1:", "c2:", "c:c2,c1", "root:c,b,a"]);
-        assert_eq!(result1, result2);
+        let result = tree_to_string(&tree);
+        assert_eq!(result, "root(a(A1,a2),b,c(c1,c2))");
     }
+}
+
+#[allow(unused)]
+mod failures {
+    /// ```rust,compile_fail
+    /// use test_links::tree10_vec_mutitem::VecTree;
+    /// let mut tree = VecTree::new();
+    /// let a = tree.get_mut(1);
+    /// let b = tree.get(2); // cannot borrow `tree` as immutable because it is also borrowed as mutable
+    /// *a = "0".to_string();
+    /// ```
+    fn must_not_compile1() {}
+
+    /// ```rust,compile_fail
+    /// use test_links::tree10_vec_mutitem::VecTree;
+    /// let mut tree = VecTree::new();
+    /// let a = tree.get(1);
+    /// let b = tree.get_mut(2); // cannot borrow `tree` as mutable because it is also borrowed as immutable
+    /// *b = "0".to_string();
+    /// assert_eq!(a, "a");
+    /// ```
+    fn must_not_compile2() {}
+
+    /// ```rust,compile_fail
+    /// use test_links::tree10_vec_mutitem::VecTree;
+    /// let mut tree = VecTree::<String>::new();
+    /// let a = tree.get(1);
+    /// for mut inode in tree.iter_depth_mut() { // cannot borrow `tree` as mutable because it is also borrowed as immutable
+    ///     *inode = inode.to_uppercase();
+    /// }
+    /// assert_eq!(a, "A");
+    /// ```
+    fn must_not_compile3() {}
 }

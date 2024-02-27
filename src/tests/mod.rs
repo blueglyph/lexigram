@@ -164,7 +164,7 @@ mod test_node {
             dfa.calc_node();
             let mut result = Vec::new();
             for inode in dfa.re.iter_depth() {
-                let mut firstpos = inode.data.firstpos.iter().map(|n| *n).collect::<Vec<_>>();
+                let mut firstpos = inode.firstpos.iter().map(|n| *n).collect::<Vec<_>>();
                 firstpos.sort();
                 result.push(firstpos)
             }
@@ -202,7 +202,7 @@ mod test_node {
             dfa.calc_node();
             let mut result = Vec::new();
             for inode in dfa.re.iter_depth() {
-                let mut lastpos = inode.data.lastpos.iter().map(|n| *n).collect::<Vec<_>>();
+                let mut lastpos = inode.lastpos.iter().map(|n| *n).collect::<Vec<_>>();
                 lastpos.sort();
                 result.push(lastpos)
             }

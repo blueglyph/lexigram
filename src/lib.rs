@@ -116,32 +116,32 @@ impl DfaBuilder {
 
     fn calc_node(&mut self) {
         let mut id = 0;
-        for inode in self.re.iter_depth_mut() {
-            if inode.data.is_leaf() {
+        for mut inode in self.re.iter_depth_mut() {
+            if inode.is_leaf() {
                 id += 1;
-                inode.data.id = Some(id);
-                inode.data.firstpos.insert(id);
-                inode.data.lastpos.insert(id);
+                inode.id = Some(id);
+                inode.firstpos.insert(id);
+                inode.lastpos.insert(id);
             } else {
-                match inode.data.op {
+                match inode.op {
                     ReType::Concat => {
                         // firstpos = union of all firstpos until the first non-nullable child (included)
                         let mut firstpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_data().take_until(|&n| !n.nullable.unwrap()) {
+                        for child in inode.iter_children_simple().take_until(|&n| !n.nullable.unwrap()) {
                             firstpos.extend(&child.firstpos);
                         }
-                        inode.data.firstpos.extend(firstpos);
+                        inode.firstpos.extend(firstpos);
                         // lastpos = union of all lastpos until the first non-nullable child (included), starting from the end
                         let mut lastpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_data().rev().take_until(|&n| !n.nullable.unwrap()) {
+                        for child in inode.iter_children_simple().rev().take_until(|&n| !n.nullable.unwrap()) {
                             lastpos.extend(&child.lastpos);
                         }
-                        inode.data.lastpos.extend(lastpos);
+                        inode.lastpos.extend(lastpos);
                         // followpos:
                         // for all pairs of consecutive children {c[i], c[i+1]},
                         //     for all j in c[i].lastpos
                         //         followpos[j].extend(c[i+1].firstpos)
-                        let mut iter = inode.iter_children_data();
+                        let mut iter = inode.iter_children_simple();
                         let mut a = iter.next().unwrap();   // a is c[i]
                         while let Some(b) = iter.next() {   // b is c[i+1]
                             for j in &a.lastpos {
@@ -155,42 +155,42 @@ impl DfaBuilder {
                     }
                     ReType::Star => {
                         // firstpos, lastpos identical to child's
-                        let firstpos = inode.iter_children_data().next().unwrap().firstpos.iter().map(|&n| n).collect::<Vec<_>>();
-                        inode.data.firstpos.extend(firstpos);
-                        let lastpos = inode.iter_children_data().next().unwrap().lastpos.iter().map(|&n| n).collect::<Vec<_>>();
-                        inode.data.lastpos.extend(lastpos);
+                        let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).collect::<Vec<_>>();
+                        inode.firstpos.extend(firstpos);
+                        let lastpos = inode.iter_children_simple().next().unwrap().lastpos.iter().map(|&n| n).collect::<Vec<_>>();
+                        inode.lastpos.extend(lastpos);
                         // followpos:
                         // for all i in *.lastpos,
                         //     followpos[i].extend(*.firstpos)
-                        for i in &inode.data.lastpos {
+                        for i in &inode.lastpos {
                             if !self.followpos.contains_key(i) {
                                 self.followpos.insert(*i, HashSet::new());
                             }
-                            self.followpos.get_mut(i).unwrap().extend(&inode.data.firstpos);
+                            self.followpos.get_mut(i).unwrap().extend(&inode.firstpos);
                         }
                     }
                     ReType::Or => {
                         // firstpos, lastpost = union of children's
                         let mut firstpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_data() {
+                        for child in inode.iter_children_simple() {
                             firstpos.extend(&child.firstpos);
                         }
-                        inode.data.firstpos.extend(firstpos);
+                        inode.firstpos.extend(firstpos);
                         let mut lastpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_data() {
+                        for child in inode.iter_children_simple() {
                             lastpos.extend(&child.lastpos);
                         }
-                        inode.data.lastpos.extend(lastpos);
+                        inode.lastpos.extend(lastpos);
                     }
-                    _ => panic!("{:?}: no way to compute firstpos/...", inode.data)
+                    _ => panic!("{:?}: no way to compute firstpos/...", &*inode)
                 }
             }
-            if let Some(nullable) = inode.data.op.is_nullable() {
-                inode.data.nullable = Some(nullable);
+            if let Some(nullable) = inode.op.is_nullable() {
+                inode.nullable = Some(nullable);
             } else {
-                inode.data.nullable = match &inode.data.op {
-                    ReType::Concat => Some(inode.iter_children_data().all(|child| child.nullable.unwrap())),
-                    ReType::Or => Some(inode.iter_children_data().any(|child| child.nullable.unwrap())),
+                inode.nullable = match &inode.op {
+                    ReType::Concat => Some(inode.iter_children_simple().all(|child| child.nullable.unwrap())),
+                    ReType::Or => Some(inode.iter_children_simple().any(|child| child.nullable.unwrap())),
                     op => panic!("{:?} should have a fixed nullable property", op)
                 }
             }
