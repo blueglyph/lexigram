@@ -62,6 +62,16 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             let a = re.add(b, ReNode::new(ReType::Or));
             re.add_iter(a, [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
         },
+        2 => {
+            let c = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
+            let b = re.add_iter(c, [
+                ReNode::new(ReType::Star),
+                ReNode::new(ReType::String("abb".to_string())),
+                ReNode::new(ReType::End)
+            ])[0];
+            let a = re.add(b, ReNode::new(ReType::Or));
+            re.add_iter(a, [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+        }
         _ => panic!("test {test} doesn't exist")
     }
     re
@@ -138,7 +148,7 @@ mod test_node {
 
     #[test]
     fn dfa_firstpos() {
-        let expected = vec![
+        let tests = vec![
             vec![
                 vec![1], vec![2],   // a, b
                 vec![1, 2],         // |
@@ -158,9 +168,16 @@ mod test_node {
                 vec![1, 2],                         // *
                 vec![3], vec![4], vec![5], vec![6], // a, b, b, <end>
                 vec![1, 2, 3],                      // &
+            ],
+            vec![
+                vec![1], vec![2],   // a, b
+                vec![1, 2],         // |
+                vec![1, 2],         // *
+                vec![3], vec![4],   // abb, <end>
+                vec![1, 2, 3],      // &
             ]
         ];
-        for test_id in 0..=1 {
+        for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node_pos();
@@ -170,13 +187,13 @@ mod test_node {
                 firstpos.sort();
                 result.push(firstpos)
             }
-            assert_eq!(result, expected[test_id]);
+            assert_eq!(result, expected);
         }
     }
 
     #[test]
     fn dfa_lastpos() {
-        let expected = vec![
+        let tests = vec![
             vec![
                 vec![1], vec![2],   // a, b
                 vec![1, 2],         // |
@@ -196,9 +213,16 @@ mod test_node {
                 vec![1, 2],                         // *
                 vec![3], vec![4], vec![5], vec![6], // a, b, b, <end>
                 vec![6],                            // &
+            ],
+            vec![
+                vec![1], vec![2],   // a, b
+                vec![1, 2],         // |
+                vec![1, 2],         // *
+                vec![3], vec![4],   // abb, <end>
+                vec![4],            // &
             ]
         ];
-        for test_id in 0..=1 {
+        for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node_pos();
@@ -208,13 +232,13 @@ mod test_node {
                 lastpos.sort();
                 result.push(lastpos)
             }
-            assert_eq!(result, expected[test_id]);
+            assert_eq!(result, expected);
         }
     }
 
     #[test]
     fn dfa_followpos() {
-        let expected = vec!{
+        let tests = vec!{
             hashmap![
                 1 => hashset![1, 2, 3],
                 2 => hashset![1, 2, 3],
@@ -228,13 +252,18 @@ mod test_node {
                 3 => hashset![4],
                 4 => hashset![5],
                 5 => hashset![6]
+            ],
+            hashmap![
+                1 => hashset![1, 2, 3],
+                2 => hashset![1, 2, 3],
+                3 => hashset![4]
             ]
         };
-        for test_id in 0..=1 {
+        for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node_pos();
-            assert_eq!(dfa.followpos, expected[test_id]);
+            assert_eq!(dfa.followpos, expected);
         }
     }
 
@@ -242,7 +271,7 @@ mod test_node {
     #[ignore]
     #[test]
     fn print_debug_calc() {
-        for test_id in 0..=1 {
+        for test_id in 0..=2 {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node_pos();
