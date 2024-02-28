@@ -114,7 +114,8 @@ impl DfaBuilder {
         builder
     }
 
-    fn calc_node(&mut self) {
+    /// Calculates `firstpos`, `lastpost`, `nullable` for each node, and the `followpos` table.
+    fn calc_node_pos(&mut self) {
         let mut id = 0;
         for mut inode in self.re.iter_depth_mut() {
             if inode.is_leaf() {
@@ -198,7 +199,7 @@ impl DfaBuilder {
     }
 
     pub fn build_dfa(&mut self) {
-        self.calc_node();
+        self.calc_node_pos();
     }
 
     // pub fn print(&self) {

@@ -40,6 +40,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
     let mut re = VecTree::new();
     match test {
         0 => {
+            // (a|b)*abb
             let f = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
             let e = re.add_iter(f, [ReNode::new(ReType::Concat), ReNode::new(ReType::End)])[0];
             let d = re.add_iter(e, [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
@@ -49,6 +50,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(a, [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
         },
         1 => {
+            // (a|b)*abb
             let c = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
             let b = re.add_iter(c, [
                 ReNode::new(ReType::Star),
@@ -116,7 +118,7 @@ mod test_node {
     fn dfa_id() {
         let re = build_re(0);
         let mut dfa = DfaBuilder::new(re);
-        dfa.calc_node();
+        dfa.calc_node_pos();
         assert_eq!(tree_to_string(&dfa.re, true), "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
     }
 
@@ -129,7 +131,7 @@ mod test_node {
         for test_id in 0..=1 {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
-            dfa.calc_node();
+            dfa.calc_node_pos();
             assert_eq!(tree_to_string(&dfa.re, false), expected[test_id]);
         }
     }
@@ -161,7 +163,7 @@ mod test_node {
         for test_id in 0..=1 {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
-            dfa.calc_node();
+            dfa.calc_node_pos();
             let mut result = Vec::new();
             for inode in dfa.re.iter_depth() {
                 let mut firstpos = inode.firstpos.iter().map(|n| *n).collect::<Vec<_>>();
@@ -199,7 +201,7 @@ mod test_node {
         for test_id in 0..=1 {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
-            dfa.calc_node();
+            dfa.calc_node_pos();
             let mut result = Vec::new();
             for inode in dfa.re.iter_depth() {
                 let mut lastpos = inode.lastpos.iter().map(|n| *n).collect::<Vec<_>>();
@@ -231,7 +233,7 @@ mod test_node {
         for test_id in 0..=1 {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
-            dfa.calc_node();
+            dfa.calc_node_pos();
             assert_eq!(dfa.followpos, expected[test_id]);
         }
     }
@@ -243,7 +245,7 @@ mod test_node {
         for test_id in 0..=1 {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
-            dfa.calc_node();
+            dfa.calc_node_pos();
             println!("{test_id}: {}\n{:}", tree_to_string(&dfa.re, true), debug_tree(&dfa.re));
             let mut keys = dfa.followpos.keys().map(|&k| k).collect::<Vec<_>>();
             keys.sort();
