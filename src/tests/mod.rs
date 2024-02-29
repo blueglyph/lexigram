@@ -42,35 +42,35 @@ fn build_re(test: usize) -> VecTree<ReNode> {
         0 => {
             // (a|b)*abb
             let f = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
-            let e = re.add_iter(f, [ReNode::new(ReType::Concat), ReNode::new(ReType::End)])[0];
-            let d = re.add_iter(e, [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
-            let c = re.add_iter(d, [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
-            let b = re.add_iter(c, [ReNode::new(ReType::Star), ReNode::new(ReType::Char('a'))])[0];
-            let a = re.add(b, ReNode::new(ReType::Or));
-            re.add_iter(a, [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+            let e = re.add_iter(Some(f), [ReNode::new(ReType::Concat), ReNode::new(ReType::End)])[0];
+            let d = re.add_iter(Some(e), [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
+            let c = re.add_iter(Some(d), [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
+            let b = re.add_iter(Some(c), [ReNode::new(ReType::Star), ReNode::new(ReType::Char('a'))])[0];
+            let a = re.add(Some(b), ReNode::new(ReType::Or));
+            re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
         },
         1 => {
             // (a|b)*abb
             let c = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
-            let b = re.add_iter(c, [
+            let b = re.add_iter(Some(c), [
                 ReNode::new(ReType::Star),
                 ReNode::new(ReType::Char('a')),
                 ReNode::new(ReType::Char('b')),
                 ReNode::new(ReType::Char('b')),
                 ReNode::new(ReType::End)
             ])[0];
-            let a = re.add(b, ReNode::new(ReType::Or));
-            re.add_iter(a, [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+            let a = re.add(Some(b), ReNode::new(ReType::Or));
+            re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
         },
         2 => {
             let c = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
-            let b = re.add_iter(c, [
+            let b = re.add_iter(Some(c), [
                 ReNode::new(ReType::Star),
                 ReNode::new(ReType::String("abb".to_string())),
                 ReNode::new(ReType::End)
             ])[0];
-            let a = re.add(b, ReNode::new(ReType::Or));
-            re.add_iter(a, [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+            let a = re.add(Some(b), ReNode::new(ReType::Or));
+            re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
         }
         _ => panic!("test {test} doesn't exist")
     }
@@ -119,30 +119,49 @@ mod test_node {
     use super::*;
 
     #[test]
-    fn dfa_builder() {
-        let re = build_re(0);
-        assert_eq!(tree_to_string(&re, false), "?&(?&(?&(?&(?*(?|(?'a',?'b')),?'a'),?'b'),?'b'),?<end>)");
+    fn dfa_preprocess() {
+        let tests = vec![
+            ("?&(?&(?&(?&(?*(?|(?'a',?'b')),?'a'),?'b'),?'b'),?<end>)", "?&(?&(?&(?&(?*(?|(?'a',?'b')),?'a'),?'b'),?'b'),?<end>)"),
+            ("?&(?*(?|(?'a',?'b')),?'a',?'b',?'b',?<end>)", "?&(?*(?|(?'a',?'b')),?'a',?'b',?'b',?<end>)"),
+            ("?&(?*(?|(?'a',?'b')),?'abb',?<end>)", "?&(?*(?|(?'a',?'b')),?&(?'a',?'b',?'b'),?<end>)")
+        ];
+        for (test_id, (expected1, expected2)) in tests.into_iter().enumerate() {
+            let re = build_re(test_id);
+            let result1 = tree_to_string(&re, false);
+            let dfa = DfaBuilder::new(re);
+            let result2 = tree_to_string(&dfa.re, false);
+            assert_eq!(result1, expected1, "test {test_id} failed (1st part)");
+            assert_eq!(result2, expected2, "test {test_id} failed (2nd part)");
+        }
     }
 
     #[test]
     fn dfa_id() {
-        let re = build_re(0);
-        let mut dfa = DfaBuilder::new(re);
-        dfa.calc_node_pos();
-        assert_eq!(tree_to_string(&dfa.re, true), "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)");
+        let tests = vec![
+            "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)",
+            "&(*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end>)",
+            "&(*(|(1:'a',2:'b')),&(3:'a',4:'b',5:'b'),6:<end>)"
+        ];
+        for (test_id, expected) in tests.into_iter().enumerate() {
+            let re = build_re(test_id);
+            let mut dfa = DfaBuilder::new(re);
+            dfa.calc_node_pos();
+            assert_eq!(tree_to_string(&dfa.re, true), expected, "test {test_id} failed");
+        }
     }
 
     #[test]
     fn dfa_nullable() {
-        let expected = vec![
+        let tests = vec![
             "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)",
-            "&(!*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end>)"
+            "&(!*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end>)",
+            "&(!*(|(1:'a',2:'b')),&(3:'a',4:'b',5:'b'),6:<end>)"
         ];
-        for test_id in 0..=1 {
+        for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node_pos();
-            assert_eq!(tree_to_string(&dfa.re, false), expected[test_id]);
+            assert_eq!(tree_to_string(&dfa.re, false), expected, "test {test_id} failed");
         }
     }
 
@@ -170,11 +189,13 @@ mod test_node {
                 vec![1, 2, 3],                      // &
             ],
             vec![
-                vec![1], vec![2],   // a, b
-                vec![1, 2],         // |
-                vec![1, 2],         // *
-                vec![3], vec![4],   // abb, <end>
-                vec![1, 2, 3],      // &
+                vec![1], vec![2],                   // a, b
+                vec![1, 2],                         // |
+                vec![1, 2],                         // *
+                vec![3], vec![4], vec![5],          // a, b, b
+                vec![3],                            // &
+                vec![6],                            // <end>
+                vec![1, 2, 3],                      // &
             ]
         ];
         for (test_id, expected) in tests.into_iter().enumerate() {
@@ -187,7 +208,7 @@ mod test_node {
                 firstpos.sort();
                 result.push(firstpos)
             }
-            assert_eq!(result, expected);
+            assert_eq!(result, expected, "test {test_id} failed");
         }
     }
 
@@ -215,11 +236,13 @@ mod test_node {
                 vec![6],                            // &
             ],
             vec![
-                vec![1], vec![2],   // a, b
-                vec![1, 2],         // |
-                vec![1, 2],         // *
-                vec![3], vec![4],   // abb, <end>
-                vec![4],            // &
+                vec![1], vec![2],                   // a, b
+                vec![1, 2],                         // |
+                vec![1, 2],                         // *
+                vec![3], vec![4], vec![5],          // a, b, b
+                vec![5],                            // &
+                vec![6],                            // <end>
+                vec![6],                            // &
             ]
         ];
         for (test_id, expected) in tests.into_iter().enumerate() {
@@ -232,7 +255,7 @@ mod test_node {
                 lastpos.sort();
                 result.push(lastpos)
             }
-            assert_eq!(result, expected);
+            assert_eq!(result, expected, "test {test_id} failed");
         }
     }
 
@@ -256,14 +279,16 @@ mod test_node {
             hashmap![
                 1 => hashset![1, 2, 3],
                 2 => hashset![1, 2, 3],
-                3 => hashset![4]
+                3 => hashset![4],
+                4 => hashset![5],
+                5 => hashset![6]
             ]
         };
         for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node_pos();
-            assert_eq!(dfa.followpos, expected);
+            assert_eq!(dfa.followpos, expected, "test {test_id} failed");
         }
     }
 

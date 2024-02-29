@@ -43,19 +43,23 @@ impl<T> VecTree<T> {
         }
     }
 
-    pub fn add(&mut self, parent_index: usize, item: T) -> usize {
+    pub fn add(&mut self, parent_index: Option<usize>, item: T) -> usize {
         let index = self.nodes.len();
-        self.nodes[parent_index].children.push(index);
+        if let Some(parent_index) = parent_index {
+            self.nodes[parent_index].children.push(index);
+        }
         let node = Node { data: UnsafeCell::new(item), children: Vec::new() };
         self.nodes.push(node);
         index
     }
 
-    pub fn add_iter<U: IntoIterator<Item = T>>(&mut self, parent_index: usize, items: U) -> &[usize] {
+    pub fn add_iter<U: IntoIterator<Item = T>>(&mut self, parent_index: Option<usize>, items: U) -> Vec<usize> {
+        let mut indices = Vec::new();
         for item in items {
-            self.add(parent_index, item);
+            indices.push(self.add(parent_index, item));
         }
-        &self.nodes[parent_index].children
+        // &self.nodes[parent_index].children
+        indices
     }
 
     pub fn len(&self) -> usize {

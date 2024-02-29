@@ -26,11 +26,11 @@ fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
 fn build_tree() -> VecTree<String> {
     let mut tree = VecTree::new();
     let root = tree.set_root("root".to_string()).expect("empty tree");
-    let a = tree.add(root, "a".to_string());
-    let _ = tree.add(root, "b".to_string());
-    let c = tree.add(root, "c".to_string());
-    tree.add_iter(a, ["a1".to_string(), "a2".to_string()]);
-    tree.add_iter(c, ["c1", "c2"].map(|s| s.to_string()));
+    let a = tree.add(Some(root), "a".to_string());
+    let _ = tree.add(Some(root), "b".to_string());
+    let c = tree.add(Some(root), "c".to_string());
+    tree.add_iter(Some(a), ["a1".to_string(), "a2".to_string()]);
+    tree.add_iter(Some(c), ["c1", "c2"].map(|s| s.to_string()));
     tree
 }
 

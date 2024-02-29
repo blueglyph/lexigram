@@ -100,18 +100,60 @@ impl Display for ReNode {
 
 // ---------------------------------------------------------------------------------------------
 
-pub struct DfaBuilder {
+type StateId = u32;
+
+pub struct DfaBuilder<'a> {
+    /// Regular Expression tree
     re: VecTree<ReNode>,
+    /// `followpos` table, containing the `Id` -> `Id` graph of `re`
     followpos: HashMap<Id, HashSet<Id>>,
+    /// `Id` -> node index
+    ids: HashMap<Id, usize>,
+    initial_state: Option<StateId>,
+    final_state: Option<StateId>,
+    state_graph: HashMap<StateId, (&'a ReType, StateId)>
 }
 
-impl DfaBuilder {
-    pub fn new(re: VecTree<ReNode>) -> DfaBuilder {
-        let builder = DfaBuilder {
+impl<'a> DfaBuilder<'a> {
+    pub fn new(re: VecTree<ReNode>) -> DfaBuilder<'a> {
+        let mut builder = DfaBuilder {
             re,
-            followpos: HashMap::new()
+            followpos: HashMap::new(),
+            ids: HashMap::new(),
+            initial_state: None,
+            final_state: None,
+            state_graph: HashMap::new()
         };
+        builder.preprocess_re();
         builder
+    }
+
+    /// Replaces ReType::String(s) with a concatenation of ReType::Char(s[i])
+    fn preprocess_re(&mut self) {
+        let mut nodes = vec![];
+        for mut inode in self.re.iter_depth_simple_mut() {
+            if matches!(inode.op, ReType::String(_)) {
+                // we have to do it again to move the string
+                if let ReType::String(s) = std::mem::take(&mut inode.op) {
+                    nodes.push((inode.index, s));
+                }
+            }
+        }
+        for (index, s) in nodes {
+            let node = self.re.get_mut(index);
+            match s.len() {
+                0 => panic!("empty string item at index {index}"),
+                1 => {
+                    node.op = ReType::Char(s.chars().nth(0).unwrap());
+                },
+                _ => {
+                    node.op = ReType::Concat;
+                    for c in s.chars() {
+                        self.re.add(Some(index), ReNode::new(ReType::Char(c)));
+                    }
+                }
+            }
+        }
     }
 
     /// Calculates `firstpos`, `lastpost`, `nullable` for each node, and the `followpos` table.
@@ -123,6 +165,7 @@ impl DfaBuilder {
                 inode.id = Some(id);
                 inode.firstpos.insert(id);
                 inode.lastpos.insert(id);
+                self.ids.insert(id, inode.index);
             } else {
                 match inode.op {
                     ReType::Concat => {
@@ -174,7 +217,7 @@ impl DfaBuilder {
                         // firstpos, lastpost = union of children's
                         let mut firstpos = HashSet::<Id>::new();
                         for child in inode.iter_children_simple() {
-                            firstpos.extend(&child.firstpos);
+                            firstpos.extend(&child.firstpos);   // todo: use BTreeSet instead (faster iter)?
                         }
                         inode.firstpos.extend(firstpos);
                         let mut lastpos = HashSet::<Id>::new();
