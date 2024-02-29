@@ -114,7 +114,6 @@ pub struct DfaBuilder {
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
     initial_state: Option<StateId>,
-    final_state: Option<StateId>,
     state_graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>,
     end_states: BTreeSet<StateId>
 }
@@ -126,7 +125,6 @@ impl DfaBuilder {
             followpos: HashMap::new(),
             ids: HashMap::new(),
             initial_state: None,
-            final_state: None,
             state_graph: BTreeMap::new(),
             end_states: BTreeSet::new()
         };
@@ -259,6 +257,7 @@ impl DfaBuilder {
         let mut new_states = BTreeSet::<BTreeSet<Id>>::new();
         new_states.insert(key.clone());
         states.insert(key, current_id);
+        self.initial_state = Some(current_id);
         while let Some(s) = new_states.pop_first() {
             let new_state_id = states.get(&s).unwrap().clone();
             let mut trans = BTreeMap::<&ReType, BTreeSet<Id>>::new();
