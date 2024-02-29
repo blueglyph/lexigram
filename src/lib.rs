@@ -3,7 +3,7 @@
 #![allow(unused_imports)]
 #![allow(dead_code)]
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
@@ -21,7 +21,7 @@ mod macros;
 /// See also:
 /// - Ref: https://en.wikipedia.org/wiki/Comparison_of_parser_generators
 
-#[derive(Clone, Debug, PartialEq, Default)]
+#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
     #[default] Empty,
     End,
@@ -47,6 +47,10 @@ impl ReType {
             ReType::End | ReType::Char(_) | ReType::String(_) => Some(false),
             _ => None
         }
+    }
+
+    pub fn is_end(&self) -> bool {
+        matches!(self, ReType::End)
     }
 }
 
@@ -102,7 +106,7 @@ impl Display for ReNode {
 
 type StateId = u32;
 
-pub struct DfaBuilder<'a> {
+pub struct DfaBuilder {
     /// Regular Expression tree
     re: VecTree<ReNode>,
     /// `followpos` table, containing the `Id` -> `Id` graph of `re`
@@ -111,18 +115,20 @@ pub struct DfaBuilder<'a> {
     ids: HashMap<Id, usize>,
     initial_state: Option<StateId>,
     final_state: Option<StateId>,
-    state_graph: HashMap<StateId, (&'a ReType, StateId)>
+    state_graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>,
+    end_states: BTreeSet<StateId>
 }
 
-impl<'a> DfaBuilder<'a> {
-    pub fn new(re: VecTree<ReNode>) -> DfaBuilder<'a> {
+impl DfaBuilder {
+    pub fn new(re: VecTree<ReNode>) -> DfaBuilder {
         let mut builder = DfaBuilder {
             re,
             followpos: HashMap::new(),
             ids: HashMap::new(),
             initial_state: None,
             final_state: None,
-            state_graph: HashMap::new()
+            state_graph: BTreeMap::new(),
+            end_states: BTreeSet::new()
         };
         builder.preprocess_re();
         builder
@@ -166,6 +172,9 @@ impl<'a> DfaBuilder<'a> {
                 inode.firstpos.insert(id);
                 inode.lastpos.insert(id);
                 self.ids.insert(id, inode.index);
+                if inode.op.is_end() {
+                    self.followpos.insert(id, HashSet::new());
+                }
             } else {
                 match inode.op {
                     ReType::Concat => {
@@ -241,8 +250,67 @@ impl<'a> DfaBuilder<'a> {
         }
     }
 
+    fn calc_states(&mut self) {
+        const VERBOSE: bool = false;
+        let mut states = BTreeMap::<BTreeSet<Id>, StateId>::new();
+        // initial state:
+        let mut current_id = 0;
+        let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().map(|&id| id));
+        let mut new_states = BTreeSet::<BTreeSet<Id>>::new();
+        new_states.insert(key.clone());
+        states.insert(key, current_id);
+        while let Some(s) = new_states.pop_first() {
+            let new_state_id = states.get(&s).unwrap().clone();
+            let mut trans = BTreeMap::<&ReType, BTreeSet<Id>>::new();
+            for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
+                if let Some(ids) = trans.get_mut(symbol) {
+                    ids.insert(id);
+                } else {
+                    let mut ids = BTreeSet::new();
+                    ids.insert(id);
+                    trans.insert(symbol, ids);
+                }
+            }
+            if VERBOSE {
+                println!("[states: {states:?}]");
+                println!("state {} {:?} - {:?}", states.get(&s).unwrap(), s, trans);
+            }
+            for (symbol, ids) in trans/*.into_iter().filter(|(s, _)| !s.is_end())*/ {
+                let mut state = BTreeSet::new(); //s.clone();
+                for id in ids {
+                    state.extend(&self.followpos[&id]);
+                }
+                if VERBOSE { print!("  - {}", symbol); }
+                let state_id = if let Some(state_id) = states.get(&state) {
+                    if VERBOSE { println!(" -> {state_id}"); }
+                    *state_id
+                } else {
+                    new_states.insert(state.clone());
+                    current_id += 1;
+                    if VERBOSE { println!(" -> new state {}: {:?}", current_id, state); }
+                    states.insert(state, current_id);
+                    current_id
+                };
+                if let Some(map) = self.state_graph.get_mut(&new_state_id) {
+                    if VERBOSE { println!("    (map exists)"); }
+                    map.insert(symbol.clone(), state_id);
+                } else {
+                    if VERBOSE { println!("    (new map)"); }
+                    let mut map = BTreeMap::new();
+                    map.insert(symbol.clone(), state_id);
+                    self.state_graph.insert(new_state_id, map);
+                }
+                if symbol.is_end() {
+                    self.end_states.insert(new_state_id);
+                }
+            }
+            if VERBOSE { println!("[new_states: {new_states:?}]\n"); }
+        }
+    }
+
     pub fn build_dfa(&mut self) {
         self.calc_node_pos();
+        self.calc_states();
     }
 
     // pub fn print(&self) {

@@ -267,21 +267,24 @@ mod test_node {
                 2 => hashset![1, 2, 3],
                 3 => hashset![4],
                 4 => hashset![5],
-                5 => hashset![6]
+                5 => hashset![6],
+                6 => hashset![]
             ],
             hashmap![
                 1 => hashset![1, 2, 3],
                 2 => hashset![1, 2, 3],
                 3 => hashset![4],
                 4 => hashset![5],
-                5 => hashset![6]
+                5 => hashset![6],
+                6 => hashset![]
             ],
             hashmap![
                 1 => hashset![1, 2, 3],
                 2 => hashset![1, 2, 3],
                 3 => hashset![4],
                 4 => hashset![5],
-                5 => hashset![6]
+                5 => hashset![6],
+                6 => hashset![]
             ]
         };
         for (test_id, expected) in tests.into_iter().enumerate() {
@@ -289,6 +292,44 @@ mod test_node {
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node_pos();
             assert_eq!(dfa.followpos, expected, "test {test_id} failed");
+        }
+    }
+
+    #[test]
+    fn dfa_states() {
+        let tests = vec!{
+            BTreeMap::from([
+                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
+                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
+                (3, BTreeMap::from([(ReType::End, 4), (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+            ]),
+            BTreeMap::from([
+                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
+                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
+                (3, BTreeMap::from([(ReType::End, 4), (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+            ]),
+            BTreeMap::from([
+                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
+                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
+                (3, BTreeMap::from([(ReType::End, 4), (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+            ]),
+        };
+        for (test_id, expected) in tests.into_iter().enumerate() {
+            let re = build_re(test_id);
+            let mut dfa = DfaBuilder::new(re);
+            dfa.calc_node_pos();
+            dfa.calc_states();
+            // println!("{:?}", dfa.state_graph);
+            assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
+            // for (state, trans) in dfa.state_graph {
+            //     println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
+            //     for (symbol, dest) in trans {
+            //         println!("  {symbol} -> s{dest}");
+            //     }
+            // }
         }
     }
 
@@ -392,4 +433,3 @@ mod test_node {
     // }
 
 }
-
