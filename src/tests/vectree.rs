@@ -231,7 +231,6 @@ mod borrow {
             let a1_read = a_write.iter_children().nth(0).unwrap(); // another ref to a1
             //----------------------------------------------------------------------
             let a1_a = a1_read.clone();
-            println!("using a1_write");
             *a1_write = "A1".to_string();               // !!
             let a1_b = a1_read.clone();
             assert_eq!(a1_a, "a1");                     // might fail

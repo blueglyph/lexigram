@@ -138,6 +138,17 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
     result
 }
 
+fn print_graph(dfa: &DfaBuilder) {
+    println!("  graph:      {:?}", dfa.state_graph);
+    println!("  end states: {:?}", dfa.end_states);
+    for (state, trans) in dfa.state_graph.clone() {
+        println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
+        for (symbol, dest) in trans {
+            println!("  {symbol} -> s{dest}");
+        }
+    }
+}
+
 mod test_node {
     use super::*;
 
@@ -445,15 +456,6 @@ mod test_node {
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node_pos();
             dfa.calc_states();
-            // println!("test {test_id}:");
-            // println!("  graph:      {:?}", dfa.state_graph);
-            // println!("  end states: {:?}", dfa.end_states);
-            // for (state, trans) in dfa.state_graph.clone() {
-            //     println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
-            //     for (symbol, dest) in trans {
-            //         println!("  {symbol} -> s{dest}");
-            //     }
-            // }
             assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
         }
     }
@@ -462,7 +464,8 @@ mod test_node {
     #[ignore]
     #[test]
     fn print_debug_calc() {
-        for test_id in 0..=2 {
+        let tests = [4, 5];
+        for test_id in tests {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
             dfa.calc_node_pos();
@@ -478,83 +481,18 @@ mod test_node {
         }
     }
 
-    // #[test]
-    // fn test_basic() {
-    //     let n1 = ReNode::str("abcd");
-    //     let n2 = ReNode::concat([n1.clone(), ReNode::char('e')]);
-    //     assert_eq!(n1, ReNode { id: RefCell::new(0), op: ReType::Concat(vec![
-    //         ReNode { id: RefCell::new(0), op: ReType::Char('a') },
-    //         ReNode { id: RefCell::new(0), op: ReType::Char('b') },
-    //         ReNode { id: RefCell::new(0), op: ReType::Char('c') },
-    //         ReNode { id: RefCell::new(0), op: ReType::Char('d') }]),
-    //     });
-    //     assert_eq!(n2, ReNode { id: RefCell::new(0), op: ReType::Concat(vec![
-    //         ReNode { id: RefCell::new(0), op: ReType::Concat(vec![
-    //             ReNode { id: RefCell::new(0), op: ReType::Char('a') },
-    //             ReNode { id: RefCell::new(0), op: ReType::Char('b') },
-    //             ReNode { id: RefCell::new(0), op: ReType::Char('c') },
-    //             ReNode { id: RefCell::new(0), op: ReType::Char('d') }])
-    //         },
-    //         ReNode { id: RefCell::new(0), op: ReType::Char('e') },
-    //     ])});
-    // }
-    //
-    // #[test]
-    // fn test_ids() {
-    //     let n = ReNode::concat([
-    //         ReNode::or([
-    //             ReNode::char('e'),
-    //             ReNode::char('f')
-    //         ]),
-    //         ReNode::star(
-    //             ReNode::char('g')
-    //         ),
-    //         ReNode::char('d')
-    //     ]);
-    //     let mut builder = DfaBuilder::new(n);
-    //     builder.build_dfa();
-    //     assert_eq!(builder.re,
-    //                ReNode { id: RefCell::new(6), op: ReType::Concat(vec![
-    //                    ReNode { id: RefCell::new(5), op: ReType::Or(vec![
-    //                        ReNode { id: RefCell::new(4), op: ReType::Char('e') },
-    //                        ReNode { id: RefCell::new(3), op: ReType::Char('f') }]) },
-    //                    ReNode { id: RefCell::new(2), op: ReType::Star(Box::new(
-    //                        ReNode { id: RefCell::new(1), op: ReType::Char('g') })) },
-    //                    ReNode { id: RefCell::new(0), op: ReType::Char('d') }]) });
-    // }
-    //
-    // #[test]
-    // fn test_nullable1() {
-    //     let n = ReNode::concat([
-    //         ReNode::or([
-    //             ReNode::char('e'),
-    //             ReNode::char('f')
-    //         ]),
-    //         ReNode::star(
-    //             ReNode::char('g')
-    //         ),
-    //         ReNode::char('d')
-    //     ]);
-    //     let mut builder = DfaBuilder::new(n);
-    //     builder.build_dfa();
-    //     assert_eq!(builder.nullable, vec![false, false, true, false, false, false, false])
-    // }
-    //
-    // #[test]
-    // fn test_nullable2() {
-    //     let n = ReNode::concat([
-    //         ReNode::or([
-    //             ReNode::empty(),
-    //             ReNode::char('f')
-    //         ]),
-    //         ReNode::star(
-    //             ReNode::char('g')
-    //         ),
-    //         ReNode::char('d')
-    //     ]);
-    //     let mut builder = DfaBuilder::new(n);
-    //     builder.build_dfa();
-    //     assert_eq!(builder.nullable, vec![false, false, true, false, true, true, false])
-    // }
-
+    // just prints the state graph
+    #[ignore]
+    #[test]
+    fn print_state_graph() {
+        let tests = [4, 5];
+        for test_id in tests {
+            let re = build_re(test_id);
+            let mut dfa = DfaBuilder::new(re);
+            dfa.build_dfa();
+            println!("test {test_id}:");
+            print_graph(&dfa);
+            println!();
+        }
+    }
 }

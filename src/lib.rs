@@ -113,8 +113,9 @@ pub struct DfaBuilder {
     followpos: HashMap<Id, HashSet<Id>>,
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
-    initial_state: Option<StateId>,
+    states: BTreeMap<BTreeSet<Id>, StateId>,
     state_graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>,
+    initial_state: Option<StateId>,
     end_states: BTreeSet<StateId>
 }
 
@@ -124,8 +125,9 @@ impl DfaBuilder {
             re,
             followpos: HashMap::new(),
             ids: HashMap::new(),
-            initial_state: None,
+            states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
             state_graph: BTreeMap::new(),
+            initial_state: None,
             end_states: BTreeSet::new()
         };
         builder.preprocess_re();
@@ -249,17 +251,17 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) {
-        const VERBOSE: bool = false;
-        let mut states = BTreeMap::<BTreeSet<Id>, StateId>::new();
-        // initial state:
+        // initial state from firstpos(top node)
         let mut current_id = 0;
         let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().map(|&id| id));
         let mut new_states = BTreeSet::<BTreeSet<Id>>::new();
         new_states.insert(key.clone());
-        states.insert(key, current_id);
+        self.states.insert(key, current_id);
         self.initial_state = Some(current_id);
+
+        // unfold all the states
         while let Some(s) = new_states.pop_first() {
-            let new_state_id = states.get(&s).unwrap().clone();
+            let new_state_id = self.states.get(&s).unwrap().clone();
             let mut trans = BTreeMap::<&ReType, BTreeSet<Id>>::new();
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if let Some(ids) = trans.get_mut(symbol) {
@@ -270,31 +272,22 @@ impl DfaBuilder {
                     trans.insert(symbol, ids);
                 }
             }
-            if VERBOSE {
-                println!("[states: {states:?}]");
-                println!("state {} {:?} - {:?}", states.get(&s).unwrap(), s, trans);
-            }
-            for (symbol, ids) in trans/*.into_iter().filter(|(s, _)| !s.is_end())*/ {
-                let mut state = BTreeSet::new(); //s.clone();
+            for (symbol, ids) in trans {
+                let mut state = BTreeSet::new();
                 for id in ids {
                     state.extend(&self.followpos[&id]);
                 }
-                if VERBOSE { print!("  - {}", symbol); }
-                let state_id = if let Some(state_id) = states.get(&state) {
-                    if VERBOSE { println!(" -> {state_id}"); }
+                let state_id = if let Some(state_id) = self.states.get(&state) {
                     *state_id
                 } else {
                     new_states.insert(state.clone());
                     current_id += 1;
-                    if VERBOSE { println!(" -> new state {}: {:?}", current_id, state); }
-                    states.insert(state, current_id);
+                    self.states.insert(state, current_id);
                     current_id
                 };
                 if let Some(map) = self.state_graph.get_mut(&new_state_id) {
-                    if VERBOSE { println!("    (map exists)"); }
                     map.insert(symbol.clone(), state_id);
                 } else {
-                    if VERBOSE { println!("    (new map)"); }
                     let mut map = BTreeMap::new();
                     map.insert(symbol.clone(), state_id);
                     self.state_graph.insert(new_state_id, map);
@@ -303,7 +296,6 @@ impl DfaBuilder {
                     self.end_states.insert(new_state_id);
                 }
             }
-            if VERBOSE { println!("[new_states: {new_states:?}]\n"); }
         }
     }
 
@@ -311,13 +303,4 @@ impl DfaBuilder {
         self.calc_node_pos();
         self.calc_states();
     }
-
-    // pub fn print(&self) {
-    //     self.re.print();
-    //     self.print_tables();
-    // }
-    //
-    // fn print_tables(&self) {
-    //     println!("nullable: {}", self.nullable.iter().enumerate().skip(1).map(|n| format!("{}={}", n.0, n.1)).collect::<Vec<_>>().join(", "));
-    // }
 }
