@@ -299,8 +299,92 @@ impl DfaBuilder {
         }
     }
 
+    /// Optimizes the number of states from `self.state_graph`.
+    ///
+    /// # Arguments
+    ///
+    /// * `separate_end_states` = `true` if different end (accepting) states should be kept apart;
+    /// for example, when it's important to differentiate tokens.
+    pub fn optimize_graph(&mut self, separate_end_states: bool) {
+        let mut groups = Vec::<BTreeSet<StateId>>::new();
+        let mut st_to_group = BTreeMap::<StateId, usize>::new();
+        // initial partition
+        // - all non-end states
+        let mut group = BTreeSet::<StateId>::new();
+        for st in self.state_graph.keys().filter(|&st| !self.end_states.contains(st)) {
+            group.insert(*st);
+            st_to_group.insert(*st, 0);
+        }
+        groups.push(group);
+        // - end states
+        if separate_end_states {
+            for st in &self.end_states {
+                st_to_group.insert(*st, groups.len());
+                groups.push(BTreeSet::<StateId>::from([*st]));
+            }
+        } else {
+            st_to_group.extend(self.end_states.iter().map(|id| (*id, groups.len())));
+            groups.push(self.end_states.clone());
+        }
+        // dbg!(&partition);
+        // dbg!(&st_to_group);
+        let mut change = true;
+        let mut last_group_id = groups.len() - 1;
+        while change {
+            let mut changes = Vec::<(StateId, usize, usize)>::new();   // (state, old group, new group)
+            for (id, p) in groups.iter().enumerate() {
+                // do all states have the same destination group for the same symbol?
+                println!("group #{id}: {p:?}:");
+                // stores combination -> group index:
+                let mut combinations = BTreeMap::<BTreeMap<&ReType, usize>, usize>::new();
+                for &st_id in p {
+                    let combination = self.state_graph.get(&st_id).unwrap().iter()
+                        .filter(|(_, st)| st_to_group.contains_key(st)) // to avoid fake "end" states
+                        .map(|(s, st)| { (s, *st_to_group.get(st).unwrap()) })
+                        .collect::<BTreeMap<_, _>>();
+                    print!("- state {st_id}: {combination:?}");
+                    if combinations.is_empty() {
+                        combinations.insert(combination, id);   // first one remains in this group
+                        println!(" (1st, no change)");
+                    } else {
+                        if let Some(&group_id) = combinations.get(&combination) {
+                            // programs the change if it's one of the new groups
+                            if group_id != id {
+                                changes.push((st_id, id, group_id));
+                                println!(" -> group #{id}");
+                            } else {
+                                println!(" (no change)");
+                            }
+                        } else {
+                            // creates a new group and programs the change
+                            last_group_id += 1;
+                            combinations.insert(combination, last_group_id);
+                            changes.push((st_id, id, last_group_id));
+                            println!(" -> new group #{last_group_id}");
+                        }
+                    }
+                    // if let Some(last) = last_opt {
+                    //     if last.eq(&combination) {
+                    //         println!(" (same)");
+                    //     } else {
+                    //         println!(" (diff)");
+                    //     };
+                    // } else {
+                    //     println!(" (1st)");
+                    // }
+                }
+            }
+            change = false;
+        }
+    }
+
     pub fn build_dfa(&mut self) {
         self.calc_node_pos();
         self.calc_states();
     }
 }
+
+// // Two combinations are compatible if, for each symbol, the destinations are in the same group.
+// fn search_compatible_group(combinations: &BTreeMap<BTreeMap<&ReType, usize>, usize>, c: &BTreeMap<&ReType, usize>) -> Option<usize> {
+//     todo!()
+// }

@@ -464,7 +464,7 @@ mod test_node {
     #[ignore]
     #[test]
     fn print_debug_calc() {
-        let tests = [4, 5];
+        let tests = [1, 4, 5];
         for test_id in tests {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
@@ -485,13 +485,16 @@ mod test_node {
     #[ignore]
     #[test]
     fn print_state_graph() {
-        let tests = [4, 5];
+        let tests = [1, 4, 5];
         for test_id in tests {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::new(re);
             dfa.build_dfa();
             println!("test {test_id}:");
             print_graph(&dfa);
+            dfa.optimize_graph(false);
+            println!();
+            dfa.optimize_graph(true);
             println!();
         }
     }
