@@ -104,7 +104,7 @@ impl Display for ReNode {
 
 // ---------------------------------------------------------------------------------------------
 
-type StateId = u32;
+type StateId = usize;
 
 pub struct DfaBuilder {
     /// Regular Expression tree
@@ -303,13 +303,14 @@ impl DfaBuilder {
         }
     }
 
-    /// Optimizes the number of states from `self.state_graph`.
+    /// Optimizes the number of states from `self.state_graph`. Returns a map to convert old
+    /// state ids to new state ids.
     ///
     /// # Arguments
     ///
     /// * `separate_end_states` = `true` if different end (accepting) states should be kept apart;
     /// for example, when it's important to differentiate tokens.
-    pub fn optimize_graph(&mut self, separate_end_states: bool) {
+    pub fn optimize_graph(&mut self, separate_end_states: bool) -> BTreeMap::<StateId, StateId> {
         const VERBOSE: bool = false;
         if VERBOSE { println!("-----------------------------------------------------------"); }
         let mut groups = Vec::<BTreeSet<StateId>>::new();
@@ -332,8 +333,6 @@ impl DfaBuilder {
             st_to_group.extend(self.end_states.iter().map(|id| (*id, groups.len())));
             groups.push(self.end_states.clone());
         }
-        // dbg!(&partition);
-        // dbg!(&st_to_group);
         let mut change = true;
         let mut last_group_id = groups.len() - 1;
         while change {
@@ -384,27 +383,24 @@ impl DfaBuilder {
         }
         if VERBOSE { println!("-----------------------------------------------------------"); }
         // stores the new states
-        let new_end = BTreeSet::<StateId>::from_iter(
+        self.end_states = BTreeSet::<StateId>::from_iter(
             groups.iter().enumerate()
                 .filter(|(_, g)| g.iter().any(|s| self.end_states.contains(s)))
                 .map(|(group_id, _)| group_id as StateId)
         );
-        let new_initial = Some(st_to_group[&self.initial_state.unwrap()] as StateId);
-        // let new_graph = BTreeMap::<StateId, BTreeMap<ReType, StateId>>::new();
-        let new_graph = self.state_graph.iter()
+        self.initial_state = Some(st_to_group[&self.initial_state.unwrap()] as StateId);
+        self.state_graph = self.state_graph.iter()
             .map(|(st_id, map_sym_st)| (
                 st_to_group[st_id] as StateId,
                 map_sym_st.iter().map(|(sym, st)| (sym.clone(), st_to_group[st] as StateId)).collect::<BTreeMap<_, _>>()))
             .collect::<BTreeMap::<StateId, BTreeMap<ReType, StateId>>>();
         if VERBOSE {
-            println!("new_graph:   {:?}", new_graph);
-            println!("new_initial: {:?}", new_initial);
-            println!("new_end:     {:?}", new_end);
+            println!("new_graph:   {:?}", self.state_graph);
+            println!("new_initial: {:?}", self.initial_state);
+            println!("new_end:     {:?}", self.end_states);
             println!("-----------------------------------------------------------");
         }
-        self.end_states = new_end;
-        self.initial_state = new_initial;
-        self.state_graph = new_graph;
+        st_to_group
     }
 
     pub fn build_dfa(&mut self) {
@@ -412,8 +408,3 @@ impl DfaBuilder {
         self.calc_states();
     }
 }
-
-// // Two combinations are compatible if, for each symbol, the destinations are in the same group.
-// fn search_compatible_group(combinations: &BTreeMap<BTreeMap<&ReType, usize>, usize>, c: &BTreeMap<&ReType, usize>) -> Option<usize> {
-//     todo!()
-// }
