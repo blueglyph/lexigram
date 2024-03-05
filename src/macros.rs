@@ -23,6 +23,29 @@ macro_rules! hashmap {
     };
 }
 
+/// Generates the code to initialize a [BTreeMap](std::collections::BTreeMap).
+///
+/// The macro can be followed by parentheses or square brackets.
+///
+/// # Example
+/// ```
+/// # #[macro_use] fn main() {
+/// # use std::collections::BTreeMap;
+/// # use rlexer::btreemap;
+/// let days = btreemap![0 => "Monday", 1 => "Tuesday", 2 => "Wednesday"];
+/// // => BTreeMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday"), ])
+/// assert_eq!(days, BTreeMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday")]));
+/// # }
+/// ```
+#[macro_export(local_inner_macros)]
+macro_rules! btreemap {
+    () => { BTreeMap::new() };
+    ($($key:expr => $value:expr,)+) => { btreemap!($($key => $value),+) };
+    ($($key:expr => $value:expr),*) => {
+        BTreeMap::from([ $(($key, $value),)* ])
+    };
+}
+
 /// Generates the code to initialize a [HashSet](std::collections::HashSet).
 ///
 /// The macro can be followed by parentheses or square brackets.
@@ -40,12 +63,33 @@ macro_rules! hashmap {
 #[macro_export(local_inner_macros)]
 macro_rules! hashset {
     () => { HashSet::new() };
-    ($($key:expr,)+) => { hashmap!($($key),+) };
+    ($($key:expr,)+) => { hashset!($($key),+) };
     ($($key:expr),*) => { HashSet::from([ $($key,)* ]) };
 }
 
+/// Generates the code to initialize a [BTreeSet](std::collections::BTreeSet).
+///
+/// The macro can be followed by parentheses or square brackets.
+///
+/// # Example
+/// ```
+/// # #[macro_use] fn main() {
+/// # use std::collections::BTreeSet;
+/// # use rlexer::btreeset;
+/// let days = btreeset!["Monday", "Tuesday", "Wednesday"];
+/// // => BTreeSet::from(["Monday", "Tuesday", "Wednesday", ])
+/// assert_eq!(days, BTreeSet::from(["Monday", "Tuesday", "Wednesday"]));
+/// # }
+/// ```
+#[macro_export(local_inner_macros)]
+macro_rules! btreeset {
+    () => { BTreeSet::new() };
+    ($($key:expr,)+) => { btreeset!($($key),+) };
+    ($($key:expr),*) => { BTreeSet::from([ $($key,)* ]) };
+}
+
 mod tests {
-    use std::collections::{HashMap, HashSet};
+    use std::collections::{HashMap, BTreeMap, HashSet, BTreeSet};
     use super::*;
 
     #[test]
@@ -62,10 +106,31 @@ mod tests {
     }
 
     #[test]
+    fn btreemap() {
+        let h = btreemap!(
+            'a' => btreemap!(
+                '1' => 'a',
+                '2' => 'A'
+            ),
+            'b' => btreemap!['1' => 'b', '2' => 'B',],
+            'c' => btreemap!()
+        );
+        assert_eq!(h, BTreeMap::from([('a', BTreeMap::from([('1', 'a'), ('2', 'A')])), ('b', BTreeMap::from([('1', 'b'), ('2', 'B')])), ('c', BTreeMap::new())]))
+    }
+
+    #[test]
     fn hashset() {
         let h1 = hashset![1, 3, 5, 7];
         let h2 = hashset!();
         assert_eq!(h1, HashSet::from([1, 3, 5, 7]));
         assert_eq!(h2, HashSet::<i32>::from([]));
+    }
+
+    #[test]
+    fn btreeset() {
+        let h1 = btreeset![1, 3, 5, 7];
+        let h2 = btreeset!();
+        assert_eq!(h1, BTreeSet::from([1, 3, 5, 7]));
+        assert_eq!(h2, BTreeSet::<i32>::from([]));
     }
 }

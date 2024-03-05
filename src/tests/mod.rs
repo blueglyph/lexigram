@@ -411,45 +411,45 @@ mod test_node {
     #[test]
     fn dfa_states() {
         let tests = vec![
-            (0, BTreeMap::from([
-                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
-                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
-                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
-                (3, BTreeMap::from([/*(ReType::End, 4),*/ (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
-            ])),
-            (1, BTreeMap::from([
-                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
-                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
-                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
-                (3, BTreeMap::from([/*(ReType::End, 4),*/ (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
-            ])),
-            (2, BTreeMap::from([
-                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
-                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
-                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
-                (3, BTreeMap::from([/*(ReType::End, 4),*/ (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
-            ])),
+            (0, btreemap![
+                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
+                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
+                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+            ]),
+            (1, btreemap![
+                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
+                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
+                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+            ]),
+            (2, btreemap![
+                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
+                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
+                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+            ]),
             // "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)",
-            (3, BTreeMap::from([
-                (0, BTreeMap::from([(ReType::Char('a'), 1)])),
-                (1, BTreeMap::from([(ReType::Char('b'), 2)])),
-                (2, BTreeMap::from([(ReType::Char('c'), 3)])),
-                (3, BTreeMap::from([(ReType::Char('a'), 4), (ReType::Char('b'), 4)])),
-                (4, BTreeMap::from([/*(ReType::End, 5)*/]))
-            ])),
+            (3, btreemap![
+                0 => btreemap![ReType::Char('a') => 1],
+                1 => btreemap![ReType::Char('b') => 2],
+                2 => btreemap![ReType::Char('c') => 3],
+                3 => btreemap![ReType::Char('a') => 4, ReType::Char('b') => 4],
+                4 => btreemap![]
+            ]),
             // "&(1:'s',|(2:'a',3:'b'),4:<end>)",
-            (4, BTreeMap::from([
-                (0, BTreeMap::from([(ReType::Char('s'), 1)])),
-                (1, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 2)])),
-                (2, BTreeMap::from([/*(ReType::End, 3)*/])),
-            ])),
+            (4, btreemap![
+                0 => btreemap![ReType::Char('s') => 1],
+                1 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 2],
+                2 => btreemap![],
+            ]),
             // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))",
-            (5, BTreeMap::from([
-                (0, BTreeMap::from([(ReType::Char('s'), 1)])),
-                (1, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 3)])),
-                (2, BTreeMap::from([/*(ReType::End, 4)*/])),
-                (3, BTreeMap::from([/*(ReType::End, 4)*/])),
-            ])),
+            (5, btreemap![
+                0 => btreemap![ReType::Char('s') => 1],
+                1 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 3],
+                2 => btreemap![],
+                3 => btreemap![],
+            ]),
         ];
         for (test_id, expected) in tests {
             let re = build_re(test_id);
@@ -463,32 +463,32 @@ mod test_node {
     #[test]
     fn optimize_graphs() {
         let tests = vec![
-            (0, BTreeMap::from([
-                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
-                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
-                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
-                (3, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
-            ]), vec![3],
-             BTreeMap::from([ // 1 <-> 2
-                 (0, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 0)])),
-                 (1, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 3)])),
-                 (2, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 1)])),
-                 (3, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 0)])),
-             ]), vec![3]),
+            (0, btreemap![
+                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
+                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
+                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+            ], vec![3],
+             btreemap![ // 1 <-> 2
+                 0 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 0],
+                 1 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 3],
+                 2 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 1],
+                 3 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 0],
+             ], vec![3]),
 
-            (1, BTreeMap::from([
-                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
-                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
-                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
-                (3, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 4)])),
-                (4, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
-            ]), vec![4],
-             BTreeMap::from([ // 0 -> 0, 1 -> 2, 2 -> 0, 3 -> 1, 4 -> 3
-                (0, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 0)])),
-                (1, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 3)])),
-                (2, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 1)])),
-                (3, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 0)])),
-             ]), vec![3]),
+            (1, btreemap![
+                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
+                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
+                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
+                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 4],
+                4 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
+            ], vec![4],
+             btreemap![ // 0 -> 0, 1 -> 2, 2 -> 0, 3 -> 1, 4 -> 3
+                0 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 0],
+                1 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 3],
+                2 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 1],
+                3 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 0],
+             ], vec![3]),
         ];
         for (test_id, graph, end_states, exp_graph, exp_end_states) in tests {
             println!("{test_id}:");
