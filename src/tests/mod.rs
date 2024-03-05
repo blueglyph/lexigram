@@ -415,19 +415,19 @@ mod test_node {
                 (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
                 (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
                 (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
-                (3, BTreeMap::from([(ReType::End, 4), (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+                (3, BTreeMap::from([/*(ReType::End, 4),*/ (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
             ])),
             (1, BTreeMap::from([
                 (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
                 (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
                 (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
-                (3, BTreeMap::from([(ReType::End, 4), (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+                (3, BTreeMap::from([/*(ReType::End, 4),*/ (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
             ])),
             (2, BTreeMap::from([
                 (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
                 (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
                 (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
-                (3, BTreeMap::from([(ReType::End, 4), (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+                (3, BTreeMap::from([/*(ReType::End, 4),*/ (ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
             ])),
             // "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)",
             (3, BTreeMap::from([
@@ -435,20 +435,20 @@ mod test_node {
                 (1, BTreeMap::from([(ReType::Char('b'), 2)])),
                 (2, BTreeMap::from([(ReType::Char('c'), 3)])),
                 (3, BTreeMap::from([(ReType::Char('a'), 4), (ReType::Char('b'), 4)])),
-                (4, BTreeMap::from([(ReType::End, 5)]))
+                (4, BTreeMap::from([/*(ReType::End, 5)*/]))
             ])),
             // "&(1:'s',|(2:'a',3:'b'),4:<end>)",
             (4, BTreeMap::from([
                 (0, BTreeMap::from([(ReType::Char('s'), 1)])),
                 (1, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 2)])),
-                (2, BTreeMap::from([(ReType::End, 3)])),
+                (2, BTreeMap::from([/*(ReType::End, 3)*/])),
             ])),
             // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))",
             (5, BTreeMap::from([
                 (0, BTreeMap::from([(ReType::Char('s'), 1)])),
                 (1, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 3)])),
-                (2, BTreeMap::from([(ReType::End, 4)])),
-                (3, BTreeMap::from([(ReType::End, 4)])),
+                (2, BTreeMap::from([/*(ReType::End, 4)*/])),
+                (3, BTreeMap::from([/*(ReType::End, 4)*/])),
             ])),
         ];
         for (test_id, expected) in tests {
@@ -492,8 +492,6 @@ mod test_node {
             dfa.build_dfa();
             println!("test {test_id}:");
             print_graph(&dfa);
-            dfa.optimize_graph(false);
-            println!();
             dfa.optimize_graph(true);
             println!();
         }

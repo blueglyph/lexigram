@@ -286,10 +286,14 @@ impl DfaBuilder {
                     current_id
                 };
                 if let Some(map) = self.state_graph.get_mut(&new_state_id) {
-                    map.insert(symbol.clone(), state_id);
+                    if !symbol.is_end() {
+                        map.insert(symbol.clone(), state_id);
+                    }
                 } else {
                     let mut map = BTreeMap::new();
-                    map.insert(symbol.clone(), state_id);
+                    if !symbol.is_end() {
+                        map.insert(symbol.clone(), state_id);
+                    }
                     self.state_graph.insert(new_state_id, map);
                 }
                 if symbol.is_end() {
@@ -306,6 +310,8 @@ impl DfaBuilder {
     /// * `separate_end_states` = `true` if different end (accepting) states should be kept apart;
     /// for example, when it's important to differentiate tokens.
     pub fn optimize_graph(&mut self, separate_end_states: bool) {
+        const VERBOSE: bool = false;
+        if VERBOSE { println!("-----------------------------------------------------------"); }
         let mut groups = Vec::<BTreeSet<StateId>>::new();
         let mut st_to_group = BTreeMap::<StateId, usize>::new();
         // initial partition
@@ -334,48 +340,71 @@ impl DfaBuilder {
             let mut changes = Vec::<(StateId, usize, usize)>::new();   // (state, old group, new group)
             for (id, p) in groups.iter().enumerate() {
                 // do all states have the same destination group for the same symbol?
-                println!("group #{id}: {p:?}:");
+                if VERBOSE { println!("group #{id}: {p:?}:"); }
                 // stores combination -> group index:
                 let mut combinations = BTreeMap::<BTreeMap<&ReType, usize>, usize>::new();
                 for &st_id in p {
                     let combination = self.state_graph.get(&st_id).unwrap().iter()
                         .filter(|(_, st)| st_to_group.contains_key(st)) // to avoid fake "end" states
-                        .map(|(s, st)| { (s, *st_to_group.get(st).unwrap()) })
+                        .map(|(s, st)| { (s, st_to_group[st]) })
                         .collect::<BTreeMap<_, _>>();
-                    print!("- state {st_id}: {combination:?}");
+                    if VERBOSE { print!("- state {st_id}{}: {combination:?}", if self.end_states.contains(&st_id) { " <END>" } else { "" }) };
                     if combinations.is_empty() {
                         combinations.insert(combination, id);   // first one remains in this group
-                        println!(" (1st, no change)");
+                        if VERBOSE { println!(" (1st, no change)"); }
                     } else {
                         if let Some(&group_id) = combinations.get(&combination) {
                             // programs the change if it's one of the new groups
                             if group_id != id {
                                 changes.push((st_id, id, group_id));
-                                println!(" -> group #{id}");
+                                if VERBOSE { println!(" -> group #{group_id}"); }
                             } else {
-                                println!(" (no change)");
+                                if VERBOSE { println!(" (no change)"); }
                             }
                         } else {
                             // creates a new group and programs the change
                             last_group_id += 1;
                             combinations.insert(combination, last_group_id);
                             changes.push((st_id, id, last_group_id));
-                            println!(" -> new group #{last_group_id}");
+                            if VERBOSE { println!(" -> new group #{last_group_id}"); }
                         }
                     }
-                    // if let Some(last) = last_opt {
-                    //     if last.eq(&combination) {
-                    //         println!(" (same)");
-                    //     } else {
-                    //         println!(" (diff)");
-                    //     };
-                    // } else {
-                    //     println!(" (1st)");
-                    // }
                 }
             }
-            change = false;
+            change = !changes.is_empty();
+            for (st_id, old_group_id, new_group_id) in changes {
+                if new_group_id >= groups.len() {
+                    groups.push(BTreeSet::<StateId>::new());
+                }
+                assert!(groups[old_group_id].remove(&st_id));
+                groups[new_group_id].insert(st_id);
+                assert_eq!(st_to_group.insert(st_id, new_group_id), Some(old_group_id));
+            }
+            if VERBOSE && change { println!("---"); }
         }
+        if VERBOSE { println!("-----------------------------------------------------------"); }
+        // stores the new states
+        let new_end = BTreeSet::<StateId>::from_iter(
+            groups.iter().enumerate()
+                .filter(|(_, g)| g.iter().any(|s| self.end_states.contains(s)))
+                .map(|(group_id, _)| group_id as StateId)
+        );
+        let new_initial = Some(st_to_group[&self.initial_state.unwrap()] as StateId);
+        // let new_graph = BTreeMap::<StateId, BTreeMap<ReType, StateId>>::new();
+        let new_graph = self.state_graph.iter()
+            .map(|(st_id, map_sym_st)| (
+                st_to_group[st_id] as StateId,
+                map_sym_st.iter().map(|(sym, st)| (sym.clone(), st_to_group[st] as StateId)).collect::<BTreeMap<_, _>>()))
+            .collect::<BTreeMap::<StateId, BTreeMap<ReType, StateId>>>();
+        if VERBOSE {
+            println!("new_graph:   {:?}", new_graph);
+            println!("new_initial: {:?}", new_initial);
+            println!("new_end:     {:?}", new_end);
+            println!("-----------------------------------------------------------");
+        }
+        self.end_states = new_end;
+        self.initial_state = new_initial;
+        self.state_graph = new_graph;
     }
 
     pub fn build_dfa(&mut self) {
