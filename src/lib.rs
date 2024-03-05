@@ -326,7 +326,7 @@ impl DfaBuilder {
     /// * `separate_end_states` = `true` if different end (accepting) states should be kept apart;
     /// for example, when it's important to differentiate tokens.
     pub fn optimize_graph(&mut self, separate_end_states: bool) -> BTreeMap::<StateId, StateId> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         if VERBOSE { println!("-----------------------------------------------------------"); }
         let mut groups = Vec::<BTreeSet<StateId>>::new();
         let mut st_to_group = BTreeMap::<StateId, usize>::new();
@@ -412,6 +412,28 @@ impl DfaBuilder {
             if VERBOSE && change { println!("---"); }
         }
         if VERBOSE { println!("-----------------------------------------------------------"); }
+        // removes the gaps in group numbering
+        let delta = first_ending_id - last_non_end_id - 1;
+        if delta > 0 {
+            if VERBOSE {
+                println!("removing the gaps in group numbering: (delta={delta})");
+                println!("st_to_group: {st_to_group:?}");
+                println!("groups: {groups:?}");
+            }
+            for (_, new_st) in st_to_group.iter_mut() {
+                if *new_st > last_non_end_id {
+                    *new_st -= delta;
+                }
+            }
+            groups = groups.into_iter().enumerate()
+                .filter(|(id, _)| *id <= last_non_end_id || *id >= first_ending_id)
+                .map(|(_, g)| g)
+                .collect::<Vec<_>>();
+            if VERBOSE {
+                println!("st_to_group: {st_to_group:?}");
+                println!("groups: {groups:?}");
+            }
+        }
         // stores the new states
         self.end_states = BTreeSet::<StateId>::from_iter(
             groups.iter().enumerate()

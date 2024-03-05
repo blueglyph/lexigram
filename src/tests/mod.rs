@@ -410,7 +410,7 @@ mod test_node {
 
     #[test]
     fn dfa_states() {
-        let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<ReType, StateId>>)> = vec![
+        let tests = vec![
             (0, BTreeMap::from([
                 (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
                 (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
@@ -462,20 +462,41 @@ mod test_node {
 
     #[test]
     fn optimize_graphs() {
-        let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<ReType, StateId>>, Vec::<StateId>)> = vec![
+        let tests = vec![
             (0, BTreeMap::from([
                 (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
                 (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
                 (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
                 (3, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
-            ]), vec![3]),
+            ]), vec![3],
+             BTreeMap::from([ // 1 <-> 2
+                 (0, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 0)])),
+                 (1, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 3)])),
+                 (2, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 1)])),
+                 (3, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 0)])),
+             ]), vec![3]),
 
-            ];
-        for (test_id, graph, end_states) in tests {
+            (1, BTreeMap::from([
+                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
+                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
+                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
+                (3, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 4)])),
+                (4, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
+            ]), vec![4],
+             BTreeMap::from([ // 0 -> 0, 1 -> 2, 2 -> 0, 3 -> 1, 4 -> 3
+                (0, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 0)])),
+                (1, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 3)])),
+                (2, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 1)])),
+                (3, BTreeMap::from([(ReType::Char('a'), 2), (ReType::Char('b'), 0)])),
+             ]), vec![3]),
+        ];
+        for (test_id, graph, end_states, exp_graph, exp_end_states) in tests {
             println!("{test_id}:");
             let mut dfa = DfaBuilder::from_graph(graph, 0, end_states);
             let tr = dfa.optimize_graph(true);
             println!("table: {}\n", tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
+            assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
+            assert_eq!(dfa.end_states, BTreeSet::from_iter(exp_end_states.into_iter()), "test {test_id} failed");
         }
     }
 
