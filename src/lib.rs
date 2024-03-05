@@ -120,7 +120,7 @@ pub struct DfaBuilder {
 }
 
 impl DfaBuilder {
-    pub fn new(re: VecTree<ReNode>) -> DfaBuilder {
+    pub fn from_re(re: VecTree<ReNode>) -> DfaBuilder {
         let mut builder = DfaBuilder {
             re,
             followpos: HashMap::new(),
@@ -131,6 +131,21 @@ impl DfaBuilder {
             end_states: BTreeSet::new()
         };
         builder.preprocess_re();
+        builder
+    }
+
+    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>, init_state: StateId, end_states: T) -> DfaBuilder
+        where T: IntoIterator<Item=StateId>
+    {
+        let builder = DfaBuilder {
+            re: VecTree::new(),
+            followpos: HashMap::new(),
+            ids: HashMap::new(),
+            states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
+            state_graph: graph,
+            initial_state: Some(init_state),
+            end_states: BTreeSet::from_iter(end_states)
+        };
         builder
     }
 
@@ -311,10 +326,14 @@ impl DfaBuilder {
     /// * `separate_end_states` = `true` if different end (accepting) states should be kept apart;
     /// for example, when it's important to differentiate tokens.
     pub fn optimize_graph(&mut self, separate_end_states: bool) -> BTreeMap::<StateId, StateId> {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         if VERBOSE { println!("-----------------------------------------------------------"); }
         let mut groups = Vec::<BTreeSet<StateId>>::new();
         let mut st_to_group = BTreeMap::<StateId, usize>::new();
+        let nbr_non_end_states = self.state_graph.len() - self.end_states.len();
+        let mut last_non_end_id = 0;
+        let first_ending_id = nbr_non_end_states + 1;
+
         // initial partition
         // - all non-end states
         let mut group = BTreeSet::<StateId>::new();
@@ -323,6 +342,10 @@ impl DfaBuilder {
             st_to_group.insert(*st, 0);
         }
         groups.push(group);
+        // - reserves a few empty groups for later non-ending groups:
+        for _ in 1..first_ending_id {
+            groups.push(BTreeSet::new());
+        }
         // - end states
         if separate_end_states {
             for st in &self.end_states {
@@ -333,11 +356,11 @@ impl DfaBuilder {
             st_to_group.extend(self.end_states.iter().map(|id| (*id, groups.len())));
             groups.push(self.end_states.clone());
         }
+        let mut last_ending_id = groups.len() - 1;
         let mut change = true;
-        let mut last_group_id = groups.len() - 1;
         while change {
             let mut changes = Vec::<(StateId, usize, usize)>::new();   // (state, old group, new group)
-            for (id, p) in groups.iter().enumerate() {
+            for (id, p) in groups.iter().enumerate().filter(|(_, g)| !g.is_empty()) {
                 // do all states have the same destination group for the same symbol?
                 if VERBOSE { println!("group #{id}: {p:?}:"); }
                 // stores combination -> group index:
@@ -362,10 +385,17 @@ impl DfaBuilder {
                             }
                         } else {
                             // creates a new group and programs the change
-                            last_group_id += 1;
-                            combinations.insert(combination, last_group_id);
-                            changes.push((st_id, id, last_group_id));
-                            if VERBOSE { println!(" -> new group #{last_group_id}"); }
+                            let new_id = if id < first_ending_id {
+                                assert!(last_non_end_id + 1 < first_ending_id, "no more IDs for non-accepting state");
+                                last_non_end_id += 1;
+                                last_non_end_id
+                            } else {
+                                last_ending_id += 1;
+                                last_ending_id
+                            };
+                            combinations.insert(combination, new_id);
+                            changes.push((st_id, id, new_id));
+                            if VERBOSE { println!(" -> new group #{new_id}"); }
                         }
                     }
                 }

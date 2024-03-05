@@ -162,7 +162,7 @@ mod test_node {
         for (test_id, (expected1, expected2)) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
             let result1 = tree_to_string(&re, false);
-            let dfa = DfaBuilder::new(re);
+            let dfa = DfaBuilder::from_re(re);
             let result2 = tree_to_string(&dfa.re, false);
             assert_eq!(result1, expected1, "test {test_id} failed (1st part)");
             assert_eq!(result2, expected2, "test {test_id} failed (2nd part)");
@@ -181,7 +181,7 @@ mod test_node {
         ];
         for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
-            let mut dfa = DfaBuilder::new(re);
+            let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
             assert_eq!(tree_to_string(&dfa.re, true), expected, "test {test_id} failed");
         }
@@ -199,7 +199,7 @@ mod test_node {
         ];
         for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
-            let mut dfa = DfaBuilder::new(re);
+            let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
             assert_eq!(tree_to_string(&dfa.re, false), expected, "test {test_id} failed");
         }
@@ -265,7 +265,7 @@ mod test_node {
         ];
         for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
-            let mut dfa = DfaBuilder::new(re);
+            let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
             let mut result = Vec::new();
             for inode in dfa.re.iter_depth() {
@@ -337,7 +337,7 @@ mod test_node {
         ];
         for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
-            let mut dfa = DfaBuilder::new(re);
+            let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
             let mut result = Vec::new();
             for inode in dfa.re.iter_depth() {
@@ -402,7 +402,7 @@ mod test_node {
         };
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
-            let mut dfa = DfaBuilder::new(re);
+            let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
             assert_eq!(dfa.followpos, expected, "test {test_id} failed");
         }
@@ -453,10 +453,29 @@ mod test_node {
         ];
         for (test_id, expected) in tests {
             let re = build_re(test_id);
-            let mut dfa = DfaBuilder::new(re);
+            let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
             dfa.calc_states();
             assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
+        }
+    }
+
+    #[test]
+    fn optimize_graphs() {
+        let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<ReType, StateId>>, Vec::<StateId>)> = vec![
+            (0, BTreeMap::from([
+                (0, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+                (1, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 2)])),
+                (2, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 3)])),
+                (3, BTreeMap::from([(ReType::Char('a'), 1), (ReType::Char('b'), 0)])),
+            ]), vec![3]),
+
+            ];
+        for (test_id, graph, end_states) in tests {
+            println!("{test_id}:");
+            let mut dfa = DfaBuilder::from_graph(graph, 0, end_states);
+            let tr = dfa.optimize_graph(true);
+            println!("table: {}\n", tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
         }
     }
 
@@ -467,7 +486,7 @@ mod test_node {
         let tests = [1, 4, 5];
         for test_id in tests {
             let re = build_re(test_id);
-            let mut dfa = DfaBuilder::new(re);
+            let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
             println!("{test_id}: {}\n{:}", tree_to_string(&dfa.re, true), debug_tree(&dfa.re));
             let mut keys = dfa.followpos.keys().map(|&k| k).collect::<Vec<_>>();
@@ -488,7 +507,7 @@ mod test_node {
         let tests = [1, 4, 5];
         for test_id in tests {
             let re = build_re(test_id);
-            let mut dfa = DfaBuilder::new(re);
+            let mut dfa = DfaBuilder::from_re(re);
             dfa.build_dfa();
             println!("test {test_id}:");
             print_graph(&dfa);
