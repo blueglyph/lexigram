@@ -149,6 +149,11 @@ fn print_graph(dfa: &DfaBuilder) {
     }
 }
 
+macro_rules! branch {
+    ($($key:expr => $value:expr,)+) => { branch!($($key => $value),+) };
+    ($($key:expr => $value:expr),*) => { btreemap![$(ReType::Char($key) => $value,)*] };
+}
+
 mod test_node {
     use super::*;
 
@@ -412,43 +417,43 @@ mod test_node {
     fn dfa_states() {
         let tests = vec![
             (0, btreemap![
-                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
-                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
-                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
-                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+                0 => branch!['a' => 1, 'b' => 0],
+                1 => branch!['a' => 1, 'b' => 2],
+                2 => branch!['a' => 1, 'b' => 3],
+                3 => branch!['a' => 1, 'b' => 0],
             ]),
             (1, btreemap![
-                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
-                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
-                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
-                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+                0 => branch!['a' => 1, 'b' => 0],
+                1 => branch!['a' => 1, 'b' => 2],
+                2 => branch!['a' => 1, 'b' => 3],
+                3 => branch!['a' => 1, 'b' => 0],
             ]),
             (2, btreemap![
-                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
-                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
-                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
-                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+                0 => branch!['a' => 1, 'b' => 0],
+                1 => branch!['a' => 1, 'b' => 2],
+                2 => branch!['a' => 1, 'b' => 3],
+                3 => branch!['a' => 1, 'b' => 0],
             ]),
             // "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)",
             (3, btreemap![
-                0 => btreemap![ReType::Char('a') => 1],
-                1 => btreemap![ReType::Char('b') => 2],
-                2 => btreemap![ReType::Char('c') => 3],
-                3 => btreemap![ReType::Char('a') => 4, ReType::Char('b') => 4],
-                4 => btreemap![]
+                0 => branch!['a' => 1],
+                1 => branch!['b' => 2],
+                2 => branch!['c' => 3],
+                3 => branch!['a' => 4, 'b' => 4],
+                4 => branch![]
             ]),
             // "&(1:'s',|(2:'a',3:'b'),4:<end>)",
             (4, btreemap![
-                0 => btreemap![ReType::Char('s') => 1],
-                1 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 2],
-                2 => btreemap![],
+                0 => branch!['s' => 1],
+                1 => branch!['a' => 2, 'b' => 2],
+                2 => branch![],
             ]),
             // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))",
             (5, btreemap![
-                0 => btreemap![ReType::Char('s') => 1],
-                1 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 3],
-                2 => btreemap![],
-                3 => btreemap![],
+                0 => branch!['s' => 1],
+                1 => branch!['a' => 2, 'b' => 3],
+                2 => branch![],
+                3 => branch![],
             ]),
         ];
         for (test_id, expected) in tests {
@@ -464,30 +469,30 @@ mod test_node {
     fn optimize_graphs() {
         let tests = vec![
             (0, btreemap![
-                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
-                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
-                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
-                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 0],
+                0 => branch!['a' => 1, 'b' => 0],
+                1 => branch!['a' => 1, 'b' => 2],
+                2 => branch!['a' => 1, 'b' => 3],
+                3 => branch!['a' => 1, 'b' => 0],
             ], vec![3],
              btreemap![ // 1 <-> 2
-                 0 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 0],
-                 1 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 3],
-                 2 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 1],
-                 3 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 0],
+                 0 => branch!['a' => 2, 'b' => 0],
+                 1 => branch!['a' => 2, 'b' => 3],
+                 2 => branch!['a' => 2, 'b' => 1],
+                 3 => branch!['a' => 2, 'b' => 0],
              ], vec![3]),
 
             (1, btreemap![
-                0 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
-                1 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 3],
-                2 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
-                3 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 4],
-                4 => btreemap![ReType::Char('a') => 1, ReType::Char('b') => 2],
+                0 => branch!['a' => 1, 'b' => 2],
+                1 => branch!['a' => 1, 'b' => 3],
+                2 => branch!['a' => 1, 'b' => 2],
+                3 => branch!['a' => 1, 'b' => 4],
+                4 => branch!['a' => 1, 'b' => 2],
             ], vec![4],
              btreemap![ // 0 -> 0, 1 -> 2, 2 -> 0, 3 -> 1, 4 -> 3
-                0 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 0],
-                1 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 3],
-                2 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 1],
-                3 => btreemap![ReType::Char('a') => 2, ReType::Char('b') => 0],
+                0 => branch!['a' => 2, 'b' => 0],
+                1 => branch!['a' => 2, 'b' => 3],
+                2 => branch!['a' => 2, 'b' => 1],
+                3 => branch!['a' => 2, 'b' => 0],
              ], vec![3]),
         ];
         for (test_id, graph, end_states, exp_graph, exp_end_states) in tests {
