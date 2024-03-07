@@ -184,8 +184,10 @@ impl DfaBuilder {
             if inode.is_leaf() {
                 id += 1;
                 inode.id = Some(id);
-                inode.firstpos.insert(id);
-                inode.lastpos.insert(id);
+                if !inode.is_empty() {
+                    inode.firstpos.insert(id);
+                    inode.lastpos.insert(id);
+                }
                 self.ids.insert(id, inode.index);
                 if inode.op.is_end() {
                     self.followpos.insert(id, HashSet::new());
@@ -210,15 +212,22 @@ impl DfaBuilder {
                         //     for all j in c[i].lastpos
                         //         followpos[j].extend(c[i+1].firstpos)
                         let mut iter = inode.iter_children_simple();
-                        let mut a = iter.next().unwrap();   // a is c[i]
+                        let a = iter.next().unwrap();   // a is c[i]
+                        let mut lastpos = a.lastpos.clone();
                         while let Some(b) = iter.next() {   // b is c[i+1]
-                            for j in &a.lastpos {
+                            for j in &lastpos {
                                 if !self.followpos.contains_key(j) {
                                     self.followpos.insert(*j, HashSet::new());
                                 }
                                 self.followpos.get_mut(j).unwrap().extend(&b.firstpos);
                             }
-                            a = b;
+                            // we must build the lastpos during the iteration
+                            // &(0,1,2,3) = &2(&1(&0(0,1),2),3) => &0.lpos=0.lpos, &1.lpos=lastpos("&",[&0,2])), ...
+                            if b.nullable.unwrap() {
+                                lastpos.extend(&b.lastpos);
+                            } else {
+                                lastpos = b.lastpos.clone();
+                            }
                         }
                     }
                     ReType::Star => {

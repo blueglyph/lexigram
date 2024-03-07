@@ -95,6 +95,25 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(cd[1]), [ReNode::new(ReType::Char('b')), ReNode::new(ReType::End)]);
             //re.add(Some(root), ReNode::new(ReType::End));
         }
+        6 => {  // a(bc)?d = a(bc|-)d
+            let root = re.add(None, ReNode::new(ReType::Concat));
+            re.add(Some(root), ReNode::new(ReType::Char('a')));
+            let bc_opt = re.add(Some(root), ReNode::new(ReType::Or));
+            re.add_iter(Some(root), [ReNode::new(ReType::Char('d')), ReNode::new(ReType::End)]);
+            re.add(Some(bc_opt), ReNode::new(ReType::String("bc".to_string())));
+            re.add(Some(bc_opt), ReNode::new(ReType::Empty));
+        },
+        7 => {  // a(bc)?d?e = a(bc|-)(d|-)e
+            let root = re.add(None, ReNode::new(ReType::Concat));
+            re.add(Some(root), ReNode::new(ReType::Char('a')));
+            let bc_opt = re.add(Some(root), ReNode::new(ReType::Or));
+            let d_opt = re.add(Some(root), ReNode::new(ReType::Or));
+            re.add_iter(Some(root), [ReNode::new(ReType::Char('e')), ReNode::new(ReType::End)]);
+            re.add(Some(bc_opt), ReNode::new(ReType::String("bc".to_string())));
+            re.add(Some(bc_opt), ReNode::new(ReType::Empty));
+            re.add(Some(d_opt), ReNode::new(ReType::Char('d')));
+            re.add(Some(d_opt), ReNode::new(ReType::Empty));
+        }
         _ => panic!("test {test} doesn't exist")
     }
     re
@@ -195,14 +214,16 @@ mod test_node {
     #[test]
     fn dfa_nullable() {
         let tests = vec![
-            "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)",
-            "&(!*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end>)",
-            "&(!*(|(1:'a',2:'b')),&(3:'a',4:'b',5:'b'),6:<end>)",
-            "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)",
-            "&(1:'s',|(2:'a',3:'b'),4:<end>)",
-            "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))",
+            (0, "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)"),
+            (1, "&(!*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end>)"),
+            (2, "&(!*(|(1:'a',2:'b')),&(3:'a',4:'b',5:'b'),6:<end>)"),
+            (3, "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)"),
+            (4, "&(1:'s',|(2:'a',3:'b'),4:<end>)"),
+            (5, "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))"),
+            (6, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),5:'d',6:<end>)"),
+            (7, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),!|(5:'d',!6:-),7:'e',8:<end>)")
         ];
-        for (test_id, expected) in tests.into_iter().enumerate() {
+        for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
@@ -213,7 +234,7 @@ mod test_node {
     #[test]
     fn dfa_firstpos() {
         let tests = vec![
-            vec![
+            (0, vec![
                 vec![1], vec![2],   // a, b
                 vec![1, 2],         // |
                 vec![1, 2],         // *
@@ -225,15 +246,15 @@ mod test_node {
                 vec![1, 2, 3],      // &
                 vec![6],            // <end>
                 vec![1, 2, 3],      // &
-            ],
-            vec![
+            ]),
+            (1, vec![
                 vec![1], vec![2],                   // a, b
                 vec![1, 2],                         // |
                 vec![1, 2],                         // *
                 vec![3], vec![4], vec![5], vec![6], // a, b, b, <end>
                 vec![1, 2, 3],                      // &
-            ],
-            vec![
+            ]),
+            (2, vec![
                 vec![1], vec![2],                   // a, b
                 vec![1, 2],                         // |
                 vec![1, 2],                         // *
@@ -241,24 +262,24 @@ mod test_node {
                 vec![3],                            // &
                 vec![6],                            // <end>
                 vec![1, 2, 3],                      // &
-            ],
-            vec![
+            ]),
+            (3, vec![
                 vec![1], vec![2], vec![3],          // a, b, c
                 vec![1],                            // &
                 vec![4], vec![5],                   // a, b
                 vec![4,5],                          // |
                 vec![6],                            // <end>
                 vec![1]                             // &
-            ],
-            vec![
+            ]),
+            (4, vec![
                 vec![1],                            // s
                 vec![2], vec![3],                   // a, b
                 vec![2, 3],                         // |
                 vec![4],                            // <end>
                 vec![1]                             // &
-            ],
+            ]),
             // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))"
-            vec![
+            (5, vec![
                 vec![1],                            // s
                 vec![2], vec![3],                   // a, <end>
                 vec![2],                            // &
@@ -266,9 +287,36 @@ mod test_node {
                 vec![4],                            // &
                 vec![2,4],                          // |
                 vec![1]                             // &
-            ]
+            ]),
+            // "&(1:'a',|(&(2:'b',3:'c'),4:-),5:'d',6:<end>)"
+            (6, vec![
+                vec![1],        // a
+                vec![2],        // b
+                vec![3],        // c
+                vec![2],        // &(b,c)
+                vec![],         // -
+                vec![2],        // |
+                vec![5],        // d
+                vec![6],        // <end>
+                vec![1]         // &
+            ]),
+            // "&(1:'a',|(&(2:'b',3:'c'),4:-),|(5:'d',6:-),7:'e',8:<end>)"
+            (7, vec![
+                vec![1],        // a
+                vec![2],        // b
+                vec![3],        // c
+                vec![2],        // &(b,c)
+                vec![],         // -
+                vec![2],        // |
+                vec![5],        // d
+                vec![],         // -
+                vec![5],        // |
+                vec![7],        // e
+                vec![8],        // <end>
+                vec![1]         // &
+            ]),
         ];
-        for (test_id, expected) in tests.into_iter().enumerate() {
+        for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
@@ -285,7 +333,7 @@ mod test_node {
     #[test]
     fn dfa_lastpos() {
         let tests = vec![
-            vec![
+            (0, vec![
                 vec![1], vec![2],   // a, b
                 vec![1, 2],         // |
                 vec![1, 2],         // *
@@ -297,15 +345,15 @@ mod test_node {
                 vec![5],            // &
                 vec![6],            // <end>
                 vec![6],            // &
-            ],
-            vec![
+            ]),
+            (1, vec![
                 vec![1], vec![2],                   // a, b
                 vec![1, 2],                         // |
                 vec![1, 2],                         // *
                 vec![3], vec![4], vec![5], vec![6], // a, b, b, <end>
                 vec![6],                            // &
-            ],
-            vec![
+            ]),
+            (2, vec![
                 vec![1], vec![2],                   // a, b
                 vec![1, 2],                         // |
                 vec![1, 2],                         // *
@@ -313,34 +361,61 @@ mod test_node {
                 vec![5],                            // &
                 vec![6],                            // <end>
                 vec![6],                            // &
-            ],
-            vec![
+            ]),
+            (3, vec![
                 vec![1], vec![2], vec![3],          // a, b, c
                 vec![3],                            // &
                 vec![4], vec![5],                   // a, b
                 vec![4,5],                          // |
                 vec![6],                            // <end>
                 vec![6]                             // &
-            ],
-            vec![
+            ]),
+            (4, vec![
                 vec![1],                            // s
                 vec![2], vec![3],                   // a, b
                 vec![2, 3],                         // |
                 vec![4],                            // <end>
                 vec![4]                             // &
-            ],
+            ]),
             // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))"
-            vec![
+            (5, vec![
                 vec![1],                            // s
                 vec![2], vec![3],                   // a, <end>
                 vec![3],                            // &
                 vec![4], vec![5],                   // b, <end>
                 vec![5],                            // &
                 vec![3,5],                          // |
-                vec![3,5]                             // &
-            ]
+                vec![3,5]                           // &
+            ]),
+            // "&(1:'a',|(&(2:'b',3:'c'),4:-),5:'d',6:<end>)"
+            (6, vec![
+                vec![1],        // a
+                vec![2],        // b
+                vec![3],        // c
+                vec![3],        // &(b,c)
+                vec![],         // -
+                vec![3],        // |
+                vec![5],        // d
+                vec![6],        // <end>
+                vec![6]         // &
+            ]),
+            // "&(1:'a',|(&(2:'b',3:'c'),4:-),|(5:'d',6:-),7:'e',8:<end>)"
+            (7, vec![
+                vec![1],        // a
+                vec![2],        // b
+                vec![3],        // c
+                vec![3],        // &(b,c)
+                vec![],         // -
+                vec![3],        // |
+                vec![5],        // d
+                vec![],         // -
+                vec![5],        // |
+                vec![7],        // e
+                vec![8],        // <end>
+                vec![8]         // &
+            ]),
         ];
-        for (test_id, expected) in tests.into_iter().enumerate() {
+        for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
@@ -403,13 +478,33 @@ mod test_node {
                 3 => hashset![],
                 4 => hashset![5],
                 5 => hashset![],
-            ])
+            ]),
+            // "&(1:'a',|(&(2:'b',3:'c'),4:-),5:'d',6:<end>)"
+            (6, hashmap![
+                1 => hashset![2, 5],
+                2 => hashset![3],
+                3 => hashset![5],
+                5 => hashset![6],
+                6 => hashset![]
+            ]),
+            // "&(1:'a',|(&(2:'b',3:'c'),4:-),|(5:'d',6:-),7:'e',8:<end>)"
+            (7, hashmap![
+                1 => hashset![2, 5, 7],
+                2 => hashset![3],
+                3 => hashset![5, 7],
+                5 => hashset![7],
+                7 => hashset![8],
+                8 => hashset![]
+            ]),
         };
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
             let mut dfa = DfaBuilder::from_re(re);
             dfa.calc_node_pos();
-            assert_eq!(dfa.followpos, expected, "test {test_id} failed");
+            // assert_eq!(dfa.followpos, expected, "test {test_id} failed");
+            let res = BTreeMap::from_iter(dfa.followpos);
+            let exp = BTreeMap::from_iter(expected);
+            assert_eq!(res, exp, "test {test_id} failed");
         }
     }
 
@@ -455,6 +550,23 @@ mod test_node {
                 2 => branch![],
                 3 => branch![],
             ]),
+            // "&(1:'a',|(&(2:'b',3:'c'),4:-),5:'d',6:<end>)"
+            (6, btreemap![
+                0 => branch!['a' => 1],
+                1 => branch!['b' => 2, 'd' => 3],
+                2 => branch!['c' => 4],
+                3 => branch![],
+                4 => branch!['d' => 3]
+            ]),
+            // "&(1:'a',|(&(2:'b',3:'c'),4:-),|(5:'d',6:-),7:'e',8:<end>)"
+            (7, btreemap![
+                0 => branch!['a' => 1],
+                1 => branch!['b' => 2, 'd' => 3, 'e' => 4],
+                2 => branch!['c' => 5],
+                3 => branch!['e' => 4],
+                4 => branch![],
+                5 => branch!['d' => 3, 'e' => 4]
+            ])
         ];
         for (test_id, expected) in tests {
             let re = build_re(test_id);
