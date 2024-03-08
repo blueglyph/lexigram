@@ -113,39 +113,16 @@ pub struct DfaBuilder {
     followpos: HashMap<Id, HashSet<Id>>,
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
-    states: BTreeMap<BTreeSet<Id>, StateId>,
-    state_graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>,
-    initial_state: Option<StateId>,
-    end_states: BTreeSet<StateId>
 }
 
 impl DfaBuilder {
-    pub fn from_re(re: VecTree<ReNode>) -> DfaBuilder {
+    pub fn new(re: VecTree<ReNode>) -> DfaBuilder {
         let mut builder = DfaBuilder {
             re,
             followpos: HashMap::new(),
             ids: HashMap::new(),
-            states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
-            state_graph: BTreeMap::new(),
-            initial_state: None,
-            end_states: BTreeSet::new()
         };
         builder.preprocess_re();
-        builder
-    }
-
-    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>, init_state: StateId, end_states: T) -> DfaBuilder
-        where T: IntoIterator<Item=StateId>
-    {
-        let builder = DfaBuilder {
-            re: VecTree::new(),
-            followpos: HashMap::new(),
-            ids: HashMap::new(),
-            states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
-            state_graph: graph,
-            initial_state: Some(init_state),
-            end_states: BTreeSet::from_iter(end_states)
-        };
         builder
     }
 
@@ -274,18 +251,19 @@ impl DfaBuilder {
         }
     }
 
-    fn calc_states(&mut self) {
+    fn calc_states(&mut self) -> Dfa {
         // initial state from firstpos(top node)
+        let mut dfa = Dfa::new();
         let mut current_id = 0;
         let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().map(|&id| id));
         let mut new_states = BTreeSet::<BTreeSet<Id>>::new();
         new_states.insert(key.clone());
-        self.states.insert(key, current_id);
-        self.initial_state = Some(current_id);
+        dfa.states.insert(key, current_id);
+        dfa.initial_state = Some(current_id);
 
         // unfold all the states
         while let Some(s) = new_states.pop_first() {
-            let new_state_id = self.states.get(&s).unwrap().clone();
+            let new_state_id = dfa.states.get(&s).unwrap().clone();
             let mut trans = BTreeMap::<&ReType, BTreeSet<Id>>::new();
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if let Some(ids) = trans.get_mut(symbol) {
@@ -301,15 +279,15 @@ impl DfaBuilder {
                 for id in ids {
                     state.extend(&self.followpos[&id]);
                 }
-                let state_id = if let Some(state_id) = self.states.get(&state) {
+                let state_id = if let Some(state_id) = dfa.states.get(&state) {
                     *state_id
                 } else {
                     new_states.insert(state.clone());
                     current_id += 1;
-                    self.states.insert(state, current_id);
+                    dfa.states.insert(state, current_id);
                     current_id
                 };
-                if let Some(map) = self.state_graph.get_mut(&new_state_id) {
+                if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
                     if !symbol.is_end() {
                         map.insert(symbol.clone(), state_id);
                     }
@@ -318,12 +296,47 @@ impl DfaBuilder {
                     if !symbol.is_end() {
                         map.insert(symbol.clone(), state_id);
                     }
-                    self.state_graph.insert(new_state_id, map);
+                    dfa.state_graph.insert(new_state_id, map);
                 }
                 if symbol.is_end() {
-                    self.end_states.insert(new_state_id);
+                    dfa.end_states.insert(new_state_id);
                 }
             }
+        }
+        dfa
+    }
+
+    pub fn build(&mut self) -> Dfa {
+        self.calc_node_pos();
+        self.calc_states()
+    }
+}
+
+pub struct Dfa {
+    states: BTreeMap<BTreeSet<Id>, StateId>,
+    state_graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>,
+    initial_state: Option<StateId>,
+    end_states: BTreeSet<StateId>
+}
+
+impl Dfa {
+    pub fn new() -> Self {
+        Dfa {
+            states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
+            state_graph: BTreeMap::new(),
+            initial_state: None,
+            end_states: BTreeSet::new()
+        }
+    }
+
+    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>, init_state: StateId, end_states: T) -> Dfa
+        where T: IntoIterator<Item=StateId>
+    {
+        Dfa {
+            states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
+            state_graph: graph,
+            initial_state: Some(init_state),
+            end_states: BTreeSet::from_iter(end_states)
         }
     }
 
@@ -334,7 +347,7 @@ impl DfaBuilder {
     ///
     /// * `separate_end_states` = `true` if different end (accepting) states should be kept apart;
     /// for example, when it's important to differentiate tokens.
-    pub fn optimize_graph(&mut self, separate_end_states: bool) -> BTreeMap::<StateId, StateId> {
+    pub fn optimize(&mut self, separate_end_states: bool) -> BTreeMap::<StateId, StateId> {
         const VERBOSE: bool = false;
         if VERBOSE { println!("-----------------------------------------------------------"); }
         let mut groups = Vec::<BTreeSet<StateId>>::new();
@@ -462,10 +475,5 @@ impl DfaBuilder {
             println!("-----------------------------------------------------------");
         }
         st_to_group
-    }
-
-    pub fn build_dfa(&mut self) {
-        self.calc_node_pos();
-        self.calc_states();
     }
 }
