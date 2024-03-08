@@ -88,9 +88,9 @@ macro_rules! btreeset {
     ($($key:expr),*) => { BTreeSet::from([ $($key,)* ]) };
 }
 
+#[cfg(test)]
 mod tests {
     use std::collections::{HashMap, BTreeMap, HashSet, BTreeSet};
-    use super::*;
 
     #[test]
     fn hashmap() {

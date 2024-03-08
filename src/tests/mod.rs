@@ -39,8 +39,7 @@ fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
 fn build_re(test: usize) -> VecTree<ReNode> {
     let mut re = VecTree::new();
     match test {
-        0 => {
-            // (a|b)*abb
+        0 => { // (a|b)*abb<end>
             let f = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
             let e = re.add_iter(Some(f), [ReNode::new(ReType::Concat), ReNode::new(ReType::End)])[0];
             let d = re.add_iter(Some(e), [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
@@ -49,8 +48,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             let a = re.add(Some(b), ReNode::new(ReType::Or));
             re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
         },
-        1 => {
-            // (a|b)*abb
+        1 => { // (a|b)*abb<end>
             let c = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
             let b = re.add_iter(Some(c), [
                 ReNode::new(ReType::Star),
@@ -62,7 +60,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             let a = re.add(Some(b), ReNode::new(ReType::Or));
             re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
         },
-        2 => {
+        2 => { // (a|b)*abb<end>
             let c = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
             let b = re.add_iter(Some(c), [
                 ReNode::new(ReType::Star),
@@ -72,30 +70,29 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             let a = re.add(Some(b), ReNode::new(ReType::Or));
             re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
         }
-        3 => {
+        3 => { // abc(a|b)<end>
             let root = re.add(None, ReNode::new(ReType::Concat));
             re.add(Some(root), ReNode::new(ReType::String("abc".to_string())));
             let a = re.add(Some(root), ReNode::new(ReType::Or));
             re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
             re.add(Some(root), ReNode::new(ReType::End));
         }
-        4 => {
+        4 => { // s(a|b)<end>
             let root = re.add(None, ReNode::new(ReType::Concat));
             re.add(Some(root), ReNode::new(ReType::Char('s')));
             let a = re.add(Some(root), ReNode::new(ReType::Or));
             re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
             re.add(Some(root), ReNode::new(ReType::End));
         }
-        5 => {
+        5 => {  // s(a<end>|b<end>)
             let root = re.add(None, ReNode::new(ReType::Concat));
             re.add(Some(root), ReNode::new(ReType::Char('s')));
             let a = re.add(Some(root), ReNode::new(ReType::Or));
             let cd = re.add_iter(Some(a), [ReNode::new(ReType::Concat), ReNode::new(ReType::Concat)]);
             re.add_iter(Some(cd[0]), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::End)]);
             re.add_iter(Some(cd[1]), [ReNode::new(ReType::Char('b')), ReNode::new(ReType::End)]);
-            //re.add(Some(root), ReNode::new(ReType::End));
         }
-        6 => {  // a(bc)?d = a(bc|-)d
+        6 => {  // a(bc)?d = a(bc|-)d<end>
             let root = re.add(None, ReNode::new(ReType::Concat));
             re.add(Some(root), ReNode::new(ReType::Char('a')));
             let bc_opt = re.add(Some(root), ReNode::new(ReType::Or));
@@ -103,7 +100,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(bc_opt), ReNode::new(ReType::String("bc".to_string())));
             re.add(Some(bc_opt), ReNode::new(ReType::Empty));
         },
-        7 => {  // a(bc)?d?e = a(bc|-)(d|-)e
+        7 => {  // a(bc)?d?e = a(bc|-)(d|-)e<end>
             let root = re.add(None, ReNode::new(ReType::Concat));
             re.add(Some(root), ReNode::new(ReType::Char('a')));
             let bc_opt = re.add(Some(root), ReNode::new(ReType::Or));

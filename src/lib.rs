@@ -1,8 +1,5 @@
 // Copyright 2023 Redglyph
 
-#![allow(unused_imports)]
-#![allow(dead_code)]
-
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use crate::vectree::VecTree;
@@ -309,8 +306,11 @@ impl DfaBuilder {
     pub fn build(&mut self) -> Dfa {
         self.calc_node_pos();
         self.calc_states()
+        // todo: do we want to optimize?
     }
 }
+
+// ---------------------------------------------------------------------------------------------
 
 pub struct Dfa {
     states: BTreeMap<BTreeSet<Id>, StateId>,
