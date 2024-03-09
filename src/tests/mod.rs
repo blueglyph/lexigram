@@ -41,7 +41,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
     match test {
         0 => { // (a|b)*abb<end>
             let f = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
-            let e = re.add_iter(Some(f), [ReNode::new(ReType::Concat), ReNode::new(ReType::End)])[0];
+            let e = re.add_iter(Some(f), [ReNode::new(ReType::Concat), ReNode::new(ReType::End(Token(0)))])[0];
             let d = re.add_iter(Some(e), [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
             let c = re.add_iter(Some(d), [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
             let b = re.add_iter(Some(c), [ReNode::new(ReType::Star), ReNode::new(ReType::Char('a'))])[0];
@@ -55,7 +55,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
                 ReNode::new(ReType::Char('a')),
                 ReNode::new(ReType::Char('b')),
                 ReNode::new(ReType::Char('b')),
-                ReNode::new(ReType::End)
+                ReNode::new(ReType::End(Token(0)))
             ])[0];
             let a = re.add(Some(b), ReNode::new(ReType::Or));
             re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
@@ -65,7 +65,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             let b = re.add_iter(Some(c), [
                 ReNode::new(ReType::Star),
                 ReNode::new(ReType::String("abb".to_string())),
-                ReNode::new(ReType::End)
+                ReNode::new(ReType::End(Token(0)))
             ])[0];
             let a = re.add(Some(b), ReNode::new(ReType::Or));
             re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
@@ -75,28 +75,28 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(root), ReNode::new(ReType::String("abc".to_string())));
             let a = re.add(Some(root), ReNode::new(ReType::Or));
             re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
-            re.add(Some(root), ReNode::new(ReType::End));
+            re.add(Some(root), ReNode::new(ReType::End(Token(0))));
         }
         4 => { // s(a|b)<end>
             let root = re.add(None, ReNode::new(ReType::Concat));
             re.add(Some(root), ReNode::new(ReType::Char('s')));
             let a = re.add(Some(root), ReNode::new(ReType::Or));
             re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
-            re.add(Some(root), ReNode::new(ReType::End));
+            re.add(Some(root), ReNode::new(ReType::End(Token(0))));
         }
         5 => {  // s(a<end>|b<end>)
             let root = re.add(None, ReNode::new(ReType::Concat));
             re.add(Some(root), ReNode::new(ReType::Char('s')));
             let a = re.add(Some(root), ReNode::new(ReType::Or));
             let cd = re.add_iter(Some(a), [ReNode::new(ReType::Concat), ReNode::new(ReType::Concat)]);
-            re.add_iter(Some(cd[0]), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::End)]);
-            re.add_iter(Some(cd[1]), [ReNode::new(ReType::Char('b')), ReNode::new(ReType::End)]);
+            re.add_iter(Some(cd[0]), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::End(Token(0)))]);
+            re.add_iter(Some(cd[1]), [ReNode::new(ReType::Char('b')), ReNode::new(ReType::End(Token(1)))]);
         }
         6 => {  // a(bc)?d = a(bc|-)d<end>
             let root = re.add(None, ReNode::new(ReType::Concat));
             re.add(Some(root), ReNode::new(ReType::Char('a')));
             let bc_opt = re.add(Some(root), ReNode::new(ReType::Or));
-            re.add_iter(Some(root), [ReNode::new(ReType::Char('d')), ReNode::new(ReType::End)]);
+            re.add_iter(Some(root), [ReNode::new(ReType::Char('d')), ReNode::new(ReType::End(Token(0)))]);
             re.add(Some(bc_opt), ReNode::new(ReType::String("bc".to_string())));
             re.add(Some(bc_opt), ReNode::new(ReType::Empty));
         },
@@ -105,7 +105,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(root), ReNode::new(ReType::Char('a')));
             let bc_opt = re.add(Some(root), ReNode::new(ReType::Or));
             let d_opt = re.add(Some(root), ReNode::new(ReType::Or));
-            re.add_iter(Some(root), [ReNode::new(ReType::Char('e')), ReNode::new(ReType::End)]);
+            re.add_iter(Some(root), [ReNode::new(ReType::Char('e')), ReNode::new(ReType::End(Token(0)))]);
             re.add(Some(bc_opt), ReNode::new(ReType::String("bc".to_string())));
             re.add(Some(bc_opt), ReNode::new(ReType::Empty));
             re.add(Some(d_opt), ReNode::new(ReType::Char('d')));
@@ -176,9 +176,9 @@ mod test_node {
     #[test]
     fn dfa_preprocess() {
         let tests = vec![
-            ("?&(?&(?&(?&(?*(?|(?'a',?'b')),?'a'),?'b'),?'b'),?<end>)", "?&(?&(?&(?&(?*(?|(?'a',?'b')),?'a'),?'b'),?'b'),?<end>)"),
-            ("?&(?*(?|(?'a',?'b')),?'a',?'b',?'b',?<end>)", "?&(?*(?|(?'a',?'b')),?'a',?'b',?'b',?<end>)"),
-            ("?&(?*(?|(?'a',?'b')),?'abb',?<end>)", "?&(?*(?|(?'a',?'b')),?&(?'a',?'b',?'b'),?<end>)")
+            ("?&(?&(?&(?&(?*(?|(?'a',?'b')),?'a'),?'b'),?'b'),?<end:0>)", "?&(?&(?&(?&(?*(?|(?'a',?'b')),?'a'),?'b'),?'b'),?<end:0>)"),
+            ("?&(?*(?|(?'a',?'b')),?'a',?'b',?'b',?<end:0>)", "?&(?*(?|(?'a',?'b')),?'a',?'b',?'b',?<end:0>)"),
+            ("?&(?*(?|(?'a',?'b')),?'abb',?<end:0>)", "?&(?*(?|(?'a',?'b')),?&(?'a',?'b',?'b'),?<end:0>)")
         ];
         for (test_id, (expected1, expected2)) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
@@ -193,12 +193,12 @@ mod test_node {
     #[test]
     fn dfa_id() {
         let tests = vec![
-            "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)",
-            "&(*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end>)",
-            "&(*(|(1:'a',2:'b')),&(3:'a',4:'b',5:'b'),6:<end>)",
-            "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)",
-            "&(1:'s',|(2:'a',3:'b'),4:<end>)",
-            "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))",
+            "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end:0>)",
+            "&(*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end:0>)",
+            "&(*(|(1:'a',2:'b')),&(3:'a',4:'b',5:'b'),6:<end:0>)",
+            "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end:0>)",
+            "&(1:'s',|(2:'a',3:'b'),4:<end:0>)",
+            "&(1:'s',|(&(2:'a',3:<end:0>),&(4:'b',5:<end:1>)))",
         ];
         for (test_id, expected) in tests.into_iter().enumerate() {
             let re = build_re(test_id);
@@ -211,14 +211,14 @@ mod test_node {
     #[test]
     fn dfa_nullable() {
         let tests = vec![
-            (0, "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end>)"),
-            (1, "&(!*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end>)"),
-            (2, "&(!*(|(1:'a',2:'b')),&(3:'a',4:'b',5:'b'),6:<end>)"),
-            (3, "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)"),
-            (4, "&(1:'s',|(2:'a',3:'b'),4:<end>)"),
-            (5, "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))"),
-            (6, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),5:'d',6:<end>)"),
-            (7, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),!|(5:'d',!6:-),7:'e',8:<end>)")
+            (0, "&(&(&(&(!*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end:0>)"),
+            (1, "&(!*(|(1:'a',2:'b')),3:'a',4:'b',5:'b',6:<end:0>)"),
+            (2, "&(!*(|(1:'a',2:'b')),&(3:'a',4:'b',5:'b'),6:<end:0>)"),
+            (3, "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end:0>)"),
+            (4, "&(1:'s',|(2:'a',3:'b'),4:<end:0>)"),
+            (5, "&(1:'s',|(&(2:'a',3:<end:0>),&(4:'b',5:<end:1>)))"),
+            (6, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),5:'d',6:<end:0>)"),
+            (7, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),!|(5:'d',!6:-),7:'e',8:<end:0>)")
         ];
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);

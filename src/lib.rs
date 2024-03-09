@@ -18,10 +18,13 @@ mod macros;
 /// See also:
 /// - Ref: https://en.wikipedia.org/wiki/Comparison_of_parser_generators
 
+#[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
+pub struct Token(usize);    // token ID
+
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
     #[default] Empty,
-    End,
+    End(Token),
     Char(char),
     String(String),
     Concat,
@@ -35,19 +38,19 @@ impl ReType {
     }
 
     pub fn is_leaf(&self) -> bool {
-        matches!(self, ReType::Empty | ReType::End | ReType::Char(_) | ReType::String(_))
+        matches!(self, ReType::Empty | ReType::End(_) | ReType::Char(_) | ReType::String(_))
     }
 
     pub fn is_nullable(&self) -> Option<bool> {
         match self {
             ReType::Empty | ReType::Star => Some(true),
-            ReType::End | ReType::Char(_) | ReType::String(_) => Some(false),
+            ReType::End(_) | ReType::Char(_) | ReType::String(_) => Some(false),
             _ => None
         }
     }
 
     pub fn is_end(&self) -> bool {
-        matches!(self, ReType::End)
+        matches!(self, ReType::End(_))
     }
 }
 
@@ -55,7 +58,7 @@ impl Display for ReType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ReType::Empty => write!(f, "-"),
-            ReType::End => write!(f, "<end>"),
+            ReType::End(id) => write!(f, "<end:{}>", id.0),
             ReType::Char(c) => write!(f, "'{c}'"),
             ReType::String(s) => write!(f, "'{s}'"),
             ReType::Concat => write!(f, "&"),
