@@ -9,6 +9,7 @@ mod tests;
 mod vectree;
 mod take_until;
 mod macros;
+pub mod io;
 
 /// Regular expressions / DFA, See:
 /// - https://blog.burntsushi.net/regex-internals/
