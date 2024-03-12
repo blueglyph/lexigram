@@ -99,7 +99,7 @@ impl<R: Read> CharReader<R> {
                         2..=4 => {
                             match self.reader.read(&mut buffer[1..len]) {
                                 Ok(n) => assert_eq!(n, len - 1),
-                                Err(e) => panic!("{}", e)
+                                Err(e) => return (None, 0, CharReaderStatus::Error(e.to_string())),
                             }
                         }
                         _ => panic!("Unexpected UTF-8 length {} at offset {}", len, self.offset),
