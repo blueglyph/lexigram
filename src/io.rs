@@ -140,7 +140,7 @@ impl<'a, R: Read> Iterator for CharReaderIter<'a, R> {
 
 #[cfg(test)]
 mod char_reader {
-    use std::io::{BufReader, Cursor, Read, Seek};
+    use std::io::Cursor;
     use super::*;
 
     fn get_tests() -> Vec::<(&'static str, Vec<u64>)> {
@@ -197,17 +197,16 @@ mod char_reader {
                 let mut result_pos = Vec::new();
                 let mut reader = CharReader::new(Cursor::new(text));
                 let mut result_peek = Vec::new();
-                let mut iter = reader.chars();
                 let mut i = 0;
                 if early_peek {
-                    result_peek.push(iter.creader.peek());
+                    result_peek.push(reader.peek());
                 }
-                while let Some(c) = iter.next() {
+                while let Some(c) = reader.get_char() {
                     if i & 1 == 1 {
-                        result_peek.push(iter.creader.peek());
+                        result_peek.push(reader.peek());
                     }
-                    result.push(c.char);
-                    result_pos.push(c.offset);
+                    result.push(c);
+                    result_pos.push(reader.offset);
                     i += 1;
                 }
                 let expected_peek = if early_peek {
