@@ -34,12 +34,18 @@ pub enum CharReaderStatus {
 pub struct CharReader<R> {
     reader: BufReader<R>,
     offset: u64,
-    status: CharReaderStatus
+    status: CharReaderStatus,
+    peek: Option<(Option<char>, u64, CharReaderStatus)>,
 }
 
 impl<R: Read> CharReader<R> {
     pub fn new(source: R) -> Self {
-        CharReader { reader: BufReader::new(source), offset: 0, status: CharReaderStatus::Reading }
+        CharReader {
+            reader: BufReader::new(source),
+            offset: 0,
+            status: CharReaderStatus::Reading,
+            peek: None,
+        }
     }
 
     pub fn get_offset(&self) -> u64 {
@@ -52,6 +58,65 @@ impl<R: Read> CharReader<R> {
     
     pub fn chars(&mut self) -> CharReaderIter<'_, R> {
         CharReaderIter { creader: self }
+    }
+
+    pub fn get_char(&mut self) -> Option<char> {
+        if let Some(peek) = std::mem::take(&mut self.peek) {
+            self.offset = peek.1;
+            self.status = peek.2;
+            peek.0
+        } else {
+            let (c, len, status) = self.read_char();
+            self.offset += len as u64;
+            self.status = status;
+            c
+        }
+    }
+
+    pub fn peek(&mut self) -> Option<char> {
+        if let Some(peek) = &self.peek {
+            peek.0
+        } else {
+            let (c, len, status) = self.read_char();
+            self.peek = Some((c, self.offset + len as u64, status));
+            c
+        }
+    }
+    
+    fn read_char(&mut self) -> (Option<char>, usize, CharReaderStatus) {
+        if let CharReaderStatus::Reading = self.status {
+            let mut buffer = [0; 4];
+            let s = self.reader.read(&mut buffer[0..=0]);
+            match s {
+                Ok(0) => (None, 0, CharReaderStatus::Closed),
+                Ok(1) => {
+                    let len = utf8_len(buffer[0]);
+                    match len {
+                        0 => {
+                            return (None, 0, CharReaderStatus::Error(format!("UTF-8 encoding error at offset {}", self.offset)));
+                        }
+                        1 => {}
+                        2..=4 => {
+                            match self.reader.read(&mut buffer[1..len]) {
+                                Ok(n) => assert_eq!(n, len - 1),
+                                Err(e) => panic!("{}", e)
+                            }
+                        }
+                        _ => panic!("Unexpected UTF-8 length {} at offset {}", len, self.offset),
+                    }
+                    let c = std::str::from_utf8(&buffer[..len]).unwrap()
+                        .chars()
+                        .next().unwrap();
+                    (Some(c), len, CharReaderStatus::Reading)
+                }
+                Ok(n) => panic!("Unexpected Read::read() result: Ok({}) at offset {}", n, self.offset),
+                Err(e) => {
+                    (None, 0, CharReaderStatus::Error(e.to_string()))
+                }
+            }
+        } else {
+            (None, 0, CharReaderStatus::Closed)
+        }
     }
 }
 
@@ -68,45 +133,8 @@ impl<'a, R: Read> Iterator for CharReaderIter<'a, R> {
     type Item = IterChar;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let CharReaderStatus::Reading = self.creader.status {
-            let mut buffer = [0; 4];
-            let s = self.creader.reader.read(&mut buffer[0..=0]);
-            match s {
-                Ok(0) => {
-                    self.creader.status = CharReaderStatus::Closed;
-                    None
-                }
-                Ok(1) => {
-                    let len = utf8_len(buffer[0]);
-                    match len {
-                        0 => {
-                            self.creader.status = CharReaderStatus::Error(format!("UTF-8 encoding error at offset {}", self.creader.offset));
-                            return None;
-                        }
-                        1 => {}
-                        2..=4 => {
-                            match self.creader.reader.read(&mut buffer[1..len]) {
-                                Ok(n) => assert_eq!(n, len - 1),
-                                Err(e) => panic!("{}", e)
-                            }
-                        }
-                        _ => panic!("Unexpected UTF-8 length {} at offset {}", len, self.creader.offset),
-                    }
-                    self.creader.offset += len as u64;
-                    let c = std::str::from_utf8(&buffer[..len]).unwrap()
-                        .chars()
-                        .next().unwrap();
-                    Some(IterChar { char: c, offset: self.creader.offset })
-                }
-                Ok(n) => panic!("Unexpected Read::read() result: Ok({}) at offset {}", n, self.creader.offset),
-                Err(e) => {
-                    self.creader.status = CharReaderStatus::Error(e.to_string());
-                    None
-                }
-            }
-        } else {
-            None
-        }
+        let c = self.creader.get_char();
+        c.map(|c| IterChar { char: c, offset: self.creader.offset })
     }
 }
 
@@ -114,6 +142,18 @@ impl<'a, R: Read> Iterator for CharReaderIter<'a, R> {
 mod char_reader {
     use std::io::{BufReader, Cursor, Read, Seek};
     use super::*;
+
+    fn get_tests() -> Vec::<(&'static str, Vec<u64>)> {
+        vec![
+            ("012顠abc©345𠃐ab",          vec![1, 2, 3, 6, 7, 8, 9, 11, 12, 13, 14, 18, 19, 20]),
+            ("1234567890123456789顠abc",  vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25]),
+            ("",                          vec![]),
+            ("1",                         vec![1]),
+            ("12",                        vec![1, 2]),
+            ("©",                         vec![2]),
+            ("𠃐𠃐",                      vec![4, 8])
+        ]
+    }
 
     #[test]
     fn utf8_length() {
@@ -133,16 +173,8 @@ mod char_reader {
 
     #[test]
     fn char_iterator() {
-        let tests = [
-            ("012顠abc©345𠃐ab",          vec![1, 2, 3, 6, 7, 8, 9, 11, 12, 13, 14, 18, 19, 20]),
-            ("1234567890123456789顠abc",  vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25]),
-            ("",                          vec![]),
-            ("1",                         vec![1]),
-            ("12",                        vec![1, 2]),
-            ("©",                         vec![2]),
-        ];
-
-        for (index, (text, expected_pos)) in tests.into_iter().enumerate() {
+        let tests = get_tests();
+        for (index, (text, expected_pos)) in tests.iter().enumerate() {
             let mut result = String::new();
             let mut result_pos = Vec::new();
             let mut reader = CharReader::new(Cursor::new(text));
@@ -150,81 +182,52 @@ mod char_reader {
                 result.push(c.char);
                 result_pos.push(c.offset);
             }
-            assert_eq!(result, text, "test #{index}");
-            assert_eq!(result_pos, expected_pos, "test #{index}");
+            assert_eq!(result, *text, "test #{index}");
+            assert_eq!(result_pos, *expected_pos, "test #{index}");
             assert_eq!(reader.get_status(), &CharReaderStatus::Closed);
         }
     }
 
     #[test]
-    fn read() {
-        // let f = File::open("tests/read_test.txt").unwrap();
-        // let mut reader = BufReader::new(f);
-        let text = "1234567890123456789顠abc";
-        let mut reader = BufReader::new(Cursor::new(text));
-        let mut buffer = [0; 20];
-        let mut pos = 0;
-        let mut result = String::new();
-        print!("{} {pos}:", reader.stream_position().unwrap());
-        while let Ok(size) = reader.read(&mut buffer) {
-            if size == 0 {
-                break;
-            }
-            let (taken, s) = match std::str::from_utf8(&buffer[..size]) {
-                Ok(s) => (size, &s[..size]),
-                Err(e) => {
-                    let taken = e.valid_up_to();
-                    let s = unsafe { std::str::from_utf8_unchecked(&buffer[..taken]) };
-                    print!("[error at byte {}]", pos + taken + 1);
-                    if taken < size {
-                        print!("[rewind {}]", size-taken);
-                        let _ = reader.seek_relative(-((size - taken) as i64));
-                    }
-                    (taken, s)
+    fn char_iterator_peek() {
+        for early_peek in [false, true] {
+            let tests = get_tests();
+            for (index, (text, expected_pos)) in tests.iter().enumerate() {
+                let mut result = String::new();
+                let mut result_pos = Vec::new();
+                let mut reader = CharReader::new(Cursor::new(text));
+                let mut result_peek = Vec::new();
+                let mut iter = reader.chars();
+                let mut i = 0;
+                if early_peek {
+                    result_peek.push(iter.creader.peek());
                 }
-            };
-            result.push_str(s);
-            println!("|{s}|");
-            pos += taken;
-            print!("{} {pos}:", reader.stream_position().unwrap());
-        }
-        println!();
-        println!("read {} bytes", pos);
-        assert_eq!(text, result);
-    }
-
-    #[test]
-    fn to_char() {
-        let text = "012顠abc©345𠃐ab";
-        let mut buffer = [0; 4];
-        let str_reader = Cursor::new(text);
-        let mut reader = BufReader::new(str_reader);
-        let mut pos = 0;
-        let mut result = String::new();
-        loop {
-            let s = reader.read(&mut buffer[0..=0]);
-            if !matches!(s, Ok(1)) {
-                break;
-            }
-            let len = utf8_len(buffer[0]);
-            match len {
-                0 => panic!("error at pos {pos}"),
-                1 => {}
-                2..=4 => {
-                    match reader.read(&mut buffer[1..len]) {
-                        Ok(n) => assert_eq!(n, len - 1),
-                        Err(e) => panic!("{}", e)
+                while let Some(c) = iter.next() {
+                    if i & 1 == 1 {
+                        result_peek.push(iter.creader.peek());
                     }
+                    result.push(c.char);
+                    result_pos.push(c.offset);
+                    i += 1;
                 }
-                _ => panic!("internal error")
+                let expected_peek = if early_peek {
+                    text.chars().map(|c| Some(c)).chain([None])
+                        .enumerate()
+                        .filter_map(|(i, c)| if i & 1 == 0 { Some(c) } else { None })
+                        .collect::<Vec<_>>()
+                } else {
+                    text.chars().map(|c| Some(c)).chain([None])
+                        .skip(1)// no initial peek
+                        .enumerate()
+                        .filter_map(|(i, c)| if i & 1 == 1 { Some(c) } else { None })
+                        .collect::<Vec<_>>()
+                };
+                let error = format!("test #{index} for early_peek={early_peek}");
+                assert_eq!(result, *text, "{error}");
+                assert_eq!(result_pos, *expected_pos, "{error}");
+                assert_eq!(reader.get_status(), &CharReaderStatus::Closed, "{error}");
+                assert_eq!(result_peek, expected_peek, "{error}");
             }
-            let c = std::str::from_utf8(&buffer[..len]).unwrap()
-                .chars()
-                .next().unwrap();
-            result.push(c);
-            println!("{pos}:<{len}>{c}");
-            pos += len;
         }
-        assert_eq!(result, text);
     }
 }
