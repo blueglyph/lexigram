@@ -110,6 +110,14 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(bc_opt), ReNode::new(ReType::Empty));
             re.add(Some(d_opt), ReNode::new(ReType::Char('d')));
             re.add(Some(d_opt), ReNode::new(ReType::Empty));
+        },
+        8 => {  // a(<end>|b<end>)
+            let root = re.add(None, ReNode::new(ReType::Concat));
+            re.add(Some(root), ReNode::new(ReType::Char('a')));
+            let b1 = re.add(Some(root), ReNode::new(ReType::Or));
+            re.add(Some(b1), ReNode::new(ReType::End(Token(0))));
+            let b2 = re.add(Some(b1), ReNode::new(ReType::Concat));
+            re.add_iter(Some(b2), [ReNode::new(ReType::Char('b')), ReNode::new(ReType::End(Token(1)))]);
         }
         _ => panic!("test {test} doesn't exist")
     }
@@ -218,7 +226,8 @@ mod test_node {
             (4, "&(1:'s',|(2:'a',3:'b'),4:<end:0>)"),
             (5, "&(1:'s',|(&(2:'a',3:<end:0>),&(4:'b',5:<end:1>)))"),
             (6, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),5:'d',6:<end:0>)"),
-            (7, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),!|(5:'d',!6:-),7:'e',8:<end:0>)")
+            (7, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),!|(5:'d',!6:-),7:'e',8:<end:0>)"),
+            (8, "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"),
         ];
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
@@ -312,6 +321,16 @@ mod test_node {
                 vec![8],        // <end>
                 vec![1]         // &
             ]),
+            // "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"
+            (8, vec![
+                vec![1],        // a
+                vec![2],        // <end:0>
+                vec![3],        // b
+                vec![4],        // <end:1>
+                vec![3],        // &(b,<1>)
+                vec![2,3],      // |(<0>,&)
+                vec![1]         // &
+            ])
         ];
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
@@ -411,6 +430,16 @@ mod test_node {
                 vec![8],        // <end>
                 vec![8]         // &
             ]),
+            // "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"
+            (8, vec![
+                vec![1],        // a
+                vec![2],        // <end:0>
+                vec![3],        // b
+                vec![4],        // <end:1>
+                vec![4],        // &(b,<1>)
+                vec![2,4],      // |(<0>,&)
+                vec![2,4]       // &
+            ])
         ];
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
@@ -493,6 +522,13 @@ mod test_node {
                 7 => hashset![8],
                 8 => hashset![]
             ]),
+            // "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"
+            (8, hashmap![
+                1 => hashset![2, 3],
+                2 => hashset![],
+                3 => hashset![4],
+                4 => hashset![],
+            ])
         };
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
@@ -563,6 +599,11 @@ mod test_node {
                 3 => branch!['e' => 4],
                 4 => branch![],
                 5 => branch!['d' => 3, 'e' => 4]
+            ]),
+            (8, btreemap![
+                0 => branch!['a' => 1],
+                1 => branch!['b' => 3],
+                3 => branch![]
             ])
         ];
         for (test_id, expected) in tests {
@@ -602,6 +643,16 @@ mod test_node {
                 2 => branch!['a' => 2, 'b' => 1],
                 3 => branch!['a' => 2, 'b' => 0],
              ], vec![3]),
+            (8, btreemap![
+                0 => branch!['a' => 1],
+                1 => branch!['b' => 3],
+                3 => branch![]
+            ], vec![1, 3],
+            btreemap![
+                0 => branch!['a' => 1],
+                1 => branch!['b' => 2],
+                2 => branch![],
+            ], vec![1, 2])
         ];
         for (test_id, graph, end_states, exp_graph, exp_end_states) in tests {
             println!("{test_id}:");
