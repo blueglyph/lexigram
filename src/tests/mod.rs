@@ -36,89 +36,99 @@ fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
     }
 }
 
+macro_rules! node {
+    (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
+    (str $str:expr) => { ReNode::new(ReType::String($str.to_string())) };
+    (= $id:expr ) => { ReNode::new(ReType::End(Token($id))) };
+    (&) => { ReNode::new(ReType::Concat) };
+    (|) => { ReNode::new(ReType::Or) };
+    (*) => { ReNode::new(ReType::Star) };
+    (-) => { ReNode::new(ReType::Empty) };
+}
+
 fn build_re(test: usize) -> VecTree<ReNode> {
     let mut re = VecTree::new();
     match test {
         0 => { // (a|b)*abb<end>
-            let f = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
-            let e = re.add_iter(Some(f), [ReNode::new(ReType::Concat), ReNode::new(ReType::End(Token(0)))])[0];
-            let d = re.add_iter(Some(e), [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
-            let c = re.add_iter(Some(d), [ReNode::new(ReType::Concat), ReNode::new(ReType::Char('b'))])[0];
-            let b = re.add_iter(Some(c), [ReNode::new(ReType::Star), ReNode::new(ReType::Char('a'))])[0];
-            let a = re.add(Some(b), ReNode::new(ReType::Or));
-            re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+            let f = re.set_root(node!(&)).expect("expect empty tree");
+            let e = re.add_iter(Some(f), [node!(&), node!(=0)])[0];
+            let d = re.add_iter(Some(e), [node!(&), node!(chr 'b')])[0];
+            let c = re.add_iter(Some(d), [node!(&), node!(chr 'b')])[0];
+            let b = re.add_iter(Some(c), [node!(*), node!(chr 'a')])[0];
+            let a = re.add(Some(b), node!(|));
+            re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
         },
         1 => { // (a|b)*abb<end>
-            let c = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
+            let c = re.set_root(node!(&)).expect("expect empty tree");
             let b = re.add_iter(Some(c), [
-                ReNode::new(ReType::Star),
-                ReNode::new(ReType::Char('a')),
-                ReNode::new(ReType::Char('b')),
-                ReNode::new(ReType::Char('b')),
-                ReNode::new(ReType::End(Token(0)))
+                node!(*),
+                node!(chr 'a'),
+                node!(chr 'b'),
+                node!(chr 'b'),
+                node!(=0)
             ])[0];
-            let a = re.add(Some(b), ReNode::new(ReType::Or));
-            re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+            let a = re.add(Some(b), node!(|));
+            re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
         },
         2 => { // (a|b)*abb<end>
-            let c = re.set_root(ReNode::new(ReType::Concat)).expect("expect empty tree");
+            let c = re.set_root(node!(&)).expect("expect empty tree");
             let b = re.add_iter(Some(c), [
-                ReNode::new(ReType::Star),
-                ReNode::new(ReType::String("abb".to_string())),
-                ReNode::new(ReType::End(Token(0)))
+                node!(*),
+                node!(str "abb"),
+                node!(=0)
             ])[0];
-            let a = re.add(Some(b), ReNode::new(ReType::Or));
-            re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
+            let a = re.add(Some(b), node!(|));
+            re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
         }
         3 => { // abc(a|b)<end>
-            let root = re.add(None, ReNode::new(ReType::Concat));
-            re.add(Some(root), ReNode::new(ReType::String("abc".to_string())));
-            let a = re.add(Some(root), ReNode::new(ReType::Or));
-            re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
-            re.add(Some(root), ReNode::new(ReType::End(Token(0))));
+            let root = re.add(None, node!(&));
+            re.add(Some(root), node!(str "abc"));
+            let a = re.add(Some(root), node!(|));
+            re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
+            re.add(Some(root), node!(=0));
         }
         4 => { // s(a|b)<end>
-            let root = re.add(None, ReNode::new(ReType::Concat));
-            re.add(Some(root), ReNode::new(ReType::Char('s')));
-            let a = re.add(Some(root), ReNode::new(ReType::Or));
-            re.add_iter(Some(a), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::Char('b'))]);
-            re.add(Some(root), ReNode::new(ReType::End(Token(0))));
+            let root = re.add(None, node!(&));
+            re.add(Some(root), node!(chr 's'));
+            let a = re.add(Some(root), node!(|));
+            re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
+            re.add(Some(root), node!(=0));
         }
         5 => {  // s(a<end>|b<end>)
-            let root = re.add(None, ReNode::new(ReType::Concat));
-            re.add(Some(root), ReNode::new(ReType::Char('s')));
-            let a = re.add(Some(root), ReNode::new(ReType::Or));
-            let cd = re.add_iter(Some(a), [ReNode::new(ReType::Concat), ReNode::new(ReType::Concat)]);
-            re.add_iter(Some(cd[0]), [ReNode::new(ReType::Char('a')), ReNode::new(ReType::End(Token(0)))]);
-            re.add_iter(Some(cd[1]), [ReNode::new(ReType::Char('b')), ReNode::new(ReType::End(Token(1)))]);
+            let root = re.add(None, node!(&));
+            re.add(Some(root), node!(chr 's'));
+            let a = re.add(Some(root), node!(|));
+            let cd = re.add_iter(Some(a), [node!(&), node!(&)]);
+            re.add_iter(Some(cd[0]), [node!(chr 'a'), node!(=0)]);
+            re.add_iter(Some(cd[1]), [node!(chr 'b'), node!(=1)]);
         }
         6 => {  // a(bc)?d = a(bc|-)d<end>
-            let root = re.add(None, ReNode::new(ReType::Concat));
-            re.add(Some(root), ReNode::new(ReType::Char('a')));
-            let bc_opt = re.add(Some(root), ReNode::new(ReType::Or));
-            re.add_iter(Some(root), [ReNode::new(ReType::Char('d')), ReNode::new(ReType::End(Token(0)))]);
-            re.add(Some(bc_opt), ReNode::new(ReType::String("bc".to_string())));
-            re.add(Some(bc_opt), ReNode::new(ReType::Empty));
+            let root = re.add(None, node!(&));
+            re.add(Some(root), node!(chr 'a'));
+            let bc_opt = re.add(Some(root), node!(|));
+            re.add_iter(Some(root), [node!(chr 'd'), node!(=0)]);
+            re.add(Some(bc_opt), node!(str "bc"));
+            re.add(Some(bc_opt), node!(-));
         },
         7 => {  // a(bc)?d?e = a(bc|-)(d|-)e<end>
-            let root = re.add(None, ReNode::new(ReType::Concat));
-            re.add(Some(root), ReNode::new(ReType::Char('a')));
-            let bc_opt = re.add(Some(root), ReNode::new(ReType::Or));
-            let d_opt = re.add(Some(root), ReNode::new(ReType::Or));
-            re.add_iter(Some(root), [ReNode::new(ReType::Char('e')), ReNode::new(ReType::End(Token(0)))]);
-            re.add(Some(bc_opt), ReNode::new(ReType::String("bc".to_string())));
-            re.add(Some(bc_opt), ReNode::new(ReType::Empty));
-            re.add(Some(d_opt), ReNode::new(ReType::Char('d')));
-            re.add(Some(d_opt), ReNode::new(ReType::Empty));
+            let root = re.add(None, node!(&));
+            re.add(Some(root), node!(chr 'a'));
+            let bc_opt = re.add(Some(root), node!(|));
+            let d_opt = re.add(Some(root), node!(|));
+            re.add_iter(Some(root), [node!(chr 'e'), node!(=0)]);
+            re.add(Some(bc_opt), node!(str "bc"));
+            re.add(Some(bc_opt), node!(-));
+            re.add(Some(d_opt), node!(chr 'd'));
+            re.add(Some(d_opt), node!(-));
         },
         8 => {  // a(<end>|b<end>)
-            let root = re.add(None, ReNode::new(ReType::Concat));
-            re.add(Some(root), ReNode::new(ReType::Char('a')));
-            let b1 = re.add(Some(root), ReNode::new(ReType::Or));
-            re.add(Some(b1), ReNode::new(ReType::End(Token(0))));
-            let b2 = re.add(Some(b1), ReNode::new(ReType::Concat));
-            re.add_iter(Some(b2), [ReNode::new(ReType::Char('b')), ReNode::new(ReType::End(Token(1)))]);
-        }
+            let root = re.add(None, node!(&));
+            re.add(Some(root), node!(chr 'a'));
+            let b1 = re.add(Some(root), node!(|));
+            re.add(Some(b1), node!(=0));
+            let b2 = re.add(Some(b1), node!(&));
+            re.add_iter(Some(b2), [node!(chr 'b'), node!(=1)]);
+        },
         _ => panic!("test {test} doesn't exist")
     }
     re
@@ -600,6 +610,7 @@ mod test_node {
                 4 => branch![],
                 5 => branch!['d' => 3, 'e' => 4]
             ]),
+            // "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"
             (8, btreemap![
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 3],
@@ -643,6 +654,7 @@ mod test_node {
                 2 => branch!['a' => 2, 'b' => 1],
                 3 => branch!['a' => 2, 'b' => 0],
              ], vec![3]),
+
             (8, btreemap![
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 3],
