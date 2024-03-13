@@ -88,7 +88,7 @@ impl<R: Read> CharReader<R> {
             let mut buffer = [0; 4];
             let s = self.reader.read(&mut buffer[0..=0]);
             match s {
-                Ok(0) => (None, 0, CharReaderStatus::Closed),
+                Ok(0) => (None, 0, CharReaderStatus::Closed), // TODO: take 'live', expandable sources into account with an option
                 Ok(1) => {
                     let len = utf8_len(buffer[0]);
                     match len {
