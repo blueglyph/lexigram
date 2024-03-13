@@ -30,6 +30,7 @@ pub enum ReType {
     String(String),
     Concat,
     Star,
+    Plus,
     Or
 }
 
@@ -45,7 +46,7 @@ impl ReType {
     pub fn is_nullable(&self) -> Option<bool> {
         match self {
             ReType::Empty | ReType::Star => Some(true),
-            ReType::End(_) | ReType::Char(_) | ReType::String(_) => Some(false),
+            ReType::End(_) | ReType::Char(_) | ReType::String(_) | ReType::Plus => Some(false),
             _ => None
         }
     }
@@ -64,6 +65,7 @@ impl Display for ReType {
             ReType::String(s) => write!(f, "'{s}'"),
             ReType::Concat => write!(f, "&"),
             ReType::Star => write!(f, "*"),
+            ReType::Plus => write!(f, "+"),
             ReType::Or => write!(f, "|")
         }
     }
@@ -208,7 +210,7 @@ impl DfaBuilder {
                             }
                         }
                     }
-                    ReType::Star => {
+                    ReType::Star | ReType::Plus => {
                         // firstpos, lastpos identical to child's
                         let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).collect::<Vec<_>>();
                         inode.firstpos.extend(firstpos);

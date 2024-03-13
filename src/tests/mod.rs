@@ -43,6 +43,7 @@ macro_rules! node {
     (&) => { ReNode::new(ReType::Concat) };
     (|) => { ReNode::new(ReType::Or) };
     (*) => { ReNode::new(ReType::Star) };
+    (+) => { ReNode::new(ReType::Plus) };
     (-) => { ReNode::new(ReType::Empty) };
 }
 
@@ -129,6 +130,15 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             let b2 = re.add(Some(b1), node!(&));
             re.add_iter(Some(b2), [node!(chr 'b'), node!(=1)]);
         },
+        9 => {  // a(b|c)+d<end>
+            let root = re.add(None, node!(&));
+            re.add(Some(root), node!(chr 'a'));
+            let plus = re.add(Some(root), node!(+));
+            let or = re.add(Some(plus), node!(|));
+            re.add_iter(Some(or), [node!(chr 'b'), node!(chr 'c')]);
+            re.add(Some(root), node!(chr 'd'));
+            re.add(Some(root), node!(=0));
+        }
         _ => panic!("test {test} doesn't exist")
     }
     re
@@ -238,6 +248,7 @@ mod test_node {
             (6, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),5:'d',6:<end:0>)"),
             (7, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),!|(5:'d',!6:-),7:'e',8:<end:0>)"),
             (8, "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"),
+            (9, "&(1:'a',+(|(2:'b',3:'c')),4:'d',5:<end:0>)"),
         ];
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
@@ -340,6 +351,17 @@ mod test_node {
                 vec![3],        // &(b,<1>)
                 vec![2,3],      // |(<0>,&)
                 vec![1]         // &
+            ]),
+            // "&(1:'a',+(|(2:'b',3:'c')),4:'d')"
+            (9, vec![
+                vec![1],        // a
+                vec![2],        // b
+                vec![3],        // c
+                vec![2,3],      // |(b,c)
+                vec![2,3],      // +
+                vec![4],        // d
+                vec![5],        // <end>
+                vec![1],        // &
             ])
         ];
         for (test_id, expected) in tests.into_iter() {
@@ -449,6 +471,17 @@ mod test_node {
                 vec![4],        // &(b,<1>)
                 vec![2,4],      // |(<0>,&)
                 vec![2,4]       // &
+            ]),
+            // "&(1:'a',+(|(2:'b',3:'c')),4:'d')"
+            (9, vec![
+                vec![1],        // a
+                vec![2],        // b
+                vec![3],        // c
+                vec![2,3],      // |(b,c)
+                vec![2,3],      // +
+                vec![4],        // d
+                vec![5],        // <end>
+                vec![5],        // &
             ])
         ];
         for (test_id, expected) in tests.into_iter() {
@@ -538,6 +571,14 @@ mod test_node {
                 2 => hashset![],
                 3 => hashset![4],
                 4 => hashset![],
+            ]),
+            // "&(1:'a',+(|(2:'b',3:'c')),4:'d')"
+            (9, hashmap![
+                1 => hashset![2, 3],
+                2 => hashset![2, 3, 4],
+                3 => hashset![2, 3, 4],
+                4 => hashset![5],
+                5 => hashset![]
             ])
         };
         for (test_id, expected) in tests.into_iter() {
@@ -615,6 +656,13 @@ mod test_node {
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 3],
                 3 => branch![]
+            ]),
+            // "&(1:'a',+(|(2:'b',3:'c')),4:'d')"
+            (9, btreemap![
+                0 => branch!['a' => 1],
+                1 => branch!['b' => 2, 'c' => 2],
+                2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
+                3 => branch![]
             ])
         ];
         for (test_id, expected) in tests {
@@ -664,7 +712,21 @@ mod test_node {
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 2],
                 2 => branch![],
-            ], vec![1, 2])
+            ], vec![1, 2]),
+
+            (9, btreemap![
+                0 => branch!['a' => 1],
+                1 => branch!['b' => 2, 'c' => 2],
+                2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
+                3 => branch![]
+            ], vec![3],
+            btreemap![
+                0 => branch!['a' => 1],
+                1 => branch!['b' => 2, 'c' => 2],
+                2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
+                3 => branch![]
+            ], vec![3]
+            )
         ];
         for (test_id, graph, end_states, exp_graph, exp_end_states) in tests {
             println!("{test_id}:");
