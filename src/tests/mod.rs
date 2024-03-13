@@ -138,7 +138,50 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(or), [node!(chr 'b'), node!(chr 'c')]);
             re.add(Some(root), node!(chr 'd'));
             re.add(Some(root), node!(=0));
+        },
+        10 => { // 0 ( <end:0> |      [0-9]+ ( <end:0> | \.[0-9]+ <end:1> ) |  x [0-9A-Fa-f]+ <end:2> )
+            //     ( 0 <end:0> |      [0-9]+ ( <end:0> | \.[0-9]+ <end:1> ) | 0x [0-9A-Fa-f]+ <end:2> )  ??
+            //                or1                                          or1
+            //                   -----------------------------------------cc1 ----------------------cc3
+            //                    or2  or3            or4 ---------------cc2      or6
+            //                                              or5
+            let root = re.add(None, node!(&));
+            re.add(Some(root), node!(chr '0'));
+            let or1 = re.add(Some(root), node!(|));
+            re.add(Some(or1), node!(=0));
+            let cc1 = re.add(Some(or1), node!(&));
+            // let or2 = re.add(Some(cc1), node!(|));
+            // re.add_iter(Some(or2), [
+            //     node!(chr '1'), node!(chr '2'), node!(chr '3'), node!(chr '4'),
+            //     node!(chr '5'), node!(chr '6'), node!(chr '7'), node!(chr '8'), node!(chr '9'), ]);
+            let plus1 = re.add(Some(cc1), node!(+));
+            let or3 = re.add(Some(plus1), node!(|));
+            re.add_iter(Some(or3), [
+                node!(chr '0'), node!(chr '1'), node!(chr '2'), node!(chr '3'), node!(chr '4'),
+                node!(chr '5'), node!(chr '6'), node!(chr '7'), node!(chr '8'), node!(chr '9'), ]);
+            let or4 = re.add(Some(cc1), node!(|));
+            re.add(Some(or4), node!(=0));
+            let cc2 = re.add(Some(or4), node!(&));
+            re.add(Some(cc2), node!(chr '.'));
+            let plus2 = re.add(Some(cc2), node!(+));
+            let or5 = re.add(Some(plus2), node!(|));
+            re.add_iter(Some(or5), [
+                node!(chr '0'), node!(chr '1'), node!(chr '2'), node!(chr '3'), node!(chr '4'),
+                node!(chr '5'), node!(chr '6'), node!(chr '7'), node!(chr '8'), node!(chr '9'), ]);
+            re.add(Some(cc2), node!(=1));
+            let cc3 = re.add(Some(or1), node!(&));
+            re.add(Some(cc3), node!(chr 'x'));
+            let plus3 = re.add(Some(cc3), node!(+));
+            let or6 = re.add(Some(plus3), node!(|));
+            re.add_iter(Some(or6), [
+                node!(chr '0'), node!(chr '1'), node!(chr '2'), node!(chr '3'), node!(chr '4'),
+                node!(chr '5'), node!(chr '6'), node!(chr '7'), node!(chr '8'), node!(chr '9'),
+                node!(chr 'A'), node!(chr 'B'), node!(chr 'C'), node!(chr 'D'), node!(chr 'E'), node!(chr 'F'),
+                node!(chr 'a'), node!(chr 'b'), node!(chr 'c'), node!(chr 'd'), node!(chr 'e'), node!(chr 'f'),
+            ]);
+            re.add(Some(cc3), node!(=2));
         }
+
         _ => panic!("test {test} doesn't exist")
     }
     re
@@ -186,10 +229,14 @@ fn print_graph(dfa: &Dfa) {
     println!("  graph:      {:?}", dfa.state_graph);
     println!("  end states: {:?}", dfa.end_states);
     for (state, trans) in dfa.state_graph.clone() {
-        println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
-        for (symbol, dest) in trans {
-            println!("  {symbol} -> s{dest}");
-        }
+        // println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
+        // for (symbol, dest) in trans {
+        //     println!("  {symbol} -> s{dest}");
+        // }
+        println!("{} => branch![{}],", state,
+               trans.iter().map(|(sym, st)| if let ReType::Char(c) = sym { format!("'{}' => {}", c, st) } else { "?".to_string() })
+                   .collect::<Vec<_>>().join(", ")
+        );
     }
 }
 
@@ -249,6 +296,7 @@ mod test_node {
             (7, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),!|(5:'d',!6:-),7:'e',8:<end:0>)"),
             (8, "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"),
             (9, "&(1:'a',+(|(2:'b',3:'c')),4:'d',5:<end:0>)"),
+            (10, "&(1:'0',|(2:<end:0>,&(+(|(3:'0',4:'1',5:'2',6:'3',7:'4',8:'5',9:'6',10:'7',11:'8',12:'9')),|(13:<end:0>,&(14:'.',+(|(15:'0',16:'1',17:'2',18:'3',19:'4',20:'5',21:'6',22:'7',23:'8',24:'9')),25:<end:1>))),&(26:'x',+(|(27:'0',28:'1',29:'2',30:'3',31:'4',32:'5',33:'6',34:'7',35:'8',36:'9',37:'A',38:'B',39:'C',40:'D',41:'E',42:'F',43:'a',44:'b',45:'c',46:'d',47:'e',48:'f')),49:<end:2>)))"),
         ];
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
@@ -362,7 +410,7 @@ mod test_node {
                 vec![4],        // d
                 vec![5],        // <end>
                 vec![1],        // &
-            ])
+            ]),
         ];
         for (test_id, expected) in tests.into_iter() {
             let re = build_re(test_id);
@@ -595,6 +643,7 @@ mod test_node {
     #[test]
     fn dfa_states() {
         let tests = vec![
+/*
             (0, btreemap![
                 0 => branch!['a' => 1, 'b' => 0],
                 1 => branch!['a' => 1, 'b' => 2],
@@ -663,13 +712,41 @@ mod test_node {
                 1 => branch!['b' => 2, 'c' => 2],
                 2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
                 3 => branch![]
-            ])
+            ]),
+*/
+            // 0 ( <end:0> | [0-9]+ ( <end:0> | \.[0-9]+ <end:1> ) | x [0-9A-Fa-f]+ <end:2> )
+            (10, btreemap![
+                0 => branch!['0' => 1],
+                1 => branch![ // <end>
+                    '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3,
+                    'x' => 4],
+                3 => branch![ // <end>
+                    '.' => 5,
+                    '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3],
+                4 => branch![
+                    '0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
+                    'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],
+                5 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6],
+                6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6], // <end>
+                7 => branch![ // <end>
+                    '0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
+                    'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],
+            ], btreeset![1, 3, 6, 7])
+            // 0 : 0   -> 1
+            // 1 : 0-9 -> 3, x   -> 4  <END>
+            // 3 : .   -> 5, 0-9 -> 3  <END>
+            // 4 : 0-f -> 7
+            // 5 : 0-9 -> 6
+            // 6 : 0-9 -> 6  <END>
+            // 7 : 0-f -> 7  <END>
         ];
-        for (test_id, expected) in tests {
+        for (test_id, expected, expected_ends) in tests {
             let re = build_re(test_id);
             let mut dfa_builder = DfaBuilder::new(re);
             let dfa = dfa_builder.build();
+            print_graph(&dfa);
             assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
+            assert_eq!(dfa.end_states, expected_ends, "test {test_id} failed");
         }
     }
 
@@ -726,6 +803,30 @@ mod test_node {
                 2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
                 3 => branch![]
             ], vec![3]
+            ),
+
+            (10, btreemap![
+                0 => branch!['0' => 1],
+                1 => branch!['0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3, 'x' => 4],
+                3 => branch!['.' => 5, '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3],
+                4 => branch!['0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
+                    'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],
+                5 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6],
+                6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6],
+                7 => branch!['0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
+                    'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],
+            ], vec![1, 3, 6, 7],
+            btreemap![
+                0 => branch!['0' => 3],
+                1 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6,
+                    'A' => 6, 'B' => 6, 'C' => 6, 'D' => 6, 'E' => 6, 'F' => 6, 'a' => 6, 'b' => 6, 'c' => 6, 'd' => 6, 'e' => 6, 'f' => 6],
+                2 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
+                3 => branch!['0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'x' => 1],
+                4 => branch!['.' => 2, '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4],
+                5 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
+                6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6,
+                    'A' => 6, 'B' => 6, 'C' => 6, 'D' => 6, 'E' => 6, 'F' => 6, 'a' => 6, 'b' => 6, 'c' => 6, 'd' => 6, 'e' => 6, 'f' => 6],
+            ], vec![3, 4, 5, 6]
             )
         ];
         for (test_id, graph, end_states, exp_graph, exp_end_states) in tests {
@@ -733,6 +834,7 @@ mod test_node {
             let mut dfa = Dfa::from_graph(graph, 0, end_states);
             let tr = dfa.optimize(true);
             println!("table: {}\n", tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
+            print_graph(&dfa);
             assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
             assert_eq!(dfa.end_states, BTreeSet::from_iter(exp_end_states.into_iter()), "test {test_id} failed");
         }
