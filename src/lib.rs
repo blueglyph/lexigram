@@ -10,6 +10,7 @@ mod vectree;
 mod take_until;
 mod macros;
 pub mod io;
+pub mod lexgen;
 
 /// Regular expressions / DFA, See:
 /// - https://blog.burntsushi.net/regex-internals/
