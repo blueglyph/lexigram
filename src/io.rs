@@ -229,4 +229,18 @@ mod char_reader {
             }
         }
     }
+
+    #[test]
+    fn partial_iterations() {
+        let tests = get_tests();
+        for (index, (text, _)) in tests.into_iter().enumerate() {
+            let mut reader = CharReader::new(Cursor::new(text));
+            let length = text.chars().count();
+            let mut result = reader.chars().take(length/2).map(|it| it.char).collect::<String>();
+            while let Some(c) = reader.get_char() {
+                result.push(c);
+            }
+            assert_eq!(result, text, "test #{index}");
+        }
+    }
 }
