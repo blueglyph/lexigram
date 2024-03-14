@@ -8,6 +8,61 @@ mod vectree;
 
 use crate::*;
 
+// ---------------------------------------------------------------------------------------------
+// Macros
+
+/// Generates an `ReNode` instance.
+///
+/// # Examples
+/// ```
+/// # use rlexer::{node, ReNode, ReType, Token};
+/// assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
+/// assert_eq!(node!(str "new"), ReNode::new(ReType::String("new".to_string())));
+/// assert_eq!(node!(= 5), ReNode::new(ReType::End(Token(5))));
+/// assert_eq!(node!(&), ReNode::new(ReType::Concat));
+/// assert_eq!(node!(|), ReNode::new(ReType::Or));
+/// assert_eq!(node!(*), ReNode::new(ReType::Star));
+/// assert_eq!(node!(+), ReNode::new(ReType::Plus));
+/// assert_eq!(node!(-), ReNode::new(ReType::Empty));
+/// ```
+#[macro_export(local_inner_macros)]
+macro_rules! node {
+    (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
+    (str $str:expr) => { ReNode::new(ReType::String($str.to_string())) };
+    (= $id:expr ) => { ReNode::new(ReType::End(Token($id))) };
+    (&) => { ReNode::new(ReType::Concat) };
+    (|) => { ReNode::new(ReType::Or) };
+    (*) => { ReNode::new(ReType::Star) };
+    (+) => { ReNode::new(ReType::Plus) };
+    (-) => { ReNode::new(ReType::Empty) };
+}
+
+/// Generates the key-value pairs corresponding to the `char => int` arguments, which can be
+/// used to add values to `BTreeMap<ReType, StateId>` state transitions.
+///
+/// # Example
+/// ```
+/// # use rlexer::{btreemap, branch};
+/// let transitions = btreemap![
+///     0 => branch!['a' => 1, 'b' => 1],
+///     1 => branch!['b' => 3],
+///     3 => branch![]
+/// ];
+/// // => BTreeMap::from([
+/// //     (0, BTreeMap::from([((ReType::Char('a')), 1), ((ReType::Char('b')), 1), ])),
+/// //     (1, BTreeMap::from([((ReType::Char('b')), 3), ])),
+/// //     (3, BTreeMap::new()),
+/// // ])
+/// ```
+#[macro_export(local_inner_macros)]
+macro_rules! branch {
+    ($($key:expr => $value:expr,)+) => { branch![$($key => $value),+] };
+    ($($key:expr => $value:expr),*) => { btreemap![$(ReType::Char($key) => $value),*] };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Supporting functions
+
 fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
     let node = tree.get(index);
     let mut result = String::new();
@@ -34,17 +89,6 @@ fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
     } else {
         "None".to_string()
     }
-}
-
-macro_rules! node {
-    (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
-    (str $str:expr) => { ReNode::new(ReType::String($str.to_string())) };
-    (= $id:expr ) => { ReNode::new(ReType::End(Token($id))) };
-    (&) => { ReNode::new(ReType::Concat) };
-    (|) => { ReNode::new(ReType::Or) };
-    (*) => { ReNode::new(ReType::Star) };
-    (+) => { ReNode::new(ReType::Plus) };
-    (-) => { ReNode::new(ReType::Empty) };
 }
 
 fn build_re(test: usize) -> VecTree<ReNode> {
@@ -235,10 +279,8 @@ fn print_graph(dfa: &Dfa) {
     }
 }
 
-macro_rules! branch {
-    ($($key:expr => $value:expr,)+) => { branch!($($key => $value),+) };
-    ($($key:expr => $value:expr),*) => { btreemap![$(ReType::Char($key) => $value,)*] };
-}
+// ---------------------------------------------------------------------------------------------
+// Tests
 
 mod test_node {
     use super::*;
