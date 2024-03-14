@@ -226,9 +226,11 @@ fn print_graph(dfa: &Dfa) {
         // for (symbol, dest) in trans {
         //     println!("  {symbol} -> s{dest}");
         // }
-        println!("{} => branch![{}],", state,
-               trans.iter().map(|(sym, st)| if let ReType::Char(c) = sym { format!("'{}' => {}", c, st) } else { "?".to_string() })
-                   .collect::<Vec<_>>().join(", ")
+        println!("{} => branch![{}],{}",
+                 state,
+                 trans.iter().map(|(sym, st)| if let ReType::Char(c) = sym { format!("'{}' => {}", c, st) } else { "?".to_string() })
+                     .collect::<Vec<_>>().join(", "),
+                 dfa.end_states.get(&state).map(|token| format!("// END: {}", token.0)).unwrap_or("".to_string()),
         );
     }
 }
@@ -641,19 +643,19 @@ mod test_node {
                 1 => branch!['a' => 1, 'b' => 2],
                 2 => branch!['a' => 1, 'b' => 3],
                 3 => branch!['a' => 1, 'b' => 0],
-            ], btreeset![3]),
+            ], btreemap![3 => Token(0)]),
             (1, btreemap![
                 0 => branch!['a' => 1, 'b' => 0],
                 1 => branch!['a' => 1, 'b' => 2],
                 2 => branch!['a' => 1, 'b' => 3],
                 3 => branch!['a' => 1, 'b' => 0],
-            ], btreeset![3]),
+            ], btreemap![3 => Token(0)]),
             (2, btreemap![
                 0 => branch!['a' => 1, 'b' => 0],
                 1 => branch!['a' => 1, 'b' => 2],
                 2 => branch!['a' => 1, 'b' => 3],
                 3 => branch!['a' => 1, 'b' => 0],
-            ], btreeset![3]),
+            ], btreemap![3 => Token(0)]),
             // "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)",
             (3, btreemap![
                 0 => branch!['a' => 1],
@@ -661,20 +663,20 @@ mod test_node {
                 2 => branch!['c' => 3],
                 3 => branch!['a' => 4, 'b' => 4],
                 4 => branch![]
-            ], btreeset![4]),
+            ], btreemap![4 => Token(0)]),
             // "&(1:'s',|(2:'a',3:'b'),4:<end>)",
             (4, btreemap![
                 0 => branch!['s' => 1],
                 1 => branch!['a' => 2, 'b' => 2],
                 2 => branch![],
-            ], btreeset![2]),
+            ], btreemap![2 => Token(0)]),
             // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))",
             (5, btreemap![
                 0 => branch!['s' => 1],
                 1 => branch!['a' => 2, 'b' => 3],
                 2 => branch![],
                 3 => branch![],
-            ], btreeset![2, 3]),
+            ], btreemap![2 => Token(0), 3 => Token(1)]),
             // "&(1:'a',|(&(2:'b',3:'c'),4:-),5:'d',6:<end>)"
             (6, btreemap![
                 0 => branch!['a' => 1],
@@ -682,7 +684,7 @@ mod test_node {
                 2 => branch!['c' => 4],
                 3 => branch![],
                 4 => branch!['d' => 3]
-            ], btreeset![3]),
+            ], btreemap![3 => Token(0)]),
             // "&(1:'a',|(&(2:'b',3:'c'),4:-),|(5:'d',6:-),7:'e',8:<end>)"
             (7, btreemap![
                 0 => branch!['a' => 1],
@@ -691,20 +693,20 @@ mod test_node {
                 3 => branch!['e' => 4],
                 4 => branch![],
                 5 => branch!['d' => 3, 'e' => 4]
-            ], btreeset![4]),
+            ], btreemap![4 => Token(0)]),
             // "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"
             (8, btreemap![
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 3],
                 3 => branch![]
-            ], btreeset![1, 3]),
+            ], btreemap![1 => Token(0), 3 => Token(1)]),
             // "&(1:'a',+(|(2:'b',3:'c')),4:'d')"
             (9, btreemap![
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 2, 'c' => 2],
                 2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
                 3 => branch![]
-            ], btreeset![3]),
+            ], btreemap![3 => Token(0)]),
             (10, btreemap![
                 0 => branch![
                     '0' => 1,
@@ -724,7 +726,7 @@ mod test_node {
                 7 => branch![ // END
                     '0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
                     'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],
-            ], btreeset![1, 2, 6, 7])
+            ], btreemap![1 => Token(0), 2 => Token(0), 6 => Token(1), 7 => Token(2)])
 
         ];
         for (test_id, expected, expected_ends) in tests {
@@ -745,13 +747,13 @@ mod test_node {
                 1 => branch!['a' => 1, 'b' => 2],
                 2 => branch!['a' => 1, 'b' => 3],
                 3 => branch!['a' => 1, 'b' => 0],
-            ], vec![3],
+            ], btreemap![3 => Token(0)],
              btreemap![ // 1 <-> 2
                  0 => branch!['a' => 2, 'b' => 0],
                  1 => branch!['a' => 2, 'b' => 3],
                  2 => branch!['a' => 2, 'b' => 1],
                  3 => branch!['a' => 2, 'b' => 0],
-             ], vec![3]),
+             ], btreemap![3 => Token(0)]),
 
             (1, btreemap![
                 0 => branch!['a' => 1, 'b' => 2],
@@ -759,37 +761,37 @@ mod test_node {
                 2 => branch!['a' => 1, 'b' => 2],
                 3 => branch!['a' => 1, 'b' => 4],
                 4 => branch!['a' => 1, 'b' => 2],
-            ], vec![4],
+            ], btreemap![4 => Token(0)],
              btreemap![ // 0 -> 0, 1 -> 2, 2 -> 0, 3 -> 1, 4 -> 3
                 0 => branch!['a' => 2, 'b' => 0],
                 1 => branch!['a' => 2, 'b' => 3],
                 2 => branch!['a' => 2, 'b' => 1],
                 3 => branch!['a' => 2, 'b' => 0],
-             ], vec![3]),
+             ], btreemap![3 => Token(0)]),
 
             (8, btreemap![
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 3],
                 3 => branch![]
-            ], vec![1, 3],
+            ], btreemap![1 => Token(0), 3 => Token(1)],
             btreemap![
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 2],
                 2 => branch![],
-            ], vec![1, 2]),
+            ], btreemap![1 => Token(0), 2 => Token(1)]),
 
             (9, btreemap![
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 2, 'c' => 2],
                 2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
                 3 => branch![]
-            ], vec![3],
+            ], btreemap![3 => Token(0)],
             btreemap![
                 0 => branch!['a' => 1],
                 1 => branch!['b' => 2, 'c' => 2],
                 2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
                 3 => branch![]
-            ], vec![3]
+            ], btreemap![3 => Token(0)]
             ),
 
             (10, btreemap![
@@ -802,7 +804,7 @@ mod test_node {
                 6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6],
                 7 => branch!['0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
                     'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],
-            ], vec![1, 2, 6, 7],
+            ], btreemap![1 => Token(0), 2 => Token(0), 6 => Token(1), 7 => Token(2)],
             btreemap![
                 0 => branch!['0' => 3, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4],
                 1 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
@@ -813,7 +815,7 @@ mod test_node {
                 5 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
                 6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6,
                     'A' => 6, 'B' => 6, 'C' => 6, 'D' => 6, 'E' => 6, 'F' => 6, 'a' => 6, 'b' => 6, 'c' => 6, 'd' => 6, 'e' => 6, 'f' => 6],
-            ], vec![3, 4, 5, 6]
+            ], btreemap![3 => Token(0), 4 => Token(0), 5 => Token(1), 6 => Token(2)]
             ),
 
         ];
@@ -825,7 +827,7 @@ mod test_node {
             // println!("table: {}\n", tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
             // print_graph(&dfa);
             assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
-            assert_eq!(dfa.end_states, BTreeSet::from_iter(exp_end_states.into_iter()), "test {test_id} failed");
+            assert_eq!(dfa.end_states, BTreeMap::from_iter(exp_end_states.into_iter()), "test {test_id} failed");
         }
     }
 

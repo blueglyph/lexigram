@@ -20,8 +20,10 @@ pub mod lexgen;
 /// See also:
 /// - Ref: https://en.wikipedia.org/wiki/Comparison_of_parser_generators
 
+type TokenId = u16;
+
 #[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
-pub struct Token(usize);    // token ID
+pub struct Token(TokenId);
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
@@ -303,7 +305,11 @@ impl DfaBuilder {
                     dfa.state_graph.insert(new_state_id, map);
                 }
                 if symbol.is_end() {
-                    dfa.end_states.insert(new_state_id);
+                    if let ReType::End(token) = symbol {
+                        dfa.end_states.insert(new_state_id, token.clone());
+                    } else {
+                        panic!("unexpected END symbol: {symbol:?}");
+                    }
                 }
             }
         }
@@ -323,7 +329,7 @@ pub struct Dfa {
     states: BTreeMap<BTreeSet<Id>, StateId>,
     state_graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>,
     initial_state: Option<StateId>,
-    end_states: BTreeSet<StateId>
+    end_states: BTreeMap<StateId, Token>
 }
 
 impl Dfa {
@@ -332,18 +338,18 @@ impl Dfa {
             states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
             state_graph: BTreeMap::new(),
             initial_state: None,
-            end_states: BTreeSet::new()
+            end_states: BTreeMap::new()
         }
     }
 
     pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>, init_state: StateId, end_states: T) -> Dfa
-        where T: IntoIterator<Item=StateId>
+        where T: IntoIterator<Item=(StateId, Token)>
     {
         Dfa {
             states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
             state_graph: graph,
             initial_state: Some(init_state),
-            end_states: BTreeSet::from_iter(end_states)
+            end_states: BTreeMap::from_iter(end_states)
         }
     }
 
@@ -366,7 +372,7 @@ impl Dfa {
         // initial partition
         // - all non-end states
         let mut group = BTreeSet::<StateId>::new();
-        for st in self.state_graph.keys().filter(|&st| !self.end_states.contains(st)) {
+        for st in self.state_graph.keys().filter(|&st| !self.end_states.contains_key(st)) {
             group.insert(*st);
             st_to_group.insert(*st, 0);
         }
@@ -377,13 +383,13 @@ impl Dfa {
         }
         // - end states
         if separate_end_states {
-            for st in &self.end_states {
+            for (st, _) in &self.end_states {
                 st_to_group.insert(*st, groups.len());
                 groups.push(BTreeSet::<StateId>::from([*st]));
             }
         } else {
-            st_to_group.extend(self.end_states.iter().map(|id| (*id, groups.len())));
-            groups.push(self.end_states.clone());
+            st_to_group.extend(self.end_states.iter().map(|(id, _)| (*id, groups.len())));
+            groups.push(BTreeSet::from_iter(self.end_states.keys().map(|st| *st)));
         }
         let mut last_ending_id = groups.len() - 1;
         let mut change = true;
@@ -399,7 +405,7 @@ impl Dfa {
                         .filter(|(_, st)| st_to_group.contains_key(st)) // to avoid fake "end" states
                         .map(|(s, st)| { (s, st_to_group[st]) })
                         .collect::<BTreeMap<_, _>>();
-                    if VERBOSE { print!("- state {st_id}{}: {combination:?}", if self.end_states.contains(&st_id) { " <END>" } else { "" }) };
+                    if VERBOSE { print!("- state {st_id}{}: {combination:?}", if self.end_states.contains_key(&st_id) { " <END>" } else { "" }) };
                     if combinations.is_empty() {
                         combinations.insert(combination, id);   // first one remains in this group
                         if VERBOSE { println!(" (1st, no change)"); }
@@ -463,12 +469,14 @@ impl Dfa {
                 println!("groups: {groups:?}");
             }
         }
-        // stores the new states
-        self.end_states = BTreeSet::<StateId>::from_iter(
+        // stores the new states; note that tokens may be lost if `separate_end_states` is false
+        // since we take the token of the first accepting state in the group
+        self.end_states = BTreeMap::<StateId, Token>::from_iter(
             groups.iter().enumerate()
-                .filter(|(_, g)| g.iter().any(|s| self.end_states.contains(s)))
-                .map(|(group_id, _)| group_id as StateId)
+                .filter_map(|(group_id, states)| states.iter()
+                    .find_map(|s| self.end_states.get(s).map(|token| (group_id as StateId, token.clone()))))
         );
+
         self.initial_state = Some(st_to_group[&self.initial_state.unwrap()] as StateId);
         self.state_graph = self.state_graph.iter()
             .map(|(st_id, map_sym_st)| (
