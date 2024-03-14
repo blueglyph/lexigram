@@ -57,6 +57,14 @@ impl ReType {
     pub fn is_end(&self) -> bool {
         matches!(self, ReType::End(_))
     }
+
+    pub fn decode_symbol(&self) -> Option<char> {
+        if let ReType::Char(c) = self {
+            Some(*c)
+        } else {
+            None
+        }
+    }
 }
 
 impl Display for ReType {
@@ -295,12 +303,12 @@ impl DfaBuilder {
                 };
                 if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
                     if !symbol.is_end() {
-                        map.insert(symbol.clone(), state_id);
+                        map.insert(symbol.decode_symbol().unwrap(), state_id);
                     }
                 } else {
                     let mut map = BTreeMap::new();
                     if !symbol.is_end() {
-                        map.insert(symbol.clone(), state_id);
+                        map.insert(symbol.decode_symbol().unwrap(), state_id);
                     }
                     dfa.state_graph.insert(new_state_id, map);
                 }
@@ -327,7 +335,7 @@ impl DfaBuilder {
 
 pub struct Dfa {
     states: BTreeMap<BTreeSet<Id>, StateId>,
-    state_graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>,
+    state_graph: BTreeMap<StateId, BTreeMap<char, StateId>>,
     initial_state: Option<StateId>,
     end_states: BTreeMap<StateId, Token>
 }
@@ -342,7 +350,7 @@ impl Dfa {
         }
     }
 
-    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<ReType, StateId>>, init_state: StateId, end_states: T) -> Dfa
+    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<char, StateId>>, init_state: StateId, end_states: T) -> Dfa
         where T: IntoIterator<Item=(StateId, Token)>
     {
         Dfa {
@@ -399,11 +407,11 @@ impl Dfa {
                 // do all states have the same destination group for the same symbol?
                 if VERBOSE { println!("group #{id}: {p:?}:"); }
                 // stores combination -> group index:
-                let mut combinations = BTreeMap::<BTreeMap<&ReType, usize>, usize>::new();
+                let mut combinations = BTreeMap::<BTreeMap<char, usize>, usize>::new();
                 for &st_id in p {
                     let combination = self.state_graph.get(&st_id).unwrap().iter()
                         .filter(|(_, st)| st_to_group.contains_key(st)) // to avoid fake "end" states
-                        .map(|(s, st)| { (s, st_to_group[st]) })
+                        .map(|(s, st)| { (*s, st_to_group[st]) })
                         .collect::<BTreeMap<_, _>>();
                     if VERBOSE { print!("- state {st_id}{}: {combination:?}", if self.end_states.contains_key(&st_id) { " <END>" } else { "" }) };
                     if combinations.is_empty() {
@@ -482,7 +490,7 @@ impl Dfa {
             .map(|(st_id, map_sym_st)| (
                 st_to_group[st_id] as StateId,
                 map_sym_st.iter().map(|(sym, st)| (sym.clone(), st_to_group[st] as StateId)).collect::<BTreeMap<_, _>>()))
-            .collect::<BTreeMap::<StateId, BTreeMap<ReType, StateId>>>();
+            .collect::<BTreeMap::<StateId, BTreeMap<char, StateId>>>();
         if VERBOSE {
             println!("new_graph:   {:?}", self.state_graph);
             println!("new_initial: {:?}", self.initial_state);

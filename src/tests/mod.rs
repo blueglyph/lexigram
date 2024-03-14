@@ -38,7 +38,7 @@ macro_rules! node {
 }
 
 /// Generates the key-value pairs corresponding to the `char => int` arguments, which can be
-/// used to add values to `BTreeMap<ReType, StateId>` state transitions.
+/// used to add values to `BTreeMap<char, StateId>` state transitions.
 ///
 /// # Example
 /// ```
@@ -49,15 +49,15 @@ macro_rules! node {
 ///     3 => branch![]
 /// ];
 /// // => BTreeMap::from([
-/// //     (0, BTreeMap::from([((ReType::Char('a')), 1), ((ReType::Char('b')), 1), ])),
-/// //     (1, BTreeMap::from([((ReType::Char('b')), 3), ])),
+/// //     (0, BTreeMap::from([('a', 1), ('b', 1), ])),
+/// //     (1, BTreeMap::from([('b', 3), ])),
 /// //     (3, BTreeMap::new()),
 /// // ])
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! branch {
     ($($key:expr => $value:expr,)+) => { branch![$($key => $value),+] };
-    ($($key:expr => $value:expr),*) => { btreemap![$(ReType::Char($key) => $value),*] };
+    ($($key:expr => $value:expr),*) => { btreemap![$($key => $value),*] };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -272,7 +272,7 @@ fn print_graph(dfa: &Dfa) {
         // }
         println!("{} => branch![{}],{}",
                  state,
-                 trans.iter().map(|(sym, st)| if let ReType::Char(c) = sym { format!("'{}' => {}", c, st) } else { "?".to_string() })
+                 trans.iter().map(|(sym, st)| format!("'{sym}' => {st}"))
                      .collect::<Vec<_>>().join(", "),
                  dfa.end_states.get(&state).map(|token| format!("// END: {}", token.0)).unwrap_or("".to_string()),
         );
