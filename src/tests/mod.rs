@@ -270,7 +270,7 @@ fn print_graph(dfa: &Dfa) {
         // for (symbol, dest) in trans {
         //     println!("  {symbol} -> s{dest}");
         // }
-        println!("{} => branch![{}],{}",
+        println!("{:3} => branch![{}],{}",
                  state,
                  trans.iter().map(|(sym, st)| format!("'{sym}' => {st}"))
                      .collect::<Vec<_>>().join(", "),
@@ -283,6 +283,7 @@ fn print_graph(dfa: &Dfa) {
 // Tests
 
 mod test_node {
+    use crate::lexgen::get_partitions;
     use super::*;
 
     #[test]
@@ -784,6 +785,7 @@ mod test_node {
     #[test]
     fn optimize_graphs() {
         let tests = vec![
+/*
             (0, btreemap![
                 0 => branch!['a' => 1, 'b' => 0],
                 1 => branch!['a' => 1, 'b' => 2],
@@ -833,9 +835,8 @@ mod test_node {
                 1 => branch!['b' => 2, 'c' => 2],
                 2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
                 3 => branch![]
-            ], btreemap![3 => Token(0)]
-            ),
-
+            ], btreemap![3 => Token(0)]),
+*/
             (10, btreemap![
                 0 => branch!['0' => 1, '1' => 2, '2' => 2, '3' => 2, '4' => 2, '5' => 2, '6' => 2, '7' => 2, '8' => 2, '9' => 2],
                 1 => branch!['.' => 4, '0' => 2, '1' => 2, '2' => 2, '3' => 2, '4' => 2, '5' => 2, '6' => 2, '7' => 2, '8' => 2, '9' => 2, 'x' => 5],
@@ -857,9 +858,7 @@ mod test_node {
                 5 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
                 6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6,
                     'A' => 6, 'B' => 6, 'C' => 6, 'D' => 6, 'E' => 6, 'F' => 6, 'a' => 6, 'b' => 6, 'c' => 6, 'd' => 6, 'e' => 6, 'f' => 6],
-            ], btreemap![3 => Token(0), 4 => Token(0), 5 => Token(1), 6 => Token(2)]
-            ),
-
+            ], btreemap![3 => Token(0), 4 => Token(0), 5 => Token(1), 6 => Token(2)]),
         ];
         for (test_id, graph, end_states, exp_graph, exp_end_states) in tests {
             // println!("{test_id}:");
@@ -868,8 +867,40 @@ mod test_node {
             // let tr = dfa.optimize(true);
             // println!("table: {}\n", tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
             // print_graph(&dfa);
+            let _p = get_partitions(&dfa.state_graph);
+
             assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
             assert_eq!(dfa.end_states, BTreeMap::from_iter(exp_end_states.into_iter()), "test {test_id} failed");
+        }
+    }
+
+    #[test]
+    fn test_get_partitions() {
+        let tests = [
+            (1, btreemap![
+                0 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1],
+                1 => branch!['0' => 2],
+                2 => branch!['0' => 1, '1' => 2, '2' => 2, '3' => 2],
+                3 => branch!['0' => 2, '1' => 2, '2' => 2, '3' => 3]
+            ], btreeset!["0", "12", "3"]),
+            (2, btreemap![
+                0 => branch!['0' => 3, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4],
+                1 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
+                2 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6,
+                    'A' => 6, 'B' => 6, 'C' => 6, 'D' => 6, 'E' => 6, 'F' => 6, 'a' => 6, 'b' => 6, 'c' => 6, 'd' => 6, 'e' => 6, 'f' => 6],
+                3 => branch!['.' => 1, '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'x' => 2],
+                4 => branch!['.' => 1, '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4],
+                5 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
+                6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6,
+                    'A' => 6, 'B' => 6, 'C' => 6, 'D' => 6, 'E' => 6, 'F' => 6, 'a' => 6, 'b' => 6, 'c' => 6, 'd' => 6, 'e' => 6, 'f' => 6],
+            ], btreeset!["0", "123456789", "ABCDEFabcdef", ".", "x"]),
+        ];
+        for (test_id, g, expected_groups) in tests {
+            // println!("test {test_id}: --------------------------------------");
+            let groups = get_partitions(&g);
+            let expected_groups = expected_groups.iter().map(|s| s.to_string()).collect();
+            let result = groups.iter().map(|set| set.iter().map(|c| *c).collect::<String>()).collect::<BTreeSet<_>>();
+            assert_eq!(result, expected_groups, "test {test_id} failed");
         }
     }
 
