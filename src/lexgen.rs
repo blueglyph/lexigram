@@ -1,15 +1,35 @@
 #![allow(unused)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use crate::{Dfa, StateId};
 
+pub type GroupId = usize;
+
 pub struct LexGen {
-    dfa: Dfa
+    pub(crate) dfa: Dfa,
+    pub(crate) ascii_to_group: Box<[GroupId]>,
+    pub(crate) utf8_to_group: Box<HashMap<char, GroupId>>,
+    pub(crate) nbr_groups: usize
 }
 
 impl LexGen {
     pub fn new(dfa: Dfa) -> Self {
-        LexGen { dfa }
+        LexGen { dfa, ascii_to_group: Box::default(), utf8_to_group: Box::default(), nbr_groups: 0 }
+    }
+
+    pub fn create_input_tables(&mut self) {
+        let symbol_part = partition_symbols(&self.dfa.state_graph);
+        let symbols = symbol_part.iter().flatten().map(|c| *c).collect::<BTreeSet<char>>();
+        let mut symbol_to_group = BTreeMap::<char, GroupId>::new();
+        for (id, g) in symbol_part.iter().enumerate() {
+            symbol_to_group.extend(g.iter().map(|c| (*c, 1 + id as GroupId)));
+        }
+        let error_id = 0; //symbol_part.len() as GroupId;
+        self.ascii_to_group = (0_u8..128).map(|i| *symbol_to_group.get(&char::from(i)).unwrap_or(&error_id)).collect::<Vec<_>>().into_boxed_slice();
+        self.utf8_to_group = symbols.iter()
+            .filter_map(|c| if c.is_ascii() { None } else { symbol_to_group.get(c).map(|g| (*c, *g as GroupId)) })
+            .collect::<HashMap<char, GroupId>>().into();
+        self.nbr_groups = symbol_part.len();
     }
 }
 
@@ -36,9 +56,9 @@ pub(crate) fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) 
 
         // transforms the resulting partition
         while let Some((mut sub, _st)) = sub_p.pop_first() {
-            if VERBOSE { println!("- sub = {}", chars_to_string(&sub)); }
+            if VERBOSE { println!("- sub = {}", chars_to_string(&sub, true)); }
             for i in 0..groups.len() {
-                if VERBOSE { println!("  - groups[i] = {}", chars_to_string(&groups[i])); }
+                if VERBOSE { println!("  - groups[i] = {}", chars_to_string(&groups[i], true)); }
                 let common = sub.intersection(&groups[i]).cloned().collect::<BTreeSet<_>>();
                 if common.is_empty() {
                     // nothing to do, sub will be added to groups if it's not modified by another groups[j]
@@ -55,14 +75,14 @@ pub(crate) fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) 
                         }
                     }
                     // current group is split -> { common, extra_group }
-                    if VERBOSE { print!(" -> groups[i] = {}", chars_to_string(&groups[i])); }
+                    if VERBOSE { print!(" -> groups[i] = {}", chars_to_string(&groups[i], true)); }
                     groups[i] = common;
                     if !extra_group.is_empty() {
-                        if VERBOSE { print!(" & push {}", chars_to_string(&extra_group)); }
+                        if VERBOSE { print!(" & push {}", chars_to_string(&extra_group, true)); }
                         groups.push(extra_group);
                     }
                     // sub is split -> { common, extra_sub }, with common already in groups[i] so we don't keep it
-                    if VERBOSE { println!(" -> sub = {}", chars_to_string(&extra_sub)); }
+                    if VERBOSE { println!(" -> sub = {}", chars_to_string(&extra_sub, true)); }
                     sub = extra_sub;
                     if sub.is_empty() {
                         break; // no need to inspect other groups
@@ -71,7 +91,7 @@ pub(crate) fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) 
                 }
             }
             if !sub.is_empty() {
-                if VERBOSE { println!("  -> push {}", chars_to_string(&sub)); }
+                if VERBOSE { println!("  -> push {}", chars_to_string(&sub, true)); }
                 groups.push(sub);
             }
         }
@@ -80,18 +100,19 @@ pub(crate) fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) 
     groups
 }
 
-fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition: T) -> String {
-    partition.into_iter().map(|chars| chars_to_string(chars)).collect::<Vec<_>>().join(", ")
+pub(crate) fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition: T) -> String {
+    partition.into_iter().map(|chars| chars_to_string(chars, true)).collect::<Vec<_>>().join(", ")
 }
 
-fn chars_to_string(chars: &BTreeSet<char>) -> String {
-    let mut result = "[".to_string();
+pub(crate) fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
+    let mut result = String::new();
+    if bracket { result.push('['); }
     result.push_str(&chars.into_iter().map(|c| format!("{c}")).collect::<String>());
-    result.push(']');
+    if bracket { result.push(']'); }
     result
 }
 
-fn group_transitions_to_string(p: &BTreeMap<BTreeSet<char>, StateId>) -> String {
+pub(crate) fn group_transitions_to_string(p: &BTreeMap<BTreeSet<char>, StateId>) -> String {
     format!("{}",
              p.iter()
                  .map(|(chars, st)|
