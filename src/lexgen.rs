@@ -11,14 +11,12 @@ impl LexGen {
     pub fn new(dfa: Dfa) -> Self {
         LexGen { dfa }
     }
-
-
 }
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-pub(crate) fn get_partitions(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) -> Vec<BTreeSet<char>> {
+pub(crate) fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) -> Vec<BTreeSet<char>> {
     const VERBOSE: bool = false;
     let mut groups = Vec::<BTreeSet<char>>::new();
     for (st, trans) in g {
