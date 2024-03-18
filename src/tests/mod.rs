@@ -219,7 +219,7 @@ fn build_re(test: usize) -> VecTree<ReNode> {
             ]);
             re.add(Some(cc3), node!(=2));
         }
-        _ => panic!("test {test} doesn't exist")
+        _ => { }
     }
     re
 }
@@ -779,6 +779,26 @@ mod test_node {
             // print_graph(&dfa);
             assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
             assert_eq!(dfa.end_states, expected_ends, "test {test_id} failed");
+        }
+    }
+
+    #[test]
+    fn dfa_normalize() {
+        let mut test_id = 0;
+        loop {
+            let re = build_re(test_id);
+            if re.len() == 0 {
+                break;
+            }
+            let mut dfa = DfaBuilder::new(re).build();
+            // println!("{test_id}: {}", if dfa.is_normalized() { "normalized" } else { "not normalized" });
+            // print_graph(&dfa);
+            let _trans = dfa.normalize();
+            // println!("{_trans:?}");
+            // print_graph(&dfa);
+            assert!(dfa.is_normalized(), "test {test_id} failed");
+            // println!("-------------------------------------------------");
+            test_id += 1;
         }
     }
 

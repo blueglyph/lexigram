@@ -341,10 +341,11 @@ impl DfaBuilder {
 // ---------------------------------------------------------------------------------------------
 
 pub struct Dfa {
-    states: BTreeMap<BTreeSet<Id>, StateId>,
+    states: BTreeMap<BTreeSet<Id>, StateId>, // todo: remove
     state_graph: BTreeMap<StateId, BTreeMap<char, StateId>>,
     initial_state: Option<StateId>,
-    end_states: BTreeMap<StateId, Token>
+    end_states: BTreeMap<StateId, Token>,
+    is_normalized: bool // are states incrementally numeroted from 0, with non-end states < end states?
 }
 
 impl Dfa {
@@ -353,19 +354,79 @@ impl Dfa {
             states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
             state_graph: BTreeMap::new(),
             initial_state: None,
-            end_states: BTreeMap::new()
+            end_states: BTreeMap::new(),
+            is_normalized: false
         }
     }
 
     pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<char, StateId>>, init_state: StateId, end_states: T) -> Dfa
         where T: IntoIterator<Item=(StateId, Token)>
     {
-        Dfa {
+        let mut dfa = Dfa {
             states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
             state_graph: graph,
             initial_state: Some(init_state),
-            end_states: BTreeMap::from_iter(end_states)
+            end_states: BTreeMap::from_iter(end_states),
+            is_normalized: false
+        };
+        dfa.is_normalized = dfa.is_normalized();
+        dfa
+    }
+
+    /// Checks if the DFA is normalized: incremental state numbers, starting at 0, with all the accepting states
+    /// at the end.
+    pub fn is_normalized(&self) -> bool {
+        if self.state_graph.is_empty() {
+            return true;
         }
+        let mut states = self.state_graph.keys().collect::<Vec<_>>();
+        states.sort();
+        if *states[0] != 0 {
+            false
+        } else {
+            let mut last_end = self.end_states.contains_key(states[0]);
+            let mut last: StateId = 0;
+            for &st in states.iter().skip(1) {
+                let end = self.end_states.contains_key(st);
+                if (*st != last + 1) || (!end && last_end) {
+                    return false;
+                }
+                last_end = end;
+                last = *st;
+            }
+            true
+        }
+    }
+
+    /// Normalizes the DFA: incremental state number0, starting at 0, with all the accepting states
+    /// at the end.
+    pub fn normalize(&mut self) -> BTreeMap<StateId, StateId> {
+        let mut translate = BTreeMap::<StateId, StateId>::new();
+        let mut state_graph = BTreeMap::<StateId, BTreeMap<char, StateId>>::new();
+        let mut end_states = BTreeMap::<StateId, Token>::new();
+        let nbr_end = self.end_states.len();
+        let mut non_end_id = 0;
+        let mut end_id = self.state_graph.len() - nbr_end;
+        for &id in self.state_graph.keys() {
+            if let Some(token) = self.end_states.get(&id) {
+                translate.insert(id, end_id);
+                end_states.insert(end_id, token.clone());
+                end_id += 1;
+            } else {
+                translate.insert(id, non_end_id);
+                non_end_id += 1;
+            };
+        }
+        self.initial_state = self.initial_state.map(|st| *translate.get(&st).unwrap());
+        self.end_states = end_states;
+        for (id, mut trans) in std::mem::take(&mut self.state_graph) {
+            for (_, st) in trans.iter_mut() {
+                *st = translate[st];
+            }
+            state_graph.insert(translate[&id], trans);
+        }
+        self.state_graph = state_graph;
+        translate
     }
 
     /// Optimizes the number of states from `self.state_graph`. Returns a map to convert old
@@ -375,7 +436,7 @@ impl Dfa {
     ///
     /// * `separate_end_states` = `true` if different end (accepting) states should be kept apart;
     /// for example, when it's important to differentiate tokens.
-    pub fn optimize(&mut self, separate_end_states: bool) -> BTreeMap::<StateId, StateId> {
+    pub fn optimize(&mut self, separate_end_states: bool) -> BTreeMap<StateId, StateId> {
         const VERBOSE: bool = false;
         if VERBOSE { println!("-----------------------------------------------------------"); }
         let mut groups = Vec::<BTreeSet<StateId>>::new();
@@ -504,6 +565,9 @@ impl Dfa {
             println!("new_end:     {:?}", self.end_states);
             println!("-----------------------------------------------------------");
         }
+        debug_assert!(self.is_normalized(), "optimized state machine isn't regular\nend_states={:?}\ngraph={:?}",
+                      self.end_states, self.state_graph);
+        self.is_normalized = true;
         st_to_group
     }
 }
