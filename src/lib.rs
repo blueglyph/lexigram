@@ -279,12 +279,13 @@ impl DfaBuilder {
         let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().map(|&id| id));
         let mut new_states = BTreeSet::<BTreeSet<Id>>::new();
         new_states.insert(key.clone());
-        dfa.states.insert(key, current_id);
+        let mut states = BTreeMap::<BTreeSet<Id>, StateId>::new();
+        states.insert(key, current_id);
         dfa.initial_state = Some(current_id);
 
         // unfold all the states
         while let Some(s) = new_states.pop_first() {
-            let new_state_id = dfa.states.get(&s).unwrap().clone();
+            let new_state_id = states.get(&s).unwrap().clone();
             let mut trans = BTreeMap::<&ReType, BTreeSet<Id>>::new();
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if let Some(ids) = trans.get_mut(symbol) {
@@ -300,12 +301,12 @@ impl DfaBuilder {
                 for id in ids {
                     state.extend(&self.followpos[&id]);
                 }
-                let state_id = if let Some(state_id) = dfa.states.get(&state) {
+                let state_id = if let Some(state_id) = states.get(&state) {
                     *state_id
                 } else {
                     new_states.insert(state.clone());
                     current_id += 1;
-                    dfa.states.insert(state, current_id);
+                    states.insert(state, current_id);
                     current_id
                 };
                 if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
@@ -341,7 +342,6 @@ impl DfaBuilder {
 // ---------------------------------------------------------------------------------------------
 
 pub struct Dfa {
-    states: BTreeMap<BTreeSet<Id>, StateId>, // todo: remove
     state_graph: BTreeMap<StateId, BTreeMap<char, StateId>>,
     initial_state: Option<StateId>,
     end_states: BTreeMap<StateId, Token>,
@@ -351,7 +351,6 @@ pub struct Dfa {
 impl Dfa {
     pub fn new() -> Self {
         Dfa {
-            states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
             state_graph: BTreeMap::new(),
             initial_state: None,
             end_states: BTreeMap::new(),
@@ -363,7 +362,6 @@ impl Dfa {
         where T: IntoIterator<Item=(StateId, Token)>
     {
         let mut dfa = Dfa {
-            states: BTreeMap::<BTreeSet<Id>, StateId>::new(),
             state_graph: graph,
             initial_state: Some(init_state),
             end_states: BTreeMap::from_iter(end_states),
