@@ -19,6 +19,13 @@ pub mod lexgen;
 ///
 /// See also:
 /// - Ref: https://en.wikipedia.org/wiki/Comparison_of_parser_generators
+///
+/// Misc
+/// - https://re2c.org/
+/// - https://www.genivia.com/get-reflex.html
+/// - https://nothings.org/computer/lexing.html
+/// - https://github.com/maciejhirsz/logos
+/// - https://alic.dev/blog/fast-lexing
 
 type TokenId = u16;
 
