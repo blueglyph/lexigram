@@ -51,7 +51,7 @@ impl LexGen {
         self.utf8_to_group = symbols.iter()
             .filter_map(|c| if c.is_ascii() { None } else { symbol_to_group.get(c).map(|g| (*c, *g as GroupId)) })
             .collect::<HashMap<char, GroupId>>().into();
-        self.nbr_groups = symbol_part.len();
+        self.nbr_groups = symbol_part.len() + 1;
     }
 
     fn create_state_tables(&mut self) {
