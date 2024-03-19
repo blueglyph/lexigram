@@ -791,6 +791,7 @@ fn dfa_normalize() {
         // println!("{_trans:?}");
         // print_graph(&dfa);
         assert!(dfa.is_normalized(), "test {test_id} failed");
+        assert_eq!(dfa.first_end_state, Some(dfa.state_graph.len() - dfa.end_states.len()), "test {test_id} failed");
         // println!("-------------------------------------------------");
         test_id += 1;
     }
@@ -883,5 +884,6 @@ fn dfa_optimize_graphs() {
 
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
         assert_eq!(dfa.end_states, BTreeMap::from_iter(exp_end_states.into_iter()), "test {test_id} failed");
+        assert_eq!(dfa.first_end_state, Some(dfa.state_graph.len() - dfa.end_states.len()), "test {test_id} failed");
     }
 }

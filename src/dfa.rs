@@ -323,7 +323,8 @@ pub struct Dfa {
     pub(crate) state_graph: BTreeMap<StateId, BTreeMap<char, StateId>>,
     pub(crate) initial_state: Option<StateId>,
     pub(crate) end_states: BTreeMap<StateId, Token>,
-    is_normalized: bool // are states incrementally numeroted from 0, with non-end states < end states?
+    is_normalized: bool, // are states incrementally numeroted from 0, with non-end states < end states?
+    pub(crate) first_end_state: Option<StateId>
 }
 
 impl Dfa {
@@ -332,7 +333,8 @@ impl Dfa {
             state_graph: BTreeMap::new(),
             initial_state: None,
             end_states: BTreeMap::new(),
-            is_normalized: false
+            is_normalized: false,
+            first_end_state: None
         }
     }
 
@@ -343,7 +345,8 @@ impl Dfa {
             state_graph: graph,
             initial_state: Some(init_state),
             end_states: BTreeMap::from_iter(end_states),
-            is_normalized: false
+            is_normalized: false,
+            first_end_state: None
         };
         dfa.is_normalized = dfa.is_normalized();
         dfa
@@ -383,6 +386,7 @@ impl Dfa {
         let nbr_end = self.end_states.len();
         let mut non_end_id = 0;
         let mut end_id = self.state_graph.len() - nbr_end;
+        self.first_end_state = Some(end_id);
         for &id in self.state_graph.keys() {
             if let Some(token) = self.end_states.get(&id) {
                 translate.insert(id, end_id);
@@ -501,6 +505,7 @@ impl Dfa {
         if VERBOSE { println!("-----------------------------------------------------------"); }
         // removes the gaps in group numbering
         let delta = first_ending_id - last_non_end_id - 1;
+        self.first_end_state = Some(last_non_end_id + 1);
         if delta > 0 {
             if VERBOSE {
                 println!("removing the gaps in group numbering: (delta={delta})");
