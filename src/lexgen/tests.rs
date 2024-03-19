@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::*;
-use crate::dfa::tests::build_re;
+use crate::dfa::tests::{build_re, print_graph};
 use super::*;
 
 #[test]
@@ -92,21 +92,23 @@ fn lexgen_state_tables() {
     for (test_id, token_tests, err_tests) in tests {
         let mut dfa = DfaBuilder::new(build_re(test_id)).build();
         dfa.normalize();
+        print_graph(&dfa);
         let lexgen = LexGen::new(dfa);
+        print_source_code(&lexgen);
         for (exp_token, inputs) in token_tests {
             for input in inputs {
                 let mut input = input.to_string();
                 input.push(' ');
-                println!("{input}:");
+                // println!("{input}:");
                 let result = sim_lexgen(&lexgen, input.clone());
-                println!("=> {}", result.clone().map(|t| format!("token {}", t.0)).unwrap_or("ERROR".to_string()));
+                // println!("=> {}", result.clone().map(|t| format!("token {}", t.0)).unwrap_or("ERROR".to_string()));
                 assert_eq!(result, Some(Token(exp_token)), "test {test_id} failed for input '{input}'");
             }
         }
         for input in err_tests {
-            println!("{input}:");
+            // println!("{input}:");
             let result = sim_lexgen(&lexgen, input.to_string());
-            println!("=> {}", result.clone().map(|t| format!("token {}", t.0)).unwrap_or("ERROR".to_string()));
+            // println!("=> {}", result.clone().map(|t| format!("token {}", t.0)).unwrap_or("ERROR".to_string()));
             assert_eq!(result, None, "test {test_id} failed to trigger an error for input '{input}'");
         }
 
@@ -114,15 +116,16 @@ fn lexgen_state_tables() {
 }
 
 fn sim_lexgen(lexgen: &LexGen, input: String) -> Option<Token> {
+    const VERBOSE: bool = false;
     let mut state = lexgen.initial_state;
     let mut chars = input.chars();
     loop {
-        print!("- state = {state}");
+        if VERBOSE { print!("- state = {state}"); }
         if let Some(c) = chars.next() {
             let group = char_to_group(&lexgen.ascii_to_group, &lexgen.utf8_to_group, c);
-            print!(", char '{c}' -> group {group}");
+            if VERBOSE { print!(", char '{c}' -> group {group}"); }
             if group == LexGen::ERROR_GROUP {
-                println!(" <invalid input, stopping>");
+                if VERBOSE { println!(" <invalid input, stopping>"); }
                 return if state >= lexgen.first_end_state && c.is_whitespace() {
                     Some(lexgen.token_table[state - lexgen.first_end_state].clone())
                 } else {
@@ -131,18 +134,18 @@ fn sim_lexgen(lexgen: &LexGen, input: String) -> Option<Token> {
             } else {
                 let new_state = lexgen.state_table[lexgen.nbr_groups * state + group];
                 if new_state >= lexgen.nbr_states {
-                    println!(" -> error");
+                    if VERBOSE { println!(" -> error"); }
                     return if state >= lexgen.first_end_state && c.is_whitespace() {
                         Some(lexgen.token_table[state - lexgen.first_end_state].clone())
                     } else {
                         None
                     };
                 }
-                println!(" -> state {new_state}");
+                if VERBOSE { println!(" -> state {new_state}"); }
                 state = new_state;
             }
         } else {
-            println!(" <end of input>");
+            if VERBOSE { println!(" <end of input>"); }
             return if state >= lexgen.first_end_state { Some(lexgen.token_table[state - lexgen.first_end_state].clone()) } else { None };
         }
     }
@@ -172,7 +175,7 @@ fn print_source_code(lexgen: &LexGen) {
         println!("    {}, // state {}{}",
             (0..lexgen.nbr_groups).map(|j| format!("{:3}", lexgen.state_table[i * lexgen.nbr_groups + j])).collect::<Vec<_>>().join(", "),
             i,
-            if i >= lexgen.first_end_state { " <END>" } else { "" }
+            if i >= lexgen.first_end_state { format!(" <END: {}>", lexgen.token_table[i - lexgen.first_end_state].0 ) } else { "".to_string() }
         );
     }
     println!("];")

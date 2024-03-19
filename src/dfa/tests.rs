@@ -260,7 +260,7 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
 }
 
 #[allow(unused)]
-fn print_graph(dfa: &Dfa) {
+pub(crate) fn print_graph(dfa: &Dfa) {
     println!("  graph:      {:?}", dfa.state_graph);
     println!("  end states: {:?}", dfa.end_states);
     for (state, trans) in dfa.state_graph.clone() {
