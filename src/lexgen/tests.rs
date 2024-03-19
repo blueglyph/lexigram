@@ -90,12 +90,21 @@ fn lexgen_state_tables() {
         ], vec!["a", ".5", "()", "9x0", "0x5y", "0.5a", "10f", ""])
     ];
     for (test_id, token_tests, err_tests) in tests {
-        // let mut dfa =  build_re(test_id)
+        let mut dfa = DfaBuilder::new(build_re(test_id)).build();
+        dfa.normalize();
+        let lexgen = LexGen::new(dfa);
         for (exp_token, inputs) in token_tests {
-
+            for input in inputs {
+                let result = sim_lexgen(&lexgen, input.to_string());
+                assert_eq!(result, Some(Token(exp_token)), "test {test_id} failed at input '{input}'");
+            }
 
         }
     }
+}
+
+fn sim_lexgen(lexgen: &LexGen, input: String) -> Option<Token> {
+    None
 }
 
 fn print_source_code(lexgen: &LexGen) {
