@@ -18,8 +18,6 @@ pub struct LexGen {
 }
 
 impl LexGen {
-    pub const ERROR_GROUP: GroupId = 0;
-
     pub fn new(dfa: Dfa) -> Self {
         let mut lexgen = LexGen {
             dfa,
@@ -42,16 +40,16 @@ impl LexGen {
         let symbols = symbol_part.iter().flatten().map(|c| *c).collect::<BTreeSet<char>>();
         let mut symbol_to_group = BTreeMap::<char, GroupId>::new();
         for (id, g) in symbol_part.iter().enumerate() {
-            symbol_to_group.extend(g.iter().map(|c| (*c, 1 + id as GroupId)));
+            symbol_to_group.extend(g.iter().map(|c| (*c, id as GroupId)));
         }
-        let error_id = Self::ERROR_GROUP; //symbol_part.len() as GroupId;
+        self.nbr_groups = symbol_part.len();
+        let error_id = self.nbr_groups;
         self.ascii_to_group = (0..128_u8)
             .map(|i| *symbol_to_group.get(&char::from(i)).unwrap_or(&error_id))
             .collect::<Vec<_>>().into_boxed_slice();
         self.utf8_to_group = symbols.iter()
             .filter_map(|c| if c.is_ascii() { None } else { symbol_to_group.get(c).map(|g| (*c, *g as GroupId)) })
             .collect::<HashMap<char, GroupId>>().into();
-        self.nbr_groups = symbol_part.len() + 1;
     }
 
     fn create_state_tables(&mut self) {

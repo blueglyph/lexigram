@@ -56,24 +56,24 @@ fn lexgen_symbol_tables() {
             5 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5, '∑' => 5],
             6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6,
                 'A' => 6, 'B' => 6, 'C' => 6, 'D' => 6, 'E' => 6, 'F' => 6, 'a' => 6, 'b' => 6, 'c' => 6, 'd' => 6, 'e' => 6, 'f' => 6, '𝆕' => 6],
-        ], btreeset!["", "0", "123456789", "ABCDEFabcdef𝆕", ".", "xΔ", "∑"]),
+        ], btreeset!["0", "123456789", "ABCDEFabcdef𝆕", ".", "xΔ", "∑"]),
     ];
     for (test_id, g, expected_set) in tests {
         let mut dfa = Dfa::from_graph(g, 0, btreemap![3 => Token(0), 4 => Token(0), 5 => Token(1), 6 => Token(2)]);
         dfa.normalize();
         let lexgen = LexGen::new(dfa);
-        let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups + 1];
+        let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups];
         for i in 0..128_u8 {
             let c = char::from(i);
             let g = lexgen.ascii_to_group[i as usize];
-            if g != 0 {
+            if g < lexgen.nbr_groups {
                 ascii_vec[g].insert(c);
             }
         }
         for (c, g) in lexgen.utf8_to_group.iter() {
             ascii_vec[*g as usize].insert(*c);
         }
-        let ascii_set = BTreeSet::from_iter(ascii_vec.iter().skip(1).map(|s| chars_to_string(s, false)));
+        let ascii_set = BTreeSet::from_iter(ascii_vec.iter().map(|s| chars_to_string(s, false)));
         let expected_set = expected_set.iter().map(|s| s.to_string()).collect();
         assert_eq!(ascii_set, expected_set, "test {test_id} failed");
         print_source_code(&lexgen);
@@ -124,7 +124,7 @@ fn sim_lexgen(lexgen: &LexGen, input: String) -> Option<Token> {
         if let Some(c) = chars.next() {
             let group = char_to_group(&lexgen.ascii_to_group, &lexgen.utf8_to_group, c);
             if VERBOSE { print!(", char '{c}' -> group {group}"); }
-            if group == LexGen::ERROR_GROUP {
+            if group >= lexgen.nbr_groups {
                 if VERBOSE { println!(" <invalid input, stopping>"); }
                 return if state >= lexgen.first_end_state && c.is_whitespace() {
                     Some(lexgen.token_table[state - lexgen.first_end_state].clone())
