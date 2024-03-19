@@ -95,16 +95,57 @@ fn lexgen_state_tables() {
         let lexgen = LexGen::new(dfa);
         for (exp_token, inputs) in token_tests {
             for input in inputs {
-                let result = sim_lexgen(&lexgen, input.to_string());
-                assert_eq!(result, Some(Token(exp_token)), "test {test_id} failed at input '{input}'");
+                let mut input = input.to_string();
+                input.push(' ');
+                println!("{input}:");
+                let result = sim_lexgen(&lexgen, input.clone());
+                println!("=> {}", result.clone().map(|t| format!("token {}", t.0)).unwrap_or("ERROR".to_string()));
+                assert_eq!(result, Some(Token(exp_token)), "test {test_id} failed for input '{input}'");
             }
-
         }
+        for input in err_tests {
+            println!("{input}:");
+            let result = sim_lexgen(&lexgen, input.to_string());
+            println!("=> {}", result.clone().map(|t| format!("token {}", t.0)).unwrap_or("ERROR".to_string()));
+            assert_eq!(result, None, "test {test_id} failed to trigger an error for input '{input}'");
+        }
+
     }
 }
 
 fn sim_lexgen(lexgen: &LexGen, input: String) -> Option<Token> {
-    None
+    let mut state = lexgen.initial_state;
+    let mut chars = input.chars();
+    loop {
+        print!("- state = {state}");
+        if let Some(c) = chars.next() {
+            let group = char_to_group(&lexgen.ascii_to_group, &lexgen.utf8_to_group, c);
+            print!(", char '{c}' -> group {group}");
+            if group == LexGen::ERROR_GROUP {
+                println!(" <invalid input, stopping>");
+                return if state >= lexgen.first_end_state && c.is_whitespace() {
+                    Some(lexgen.token_table[state - lexgen.first_end_state].clone())
+                } else {
+                    None
+                };
+            } else {
+                let new_state = lexgen.state_table[lexgen.nbr_groups * state + group];
+                if new_state >= lexgen.nbr_states {
+                    println!(" -> error");
+                    return if state >= lexgen.first_end_state && c.is_whitespace() {
+                        Some(lexgen.token_table[state - lexgen.first_end_state].clone())
+                    } else {
+                        None
+                    };
+                }
+                println!(" -> state {new_state}");
+                state = new_state;
+            }
+        } else {
+            println!(" <end of input>");
+            return if state >= lexgen.first_end_state { Some(lexgen.token_table[state - lexgen.first_end_state].clone()) } else { None };
+        }
+    }
 }
 
 fn print_source_code(lexgen: &LexGen) {
@@ -122,6 +163,7 @@ fn print_source_code(lexgen: &LexGen) {
              lexgen.utf8_to_group.iter().map(|(c, g)| format!("'{c}' => {g},")).collect::<String>()
     );
     println!("let nbr_groups = {};", lexgen.nbr_groups);
+    println!("let initial_state = {};", lexgen.initial_state);
     println!("let first_end_state = {};", lexgen.first_end_state);
     println!("let error_state = {};", lexgen.nbr_states);
     println!("let token_table = [{}];", lexgen.token_table.iter().map(|t| t.0.to_string()).collect::<Vec<_>>().join(", "));

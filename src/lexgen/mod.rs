@@ -10,6 +10,7 @@ pub struct LexGen {
     pub ascii_to_group: Box<[GroupId]>,
     pub utf8_to_group: Box<HashMap<char, GroupId>>,
     pub nbr_groups: usize,
+    pub initial_state: StateId,
     pub first_end_state: StateId,   // accepting when state >= first_end_state
     pub nbr_states: StateId,        // error if state >= nbr_states
     pub state_table: Box<[StateId]>,
@@ -17,12 +18,15 @@ pub struct LexGen {
 }
 
 impl LexGen {
+    pub const ERROR_GROUP: GroupId = 0;
+
     pub fn new(dfa: Dfa) -> Self {
         let mut lexgen = LexGen {
             dfa,
             ascii_to_group: Box::default(),
             utf8_to_group: Box::default(),
             nbr_groups: 0,
+            initial_state: 0,
             first_end_state: 0,
             nbr_states: 0,
             state_table: Box::default(),
@@ -40,7 +44,7 @@ impl LexGen {
         for (id, g) in symbol_part.iter().enumerate() {
             symbol_to_group.extend(g.iter().map(|c| (*c, 1 + id as GroupId)));
         }
-        let error_id = 0; //symbol_part.len() as GroupId;
+        let error_id = Self::ERROR_GROUP; //symbol_part.len() as GroupId;
         self.ascii_to_group = (0..128_u8)
             .map(|i| *symbol_to_group.get(&char::from(i)).unwrap_or(&error_id))
             .collect::<Vec<_>>().into_boxed_slice();
@@ -51,6 +55,7 @@ impl LexGen {
     }
 
     fn create_state_tables(&mut self) {
+        self.initial_state = self.dfa.initial_state.unwrap();
         self.first_end_state = self.dfa.first_end_state.unwrap();
         self.nbr_states = self.dfa.state_graph.len();
         let nbr_states = self.dfa.state_graph.len();
