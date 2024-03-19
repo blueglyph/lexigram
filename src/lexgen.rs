@@ -1,4 +1,4 @@
-#![allow(unused)]
+mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use super::dfa::*;
@@ -7,14 +7,30 @@ pub type GroupId = usize;
 
 pub struct LexGen {
     dfa: Dfa,
-    ascii_to_group: Box<[GroupId]>,
-    utf8_to_group: Box<HashMap<char, GroupId>>,
-    nbr_groups: usize
+    pub ascii_to_group: Box<[GroupId]>,
+    pub utf8_to_group: Box<HashMap<char, GroupId>>,
+    pub nbr_groups: usize,
+    pub first_end_state: StateId,   // accepting when state >= first_end_state
+    pub nbr_states: StateId,        // error if state >= nbr_states
+    pub state_table: Box<[StateId]>,
+    pub token_table: Box<[Token]>,  // token(state) = token_table[state - first_end_state]
 }
 
 impl LexGen {
     pub fn new(dfa: Dfa) -> Self {
-        LexGen { dfa, ascii_to_group: Box::default(), utf8_to_group: Box::default(), nbr_groups: 0 }
+        let mut lexgen = LexGen {
+            dfa,
+            ascii_to_group: Box::default(),
+            utf8_to_group: Box::default(),
+            nbr_groups: 0,
+            first_end_state: 0,
+            nbr_states: 0,
+            state_table: Box::default(),
+            token_table: Box::default(),
+        };
+        lexgen.create_input_tables();
+        lexgen.create_state_tables();
+        lexgen
     }
 
     fn create_input_tables(&mut self) {
@@ -25,16 +41,45 @@ impl LexGen {
             symbol_to_group.extend(g.iter().map(|c| (*c, 1 + id as GroupId)));
         }
         let error_id = 0; //symbol_part.len() as GroupId;
-        self.ascii_to_group = (0_u8..128).map(|i| *symbol_to_group.get(&char::from(i)).unwrap_or(&error_id)).collect::<Vec<_>>().into_boxed_slice();
+        self.ascii_to_group = (0..128_u8)
+            .map(|i| *symbol_to_group.get(&char::from(i)).unwrap_or(&error_id))
+            .collect::<Vec<_>>().into_boxed_slice();
         self.utf8_to_group = symbols.iter()
             .filter_map(|c| if c.is_ascii() { None } else { symbol_to_group.get(c).map(|g| (*c, *g as GroupId)) })
             .collect::<HashMap<char, GroupId>>().into();
         self.nbr_groups = symbol_part.len();
     }
+
+    fn create_state_tables(&mut self) {
+        self.first_end_state = self.dfa.first_end_state.unwrap();
+        self.nbr_states = self.dfa.state_graph.len();
+        let nbr_states = self.dfa.state_graph.len();
+        let mut state_table = vec!(self.nbr_states; self.nbr_groups * nbr_states);
+        for (state_from, trans) in &self.dfa.state_graph {
+            for (symbol, state_to) in trans {
+                let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, *symbol);
+                state_table[self.nbr_groups * state_from + symbol_group] = *state_to;
+            }
+        }
+        self.state_table = state_table.into_boxed_slice();
+        let mut token_table = vec!(Token(0); self.dfa.end_states.len());
+        for (st, token) in &self.dfa.end_states {
+            token_table[st - self.first_end_state] = token.clone();
+        }
+        self.token_table = token_table.into_boxed_slice();
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
+
+pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, GroupId>, char: char) -> GroupId {
+    if char.len_utf8() == 1 {
+        ascii_to_group[u8::try_from(char).unwrap() as usize]
+    } else {
+        utf8_to_group[&char]
+    }
+}
 
 fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) -> Vec<BTreeSet<char>> {
     const VERBOSE: bool = false;

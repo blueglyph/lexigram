@@ -58,37 +58,71 @@ fn lexgen_symbol_tables() {
         ], btreeset!["0", "123456789", "ABCDEFabcdef𝆕", ".", "xΔ", "∑"]),
     ];
     for (test_id, g, expected_set) in tests {
-        let dfa = Dfa::from_graph(g, 0, btreemap![3 => Token(0), 4 => Token(0), 5 => Token(1), 6 => Token(2)]);
-        let mut lex = LexGen::new(dfa);
-        lex.create_input_tables();
-        let mut ascii_vec = vec![BTreeSet::<char>::new(); lex.nbr_groups + 1];
+        let mut dfa = Dfa::from_graph(g, 0, btreemap![3 => Token(0), 4 => Token(0), 5 => Token(1), 6 => Token(2)]);
+        dfa.normalize();
+        let mut lexgen = LexGen::new(dfa);
+        lexgen.create_input_tables();
+        let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups + 1];
         for i in 0..128_u8 {
             let c = char::from(i);
-            let g = lex.ascii_to_group[i as usize];
+            let g = lexgen.ascii_to_group[i as usize];
             if g != 0 {
                 ascii_vec[g].insert(c);
             }
         }
-        for (c, g) in lex.utf8_to_group.iter() {
+        for (c, g) in lexgen.utf8_to_group.iter() {
             ascii_vec[*g as usize].insert(*c);
         }
         let ascii_set = BTreeSet::from_iter(ascii_vec.iter().skip(1).map(|s| chars_to_string(s, false)));
         let expected_set = expected_set.iter().map(|s| s.to_string()).collect();
         assert_eq!(ascii_set, expected_set, "test {test_id} failed");
-
-        // // Create source code:
-        // println!("let ascii_to_group = [");
-        // for i in 0..8_usize {
-        //     print!("    ");
-        //     for j in 0..16_usize {
-        //         print!("{:3}, ", lex.ascii_to_group[i * 16 + j]);
-        //     }
-        //     println!("  // {}-{}", i*16, i*16 + 15);
-        // }
-        // println!("];");
-        // println!("let utf8_to_group = HashMap::<char, GroupId>::from([{}]);",
-        //          lex.utf8_to_group.iter().map(|(c, g)| format!("('{c}', {g}),")).collect::<String>()
-        // );
+        print_source_code(&lexgen);
     }
 }
 
+#[test]
+fn lexgen_state_tables() {
+    let tests = vec![
+        (10, btreemap![
+            0 => vec!["0", "10", "9876543210"],
+            1 => vec!["0.5", "9876543210.0123456789"],
+            2 => vec!["0x0", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]
+        ], vec!["a", ".5", "()", "9x0", "0x5y", "0.5a", "10f", ""])
+    ];
+    for (test_id, token_tests, err_tests) in tests {
+        // let mut dfa =  build_re(test_id)
+        for (exp_token, inputs) in token_tests {
+
+
+        }
+    }
+}
+
+fn print_source_code(lexgen: &LexGen) {
+    // Create source code:
+    println!("let ascii_to_group = [");
+    for i in 0..8_usize {
+        print!("    ");
+        for j in 0..16_usize {
+            print!("{:3}, ", lexgen.ascii_to_group[i * 16 + j]);
+        }
+        println!("  // {}-{}", i*16, i*16 + 15);
+    }
+    println!("];");
+    println!("let utf8_to_group = hashmap![{}];",
+             lexgen.utf8_to_group.iter().map(|(c, g)| format!("'{c}' => {g},")).collect::<String>()
+    );
+    println!("let nbr_groups = {};", lexgen.nbr_groups);
+    println!("let first_end_state = {};", lexgen.first_end_state);
+    println!("let error_state = {};", lexgen.nbr_states);
+    println!("let token_table = [{}];", lexgen.token_table.iter().map(|t| t.0.to_string()).collect::<Vec<_>>().join(", "));
+    println!("let state_table = [");
+    for i in 0..lexgen.nbr_states {
+        println!("    {}, // state {}{}",
+            (0..lexgen.nbr_groups).map(|j| format!("{:3}", lexgen.state_table[i * lexgen.nbr_groups + j])).collect::<Vec<_>>().join(", "),
+            i,
+            if i >= lexgen.first_end_state { " <END>" } else { "" }
+        );
+    }
+    println!("];")
+}

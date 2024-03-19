@@ -8,7 +8,7 @@ use crate::take_until::TakeUntilIterator;
 pub type TokenId = u16;
 
 #[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
-pub struct Token(TokenId);
+pub struct Token(pub TokenId);
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
