@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use crate::*;
+use crate::dfa::tests::build_re;
 use super::*;
 
 #[test]
@@ -60,8 +61,7 @@ fn lexgen_symbol_tables() {
     for (test_id, g, expected_set) in tests {
         let mut dfa = Dfa::from_graph(g, 0, btreemap![3 => Token(0), 4 => Token(0), 5 => Token(1), 6 => Token(2)]);
         dfa.normalize();
-        let mut lexgen = LexGen::new(dfa);
-        lexgen.create_input_tables();
+        let lexgen = LexGen::new(dfa);
         let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups + 1];
         for i in 0..128_u8 {
             let c = char::from(i);

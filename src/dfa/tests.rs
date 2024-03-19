@@ -87,7 +87,7 @@ fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
     }
 }
 
-fn build_re(test: usize) -> VecTree<ReNode> {
+pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
     let mut re = VecTree::new();
     match test {
         0 => { // (a|b)*abb<end>
