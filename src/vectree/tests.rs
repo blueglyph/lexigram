@@ -1,7 +1,11 @@
+#![cfg(test)]
+
 use std::fmt::Display;
 use crate::vectree::VecTree;
 
-#[cfg(test)]
+// ---------------------------------------------------------------------------------------------
+// Supporting functions
+
 fn node_to_string<T: Display>(tree: &VecTree<T>, index: usize) -> String {
     let mut result = tree.get(index).to_string();
     let children = tree.children(index);
@@ -13,7 +17,6 @@ fn node_to_string<T: Display>(tree: &VecTree<T>, index: usize) -> String {
     result
 }
 
-#[cfg(test)]
 fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
     if tree.len() > 0 {
         node_to_string(tree, 0)
@@ -22,7 +25,6 @@ fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
     }
 }
 
-#[cfg(test)]
 fn build_tree() -> VecTree<String> {
     let mut tree = VecTree::new();
     let root = tree.set_root("root".to_string()).expect("empty tree");
@@ -34,8 +36,10 @@ fn build_tree() -> VecTree<String> {
     tree
 }
 
-#[cfg(test)]
-mod tests {
+// ---------------------------------------------------------------------------------------------
+// Tests
+
+mod general {
     use super::*;
 
     #[test]
@@ -44,7 +48,7 @@ mod tests {
         assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1,c2))");
     }
 
-    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_children_simple -- --exact
+    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_children_simple -- --exact
     #[test]
     fn iter_depth_children_simple() {
         let tree = build_tree();
@@ -59,7 +63,7 @@ mod tests {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_children_direct -- --exact
+    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_children_direct -- --exact
     #[test]
     fn iter_depth_children_direct() {
         let tree = build_tree();
@@ -83,7 +87,7 @@ mod tests {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_children -- --exact
+    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_children -- --exact
     #[test]
     fn iter_depth_children() {
         let tree = build_tree();
@@ -105,7 +109,7 @@ mod tests {
         assert_eq!(result, "a1,a2,a,b,c1,c2,C,ROOT,");
     }
 
-    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children_simple -- --exact
+    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children_simple -- --exact
     #[test]
     fn iter_depth_mut_children_simple() {
         let mut tree = build_tree();
@@ -119,7 +123,7 @@ mod tests {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children_direct -- --exact
+    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children_direct -- --exact
     #[test]
     fn iter_depth_mut_children_direct() {
         let mut tree = build_tree();
@@ -140,7 +144,7 @@ mod tests {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children -- --exact
+    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children -- --exact
     #[test]
     fn iter_depth_mut_children() {
         let mut tree = build_tree();
@@ -159,7 +163,7 @@ mod tests {
         assert_eq!(result, "ROOT(a(a1,a2),b,C(c1,c2))");
     }
 
-    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children_simple_miri -- --exact
+    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children_simple_miri -- --exact
     #[test]
     fn iter_depth_mut_children_simple_miri() {
         let mut tree = build_tree();
@@ -171,7 +175,7 @@ mod tests {
         assert_eq!(result, "ROOT(A(A1,A2),B,C(C1,C2))");
     }
 
-    // cargo +nightly miri test --lib tree10_vec_mutitem::tests::iter_depth_mut_children_miri -- --exact
+    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children_miri -- --exact
     #[test]
     fn iter_depth_mut_children_miri() {
         let mut tree = build_tree();
@@ -184,7 +188,6 @@ mod tests {
     }
 }
 
-#[cfg(test)]
 mod borrow {
     use super::*;
 

@@ -1,15 +1,15 @@
 #![allow(unused)]
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use crate::{Dfa, StateId};
+use super::dfa::*;
 
 pub type GroupId = usize;
 
 pub struct LexGen {
-    pub(crate) dfa: Dfa,
-    pub(crate) ascii_to_group: Box<[GroupId]>,
-    pub(crate) utf8_to_group: Box<HashMap<char, GroupId>>,
-    pub(crate) nbr_groups: usize
+    dfa: Dfa,
+    ascii_to_group: Box<[GroupId]>,
+    utf8_to_group: Box<HashMap<char, GroupId>>,
+    nbr_groups: usize
 }
 
 impl LexGen {
@@ -17,7 +17,7 @@ impl LexGen {
         LexGen { dfa, ascii_to_group: Box::default(), utf8_to_group: Box::default(), nbr_groups: 0 }
     }
 
-    pub fn create_input_tables(&mut self) {
+    fn create_input_tables(&mut self) {
         let symbol_part = partition_symbols(&self.dfa.state_graph);
         let symbols = symbol_part.iter().flatten().map(|c| *c).collect::<BTreeSet<char>>();
         let mut symbol_to_group = BTreeMap::<char, GroupId>::new();
@@ -36,7 +36,7 @@ impl LexGen {
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-pub(crate) fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) -> Vec<BTreeSet<char>> {
+fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) -> Vec<BTreeSet<char>> {
     const VERBOSE: bool = false;
     let mut groups = Vec::<BTreeSet<char>>::new();
     for (st, trans) in g {
@@ -100,11 +100,11 @@ pub(crate) fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) 
     groups
 }
 
-pub(crate) fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition: T) -> String {
+fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition: T) -> String {
     partition.into_iter().map(|chars| chars_to_string(chars, true)).collect::<Vec<_>>().join(", ")
 }
 
-pub(crate) fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
+fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
     let mut result = String::new();
     if bracket { result.push('['); }
     result.push_str(&chars.into_iter().map(|c| format!("{c}")).collect::<String>());
@@ -112,7 +112,7 @@ pub(crate) fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
     result
 }
 
-pub(crate) fn group_transitions_to_string(p: &BTreeMap<BTreeSet<char>, StateId>) -> String {
+fn group_transitions_to_string(p: &BTreeMap<BTreeSet<char>, StateId>) -> String {
     format!("{}",
              p.iter()
                  .map(|(chars, st)|

@@ -4,6 +4,8 @@ use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut, Index, IndexMut};
 use std::ptr::NonNull;
 
+mod tests;
+
 #[derive(Debug)]
 pub struct VecTree<T> {
     nodes: Vec<Node<T>>,
