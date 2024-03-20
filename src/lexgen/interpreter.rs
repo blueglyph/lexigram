@@ -7,7 +7,8 @@ use crate::lexgen::{char_to_group, GroupId, LexGen};
 // ---------------------------------------------------------------------------------------------
 // Table-based lexer interpreter
 
-pub struct SimLexGenError {
+#[derive(Clone)]
+pub struct LexScanError {
     pub pos: u64,
     pub curr_char: Option<char>,
     pub group: Option<GroupId>,
@@ -16,7 +17,7 @@ pub struct SimLexGenError {
     pub msg: String
 }
 
-impl Display for SimLexGenError {
+impl Display for LexScanError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "pos: {}{}{}{}, state {}: {}",
             self.pos,
@@ -29,11 +30,11 @@ impl Display for SimLexGenError {
     }
 }
 
-pub fn interpret_lexgen<R: Read>(lexgen: &LexGen, input: &mut CharReader<R>) -> Result<Token, SimLexGenError> {
+pub fn interpret_lexgen<R: Read>(lexgen: &LexGen, input: &mut CharReader<R>) -> Result<Token, LexScanError> {
     const VERBOSE: bool = false;
     let mut state = lexgen.initial_state;
     let mut chars = input.chars();
-    // let mut pos = 0_u64;
+    let mut pos = 0_u64;
     loop {
         if VERBOSE { print!("- state = {state}"); }
         if let Some(c) = chars.next() {
@@ -44,8 +45,8 @@ pub fn interpret_lexgen<R: Read>(lexgen: &LexGen, input: &mut CharReader<R>) -> 
             let new_state = lexgen.state_table[lexgen.nbr_groups * state + group];
             if group >= lexgen.nbr_groups || new_state >= lexgen.nbr_states {
                 if VERBOSE { println!(" <invalid input>"); }
-                return Err(SimLexGenError {
-                    pos: c.offset,
+                return Err(LexScanError {
+                    pos,
                     curr_char: Some(c.char),
                     group: Some(group),
                     token: if state >= lexgen.first_end_state { Some(lexgen.token_table[state - lexgen.first_end_state].clone()) } else { None },
@@ -60,8 +61,8 @@ pub fn interpret_lexgen<R: Read>(lexgen: &LexGen, input: &mut CharReader<R>) -> 
             return if state >= lexgen.first_end_state {
                 Ok(lexgen.token_table[state - lexgen.first_end_state].clone())
             } else {
-                Err(SimLexGenError {
-                    pos: input.get_offset(),
+                Err(LexScanError {
+                    pos,
                     curr_char: None,
                     group: None,
                     token: None,
@@ -70,7 +71,7 @@ pub fn interpret_lexgen<R: Read>(lexgen: &LexGen, input: &mut CharReader<R>) -> 
                 })
             };
         }
-        // pos += 1;
+        pos += 1;
     }
 }
 

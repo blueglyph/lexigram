@@ -4,7 +4,7 @@ use std::io::Cursor;
 use crate::*;
 use crate::dfa::tests::{build_re, print_graph};
 use crate::io::CharReader;
-use crate::lexgen::interpreter::{interpret_lexgen, SimLexGenError};
+use crate::lexgen::interpreter::{interpret_lexgen, LexScanError};
 use super::*;
 
 #[test]
@@ -84,20 +84,20 @@ fn lexgen_symbol_tables() {
 }
 
 #[test]
-fn lexgen_state_tables() {
+fn lexgen_interpreter() {
     const VERBOSE: bool = false;
 
-    fn eval(result: Result<Token, SimLexGenError>, verbose: bool) -> Option<Token> {
+    fn eval(result: &Result<Token, LexScanError>, verbose: bool) -> Option<Token> {
         match result {
             Ok(token) => {
                 if verbose { println!("=> OK {}", token.0); }
-                Some(token)
+                Some(token.clone())
             }
             Err(e) => {
                 if verbose { print!("## {e}"); }
                 if e.curr_char.map(|c| c.is_whitespace()).unwrap_or(false) && e.token.is_some() {
                     if verbose { println!(" => OK"); }
-                    e.token
+                    e.token.clone()
                 } else {
                     if verbose { println!(" => Error"); }
                     None
@@ -106,12 +106,12 @@ fn lexgen_state_tables() {
         }
     }
 
-    let tests: Vec<(usize, BTreeMap<TokenId, Vec<&str>>, Vec<&str>)> = vec![
+    let tests: Vec<(usize, BTreeMap<TokenId, Vec<&str>>, Vec<(&str, u64)>)> = vec![
         (10, btreemap![
             0 => vec!["0", "0 ", "10", "9876543210"],
             1 => vec!["0.5", "0.1 ", "9876543210.0123456789"],
             2 => vec!["0x0", "0xF ", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]
-        ], vec!["9x0", "a", ".5", "()", "0x5y", "0.5a", "10f", ""])
+        ], vec![("9x0", 1), ("a", 0), (".5", 0), ("()", 0), ("0x5y", 3), ("0.5a", 3), ("10f", 2), ("", 0)])
     ];
     for (test_id, token_tests, err_tests) in tests {
         let mut dfa = DfaBuilder::new(build_re(test_id)).build();
@@ -122,20 +122,23 @@ fn lexgen_state_tables() {
         for (exp_token, inputs) in token_tests {
             for input in inputs {
                 let input = input.to_string();
-                // input.push(' ');
                 if VERBOSE { println!("\"{input}\": (should succeed)"); }
                 let mut stream = CharReader::new(Cursor::new(input.clone()));
-                let result = eval(interpret_lexgen(&lexgen, &mut stream), VERBOSE);
-                assert_eq!(result, Some(Token(exp_token)), "test {test_id} failed for input '{input}'");
+                let result = interpret_lexgen(&lexgen, &mut stream);
+                let token = eval(&result, VERBOSE);
+                assert_eq!(token, Some(Token(exp_token)), "test {test_id} failed for input '{input}'");
             }
         }
-        for input in err_tests {
+        for (input, expected_pos) in err_tests {
             if VERBOSE { println!("\"{input}\": (should fail)"); }
             let mut stream = CharReader::new(Cursor::new(input));
-            let result = eval(interpret_lexgen(&lexgen, &mut stream), VERBOSE);
-            assert_eq!(result, None, "test {test_id} failed for input '{input}'");
+            let result = interpret_lexgen(&lexgen, &mut stream);
+            let token = eval(&result, VERBOSE);
+            assert_eq!(token, None, "test {test_id} failed for input '{input}'");
+            if let Err(e) = result {
+                assert_eq!(e.pos, expected_pos)
+            }
         }
-
     }
 }
 
