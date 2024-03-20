@@ -79,7 +79,7 @@ fn lexgen_symbol_tables() {
         let ascii_set = BTreeSet::from_iter(ascii_vec.iter().map(|s| chars_to_string(s, false)));
         let expected_set = expected_set.iter().map(|s| s.to_string()).collect();
         assert_eq!(ascii_set, expected_set, "test {test_id} failed");
-        print_source_code(&lexgen);
+        // print_source_code(&lexgen);
     }
 }
 
@@ -95,7 +95,7 @@ fn lexgen_interpreter() {
             }
             Err(e) => {
                 if verbose { print!("## {e}"); }
-                if e.curr_char.map(|c| c.is_whitespace()).unwrap_or(false) && e.token.is_some() {
+                if e.token.is_some() {
                     if verbose { println!(" => OK"); }
                     e.token.clone()
                 } else {
@@ -107,11 +107,22 @@ fn lexgen_interpreter() {
     }
 
     let tests: Vec<(usize, BTreeMap<TokenId, Vec<&str>>, Vec<(&str, u64)>)> = vec![
+        // [0-9]+(<end:0>|\.[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
         (10, btreemap![
             0 => vec!["0", "0 ", "10", "9876543210"],
             1 => vec!["0.5", "0.1 ", "9876543210.0123456789"],
             2 => vec!["0x0", "0xF ", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]
-        ], vec![("9x0", 1), ("a", 0), (".5", 0), ("()", 0), ("0x5y", 3), ("0.5a", 3), ("10f", 2), ("", 0)])
+        ], vec![("a", 0), (".5", 0), ("()", 0), ("0xy", 2), ("0.a", 2), ("", 0)]),
+
+        // [a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>
+        (11, btreemap![
+            0 => vec!["a", "id", "id05b", "ifa", "printa"],
+            1 => vec!["if", "if x"],
+            2 => vec!["print", "print "],
+            3 => vec!["=", "=5", "=a"],
+            4 => vec!["+", "+5", "+a"],
+            5 => vec![";", ";a"]
+        ], vec![("0", 0), ("", 0), ("-", 0), ("*", 0)]),
     ];
     for (test_id, token_tests, err_tests) in tests {
         let mut dfa = DfaBuilder::new(build_re(test_id)).build();

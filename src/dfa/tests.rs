@@ -24,6 +24,7 @@ use crate::dfa::*;
 #[macro_export(local_inner_macros)]
 macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
+    (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
     (str $str:expr) => { ReNode::new(ReType::String($str.to_string())) };
     (= $id:expr ) => { ReNode::new(ReType::End(Token($id))) };
     (&) => { ReNode::new(ReType::Concat) };
@@ -186,34 +187,64 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             //      or3            or4 ---------------cc2      or6
             //                           or5
             let or1 = re.add(None, node!(|));
+
             let cc1 = re.add(Some(or1), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
             let or3 = re.add(Some(plus1), node!(|));
-            re.add_iter(Some(or3), [
-                node!(chr '0'), node!(chr '1'), node!(chr '2'), node!(chr '3'), node!(chr '4'),
-                node!(chr '5'), node!(chr '6'), node!(chr '7'), node!(chr '8'), node!(chr '9'), ]);
+            re.add_iter(Some(or3), node![chr '0', '9']);
             let or4 = re.add(Some(cc1), node!(|));
             re.add(Some(or4), node!(=0));
+
             let cc2 = re.add(Some(or4), node!(&));
             re.add(Some(cc2), node!(chr '.'));
             let plus2 = re.add(Some(cc2), node!(+));
             let or5 = re.add(Some(plus2), node!(|));
-            re.add_iter(Some(or5), [
-                node!(chr '0'), node!(chr '1'), node!(chr '2'), node!(chr '3'), node!(chr '4'),
-                node!(chr '5'), node!(chr '6'), node!(chr '7'), node!(chr '8'), node!(chr '9'), ]);
+            re.add_iter(Some(or5), node![chr '0','9']);
             re.add(Some(cc2), node!(=1));
+
             let cc3 = re.add(Some(or1), node!(&));
             re.add(Some(cc3), node!(chr '0'));
             re.add(Some(cc3), node!(chr 'x'));
             let plus3 = re.add(Some(cc3), node!(+));
             let or6 = re.add(Some(plus3), node!(|));
-            re.add_iter(Some(or6), [
-                node!(chr '0'), node!(chr '1'), node!(chr '2'), node!(chr '3'), node!(chr '4'),
-                node!(chr '5'), node!(chr '6'), node!(chr '7'), node!(chr '8'), node!(chr '9'),
-                node!(chr 'A'), node!(chr 'B'), node!(chr 'C'), node!(chr 'D'), node!(chr 'E'), node!(chr 'F'),
-                node!(chr 'a'), node!(chr 'b'), node!(chr 'c'), node!(chr 'd'), node!(chr 'e'), node!(chr 'f'),
-            ]);
+            re.add_iter(Some(or6), node![chr '0','9'; 'A','F'; 'a','f']);
             re.add(Some(cc3), node!(=2));
+        },
+        11 => {
+            //      [a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>
+            // or1:                      ^         ^            ^        ^        ^
+            //    cc--------------------- --------- ------------ -------- -------- --------
+            //       or2    or3 star3
+            let or1 = re.add(None, node!(|));
+
+            let cc = re.add(Some(or1), node!(&));
+            let or2 = re.add(Some(cc), node!(|));
+            re.add_iter(Some(or2), node!(chr 'a', 'z'));
+            let star3 = re.add(Some(cc), node!(*));
+            let or3 = re.add(Some(star3), node!(|));
+            re.add_iter(Some(or3), node!(chr 'a', 'z'));
+            re.add_iter(Some(or3), node!(chr '0', '9'));
+            re.add(Some(cc), node!(=0));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(str "if"));
+            re.add(Some(cc), node!(=1));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(str "print"));
+            re.add(Some(cc), node!(=2));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(chr '='));
+            re.add(Some(cc), node!(=3));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(chr '+'));
+            re.add(Some(cc), node!(=4));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(chr ';'));
+            re.add(Some(cc), node!(=5));
         }
         _ => { }
     }
@@ -763,14 +794,59 @@ fn dfa_states() {
             7 => branch![ // END
                 '0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
                 'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],
-        ], btreemap![1 => Token(0), 2 => Token(0), 6 => Token(1), 7 => Token(2)])
-
+        ], btreemap![1 => Token(0), 2 => Token(0), 6 => Token(1), 7 => Token(2)]),
+            
+        (11, btreemap![
+             0 => branch![
+                '+' => 1, ';' => 2, '=' => 3, 
+                'a' => 4, 'b' => 4, 'c' => 4, 'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 5, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4, 
+                'n' => 4, 'o' => 4, 'p' => 6, 'q' => 4, 'r' => 4, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],
+             1 => branch![],// END: 4
+             2 => branch![],// END: 5
+             3 => branch![],// END: 3
+             4 => branch![
+                '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'a' => 4, 'b' => 4, 'c' => 4, 
+                'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 4, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4, 'n' => 4, 'o' => 4, 'p' => 4, 
+                'q' => 4, 'r' => 4, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 0
+             5 => branch![
+                '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'a' => 4, 'b' => 4, 'c' => 4, 
+                'd' => 4, 'e' => 4, 'f' => 8, 'g' => 4, 'h' => 4, 'i' => 4, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4, 'n' => 4, 'o' => 4, 'p' => 4, 
+                'q' => 4, 'r' => 4, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 0
+             6 => branch![
+                '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'a' => 4, 'b' => 4, 'c' => 4, 
+                'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 4, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4, 'n' => 4, 'o' => 4, 'p' => 4, 
+                'q' => 4, 'r' => 9, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 0
+             8 => branch![
+                '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'a' => 4, 'b' => 4, 'c' => 4, 
+                'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 4, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4, 'n' => 4, 'o' => 4, 'p' => 4, 
+                'q' => 4, 'r' => 4, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 1
+             9 => branch![
+                '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'a' => 4, 'b' => 4, 'c' => 4, 
+                'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 10, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4, 'n' => 4, 'o' => 4, 'p' => 4, 
+                'q' => 4, 'r' => 4, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 0
+            10 => branch![
+                '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'a' => 4, 'b' => 4, 'c' => 4, 
+                'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 4, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4, 'n' => 11, 'o' => 4, 'p' => 4, 
+                'q' => 4, 'r' => 4, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 0
+            11 => branch![
+                '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'a' => 4, 'b' => 4, 'c' => 4, 
+                'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 4, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4, 'n' => 4, 'o' => 4, 'p' => 4, 
+                'q' => 4, 'r' => 4, 's' => 4, 't' => 12, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 0
+            12 => branch![
+                '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4, 'a' => 4, 'b' => 4, 'c' => 4,
+                'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 4, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4, 'n' => 4, 'o' => 4, 'p' => 4,
+                'q' => 4, 'r' => 4, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 2
+        ], btreemap![
+            1 => Token(4), 2 => Token(5), 3 => Token(3), 4 => Token(0), 5 => Token(0), 6 => Token(0),
+            8 => Token(1), 9 => Token(0), 10 => Token(0), 11 => Token(0), 12 => Token(2)])
     ];
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
         let mut dfa_builder = DfaBuilder::new(re);
         let dfa = dfa_builder.build();
+        // println!("{test_id}:");
         // print_graph(&dfa);
+        // println!();
         assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
         assert_eq!(dfa.end_states, expected_ends, "test {test_id} failed");
     }
@@ -877,9 +953,8 @@ fn dfa_optimize_graphs() {
     for (test_id, graph, end_states, exp_graph, exp_end_states) in tests {
         // println!("{test_id}:");
         let mut dfa = Dfa::from_graph(graph, 0, end_states);
-        let _ = dfa.optimize(true);
-        // let tr = dfa.optimize(true);
-        // println!("table: {}\n", tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
+        let _tr = dfa.optimize(true);
+        // println!("table: {}\n", _tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
         // print_graph(&dfa);
 
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
