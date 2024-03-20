@@ -165,9 +165,10 @@ fn sim_lexgen(lexgen: &LexGen, input: String) -> Result<Token, SimLexGenError> {
         if let Some(c) = chars.next() {
             let group = char_to_group(&lexgen.ascii_to_group, &lexgen.utf8_to_group, c);
             if VERBOSE { print!(", char '{c}' -> group {group}"); }
-            let bad_group = group >= lexgen.nbr_groups;
-            let new_state = if bad_group { state } else { lexgen.state_table[lexgen.nbr_groups * state + group] };
-            if bad_group || new_state >= lexgen.nbr_states {
+            // we can use the state_table even if group = error = nrb_group (but we must
+            // ignore new_state and detect that the group is illegal):
+            let new_state = lexgen.state_table[lexgen.nbr_groups * state + group];
+            if group >= lexgen.nbr_groups || new_state >= lexgen.nbr_states {
                 if VERBOSE { println!(" <invalid input>"); }
                 return Err(SimLexGenError {
                     pos,
@@ -175,7 +176,7 @@ fn sim_lexgen(lexgen: &LexGen, input: String) -> Result<Token, SimLexGenError> {
                     group: Some(group),
                     token: if state >= lexgen.first_end_state { Some(lexgen.token_table[state - lexgen.first_end_state].clone()) } else { None },
                     state,
-                    msg: (if bad_group { "unrecognized character" } else { "unexpected character" }).to_string(),
+                    msg: (if group >= lexgen.nbr_groups { "unrecognized character" } else { "unexpected character" }).to_string(),
                 });
             }
             if VERBOSE { println!(" -> state {new_state}"); }

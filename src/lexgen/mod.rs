@@ -57,7 +57,9 @@ impl LexGen {
         self.first_end_state = self.dfa.first_end_state.unwrap();
         self.nbr_states = self.dfa.state_graph.len();
         let nbr_states = self.dfa.state_graph.len();
-        let mut state_table = vec!(self.nbr_states; self.nbr_groups * nbr_states);
+        // we add one extra table index to allow for the 'error group', which equals nbr_group:
+        // state_table[nbr_state * nbr_group + nbr_group] must exist; the content will be ignored.
+        let mut state_table = vec!(self.nbr_states; self.nbr_groups * nbr_states + 1);
         for (state_from, trans) in &self.dfa.state_graph {
             for (symbol, state_to) in trans {
                 let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, *symbol);
