@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use std::fmt::{Display, Formatter};
 use crate::*;
 use crate::dfa::tests::{build_re, print_graph};
 use super::*;
@@ -82,43 +83,83 @@ fn lexgen_symbol_tables() {
 
 #[test]
 fn lexgen_state_tables() {
-    let tests = vec![
+    const VERBOSE: bool = false;
+
+    fn eval(result: Result<Token, SimLexGenError>, verbose: bool) -> Option<Token> {
+        match result {
+            Ok(token) => {
+                if verbose { println!("=> {}", token.0); }
+                Some(token)
+            }
+            Err(e) => {
+                if verbose { print!("## {e}"); }
+                if e.curr_char.map(|c| c.is_whitespace()).unwrap_or(false) && e.token.is_some() {
+                    if verbose { println!(" => OK"); }
+                    e.token
+                } else {
+                    if verbose { println!(" => Error"); }
+                    None
+                }
+            }
+        }
+    }
+
+    let tests: Vec<(usize, BTreeMap<TokenId, Vec<&str>>, Vec<&str>)> = vec![
         (10, btreemap![
-            0 => vec!["0", "10", "9876543210"],
-            1 => vec!["0.5", "9876543210.0123456789"],
-            2 => vec!["0x0", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]
-        ], vec!["a", ".5", "()", "9x0", "0x5y", "0.5a", "10f", ""])
+            0 => vec!["0", "0 ", "10", "9876543210"],
+            1 => vec!["0.5", "0.1 ", "9876543210.0123456789"],
+            2 => vec!["0x0", "0xF ", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]
+        ], vec!["9x0", "a", ".5", "()", "0x5y", "0.5a", "10f", ""])
     ];
     for (test_id, token_tests, err_tests) in tests {
         let mut dfa = DfaBuilder::new(build_re(test_id)).build();
         dfa.normalize();
-        print_graph(&dfa);
+        if VERBOSE { print_graph(&dfa); }
         let lexgen = LexGen::new(dfa);
-        print_source_code(&lexgen);
+        if VERBOSE { print_source_code(&lexgen); }
         for (exp_token, inputs) in token_tests {
             for input in inputs {
-                let mut input = input.to_string();
-                input.push(' ');
-                // println!("{input}:");
-                let result = sim_lexgen(&lexgen, input.clone());
-                // println!("=> {}", result.clone().map(|t| format!("token {}", t.0)).unwrap_or("ERROR".to_string()));
-                assert_eq!(result, Some(Token(exp_token)), "test {test_id} failed for input '{input}'");
+                let input = input.to_string();
+                // input.push(' ');
+                if VERBOSE { println!("\"{input}\": (should succeed)"); }
+                assert_eq!(eval(sim_lexgen(&lexgen, input.clone()), VERBOSE), Some(Token(exp_token)), "test {test_id} failed for input '{input}'");
             }
         }
         for input in err_tests {
-            // println!("{input}:");
-            let result = sim_lexgen(&lexgen, input.to_string());
-            // println!("=> {}", result.clone().map(|t| format!("token {}", t.0)).unwrap_or("ERROR".to_string()));
-            assert_eq!(result, None, "test {test_id} failed to trigger an error for input '{input}'");
+            if VERBOSE { println!("\"{input}\": (should fail)"); }
+            assert_eq!(eval(sim_lexgen(&lexgen, input.to_string()), VERBOSE), None, "test {test_id} failed for input '{input}'");
         }
 
     }
 }
 
-fn sim_lexgen(lexgen: &LexGen, input: String) -> Option<Token> {
+struct SimLexGenError {
+    pos: u64,
+    curr_char: Option<char>,
+    group: Option<GroupId>,
+    token: Option<Token>,
+    state: StateId,
+    msg: String
+}
+
+impl Display for SimLexGenError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "pos: {}{}{}{}, state {}: {}",
+            self.pos,
+            self.curr_char.map(|c| format!(" on '{c}'")).unwrap_or("".to_string()),
+            self.group.map(|g| format!(", group {g}")).unwrap_or("".to_string()),
+            self.token.as_ref().map(|t| format!(", token {}", t.0)).unwrap_or("".to_string()),
+            self.state,
+            self.msg
+        )
+    }
+}
+
+fn sim_lexgen(lexgen: &LexGen, input: String) -> Result<Token, SimLexGenError> {
     const VERBOSE: bool = false;
     let mut state = lexgen.initial_state;
     let mut chars = input.chars();
+    let mut pos = 0_u64;
     loop {
         if VERBOSE { print!("- state = {state}"); }
         if let Some(c) = chars.next() {
@@ -126,42 +167,69 @@ fn sim_lexgen(lexgen: &LexGen, input: String) -> Option<Token> {
             if VERBOSE { print!(", char '{c}' -> group {group}"); }
             if group >= lexgen.nbr_groups {
                 if VERBOSE { println!(" <invalid input, stopping>"); }
-                return if state >= lexgen.first_end_state && c.is_whitespace() {
-                    Some(lexgen.token_table[state - lexgen.first_end_state].clone())
-                } else {
-                    None
-                };
+                return Err(SimLexGenError {
+                    pos,
+                    curr_char: Some(c),
+                    group: Some(group),
+                    token: if state >= lexgen.first_end_state { Some(lexgen.token_table[state - lexgen.first_end_state].clone()) } else { None },
+                    state,
+                    msg: "unrecognized character".to_string(),
+                });
             } else {
                 let new_state = lexgen.state_table[lexgen.nbr_groups * state + group];
                 if new_state >= lexgen.nbr_states {
                     if VERBOSE { println!(" -> error"); }
-                    return if state >= lexgen.first_end_state && c.is_whitespace() {
-                        Some(lexgen.token_table[state - lexgen.first_end_state].clone())
-                    } else {
-                        None
-                    };
+                    return Err(SimLexGenError {
+                        pos,
+                        curr_char: Some(c),
+                        group: Some(group),
+                        token: if state >= lexgen.first_end_state { Some(lexgen.token_table[state - lexgen.first_end_state].clone()) } else { None },
+                        state,
+                        msg: "unexpected character".to_string(),
+                    });
                 }
                 if VERBOSE { println!(" -> state {new_state}"); }
                 state = new_state;
             }
         } else {
             if VERBOSE { println!(" <end of input>"); }
-            return if state >= lexgen.first_end_state { Some(lexgen.token_table[state - lexgen.first_end_state].clone()) } else { None };
+            return if state >= lexgen.first_end_state {
+                Ok(lexgen.token_table[state - lexgen.first_end_state].clone())
+            } else {
+                Err(SimLexGenError {
+                    pos,
+                    curr_char: None,
+                    group: None,
+                    token: None,
+                    state,
+                    msg: "unexpected end of stream".to_string(),
+                })
+            };
         }
+        pos += 1;
     }
 }
 
 fn print_source_code(lexgen: &LexGen) {
     // Create source code:
+    let mut groups = vec![BTreeSet::new(); lexgen.nbr_groups];
     println!("let ascii_to_group = [");
     for i in 0..8_usize {
         print!("    ");
         for j in 0..16_usize {
-            print!("{:3}, ", lexgen.ascii_to_group[i * 16 + j]);
+            let ascii = i * 16 + j;
+            let group = lexgen.ascii_to_group[i * 16 + j];
+            print!("{:3}, ", group);
+            if group < lexgen.nbr_groups {
+                groups[group].insert(char::from(ascii as u8));
+            }
         }
         println!("  // {}-{}", i*16, i*16 + 15);
     }
     println!("];");
+    for (g, chars) in groups.iter().enumerate() {
+        println!("// group[{:3}] = [{}]", g, chars.iter().collect::<String>());
+    }
     println!("let utf8_to_group = hashmap![{}];",
              lexgen.utf8_to_group.iter().map(|(c, g)| format!("'{c}' => {g},")).collect::<String>()
     );
