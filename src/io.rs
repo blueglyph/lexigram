@@ -133,8 +133,9 @@ impl<'a, R: Read> Iterator for CharReaderIter<'a, R> {
     type Item = IterChar;
 
     fn next(&mut self) -> Option<Self::Item> {
+        let offset = self.creader.offset;
         let c = self.creader.get_char();
-        c.map(|c| IterChar { char: c, offset: self.creader.offset })
+        c.map(|c| IterChar { char: c, offset })
     }
 }
 
@@ -145,13 +146,13 @@ mod char_reader {
 
     fn get_tests() -> Vec::<(&'static str, Vec<u64>)> {
         vec![
-            ("012顠abc©345𠃐ab",          vec![1, 2, 3, 6, 7, 8, 9, 11, 12, 13, 14, 18, 19, 20]),
-            ("1234567890123456789顠abc",  vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25]),
+            ("012顠abc©345𠃐ab",          vec![0, 1, 2, 3, 6, 7, 8, 9, 11, 12, 13, 14, 18, 19]),
+            ("1234567890123456789顠abc",  vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24]),
             ("",                          vec![]),
-            ("1",                         vec![1]),
-            ("12",                        vec![1, 2]),
-            ("©",                         vec![2]),
-            ("𠃐𠃐",                      vec![4, 8])
+            ("1",                         vec![0]),
+            ("12",                        vec![0, 1]),
+            ("©",                         vec![0]),
+            ("𠃐𠃐",                      vec![0, 4])
         ]
     }
 
@@ -201,12 +202,12 @@ mod char_reader {
                 if early_peek {
                     result_peek.push(reader.peek());
                 }
-                while let Some(c) = reader.get_char() {
+                while let (offset, Some(c)) = (reader.get_offset(), reader.get_char()) {
                     if i & 1 == 1 {
                         result_peek.push(reader.peek());
                     }
                     result.push(c);
-                    result_pos.push(reader.offset);
+                    result_pos.push(offset);
                     i += 1;
                 }
                 let expected_peek = if early_peek {
