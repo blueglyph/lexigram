@@ -1,4 +1,5 @@
 mod tests;
+pub mod interpreter;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use super::dfa::*;
@@ -78,6 +79,7 @@ impl LexGen {
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
+#[inline]
 pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, GroupId>, char: char) -> GroupId {
     if char.len_utf8() == 1 {
         ascii_to_group[u8::try_from(char).unwrap() as usize]
@@ -173,3 +175,4 @@ fn group_transitions_to_string(p: &BTreeMap<BTreeSet<char>, StateId>) -> String 
                  ).collect::<Vec<_>>().join(", ")
     )
 }
+
