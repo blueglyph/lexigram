@@ -1,5 +1,7 @@
 use std::fmt::{Display, Formatter};
+use std::io::Read;
 use crate::dfa::{StateId, Token};
+use crate::io::CharReader;
 use crate::lexgen::{char_to_group, GroupId, LexGen};
 
 // ---------------------------------------------------------------------------------------------
@@ -27,24 +29,24 @@ impl Display for SimLexGenError {
     }
 }
 
-pub fn interpret_lexgen(lexgen: &LexGen, input: String) -> Result<Token, SimLexGenError> {
+pub fn interpret_lexgen<R: Read>(lexgen: &LexGen, input: &mut CharReader<R>) -> Result<Token, SimLexGenError> {
     const VERBOSE: bool = false;
     let mut state = lexgen.initial_state;
     let mut chars = input.chars();
-    let mut pos = 0_u64;
+    // let mut pos = 0_u64;
     loop {
         if VERBOSE { print!("- state = {state}"); }
         if let Some(c) = chars.next() {
-            let group = char_to_group(&lexgen.ascii_to_group, &lexgen.utf8_to_group, c);
-            if VERBOSE { print!(", char '{c}' -> group {group}"); }
+            let group = char_to_group(&lexgen.ascii_to_group, &lexgen.utf8_to_group, c.char);
+            if VERBOSE { print!(", char '{}' -> group {}", c.char, group); }
             // we can use the state_table even if group = error = nrb_group (but we must
             // ignore new_state and detect that the group is illegal):
             let new_state = lexgen.state_table[lexgen.nbr_groups * state + group];
             if group >= lexgen.nbr_groups || new_state >= lexgen.nbr_states {
                 if VERBOSE { println!(" <invalid input>"); }
                 return Err(SimLexGenError {
-                    pos,
-                    curr_char: Some(c),
+                    pos: c.offset,
+                    curr_char: Some(c.char),
                     group: Some(group),
                     token: if state >= lexgen.first_end_state { Some(lexgen.token_table[state - lexgen.first_end_state].clone()) } else { None },
                     state,
@@ -59,7 +61,7 @@ pub fn interpret_lexgen(lexgen: &LexGen, input: String) -> Result<Token, SimLexG
                 Ok(lexgen.token_table[state - lexgen.first_end_state].clone())
             } else {
                 Err(SimLexGenError {
-                    pos,
+                    pos: input.get_offset(),
                     curr_char: None,
                     group: None,
                     token: None,
@@ -68,7 +70,7 @@ pub fn interpret_lexgen(lexgen: &LexGen, input: String) -> Result<Token, SimLexG
                 })
             };
         }
-        pos += 1;
+        // pos += 1;
     }
 }
 

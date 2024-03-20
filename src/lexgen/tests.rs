@@ -1,7 +1,9 @@
 #![cfg(test)]
 
+use std::io::Cursor;
 use crate::*;
 use crate::dfa::tests::{build_re, print_graph};
+use crate::io::CharReader;
 use crate::lexgen::interpreter::{interpret_lexgen, SimLexGenError};
 use super::*;
 
@@ -88,7 +90,7 @@ fn lexgen_state_tables() {
     fn eval(result: Result<Token, SimLexGenError>, verbose: bool) -> Option<Token> {
         match result {
             Ok(token) => {
-                if verbose { println!("=> {}", token.0); }
+                if verbose { println!("=> OK {}", token.0); }
                 Some(token)
             }
             Err(e) => {
@@ -122,12 +124,16 @@ fn lexgen_state_tables() {
                 let input = input.to_string();
                 // input.push(' ');
                 if VERBOSE { println!("\"{input}\": (should succeed)"); }
-                assert_eq!(eval(interpret_lexgen(&lexgen, input.clone()), VERBOSE), Some(Token(exp_token)), "test {test_id} failed for input '{input}'");
+                let mut stream = CharReader::new(Cursor::new(input.clone()));
+                let result = eval(interpret_lexgen(&lexgen, &mut stream), VERBOSE);
+                assert_eq!(result, Some(Token(exp_token)), "test {test_id} failed for input '{input}'");
             }
         }
         for input in err_tests {
             if VERBOSE { println!("\"{input}\": (should fail)"); }
-            assert_eq!(eval(interpret_lexgen(&lexgen, input.to_string()), VERBOSE), None, "test {test_id} failed for input '{input}'");
+            let mut stream = CharReader::new(Cursor::new(input));
+            let result = eval(interpret_lexgen(&lexgen, &mut stream), VERBOSE);
+            assert_eq!(result, None, "test {test_id} failed for input '{input}'");
         }
 
     }
