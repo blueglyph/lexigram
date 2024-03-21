@@ -40,15 +40,22 @@ pub fn utf8_len_notable(byte: u8) -> usize {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub enum CharReaderStatus {
+    #[default]
     Reading,
     Error(String),
     Closed
 }
 
+#[derive(Debug)]
+pub enum CharReaderError {
+    NoRoomToRewind
+}
+
 pub struct CharReader<R> {
     reader: BufReader<R>,
+    /// offset of next character, in bytes
     offset: u64,
     status: CharReaderStatus,
     peek: Option<(Option<char>, u64, CharReaderStatus)>,
@@ -62,6 +69,10 @@ impl<R: Read> CharReader<R> {
             status: CharReaderStatus::Reading,
             peek: None,
         }
+    }
+
+    pub fn is_reading(&self) -> bool {
+        matches!(self.status, CharReaderStatus::Reading)
     }
 
     pub fn get_offset(&self) -> u64 {
@@ -86,6 +97,18 @@ impl<R: Read> CharReader<R> {
             self.offset += len as u64;
             self.status = status;
             c
+        }
+    }
+
+    pub fn rewind(&mut self, chr: char) -> Result<(), CharReaderError> {
+        if self.peek.is_none() {
+            let new_offset = self.offset - chr.len_utf8() as u64;
+            self.peek = Some((Some(chr), self.offset, std::mem::take(&mut self.status)));
+            self.offset = new_offset;
+            self.status = CharReaderStatus::Reading;
+            Ok(())
+        } else {
+            Err(CharReaderError::NoRoomToRewind)
         }
     }
 
@@ -141,7 +164,9 @@ pub struct CharReaderIter<'a, R> {
 }
 
 pub struct IterChar {
+    /// next character from the stream
     pub char: char,
+    /// offset of `char` in the stream, in bytes
     pub offset: u64
 }
 
@@ -178,6 +203,42 @@ mod char_reader {
             assert_eq!(utf8_len(i), utf8_len_notable(i), "length of {i} (0x{i:x}) differs");
         }
     }
+
+    #[test]
+    fn read_rewind() {
+        let text = "aαbβgΔs∑z";
+        let mut reader = CharReader::new(Cursor::new(text));
+        assert!(reader.is_reading());
+        let mut counter = 0;
+        while reader.is_reading() {
+            counter += 1;
+            let c = reader.get_char().unwrap_or('!');
+            if c == '!' {
+                assert_eq!(reader.status, CharReaderStatus::Closed);
+            }
+            let reader_offset = reader.offset;
+            let reader_status = reader.status.clone();
+            // rewinding
+            assert!(reader.peek.is_none());
+            reader.rewind(c).expect("rewind should be fine");
+            assert!(reader.peek.is_some());
+            if let Some((pc, po, ps)) = &reader.peek {
+                assert_eq!(pc, &Some(c), "failed rewinding '{c}'");
+                assert_eq!(po, &reader_offset, "failed rewinding '{c}'");
+                assert_eq!(ps, &reader_status, "failed rewinding '{c}'");
+            }
+            // forward again
+            let c_again = reader.get_char();
+            assert!(reader.peek.is_none(), "failed reading after rewind for '{c}'");
+            assert_eq!(c_again, Some(c), "failed reading after rewind for '{c}'");
+            assert_eq!(&reader.offset, &reader_offset, "failed reading after rewind for '{c}'");
+            assert_eq!(&reader.status, &reader_status, "failed reading after rewind for '{c}'");
+        }
+        assert_eq!(counter, text.chars().count() + 1);
+        assert_eq!(reader.status, CharReaderStatus::Closed);
+        assert_eq!(reader.get_char(), None);
+    }
+
 
     #[test]
     fn char_iterator() {
