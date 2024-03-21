@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::io::Read;
 use crate::dfa::{StateId, Token};
@@ -30,48 +31,112 @@ impl Display for LexScanError {
     }
 }
 
-pub fn interpret_lexgen<R: Read>(lexgen: &LexGen, input: &mut CharReader<R>) -> Result<Token, LexScanError> {
-    const VERBOSE: bool = false;
-    let mut state = lexgen.initial_state;
-    let mut chars = input.chars();
-    let mut pos = 0_u64;
-    loop {
-        if VERBOSE { print!("- state = {state}"); }
-        if let Some(c) = chars.next() {
-            let group = char_to_group(&lexgen.ascii_to_group, &lexgen.utf8_to_group, c.char);
-            if VERBOSE { print!(", char '{}' -> group {}", c.char, group); }
-            // we can use the state_table even if group = error = nrb_group (but we must
-            // ignore new_state and detect that the group is illegal):
-            let new_state = lexgen.state_table[lexgen.nbr_groups * state + group];
-            if group >= lexgen.nbr_groups || new_state >= lexgen.nbr_states {
-                if VERBOSE { println!(" <invalid input>"); }
-                return Err(LexScanError {
-                    pos,
-                    curr_char: Some(c.char),
-                    group: Some(group),
-                    token: if state >= lexgen.first_end_state { Some(lexgen.token_table[state - lexgen.first_end_state].clone()) } else { None },
-                    state,
-                    msg: (if group >= lexgen.nbr_groups { "unrecognized character" } else { "unexpected character" }).to_string(),
-                });
-            }
-            if VERBOSE { println!(" -> state {new_state}"); }
-            state = new_state;
-        } else {
-            if VERBOSE { println!(" <end of input>"); }
-            return if state >= lexgen.first_end_state {
-                Ok(lexgen.token_table[state - lexgen.first_end_state].clone())
-            } else {
-                Err(LexScanError {
-                    pos,
-                    curr_char: None,
-                    group: None,
-                    token: None,
-                    state,
-                    msg: "unexpected end of stream".to_string(),
-                })
-            };
-        }
-        pos += 1;
-    }
+pub struct LexInterpret<R> {
+    input: Option<CharReader<R>>,
+    pub ascii_to_group: Box<[GroupId]>,
+    pub utf8_to_group: Box<HashMap<char, GroupId>>,
+    pub nbr_groups: usize,
+    pub initial_state: StateId,
+    pub first_end_state: StateId,   // accepting when state >= first_end_state
+    pub nbr_states: StateId,        // error if state >= nbr_states
+    pub state_table: Box<[StateId]>,
+    pub token_table: Box<[Token]>,  // token(state) = token_table[state - first_end_state]
 }
 
+impl<R: Read> LexInterpret<R> {
+    pub fn new(lexgen: LexGen) -> Self {
+        LexInterpret {
+            input: None,
+            ascii_to_group: lexgen.ascii_to_group,
+            utf8_to_group: lexgen.utf8_to_group,
+            nbr_groups: lexgen.nbr_groups,
+            initial_state: lexgen.initial_state,
+            first_end_state: lexgen.first_end_state,
+            nbr_states: lexgen.nbr_states,
+            state_table: lexgen.state_table,
+            token_table: lexgen.token_table,
+        }
+    }
+
+    pub fn attach_steam(&mut self, input: CharReader<R>) {
+        self.input = Some(input);
+    }
+
+    pub fn detach_stream(&mut self) -> Option<CharReader<R>> {
+        self.input.take()
+    }
+
+    pub fn stream(&self) -> Option<&CharReader<R>> {
+        self.input.as_ref()
+    }
+
+    pub fn is_open(&self) -> bool {
+        self.input.as_ref().map(|input| input.is_reading()).unwrap_or(false)
+    }
+
+    pub fn skip(&mut self) -> Option<char> {
+        if let Some(input) = self.input.as_mut() {
+            input.get_char()
+        } else {
+            None
+        }
+    }
+
+    pub fn get_token(&mut self) -> Result<Token, LexScanError> {
+        if let Some(input) = self.input.as_mut() {
+            const VERBOSE: bool = false;
+            let mut state = self.initial_state;
+            let mut chars = input.chars();
+            let mut pos = 0_u64;
+            loop {
+                if VERBOSE { print!("- state = {state}"); }
+                if let Some(c) = chars.next() {
+                    let group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, c.char);
+                    if VERBOSE { print!(", char '{}' -> group {}", c.char, group); }
+                    // we can use the state_table even if group = error = nrb_group (but we must
+                    // ignore new_state and detect that the group is illegal):
+                    let new_state = self.state_table[self.nbr_groups * state + group];
+                    if group >= self.nbr_groups || new_state >= self.nbr_states {
+                        if VERBOSE { println!(" <invalid input>"); }
+                        input.rewind(c.char).unwrap();
+                        return Err(LexScanError {
+                            pos,
+                            curr_char: Some(c.char),
+                            group: Some(group),
+                            token: if state >= self.first_end_state { Some(self.token_table[state - self.first_end_state].clone()) } else { None },
+                            state,
+                            msg: (if group >= self.nbr_groups { "unrecognized character" } else { "unexpected character" }).to_string(),
+                        });
+                    }
+                    if VERBOSE { println!(" -> state {new_state}"); }
+                    state = new_state;
+                } else {
+                    if VERBOSE { println!(" <end of input>"); }
+                    return if state >= self.first_end_state {
+                        Ok(self.token_table[state - self.first_end_state].clone())
+                    } else {
+                        Err(LexScanError {
+                            pos,
+                            curr_char: None,
+                            group: None,
+                            token: None,
+                            state,
+                            msg: "unexpected end of stream".to_string(),
+                        })
+                    };
+                }
+                pos += 1;
+            }
+        } else {
+            Err(LexScanError {
+                pos: 0,
+                curr_char: None,
+                group: None,
+                token: None,
+                state: 0,
+                msg: "no stream attached".to_string(),
+            })
+        }
+    }
+
+}
