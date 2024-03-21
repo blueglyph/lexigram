@@ -19,9 +19,25 @@ const UTF8_LENGTH: [u8; 256] = [
     4,4,4,4,4,0,0,0,0,0,0,0,0,0,0,0,
 ];
 
+// Note: both utf8_len* functions below may be exchanged to avoid using a table
+// in production code.
+
+#[inline]
 /// Determines the number of bytes required to encode a UTF-8 character from its first byte.
-pub fn utf8_len(b: u8) -> usize {
-    return UTF8_LENGTH[b as usize] as usize;
+pub fn utf8_len(byte: u8) -> usize {
+    return UTF8_LENGTH[byte as usize] as usize;
+}
+
+#[inline]
+/// Determines the number of bytes required to encode a UTF-8 character from its first byte.
+pub fn utf8_len_notable(byte: u8) -> usize {
+    match byte {
+        0x00..=0x7f => 1,
+        0xc2..=0xdf => 2,
+        0xe0..=0xef => 3,
+        0xf0..=0xf4 => 4,
+        _ => 0
+    }
 }
 
 #[derive(Debug, PartialEq)]
@@ -158,17 +174,8 @@ mod char_reader {
 
     #[test]
     fn utf8_length() {
-        fn utf8_exp_len(byte: u8) -> usize {
-            match byte {
-                0x00..=0x7f => 1,
-                0xc2..=0xdf => 2,
-                0xe0..=0xef => 3,
-                0xf0..=0xf4 => 4,
-                _ => 0
-            }
-        }
         for i in 0_u8..128 {
-            assert_eq!(utf8_len(i), utf8_exp_len(i), "length of {i} (0x{i:x}) differs");
+            assert_eq!(utf8_len(i), utf8_len_notable(i), "length of {i} (0x{i:x}) differs");
         }
     }
 
