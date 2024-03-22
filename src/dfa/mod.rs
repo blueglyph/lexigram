@@ -52,13 +52,26 @@ impl ReType {
     }
 }
 
+pub fn escape_char(c: char) -> String {
+    match c {
+        '\n' => "\\n".to_string(),
+        '\r' => "\\r".to_string(),
+        '\t' => "\\t".to_string(),
+        _ => c.to_string(),
+    }
+}
+
+pub fn escape_string(s: &str) -> String {
+    s.chars().map(|c| escape_char(c)).collect::<String>()
+}
+
 impl Display for ReType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ReType::Empty => write!(f, "-"),
             ReType::End(id) => write!(f, "<end:{}>", id.0),
-            ReType::Char(c) => write!(f, "'{c}'"),
-            ReType::String(s) => write!(f, "'{s}'"),
+            ReType::Char(c) => write!(f, "'{}'", escape_char(*c)),
+            ReType::String(s) => write!(f, "'{}'", escape_string(&s)),
             ReType::Concat => write!(f, "&"),
             ReType::Star => write!(f, "*"),
             ReType::Plus => write!(f, "+"),

@@ -85,7 +85,7 @@ fn lexgen_symbol_tables() {
 
 #[test]
 fn lexgen_interpreter() {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
 
     fn eval(result: &Result<Token, LexScanError>, verbose: bool) -> Option<Token> {
         match result {
@@ -114,7 +114,7 @@ fn lexgen_interpreter() {
             2 => vec!["0x0", "0xF ", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]
         ],
          vec![("a", 0), (".5", 0), ("()", 0), ("0xy", 2), ("0.a", 2), ("", 0)],
-         vec![("0 1 2", vec![0, 0, 0]), ("0x1 0.5 15", vec![2, 1, 0])],
+         vec![("0 1 2 ", vec![0, 0, 0]), ("0x1 0.5 15", vec![2, 1, 0])],
         ),
 
         // [a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>
@@ -127,7 +127,7 @@ fn lexgen_interpreter() {
             5 => vec![";", ";a"]
         ],
          vec![("0", 0), ("", 0), ("-", 0), ("*", 0)],
-         vec![],
+         vec![("\ta = x; if i=j print b;\n", vec![0, 3, 0, 5, 1, 0, 3, 0, 2, 0, 5])]
         ),
     ];
     for (test_id, token_tests, err_tests, stream_tests) in tests {
@@ -160,20 +160,22 @@ fn lexgen_interpreter() {
             }
         }
         for (input, expected_tokens) in stream_tests {
+            if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             interpret.attach_steam(stream);
             let mut result = Vec::new();
             while interpret.is_open() {
                 let token = &interpret.get_token();
-                let t = eval(token, VERBOSE);
-                println!("- {t:?}");
-                if let Err() token() {
-                    if let Some(Token(token)) = t {
-                        result.push(token);
-                    }
+                let t = eval(token, false);
+                if let Some(token) = t {
+                    if VERBOSE { print!(" {}", token.0); }
+                    result.push(token.0);
+                } else {
+                    assert_eq!(t, None);
+                    break;
                 }
-                assert_eq!(interpret.skip(), Some(' '), "test {test_id} failed for input '{input}'");
             }
+            if VERBOSE { println!(); }
             assert_eq!(result, expected_tokens, "test {test_id} failed for input '{input}'");
         }
     }
@@ -197,10 +199,10 @@ fn print_source_code(lexgen: &LexGen) {
     }
     println!("];");
     for (g, chars) in groups.iter().enumerate() {
-        println!("// group[{:3}] = [{}]", g, chars.iter().collect::<String>());
+        println!("// group[{:3}] = [{}]", g, chars.iter().map(|c| escape_char(*c)).collect::<String>());
     }
     println!("let utf8_to_group = hashmap![{}];",
-             lexgen.utf8_to_group.iter().map(|(c, g)| format!("'{c}' => {g},")).collect::<String>()
+             lexgen.utf8_to_group.iter().map(|(c, g)| format!("'{}' => {},", escape_char(*c), g)).collect::<String>()
     );
     println!("let nbr_groups = {};", lexgen.nbr_groups);
     println!("let initial_state = {};", lexgen.initial_state);

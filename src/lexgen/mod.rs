@@ -159,7 +159,7 @@ fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition
 fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
     let mut result = String::new();
     if bracket { result.push('['); }
-    result.push_str(&chars.into_iter().map(|c| format!("{c}")).collect::<String>());
+    result.push_str(&chars.into_iter().map(|c| format!("{}", escape_char(*c))).collect::<String>());
     if bracket { result.push(']'); }
     result
 }
@@ -169,7 +169,7 @@ fn group_transitions_to_string(p: &BTreeMap<BTreeSet<char>, StateId>) -> String 
              p.iter()
                  .map(|(chars, st)|
                      format!("[{}] => {}",
-                             chars.into_iter().map(|c| format!("{c}")).collect::<String>(),
+                             chars.into_iter().map(|c| format!("{}", escape_char(*c))).collect::<String>(),
                              st
                      )
                  ).collect::<Vec<_>>().join(", ")
