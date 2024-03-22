@@ -139,22 +139,22 @@ fn lexgen_interpreter() {
         let mut interpret = LexInterpret::new(lexgen);
         for (exp_token, inputs) in token_tests {
             for input in inputs {
-                if VERBOSE { println!("\"{input}\": (should succeed)"); }
+                if VERBOSE { println!("\"{}\": (should succeed)", escape_string(input)); }
                 let stream = CharReader::new(Cursor::new(input));
                 interpret.attach_steam(stream);
                 let result = interpret.get_token();
                 let token = eval(&result, VERBOSE);
-                assert_eq!(token, Some(Token(exp_token)), "test {test_id} failed for input '{input}'");
+                assert_eq!(token, Some(Token(exp_token)), "test {} failed for input '{}'", test_id, escape_string(input));
                 interpret.detach_stream();
             }
         }
         for (input, expected_pos) in err_tests {
-            if VERBOSE { println!("\"{input}\": (should fail)"); }
+            if VERBOSE { println!("\"{}\": (should fail)", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             interpret.attach_steam(stream);
             let result = interpret.get_token();
             let token = eval(&result, VERBOSE);
-            assert_eq!(token, None, "test {test_id} failed for input '{input}'");
+            assert_eq!(token, None, "test {} failed for input '{}'", test_id, escape_string(input));
             if let Err(e) = result {
                 assert_eq!(e.pos, expected_pos)
             }

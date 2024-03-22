@@ -2,6 +2,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::io::Read;
 use crate::dfa::{StateId, Token};
+use crate::escape_char;
 use crate::io::CharReader;
 use crate::lexgen::{char_to_group, GroupId, LexGen};
 
@@ -22,7 +23,7 @@ impl Display for LexScanError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "pos: {}{}{}{}, state {}: {}",
             self.pos,
-            self.curr_char.map(|c| format!(" on '{c}'")).unwrap_or("".to_string()),
+            self.curr_char.map(|c| format!(" on '{}'", escape_char(c))).unwrap_or("".to_string()),
             self.group.map(|g| format!(", group {g}")).unwrap_or("".to_string()),
             self.token.as_ref().map(|t| format!(", token {}", t.0)).unwrap_or("".to_string()),
             self.state,
@@ -92,7 +93,7 @@ impl<R: Read> LexInterpret<R> {
                 if VERBOSE { print!("- state = {state}"); }
                 if let Some(c) = chars.next() {
                     let group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, c.char);
-                    if VERBOSE { print!(", char '{}' -> group {}", c.char, group); }
+                    if VERBOSE { print!(", char '{}' -> group {}", escape_char(c.char), group); }
                     // we can use the state_table even if group = error = nrb_group (but we must
                     // ignore new_state and detect that the group is illegal):
                     let new_state = self.state_table[self.nbr_groups * state + group];

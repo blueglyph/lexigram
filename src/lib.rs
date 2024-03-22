@@ -21,3 +21,14 @@ pub mod dfa;
 // - https://nothings.org/computer/lexing.html
 // - https://github.com/maciejhirsz/logos
 // - https://alic.dev/blog/fast-lexing
+
+pub(crate) fn escape_char(c: char) -> String {
+    match c {
+        '\x00'..='\x7f' => c.escape_default().to_string(),
+        _ => c.to_string(),
+    }
+}
+
+pub(crate) fn escape_string(s: &str) -> String {
+    s.chars().map(|c| escape_char(c)).collect::<String>()
+}

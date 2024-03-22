@@ -2,6 +2,7 @@ pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
+use crate::{escape_char, escape_string};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 
@@ -50,19 +51,6 @@ impl ReType {
             None
         }
     }
-}
-
-pub fn escape_char(c: char) -> String {
-    match c {
-        '\n' => "\\n".to_string(),
-        '\r' => "\\r".to_string(),
-        '\t' => "\\t".to_string(),
-        _ => c.to_string(),
-    }
-}
-
-pub fn escape_string(s: &str) -> String {
-    s.chars().map(|c| escape_char(c)).collect::<String>()
 }
 
 impl Display for ReType {

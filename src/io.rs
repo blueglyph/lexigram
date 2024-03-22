@@ -183,6 +183,7 @@ impl<'a, R: Read> Iterator for CharReaderIter<'a, R> {
 #[cfg(test)]
 mod char_reader {
     use std::io::Cursor;
+    use crate::escape_char;
     use super::*;
 
     fn get_tests() -> Vec::<(&'static str, Vec<u64>)> {
@@ -223,16 +224,16 @@ mod char_reader {
             reader.rewind(c).expect("rewind should be fine");
             assert!(reader.peek.is_some());
             if let Some((pc, po, ps)) = &reader.peek {
-                assert_eq!(pc, &Some(c), "failed rewinding '{c}'");
-                assert_eq!(po, &reader_offset, "failed rewinding '{c}'");
-                assert_eq!(ps, &reader_status, "failed rewinding '{c}'");
+                assert_eq!(pc, &Some(c), "failed rewinding '{}'", escape_char(c));
+                assert_eq!(po, &reader_offset, "failed rewinding '{}'", escape_char(c));
+                assert_eq!(ps, &reader_status, "failed rewinding '{}'", escape_char(c));
             }
             // forward again
             let c_again = reader.get_char();
-            assert!(reader.peek.is_none(), "failed reading after rewind for '{c}'");
-            assert_eq!(c_again, Some(c), "failed reading after rewind for '{c}'");
-            assert_eq!(&reader.offset, &reader_offset, "failed reading after rewind for '{c}'");
-            assert_eq!(&reader.status, &reader_status, "failed reading after rewind for '{c}'");
+            assert!(reader.peek.is_none(), "failed reading after rewind for '{}'", escape_char(c));
+            assert_eq!(c_again, Some(c), "failed reading after rewind for '{}'", escape_char(c));
+            assert_eq!(&reader.offset, &reader_offset, "failed reading after rewind for '{}'", escape_char(c));
+            assert_eq!(&reader.status, &reader_status, "failed reading after rewind for '{}'", escape_char(c));
         }
         assert_eq!(counter, text.chars().count() + 1);
         assert_eq!(reader.status, CharReaderStatus::Closed);

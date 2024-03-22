@@ -2,6 +2,7 @@ mod tests;
 pub mod interpreter;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use crate::escape_char;
 use super::dfa::*;
 
 pub type GroupId = usize;
