@@ -181,10 +181,10 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(root), node!(=0));
         },
         10 => {
-            //     [ \t\n\r]*[0-9]+(<end:0>|\.[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
-            //     [------------------cc1-----------------]or1[-------cc3--------]
-            //             s0 or3 p1      or4[----cc2-----]        or6    p3
-            //                                 or5 p2
+            // [ \t\n\r]*[0-9]+(<end:0>|\.[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
+            // [------------------cc1-----------------]or1[-------cc3--------]
+            //         s0 or3 p1      or4[----cc2-----]        or6    p3
+            //                             or5 p2
             let or1 = re.add(None, node!(|));
 
             let cc1 = re.add(Some(or1), node!(&));

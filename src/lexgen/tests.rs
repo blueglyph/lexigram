@@ -107,17 +107,17 @@ fn lexgen_interpreter() {
     }
 
     let tests: Vec<(usize, BTreeMap<TokenId, Vec<&str>>, Vec<(&str, u64)>, Vec<(&str, Vec<TokenId>)>)> = vec![
-        // [0-9]+(<end:0>|\.[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
+        // [ \t\n\r]*[0-9]+(<end:0>|\.[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
         (10, btreemap![
             0 => vec!["0", "0 ", "10", "9876543210"],
             1 => vec!["0.5", "0.1 ", "9876543210.0123456789"],
             2 => vec!["0x0", "0xF ", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]
-        ],
+         ],
          vec![("a", 0), (".5", 0), ("()", 0), ("0xy", 2), ("0.a", 2), ("", 0)],
          vec![("0 1 2 ", vec![0, 0, 0]), ("0x1 0.5 15", vec![2, 1, 0])],
         ),
 
-        // [a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>
+        // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
         (11, btreemap![
             0 => vec!["a", "id", "id05b", "ifa", "printa"],
             1 => vec!["if", "if x"],
@@ -125,7 +125,7 @@ fn lexgen_interpreter() {
             3 => vec!["=", "=5", "=a"],
             4 => vec!["+", "+5", "+a"],
             5 => vec![";", ";a"]
-        ],
+         ],
          vec![("0", 0), ("", 0), ("-", 0), ("*", 0)],
          vec![("\ta = x; if i=j print b;\n", vec![0, 3, 0, 5, 1, 0, 3, 0, 2, 0, 5])]
         ),
@@ -159,7 +159,8 @@ fn lexgen_interpreter() {
                 assert_eq!(e.pos, expected_pos)
             }
         }
-        for (input, expected_tokens) in stream_tests {
+        // gathering all the tokens, one at a time:
+        for (input, expected_tokens) in stream_tests.clone() {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             interpret.attach_steam(stream);
@@ -176,7 +177,20 @@ fn lexgen_interpreter() {
                 }
             }
             if VERBOSE { println!(); }
-            assert_eq!(result, expected_tokens, "test {test_id} failed for input '{input}'");
+            assert_eq!(result, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
+        }
+        // gathering all the tokens with an iterator:
+        for (input, expected_tokens) in stream_tests {
+            if VERBOSE { print!("\"{}\":", escape_string(input)); }
+            let stream = CharReader::new(Cursor::new(input));
+            interpret.attach_steam(stream);
+            let result = interpret.tokens().map(|t| t.0).collect::<Vec<_>>();
+            assert_eq!(result, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
+            assert!(interpret.get_error() == None || interpret.get_error().unwrap().is_eos, "test {} failed for input '{}'",
+                    test_id, escape_string(input));
+            // or:
+            // assert!(!matches!(interpret.get_error(), Some(LexScanError { is_eos: false, .. })), "test {} failed for input '{}'",
+            //         test_id, escape_string(input));
         }
     }
 }

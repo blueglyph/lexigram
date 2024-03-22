@@ -9,31 +9,34 @@ use crate::lexgen::{char_to_group, GroupId, LexGen};
 // ---------------------------------------------------------------------------------------------
 // Table-based lexer interpreter
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct LexScanError {
     pub pos: u64,
     pub curr_char: Option<char>,
     pub group: Option<GroupId>,
     pub token: Option<Token>,
     pub state: StateId,
+    pub is_eos: bool,
     pub msg: String
 }
 
 impl Display for LexScanError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "pos: {}{}{}{}, state {}: {}",
+        write!(f, "pos: {}{}{}{}, state {}: {}{}",
             self.pos,
             self.curr_char.map(|c| format!(" on '{}'", escape_char(c))).unwrap_or("".to_string()),
             self.group.map(|g| format!(", group {g}")).unwrap_or("".to_string()),
             self.token.as_ref().map(|t| format!(", token {}", t.0)).unwrap_or("".to_string()),
             self.state,
-            self.msg
+            self.msg,
+            if self.is_eos { "<END OF STREAM>" } else { "" }
         )
     }
 }
 
 pub struct LexInterpret<R> {
     input: Option<CharReader<R>>,
+    error: Option<LexScanError>,     // None = OK, Some(e) = last error
     pub ascii_to_group: Box<[GroupId]>,
     pub utf8_to_group: Box<HashMap<char, GroupId>>,
     pub nbr_groups: usize,
@@ -48,6 +51,7 @@ impl<R: Read> LexInterpret<R> {
     pub fn new(lexgen: LexGen) -> Self {
         LexInterpret {
             input: None,
+            error: None,
             ascii_to_group: lexgen.ascii_to_group,
             utf8_to_group: lexgen.utf8_to_group,
             nbr_groups: lexgen.nbr_groups,
@@ -83,7 +87,12 @@ impl<R: Read> LexInterpret<R> {
         }
     }
 
+    pub fn tokens(&mut self) -> LexInterpretIter<'_, R> {
+        LexInterpretIter { interpreter: self }
+    }
+
     pub fn get_token(&mut self) -> Result<Token, LexScanError> {
+        self.error = None;
         if let Some(input) = self.input.as_mut() {
             const VERBOSE: bool = false;
             let mut state = self.initial_state;
@@ -100,14 +109,16 @@ impl<R: Read> LexInterpret<R> {
                     if group >= self.nbr_groups || new_state >= self.nbr_states {
                         if VERBOSE { println!(" <invalid input>"); }
                         input.rewind(c.char).unwrap();
-                        return Err(LexScanError {
+                        self.error = Some(LexScanError {
                             pos,
                             curr_char: Some(c.char),
                             group: Some(group),
                             token: if state >= self.first_end_state { Some(self.token_table[state - self.first_end_state].clone()) } else { None },
                             state,
+                            is_eos: false,
                             msg: (if group >= self.nbr_groups { "unrecognized character" } else { "unexpected character" }).to_string(),
                         });
+                        return Err(self.error.clone().unwrap());
                     }
                     if VERBOSE { println!(" -> state {new_state}"); }
                     state = new_state;
@@ -116,28 +127,51 @@ impl<R: Read> LexInterpret<R> {
                     return if state >= self.first_end_state {
                         Ok(self.token_table[state - self.first_end_state].clone())
                     } else {
-                        Err(LexScanError {
+                        self.error = Some(LexScanError {
                             pos,
                             curr_char: None,
                             group: None,
                             token: None,
                             state,
+                            is_eos: true,
                             msg: "unexpected end of stream".to_string(),
-                        })
+                        });
+                        Err(self.error.clone().unwrap())
                     };
                 }
                 pos += 1;
             }
         } else {
-            Err(LexScanError {
+            self.error = Some(LexScanError {
                 pos: 0,
                 curr_char: None,
                 group: None,
                 token: None,
                 state: 0,
+                is_eos: true,
                 msg: "no stream attached".to_string(),
-            })
+            });
+            Err(self.error.clone().unwrap())
         }
     }
 
+    pub fn get_error(&self) -> Option<&LexScanError> {
+        self.error.as_ref()
+    }
+}
+
+pub struct LexInterpretIter<'a, R> {
+    interpreter: &'a mut LexInterpret<R>
+}
+
+impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
+    type Item = Token;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        let t = self.interpreter.get_token();
+        match t {
+            Ok(token) | Err(LexScanError { token: Some(token), .. }) => Some(token),
+            _ => None
+        }
+    }
 }
