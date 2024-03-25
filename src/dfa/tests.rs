@@ -32,6 +32,11 @@ macro_rules! node {
     (*) => { ReNode::new(ReType::Star) };
     (+) => { ReNode::new(ReType::Plus) };
     (-) => { ReNode::new(ReType::Empty) };
+    // actions:
+    (skip) => { ReNode::new(ReType::Action(Action::Skip)) };
+    (push $id:expr) => { ReNode::new(ReType::Action(Action::PushMode($id))) };
+    (pop) => { ReNode::new(ReType::Action(Action::PopMode())) };
+    (ch $id:expr) => { ReNode::new(ReType::Action(Action::Channel($id))) };
 }
 
 /// Generates the key-value pairs corresponding to the `char => int` arguments, which can be
@@ -264,10 +269,68 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let cc2 = re.add(Some(or), node!(&));
             re.add(Some(cc2), node!(str "at"));
             re.add(Some(cc2), node!(=0));
-        }
+        },
+        13 => {
+            // ([ \t\n\r]*{channel(1)}<end:1>|[0-9]+<end:0>)
+            let or0 = re.add(None, node!(|));
+            let cc0 = re.add(Some(or0), node!(&));
+            let s0 = re.add(Some(cc0), node!(*));
+            let or0 = re.add(Some(s0), node!(|));
+            re.add_iter(Some(or0), [node![chr ' '], node![chr '\t'], node![chr '\n'], node![chr '\r']]);
+            re.add_iter(Some(cc0), [node![ch 1], node![=1]]);
+
+            let cc1 = re.add(Some(or0), node!(&));
+            re.add_iter(Some(cc1), node![chr '0','9']);
+            re.add(Some(cc1), node![=0]);
+
+            re.clear(); // not implemented yet
+        },
         _ => { }
     }
     re
+}
+
+pub(crate) fn build_dfa(test: usize) -> BTreeMap<usize, Dfa> {
+    let mut re = VecTree::new();
+    let modes = match test {
+        1 => {
+            // mode 0: ([ \t\n\r]*{skip}|/\*{pushMode(1)}|[0-9]+<end:0>)
+            let or = re.add(None, node!(|));
+            let cc0 = re.add(Some(or), node!(&));
+            let s0 = re.add(Some(cc0), node!(*));
+            let or0 = re.add(Some(s0), node!(|));
+            re.add_iter(Some(or0), [node![chr ' '], node![chr '\t'], node![chr '\n'], node![chr '\r']]);
+            re.add(Some(cc0), node![skip]);
+            let cc1 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc1), [node![chr '/'], node![chr '*'], node![push 1]]);
+            let cc2 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc2), node![chr '0','9']);
+            re.add(Some(cc2), node![=0]);
+
+            // mode 1: (\*/{popMode}|[0-9]*{skip})
+            let mut re1 = VecTree::new();
+            let or = re1.add(None, node!(|));
+            let cc1 = re1.add(Some(or), node!(&));
+            re1.add_iter(Some(cc1), [node![chr '/'], node![chr '*'], node!(pop)]);
+            let cc2 = re1.add(Some(or), node!(&));
+            let s2 = re1.add(Some(cc2), node![*]);
+            let or2 = re1.add(Some(s2), node![|]);
+            re1.add_iter(Some(or2), node![chr '0','9']);
+            re1.add(Some(cc2), node![skip]);
+
+            btreemap![0_usize => re, 1 => re1]
+        },
+        2 => {
+            // mode 0: ([ \t\n\r]*{skip}|/\*{pushMode(1)}|[0-9]+<end:0>)
+            // mode 1: (\*/{popMode}|.*{skip})
+
+            btreemap![] // . not implemented yet
+        },
+        _ => btreemap![]
+    };
+    modes.into_iter()
+        .map(|(n, re)| (n, DfaBuilder::new(re).build()))
+        .collect()
 }
 
 #[allow(unused)]

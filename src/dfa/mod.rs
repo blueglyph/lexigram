@@ -7,14 +7,36 @@ use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 
 pub type TokenId = u16;
+pub type ModeId = u16;
+pub type ChannelId = u16;
 
 #[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
 pub struct Token(pub TokenId);
+
+#[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
+pub enum Action {
+    Skip,
+    PushMode(ModeId),
+    PopMode(),
+    Channel(ChannelId),
+}
+
+impl Display for Action {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Action::Skip => write!(f, "skip"),
+            Action::PushMode(n) => write!(f, "pushMode({n})"),
+            Action::PopMode() => write!(f, "popMode"),
+            Action::Channel(n) => write!(f, "channel({n})")
+        }
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
     #[default] Empty,
     End(Token),
+    Action(Action),
     Char(char),
     String(String),
     Concat,
@@ -58,6 +80,7 @@ impl Display for ReType {
         match self {
             ReType::Empty => write!(f, "-"),
             ReType::End(id) => write!(f, "<end:{}>", id.0),
+            ReType::Action(action) => write!(f, "{{{}}}", action),
             ReType::Char(c) => write!(f, "'{}'", escape_char(*c)),
             ReType::String(s) => write!(f, "'{}'", escape_string(&s)),
             ReType::Concat => write!(f, "&"),
