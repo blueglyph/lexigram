@@ -9,7 +9,7 @@ use crate::lexgen::tests::print_source_code;
 use super::*;
 
 #[test]
-fn lexgen_interpreter() {
+fn scanner() {
     const VERBOSE: bool = false;
 
     fn eval(result: &Result<Token, LexScanError>, verbose: bool) -> Option<Token> {
@@ -61,7 +61,7 @@ fn lexgen_interpreter() {
         if VERBOSE { print_graph(&dfa); }
         let lexgen = LexGen::new(dfa);
         if VERBOSE { print_source_code(&lexgen); }
-        let mut interpret = LexInterpret::new(lexgen);
+        let mut interpret = Scanner::new(lexgen);
         for (exp_token, inputs) in token_tests {
             for input in inputs {
                 if VERBOSE { println!("\"{}\": (should succeed)", escape_string(input)); }

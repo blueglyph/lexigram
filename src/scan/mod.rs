@@ -36,7 +36,7 @@ impl Display for LexScanError {
     }
 }
 
-pub struct LexInterpret<R> {
+pub struct Scanner<R> {
     input: Option<CharReader<R>>,
     error: Option<LexScanError>,     // None = OK, Some(e) = last error
     pub ascii_to_group: Box<[GroupId]>,
@@ -49,9 +49,9 @@ pub struct LexInterpret<R> {
     pub token_table: Box<[Token]>,  // token(state) = token_table[state - first_end_state]
 }
 
-impl<R: Read> LexInterpret<R> {
+impl<R: Read> Scanner<R> {
     pub fn new(lexgen: LexGen) -> Self {
-        LexInterpret {
+        Scanner {
             input: None,
             error: None,
             ascii_to_group: lexgen.ascii_to_group,
@@ -163,7 +163,7 @@ impl<R: Read> LexInterpret<R> {
 }
 
 pub struct LexInterpretIter<'a, R> {
-    interpreter: &'a mut LexInterpret<R>
+    interpreter: &'a mut Scanner<R>
 }
 
 impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
