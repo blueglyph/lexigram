@@ -6,6 +6,7 @@ mod macros;
 pub mod io;
 pub mod lexgen;
 pub mod dfa;
+pub mod scan;
 
 // Regular expressions / DFA, See:
 // - https://blog.burntsushi.net/regex-internals/

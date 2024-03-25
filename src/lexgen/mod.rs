@@ -1,5 +1,4 @@
-mod tests;
-pub mod interpreter;
+pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use crate::escape_char;
