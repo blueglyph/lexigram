@@ -251,6 +251,19 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let cc = re.add(Some(or1), node!(&));
             re.add(Some(cc), node!(chr ';'));
             re.add(Some(cc), node!(=5));
+        },
+        12 => {
+            // (abs<end:0>|abi<end:1>|at<end:2>)
+            let or = re.add(None, node!(|));
+            let cc0 = re.add(Some(or), node!(&));
+            re.add(Some(cc0), node!(str "abs"));
+            re.add(Some(cc0), node!(=0));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add(Some(cc1), node!(str "abi"));
+            re.add(Some(cc1), node!(=1));
+            let cc2 = re.add(Some(or), node!(&));
+            re.add(Some(cc2), node!(str "at"));
+            re.add(Some(cc2), node!(=0));
         }
         _ => { }
     }
@@ -299,7 +312,7 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
 #[allow(unused)]
 pub(crate) fn print_graph(dfa: &Dfa) {
     println!("  graph:      {:?}", dfa.state_graph);
-    println!("  end states: {:?}", dfa.end_states);
+    println!("  end states: {}", dfa.end_states.iter().map(|(s, t)| format!("{s} => {t:?}")).collect::<Vec<_>>().join(", "));
     for (state, trans) in dfa.state_graph.clone() {
         // println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
         // for (symbol, dest) in trans {
@@ -365,7 +378,8 @@ fn dfa_nullable() {
         (7, "&(1:'a',!|(&(2:'b',3:'c'),!4:-),!|(5:'d',!6:-),7:'e',8:<end:0>)"),
         (8, "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"),
         (9, "&(1:'a',+(|(2:'b',3:'c')),4:'d',5:<end:0>)"),
-        (10, "|(&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),+(|(5:'0',6:'1',7:'2',8:'3',9:'4',10:'5',11:'6',12:'7',13:'8',14:'9')),|(15:<end:0>,&(16:'.',+(|(17:'0',18:'1',19:'2',20:'3',21:'4',22:'5',23:'6',24:'7',25:'8',26:'9')),27:<end:1>))),&(28:'0',29:'x',+(|(30:'0',31:'1',32:'2',33:'3',34:'4',35:'5',36:'6',37:'7',38:'8',39:'9',40:'A',41:'B',42:'C',43:'D',44:'E',45:'F',46:'a',47:'b',48:'c',49:'d',50:'e',51:'f')),52:<end:2>))")
+        (10, "|(&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),+(|(5:'0',6:'1',7:'2',8:'3',9:'4',10:'5',11:'6',12:'7',13:'8',14:'9')),|(15:<end:0>,&(16:'.',+(|(17:'0',18:'1',19:'2',20:'3',21:'4',22:'5',23:'6',24:'7',25:'8',26:'9')),27:<end:1>))),&(28:'0',29:'x',+(|(30:'0',31:'1',32:'2',33:'3',34:'4',35:'5',36:'6',37:'7',38:'8',39:'9',40:'A',41:'B',42:'C',43:'D',44:'E',45:'F',46:'a',47:'b',48:'c',49:'d',50:'e',51:'f')),52:<end:2>))"),
+        (12, "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:0>))"),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -711,7 +725,7 @@ fn dfa_followpos() {
 
 #[test]
 fn dfa_states() {
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     let tests = vec![
         (0, btreemap![
             0 => branch!['a' => 1, 'b' => 0],
@@ -800,7 +814,6 @@ fn dfa_states() {
                 '0' => 8, '1' => 8, '2' => 8, '3' => 8, '4' => 8, '5' => 8, '6' => 8, '7' => 8, '8' => 8, '9' => 8,
                 'A' => 8, 'B' => 8, 'C' => 8, 'D' => 8, 'E' => 8, 'F' => 8, 'a' => 8, 'b' => 8, 'c' => 8, 'd' => 8, 'e' => 8, 'f' => 8],// END: 2
         ], btreemap![2 => Token(0), 3 => Token(0), 7 => Token(1), 8 => Token(2)]),
-            
         (11, btreemap![
             0 => branch![
                 '\t' => 0, '\n' => 0, '\r' => 0, ' ' => 0,
@@ -842,10 +855,18 @@ fn dfa_states() {
                 '0' => 4, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4,
                 'a' => 4, 'b' => 4, 'c' => 4, 'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 4, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4,
                 'n' => 4, 'o' => 4, 'p' => 4, 'q' => 4, 'r' => 4, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 2
-
         ], btreemap![
             1 => Token(4), 2 => Token(5), 3 => Token(3), 4 => Token(0), 5 => Token(0), 6 => Token(0),
-            8 => Token(1), 9 => Token(0), 10 => Token(0), 11 => Token(0), 12 => Token(2)])
+            8 => Token(1), 9 => Token(0), 10 => Token(0), 11 => Token(0), 12 => Token(2)]),
+        // (abs<end:0>|abi<end:1>|at<end:2>), to check if string paths are merged
+        (12, btreemap![
+            0 => branch!['a' => 1],
+            1 => branch!['b' => 2, 't' => 3],
+            2 => branch!['i' => 4, 's' => 5],
+            3 => branch![],// END: 0
+            4 => branch![],// END: 1
+            5 => branch![],// END: 0
+        ], btreemap![3 => Token(0), 4 => Token(1), 5 => Token(0)])
     ];
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
@@ -884,7 +905,7 @@ fn dfa_normalize() {
 
 #[test]
 fn dfa_optimize_graphs() {
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     let tests = vec![
         (0, btreemap![
             0 => branch!['a' => 1, 'b' => 0],
@@ -973,9 +994,28 @@ fn dfa_optimize_graphs() {
                 '0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
                 'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],// END: 2
         ], btreemap![4 => Token(0), 5 => Token(0), 6 => Token(1), 7 => Token(2)]),
+
+        (12, btreemap![], btreemap![], // from build_re(12)
+        btreemap![ // no change
+            0 => branch!['a' => 1],
+            1 => branch!['b' => 2, 't' => 3],
+            2 => branch!['i' => 4, 's' => 5],
+            3 => branch![],// END: 0
+            4 => branch![],// END: 1
+            5 => branch![],// END: 0
+        ], btreemap![3 => Token(0), 4 => Token(1), 5 => Token(0)],
+        )
     ];
-    for (test_id, graph, end_states, exp_graph, exp_end_states) in tests {
+    for (test_id, mut graph, mut end_states, exp_graph, exp_end_states) in tests {
         if VERBOSE { println!("{test_id}:"); }
+        if graph.is_empty() {
+            // fetches from the build_re
+            let re = build_re(test_id);
+            let mut dfa_builder = DfaBuilder::new(re);
+            let dfa = dfa_builder.build();
+            graph = dfa.state_graph;
+            end_states = dfa.end_states;
+        }
         let mut dfa = Dfa::from_graph(graph, 0, end_states);
         let _tr = dfa.optimize(true);
         if VERBOSE {
