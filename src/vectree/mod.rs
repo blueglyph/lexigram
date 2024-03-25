@@ -181,6 +181,11 @@ impl<'a, T> VecTree<T> {
     pub fn iter_depth_mut(&'a mut self) -> VecTreeIter<IterDataMut<'a, T>> {
         VecTreeIter::<IterDataMut<'a, T>>::new(self)
     }
+
+    pub fn clear(&mut self) {
+        self.nodes.clear();
+        *self.borrows.get_mut() = 0;
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
