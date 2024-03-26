@@ -13,30 +13,28 @@ pub type ChannelId = u16;
 #[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
 pub struct Token(pub TokenId);
 
-#[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
-pub enum Action {
-    Skip,
-    PushMode(ModeId),
-    PopMode(),
-    Channel(ChannelId),
+#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
+pub struct Terminal {
+    pub token: Option<Token>,
+    pub channel: ChannelId,
+    pub mode: Option<ModeId>,
+    pub pop: bool
 }
 
-impl Display for Action {
+impl Display for Terminal {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Action::Skip => write!(f, "skip"),
-            Action::PushMode(n) => write!(f, "pushMode({n})"),
-            Action::PopMode() => write!(f, "popMode"),
-            Action::Channel(n) => write!(f, "channel({n})")
-        }
+        if let Some(tok) = &self.token { write!(f, "<end:{}", tok.0)?; } else { write!(f, "<skip")?; }
+        if self.channel != 0 { write!(f, ",ch {}", self.channel)?; }
+        if let Some(m) = self.mode { write!(f, ",push(m)")?; }
+        if self.pop { write!(f, ",pop")?; }
+        write!(f, ">")
     }
 }
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
     #[default] Empty,
-    End(Token),
-    Action(Action),
+    End(Terminal),
     Char(char),
     String(String),
     Concat,
@@ -79,8 +77,7 @@ impl Display for ReType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             ReType::Empty => write!(f, "-"),
-            ReType::End(id) => write!(f, "<end:{}>", id.0),
-            ReType::Action(action) => write!(f, "{{{}}}", action),
+            ReType::End(t) => write!(f, "{t}"),
             ReType::Char(c) => write!(f, "'{}'", escape_char(*c)),
             ReType::String(s) => write!(f, "'{}'", escape_string(&s)),
             ReType::Concat => write!(f, "&"),
@@ -323,8 +320,8 @@ impl DfaBuilder {
                     dfa.state_graph.insert(new_state_id, map);
                 }
                 if symbol.is_end() {
-                    if let ReType::End(token) = symbol {
-                        dfa.end_states.insert(new_state_id, token.clone());
+                    if let ReType::End(t) = symbol {
+                        dfa.end_states.insert(new_state_id, t.clone());
                     } else {
                         panic!("unexpected END symbol: {symbol:?}");
                     }
@@ -346,7 +343,7 @@ impl DfaBuilder {
 pub struct Dfa {
     pub(crate) state_graph: BTreeMap<StateId, BTreeMap<char, StateId>>,
     pub(crate) initial_state: Option<StateId>,
-    pub(crate) end_states: BTreeMap<StateId, Token>,
+    pub(crate) end_states: BTreeMap<StateId, Terminal>,
     is_normalized: bool, // are states incrementally numeroted from 0, with non-end states < end states?
     pub(crate) first_end_state: Option<StateId>
 }
@@ -363,7 +360,7 @@ impl Dfa {
     }
 
     pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<char, StateId>>, init_state: StateId, end_states: T) -> Dfa
-        where T: IntoIterator<Item=(StateId, Token)>
+        where T: IntoIterator<Item=(StateId, Terminal)>
     {
         let mut dfa = Dfa {
             state_graph: graph,
@@ -373,6 +370,16 @@ impl Dfa {
             first_end_state: None
         };
         dfa.is_normalized = dfa.is_normalized();
+        dfa
+    }
+
+    /// Merges several DFA graphs into one. The graphs represent different modes that are called with the
+    /// `Action::pushMode(id)` action.
+    pub fn from_dfa_modes<T>(dfas: T) -> Self
+        where T: FromIterator<(usize, Dfa)>
+    {
+        let mut dfa = Dfa::new();
+
         dfa
     }
 
@@ -406,7 +413,7 @@ impl Dfa {
     pub fn normalize(&mut self) -> BTreeMap<StateId, StateId> {
         let mut translate = BTreeMap::<StateId, StateId>::new();
         let mut state_graph = BTreeMap::<StateId, BTreeMap<char, StateId>>::new();
-        let mut end_states = BTreeMap::<StateId, Token>::new();
+        let mut end_states = BTreeMap::<StateId, Terminal>::new();
         let nbr_end = self.end_states.len();
         let mut non_end_id = 0;
         let mut end_id = self.state_graph.len() - nbr_end;
@@ -552,7 +559,7 @@ impl Dfa {
         }
         // stores the new states; note that tokens may be lost if `separate_end_states` is false
         // since we take the token of the first accepting state in the group
-        self.end_states = BTreeMap::<StateId, Token>::from_iter(
+        self.end_states = BTreeMap::<StateId, Terminal>::from_iter(
             groups.iter().enumerate()
                 .filter_map(|(group_id, states)| states.iter()
                     .find_map(|s| self.end_states.get(s).map(|token| (group_id as StateId, token.clone()))))

@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use std::ops::Add;
 use crate::*;
 use crate::vectree::VecTree;
 use crate::dfa::*;
@@ -14,7 +15,7 @@ use crate::dfa::*;
 /// # use rlexer::{dfa::*, node};
 /// assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
 /// assert_eq!(node!(str "new"), ReNode::new(ReType::String("new".to_string())));
-/// assert_eq!(node!(= 5), ReNode::new(ReType::End(Token(5))));
+/// assert_eq!(node!(= 5), ReNode::new(ReType::End(Terminal { token: Some(Token(5)), channel: 0, mode: None, pop: false })));
 /// assert_eq!(node!(&), ReNode::new(ReType::Concat));
 /// assert_eq!(node!(|), ReNode::new(ReType::Or));
 /// assert_eq!(node!(*), ReNode::new(ReType::Star));
@@ -26,17 +27,35 @@ macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
     (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
     (str $str:expr) => { ReNode::new(ReType::String($str.to_string())) };
-    (= $id:expr ) => { ReNode::new(ReType::End(Token($id))) };
+    (= $id:expr) => { ReNode::new(ReType::End(Terminal { token: Some(Token($id)), channel: 0, mode: None, pop: false }) ) };
     (&) => { ReNode::new(ReType::Concat) };
     (|) => { ReNode::new(ReType::Or) };
     (*) => { ReNode::new(ReType::Star) };
     (+) => { ReNode::new(ReType::Plus) };
     (-) => { ReNode::new(ReType::Empty) };
     // actions:
-    (skip) => { ReNode::new(ReType::Action(Action::Skip)) };
-    (push $id:expr) => { ReNode::new(ReType::Action(Action::PushMode($id))) };
-    (pop) => { ReNode::new(ReType::Action(Action::PopMode())) };
-    (ch $id:expr) => { ReNode::new(ReType::Action(Action::Channel($id))) };
+    ($id:expr) => { ReNode::new(ReType::End($id)) };
+}
+
+#[macro_export(local_inner_macros)]
+macro_rules! term {
+    (= $id:expr ) =>   { Terminal { token: Some(Token($id)), channel: 0, mode: None, pop: false } };
+    (skip) =>          { Terminal { token: None, channel: 0, mode: None, pop: false } };
+    (push $id:expr) => { Terminal { token: None, channel: 0, mode: Some($id), pop: false } };
+    (pop) =>           { Terminal { token: None, channel: 0, mode: None, pop: true } };
+    (# $id:expr) =>    { Terminal { token: None, channel: $id, mode: None, pop: false } };
+}
+impl Add for Terminal {
+    type Output = Terminal;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Terminal {
+            token: if self.token.is_some() { self.token } else { rhs.token },
+            channel: self.channel + rhs.channel,
+            mode: if self.mode.is_some() { self.mode } else { rhs.mode },
+            pop: self.pop || rhs.pop
+        }
+    }
 }
 
 /// Generates the key-value pairs corresponding to the `char => int` arguments, which can be
@@ -277,7 +296,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
             re.add_iter(Some(or0), [node![chr ' '], node![chr '\t'], node![chr '\n'], node![chr '\r']]);
-            re.add_iter(Some(cc0), [node![ch 1], node![=1]]);
+            re.add_iter(Some(cc0), [node![term![#1] + term![=1]]]);
 
             let cc1 = re.add(Some(or0), node!(&));
             re.add_iter(Some(cc1), node![chr '0','9']);
@@ -294,29 +313,29 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<usize, Dfa> {
     let mut re = VecTree::new();
     let modes = match test {
         1 => {
-            // mode 0: ([ \t\n\r]*{skip}|/\*{pushMode(1)}|[0-9]+<end:0>)
+            // mode 0: ([ \t\n\r]*{skip}|/\*{pushMode(1)}{skip}|[0-9]+<end:0>)
             let or = re.add(None, node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
             re.add_iter(Some(or0), [node![chr ' '], node![chr '\t'], node![chr '\n'], node![chr '\r']]);
-            re.add(Some(cc0), node![skip]);
+            re.add(Some(cc0), node![term![skip]]);
             let cc1 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc1), [node![chr '/'], node![chr '*'], node![push 1]]);
+            re.add_iter(Some(cc1), [node![chr '/'], node![chr '*'], node![term![push 1] + term![skip]]]);
             let cc2 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc2), node![chr '0','9']);
             re.add(Some(cc2), node![=0]);
 
-            // mode 1: (\*/{popMode}|[0-9]*{skip})
+            // mode 1: (\*/{popMode}{skip}|[0-9]*{skip})
             let mut re1 = VecTree::new();
             let or = re1.add(None, node!(|));
             let cc1 = re1.add(Some(or), node!(&));
-            re1.add_iter(Some(cc1), [node![chr '/'], node![chr '*'], node!(pop)]);
+            re1.add_iter(Some(cc1), [node![chr '/'], node![chr '*'], node!(term![pop])]);
             let cc2 = re1.add(Some(or), node!(&));
             let s2 = re1.add(Some(cc2), node![*]);
             let or2 = re1.add(Some(s2), node![|]);
             re1.add_iter(Some(or2), node![chr '0','9']);
-            re1.add(Some(cc2), node![skip]);
+            re1.add(Some(cc2), node![term![skip]]);
 
             btreemap![0_usize => re, 1 => re1]
         },
@@ -385,7 +404,7 @@ pub(crate) fn print_graph(dfa: &Dfa) {
                  state,
                  trans.iter().map(|(sym, st)| format!("'{}' => {}", escape_char(*sym), st))
                      .collect::<Vec<_>>().join(", "),
-                 dfa.end_states.get(&state).map(|token| format!("// END: {}", token.0)).unwrap_or("".to_string()),
+                 dfa.end_states.get(&state).map(|token| format!("// {}", token)).unwrap_or("".to_string()),
         );
     }
 }
@@ -795,19 +814,19 @@ fn dfa_states() {
             1 => branch!['a' => 1, 'b' => 2],
             2 => branch!['a' => 1, 'b' => 3],
             3 => branch!['a' => 1, 'b' => 0],
-        ], btreemap![3 => Token(0)]),
+        ], btreemap![3 => term![=0]]),
         (1, btreemap![
             0 => branch!['a' => 1, 'b' => 0],
             1 => branch!['a' => 1, 'b' => 2],
             2 => branch!['a' => 1, 'b' => 3],
             3 => branch!['a' => 1, 'b' => 0],
-        ], btreemap![3 => Token(0)]),
+        ], btreemap![3 => term![=0]]),
         (2, btreemap![
             0 => branch!['a' => 1, 'b' => 0],
             1 => branch!['a' => 1, 'b' => 2],
             2 => branch!['a' => 1, 'b' => 3],
             3 => branch!['a' => 1, 'b' => 0],
-        ], btreemap![3 => Token(0)]),
+        ], btreemap![3 => term![=0]]),
         // "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)",
         (3, btreemap![
             0 => branch!['a' => 1],
@@ -815,20 +834,20 @@ fn dfa_states() {
             2 => branch!['c' => 3],
             3 => branch!['a' => 4, 'b' => 4],
             4 => branch![]
-        ], btreemap![4 => Token(0)]),
+        ], btreemap![4 => term![=0]]),
         // "&(1:'s',|(2:'a',3:'b'),4:<end>)",
         (4, btreemap![
             0 => branch!['s' => 1],
             1 => branch!['a' => 2, 'b' => 2],
             2 => branch![],
-        ], btreemap![2 => Token(0)]),
+        ], btreemap![2 => term![=0]]),
         // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))",
         (5, btreemap![
             0 => branch!['s' => 1],
             1 => branch!['a' => 2, 'b' => 3],
             2 => branch![],
             3 => branch![],
-        ], btreemap![2 => Token(0), 3 => Token(1)]),
+        ], btreemap![2 => term![=0], 3 => term![=1]]),
         // "&(1:'a',|(&(2:'b',3:'c'),4:-),5:'d',6:<end>)"
         (6, btreemap![
             0 => branch!['a' => 1],
@@ -836,7 +855,7 @@ fn dfa_states() {
             2 => branch!['c' => 4],
             3 => branch![],
             4 => branch!['d' => 3]
-        ], btreemap![3 => Token(0)]),
+        ], btreemap![3 => term![=0]]),
         // "&(1:'a',|(&(2:'b',3:'c'),4:-),|(5:'d',6:-),7:'e',8:<end>)"
         (7, btreemap![
             0 => branch!['a' => 1],
@@ -845,20 +864,20 @@ fn dfa_states() {
             3 => branch!['e' => 4],
             4 => branch![],
             5 => branch!['d' => 3, 'e' => 4]
-        ], btreemap![4 => Token(0)]),
+        ], btreemap![4 => term![=0]]),
         // "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"
         (8, btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 3],
             3 => branch![]
-        ], btreemap![1 => Token(0), 3 => Token(1)]),
+        ], btreemap![1 => term![=0], 3 => term![=1]]),
         // "&(1:'a',+(|(2:'b',3:'c')),4:'d')"
         (9, btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 2, 'c' => 2],
             2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
             3 => branch![]
-        ], btreemap![3 => Token(0)]),
+        ], btreemap![3 => term![=0]]),
         (10, btreemap![
             0 => branch![
                 '\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1,
@@ -876,7 +895,7 @@ fn dfa_states() {
             8 => branch![
                 '0' => 8, '1' => 8, '2' => 8, '3' => 8, '4' => 8, '5' => 8, '6' => 8, '7' => 8, '8' => 8, '9' => 8,
                 'A' => 8, 'B' => 8, 'C' => 8, 'D' => 8, 'E' => 8, 'F' => 8, 'a' => 8, 'b' => 8, 'c' => 8, 'd' => 8, 'e' => 8, 'f' => 8],// END: 2
-        ], btreemap![2 => Token(0), 3 => Token(0), 7 => Token(1), 8 => Token(2)]),
+        ], btreemap![2 => term![=0], 3 => term![=0], 7 => term![=1], 8 => term![=2]]),
         (11, btreemap![
             0 => branch![
                 '\t' => 0, '\n' => 0, '\r' => 0, ' ' => 0,
@@ -919,8 +938,8 @@ fn dfa_states() {
                 'a' => 4, 'b' => 4, 'c' => 4, 'd' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 4, 'j' => 4, 'k' => 4, 'l' => 4, 'm' => 4,
                 'n' => 4, 'o' => 4, 'p' => 4, 'q' => 4, 'r' => 4, 's' => 4, 't' => 4, 'u' => 4, 'v' => 4, 'w' => 4, 'x' => 4, 'y' => 4, 'z' => 4],// END: 2
         ], btreemap![
-            1 => Token(4), 2 => Token(5), 3 => Token(3), 4 => Token(0), 5 => Token(0), 6 => Token(0),
-            8 => Token(1), 9 => Token(0), 10 => Token(0), 11 => Token(0), 12 => Token(2)]),
+            1 => term![=4], 2 => term![=5], 3 => term![=3], 4 => term![=0], 5 => term![=0], 6 => term![=0],
+            8 => term![=1], 9 => term![=0], 10 => term![=0], 11 => term![=0], 12 => term![=2]]),
         // (abs<end:0>|abi<end:1>|at<end:2>), to check if string paths are merged
         (12, btreemap![
             0 => branch!['a' => 1],
@@ -929,7 +948,7 @@ fn dfa_states() {
             3 => branch![],// END: 0
             4 => branch![],// END: 1
             5 => branch![],// END: 0
-        ], btreemap![3 => Token(0), 4 => Token(1), 5 => Token(0)])
+        ], btreemap![3 => term![=0], 4 => term![=1], 5 => term![=0]])
     ];
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
@@ -967,6 +986,24 @@ fn dfa_normalize() {
 }
 
 #[test]
+fn dfa_modes() {
+    let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<char, StateId>>, BTreeMap<StateId, Token>)> = vec![
+        (1, btreemap![], btreemap![])
+    ];
+
+    for (test_id, _exp_graph, _exp_ends) in tests {
+        println!("{test_id}:");
+        let dfas = build_dfa(test_id);
+        for (id, mut dfa) in dfas.into_iter() {
+            println!("## mode {id}");
+            dfa.normalize();
+            print_graph(&dfa);
+        }
+        println!("-------------------------------------------------");
+    }
+}
+
+#[test]
 fn dfa_optimize_graphs() {
     const VERBOSE: bool = true;
     let tests = vec![
@@ -975,13 +1012,13 @@ fn dfa_optimize_graphs() {
             1 => branch!['a' => 1, 'b' => 2],
             2 => branch!['a' => 1, 'b' => 3],
             3 => branch!['a' => 1, 'b' => 0],
-        ], btreemap![3 => Token(0)],
+        ], btreemap![3 => term![=0]],
          btreemap![ // 1 <-> 2
              0 => branch!['a' => 2, 'b' => 0],
              1 => branch!['a' => 2, 'b' => 3],
              2 => branch!['a' => 2, 'b' => 1],
              3 => branch!['a' => 2, 'b' => 0],
-         ], btreemap![3 => Token(0)]),
+         ], btreemap![3 => term![=0]]),
 
         (1, btreemap![
             0 => branch!['a' => 1, 'b' => 2],
@@ -989,37 +1026,37 @@ fn dfa_optimize_graphs() {
             2 => branch!['a' => 1, 'b' => 2],
             3 => branch!['a' => 1, 'b' => 4],
             4 => branch!['a' => 1, 'b' => 2],
-        ], btreemap![4 => Token(0)],
+        ], btreemap![4 => term![=0]],
          btreemap![ // 0 -> 0, 1 -> 2, 2 -> 0, 3 -> 1, 4 -> 3
             0 => branch!['a' => 2, 'b' => 0],
             1 => branch!['a' => 2, 'b' => 3],
             2 => branch!['a' => 2, 'b' => 1],
             3 => branch!['a' => 2, 'b' => 0],
-         ], btreemap![3 => Token(0)]),
+         ], btreemap![3 => term![=0]]),
 
         (8, btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 3],
             3 => branch![]
-        ], btreemap![1 => Token(0), 3 => Token(1)],
+        ], btreemap![1 => term![=0], 3 => term![=1]],
         btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 2],
             2 => branch![],
-        ], btreemap![1 => Token(0), 2 => Token(1)]),
+        ], btreemap![1 => term![=0], 2 => term![=1]]),
 
         (9, btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 2, 'c' => 2],
             2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
             3 => branch![]
-        ], btreemap![3 => Token(0)],
+        ], btreemap![3 => term![=0]],
         btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 2, 'c' => 2],
             2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
             3 => branch![]
-        ], btreemap![3 => Token(0)]),
+        ], btreemap![3 => term![=0]]),
 
         (10, btreemap![
             0 => branch![
@@ -1038,7 +1075,7 @@ fn dfa_optimize_graphs() {
             8 => branch![
                 '0' => 8, '1' => 8, '2' => 8, '3' => 8, '4' => 8, '5' => 8, '6' => 8, '7' => 8, '8' => 8, '9' => 8,
                 'A' => 8, 'B' => 8, 'C' => 8, 'D' => 8, 'E' => 8, 'F' => 8, 'a' => 8, 'b' => 8, 'c' => 8, 'd' => 8, 'e' => 8, 'f' => 8],// END: 2
-        ], btreemap![2 => Token(0), 3 => Token(0), 7 => Token(1), 8 => Token(2)],
+        ], btreemap![2 => term![=0], 3 => term![=0], 7 => term![=1], 8 => term![=2]],
         btreemap![
             0 => branch![
                 '\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1,
@@ -1056,7 +1093,7 @@ fn dfa_optimize_graphs() {
             7 => branch![
                 '0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
                 'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],// END: 2
-        ], btreemap![4 => Token(0), 5 => Token(0), 6 => Token(1), 7 => Token(2)]),
+        ], btreemap![4 => term![=0], 5 => term![=0], 6 => term![=1], 7 => term![=2]]),
 
         (12, btreemap![], btreemap![], // from build_re(12)
         btreemap![ // no change
@@ -1066,7 +1103,7 @@ fn dfa_optimize_graphs() {
             3 => branch![],// END: 0
             4 => branch![],// END: 1
             5 => branch![],// END: 0
-        ], btreemap![3 => Token(0), 4 => Token(1), 5 => Token(0)],
+        ], btreemap![3 => term![=0], 4 => term![=1], 5 => term![=0]],
         )
     ];
     for (test_id, mut graph, mut end_states, exp_graph, exp_end_states) in tests {

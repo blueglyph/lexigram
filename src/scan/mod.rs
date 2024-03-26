@@ -3,7 +3,7 @@ pub(crate) mod tests;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::io::Read;
-use crate::dfa::{StateId, Token};
+use crate::dfa::{StateId, Terminal, Token};
 use crate::escape_char;
 use crate::io::CharReader;
 use crate::lexgen::{char_to_group, GroupId, LexGen};
@@ -46,7 +46,7 @@ pub struct Scanner<R> {
     pub first_end_state: StateId,   // accepting when state >= first_end_state
     pub nbr_states: StateId,        // error if state >= nbr_states
     pub state_table: Box<[StateId]>,
-    pub token_table: Box<[Token]>,  // token(state) = token_table[state - first_end_state]
+    pub token_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
 }
 
 impl<R: Read> Scanner<R> {
@@ -61,7 +61,7 @@ impl<R: Read> Scanner<R> {
             first_end_state: lexgen.first_end_state,
             nbr_states: lexgen.nbr_states,
             state_table: lexgen.state_table,
-            token_table: lexgen.token_table,
+            token_table: lexgen.terminal_table,
         }
     }
 

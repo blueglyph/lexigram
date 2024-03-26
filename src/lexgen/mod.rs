@@ -15,7 +15,7 @@ pub struct LexGen {
     pub first_end_state: StateId,   // accepting when state >= first_end_state
     pub nbr_states: StateId,        // error if state >= nbr_states
     pub state_table: Box<[StateId]>,
-    pub token_table: Box<[Token]>,  // token(state) = token_table[state - first_end_state]
+    pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
 }
 
 impl LexGen {
@@ -29,7 +29,7 @@ impl LexGen {
             first_end_state: 0,
             nbr_states: 0,
             state_table: Box::default(),
-            token_table: Box::default(),
+            terminal_table: Box::default(),
         };
         lexgen.create_input_tables();
         lexgen.create_state_tables();
@@ -68,11 +68,10 @@ impl LexGen {
             }
         }
         self.state_table = state_table.into_boxed_slice();
-        let mut token_table = vec!(Token(0); self.dfa.end_states.len());
-        for (st, token) in &self.dfa.end_states {
-            token_table[st - self.first_end_state] = token.clone();
-        }
-        self.token_table = token_table.into_boxed_slice();
+        let terminal_table = self.dfa.end_states.iter()
+            .filter_map(|(&st, t)| if st >= self.first_end_state { Some(t.clone()) } else { None })
+            .collect::<Vec<_>>();
+        self.terminal_table = terminal_table.into_boxed_slice();
     }
 }
 

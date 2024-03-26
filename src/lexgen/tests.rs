@@ -58,7 +58,7 @@ fn lexgen_symbol_tables() {
         ], btreeset!["0", "123456789", "ABCDEFabcdef𝆕", ".", "xΔ", "∑"]),
     ];
     for (test_id, g, expected_set) in tests {
-        let mut dfa = Dfa::from_graph(g, 0, btreemap![3 => Token(0), 4 => Token(0), 5 => Token(1), 6 => Token(2)]);
+        let mut dfa = Dfa::from_graph(g, 0, btreemap![3 => term![=0], 4 => term![=0], 5 => term![=1], 6 => term![=2]]);
         dfa.normalize();
         let lexgen = LexGen::new(dfa);
         let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups];
@@ -106,13 +106,13 @@ pub(crate) fn print_source_code(lexgen: &LexGen) {
     println!("let initial_state = {};", lexgen.initial_state);
     println!("let first_end_state = {};", lexgen.first_end_state);
     println!("let error_state = {};", lexgen.nbr_states);
-    println!("let token_table = [{}];", lexgen.token_table.iter().map(|t| t.0.to_string()).collect::<Vec<_>>().join(", "));
+    println!("let token_table = [{}];", lexgen.terminal_table.iter().map(|t| t.to_string()).collect::<Vec<_>>().join(", "));
     println!("let state_table = [");
     for i in 0..lexgen.nbr_states {
         println!("    {}, // state {}{}",
             (0..lexgen.nbr_groups).map(|j| format!("{:3}", lexgen.state_table[i * lexgen.nbr_groups + j])).collect::<Vec<_>>().join(", "),
             i,
-            if i >= lexgen.first_end_state { format!(" <END: {}>", lexgen.token_table[i - lexgen.first_end_state].0 ) } else { "".to_string() }
+            if i >= lexgen.first_end_state { format!(" {}", lexgen.terminal_table[i - lexgen.first_end_state] ) } else { "".to_string() }
         );
     }
     println!("];")
