@@ -59,15 +59,18 @@ pub struct CharReader<R> {
     offset: u64,
     status: CharReaderStatus,
     peek: Option<(Option<char>, u64, CharReaderStatus)>,
+    eof_on_end: bool
 }
 
 impl<R: Read> CharReader<R> {
+    pub const EOF: char = '\x1a';
     pub fn new(source: R) -> Self {
         CharReader {
             reader: BufReader::new(source),
             offset: 0,
             status: CharReaderStatus::Reading,
             peek: None,
+            eof_on_end: false
         }
     }
 
@@ -81,6 +84,14 @@ impl<R: Read> CharReader<R> {
 
     pub fn get_status(&self) -> &CharReaderStatus {
         &self.status
+    }
+
+    pub fn get_eof_on_end(&self) -> bool {
+        self.eof_on_end
+    }
+
+    pub fn set_eof_on_end(&mut self, flag: bool) {
+        self.eof_on_end = flag;
     }
     
     pub fn chars(&mut self) -> CharReaderIter<'_, R> {
@@ -154,7 +165,11 @@ impl<R: Read> CharReader<R> {
                 }
             }
         } else {
-            (None, 0, CharReaderStatus::Closed)
+            if self.eof_on_end {
+                (Some(Self::EOF), 0, CharReaderStatus::Closed)
+            } else {
+                (None, 0, CharReaderStatus::Closed)
+            }
         }
     }
 }

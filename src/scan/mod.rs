@@ -39,6 +39,7 @@ impl Display for LexScanError {
 pub struct Scanner<R> {
     input: Option<CharReader<R>>,
     error: Option<LexScanError>,     // None = OK, Some(e) = last error
+    backup_eof_on_end: bool,
     pub ascii_to_group: Box<[GroupId]>,
     pub utf8_to_group: Box<HashMap<char, GroupId>>,
     pub nbr_groups: usize,
@@ -54,6 +55,7 @@ impl<R: Read> Scanner<R> {
         Scanner {
             input: None,
             error: None,
+            backup_eof_on_end: false,
             ascii_to_group: lexgen.ascii_to_group,
             utf8_to_group: lexgen.utf8_to_group,
             nbr_groups: lexgen.nbr_groups,
@@ -66,10 +68,13 @@ impl<R: Read> Scanner<R> {
     }
 
     pub fn attach_steam(&mut self, input: CharReader<R>) {
+        self.backup_eof_on_end = input.get_eof_on_end();
+        input.set_eof_on_end(true);
         self.input = Some(input);
     }
 
     pub fn detach_stream(&mut self) -> Option<CharReader<R>> {
+        self.input.as_mut().unwrap().set_eof_on_end(self.backup_eof_on_end);
         self.input.take()
     }
 
