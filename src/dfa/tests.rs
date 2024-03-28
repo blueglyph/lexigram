@@ -15,7 +15,7 @@ use crate::dfa::*;
 /// # use rlexer::{dfa::*, node};
 /// assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
 /// assert_eq!(node!(str "new"), ReNode::new(ReType::String("new".to_string())));
-/// assert_eq!(node!(= 5), ReNode::new(ReType::End(Terminal { token: Some(Token(5)), channel: 0, mode: None, pop: false })));
+/// assert_eq!(node!(= 5), ReNode::new(ReType::End(Terminal { token: Some(Token(5)), channel: 0, push_mode: None, pop: false })));
 /// assert_eq!(node!(&), ReNode::new(ReType::Concat));
 /// assert_eq!(node!(|), ReNode::new(ReType::Or));
 /// assert_eq!(node!(*), ReNode::new(ReType::Star));
@@ -27,7 +27,7 @@ macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
     (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
     (str $str:expr) => { ReNode::new(ReType::String($str.to_string())) };
-    (= $id:expr) => { ReNode::new(ReType::End(Terminal { token: Some(Token($id)), channel: 0, mode: None, pop: false }) ) };
+    (= $id:expr) => { ReNode::new(ReType::End(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false }) ) };
     (&) => { ReNode::new(ReType::Concat) };
     (|) => { ReNode::new(ReType::Or) };
     (*) => { ReNode::new(ReType::Star) };
@@ -39,11 +39,11 @@ macro_rules! node {
 
 #[macro_export(local_inner_macros)]
 macro_rules! term {
-    (= $id:expr ) =>   { Terminal { token: Some(Token($id)), channel: 0, mode: None, pop: false } };
-    (skip) =>          { Terminal { token: None, channel: 0, mode: None, pop: false } };
-    (push $id:expr) => { Terminal { token: None, channel: 0, mode: Some($id), pop: false } };
-    (pop) =>           { Terminal { token: None, channel: 0, mode: None, pop: true } };
-    (# $id:expr) =>    { Terminal { token: None, channel: $id, mode: None, pop: false } };
+    (= $id:expr ) =>   { Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false } };
+    (skip) =>          { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false } };
+    (push $id:expr) => { Terminal { token: None, channel: 0, push_mode: Some($id), push_state: None, pop: false } };
+    (pop) =>           { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true } };
+    (# $id:expr) =>    { Terminal { token: None, channel: $id, push_mode: None, push_state: None, pop: false } };
 }
 impl Add for Terminal {
     type Output = Terminal;
@@ -52,7 +52,8 @@ impl Add for Terminal {
         Terminal {
             token: if self.token.is_some() { self.token } else { rhs.token },
             channel: self.channel + rhs.channel,
-            mode: if self.mode.is_some() { self.mode } else { rhs.mode },
+            push_mode: if self.push_mode.is_some() { self.push_mode } else { rhs.push_mode },
+            push_state: if self.push_state.is_some() { self.push_state } else { rhs.push_state },
             pop: self.pop || rhs.pop
         }
     }
@@ -807,7 +808,7 @@ fn dfa_followpos() {
 
 #[test]
 fn dfa_states() {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     let tests = vec![
         (0, btreemap![
             0 => branch!['a' => 1, 'b' => 0],
@@ -1005,7 +1006,7 @@ fn dfa_modes() {
 
 #[test]
 fn dfa_optimize_graphs() {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     let tests = vec![
         (0, btreemap![
             0 => branch!['a' => 1, 'b' => 0],

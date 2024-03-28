@@ -6,6 +6,7 @@ use crate::{escape_char, escape_string};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 
+pub type StateId = usize;   // todo: reduce size
 pub type TokenId = u16;
 pub type ModeId = u16;
 pub type ChannelId = u16;
@@ -17,7 +18,8 @@ pub struct Token(pub TokenId);
 pub struct Terminal {
     pub token: Option<Token>,
     pub channel: ChannelId,
-    pub mode: Option<ModeId>,
+    pub push_mode: Option<ModeId>,
+    pub push_state: Option<StateId>,
     pub pop: bool
 }
 
@@ -25,7 +27,12 @@ impl Display for Terminal {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(tok) = &self.token { write!(f, "<end:{}", tok.0)?; } else { write!(f, "<skip")?; }
         if self.channel != 0 { write!(f, ",ch {}", self.channel)?; }
-        if let Some(m) = self.mode { write!(f, ",push(m)")?; }
+        if self.push_mode.is_some() || self.push_state.is_some() {
+            write!(f, ",push(")?;
+            if let Some(m) = self.push_mode { write!(f, "mode {m}")?; }
+            if let Some(s) = self.push_state { write!(f, ",state {s}")?; }
+            write!(f, ")")?;
+        }
         if self.pop { write!(f, ",pop")?; }
         write!(f, ">")
     }
@@ -34,9 +41,9 @@ impl Display for Terminal {
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
     #[default] Empty,
-    End(Terminal),
+    End(Terminal),      // todo: remove (uses 32 bytes) we must separate mode from state and split terminal components in the tree (in children from same node?)
     Char(char),
-    String(String),
+    String(String),     // todo: remove (uses 24 bytes)
     Concat,
     Star,
     Plus,
@@ -123,8 +130,6 @@ impl Display for ReNode {
 }
 
 // ---------------------------------------------------------------------------------------------
-
-pub type StateId = usize;
 
 pub struct DfaBuilder {
     /// Regular Expression tree
@@ -375,13 +380,13 @@ impl Dfa {
 
     /// Merges several DFA graphs into one. The graphs represent different modes that are called with the
     /// `Action::pushMode(id)` action.
-    pub fn from_dfa_modes<T>(dfas: T) -> Self
-        where T: FromIterator<(usize, Dfa)>
-    {
-        let mut dfa = Dfa::new();
-
-        dfa
-    }
+    // pub fn from_dfa_modes<T>(dfas: T) -> Self
+    //     where T: FromIterator<(usize, Dfa)>
+    // {
+    //     let mut dfa = Dfa::new();
+    //
+    //     dfa
+    // }
 
     /// Checks if the DFA is normalized: incremental state numbers, starting at 0, with all the accepting states
     /// at the end.
