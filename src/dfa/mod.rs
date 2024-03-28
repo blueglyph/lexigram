@@ -374,19 +374,42 @@ impl Dfa {
             is_normalized: false,
             first_end_state: None
         };
+        dfa.first_end_state = dfa.end_states.keys().min().map(|st| *st);
         dfa.is_normalized = dfa.is_normalized();
         dfa
     }
 
     /// Merges several DFA graphs into one. The graphs represent different modes that are called with the
     /// `Action::pushMode(id)` action.
-    // pub fn from_dfa_modes<T>(dfas: T) -> Self
-    //     where T: FromIterator<(usize, Dfa)>
-    // {
-    //     let mut dfa = Dfa::new();
-    //
-    //     dfa
-    // }
+    pub fn from_dfa_modes<T>(dfas: T) -> Self
+        where T: IntoIterator<Item = (ModeId, Dfa)>
+    {
+        let mut iter = dfas.into_iter();
+        let (idx, mut dfa) = iter.next().expect("no DFA");
+        let mut init_states = BTreeMap::new();
+        init_states.insert(idx, dfa.initial_state.expect(&format!("no initial state in DFA {idx}")));
+        while let Some((idx, new_dfa)) = iter.next() {
+            let offset = 1 + dfa.state_graph.keys().max().expect(&format!("empty DFA {idx}"));
+            assert!(!init_states.contains_key(&idx), "DFA {idx} defined multiple times");
+            init_states.insert(idx, offset + new_dfa.initial_state.expect(&format!("no initial state in DFA {idx}")));
+            for (st_from, mut map) in new_dfa.state_graph {
+                for (_, st_to) in map.iter_mut() {
+                    *st_to += offset;
+                }
+                assert!(!dfa.state_graph.contains_key(&(st_from + offset)));
+                dfa.state_graph.insert(st_from + offset, map);
+            }
+            dfa.end_states.extend(new_dfa.end_states.into_iter().map(|(st, term)| (st + offset, term)));
+        }
+        if init_states.len() > 1 {
+            for (_, term) in dfa.end_states.iter_mut() {
+                term.push_state = term.push_mode.map(|m| *init_states.get(&m).expect(&format!("unknown mode {m} in merged graph")));
+            }
+            dfa.first_end_state = None;
+            dfa.is_normalized = false;
+        }
+        dfa
+    }
 
     /// Checks if the DFA is normalized: incremental state numbers, starting at 0, with all the accepting states
     /// at the end.

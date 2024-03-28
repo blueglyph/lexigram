@@ -310,9 +310,9 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
     re
 }
 
-pub(crate) fn build_dfa(test: usize) -> BTreeMap<usize, Dfa> {
+pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
     let mut re = VecTree::new();
-    let modes = match test {
+    let modes: BTreeMap<ModeId, VecTree<ReNode>> = match test {
         1 => {
             // mode 0: ([ \t\n\r]*{skip}|/\*{pushMode(1)}{skip}|[0-9]+<end:0>)
             let or = re.add(None, node!(|));
@@ -338,7 +338,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<usize, Dfa> {
             re1.add_iter(Some(or2), node![chr '0','9']);
             re1.add(Some(cc2), node![term![skip]]);
 
-            btreemap![0_usize => re, 1 => re1]
+            btreemap![0 => re, 1 => re1]
         },
         2 => {
             // mode 0: ([ \t\n\r]*{skip}|/\*{pushMode(1)}|[0-9]+<end:0>)
@@ -394,7 +394,7 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
 
 #[allow(unused)]
 pub(crate) fn print_graph(dfa: &Dfa) {
-    println!("  graph:      {:?}", dfa.state_graph);
+    // println!("  graph:      {:?}", dfa.state_graph);
     println!("  end states: {}", dfa.end_states.iter().map(|(s, t)| format!("{s} => {t:?}")).collect::<Vec<_>>().join(", "));
     for (state, trans) in dfa.state_graph.clone() {
         // println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
@@ -988,19 +988,56 @@ fn dfa_normalize() {
 
 #[test]
 fn dfa_modes() {
-    let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<char, StateId>>, BTreeMap<StateId, Token>)> = vec![
-        (1, btreemap![], btreemap![])
+    let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<char, StateId>>, BTreeMap<StateId, Terminal>)> = vec![
+        (1, btreemap![
+            0 => branch!['\t' => 2, '\n' => 2, '\r' => 2, ' ' => 2, '/' => 3, '0' => 4],// <skip>
+            2 => branch!['\t' => 2, '\n' => 2, '\r' => 2, ' ' => 2],// <skip>
+            3 => branch!['*' => 5],
+            4 => branch!['1' => 6],
+            5 => branch![],// <skip,push(mode 1,state 15)>
+            6 => branch!['2' => 7],
+            7 => branch!['3' => 8],
+            8 => branch!['4' => 9],
+            9 => branch!['5' => 10],
+            10 => branch!['6' => 11],
+            11 => branch!['7' => 12],
+            12 => branch!['8' => 13],
+            13 => branch!['9' => 14],
+            14 => branch![],// <end:0>
+            15 => branch!['/' => 17, '0' => 18, '1' => 18, '2' => 18, '3' => 18, '4' => 18, '5' => 18, '6' => 18, '7' => 18, '8' => 18, '9' => 18],// <skip>
+            17 => branch!['*' => 19],
+            18 => branch!['0' => 18, '1' => 18, '2' => 18, '3' => 18, '4' => 18, '5' => 18, '6' => 18, '7' => 18, '8' => 18, '9' => 18],// <skip>
+            19 => branch![],// <skip,pop>
+        ],
+         btreemap![
+             0 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
+             2 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
+             5 => Terminal { token: None, channel: 0, push_mode: Some(1), push_state: Some(15), pop: false },
+             14 => Terminal { token: Some(Token(0)), channel: 0, push_mode: None, push_state: None, pop: false },
+             15 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
+             18 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
+             19 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true }
+         ])
     ];
 
-    for (test_id, _exp_graph, _exp_ends) in tests {
-        println!("{test_id}:");
+    const VERBOSE: bool = false;
+    for (test_id, exp_graph, exp_ends) in tests {
+        if VERBOSE { println!("{test_id}:"); }
         let dfas = build_dfa(test_id);
-        for (id, mut dfa) in dfas.into_iter() {
-            println!("## mode {id}");
-            dfa.normalize();
-            print_graph(&dfa);
+        for (id, dfa) in dfas.iter() {
+            if VERBOSE {
+                println!("## mode {id}");
+                print_graph(dfa);
+            }
         }
-        println!("-------------------------------------------------");
+        if VERBOSE { println!("## Merged:"); }
+        let dfa = Dfa::from_dfa_modes(dfas);
+        if VERBOSE {
+            print_graph(&dfa);
+            println!("-------------------------------------------------");
+        }
+        assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
+        assert_eq!(dfa.end_states, exp_ends, "test {test_id} failed");
     }
 }
 
