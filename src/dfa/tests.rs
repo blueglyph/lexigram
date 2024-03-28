@@ -26,15 +26,15 @@ use crate::dfa::*;
 macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
     (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
-    (str $str:expr) => { ReNode::new(ReType::String($str.to_string())) };
-    (= $id:expr) => { ReNode::new(ReType::End(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false }) ) };
+    (str $str:expr) => { ReNode::new(ReType::String(Box::new($str.to_string()))) };
+    (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
     (&) => { ReNode::new(ReType::Concat) };
     (|) => { ReNode::new(ReType::Or) };
     (*) => { ReNode::new(ReType::Star) };
     (+) => { ReNode::new(ReType::Plus) };
     (-) => { ReNode::new(ReType::Empty) };
     // actions:
-    ($id:expr) => { ReNode::new(ReType::End($id)) };
+    ($id:expr) => { ReNode::new(ReType::End(Box::new($id))) };
 }
 
 #[macro_export(local_inner_macros)]

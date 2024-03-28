@@ -41,9 +41,9 @@ impl Display for Terminal {
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
     #[default] Empty,
-    End(Terminal),      // todo: remove (uses 32 bytes) we must separate mode from state and split terminal components in the tree (in children from same node?)
+    End(Box<Terminal>),
     Char(char),
-    String(String),     // todo: remove (uses 24 bytes)
+    String(Box<String>),
     Concat,
     Star,
     Plus,
@@ -326,7 +326,7 @@ impl DfaBuilder {
                 }
                 if symbol.is_end() {
                     if let ReType::End(t) = symbol {
-                        dfa.end_states.insert(new_state_id, t.clone());
+                        dfa.end_states.insert(new_state_id, *t.clone());
                     } else {
                         panic!("unexpected END symbol: {symbol:?}");
                     }
