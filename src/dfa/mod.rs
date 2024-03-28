@@ -424,9 +424,9 @@ impl Dfa {
         let mut end_id = self.state_graph.len() - nbr_end;
         self.first_end_state = Some(end_id);
         for &id in self.state_graph.keys() {
-            if let Some(token) = self.end_states.get(&id) {
+            if let Some(terminal) = self.end_states.get(&id) {
                 translate.insert(id, end_id);
-                end_states.insert(end_id, token.clone());
+                end_states.insert(end_id, terminal.clone());
                 end_id += 1;
             } else {
                 translate.insert(id, non_end_id);
@@ -434,6 +434,11 @@ impl Dfa {
             };
         }
         self.initial_state = self.initial_state.map(|st| *translate.get(&st).unwrap());
+        for s in end_states.iter_mut() {
+            if let Some(state) = s.1.push_state {
+                s.1.push_state = Some(translate[&state])
+            }
+        }
         self.end_states = end_states;
         for (id, mut trans) in std::mem::take(&mut self.state_graph) {
             for (_, st) in trans.iter_mut() {
@@ -567,7 +572,13 @@ impl Dfa {
         self.end_states = BTreeMap::<StateId, Terminal>::from_iter(
             groups.iter().enumerate()
                 .filter_map(|(group_id, states)| states.iter()
-                    .find_map(|s| self.end_states.get(s).map(|token| (group_id as StateId, token.clone()))))
+                    .find_map(|s| self.end_states.get(s).map(|terminal| {
+                        let mut new_terminal = terminal.clone();
+                        if let Some(state) = &mut new_terminal.push_state {
+                            *state = st_to_group[state];
+                        }
+                        (group_id as StateId, new_terminal)
+                    })))
         );
 
         self.initial_state = Some(st_to_group[&self.initial_state.unwrap()] as StateId);
