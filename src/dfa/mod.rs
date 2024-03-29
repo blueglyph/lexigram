@@ -292,7 +292,7 @@ impl DfaBuilder {
         // unfold all the states
         while let Some(s) = new_states.pop_first() {
             let new_state_id = states.get(&s).unwrap().clone();
-            if VERBOSE { println!("State {} = {}", new_state_id, states_to_string(&s)); }
+            if VERBOSE { println!("state {} = {{{}}}", new_state_id, states_to_string(&s)); }
             let mut trans = BTreeMap::<&ReType, BTreeSet<Id>>::new();
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if let Some(ids) = trans.get_mut(symbol) {
@@ -309,14 +309,14 @@ impl DfaBuilder {
                 for id in ids {
                     state.extend(&self.followpos[&id]);
                 }
-                if VERBOSE { print!("  - state: {}", states_to_string(&state)); }
+                if VERBOSE { print!("  - pos: {{{}}}", states_to_string(&state)); }
                 let state_id = if let Some(state_id) = states.get(&state) {
-                    if VERBOSE { println!(" => # {state_id}"); }
+                    if VERBOSE { println!(" => state {state_id}"); }
                     *state_id
                 } else {
                     new_states.insert(state.clone());
                     current_id += 1;
-                    if VERBOSE { println!(" => push({}) = new state {}", states_to_string(&state), current_id); }
+                    if VERBOSE { println!(" => new state {} = {{{}}}", current_id, states_to_string(&state)); }
                     states.insert(state, current_id);
                     current_id
                 };
