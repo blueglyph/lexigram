@@ -332,6 +332,16 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(cc1), node![chr '0','9']);
             re.add(Some(cc1), node![=0]);
         },
+        14 => {
+            // \*/<end:0>|.+<end:1>
+            let or = re.add(None, node!(|));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(=0)]);
+            let cc2 = re.add(Some(or), node!(&));
+            let plus2 = re.add(Some(cc2), node!(+));
+            re.add(Some(plus2), node!(chr '.'));
+            re.add(Some(cc2), node!(=1));
+        }
         _ => { }
     }
     re
@@ -605,6 +615,18 @@ fn dfa_firstpos() {
             vec![5],        // <end>
             vec![1],        // &
         ]),
+        // \*/<end:0>|.+<end:1>
+        (14, vec![
+            vec![1],
+            vec![2],
+            vec![3],
+            vec![1],
+            vec![4],
+            vec![4],
+            vec![5],
+            vec![4],
+            vec![1, 4]
+        ]),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -724,6 +746,18 @@ fn dfa_lastpos() {
             vec![4],        // d
             vec![5],        // <end>
             vec![5],        // &
+        ]),
+        // \*/<end:0>|.+<end:1>
+        (14, vec![
+            vec![1],
+            vec![2],
+            vec![3],
+            vec![3],
+            vec![4],
+            vec![4],
+            vec![5],
+            vec![5],
+            vec![3, 5]
         ])
     ];
     for (test_id, expected) in tests.into_iter() {
@@ -838,7 +872,15 @@ fn dfa_followpos() {
             12 => hashset![13],
             13 => hashset![14],
             14 => hashset![],
-        ])
+        ]),
+        // \*/<end:0>|.+<end:1>
+        (14, hashmap![
+            1 => hashset![2],
+            2 => hashset![3],
+            3 => hashset![],
+            4 => hashset![4, 5],
+            5 => hashset![],
+        ]),
     };
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -853,7 +895,6 @@ fn dfa_followpos() {
 
 #[test]
 fn dfa_states() {
-    const VERBOSE: bool = false;
     let tests = vec![
         (0, btreemap![
             0 => branch!['a' => 1, 'b' => 0],
@@ -1009,7 +1050,17 @@ fn dfa_states() {
             10 => branch!['9' => 11],
             11 => branch![],// <end:0>
         ], btreemap![0 => term!(=1) + term!(#1), 11 => term!(=0)]),
+        // \*/<end:0>|.+<end:1>
+        (14, btreemap![
+            0 => branch!['*' => 1, '.' => 2],
+            1 => branch!['/' => 3],
+            2 => branch!['.' => 2],// <end:1>
+            3 => branch![],// <end:0>
+        ], btreemap![
+            2 => term!(=1), 3 => term!(=0)
+        ])
     ];
+    const VERBOSE: bool = false;
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
         let mut dfa_builder = DfaBuilder::new(re);

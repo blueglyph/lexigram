@@ -304,11 +304,12 @@ impl DfaBuilder {
                 }
             }
             for (symbol, ids) in trans {
+                if VERBOSE { println!("- {}, {}", symbol, states_to_string(&ids)); }
                 let mut state = BTreeSet::new();
                 for id in ids {
                     state.extend(&self.followpos[&id]);
                 }
-                if VERBOSE { print!("- state: {}", states_to_string(&state)); }
+                if VERBOSE { print!("  - state: {}", states_to_string(&state)); }
                 let state_id = if let Some(state_id) = states.get(&state) {
                     if VERBOSE { println!(" => # {state_id}"); }
                     *state_id
