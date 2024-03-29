@@ -106,6 +106,31 @@ fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
     result
 }
 
+#[allow(unused)]
+pub(crate) fn term_to_string(t: &Terminal) -> String {
+    let mut str = Vec::<String>::new();
+    if let Some(token) = &t.token {
+        str.push(format!("term!(={})", token.0));
+    }
+    if t.channel != 0 {
+        str.push(format!("term!(#{})", t.channel));
+    }
+    if let Some(id) = t.push_mode {
+        str.push(format!("term!(push {})", id));
+    }
+    if let Some(id) = t.push_state {
+        str.push(format!("term!(pushst {})", id));
+    }
+    if t.pop {
+        str.push("term!(pop)".to_string());
+    }
+    if str.is_empty() {
+        "term!(skip)".to_string()
+    } else {
+        str.join(" + ")
+    }
+}
+
 fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
     if tree.len() > 0 {
         node_to_string(tree, 0, basic)
@@ -316,7 +341,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
     let mut re = VecTree::new();
     let modes: BTreeMap<ModeId, VecTree<ReNode>> = match test {
         1 => {
-            // mode 0: ([ \t\n\r]*{skip}|/\*{pushMode(1)}{skip}|[0-9]+<end:0>)
+            // mode 0: ([ \t\n\r]*{skip}|/\*{push(1)}{skip}|[0-9]+<end:0>)
             let or = re.add(None, node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
@@ -343,8 +368,8 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
             btreemap![0 => re, 1 => re1]
         },
         2 => {
-            // mode 0: ([ \t\n\r]*{skip}|/\*{pushMode(1)}|[0-9]+<end:0>)
-            // mode 1: (\*/{popMode}|.*{skip})
+            // mode 0: ([ \t\n\r]*{skip}|/\*{push(1)}|[0-9]+<end:0>)
+            // mode 1: (\*/{pop}|.*{skip})
 
             btreemap![] // . not implemented yet
         },
@@ -397,7 +422,7 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
 #[allow(unused)]
 pub(crate) fn print_graph(dfa: &Dfa) {
     // println!("  graph:      {:?}", dfa.state_graph);
-    println!("  end states: {}", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, terminal_to_macro(t))).collect::<Vec<_>>().join(", "));
+    println!("  end states: {}", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).collect::<Vec<_>>().join(", "));
     println!();
     for (state, trans) in dfa.state_graph.clone() {
         // println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
@@ -410,31 +435,6 @@ pub(crate) fn print_graph(dfa: &Dfa) {
                      .collect::<Vec<_>>().join(", "),
                  dfa.end_states.get(&state).map(|token| format!("// {}", token)).unwrap_or("".to_string()),
         );
-    }
-}
-
-#[allow(unused)]
-pub(crate) fn terminal_to_macro(t: &Terminal) -> String {
-    let mut str = Vec::<String>::new();
-    if let Some(token) = &t.token {
-        str.push(format!("term!(={})", token.0));
-    }
-    if t.channel != 0 {
-        str.push(format!("term!(ch {})", t.channel));
-    }
-    if let Some(id) = t.push_mode {
-        str.push(format!("term!(push {})", id));
-    }
-    if let Some(id) = t.push_state {
-        str.push(format!("term!(pushst {})", id));
-    }
-    if t.pop {
-        str.push("term!(pop)".to_string());
-    }
-    if str.is_empty() {
-        "term!(skip)".to_string()
-    } else {
-        str.join(" + ")
     }
 }
 
@@ -994,7 +994,21 @@ fn dfa_states() {
             3 => branch![],// <end:2>
             5 => branch![],// <end:1>
             6 => branch![],// <end:0>
-        ], btreemap![2 => term![=3], 3 => term![=2], 5 => term![=1], 6 => term![=0]])
+        ], btreemap![2 => term![=3], 3 => term![=2], 5 => term![=1], 6 => term![=0]]),
+        // ([ \t\n\r]*{channel(1)}<end:1>|[0-9]+<end:0>)
+        (13, btreemap![
+            0 => branch!['\t' => 0, '\n' => 0, '\r' => 0, ' ' => 0, '0' => 2],// <end:1,ch 1>
+            2 => branch!['1' => 3],
+            3 => branch!['2' => 4],
+            4 => branch!['3' => 5],
+            5 => branch!['4' => 6],
+            6 => branch!['5' => 7],
+            7 => branch!['6' => 8],
+            8 => branch!['7' => 9],
+            9 => branch!['8' => 10],
+            10 => branch!['9' => 11],
+            11 => branch![],// <end:0>
+        ], btreemap![0 => term!(=1) + term!(#1), 11 => term!(=0)]),
     ];
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
