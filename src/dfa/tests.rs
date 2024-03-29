@@ -42,6 +42,7 @@ macro_rules! term {
     (= $id:expr ) =>   { Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false } };
     (skip) =>          { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false } };
     (push $id:expr) => { Terminal { token: None, channel: 0, push_mode: Some($id), push_state: None, pop: false } };
+    (pushst $id:expr) => { Terminal { token: None, channel: 0, push_mode: None, push_state: Some($id), pop: false } };
     (pop) =>           { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true } };
     (# $id:expr) =>    { Terminal { token: None, channel: $id, push_mode: None, push_state: None, pop: false } };
 }
@@ -278,7 +279,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc), node!(=5));
         },
         12 => {
-            // (abs<end:0>|abi<end:1>|at<end:2>)
+            // (abs<end:0>|abi<end:1>|at<end:2>|ab<end:3>)
             let or = re.add(None, node!(|));
             let cc0 = re.add(Some(or), node!(&));
             re.add(Some(cc0), node!(str "abs"));
@@ -288,7 +289,10 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc1), node!(=1));
             let cc2 = re.add(Some(or), node!(&));
             re.add(Some(cc2), node!(str "at"));
-            re.add(Some(cc2), node!(=0));
+            re.add(Some(cc2), node!(=2));
+            let cc3 = re.add(Some(or), node!(&));
+            re.add(Some(cc3), node!(str "ab"));
+            re.add(Some(cc3), node!(=3));
         },
         13 => {
             // ([ \t\n\r]*{channel(1)}<end:1>|[0-9]+<end:0>)
@@ -302,8 +306,6 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let cc1 = re.add(Some(or0), node!(&));
             re.add_iter(Some(cc1), node![chr '0','9']);
             re.add(Some(cc1), node![=0]);
-
-            re.clear(); // not implemented yet
         },
         _ => { }
     }
@@ -395,7 +397,8 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
 #[allow(unused)]
 pub(crate) fn print_graph(dfa: &Dfa) {
     // println!("  graph:      {:?}", dfa.state_graph);
-    println!("  end states: {}", dfa.end_states.iter().map(|(s, t)| format!("{s} => {t:?}")).collect::<Vec<_>>().join(", "));
+    println!("  end states: {}", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, terminal_to_macro(t))).collect::<Vec<_>>().join(", "));
+    println!();
     for (state, trans) in dfa.state_graph.clone() {
         // println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
         // for (symbol, dest) in trans {
@@ -407,6 +410,31 @@ pub(crate) fn print_graph(dfa: &Dfa) {
                      .collect::<Vec<_>>().join(", "),
                  dfa.end_states.get(&state).map(|token| format!("// {}", token)).unwrap_or("".to_string()),
         );
+    }
+}
+
+#[allow(unused)]
+pub(crate) fn terminal_to_macro(t: &Terminal) -> String {
+    let mut str = Vec::<String>::new();
+    if let Some(token) = &t.token {
+        str.push(format!("term!(={})", token.0));
+    }
+    if t.channel != 0 {
+        str.push(format!("term!(ch {})", t.channel));
+    }
+    if let Some(id) = t.push_mode {
+        str.push(format!("term!(push {})", id));
+    }
+    if let Some(id) = t.push_state {
+        str.push(format!("term!(pushst {})", id));
+    }
+    if t.pop {
+        str.push("term!(pop)".to_string());
+    }
+    if str.is_empty() {
+        "term!(skip)".to_string()
+    } else {
+        str.join(" + ")
     }
 }
 
@@ -462,7 +490,7 @@ fn dfa_nullable() {
         (8, "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"),
         (9, "&(1:'a',+(|(2:'b',3:'c')),4:'d',5:<end:0>)"),
         (10, "|(&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),+(|(5:'0',6:'1',7:'2',8:'3',9:'4',10:'5',11:'6',12:'7',13:'8',14:'9')),|(15:<end:0>,&(16:'.',+(|(17:'0',18:'1',19:'2',20:'3',21:'4',22:'5',23:'6',24:'7',25:'8',26:'9')),27:<end:1>))),&(28:'0',29:'x',+(|(30:'0',31:'1',32:'2',33:'3',34:'4',35:'5',36:'6',37:'7',38:'8',39:'9',40:'A',41:'B',42:'C',43:'D',44:'E',45:'F',46:'a',47:'b',48:'c',49:'d',50:'e',51:'f')),52:<end:2>))"),
-        (12, "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:0>))"),
+        (12, "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:2>),&(&(12:'a',13:'b'),14:<end:3>))"),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -793,6 +821,23 @@ fn dfa_followpos() {
             3 => hashset![2, 3, 4],
             4 => hashset![5],
             5 => hashset![]
+        ]),
+        // "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:2>),&(&(12:'a',13:'b'),14:<end:3>))"
+        (12, hashmap![
+            1  => hashset![2],
+            2  => hashset![3],
+            3  => hashset![4],
+            4  => hashset![],
+            5  => hashset![6],
+            6  => hashset![7],
+            7  => hashset![8],
+            8  => hashset![],
+            9  => hashset![10],
+            10 => hashset![11],
+            11 => hashset![],
+            12 => hashset![13],
+            13 => hashset![14],
+            14 => hashset![],
         ])
     };
     for (test_id, expected) in tests.into_iter() {
@@ -941,15 +986,15 @@ fn dfa_states() {
         ], btreemap![
             1 => term![=4], 2 => term![=5], 3 => term![=3], 4 => term![=0], 5 => term![=0], 6 => term![=0],
             8 => term![=1], 9 => term![=0], 10 => term![=0], 11 => term![=0], 12 => term![=2]]),
-        // (abs<end:0>|abi<end:1>|at<end:2>), to check if string paths are merged
+        // (abs<end:0>|abi<end:1>|at<end:2>|ab<end:3>), to check if string paths are merged
         (12, btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 2, 't' => 3],
-            2 => branch!['i' => 4, 's' => 5],
-            3 => branch![],// END: 0
-            4 => branch![],// END: 1
-            5 => branch![],// END: 0
-        ], btreemap![3 => term![=0], 4 => term![=1], 5 => term![=0]])
+            2 => branch!['i' => 5, 's' => 6],// <end:3>
+            3 => branch![],// <end:2>
+            5 => branch![],// <end:1>
+            6 => branch![],// <end:0>
+        ], btreemap![2 => term![=3], 3 => term![=2], 5 => term![=1], 6 => term![=0]])
     ];
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
@@ -1010,13 +1055,13 @@ fn dfa_modes() {
             19 => branch![],// <skip,pop>
         ],
          btreemap![
-             0 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
-             2 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
-             5 => Terminal { token: None, channel: 0, push_mode: Some(1), push_state: Some(15), pop: false },
-             14 => Terminal { token: Some(Token(0)), channel: 0, push_mode: None, push_state: None, pop: false },
-             15 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
-             18 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
-             19 => Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true }
+            0 => term!(skip),
+            2 => term!(skip),
+            5 => term!(push 1) + term!(pushst 15),
+            14 => term!(=0),
+            15 => term!(skip),
+            18 => term!(skip),
+            19 => term!(pop)
          ])
     ];
 
@@ -1050,13 +1095,13 @@ fn dfa_optimize_graphs() {
             1 => branch!['a' => 1, 'b' => 2],
             2 => branch!['a' => 1, 'b' => 3],
             3 => branch!['a' => 1, 'b' => 0],
-        ], btreemap![3 => term![=0]],
+        ], btreemap![3 => term!(=0)],
          btreemap![ // 1 <-> 2
              0 => branch!['a' => 2, 'b' => 0],
              1 => branch!['a' => 2, 'b' => 3],
              2 => branch!['a' => 2, 'b' => 1],
              3 => branch!['a' => 2, 'b' => 0],
-         ], btreemap![3 => term![=0]]),
+         ], btreemap![3 => term!(=0)]),
 
         (1, btreemap![
             0 => branch!['a' => 1, 'b' => 2],
@@ -1064,37 +1109,37 @@ fn dfa_optimize_graphs() {
             2 => branch!['a' => 1, 'b' => 2],
             3 => branch!['a' => 1, 'b' => 4],
             4 => branch!['a' => 1, 'b' => 2],
-        ], btreemap![4 => term![=0]],
+        ], btreemap![4 => term!(=0)],
          btreemap![ // 0 -> 0, 1 -> 2, 2 -> 0, 3 -> 1, 4 -> 3
             0 => branch!['a' => 2, 'b' => 0],
             1 => branch!['a' => 2, 'b' => 3],
             2 => branch!['a' => 2, 'b' => 1],
             3 => branch!['a' => 2, 'b' => 0],
-         ], btreemap![3 => term![=0]]),
+         ], btreemap![3 => term!(=0)]),
 
         (8, btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 3],
             3 => branch![]
-        ], btreemap![1 => term![=0], 3 => term![=1]],
+        ], btreemap![1 => term!(=0), 3 => term!(=1)],
         btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 2],
             2 => branch![],
-        ], btreemap![1 => term![=0], 2 => term![=1]]),
+        ], btreemap![1 => term!(=0), 2 => term!(=1)]),
 
         (9, btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 2, 'c' => 2],
             2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
             3 => branch![]
-        ], btreemap![3 => term![=0]],
+        ], btreemap![3 => term!(=0)],
         btreemap![
             0 => branch!['a' => 1],
             1 => branch!['b' => 2, 'c' => 2],
             2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
             3 => branch![]
-        ], btreemap![3 => term![=0]]),
+        ], btreemap![3 => term!(=0)]),
 
         (10, btreemap![
             0 => branch![
@@ -1113,7 +1158,7 @@ fn dfa_optimize_graphs() {
             8 => branch![
                 '0' => 8, '1' => 8, '2' => 8, '3' => 8, '4' => 8, '5' => 8, '6' => 8, '7' => 8, '8' => 8, '9' => 8,
                 'A' => 8, 'B' => 8, 'C' => 8, 'D' => 8, 'E' => 8, 'F' => 8, 'a' => 8, 'b' => 8, 'c' => 8, 'd' => 8, 'e' => 8, 'f' => 8],// END: 2
-        ], btreemap![2 => term![=0], 3 => term![=0], 7 => term![=1], 8 => term![=2]],
+        ], btreemap![2 => term!(=0), 3 => term!(=0), 7 => term!(=1), 8 => term!(=2)],
         btreemap![
             0 => branch![
                 '\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1,
@@ -1131,17 +1176,18 @@ fn dfa_optimize_graphs() {
             7 => branch![
                 '0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
                 'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],// END: 2
-        ], btreemap![4 => term![=0], 5 => term![=0], 6 => term![=1], 7 => term![=2]]),
+        ], btreemap![4 => term!(=0), 5 => term!(=0), 6 => term!(=1), 7 => term!(=2)]),
 
+        // (abs<end:0>|abi<end:1>|at<end:2>|ab<end:3>)
         (12, btreemap![], btreemap![], // from build_re(12)
         btreemap![ // no change
             0 => branch!['a' => 1],
             1 => branch!['b' => 2, 't' => 3],
-            2 => branch!['i' => 4, 's' => 5],
-            3 => branch![],// END: 0
-            4 => branch![],// END: 1
-            5 => branch![],// END: 0
-        ], btreemap![3 => term![=0], 4 => term![=1], 5 => term![=0]],
+            2 => branch!['i' => 4, 's' => 5],// <end:3>
+            3 => branch![],// <end:2>
+            4 => branch![],// <end:1>
+            5 => branch![],// <end:0>
+        ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=1), 5 => term!(=0)],
         )
     ];
     for (test_id, mut graph, mut end_states, exp_graph, exp_end_states) in tests {

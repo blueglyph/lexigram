@@ -277,8 +277,10 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
+        const VERBOSE: bool = false;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
+        if VERBOSE { println!("new DFA"); }
         let mut current_id = 0;
         let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().map(|&id| id));
         let mut new_states = BTreeSet::<BTreeSet<Id>>::new();
@@ -290,6 +292,7 @@ impl DfaBuilder {
         // unfold all the states
         while let Some(s) = new_states.pop_first() {
             let new_state_id = states.get(&s).unwrap().clone();
+            if VERBOSE { println!("State {} = {}", new_state_id, states_to_string(&s)); }
             let mut trans = BTreeMap::<&ReType, BTreeSet<Id>>::new();
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if let Some(ids) = trans.get_mut(symbol) {
@@ -305,11 +308,14 @@ impl DfaBuilder {
                 for id in ids {
                     state.extend(&self.followpos[&id]);
                 }
+                if VERBOSE { print!("- state: {}", states_to_string(&state)); }
                 let state_id = if let Some(state_id) = states.get(&state) {
+                    if VERBOSE { println!(" => # {state_id}"); }
                     *state_id
                 } else {
                     new_states.insert(state.clone());
                     current_id += 1;
+                    if VERBOSE { println!(" => push({}) = new state {}", states_to_string(&state), current_id); }
                     states.insert(state, current_id);
                     current_id
                 };
@@ -622,3 +628,8 @@ impl Dfa {
         st_to_group
     }
 }
+
+fn states_to_string<T: Display>(s: &BTreeSet<T>) -> String {
+    s.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(", ")
+}
+
