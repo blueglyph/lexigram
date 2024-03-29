@@ -320,7 +320,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc3), node!(=3));
         },
         13 => {
-            // ([ \t\n\r]*{channel(1)}<end:1>|[0-9]+<end:0>)
+            // ([ \t\n\r]*<end:1,ch 1>|[0-9]+<end:0>)
             let or0 = re.add(None, node!(|));
             let cc0 = re.add(Some(or0), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
@@ -341,7 +341,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
     let mut re = VecTree::new();
     let modes: BTreeMap<ModeId, VecTree<ReNode>> = match test {
         1 => {
-            // mode 0: ([ \t\n\r]*{skip}|/\*{push(1)}{skip}|[0-9]+<end:0>)
+            // mode 0: ([ \t\n\r]*<skip>|/\*<push(1)><skip>|[0-9]+<end:0>)
             let or = re.add(None, node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
@@ -354,7 +354,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
             re.add_iter(Some(cc2), node![chr '0','9']);
             re.add(Some(cc2), node![=0]);
 
-            // mode 1: (\*/{popMode}{skip}|[0-9]*{skip})
+            // mode 1: (\*/<pop>|[0-9]*<skip>)
             let mut re1 = VecTree::new();
             let or = re1.add(None, node!(|));
             let cc1 = re1.add(Some(or), node!(&));
@@ -368,8 +368,8 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
             btreemap![0 => re, 1 => re1]
         },
         2 => {
-            // mode 0: ([ \t\n\r]*{skip}|/\*{push(1)}|[0-9]+<end:0>)
-            // mode 1: (\*/{pop}|.*{skip})
+            // mode 0: ([ \t\n\r]*<skip>|/\*<push(1)>|[0-9]+<end:0>)
+            // mode 1: (\*/<pop>|.*<skip>)
 
             btreemap![] // . not implemented yet
         },
