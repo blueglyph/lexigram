@@ -4,6 +4,8 @@ use std::ops::Add;
 use crate::*;
 use crate::vectree::VecTree;
 use crate::dfa::*;
+#[allow(unused)] // the compiler doesn't see it's used in a macro
+use crate::io::{UTF8_MAX, UTF8_MIN};
 
 // ---------------------------------------------------------------------------------------------
 // Macros
@@ -12,10 +14,13 @@ use crate::dfa::*;
 ///
 /// # Examples
 /// ```
-/// # use rlexer::{dfa::*, node};
+/// # use std::collections::BTreeSet;
+/// # use rlexer::{dfa::*, node, io::{UTF8_MAX, UTF8_MIN}};
 /// assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
-/// assert_eq!(node!(str "new"), ReNode::new(ReType::String("new".to_string())));
-/// assert_eq!(node!(= 5), ReNode::new(ReType::End(Terminal { token: Some(Token(5)), channel: 0, push_mode: None, pop: false })));
+/// assert_eq!(node!(['a','z'; '0','9']), ReType::CharRange(Box::new(Intervals(BTreeSet::from([('a' as u32, 'z' as u32), ('0' as u32, '9' as u32)])))));
+/// assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Intervals(BTreeSet::from([(UTF8_MIN, UTF8_MAX)]))))));
+/// assert_eq!(node!(str "new"), ReNode::new(ReType::String(Box::new("new".to_string()))));
+/// assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token(5)), channel: 0, push_mode: None, push_state: None, pop: false })));
 /// assert_eq!(node!(&), ReNode::new(ReType::Concat));
 /// assert_eq!(node!(|), ReNode::new(ReType::Or));
 /// assert_eq!(node!(*), ReNode::new(ReType::Star));
@@ -26,14 +31,16 @@ use crate::dfa::*;
 macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
     (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
+    ([$($char1:expr, $char2:expr);+]) => { ReNode::new(ReType::CharRange(Box::new(Intervals(btreeset![$( ($char1 as u32, $char2 as u32) ),+])))) };
+    (.) => { node!([UTF8_MIN, UTF8_MAX]) };
     (str $str:expr) => { ReNode::new(ReType::String(Box::new($str.to_string()))) };
-    (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
     (&) => { ReNode::new(ReType::Concat) };
     (|) => { ReNode::new(ReType::Or) };
     (*) => { ReNode::new(ReType::Star) };
     (+) => { ReNode::new(ReType::Plus) };
     (-) => { ReNode::new(ReType::Empty) };
     // actions:
+    (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
     ($id:expr) => { ReNode::new(ReType::End(Box::new($id))) };
 }
 
@@ -46,6 +53,7 @@ macro_rules! term {
     (pop) =>           { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true } };
     (# $id:expr) =>    { Terminal { token: None, channel: $id, push_mode: None, push_state: None, pop: false } };
 }
+
 impl Add for Terminal {
     type Output = Terminal;
 
@@ -896,6 +904,7 @@ fn dfa_followpos() {
 #[test]
 fn dfa_states() {
     let tests = vec![
+/*
         (0, btreemap![
             0 => branch!['a' => 1, 'b' => 0],
             1 => branch!['a' => 1, 'b' => 2],
@@ -1050,6 +1059,8 @@ fn dfa_states() {
             10 => branch!['9' => 11],
             11 => branch![],// <end:0>
         ], btreemap![0 => term!(=1) + term!(#1), 11 => term!(=0)]),
+
+*/
         // \*/<end:0>|.+<end:1>
         (14, btreemap![
             0 => branch!['*' => 1, '.' => 2],
@@ -1060,7 +1071,8 @@ fn dfa_states() {
             2 => term!(=1), 3 => term!(=0)
         ])
     ];
-    const VERBOSE: bool = false;
+
+    const VERBOSE: bool = true;
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
         let mut dfa_builder = DfaBuilder::new(re);

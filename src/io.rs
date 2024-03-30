@@ -1,5 +1,22 @@
 use std::io::{BufReader, Read};
 
+// Note on UTF-8 encoding
+//
+//                         |     (hexa)    |                 UTF-8                  |                UTF-16
+//     Codepoint Value     |   min    max  | 1st byte  2nd byte  3rd byte  4th byte |     1st word           2nd word
+// ------------------------+---------------+----------------------------------------+--------------------------------------
+//       00000000_0xxxxxxx |   0000   007F | 0xxxxxxx                               | 00000000_0xxxxxxx
+//                         |               |                                        |
+//       00000yyy_yyxxxxxx |   0080   07FF | 110yyyyy  10xxxxxx                     | 00000yyy_yyxxxxxx
+//                         |               |                                        |
+//       zzzzyyyy_yyxxxxxx |   0800   FFFF | 1110zzzz  10yyyyyy  10xxxxxx           | zzzzyyyy_yyxxxxxx
+//                         |               |                                        |
+// uuuuu_zzzzyyyy_yyxxxxxx | 010000 10FFFF | 11110uuu  10uuzzzz  10yyyyyy  10xxxxxx | 110110ww_wwzzzzyy  110111yy_yyxxxxxx
+// (uuuuu: max 10000)      |               |                                        | (wwww = uuuuu-1)
+
+pub const UTF8_MIN: u32 = 0;
+pub const UTF8_MAX: u32 = 0x10ffff;
+
 const UTF8_LENGTH: [u8; 256] = [
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,

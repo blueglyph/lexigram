@@ -16,6 +16,10 @@ pub mod scan;
 // See also:
 // - Ref: https://en.wikipedia.org/wiki/Comparison_of_parser_generators
 //
+// UTF-8:
+// - https://www.ibm.com/docs/en/db2/11.5?topic=support-unicode-character-encoding
+// - std::char::encode_utf8_raw(...)
+//
 // Misc
 // - https://re2c.org/
 // - https://www.genivia.com/get-reflex.html

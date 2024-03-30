@@ -39,15 +39,51 @@ impl Display for Terminal {
 }
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
+pub struct Intervals(BTreeSet<(u32, u32)>);
+
+impl Intervals {
+    pub fn to_char(&self) -> Option<char> {
+        if self.0.len() == 1 {
+            let first = self.0.first().unwrap();
+            if first.0 == first.1 {
+                return char::from_u32(first.0)
+            }
+        }
+        None
+    }
+}
+
+impl Display for Intervals {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if let Some(c) = self.to_char() {
+            write!(f, "'{}'", escape_char(c))
+        } else {
+            write!(f, "[{}]", self.0.iter()
+                .map(|(a, b)| if a == b { format!("{}", escape_char(char::from_u32(*a).unwrap())) } else { format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap())) })
+                .collect::<Vec<_>>()
+                .join(", ")
+            )
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
     #[default] Empty,
     End(Box<Terminal>),
     Char(char),
+    CharRange(Box<Intervals>),
     String(Box<String>),
     Concat,
     Star,
     Plus,
     Or
+}
+
+#[test]
+fn retype_size() {
+    let size = std::mem::size_of::<ReType>();
+    assert!(size <= 16, "size of ReType is too big: {size}");
 }
 
 impl ReType {
@@ -56,13 +92,13 @@ impl ReType {
     }
 
     pub fn is_leaf(&self) -> bool {
-        matches!(self, ReType::Empty | ReType::End(_) | ReType::Char(_) | ReType::String(_))
+        matches!(self, ReType::Empty | ReType::End(_) | ReType::Char(_) | ReType::CharRange(_) | ReType::String(_))
     }
 
     pub fn is_nullable(&self) -> Option<bool> {
         match self {
             ReType::Empty | ReType::Star => Some(true),
-            ReType::End(_) | ReType::Char(_) | ReType::String(_) | ReType::Plus => Some(false),
+            ReType::End(_) | ReType::Char(_) | ReType::CharRange(_) | ReType::String(_) | ReType::Plus => Some(false),
             _ => None
         }
     }
@@ -86,6 +122,7 @@ impl Display for ReType {
             ReType::Empty => write!(f, "-"),
             ReType::End(t) => write!(f, "{t}"),
             ReType::Char(c) => write!(f, "'{}'", escape_char(*c)),
+            ReType::CharRange(interval) => write!(f, "{interval}"),
             ReType::String(s) => write!(f, "'{}'", escape_string(&s)),
             ReType::Concat => write!(f, "&"),
             ReType::Star => write!(f, "*"),
@@ -277,7 +314,7 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
         if VERBOSE { println!("new DFA"); }
@@ -294,6 +331,8 @@ impl DfaBuilder {
             let new_state_id = states.get(&s).unwrap().clone();
             if VERBOSE { println!("state {} = {{{}}}", new_state_id, states_to_string(&s)); }
             let mut trans = BTreeMap::<&ReType, BTreeSet<Id>>::new();
+            // todo: use range instead of chars
+            //       check also https://simonsapin.github.io/wtf-8/#generalized-utf8
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if let Some(ids) = trans.get_mut(symbol) {
                     ids.insert(id);
@@ -346,7 +385,6 @@ impl DfaBuilder {
     pub fn build(&mut self) -> Dfa {
         self.calc_node_pos();
         self.calc_states()
-        // todo: do we want to optimize?
     }
 }
 
