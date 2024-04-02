@@ -7,6 +7,7 @@ pub mod io;
 pub mod lexgen;
 pub mod dfa;
 pub mod scan;
+mod intervals;
 
 // Regular expressions / DFA, See:
 // - https://blog.burntsushi.net/regex-internals/

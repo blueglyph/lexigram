@@ -3,6 +3,7 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use crate::{escape_char, escape_string};
+use crate::intervals::Intervals;
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 
@@ -38,34 +39,7 @@ impl Display for Terminal {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub struct Intervals(BTreeSet<(u32, u32)>);
-
-impl Intervals {
-    pub fn to_char(&self) -> Option<char> {
-        if self.0.len() == 1 {
-            let first = self.0.first().unwrap();
-            if first.0 == first.1 {
-                return char::from_u32(first.0)
-            }
-        }
-        None
-    }
-}
-
-impl Display for Intervals {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if let Some(c) = self.to_char() {
-            write!(f, "'{}'", escape_char(c))
-        } else {
-            write!(f, "[{}]", self.0.iter()
-                .map(|(a, b)| if a == b { format!("{}", escape_char(char::from_u32(*a).unwrap())) } else { format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap())) })
-                .collect::<Vec<_>>()
-                .join(", ")
-            )
-        }
-    }
-}
+// ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum ReType {
