@@ -1,13 +1,13 @@
 // Copyright 2023 Redglyph
 
-mod vectree;
-mod take_until;
+mod intervals;
 mod macros;
+mod take_until;
+mod vectree;
 pub mod io;
 pub mod lexgen;
 pub mod dfa;
 pub mod scan;
-mod intervals;
 
 // Regular expressions / DFA, See:
 // - https://blog.burntsushi.net/regex-internals/

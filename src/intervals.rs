@@ -294,10 +294,10 @@ mod tests {
     #[test]
     fn interval_intersect_corner() {
         let tests: Vec<(BTreeSet<(u32, u32)>, BTreeSet<(u32, u32)>, (BTreeSet<(u32, u32)>, BTreeSet<(u32, u32)>, BTreeSet<(u32, u32)>))> = vec![
-            (btreeset![], btreeset![],
-             (btreeset![], btreeset![], btreeset![])),
-            (btreeset![], btreeset![],
-             (btreeset![], btreeset![], btreeset![])),
+            (btreeset![(1, 50)], btreeset![(10, 20), (30, 40)],
+             (btreeset![(10, 20), (30, 40)], btreeset![(1, 9), (21, 29), (41, 50)], btreeset![])),
+            (btreeset![(1, 10), (11, 15), (16, 20), (21, 35), (36, 37), (38, 50)], btreeset![(10, 20), (30, 40)],
+             (btreeset![(10, 20), (30, 40)], btreeset![(1, 9), (21, 29), (41, 50)], btreeset![])),
             (btreeset![], btreeset![],
              (btreeset![], btreeset![], btreeset![])),
         ];
@@ -305,9 +305,12 @@ mod tests {
             let ab = Intervals(ab);
             let cd = Intervals(cd);
             let expected_cmp = IntervalsCmp { common: Intervals(expected_cmp.0), internal: Intervals(expected_cmp.1), external: Intervals(expected_cmp.2) };
-            let cmp = ab.intersect(&cd);
-
+            let mut cmp = ab.intersect(&cd);
+            cmp.normalize();
             assert_eq!(cmp, expected_cmp, "test {idx} failed");
+            let mut cmp = cd.intersect(&ab);
+            cmp.normalize();
+            assert_eq!(cmp, expected_cmp.inverse(), "test {idx} failed");
         }
     }
 }
