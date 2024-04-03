@@ -3,7 +3,7 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::ops::RangeInclusive;
-use crate::{escape_char, escape_string};
+use crate::{btreeset, escape_char, escape_string};
 use crate::intervals::Intervals;
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
@@ -347,46 +347,45 @@ impl DfaBuilder {
                 if let Some(ids) = trans.get_mut(symbol) {
                     ids.insert(id);
                 } else {
-                    let mut ids = BTreeSet::new();
-                    ids.insert(id);
-                    trans.insert(symbol, ids);
+                    trans.insert(symbol, btreeset![id]);
                 }
             }
-            // println!("  trans = {}", trans.iter()
-            //     .map(|(s, st)| format!("{}: {}", s, st.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(", ")))
-            //     .collect::<Vec<_>>().join("; ")
-            // );
             for (symbol, ids) in trans {
                 if VERBOSE { print!("  - {} in {}: ", symbol, states_to_string(&ids)); }
                 let mut state = BTreeSet::new();
                 for id in ids {
                     state.extend(&self.followpos[&id]);
                 }
-                if VERBOSE { print!("follow = {{{}}}", states_to_string(&state)); }
-                let state_id = if let Some(state_id) = states.get(&state) {
-                    if VERBOSE { println!(" => state {state_id}"); }
-                    *state_id
-                } else {
-                    new_states.insert(state.clone());
-                    current_id += 1;
-                    if VERBOSE { println!(" => new state {} = {{{}}}", current_id, states_to_string(&state)); }
-                    states.insert(state, current_id);
-                    current_id
-                };
-                if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
-                    // symbol.apply_chars(|c| { map.insert(c, state_id); });
-                    map.extend(symbol.chars().map(|c| (c, state_id)));
-                } else {
-                    let mut map = BTreeMap::new();
-                    // symbol.apply_chars(|c| { map.insert(c, state_id); });
-                    map.extend(symbol.chars().map(|c| (c, state_id)));
-                    dfa.state_graph.insert(new_state_id, map);
-                }
                 if symbol.is_end() {
+                    if VERBOSE { println!("end"); }
+                    if !dfa.state_graph.contains_key(&new_state_id) {
+                        dfa.state_graph.insert(new_state_id, BTreeMap::new());
+                    }
                     if let ReType::End(t) = symbol {
                         dfa.end_states.insert(new_state_id, *t.clone());
                     } else {
                         panic!("unexpected END symbol: {symbol:?}");
+                    }
+                } else {
+                    if VERBOSE { print!("follow = {{{}}}", states_to_string(&state)); }
+                    let state_id = if let Some(state_id) = states.get(&state) {
+                        if VERBOSE { println!(" => state {state_id}"); }
+                        *state_id
+                    } else {
+                        new_states.insert(state.clone());
+                        current_id += 1;
+                        if VERBOSE { println!(" => new state {} = {{{}}}", current_id, states_to_string(&state)); }
+                        states.insert(state, current_id);
+                        current_id
+                    };
+                    if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
+                        // symbol.apply_chars(|c| { map.insert(c, state_id); });
+                        map.extend(symbol.chars().map(|c| (c, state_id)));
+                    } else {
+                        let mut map = BTreeMap::new();
+                        // symbol.apply_chars(|c| { map.insert(c, state_id); });
+                        map.extend(symbol.chars().map(|c| (c, state_id)));
+                        dfa.state_graph.insert(new_state_id, map);
                     }
                 }
             }
