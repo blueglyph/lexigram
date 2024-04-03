@@ -2,6 +2,7 @@ pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
+use std::ops::RangeInclusive;
 use crate::{escape_char, escape_string};
 use crate::intervals::Intervals;
 use crate::vectree::VecTree;
@@ -81,9 +82,46 @@ impl ReType {
         matches!(self, ReType::End(_))
     }
 
-    pub fn decode_symbol(&self) -> Option<char> {
-        if let ReType::Char(c) = self {
-            Some(*c)
+    pub fn apply_chars<F: FnMut(char) -> ()>(&self, mut f: F) {
+        match self {
+            ReType::Char(c) => f(*c),
+            ReType::CharRange(i) => i.0.iter().flat_map(|(a, b)| (*a..=*b)).for_each(|code| f(char::from_u32(code).unwrap())),
+            _ => {}
+        }
+    }
+
+    pub fn chars(&self) -> ReTypeCharIter {
+        match self {
+            ReType::Char(c) => ReTypeCharIter { intervals: None, range: Some(*c as u32..=*c as u32) },
+            ReType::CharRange(i) => ReTypeCharIter { intervals: Some(i.0.clone()), range: None },
+            _ => ReTypeCharIter { intervals: None, range: None }
+        }
+    }
+}
+
+pub struct ReTypeCharIter {
+    intervals: Option<BTreeSet<(u32, u32)>>,
+    range: Option<RangeInclusive<u32>>
+}
+
+impl Iterator for ReTypeCharIter {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.range.is_none() {
+            if let Some(interval) = &mut self.intervals {
+                if let Some((a, b)) = interval.pop_first() {
+                    self.range = Some(a..=b);
+                }
+
+            }
+        }
+        if let Some(r) = &mut self.range {
+            let code = r.next();
+            if code.is_none() {
+                self.range = None;
+            }
+            code.map(|c| char::from_u32(c).unwrap())
         } else {
             None
         }
@@ -303,10 +341,8 @@ impl DfaBuilder {
         // unfold all the states
         while let Some(s) = new_states.pop_first() {
             let new_state_id = states.get(&s).unwrap().clone();
-            if VERBOSE { println!("state {} = {{{}}}", new_state_id, states_to_string(&s)); }
+            if VERBOSE { println!("- state {} = {{{}}}", new_state_id, states_to_string(&s)); }
             let mut trans = BTreeMap::<&ReType, BTreeSet<Id>>::new();
-            // todo: use range instead of chars
-            //       check also https://simonsapin.github.io/wtf-8/#generalized-utf8
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if let Some(ids) = trans.get_mut(symbol) {
                     ids.insert(id);
@@ -316,13 +352,17 @@ impl DfaBuilder {
                     trans.insert(symbol, ids);
                 }
             }
+            // println!("  trans = {}", trans.iter()
+            //     .map(|(s, st)| format!("{}: {}", s, st.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(", ")))
+            //     .collect::<Vec<_>>().join("; ")
+            // );
             for (symbol, ids) in trans {
-                if VERBOSE { println!("- {}, {}", symbol, states_to_string(&ids)); }
+                if VERBOSE { print!("  - {} in {}: ", symbol, states_to_string(&ids)); }
                 let mut state = BTreeSet::new();
                 for id in ids {
                     state.extend(&self.followpos[&id]);
                 }
-                if VERBOSE { print!("  - pos: {{{}}}", states_to_string(&state)); }
+                if VERBOSE { print!("follow = {{{}}}", states_to_string(&state)); }
                 let state_id = if let Some(state_id) = states.get(&state) {
                     if VERBOSE { println!(" => state {state_id}"); }
                     *state_id
@@ -334,14 +374,12 @@ impl DfaBuilder {
                     current_id
                 };
                 if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
-                    if !symbol.is_end() {
-                        map.insert(symbol.decode_symbol().unwrap(), state_id);
-                    }
+                    // symbol.apply_chars(|c| { map.insert(c, state_id); });
+                    map.extend(symbol.chars().map(|c| (c, state_id)));
                 } else {
                     let mut map = BTreeMap::new();
-                    if !symbol.is_end() {
-                        map.insert(symbol.decode_symbol().unwrap(), state_id);
-                    }
+                    // symbol.apply_chars(|c| { map.insert(c, state_id); });
+                    map.extend(symbol.chars().map(|c| (c, state_id)));
                     dfa.state_graph.insert(new_state_id, map);
                 }
                 if symbol.is_end() {
