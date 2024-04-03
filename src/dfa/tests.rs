@@ -341,7 +341,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc1), node![=0]);
         },
         14 => {
-            // \*/<end:0>|.+<end:1>
+            // \* /<end:0>|.+<end:1>
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(=0)]);
@@ -824,110 +824,110 @@ fn dfa_lastpos() {
 
 #[test]
 fn dfa_followpos() {
-    let tests = vec!{
-        (0, hashmap![
-            1 => hashset![1, 2, 3],
-            2 => hashset![1, 2, 3],
-            3 => hashset![4],
-            4 => hashset![5],
-            5 => hashset![6],
-            6 => hashset![]
+    let tests: Vec<(usize, BTreeMap<Id, BTreeSet<Id>>)> = vec!{
+        (0, btreemap![
+            1 => btreeset![1, 2, 3],
+            2 => btreeset![1, 2, 3],
+            3 => btreeset![4],
+            4 => btreeset![5],
+            5 => btreeset![6],
+            6 => btreeset![]
         ]),
-        (1, hashmap![
-            1 => hashset![1, 2, 3],
-            2 => hashset![1, 2, 3],
-            3 => hashset![4],
-            4 => hashset![5],
-            5 => hashset![6],
-            6 => hashset![]
+        (1, btreemap![
+            1 => btreeset![1, 2, 3],
+            2 => btreeset![1, 2, 3],
+            3 => btreeset![4],
+            4 => btreeset![5],
+            5 => btreeset![6],
+            6 => btreeset![]
         ]),
-        (2, hashmap![
-            1 => hashset![1, 2, 3],
-            2 => hashset![1, 2, 3],
-            3 => hashset![4],
-            4 => hashset![5],
-            5 => hashset![6],
-            6 => hashset![]
+        (2, btreemap![
+            1 => btreeset![1, 2, 3],
+            2 => btreeset![1, 2, 3],
+            3 => btreeset![4],
+            4 => btreeset![5],
+            5 => btreeset![6],
+            6 => btreeset![]
         ]),
         // "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'))"
-        (3, hashmap![
-            1 => hashset![2],
-            2 => hashset![3],
-            3 => hashset![4, 5],
-            4 => hashset![6],
-            5 => hashset![6],
-            6 => hashset![],
+        (3, btreemap![
+            1 => btreeset![2],
+            2 => btreeset![3],
+            3 => btreeset![4, 5],
+            4 => btreeset![6],
+            5 => btreeset![6],
+            6 => btreeset![],
         ]),
-        (4, hashmap![
-            1 => hashset![2, 3],
-            2 => hashset![4],
-            3 => hashset![4],
-            4 => hashset![],
+        (4, btreemap![
+            1 => btreeset![2, 3],
+            2 => btreeset![4],
+            3 => btreeset![4],
+            4 => btreeset![],
         ]),
         // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))"
-        (5, hashmap![
-            1 => hashset![2, 4],
-            2 => hashset![3],
-            3 => hashset![],
-            4 => hashset![5],
-            5 => hashset![],
+        (5, btreemap![
+            1 => btreeset![2, 4],
+            2 => btreeset![3],
+            3 => btreeset![],
+            4 => btreeset![5],
+            5 => btreeset![],
         ]),
         // "&(1:'a',|(&(2:'b',3:'c'),4:-),5:'d',6:<end>)"
-        (6, hashmap![
-            1 => hashset![2, 5],
-            2 => hashset![3],
-            3 => hashset![5],
-            5 => hashset![6],
-            6 => hashset![]
+        (6, btreemap![
+            1 => btreeset![2, 5],
+            2 => btreeset![3],
+            3 => btreeset![5],
+            5 => btreeset![6],
+            6 => btreeset![]
         ]),
         // "&(1:'a',|(&(2:'b',3:'c'),4:-),|(5:'d',6:-),7:'e',8:<end>)"
-        (7, hashmap![
-            1 => hashset![2, 5, 7],
-            2 => hashset![3],
-            3 => hashset![5, 7],
-            5 => hashset![7],
-            7 => hashset![8],
-            8 => hashset![]
+        (7, btreemap![
+            1 => btreeset![2, 5, 7],
+            2 => btreeset![3],
+            3 => btreeset![5, 7],
+            5 => btreeset![7],
+            7 => btreeset![8],
+            8 => btreeset![]
         ]),
         // "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"
-        (8, hashmap![
-            1 => hashset![2, 3],
-            2 => hashset![],
-            3 => hashset![4],
-            4 => hashset![],
+        (8, btreemap![
+            1 => btreeset![2, 3],
+            2 => btreeset![],
+            3 => btreeset![4],
+            4 => btreeset![],
         ]),
         // "&(1:'a',+(|(2:'b',3:'c')),4:'d')"
-        (9, hashmap![
-            1 => hashset![2, 3],
-            2 => hashset![2, 3, 4],
-            3 => hashset![2, 3, 4],
-            4 => hashset![5],
-            5 => hashset![]
+        (9, btreemap![
+            1 => btreeset![2, 3],
+            2 => btreeset![2, 3, 4],
+            3 => btreeset![2, 3, 4],
+            4 => btreeset![5],
+            5 => btreeset![]
         ]),
         // "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:2>),&(&(12:'a',13:'b'),14:<end:3>))"
-        (12, hashmap![
-            1  => hashset![2],
-            2  => hashset![3],
-            3  => hashset![4],
-            4  => hashset![],
-            5  => hashset![6],
-            6  => hashset![7],
-            7  => hashset![8],
-            8  => hashset![],
-            9  => hashset![10],
-            10 => hashset![11],
-            11 => hashset![],
-            12 => hashset![13],
-            13 => hashset![14],
-            14 => hashset![],
+        (12, btreemap![
+            1  => btreeset![2],
+            2  => btreeset![3],
+            3  => btreeset![4],
+            4  => btreeset![],
+            5  => btreeset![6],
+            6  => btreeset![7],
+            7  => btreeset![8],
+            8  => btreeset![],
+            9  => btreeset![10],
+            10 => btreeset![11],
+            11 => btreeset![],
+            12 => btreeset![13],
+            13 => btreeset![14],
+            14 => btreeset![],
         ]),
         // \*/<end:0>|.+<end:1>
-        (14, hashmap![
-            1 => hashset![2],
-            2 => hashset![3],
-            3 => hashset![],
-            4 => hashset![4, 5],
-            5 => hashset![],
+        (14, btreemap![
+            1 => btreeset![2],
+            2 => btreeset![3],
+            3 => btreeset![],
+            4 => btreeset![4, 5],
+            5 => btreeset![],
         ]),
         // "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"
         (15, hashmap![
@@ -937,6 +937,13 @@ fn dfa_followpos() {
             4 => hashset![4, 5, 6],
             5 => hashset![4, 5, 6],
             6 => hashset![]
+        (15, btreemap![
+            1 => btreeset![1, 2, 3],
+            2 => btreeset![1, 2, 3],
+            3 => btreeset![],
+            4 => btreeset![4, 5, 6],
+            5 => btreeset![4, 5, 6],
+            6 => btreeset![]
         ]),
     };
     for (test_id, expected) in tests.into_iter() {
@@ -944,9 +951,8 @@ fn dfa_followpos() {
         let mut dfa_builder = DfaBuilder::new(re);
         dfa_builder.calc_node_pos();
         // to keep some things in order (easier for comparing):
-        let res = BTreeMap::from_iter(dfa_builder.followpos);
-        let exp = BTreeMap::from_iter(expected);
-        assert_eq!(res, exp, "test {test_id} failed");
+        let res = BTreeMap::from_iter(dfa_builder.followpos.into_iter().map(|(s, st)| (s, BTreeSet::from_iter(st))));
+        assert_eq!(res, expected, "test {test_id} failed");
     }
 }
 
@@ -1137,10 +1143,10 @@ fn dfa_states() {
     const VERBOSE: bool = true;
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
+        if VERBOSE { println!("{test_id}:"); }
         let mut dfa_builder = DfaBuilder::new(re);
         let dfa = dfa_builder.build();
         if VERBOSE {
-            println!("{test_id}:");
             print_graph(&dfa);
             println!();
         }
