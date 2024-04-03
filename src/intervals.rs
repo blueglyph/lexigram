@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 use std::fmt::{Display, Formatter};
-use std::ops::{Deref, DerefMut};
+use std::ops::{Deref, DerefMut, RangeInclusive};
 use crate::{btreeset, escape_char};
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
@@ -139,6 +139,10 @@ impl Intervals {
             self.0 = new;
         }
     }
+
+    pub fn chars(&self) -> ReTypeCharIter {
+        ReTypeCharIter { intervals: Some(self.0.clone()), range: None }
+    }
 }
 
 impl Deref for Intervals {
@@ -201,6 +205,35 @@ impl IntervalsCmp {
 impl Display for IntervalsCmp {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "<common: {}, internal: {}, external: {}>", self.common, self.internal, self.external)
+    }
+}
+
+pub struct ReTypeCharIter {
+    intervals: Option<BTreeSet<(u32, u32)>>,
+    range: Option<RangeInclusive<u32>>
+}
+
+impl Iterator for ReTypeCharIter {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.range.is_none() {
+            if let Some(interval) = &mut self.intervals {
+                if let Some((a, b)) = interval.pop_first() {
+                    self.range = Some(a..=b);
+                }
+
+            }
+        }
+        if let Some(r) = &mut self.range {
+            let code = r.next();
+            if code.is_none() {
+                self.range = None;
+            }
+            code.map(|c| char::from_u32(c).unwrap())
+        } else {
+            None
+        }
     }
 }
 

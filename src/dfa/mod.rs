@@ -82,51 +82,51 @@ impl ReType {
         matches!(self, ReType::End(_))
     }
 
-    pub fn apply_chars<F: FnMut(char) -> ()>(&self, mut f: F) {
-        match self {
-            ReType::Char(c) => f(*c),
-            ReType::CharRange(i) => i.0.iter().flat_map(|(a, b)| (*a..=*b)).for_each(|code| f(char::from_u32(code).unwrap())),
-            _ => {}
-        }
-    }
-
-    pub fn chars(&self) -> ReTypeCharIter {
-        match self {
-            ReType::Char(c) => ReTypeCharIter { intervals: None, range: Some(*c as u32..=*c as u32) },
-            ReType::CharRange(i) => ReTypeCharIter { intervals: Some(i.0.clone()), range: None },
-            _ => ReTypeCharIter { intervals: None, range: None }
-        }
-    }
+    // pub fn apply_chars<F: FnMut(char) -> ()>(&self, mut f: F) {
+    //     match self {
+    //         ReType::Char(c) => f(*c),
+    //         ReType::CharRange(i) => i.0.iter().flat_map(|(a, b)| (*a..=*b)).for_each(|code| f(char::from_u32(code).unwrap())),
+    //         _ => {}
+    //     }
+    // }
+    //
+    // pub fn chars(&self) -> ReTypeCharIter {
+    //     match self {
+    //         ReType::Char(c) => ReTypeCharIter { intervals: None, range: Some(*c as u32..=*c as u32) },
+    //         ReType::CharRange(i) => ReTypeCharIter { intervals: Some(i.0.clone()), range: None },
+    //         _ => ReTypeCharIter { intervals: None, range: None }
+    //     }
+    // }
 }
 
-pub struct ReTypeCharIter {
-    intervals: Option<BTreeSet<(u32, u32)>>,
-    range: Option<RangeInclusive<u32>>
-}
-
-impl Iterator for ReTypeCharIter {
-    type Item = char;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.range.is_none() {
-            if let Some(interval) = &mut self.intervals {
-                if let Some((a, b)) = interval.pop_first() {
-                    self.range = Some(a..=b);
-                }
-
-            }
-        }
-        if let Some(r) = &mut self.range {
-            let code = r.next();
-            if code.is_none() {
-                self.range = None;
-            }
-            code.map(|c| char::from_u32(c).unwrap())
-        } else {
-            None
-        }
-    }
-}
+// pub struct ReTypeCharIter {
+//     intervals: Option<BTreeSet<(u32, u32)>>,
+//     range: Option<RangeInclusive<u32>>
+// }
+//
+// impl Iterator for ReTypeCharIter {
+//     type Item = char;
+//
+//     fn next(&mut self) -> Option<Self::Item> {
+//         if self.range.is_none() {
+//             if let Some(interval) = &mut self.intervals {
+//                 if let Some((a, b)) = interval.pop_first() {
+//                     self.range = Some(a..=b);
+//                 }
+//
+//             }
+//         }
+//         if let Some(r) = &mut self.range {
+//             let code = r.next();
+//             if code.is_none() {
+//                 self.range = None;
+//             }
+//             code.map(|c| char::from_u32(c).unwrap())
+//         } else {
+//             None
+//         }
+//     }
+// }
 
 impl Display for ReType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -404,7 +404,7 @@ impl DfaBuilder {
             //      - 'e' => f(1)f(3)f(4)
             //      trans = [['a'-'c'] => f(1), 'd' => f(1)f(3), 'e' => f(1)f(3)f(4), 'f' => f(1)f(3), ['g'-'i'] => f(3)]
 
-            let mut trans = BTreeMap::<ReType, BTreeSet<Id>>::new();
+            let mut trans = BTreeMap::<Intervals, BTreeSet<Id>>::new();
             for (mut symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 /*
                 if let ReType::CharRange(intervals) = symbol {
@@ -425,10 +425,14 @@ impl DfaBuilder {
                         panic!("unexpected END symbol: {symbol:?}");
                     }
                 } else {
-                    if let Some(ids) = trans.get_mut(&symbol) {
-                        ids.insert(id);
+                    if let ReType::CharRange(intervals) = symbol {
+                        if let Some(ids) = trans.get_mut(&intervals) {
+                            ids.insert(id);
+                        } else {
+                            trans.insert(intervals.as_ref().clone(), btreeset![id]);
+                        }
                     } else {
-                        trans.insert(symbol.clone(), btreeset![id]);
+                        panic!("unexpected symbol {symbol:?}");
                     }
                 }
             }
