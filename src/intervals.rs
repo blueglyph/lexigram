@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut};
 use crate::{btreeset, escape_char};
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub struct Intervals(BTreeSet<(u32, u32)>);
+pub struct Intervals(pub BTreeSet<(u32, u32)>);
 
 impl Intervals {
     pub fn empty() -> Intervals {
@@ -28,7 +28,7 @@ impl Intervals {
     pub fn to_char(&self) -> Option<char> {
         if self.len() == 1 {
             let first = self.first().unwrap();
-            if first == first {
+            if first.0 == first.1 {
                 return char::from_u32(first.0)
             }
         }
