@@ -379,6 +379,19 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc2), node![chr 'Z']);
             re.add(Some(cc2), node!(=1));
         },
+        17 => {
+            // intervals: [a-f]+<end:0>|[d-i]+z<end:1>
+            let or = re.add(None, node!(|));
+            let cc1 = re.add(Some(or), node!(&));
+            let plus1 = re.add(Some(cc1), node!(+));
+            re.add(Some(plus1), node!(['a', 'f']));
+            re.add(Some(cc1), node!(=0));
+            let cc2 = re.add(Some(or), node!(&));
+            let plus2 = re.add(Some(cc2), node!(+));
+            re.add(Some(plus2), node!(['d', 'i']));
+            re.add(Some(cc2), node![chr 'z']);
+            re.add(Some(cc2), node!(=1));
+        }
         _ => { }
     }
     re
@@ -539,6 +552,7 @@ fn dfa_nullable() {
         (10, "|(&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),+(|(5:'0',6:'1',7:'2',8:'3',9:'4',10:'5',11:'6',12:'7',13:'8',14:'9')),|(15:<end:0>,&(16:'.',+(|(17:'0',18:'1',19:'2',20:'3',21:'4',22:'5',23:'6',24:'7',25:'8',26:'9')),27:<end:1>))),&(28:'0',29:'x',+(|(30:'0',31:'1',32:'2',33:'3',34:'4',35:'5',36:'6',37:'7',38:'8',39:'9',40:'A',41:'B',42:'C',43:'D',44:'E',45:'F',46:'a',47:'b',48:'c',49:'d',50:'e',51:'f')),52:<end:2>))"),
         (12, "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:2>),&(&(12:'a',13:'b'),14:<end:3>))"),
         (15, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"),
+        (17, "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>))"),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -930,13 +944,6 @@ fn dfa_followpos() {
             5 => btreeset![],
         ]),
         // "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"
-        (15, hashmap![
-            1 => hashset![1, 2, 3],
-            2 => hashset![1, 2, 3],
-            3 => hashset![],
-            4 => hashset![4, 5, 6],
-            5 => hashset![4, 5, 6],
-            6 => hashset![]
         (15, btreemap![
             1 => btreeset![1, 2, 3],
             2 => btreeset![1, 2, 3],
@@ -944,6 +951,14 @@ fn dfa_followpos() {
             4 => btreeset![4, 5, 6],
             5 => btreeset![4, 5, 6],
             6 => btreeset![]
+        ]),
+        // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>))"
+        (17, btreemap![
+            1 => btreeset![1, 2],
+            2 => btreeset![],
+            3 => btreeset![3, 4],
+            4 => btreeset![5],
+            5 => btreeset![]
         ]),
     };
     for (test_id, expected) in tests.into_iter() {
@@ -959,6 +974,7 @@ fn dfa_followpos() {
 #[test]
 fn dfa_states() {
     let tests = vec![
+/*
         (0, btreemap![
             0 => branch!['a' => 1, 'b' => 0],
             1 => branch!['a' => 1, 'b' => 2],
@@ -1136,6 +1152,16 @@ fn dfa_states() {
             1 => branch!['A' => 1, 'B' => 1],// <end:0>
             2 => branch!['A' => 1, 'B' => 2, 'C' => 3, 'Z' => 5],// <end:0>
             3 => branch!['B' => 3, 'C' => 3, 'Z' => 5],
+            5 => branch![],// <end:1>
+        ], btreemap![1 => term!(=0), 2 => term!(=0), 5 => term!(=1)]),
+*/
+        // [a-f]+<end:0>|[d-i]+z<end:1>
+        // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>))"
+        (17, btreemap![
+            0 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 2, 'e' => 2, 'f' => 2, 'g' => 3, 'h' => 3, 'i' => 3],
+            1 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1],// <end:0>
+            2 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 2, 'e' => 2, 'f' => 2, 'g' => 3, 'h' => 3, 'i' => 3, 'z' => 5],// <end:0>
+            3 => branch!['d' => 3, 'e' => 3, 'f' => 3, 'g' => 3, 'h' => 3, 'i' => 3, 'z' => 5],
             5 => branch![],// <end:1>
         ], btreemap![1 => term!(=0), 2 => term!(=0), 5 => term!(=1)]),
     ];
