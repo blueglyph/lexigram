@@ -25,6 +25,10 @@ impl Intervals {
         }
     }
 
+    pub fn from_char(char: char) -> Self {
+        Intervals(btreeset![(char as u32, char as u32)])
+    }
+
     pub fn to_char(&self) -> Option<char> {
         if self.len() == 1 {
             let first = self.first().unwrap();
@@ -157,7 +161,7 @@ impl Display for Intervals {
             write!(f, "'{}'", escape_char(c))
         } else {
             write!(f, "[{}]", self.0.iter()
-                .map(|(a, b)| if a == b { format!("{}", escape_char(char::from_u32(*a).unwrap())) } else { format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap())) })
+                .map(|(a, b)| if a == b { format!("'{}'", escape_char(char::from_u32(*a).unwrap())) } else { format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap())) })
                 .collect::<Vec<_>>()
                 .join(", ")
             )
