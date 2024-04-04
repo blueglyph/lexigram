@@ -226,23 +226,16 @@ impl Iterator for ReTypeCharIter {
     type Item = char;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.range.is_none() {
+        let mut next = self.range.as_mut().and_then(|r| r.next());
+        if next.is_none() {
             if let Some(interval) = &mut self.intervals {
                 if let Some((a, b)) = interval.pop_first() {
                     self.range = Some(a..=b);
+                    next = self.range.as_mut().and_then(|r| r.next());
                 }
-
             }
         }
-        if let Some(r) = &mut self.range {
-            let code = r.next();
-            if code.is_none() {
-                self.range = None;
-            }
-            code.map(|c| char::from_u32(c).unwrap())
-        } else {
-            None
-        }
+        next.map(|code| char::from_u32(code).unwrap())
     }
 }
 
@@ -357,6 +350,21 @@ mod tests {
             let mut cmp = cd.intersect(&ab);
             cmp.normalize();
             assert_eq!(cmp, expected_cmp.inverse(), "test {idx} failed");
+        }
+    }
+
+    #[test]
+    fn interval_chars() {
+        let tests = vec![
+            (btreeset![('a', 'a')], "a"),
+            (btreeset![('a', 'd')], "abcd"),
+            (btreeset![('a', 'c'), ('x', 'z')], "abcxyz"),
+            (btreeset![('a', 'b'), ('d', 'd'), ('f', 'f'), ('x', 'z')], "abdfxyz"),
+        ];
+        for (idx, (set, expected)) in tests.into_iter().enumerate() {
+            let intervals = Intervals(set.into_iter().map(|(a, b)| (a as u32, b as u32)).collect());
+            let result = intervals.chars().collect::<String>();
+            assert_eq!(result, expected, "test {idx} failed");
         }
     }
 }
