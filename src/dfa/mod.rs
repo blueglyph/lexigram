@@ -308,13 +308,7 @@ impl DfaBuilder {
                 node.op = ReType::CharRange(Box::new(Intervals::from_char(c)));
             }
             if let ReType::CharRange(intervals) = &node.op {
-                let cmp = symbols_part.intersect(&intervals);
-                if !(cmp.common.is_empty() && cmp.external.is_empty()) {
-                    symbols_part.clear();
-                    symbols_part.extend(cmp.internal.0);
-                    symbols_part.extend(cmp.common.0);
-                    symbols_part.extend(cmp.external.0);
-                }
+                symbols_part.partition(&intervals);
             }
         }
         if VERBOSE { println!("symbols = {symbols_part}"); }

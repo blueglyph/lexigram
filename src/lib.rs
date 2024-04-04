@@ -1,6 +1,6 @@
 // Copyright 2023 Redglyph
 
-mod intervals;
+pub mod intervals;
 mod macros;
 mod take_until;
 mod vectree;

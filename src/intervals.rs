@@ -122,6 +122,35 @@ impl Intervals {
         result
     }
 
+    /// Partitions the intervals in fonction of `other`'s intervals, splitting the current segments
+    /// according to `other` and adding intervals from `other`. Can be used iteratively on a collection
+    /// of Intervals to obtain a partition of their segments.
+    ///
+    /// Returns `true` if the intervals were modified.
+    ///
+    /// Example:
+    /// ```
+    /// use std::collections::BTreeSet;
+    /// use rlexer::intervals::Intervals;
+    ///
+    /// let mut a = Intervals(BTreeSet::from([(0, 10), (20, 30)]));
+    /// let b = Intervals(BTreeSet::from([(5, 6), (15, 25)]));
+    /// assert!(a.partition(&b));
+    /// assert_eq!(a.0, BTreeSet::<(u32, u32)>::from([(0, 4), (5, 6), (7, 10), (15, 19), (20, 25), (26, 30)]));
+    /// ```
+    pub fn partition(&mut self, other: &Self) -> bool {
+        let cmp = self.intersect(other);
+        if !(cmp.common.is_empty() && cmp.external.is_empty()) {
+            self.clear();
+            self.extend(cmp.internal.0);
+            self.extend(cmp.common.0);
+            self.extend(cmp.external.0);
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn normalize(&mut self) {
         if !self.is_empty() {
             let mut new = BTreeSet::<(u32, u32)>::new();
@@ -350,6 +379,25 @@ mod tests {
             let mut cmp = cd.intersect(&ab);
             cmp.normalize();
             assert_eq!(cmp, expected_cmp.inverse(), "test {idx} failed");
+        }
+    }
+
+    #[test]
+    fn interval_partition() {
+        let tests: Vec<(Vec<(u32, u32)>, Vec<(u32, u32)>, Vec<(u32, u32)>)> = vec![
+            (vec![(1, 4)], vec![(3, 6)], vec![(1, 2), (3, 4), (5, 6)]),
+            (vec![(1, 4)], vec![(5, 6)], vec![(1, 4), (5, 6)]),
+            (vec![(1, 6)], vec![(3, 4)], vec![(1, 2), (3, 4), (5, 6)]),
+            (vec![(1, 4), (5, 10)], vec![], vec![(1, 4), (5, 10)]),
+            (vec![], vec![(1, 4), (5, 10)], vec![(1, 4), (5, 10)]),
+            (vec![(1, 4), (5, 10)], vec![(3, 5)], vec![(1, 2), (3, 4), (5, 5), (6, 10)]),
+        ];
+        for (idx, (ab, cd, exp)) in tests.into_iter().enumerate() {
+            let mut ab = Intervals(BTreeSet::<(u32, u32)>::from_iter(ab));
+            let cd = Intervals(BTreeSet::from_iter(cd));
+            ab.partition(&cd);
+            let expected = Intervals(BTreeSet::from_iter(exp));
+            assert_eq!(ab, expected, "test {idx} failed");
         }
     }
 
