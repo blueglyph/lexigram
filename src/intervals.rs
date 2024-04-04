@@ -159,13 +159,22 @@ impl DerefMut for Intervals {
     }
 }
 
+#[inline]
+pub fn segment_to_string((a, b): &(u32, u32)) -> String {
+    if a == b {
+        format!("'{}'", escape_char(char::from_u32(*a).unwrap()))
+    } else {
+        format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap()))
+    }
+}
+
 impl Display for Intervals {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(c) = self.to_char() {
             write!(f, "'{}'", escape_char(c))
         } else {
             write!(f, "[{}]", self.0.iter()
-                .map(|(a, b)| if a == b { format!("'{}'", escape_char(char::from_u32(*a).unwrap())) } else { format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap())) })
+                .map(|seg| segment_to_string(seg))
                 .collect::<Vec<_>>()
                 .join(", ")
             )

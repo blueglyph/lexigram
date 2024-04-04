@@ -2,9 +2,8 @@ pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use std::ops::RangeInclusive;
 use crate::{btreeset, escape_char, escape_string};
-use crate::intervals::Intervals;
+use crate::intervals::{Intervals, segment_to_string};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 
@@ -326,7 +325,7 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
         if VERBOSE { println!("new DFA"); }
@@ -341,7 +340,7 @@ impl DfaBuilder {
         // changes Char to CharRange and get a symbol partition
         let mut symbols_part = Intervals::empty();
         for id in self.ids.values() {
-            let mut node = self.re.get_mut(*id);
+            let node = self.re.get_mut(*id);
             if let ReType::Char(c) = node.op {
                 node.op = ReType::CharRange(Box::new(Intervals::from_char(c)));
             }
@@ -355,7 +354,7 @@ impl DfaBuilder {
                 }
             }
         }
-        if VERBOSE { println!("  symbols = {symbols_part}"); }
+        if VERBOSE { println!("symbols = {symbols_part}"); }
 
         // unfold all the states
         while let Some(s) = new_states.pop_first() {
@@ -404,19 +403,11 @@ impl DfaBuilder {
             //      - 'e' => f(1)f(3)f(4)
             //      trans = [['a'-'c'] => f(1), 'd' => f(1)f(3), 'e' => f(1)f(3)f(4), 'f' => f(1)f(3), ['g'-'i'] => f(3)]
 
-            let mut trans = BTreeMap::<Intervals, BTreeSet<Id>>::new();
-            for (mut symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
-                /*
-                if let ReType::CharRange(intervals) = symbol {
-                    let cmp = intervals.intersect(&symbols_part);
-                    assert!(cmp.internal.is_empty(), "{symbols_part} # {intervals} = {cmp}");
-
-                }
-                todo!(replace what's following with range logic above (and trans -> <Intervals -> Ids>));
-                */
+            let mut trans = BTreeMap::<(u32, u32), BTreeSet<Id>>::new();
+            for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if symbol.is_end() {
-                    if VERBOSE { println!("end"); }
                     if !dfa.state_graph.contains_key(&new_state_id) {
+                        if VERBOSE { println!("  - {symbol} => create state {new_state_id}"); }
                         dfa.state_graph.insert(new_state_id, BTreeMap::new());
                     }
                     if let ReType::End(t) = symbol {
@@ -426,18 +417,22 @@ impl DfaBuilder {
                     }
                 } else {
                     if let ReType::CharRange(intervals) = symbol {
-                        if let Some(ids) = trans.get_mut(&intervals) {
-                            ids.insert(id);
-                        } else {
-                            trans.insert(intervals.as_ref().clone(), btreeset![id]);
+                        let cmp = intervals.intersect(&symbols_part);
+                        //if VERBOSE { println!("  cmp: {cmp}"); }
+                        assert!(cmp.internal.is_empty(), "{symbols_part} # {intervals} = {cmp}");
+                        for segment in cmp.common.0.into_iter() {
+                            if let Some(ids) = trans.get_mut(&segment) {
+                                ids.insert(id);
+                            } else {
+                                trans.insert(segment, btreeset![id]);
+                            }
                         }
-                    } else {
-                        panic!("unexpected symbol {symbol:?}");
+
                     }
                 }
             }
-            for (symbol, ids) in trans {
-                if VERBOSE { print!("  - {} in {}: ", symbol, states_to_string(&ids)); }
+            for (segment, ids) in trans {
+                if VERBOSE { print!("  - {} in {}: ", segment_to_string(&segment), states_to_string(&ids)); }
                 let mut state = BTreeSet::new();
                 for id in ids {
                     state.extend(&self.followpos[&id]);
@@ -455,11 +450,13 @@ impl DfaBuilder {
                 };
                 if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
                     // symbol.apply_chars(|c| { map.insert(c, state_id); });
-                    map.extend(symbol.chars().map(|c| (c, state_id)));
+                    //map.extend(segment.chars().map(|c| (c, state_id)));
+                    map.extend((segment.0..=segment.1).map(|code| (char::from_u32(code).unwrap(), state_id)));
                 } else {
                     let mut map = BTreeMap::new();
                     // symbol.apply_chars(|c| { map.insert(c, state_id); });
-                    map.extend(symbol.chars().map(|c| (c, state_id)));
+                    // map.extend(segment.chars().map(|c| (c, state_id)));
+                    map.extend((segment.0..=segment.1).map(|code| (char::from_u32(code).unwrap(), state_id)));
                     dfa.state_graph.insert(new_state_id, map);
                 }
             }
@@ -756,4 +753,3 @@ impl Dfa {
 fn states_to_string<T: Display>(s: &BTreeSet<T>) -> String {
     s.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(", ")
 }
-

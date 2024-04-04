@@ -497,8 +497,7 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
 #[allow(unused)]
 pub(crate) fn print_graph(dfa: &Dfa) {
     // println!("  graph:      {:?}", dfa.state_graph);
-    println!("  end states: {}", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).collect::<Vec<_>>().join(", "));
-    println!();
+    println!("Graph:");
     for (state, trans) in dfa.state_graph.clone() {
         // println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
         // for (symbol, dest) in trans {
@@ -508,9 +507,10 @@ pub(crate) fn print_graph(dfa: &Dfa) {
                  state,
                  trans.iter().map(|(sym, st)| format!("'{}' => {}", escape_char(*sym), st))
                      .collect::<Vec<_>>().join(", "),
-                 dfa.end_states.get(&state).map(|token| format!("// {}", token)).unwrap_or("".to_string()),
+                 dfa.end_states.get(&state).map(|token| format!(" // {}", token)).unwrap_or("".to_string()),
         );
     }
+    println!("End states: [{}]", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).collect::<Vec<_>>().join(", "));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -993,7 +993,6 @@ fn dfa_followpos() {
 #[test]
 fn dfa_states() {
     let tests = vec![
-
         (0, btreemap![
             0 => branch!['a' => 1, 'b' => 0],
             1 => branch!['a' => 1, 'b' => 2],
@@ -1129,7 +1128,6 @@ fn dfa_states() {
             2 => branch!['A' => 1, 'B' => 2, 'C' => 3],// <end:1>
             3 => branch!['B' => 3, 'C' => 3],// <end:1>
         ], btreemap![1 => term!(=0), 2 => term!(=1), 3 => term!(=1)]),
-
         // [A-B]+<end:0>|[B-C]+Z<end:1>
         // "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"
         (16, btreemap![
@@ -1139,19 +1137,28 @@ fn dfa_states() {
             3 => branch!['B' => 3, 'C' => 3, 'Z' => 4],
             4 => branch![],// <end:1>
         ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)]),
-
+        // intervals: [a-f]+<end:0>|[d-i]+z<end:1>|ey<end:2>
+        // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"
+        (17, btreemap![
+            0 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 2, 'e' => 3, 'f' => 2, 'g' => 4, 'h' => 4, 'i' => 4],
+            1 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1],// <end:0>
+            2 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 2, 'e' => 2, 'f' => 2, 'g' => 4, 'h' => 4, 'i' => 4, 'z' => 5],// <end:0>
+            3 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 2, 'e' => 2, 'f' => 2, 'g' => 4, 'h' => 4, 'i' => 4, 'y' => 6, 'z' => 5],// <end:0>
+            4 => branch!['d' => 4, 'e' => 4, 'f' => 4, 'g' => 4, 'h' => 4, 'i' => 4, 'z' => 5],
+            5 => branch![],// <end:1>
+            6 => branch![],// <end:2>
+        ], btreemap![1 => term!(=0), 2 => term!(=0), 3 => term!(=0), 5 => term!(=1), 6 => term!(=2)]),
         // [a-f]+<end:0>|[d-i]+z<end:1>
         // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>))"
-        // (17, btreemap![
-        //     0 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 2, 'e' => 2, 'f' => 2, 'g' => 3, 'h' => 3, 'i' => 3],
-        //     1 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1],// <end:0>
-        //     2 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 2, 'e' => 2, 'f' => 2, 'g' => 3, 'h' => 3, 'i' => 3, 'z' => 4],// <end:0>
-        //     3 => branch!['d' => 3, 'e' => 3, 'f' => 3, 'g' => 3, 'h' => 3, 'i' => 3, 'z' => 4],
-        //     4 => branch![],// <end:1>
-        // ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)]),
-
+        (18, btreemap![
+            0 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 2, 'e' => 2, 'f' => 2, 'g' => 3, 'h' => 3, 'i' => 3],
+            1 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1],// <end:0>
+            2 => branch!['a' => 1, 'b' => 1, 'c' => 1, 'd' => 2, 'e' => 2, 'f' => 2, 'g' => 3, 'h' => 3, 'i' => 3, 'z' => 4],// <end:0>
+            3 => branch!['d' => 3, 'e' => 3, 'f' => 3, 'g' => 3, 'h' => 3, 'i' => 3, 'z' => 4],
+            4 => branch![],// <end:1>
+        ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
         if VERBOSE { println!("{test_id}:"); }
@@ -1338,7 +1345,19 @@ fn dfa_optimize_graphs() {
             4 => branch![],// <end:1>
             5 => branch![],// <end:0>
         ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=1), 5 => term!(=0)],
-        )
+        ),
+
+        (17, btreemap![], btreemap![],
+         btreemap![
+            0 => branch!['a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 4, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1],
+            1 => branch!['d' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'z' => 5],
+            2 => branch!['a' => 2, 'b' => 2, 'c' => 2, 'd' => 2, 'e' => 2, 'f' => 2], // <end:0>
+            3 => branch!['a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 3, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1, 'z' => 5], // <end:0>
+            4 => branch!['a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 3, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1, 'y' => 6, 'z' => 5], // <end:0>
+            5 => branch![], // <end:1>
+            6 => branch![], // <end:2>
+        ], btreemap![2 => term!(=0), 3 => term!(=0), 4 => term!(=0), 5 => term!(=1), 6 => term!(=2)]),
+
     ];
     for (test_id, mut graph, mut end_states, exp_graph, exp_end_states) in tests {
         if VERBOSE { println!("{test_id}:"); }
