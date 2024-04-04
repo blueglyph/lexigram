@@ -337,7 +337,7 @@ impl DfaBuilder {
         states.insert(key, current_id);
         dfa.initial_state = Some(current_id);
 
-        // changes Char to CharRange and get a symbol partition
+        // gets a partition of the symbol segments and changes Char to CharRange
         let mut symbols_part = Intervals::empty();
         for id in self.ids.values() {
             let node = self.re.get_mut(*id);
@@ -356,53 +356,10 @@ impl DfaBuilder {
         }
         if VERBOSE { println!("symbols = {symbols_part}"); }
 
-        // unfold all the states
+        // prepares the segments and their source ids
         while let Some(s) = new_states.pop_first() {
             let new_state_id = states.get(&s).unwrap().clone();
             if VERBOSE { println!("- state {} = {{{}}}", new_state_id, states_to_string(&s)); }
-
-            // ex: for (symbol, id) in [ (['a'-'f'], 1), (['d'-'i'], 3), (['e'], 4) ]:
-            // 1)
-            // - (['a'-'f'], 1):
-            //     trans = [['a'-'f'] => f(1)]
-            //
-            // - symbol = ['d'-'i'], id = 3:
-            //     - other = ['a'-'f'] => f(1)
-            //         common = ['d'-'f']  -> trans.insert ['d'-'f'] => f(1) + f(3)
-            //         intern = ['g'-'i']  -> symbol = ['g'-'i']
-            //         extern = ['a'-'c']  -> other  = ['a'-'c'] => f(1)
-            //     trans = [['a'-'c'] => f(1), ['d'-'f'] => f(1) + f(3), ['g'-'i'] => f(3)]
-            //
-            // - symbol = ['e'], id = 4
-            //     - other = ['a'-'c'] => f(1)
-            //     - other = ['d'-'f'] => f(1) + f(3)
-            //         common = ['e']      -> trans.insert ['e'] => f(1) + f(3) + f(4)
-            //         intern = []
-            //         extern = ['d', 'f'] -> other = ['d', 'f'] => f(1) + f(3)
-            //     - no need to continue since symbol is empty
-            //     trans = [['a'-'c'] => f(1), ['d', 'f'] => f(1) + f(3), ['g'-'i'] => f(3), ['e'] => f(1) + f(3) + f(4)]
-            //
-            // 2) partition = ['a'-'c', 'd', 'e', 'f', 'g'-'i', 'y', 'z']
-            //
-            // - symbol = ['a'-'f'], id = 1:
-            //      common:   ['a'-'c', 'd', 'e', 'f'] -> new symbol
-            //      internal: [] -> should always be empty
-            //      external: ['g'-'i', 'y', 'z'] -> don't care
-            //      trans = ['a'-'c' => f(1), 'd' => f(1), 'e' => f(1), 'f' => f(1)]
-            //
-            // - symbol = ['d'-'i'], id = 3:
-            //      common:   ['d', 'e', 'f', 'g'-'i'] -> new symbol
-            //      - 'd' => f(1)f(3)
-            //      - 'e' => f(1)f(3)
-            //      - 'f' => f(1)f(3)
-            //      - 'g'-'i' => f(3)
-            //      trans = [['a'-'c'] => f(1), 'd' => f(1)f(3), 'e' => f(1)f(3), 'f' => f(1)f(3), ['g'-'i'] => f(3)]
-            //
-            // - symbol = ['e'], id = 4
-            //      common: ['e']
-            //      - 'e' => f(1)f(3)f(4)
-            //      trans = [['a'-'c'] => f(1), 'd' => f(1)f(3), 'e' => f(1)f(3)f(4), 'f' => f(1)f(3), ['g'-'i'] => f(3)]
-
             let mut trans = BTreeMap::<(u32, u32), BTreeSet<Id>>::new();
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if symbol.is_end() {
@@ -427,10 +384,10 @@ impl DfaBuilder {
                                 trans.insert(segment, btreeset![id]);
                             }
                         }
-
                     }
                 }
             }
+            // finds the destination ids (creating new states if necessary), and populates the graph for `new_state_id`
             for (segment, ids) in trans {
                 if VERBOSE { print!("  - {} in {}: ", segment_to_string(&segment), states_to_string(&ids)); }
                 let mut state = BTreeSet::new();
@@ -449,13 +406,9 @@ impl DfaBuilder {
                     current_id
                 };
                 if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
-                    // symbol.apply_chars(|c| { map.insert(c, state_id); });
-                    //map.extend(segment.chars().map(|c| (c, state_id)));
                     map.extend((segment.0..=segment.1).map(|code| (char::from_u32(code).unwrap(), state_id)));
                 } else {
                     let mut map = BTreeMap::new();
-                    // symbol.apply_chars(|c| { map.insert(c, state_id); });
-                    // map.extend(segment.chars().map(|c| (c, state_id)));
                     map.extend((segment.0..=segment.1).map(|code| (char::from_u32(code).unwrap(), state_id)));
                     dfa.state_graph.insert(new_state_id, map);
                 }
