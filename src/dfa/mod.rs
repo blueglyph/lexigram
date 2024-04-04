@@ -88,44 +88,7 @@ impl ReType {
     //         _ => {}
     //     }
     // }
-    //
-    // pub fn chars(&self) -> ReTypeCharIter {
-    //     match self {
-    //         ReType::Char(c) => ReTypeCharIter { intervals: None, range: Some(*c as u32..=*c as u32) },
-    //         ReType::CharRange(i) => ReTypeCharIter { intervals: Some(i.0.clone()), range: None },
-    //         _ => ReTypeCharIter { intervals: None, range: None }
-    //     }
-    // }
 }
-
-// pub struct ReTypeCharIter {
-//     intervals: Option<BTreeSet<(u32, u32)>>,
-//     range: Option<RangeInclusive<u32>>
-// }
-//
-// impl Iterator for ReTypeCharIter {
-//     type Item = char;
-//
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if self.range.is_none() {
-//             if let Some(interval) = &mut self.intervals {
-//                 if let Some((a, b)) = interval.pop_first() {
-//                     self.range = Some(a..=b);
-//                 }
-//
-//             }
-//         }
-//         if let Some(r) = &mut self.range {
-//             let code = r.next();
-//             if code.is_none() {
-//                 self.range = None;
-//             }
-//             code.map(|c| char::from_u32(c).unwrap())
-//         } else {
-//             None
-//         }
-//     }
-// }
 
 impl Display for ReType {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -417,7 +380,6 @@ impl DfaBuilder {
                     states.insert(state, current_id);
                     current_id
                 };
-                if VERBOSE { println!{"  ==> [{}] -> {}", intervals.chars().collect::<String>(), state_id}; }
                 if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
                     map.extend(intervals.chars().map(|char| (char, state_id)));
                 } else {
