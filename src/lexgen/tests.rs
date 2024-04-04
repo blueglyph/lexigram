@@ -31,7 +31,7 @@ fn lexgen_partition_symbols() {
     ];
     for (test_id, g, expected_groups) in tests {
         // println!("test {test_id}: --------------------------------------");
-        let groups = partition_symbols(&g);
+        let groups = partition_symbols(&g); // todo: adapt `branch!`, make fn normalize_graph(g: &mut BTreeMap<Intervals, StateId>) - already done in Dfa::calc_states()
         let expected_groups = expected_groups.iter().map(|s| {
             let mut chars = s.chars().collect::<Vec<_>>();
             chars.sort();

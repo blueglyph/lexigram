@@ -375,10 +375,12 @@ impl DfaBuilder {
                     current_id
                 };
                 if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
-                    map.extend(intervals.chars().map(|char| (char, state_id)));
+                    // map.extend(intervals.chars().map(|char| (char, state_id)));
+                    map.insert(intervals, state_id);
                 } else {
                     let mut map = BTreeMap::new();
-                    map.extend(intervals.chars().map(|char| (char, state_id)));
+                    // map.extend(intervals.chars().map(|char| (char, state_id)));
+                    map.insert(intervals, state_id);
                     dfa.state_graph.insert(new_state_id, map);
                 }
             }
@@ -395,7 +397,7 @@ impl DfaBuilder {
 // ---------------------------------------------------------------------------------------------
 
 pub struct Dfa {
-    pub(crate) state_graph: BTreeMap<StateId, BTreeMap<char, StateId>>,
+    pub(crate) state_graph: BTreeMap<StateId, BTreeMap<Intervals, StateId>>,
     pub(crate) initial_state: Option<StateId>,
     pub(crate) end_states: BTreeMap<StateId, Terminal>,
     is_normalized: bool, // are states incrementally numeroted from 0, with non-end states < end states?
@@ -413,7 +415,7 @@ impl Dfa {
         }
     }
 
-    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<char, StateId>>, init_state: StateId, end_states: T) -> Dfa
+    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<Intervals, StateId>>, init_state: StateId, end_states: T) -> Dfa
         where T: IntoIterator<Item=(StateId, Terminal)>
     {
         let mut dfa = Dfa {
@@ -489,7 +491,7 @@ impl Dfa {
     /// at the end.
     pub fn normalize(&mut self) -> BTreeMap<StateId, StateId> {
         let mut translate = BTreeMap::<StateId, StateId>::new();
-        let mut state_graph = BTreeMap::<StateId, BTreeMap<char, StateId>>::new();
+        let mut state_graph = BTreeMap::<StateId, BTreeMap<Intervals, StateId>>::new();
         let mut end_states = BTreeMap::<StateId, Terminal>::new();
         let nbr_end = self.end_states.len();
         let mut non_end_id = 0;
@@ -522,6 +524,7 @@ impl Dfa {
         translate
     }
 
+    #[cfg(disabled)]
     /// Optimizes the number of states from `self.state_graph`. Returns a map to convert old
     /// state ids to new state ids.
     ///

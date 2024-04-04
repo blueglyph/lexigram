@@ -2,6 +2,7 @@ pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use crate::escape_char;
+use crate::intervals::Intervals;
 use super::dfa::*;
 
 pub type GroupId = usize;
@@ -38,10 +39,11 @@ impl LexGen {
 
     fn create_input_tables(&mut self) {
         let symbol_part = partition_symbols(&self.dfa.state_graph);
-        let symbols = symbol_part.iter().flatten().map(|c| *c).collect::<BTreeSet<char>>();
+        // let symbols = symbol_part.iter().flatten().map(|c| *c).collect::<BTreeSet<char>>();
+        let symbols = symbol_part.chars().collect::<BTreeSet<char>>();
         let mut symbol_to_group = BTreeMap::<char, GroupId>::new();
-        for (id, g) in symbol_part.iter().enumerate() {
-            symbol_to_group.extend(g.iter().map(|c| (*c, id as GroupId)));
+        for (id, (a, b)) in symbol_part.iter().enumerate() {
+            symbol_to_group.extend((*a..=*b).map(|code| (char::from_u32(code).unwrap(), id as GroupId)));
         }
         self.nbr_groups = symbol_part.len();
         let error_id = self.nbr_groups;
@@ -62,9 +64,11 @@ impl LexGen {
         // state_table[nbr_state * nbr_group + nbr_group] must exist; the content will be ignored.
         let mut state_table = vec!(self.nbr_states; self.nbr_groups * nbr_states + 1);
         for (state_from, trans) in &self.dfa.state_graph {
-            for (symbol, state_to) in trans {
-                let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, *symbol);
-                state_table[self.nbr_groups * state_from + symbol_group] = *state_to;
+            for (intervals, state_to) in trans {
+                for symbol in intervals.chars() {
+                    let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, symbol);
+                    state_table[self.nbr_groups * state_from + symbol_group] = *state_to;
+                }
             }
         }
         self.state_table = state_table.into_boxed_slice();
@@ -87,8 +91,14 @@ pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, G
     }
 }
 
-fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) -> Vec<BTreeSet<char>> {
+fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Intervals {
     const VERBOSE: bool = false;
+    let mut groups = Intervals::empty();    // todo: pre-fill with ASCII range?
+    for i in g.values().flat_map(|x| x.keys()) {
+        groups.partition(i);
+    }
+    groups
+    /*
     let mut groups = Vec::<BTreeSet<char>>::new();
     for (st, trans) in g {
         // extracts a subpartition for the current transition by regrouping the symbols:
@@ -149,6 +159,7 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<char, StateId>>) -> Vec<BTre
     }
     if VERBOSE { println!("result -> {}", char_groups_to_string(&groups)); }
     groups
+    */
 }
 
 fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition: T) -> String {
