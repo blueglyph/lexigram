@@ -3,7 +3,7 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use crate::{btreeset, escape_char, escape_string};
-use crate::intervals::{Intervals, segment_to_string};
+use crate::intervals::Intervals;
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 
@@ -364,7 +364,7 @@ impl DfaBuilder {
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if symbol.is_end() {
                     if !dfa.state_graph.contains_key(&new_state_id) {
-                        if VERBOSE { println!("  - {symbol} => create state {new_state_id}"); }
+                        if VERBOSE { println!("  + {symbol} => create state {new_state_id}"); }
                         dfa.state_graph.insert(new_state_id, BTreeMap::new());
                     }
                     if let ReType::End(t) = symbol {
@@ -375,8 +375,8 @@ impl DfaBuilder {
                 } else {
                     if let ReType::CharRange(intervals) = symbol {
                         let cmp = intervals.intersect(&symbols_part);
-                        //if VERBOSE { println!("  cmp: {cmp}"); }
                         assert!(cmp.internal.is_empty(), "{symbols_part} # {intervals} = {cmp}");
+                        if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
                         for segment in cmp.common.0.into_iter() {
                             if let Some(ids) = trans.get_mut(&segment) {
                                 ids.insert(id);
@@ -387,9 +387,21 @@ impl DfaBuilder {
                     }
                 }
             }
-            // finds the destination ids (creating new states if necessary), and populates the graph for `new_state_id`
+
+            // merges segments back to intervals for each trans value
+            let mut trans_merged = BTreeMap::<BTreeSet<Id>, Intervals>::new();
             for (segment, ids) in trans {
-                if VERBOSE { print!("  - {} in {}: ", segment_to_string(&segment), states_to_string(&ids)); }
+                if let Some(intervals) = trans_merged.get_mut(&ids) {
+                    intervals.insert(segment);
+                } else {
+                    trans_merged.insert(ids, Intervals::new(segment));
+                }
+            }
+
+            // finds the destination ids (creating new states if necessary), and populates the graph for `new_state_id`
+            for (ids, mut intervals) in trans_merged {
+                intervals.normalize();
+                if VERBOSE { print!("  - {} in {}: ", intervals, states_to_string(&ids)); }
                 let mut state = BTreeSet::new();
                 for id in ids {
                     state.extend(&self.followpos[&id]);
@@ -405,11 +417,12 @@ impl DfaBuilder {
                     states.insert(state, current_id);
                     current_id
                 };
+                if VERBOSE { println!{"  ==> [{}] -> {}", intervals.chars().collect::<String>(), state_id}; }
                 if let Some(map) = dfa.state_graph.get_mut(&new_state_id) {
-                    map.extend((segment.0..=segment.1).map(|code| (char::from_u32(code).unwrap(), state_id)));
+                    map.extend(intervals.chars().map(|char| (char, state_id)));
                 } else {
                     let mut map = BTreeMap::new();
-                    map.extend((segment.0..=segment.1).map(|code| (char::from_u32(code).unwrap(), state_id)));
+                    map.extend(intervals.chars().map(|char| (char, state_id)));
                     dfa.state_graph.insert(new_state_id, map);
                 }
             }
