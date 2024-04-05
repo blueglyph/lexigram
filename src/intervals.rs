@@ -202,11 +202,19 @@ impl Display for Intervals {
         if let Some(c) = self.to_char() {
             write!(f, "'{}'", escape_char(c))
         } else {
-            write!(f, "[{}]", self.0.iter()
-                .map(|seg| segment_to_string(seg))
-                .collect::<Vec<_>>()
-                .join(", ")
-            )
+            if self.0.len() == 1 {
+                write!(f, "{}", self.0.iter()
+                    .map(|seg| segment_to_string(seg))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+                )
+            } else {
+                write!(f, "[{}]", self.0.iter()
+                    .map(|seg| segment_to_string(seg))
+                    .collect::<Vec<_>>()
+                    .join(", ")
+                )
+            }
         }
     }
 }

@@ -68,47 +68,20 @@ impl Add for Terminal {
     }
 }
 
-/// Generates the key-value pairs corresponding to the `char => int` arguments, which can be
-/// used to add values to `BTreeMap<char, StateId>` state transitions.
+/// Generates a tuple of u32 values from one or two values (characters or integers).
 ///
 /// # Example
 /// ```
-/// # use std::collections::{BTreeMap, BTreeSet};
-/// # use rlexer::{btreemap, intervals, branch, intervals::Intervals};
-/// let transitions = btreemap![
-///     0 => branch!['a', 'c' => 1, 'z' => 1],
-///     1 => branch!['b' => 3],
-///     3 => branch![]
-/// ];
-/// assert_eq!(transitions, BTreeMap::from([
-///     (0, BTreeMap::from([
-///         (Intervals(BTreeSet::from([('a' as u32, 'c' as u32)])), 1),
-///         (Intervals(BTreeSet::from([('z' as u32, 'z' as u32)])), 1), ])),
-///     (1, BTreeMap::from([
-///         (Intervals(BTreeSet::from([('b' as u32, 'b' as u32)])), 3), ])),
-///     (3, BTreeMap::new()), ]));
+/// #use rlexer::{btreeset, seg, intervals::Intervals};
+/// let mut x = Intervals::empty();
+/// x.insert(seg!('a'));
+/// x.insert(seg!('0', '9'));
+/// assert_eq!(x, Intervals(btreeset![('a' as u32, 'a' as u32), ('0' as u32, '9' as u32)]));
 /// ```
 #[macro_export(local_inner_macros)]
-macro_rules! branch {
-    ($($key:expr $(, $b:expr)? => $value:expr,)+) => { branch![$($key$(,$b)? => $value),+] };
-    // ($($key:expr => $value:expr),*) => { btreemap![$(Intervals::from_char($key) => $value),*] };
-    ($($a:expr $(, $b:expr)? => $value:expr),*) => { btreemap![$(intervals![$a$(,$b)?] => $value),*] };
-}
-
-#[test]
-fn macro_branch() {
-    let transitions = btreemap![
-        0 => branch!['a', 'c' => 1, 'z' => 1],
-        1 => branch!['b' => 3],
-        3 => branch![]
-    ];
-    assert_eq!(transitions, BTreeMap::from([
-        (0, BTreeMap::from([
-            (Intervals(BTreeSet::from([('a' as u32, 'c' as u32)])), 1),
-            (Intervals(BTreeSet::from([('z' as u32, 'z' as u32)])), 1), ])),
-        (1, BTreeMap::from([
-            (Intervals(BTreeSet::from([('b' as u32, 'b' as u32)])), 3), ])),
-        (3, BTreeMap::new()), ]));
+macro_rules! seg {
+    ($a:expr, $b:expr) => { ($a as u32, $b as u32) };
+    ($a:expr) => { ($a as u32, $a as u32) };
 }
 
 /// Generates an Intervals initialization from tuples of u32.
@@ -125,21 +98,61 @@ macro_rules! intervals {
     ($($a:expr $(, $b:expr)?);*) => { Intervals(BTreeSet::from([$(seg![$a$(, $b)?]),*]))};
 }
 
-/// Generates a tuple of u32 values from one or two values (characters or integers).
+/// Generates the key-value pairs corresponding to the `char => int` arguments, which can be
+/// used to add values to `BTreeMap<char, StateId>` state transitions.
 ///
 /// # Example
 /// ```
-/// #use rlexer::{btreeset, seg, intervals::Intervals};
-/// let mut x = Intervals::empty();
-/// x.insert(seg!('a'));
-/// x.insert(seg!('0', '9'));
-/// assert_eq!(x, Intervals(btreeset![('a' as u32, 'a' as u32), ('0' as u32, '9' as u32)]));
+/// # use std::collections::{BTreeMap, BTreeSet};
+/// # use rlexer::{btreemap, intervals, branch, intervals::Intervals};
+/// let transitions = btreemap![
+///     0 => branch!['a'-'c' => 0, 'z' => 1, ['d'-'f', 'h'] => 2, ['x'-'z'] => 4],
+///     1 => branch![['b'] => 3, '=' => 5],
+///     3 => branch![]
+/// ];
+/// assert_eq!(transitions, BTreeMap::from([
+///     (0, BTreeMap::from([
+///         (Intervals(BTreeSet::from([('a' as u32, 'c' as u32)])), 0),
+///         (Intervals(BTreeSet::from([('z' as u32, 'z' as u32)])), 1),
+///         (Intervals(BTreeSet::from([('d' as u32, 'f' as u32), ('h' as u32, 'h' as u32)])), 2),
+///         (Intervals(BTreeSet::from([('x' as u32, 'z' as u32)])), 4)])),
+///     (1, BTreeMap::from([
+///         (Intervals(BTreeSet::from([('b' as u32, 'b' as u32)])), 3),
+///         (Intervals(BTreeSet::from([('=' as u32, '=' as u32)])), 5), ])),
+///     (3, BTreeMap::new()), ]))
 /// ```
 #[macro_export(local_inner_macros)]
-macro_rules! seg {
-    ($a:expr, $b:expr) => { ($a as u32, $b as u32) };
-    ($a:expr) => { ($a as u32, $a as u32) };
+macro_rules! branch {
+    ($( $([$($a:literal $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr),*)
+    => { btreemap![$(intervals![$($($a$(, $b)?;)+)? $($c $(,$d)?)?] => $value),*] };
+    // a few guards for trailing comma:
+    ($( $([$($a:literal $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
+    => { btreemap![$(intervals![$($($a$(, $b)?;)+)? $($c $(,$d)?)?] => $value),+] };
+    ($( $([$($a:literal $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr)*)
+    => { btreemap![$(intervals![$($($a$(, $b)?;)+)? $($c $(,$d)?)?] => $value),*] };
+    ($( $([$($a:literal $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
+    => { btreemap![$(intervals![$($($a$(, $b)?;)+)? $($c $(,$d)?)?] => $value),+] };
 }
+
+#[test]
+fn macro_branch() {
+    let transitions = btreemap![
+        0 => branch!['a'-'c' => 0, 'z' => 1, ['d'-'f', 'h'] => 2, ['x'-'z'] => 4,],
+        1 => branch![['b'] => 3, '=' => 5],
+        3 => branch![]
+    ];
+    assert_eq!(transitions, BTreeMap::from([
+        (0, BTreeMap::from([
+            (Intervals(BTreeSet::from([('a' as u32, 'c' as u32)])), 0),
+            (Intervals(BTreeSet::from([('z' as u32, 'z' as u32)])), 1),
+            (Intervals(BTreeSet::from([('d' as u32, 'f' as u32), ('h' as u32, 'h' as u32)])), 2),
+            (Intervals(BTreeSet::from([('x' as u32, 'z' as u32)])), 4)])),
+        (1, BTreeMap::from([
+            (Intervals(BTreeSet::from([('b' as u32, 'b' as u32)])), 3),
+            (Intervals(BTreeSet::from([('=' as u32, '=' as u32)])), 5), ])),
+        (3, BTreeMap::new()), ]))
+}
+
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
@@ -553,7 +566,7 @@ pub(crate) fn print_graph(dfa: &Dfa) {
         // for (symbol, dest) in trans {
         //     println!("  {symbol} -> s{dest}");
         // }
-        println!("{:3} => branch![{}],{}",
+        println!("{:3} => branch!({}),{}",
                  state,
                  trans.iter().map(|(sym, st)| format!("{sym} => {st}"))
                      .collect::<Vec<_>>().join(", "),
@@ -618,7 +631,7 @@ fn dfa_nullable() {
         (12, "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:2>),&(&(12:'a',13:'b'),14:<end:3>))"),
         (15, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"),
         (16, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"),
-        (17, "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"),
+        (17, "|(&(+(1:'a'-'f'),2:<end:0>),&(+(3:'d'-'i'),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -1043,178 +1056,172 @@ fn dfa_followpos() {
 #[test]
 fn dfa_states() {
     let tests = vec![
-/*
         (0, btreemap![
-            0 => branch!['a' => 1, 'b' => 0],
-            1 => branch!['a' => 1, 'b' => 2],
-            2 => branch!['a' => 1, 'b' => 3],
-            3 => branch!['a' => 1, 'b' => 0],
+            0 => branch!('a' => 1, 'b' => 0),
+            1 => branch!('a' => 1, 'b' => 2),
+            2 => branch!('a' => 1, 'b' => 3),
+            3 => branch!('a' => 1, 'b' => 0),
         ], btreemap![3 => term!(=0)]),
         (1, btreemap![
-            0 => branch!['a' => 1, 'b' => 0],
-            1 => branch!['a' => 1, 'b' => 2],
-            2 => branch!['a' => 1, 'b' => 3],
-            3 => branch!['a' => 1, 'b' => 0],
+            0 => branch!('a' => 1, 'b' => 0),
+            1 => branch!('a' => 1, 'b' => 2),
+            2 => branch!('a' => 1, 'b' => 3),
+            3 => branch!('a' => 1, 'b' => 0),
         ], btreemap![3 => term!(=0)]),
         (2, btreemap![
-            0 => branch!['a' => 1, 'b' => 0],
-            1 => branch!['a' => 1, 'b' => 2],
-            2 => branch!['a' => 1, 'b' => 3],
-            3 => branch!['a' => 1, 'b' => 0],
+            0 => branch!('a' => 1, 'b' => 0),
+            1 => branch!('a' => 1, 'b' => 2),
+            2 => branch!('a' => 1, 'b' => 3),
+            3 => branch!('a' => 1, 'b' => 0),
         ], btreemap![3 => term!(=0)]),
         // "&(&(1:'a',2:'b',3:'c'),|(4:'a',5:'b'),6:<end>)",
         (3, btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2],
-            2 => branch!['c' => 3],
-            3 => branch!['a' => 4, 'b' => 4],
-            4 => branch![]
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 2),
+            2 => branch!('c' => 3),
+            3 => branch!('a'-'b' => 4),
+            4 => branch!()
         ], btreemap![4 => term!(=0)]),
         // "&(1:'s',|(2:'a',3:'b'),4:<end>)",
         (4, btreemap![
-            0 => branch!['s' => 1],
-            1 => branch!['a' => 2, 'b' => 2],
-            2 => branch![],
+            0 => branch!('s' => 1),
+            1 => branch!('a'-'b' => 2),
+            2 => branch!(),
         ], btreemap![2 => term!(=0)]),
         // "&(1:'s',|(&(2:'a',3:<end>),&(4:'b',5:<end>)))",
         (5, btreemap![
-            0 => branch!['s' => 1],
-            1 => branch!['a' => 2, 'b' => 3],
-            2 => branch![],
-            3 => branch![],
+            0 => branch!('s' => 1),
+            1 => branch!('a' => 2, 'b' => 3),
+            2 => branch!(),
+            3 => branch!(),
         ], btreemap![2 => term!(=0), 3 => term!(=1)]),
         // "&(1:'a',|(&(2:'b',3:'c'),4:-),5:'d',6:<end>)"
         (6, btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2, 'd' => 3],
-            2 => branch!['c' => 4],
-            3 => branch![],
-            4 => branch!['d' => 3]
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 2, 'd' => 3),
+            2 => branch!('c' => 4),
+            3 => branch!(),
+            4 => branch!('d' => 3)
         ], btreemap![3 => term!(=0)]),
         // "&(1:'a',|(&(2:'b',3:'c'),4:-),|(5:'d',6:-),7:'e',8:<end>)"
         (7, btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2, 'd' => 3, 'e' => 4],
-            2 => branch!['c' => 5],
-            3 => branch!['e' => 4],
-            4 => branch![],
-            5 => branch!['d' => 3, 'e' => 4]
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 2, 'd' => 3, 'e' => 4),
+            2 => branch!('c' => 5),
+            3 => branch!('e' => 4),
+            4 => branch!(),
+            5 => branch!('d' => 3, 'e' => 4)
         ], btreemap![4 => term!(=0)]),
         // "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"
         (8, btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2],
-            2 => branch![]
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 2),
+            2 => branch!()
         ], btreemap![1 => term!(=0), 2 => term!(=1)]),
         // "&(1:'a',+(|(2:'b',3:'c')),4:'d')"
         (9, btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2, 'c' => 2],
-            2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
-            3 => branch![]
+            0 => branch!('a' => 1),
+            1 => branch!('b'-'c' => 2),
+            2 => branch!('b'-'c' => 2, 'd' => 3),
+            3 => branch!()
         ], btreemap![3 => term!(=0)]),
-*/
         // [ \t\n\r]*[0-9]+(<end:0>|\.[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
         // "|(&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),+(|(5:'0',6:'1',7:'2',8:'3',9:'4',10:'5',11:'6',12:'7',13:'8',14:'9')),|(15:<end:0>,&(16:'.',+(|(17:'0',18:'1',19:'2',20:'3',21:'4',22:'5',23:'6',24:'7',25:'8',26:'9')),27:<end:1>))),&(28:'0',29:'x',+(|(30:'0',31:'1',32:'2',33:'3',34:'4',35:'5',36:'6',37:'7',38:'8',39:'9',40:'A',41:'B',42:'C',43:'D',44:'E',45:'F',46:'a',47:'b',48:'c',49:'d',50:'e',51:'f')),52:<end:2>))"
         (10, btreemap![
-            0 => branch!['\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1, '0' => 2, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3],
-            1 => branch!['\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1, '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3],
-            2 => branch!['.' => 4, '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3, 'x' => 5],// <end:0>
-            3 => branch!['.' => 4, '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3],// <end:0>
-            4 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6],
-            5 => branch!['0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7, 'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],
-            6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6],// <end:1>
-            7 => branch!['0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7, 'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],// <end:2>
+            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '0' => 2, '1'-'9' => 3),
+            1 => branch!(['\t'-'\n', '\r', ' '] => 1, '0'-'9' => 3),
+            2 => branch!('.' => 4, '0'-'9' => 3, 'x' => 5), // <end:0>
+            3 => branch!('.' => 4, '0'-'9' => 3), // <end:0>
+            4 => branch!('0'-'9' => 6),
+            5 => branch!(['0'-'9', 'A'-'F', 'a'-'f'] => 7),
+            6 => branch!('0'-'9' => 6), // <end:1>
+            7 => branch!(['0'-'9', 'A'-'F', 'a'-'f'] => 7), // <end:2>
         ], btreemap![2 => term!(=0), 3 => term!(=0), 6 => term!(=1), 7 => term!(=2)]),
-/*
         (11, btreemap![
-            0 => branch!['\t' => 0, '\n' => 0, '\r' => 0, ' ' => 0, '+' => 5, ';' => 6, '=' => 4, 'a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 2, 'j' => 1, 'k' => 1, 'l' => 1, 'm' => 1, 'n' => 1, 'o' => 1, 'p' => 3, 'q' => 1, 'r' => 1, 's' => 1, 't' => 1, 'u' => 1, 'v' => 1, 'w' => 1, 'x' => 1, 'y' => 1, 'z' => 1],
-            1 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1, '4' => 1, '5' => 1, '6' => 1, '7' => 1, '8' => 1, '9' => 1, 'a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'j' => 1, 'k' => 1, 'l' => 1, 'm' => 1, 'n' => 1, 'o' => 1, 'p' => 1, 'q' => 1, 'r' => 1, 's' => 1, 't' => 1, 'u' => 1, 'v' => 1, 'w' => 1, 'x' => 1, 'y' => 1, 'z' => 1], // <end:0>
-            2 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1, '4' => 1, '5' => 1, '6' => 1, '7' => 1, '8' => 1, '9' => 1, 'a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 7, 'g' => 1, 'h' => 1, 'i' => 1, 'j' => 1, 'k' => 1, 'l' => 1, 'm' => 1, 'n' => 1, 'o' => 1, 'p' => 1, 'q' => 1, 'r' => 1, 's' => 1, 't' => 1, 'u' => 1, 'v' => 1, 'w' => 1, 'x' => 1, 'y' => 1, 'z' => 1], // <end:0>
-            3 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1, '4' => 1, '5' => 1, '6' => 1, '7' => 1, '8' => 1, '9' => 1, 'a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'j' => 1, 'k' => 1, 'l' => 1, 'm' => 1, 'n' => 1, 'o' => 1, 'p' => 1, 'q' => 1, 'r' => 8, 's' => 1, 't' => 1, 'u' => 1, 'v' => 1, 'w' => 1, 'x' => 1, 'y' => 1, 'z' => 1], // <end:0>
-            4 => branch![], // <end:3>
-            5 => branch![], // <end:4>
-            6 => branch![], // <end:5>
-            7 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1, '4' => 1, '5' => 1, '6' => 1, '7' => 1, '8' => 1, '9' => 1, 'a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'j' => 1, 'k' => 1, 'l' => 1, 'm' => 1, 'n' => 1, 'o' => 1, 'p' => 1, 'q' => 1, 'r' => 1, 's' => 1, 't' => 1, 'u' => 1, 'v' => 1, 'w' => 1, 'x' => 1, 'y' => 1, 'z' => 1], // <end:1>
-            8 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1, '4' => 1, '5' => 1, '6' => 1, '7' => 1, '8' => 1, '9' => 1, 'a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 9, 'j' => 1, 'k' => 1, 'l' => 1, 'm' => 1, 'n' => 1, 'o' => 1, 'p' => 1, 'q' => 1, 'r' => 1, 's' => 1, 't' => 1, 'u' => 1, 'v' => 1, 'w' => 1, 'x' => 1, 'y' => 1, 'z' => 1], // <end:0>
-            9 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1, '4' => 1, '5' => 1, '6' => 1, '7' => 1, '8' => 1, '9' => 1, 'a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'j' => 1, 'k' => 1, 'l' => 1, 'm' => 1, 'n' => 10, 'o' => 1, 'p' => 1, 'q' => 1, 'r' => 1, 's' => 1, 't' => 1, 'u' => 1, 'v' => 1, 'w' => 1, 'x' => 1, 'y' => 1, 'z' => 1], // <end:0>
-            10 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1, '4' => 1, '5' => 1, '6' => 1, '7' => 1, '8' => 1, '9' => 1, 'a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'j' => 1, 'k' => 1, 'l' => 1, 'm' => 1, 'n' => 1, 'o' => 1, 'p' => 1, 'q' => 1, 'r' => 1, 's' => 1, 't' => 11, 'u' => 1, 'v' => 1, 'w' => 1, 'x' => 1, 'y' => 1, 'z' => 1], // <end:0>
-            11 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1, '4' => 1, '5' => 1, '6' => 1, '7' => 1, '8' => 1, '9' => 1, 'a' => 1, 'b' => 1, 'c' => 1, 'd' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'j' => 1, 'k' => 1, 'l' => 1, 'm' => 1, 'n' => 1, 'o' => 1, 'p' => 1, 'q' => 1, 'r' => 1, 's' => 1, 't' => 1, 'u' => 1, 'v' => 1, 'w' => 1, 'x' => 1, 'y' => 1, 'z' => 1], // <end:2>
+            0 => branch!(['\t'-'\n', '\r', ' '] => 0, '+' => 1, ';' => 2, '=' => 3, ['a'-'h', 'j'-'o', 'q'-'z'] => 4, 'i' => 5, 'p' => 6),
+            1 => branch!(), // <end:4>
+            2 => branch!(), // <end:5>
+            3 => branch!(), // <end:3>
+            4 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:0>
+            5 => branch!(['0'-'9', 'a'-'e', 'g'-'z'] => 4, 'f' => 7), // <end:0>
+            6 => branch!(['0'-'9', 'a'-'q', 's'-'z'] => 4, 'r' => 8), // <end:0>
+            7 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:1>
+            8 => branch!(['0'-'9', 'a'-'h', 'j'-'z'] => 4, 'i' => 9), // <end:0>
+            9 => branch!(['0'-'9', 'a'-'m', 'o'-'z'] => 4, 'n' => 10), // <end:0>
+            10 => branch!(['0'-'9', 'a'-'s', 'u'-'z'] => 4, 't' => 11), // <end:0>
+            11 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:2>
         ], btreemap![
-            1 => term!(=0), 2 => term!(=0), 3 => term!(=0), 4 => term!(=3), 5 => term!(=4), 6 => term!(=5),
+            1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=0), 5 => term!(=0), 6 => term!(=0),
             7 => term!(=1), 8 => term!(=0), 9 => term!(=0), 10 => term!(=0), 11 => term!(=2)]),
         // (abs<end:0>|abi<end:1>|at<end:2>|ab<end:3>), to check if string paths are merged
         (12, btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2, 't' => 3],
-            2 => branch!['i' => 5, 's' => 4], // <end:3>
-            3 => branch![], // <end:2>
-            4 => branch![], // <end:0>
-            5 => branch![], // <end:1>
-        ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=0), 5 => term!(=1)]),
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 2, 't' => 3),
+            2 => branch!('i' => 4, 's' => 5), // <end:3>
+            3 => branch!(), // <end:2>
+            4 => branch!(), // <end:1>
+            5 => branch!(), // <end:0>
+        ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=1), 5 => term!(=0)]),
         // ([ \t\n\r]*{channel(1)}<end:1>|[0-9]+<end:0>)
         (13, btreemap![
-            0 => branch!['\t' => 0, '\n' => 0, '\r' => 0, ' ' => 0, '0' => 1],// <end:1,ch 1>
-            1 => branch!['1' => 2],
-            2 => branch!['2' => 3],
-            3 => branch!['3' => 4],
-            4 => branch!['4' => 5],
-            5 => branch!['5' => 6],
-            6 => branch!['6' => 7],
-            7 => branch!['7' => 8],
-            8 => branch!['8' => 9],
-            9 => branch!['9' => 10],
-            10 => branch![],// <end:0>
+            0 => branch![['\t'-'\n', '\r', ' '] => 0, '0' => 1],// <end:1,ch 1>
+            1 => branch!('1' => 2),
+            2 => branch!('2' => 3),
+            3 => branch!('3' => 4),
+            4 => branch!('4' => 5),
+            5 => branch!('5' => 6),
+            6 => branch!('6' => 7),
+            7 => branch!('7' => 8),
+            8 => branch!('8' => 9),
+            9 => branch!('9' => 10),
+            10 => branch!(),// <end:0>
         ], btreemap![0 => term!(=1) + term!(#1), 10 => term!(=0)]),
-
         // \* /<end:0>|.+<end:1>
         (14, btreemap![
-            0 => branch!['*' => 1, '.' => 2],
-            1 => branch!['/' => 3],
-            2 => branch!['.' => 2],// <end:1>
-            3 => branch![],// <end:0>
+            0 => branch!('*' => 1, '.' => 2),
+            1 => branch!('/' => 3),
+            2 => branch!('.' => 2),// <end:1>
+            3 => branch!(),// <end:0>
         ], btreemap![
             2 => term!(=1), 3 => term!(=0)
         ]),
         // Ambiguous: [A-B]+<end:0>|[B-C]+<end:1>
         (15, btreemap![
-            0 => branch!['A' => 1, 'B' => 2, 'C' => 3],
-            1 => branch!['A' => 1, 'B' => 1],// <end:0>
-            2 => branch!['A' => 1, 'B' => 2, 'C' => 3],// <end:1>
-            3 => branch!['B' => 3, 'C' => 3],// <end:1>
+            0 => branch!('A' => 1, 'B' => 2, 'C' => 3),
+            1 => branch!('A'-'B' => 1),// <end:0>
+            2 => branch!('A' => 1, 'B' => 2, 'C' => 3),// <end:1>
+            3 => branch!('B'-'C' => 3),// <end:1>
         ], btreemap![1 => term!(=0), 2 => term!(=1), 3 => term!(=1)]),
         // [A-B]+<end:0>|[B-C]+Z<end:1>
         // "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"
         (16, btreemap![
-            0 => branch!['A' => 1, 'B' => 2, 'C' => 3],
-            1 => branch!['A' => 1, 'B' => 1],// <end:0>
-            2 => branch!['A' => 1, 'B' => 2, 'C' => 3, 'Z' => 4],// <end:0>
-            3 => branch!['B' => 3, 'C' => 3, 'Z' => 4],
-            4 => branch![],// <end:1>
+            0 => branch!('A' => 1, 'B' => 2, 'C' => 3),
+            1 => branch!('A'-'B' => 1),// <end:0>
+            2 => branch!('A' => 1, 'B' => 2, 'C' => 3, 'Z' => 4),// <end:0>
+            3 => branch!('B'-'C' => 3, 'Z' => 4),
+            4 => branch!(),// <end:1>
         ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)]),
-*/
         // intervals: [a-f]+<end:0>|[d-i]+z<end:1>|ey<end:2>
         // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"
         (17, btreemap![
-            0 => branch!['a', 'c' => 1, 'd' => 2, 'f' => 2, 'e' => 3, 'g', 'i' => 4],
-            1 => branch!['a', 'f' => 1],// <end:0>
-            2 => branch!['a', 'c' => 1, 'd', 'f' => 2, 'g', 'i' => 4, 'z' => 5],// <end:0>
-            3 => branch!['a', 'c' => 1, 'd', 'f' => 2, 'g', 'i' => 4, 'y' => 6, 'z' => 5],// <end:0>
-            4 => branch!['d', 'i' => 4, 'z' => 5],
-            5 => branch![],// <end:1>
-            6 => branch![],// <end:2>
+            0 => branch!('a'-'c' => 1, ['d', 'f'] => 2, 'e' => 3, 'g'-'i' => 4),
+            1 => branch!('a'-'f' => 1), // <end:0>
+            2 => branch!('a'-'c' => 1, 'd'-'f' => 2, 'g'-'i' => 4, 'z' => 5), // <end:0>
+            3 => branch!('a'-'c' => 1, 'd'-'f' => 2, 'g'-'i' => 4, 'y' => 6, 'z' => 5), // <end:0>
+            4 => branch!('d'-'i' => 4, 'z' => 5),
+            5 => branch!(), // <end:1>
+            6 => branch!(), // <end:2>
         ], btreemap![1 => term!(=0), 2 => term!(=0), 3 => term!(=0), 5 => term!(=1), 6 => term!(=2)]),
-/*
         // [a-f]+<end:0>|[d-i]+z<end:1>
         // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>))"
         (18, btreemap![
-            0 => branch!['a', 'c' => 1, 'd', 'f' => 2, 'g', 'i' => 3],
-            1 => branch!['a', 'f' => 1],// <end:0>
-            2 => branch!['a', 'c' => 1, 'd', 'f' => 2, 'g', 'i' => 3, 'z' => 4],// <end:0>
-            3 => branch!['d', 'i' => 3, 'z' => 4],
-            4 => branch![],// <end:1>
+            0 => branch!('a'-'c' => 1, 'd'-'f' => 2, 'g'-'i' => 3),
+            1 => branch!('a'-'f' => 1),// <end:0>
+            2 => branch!('a'-'c' => 1, 'd'-'f' => 2, 'g'-'i' => 3, 'z' => 4),// <end:0>
+            3 => branch!('d'-'i' => 3, 'z' => 4),
+            4 => branch!(),// <end:1>
         ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)]),
-*/
+
     ];
     const VERBOSE: bool = true;
     for (test_id, expected, expected_ends) in tests {
@@ -1256,31 +1263,31 @@ fn dfa_normalize() {
 fn dfa_modes() {
     let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<Intervals, StateId>>, BTreeMap<StateId, Terminal>)> = vec![
         (1, btreemap![
-            0 => branch!['\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1, '/' => 2, '0' => 3],// <skip>
-            1 => branch!['\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1],// <skip>
-            2 => branch!['*' => 4],
-            3 => branch!['1' => 5],
-            4 => branch![],// <skip,push(mode 1,state 14)>
-            5 => branch!['2' => 6],
-            6 => branch!['3' => 7],
-            7 => branch!['4' => 8],
-            8 => branch!['5' => 9],
-            9 => branch!['6' => 10],
-            10 => branch!['7' => 11],
-            11 => branch!['8' => 12],
-            12 => branch!['9' => 13],
-            13 => branch![],// <end:0>
-            14 => branch!['/' => 15, '0' => 16, '1' => 16, '2' => 16, '3' => 16, '4' => 16, '5' => 16, '6' => 16, '7' => 16, '8' => 16, '9' => 16],// <skip>
-            15 => branch!['*' => 17],
-            16 => branch!['0' => 16, '1' => 16, '2' => 16, '3' => 16, '4' => 16, '5' => 16, '6' => 16, '7' => 16, '8' => 16, '9' => 16],// <skip>
-            17 => branch![],// <skip,pop>
+            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0' => 3), // <skip>
+            1 => branch!(['\t'-'\n', '\r', ' '] => 1), // <skip>
+            2 => branch!('*' => 4),
+            3 => branch!('1' => 5),
+            4 => branch!(), // <skip,push(mode 1,state 14)>
+            5 => branch!('2' => 6),
+            6 => branch!('3' => 7),
+            7 => branch!('4' => 8),
+            8 => branch!('5' => 9),
+            9 => branch!('6' => 10),
+            10 => branch!('7' => 11),
+            11 => branch!('8' => 12),
+            12 => branch!('9' => 13),
+            13 => branch!(), // <end:0>
+            14 => branch!('/' => 15, '0'-'9' => 16), // <skip>
+            15 => branch!('*' => 17),
+            16 => branch!('0'-'9' => 16), // <skip>
+            17 => branch!(), // <skip,pop>
         ],
          btreemap![
              0 => term!(skip), 1 => term!(skip), 4 => term!(push 1) + term!(pushst 14),
              13 => term!(=0), 14 => term!(skip), 16 => term!(skip), 17 => term!(pop)]),
     ];
 
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, exp_graph, exp_ends) in tests {
         if VERBOSE { println!("{test_id}:"); }
         let dfas = build_dfa(test_id);
@@ -1301,120 +1308,119 @@ fn dfa_modes() {
     }
 }
 
-#[cfg(disabled)]
 #[test]
 fn dfa_optimize_graphs() {
     const VERBOSE: bool = false;
     let tests = vec![
         (0, btreemap![
-            0 => branch!['a' => 1, 'b' => 0],
-            1 => branch!['a' => 1, 'b' => 2],
-            2 => branch!['a' => 1, 'b' => 3],
-            3 => branch!['a' => 1, 'b' => 0],
+            0 => branch!('a' => 1, 'b' => 0),
+            1 => branch!('a' => 1, 'b' => 2),
+            2 => branch!('a' => 1, 'b' => 3),
+            3 => branch!('a' => 1, 'b' => 0),
         ], btreemap![3 => term!(=0)],
          btreemap![ // 1 <-> 2
-             0 => branch!['a' => 2, 'b' => 0],
-             1 => branch!['a' => 2, 'b' => 3],
-             2 => branch!['a' => 2, 'b' => 1],
-             3 => branch!['a' => 2, 'b' => 0],
+             0 => branch!('a' => 2, 'b' => 0),
+             1 => branch!('a' => 2, 'b' => 3),
+             2 => branch!('a' => 2, 'b' => 1),
+             3 => branch!('a' => 2, 'b' => 0),
          ], btreemap![3 => term!(=0)]),
 
         (1, btreemap![
-            0 => branch!['a' => 1, 'b' => 2],
-            1 => branch!['a' => 1, 'b' => 3],
-            2 => branch!['a' => 1, 'b' => 2],
-            3 => branch!['a' => 1, 'b' => 4],
-            4 => branch!['a' => 1, 'b' => 2],
+            0 => branch!('a' => 1, 'b' => 2),
+            1 => branch!('a' => 1, 'b' => 3),
+            2 => branch!('a' => 1, 'b' => 2),
+            3 => branch!('a' => 1, 'b' => 4),
+            4 => branch!('a' => 1, 'b' => 2),
         ], btreemap![4 => term!(=0)],
          btreemap![ // 0 -> 0, 1 -> 2, 2 -> 0, 3 -> 1, 4 -> 3
-            0 => branch!['a' => 2, 'b' => 0],
-            1 => branch!['a' => 2, 'b' => 3],
-            2 => branch!['a' => 2, 'b' => 1],
-            3 => branch!['a' => 2, 'b' => 0],
+            0 => branch!('a' => 2, 'b' => 0),
+            1 => branch!('a' => 2, 'b' => 3),
+            2 => branch!('a' => 2, 'b' => 1),
+            3 => branch!('a' => 2, 'b' => 0),
          ], btreemap![3 => term!(=0)]),
 
         (8, btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 3],
-            3 => branch![]
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 3),
+            3 => branch!()
         ], btreemap![1 => term!(=0), 3 => term!(=1)],
         btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2],
-            2 => branch![],
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 2),
+            2 => branch!(),
         ], btreemap![1 => term!(=0), 2 => term!(=1)]),
 
         (9, btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2, 'c' => 2],
-            2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
-            3 => branch![]
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 2, 'c' => 2),
+            2 => branch!('b' => 2, 'c' => 2, 'd' => 3),
+            3 => branch!()
         ], btreemap![3 => term!(=0)],
         btreemap![
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2, 'c' => 2],
-            2 => branch!['b' => 2, 'c' => 2, 'd' => 3],
-            3 => branch![]
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 2, 'c' => 2),
+            2 => branch!('b' => 2, 'c' => 2, 'd' => 3),
+            3 => branch!()
         ], btreemap![3 => term!(=0)]),
 
         (10, btreemap![
-            0 => branch![
+            0 => branch!(
                 '\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1,
-                '0' => 2, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3],
-            1 => branch![
+                '0' => 2, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3),
+            1 => branch!(
                 '\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1,
-                '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3],
-            2 => branch!['.' => 5, '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3, 'x' => 6],// END: 0
-            3 => branch!['.' => 5, '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3],// END: 0
-            5 => branch!['0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7],
-            6 => branch![
+                '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3),
+            2 => branch!('.' => 5, '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3, 'x' => 6),// END: 0
+            3 => branch!('.' => 5, '0' => 3, '1' => 3, '2' => 3, '3' => 3, '4' => 3, '5' => 3, '6' => 3, '7' => 3, '8' => 3, '9' => 3),// END: 0
+            5 => branch!('0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7),
+            6 => branch!(
                 '0' => 8, '1' => 8, '2' => 8, '3' => 8, '4' => 8, '5' => 8, '6' => 8, '7' => 8, '8' => 8, '9' => 8,
-                'A' => 8, 'B' => 8, 'C' => 8, 'D' => 8, 'E' => 8, 'F' => 8, 'a' => 8, 'b' => 8, 'c' => 8, 'd' => 8, 'e' => 8, 'f' => 8],
-            7 => branch!['0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7],// END: 1
-            8 => branch![
+                'A' => 8, 'B' => 8, 'C' => 8, 'D' => 8, 'E' => 8, 'F' => 8, 'a' => 8, 'b' => 8, 'c' => 8, 'd' => 8, 'e' => 8, 'f' => 8),
+            7 => branch!('0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7),// END: 1
+            8 => branch!(
                 '0' => 8, '1' => 8, '2' => 8, '3' => 8, '4' => 8, '5' => 8, '6' => 8, '7' => 8, '8' => 8, '9' => 8,
-                'A' => 8, 'B' => 8, 'C' => 8, 'D' => 8, 'E' => 8, 'F' => 8, 'a' => 8, 'b' => 8, 'c' => 8, 'd' => 8, 'e' => 8, 'f' => 8],// END: 2
+                'A' => 8, 'B' => 8, 'C' => 8, 'D' => 8, 'E' => 8, 'F' => 8, 'a' => 8, 'b' => 8, 'c' => 8, 'd' => 8, 'e' => 8, 'f' => 8),// END: 2
         ], btreemap![2 => term!(=0), 3 => term!(=0), 7 => term!(=1), 8 => term!(=2)],
         btreemap![
-            0 => branch![
+            0 => branch!(
                 '\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1,
-                '0' => 4, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
-            1 => branch![
+                '0' => 4, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5),
+            1 => branch!(
                 '\t' => 1, '\n' => 1, '\r' => 1, ' ' => 1,
-                '0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
-            2 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6],
-            3 => branch![
+                '0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5),
+            2 => branch!('0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6),
+            3 => branch!(
                 '0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
-                'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],
-            4 => branch!['.' => 2, '0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5, 'x' => 3],// END: 0
-            5 => branch!['.' => 2, '0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],// END: 0
-            6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6],// END: 1
-            7 => branch![
+                'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7),
+            4 => branch!('.' => 2, '0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5, 'x' => 3),// END: 0
+            5 => branch!('.' => 2, '0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5),// END: 0
+            6 => branch!('0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6),// END: 1
+            7 => branch!(
                 '0' => 7, '1' => 7, '2' => 7, '3' => 7, '4' => 7, '5' => 7, '6' => 7, '7' => 7, '8' => 7, '9' => 7,
-                'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7],// END: 2
+                'A' => 7, 'B' => 7, 'C' => 7, 'D' => 7, 'E' => 7, 'F' => 7, 'a' => 7, 'b' => 7, 'c' => 7, 'd' => 7, 'e' => 7, 'f' => 7),// END: 2
         ], btreemap![4 => term!(=0), 5 => term!(=0), 6 => term!(=1), 7 => term!(=2)]),
 
         // (abs<end:0>|abi<end:1>|at<end:2>|ab<end:3>)
         (12, btreemap![], btreemap![], // from build_re(12)
         btreemap![ // no change
-            0 => branch!['a' => 1],
-            1 => branch!['b' => 2, 't' => 3],
-            2 => branch!['i' => 5, 's' => 4],// <end:3>
-            3 => branch![],// <end:2>
-            4 => branch![],// <end:0>
-            5 => branch![],// <end:1>
+            0 => branch!('a' => 1),
+            1 => branch!('b' => 2, 't' => 3),
+            2 => branch!('i' => 5, 's' => 4),// <end:3>
+            3 => branch!(),// <end:2>
+            4 => branch!(),// <end:0>
+            5 => branch!(),// <end:1>
         ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=0), 5 => term!(=1)],
         ),
 
         (17, btreemap![], btreemap![],
          btreemap![
-            0 => branch!['a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 4, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1],
-            1 => branch!['d' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'z' => 5],
-            2 => branch!['a' => 2, 'b' => 2, 'c' => 2, 'd' => 2, 'e' => 2, 'f' => 2], // <end:0>
-            3 => branch!['a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 3, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1, 'z' => 5], // <end:0>
-            4 => branch!['a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 3, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1, 'y' => 6, 'z' => 5], // <end:0>
-            5 => branch![], // <end:1>
-            6 => branch![], // <end:2>
+            0 => branch!('a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 4, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1),
+            1 => branch!('d' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'z' => 5),
+            2 => branch!('a' => 2, 'b' => 2, 'c' => 2, 'd' => 2, 'e' => 2, 'f' => 2), // <end:0>
+            3 => branch!('a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 3, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1, 'z' => 5), // <end:0>
+            4 => branch!('a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 3, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1, 'y' => 6, 'z' => 5), // <end:0>
+            5 => branch!(), // <end:1>
+            6 => branch!(), // <end:2>
         ], btreemap![2 => term!(=0), 3 => term!(=0), 4 => term!(=0), 5 => term!(=1), 6 => term!(=2)]),
 
     ];

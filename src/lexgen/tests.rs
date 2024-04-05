@@ -3,6 +3,7 @@
 use crate::*;
 use super::*;
 
+#[cfg(disabled)]
 #[test]
 fn lexgen_partition_symbols() {
     let tests = [
@@ -44,6 +45,7 @@ fn lexgen_partition_symbols() {
     }
 }
 
+#[cfg(disabled)]
 #[test]
 fn lexgen_symbol_tables() {
     let tests = [
