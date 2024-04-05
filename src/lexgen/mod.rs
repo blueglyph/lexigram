@@ -92,13 +92,18 @@ pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, G
 }
 
 fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Intervals {
-    const VERBOSE: bool = false;
     let mut groups = Intervals::empty();    // todo: pre-fill with ASCII range?
     for i in g.values().flat_map(|x| x.keys()) {
-        groups.partition(i);
+        todo!();
+        let mut opt_i = i.clone();
+        opt_i.normalize();
+        println!("{i} -> {opt_i}");
+        groups.partition(&opt_i);
+        println!("  => {groups}");
     }
     groups
     /*
+    const VERBOSE: bool = false;
     let mut groups = Vec::<BTreeSet<char>>::new();
     for (st, trans) in g {
         // extracts a subpartition for the current transition by regrouping the symbols:
@@ -162,6 +167,7 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Int
     */
 }
 
+#[cfg(disabled)]
 fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition: T) -> String {
     partition.into_iter().map(|chars| chars_to_string(chars, true)).collect::<Vec<_>>().join(", ")
 }
@@ -174,6 +180,7 @@ fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
     result
 }
 
+#[cfg(disabled)]
 fn group_transitions_to_string(p: &BTreeMap<BTreeSet<char>, StateId>) -> String {
     format!("{}",
              p.iter()

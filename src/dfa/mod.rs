@@ -288,7 +288,7 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
         if VERBOSE { println!("new DFA"); }
@@ -344,8 +344,18 @@ impl DfaBuilder {
                     }
                 }
             }
-
+/*
             // merges segments back to intervals for each trans value
+            if VERBOSE {
+                println!("  trans:");
+                for ((a, b), states) in &trans {
+                    println!("    {} => {}",
+                        if a == b { format!("'{}'", escape_char(char::from_u32(*a).unwrap())) } else { format!("['{}'-'{}']", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap())) },
+                        states.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(", ")
+                    );
+                }
+            }
+*/
             let mut trans_merged = BTreeMap::<BTreeSet<Id>, Intervals>::new();
             for (segment, ids) in trans {
                 if let Some(intervals) = trans_merged.get_mut(&ids) {
