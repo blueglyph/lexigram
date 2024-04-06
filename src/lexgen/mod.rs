@@ -93,8 +93,24 @@ pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, G
 
 fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Intervals {
     let mut groups = Intervals::empty();    // todo: pre-fill with ASCII range?
+    // optimizes the intervals, in case it's not already done
+    for branches in g.values() {
+        let mut map = BTreeMap::<StateId, Intervals>::new();
+        for (intervals, destination) in branches {
+            if let Some(i) = map.get_mut(destination) {
+                i.extend(&intervals.0);
+            } else {
+                map.insert(*destination, intervals.clone());
+            }
+        }
+        for intervals in map.values_mut() {
+            intervals.normalize();
+            groups.partition(&intervals);
+        }
+    }
+    groups
+    /*
     for i in g.values().flat_map(|x| x.keys()) {
-        todo!();
         let mut opt_i = i.clone();
         opt_i.normalize();
         println!("{i} -> {opt_i}");
@@ -102,6 +118,7 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Int
         println!("  => {groups}");
     }
     groups
+    */
     /*
     const VERBOSE: bool = false;
     let mut groups = Vec::<BTreeSet<char>>::new();

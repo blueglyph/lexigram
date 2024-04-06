@@ -521,7 +521,7 @@ impl Dfa {
         translate
     }
 
-    pub fn optimize(&mut self, separate_end_states: bool) -> BTreeMap<StateId, StateId> {
+    pub fn optimize(&mut self, _separate_end_states: bool) -> BTreeMap<StateId, StateId> {
         todo!()
     }
     #[cfg(disabled)]
