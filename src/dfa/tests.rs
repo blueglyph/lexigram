@@ -75,13 +75,13 @@ impl Add for Terminal {
 /// #use rlexer::{btreeset, seg, intervals::Intervals};
 /// let mut x = Intervals::empty();
 /// x.insert(seg!('a'));
-/// x.insert(seg!('0', '9'));
+/// x.insert(seg!('0'-'9'));
 /// assert_eq!(x, Intervals(btreeset![('a' as u32, 'a' as u32), ('0' as u32, '9' as u32)]));
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! seg {
-    ($a:expr, $b:expr) => { ($a as u32, $b as u32) };
-    ($a:expr) => { ($a as u32, $a as u32) };
+    ($a:literal - $b:literal) => { ($a as u32, $b as u32) };
+    ($a:literal) => { ($a as u32, $a as u32) };
 }
 
 /// Generates an Intervals initialization from tuples of u32.
@@ -89,13 +89,13 @@ macro_rules! seg {
 /// # Example
 /// ```
 /// #use rlexer::{btreeset, intervals, seg, intervals::Intervals};
-/// let a = intervals!['a'; 'b', 'z'; '0', '9'];
+/// let a = intervals!['a', 'b'-'z', '0'-'9'];
 /// assert_eq!(a, Intervals(btreeset![('a' as u32, 'a' as u32), ('b' as u32, 'z' as u32), ('0' as u32, '9' as u32)]));
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! intervals {
-    ($($a:expr $(, $b:expr)?;)*) => { intervals![$($a$(, $b)?);*] };
-    ($($a:expr $(, $b:expr)?);*) => { Intervals(BTreeSet::from([$(seg![$a$(, $b)?]),*]))};
+    ($($a:literal $(- $b:literal)?,)*) => { intervals![$($a$(- $b)?),*] };
+    ($($a:literal $(- $b:literal)?),*) => { Intervals(BTreeSet::from([$(seg![$a$(- $b)?]),*]))};
 }
 
 /// Generates the key-value pairs corresponding to the `char => int` arguments, which can be
@@ -124,14 +124,14 @@ macro_rules! intervals {
 #[macro_export(local_inner_macros)]
 macro_rules! branch {
     ($( $([$($a:literal $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr),*)
-    => { btreemap![$(intervals![$($($a$(, $b)?;)+)? $($c $(,$d)?)?] => $value),*] };
+    => { btreemap![$(intervals![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
     // a few guards for trailing comma:
     ($( $([$($a:literal $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
-    => { btreemap![$(intervals![$($($a$(, $b)?;)+)? $($c $(,$d)?)?] => $value),+] };
+    => { btreemap![$(intervals![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
     ($( $([$($a:literal $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr)*)
-    => { btreemap![$(intervals![$($($a$(, $b)?;)+)? $($c $(,$d)?)?] => $value),*] };
+    => { btreemap![$(intervals![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
     ($( $([$($a:literal $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
-    => { btreemap![$(intervals![$($($a$(, $b)?;)+)? $($c $(,$d)?)?] => $value),+] };
+    => { btreemap![$(intervals![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
 }
 
 #[test]

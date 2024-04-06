@@ -1,6 +1,7 @@
 pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+#[cfg(disabled)]
 use crate::escape_char;
 use crate::intervals::Intervals;
 use super::dfa::*;
@@ -189,6 +190,7 @@ fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition
     partition.into_iter().map(|chars| chars_to_string(chars, true)).collect::<Vec<_>>().join(", ")
 }
 
+#[cfg(disabled)]
 fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
     let mut result = String::new();
     if bracket { result.push('['); }
