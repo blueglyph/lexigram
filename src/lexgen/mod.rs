@@ -1,6 +1,7 @@
 pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+#[cfg(test)]
 use crate::dfa::tests::print_graph;
 use crate::escape_char;
 use crate::intervals::Intervals;
@@ -96,10 +97,9 @@ pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, G
 
 // todo: option to split ASCII range?
 fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Vec<Intervals> {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     let mut groups = Vec::new();
-    if VERBOSE { print_graph(g, None); }
-    // optimizes the intervals, in case it's not already done
+    #[cfg(test)] if VERBOSE { print_graph(g, None); }
     for (_state, branches) in g {
         // branches from a given state
         let mut map = BTreeMap::<StateId, Intervals>::new();
@@ -110,80 +110,41 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Vec
                 map.insert(*destination, intervals.clone());
             }
         }
-        if VERBOSE { println!("- state {} => {}", _state, map.values().map(|i| {
-            let mut j = i.clone();
-            j.normalize();
-            format!("{j:X}")
-        }).collect::<Vec<_>>().join(", ")); }
+        // optimizes the intervals, in case it's not already done
         for intervals in map.values_mut() {
             intervals.normalize();
         }
-    }
-    groups
-    /*
-    const VERBOSE: bool = false;
-    let mut groups = Vec::<BTreeSet<char>>::new();
-    for (st, trans) in g {
-        // extracts a subpartition for the current transition by regrouping the symbols:
-        // a set of "[chars] => state" instead of a set of "char => state"
-        let mut grouped_trans = BTreeMap::<StateId, BTreeSet<char>>::new();
-        for (c, st) in trans {
-            if grouped_trans.contains_key(st) {
-                grouped_trans.get_mut(st).unwrap()
-                    .insert(*c);
-            } else {
-                grouped_trans.insert(*st, BTreeSet::from([*c]));
-            }
-        }
-        let mut sub_p = BTreeMap::<BTreeSet<char>, StateId>::from_iter(grouped_trans.into_iter().map(|(k, v)| (v, k)));
-        if VERBOSE { println!("state {}: {}", st, group_transitions_to_string(&sub_p)); }
-
-        // transforms the resulting partition
-        while let Some((mut sub, _st)) = sub_p.pop_first() {
-            if VERBOSE { println!("- sub = {}", chars_to_string(&sub, true)); }
+        #[cfg(test)] if VERBOSE { println!("{_state} => {}", map.values().map(|i| format!("{i:X}")).collect::<Vec<_>>().join(", ")); }
+        let mut state_sub = map.into_values().collect::<BTreeSet<Intervals>>();
+        while let Some(mut sub) = state_sub.pop_first() {
+            if VERBOSE { println!("- sub = {sub}"); }
             for i in 0..groups.len() {
-                if VERBOSE { println!("  - groups[i] = {}", chars_to_string(&groups[i], true)); }
-                let common = sub.intersection(&groups[i]).cloned().collect::<BTreeSet<_>>();
-                if common.is_empty() {
-                    // nothing to do, sub will be added to groups if it's not modified by another groups[j]
+                if VERBOSE { println!("  - groups[{i}] = {}", groups[i]); }
+                let cmp = sub.intersect(&groups[i]);
+                if cmp.common.is_empty() {
                     if VERBOSE { println!("    (disjoints)"); }
                 } else {
-                    // what's not common, in both groups[i] and sub?
-                    let extra_group = groups[i].difference(&sub).cloned().collect::<BTreeSet<_>>();
-                    let extra_sub = sub.difference(&groups[i]).cloned().collect::<BTreeSet<_>>();
-                    if VERBOSE {
-                        match true {
-                            _ if extra_group.is_empty() && !extra_sub.is_empty() => print!("    group>sub"),
-                            _ if !extra_group.is_empty() && extra_sub.is_empty() => print!("    group<sub"),
-                            _ => print!("    group=sub"),
-                        }
+                    // groups[i] is split { cmp.common, cmp.external }
+                    groups[i] = cmp.common;
+                    if !cmp.external.is_empty() {
+                        if VERBOSE { println!("    -> push {}", cmp.external); }
+                        groups.push(cmp.external);
                     }
-                    // current group is split -> { common, extra_group }
-                    if VERBOSE { print!(" -> groups[i] = {}", chars_to_string(&groups[i], true)); }
-                    groups[i] = common;
-                    if !extra_group.is_empty() {
-                        if VERBOSE { print!(" & push {}", chars_to_string(&extra_group, true)); }
-                        groups.push(extra_group);
-                    }
-                    // sub is split -> { common, extra_sub }, with common already in groups[i] so we don't keep it
-                    if VERBOSE { println!(" -> sub = {}", chars_to_string(&extra_sub, true)); }
-                    sub = extra_sub;
+                    // sub is split { cmp.common, cmp.internal }, and we discard cmp.common since already in groups
+                    if VERBOSE { println!("    -> sub = {}", cmp.internal); }
+                    sub = cmp.internal;
                     if sub.is_empty() {
-                        break; // no need to inspect other groups
+                        break;
                     }
-
                 }
             }
             if !sub.is_empty() {
-                if VERBOSE { println!("  -> push {}", chars_to_string(&sub, true)); }
                 groups.push(sub);
             }
         }
     }
-    if VERBOSE { println!("result -> {}", char_groups_to_string(&groups)); }
+    #[cfg(test)] if VERBOSE { println!("=> {}", groups.iter().map(|i| format!("{i:X}")).collect::<Vec<_>>().join(", ")); }
     groups
-    */
-
 }
 
 #[cfg(disabled)]

@@ -6,6 +6,13 @@ use crate::{btreeset, escape_char};
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub struct Intervals(pub BTreeSet<(u32, u32)>);
 
+// impl Clone for Intervals {
+//     fn clone(&self) -> Self {
+//         println!("cloning {self:?}");
+//         Intervals(self.0.clone())
+//     }
+// }
+
 impl Intervals {
     pub fn empty() -> Intervals {
         Intervals(btreeset![])
