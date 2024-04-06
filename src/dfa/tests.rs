@@ -558,22 +558,22 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
 }
 
 #[allow(unused)]
-pub(crate) fn print_graph(dfa: &Dfa) {
+pub(crate) fn print_dfa(dfa: &Dfa) {
     // println!("  graph:      {:?}", dfa.state_graph);
     println!("Graph:");
-    for (state, trans) in dfa.state_graph.clone() {
-        // println!("s{state}{}", if dfa.end_states.contains(&state) { " <END>" } else { "" });
-        // for (symbol, dest) in trans {
-        //     println!("  {symbol} -> s{dest}");
-        // }
+    print_graph(&dfa.state_graph, Some(&dfa.end_states));
+    println!("End states: [{}]", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).collect::<Vec<_>>().join(", "));
+}
+
+pub(crate) fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>, end_states: Option<&BTreeMap<StateId, Terminal>>) {
+    for (state, trans) in state_graph.clone() {
         println!("{:3} => branch!({}),{}",
                  state,
                  trans.iter().map(|(sym, st)| format!("{sym} => {st}"))
                      .collect::<Vec<_>>().join(", "),
-                 dfa.end_states.get(&state).map(|token| format!(" // {}", token)).unwrap_or("".to_string()),
+                 end_states.and_then(|map| map.get(&state).map(|token| format!(" // {}", token))).unwrap_or("".to_string()),
         );
     }
-    println!("End states: [{}]", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).collect::<Vec<_>>().join(", "));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1230,7 +1230,7 @@ fn dfa_states() {
         let mut dfa_builder = DfaBuilder::new(re);
         let dfa = dfa_builder.build();
         if VERBOSE {
-            print_graph(&dfa);
+            print_dfa(&dfa);
             println!();
         }
         assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
@@ -1248,10 +1248,10 @@ fn dfa_normalize() {
         }
         let mut dfa = DfaBuilder::new(re).build();
         // println!("{test_id}: {}", if dfa.is_normalized() { "normalized" } else { "not normalized" });
-        // print_graph(&dfa);
+        // print_dfa(&dfa);
         let _trans = dfa.normalize();
         // println!("{_trans:?}");
-        // print_graph(&dfa);
+        // print_dfa(&dfa);
         assert!(dfa.is_normalized(), "test {test_id} failed");
         assert_eq!(dfa.first_end_state, Some(dfa.state_graph.len() - dfa.end_states.len()), "test {test_id} failed");
         // println!("-------------------------------------------------");
@@ -1294,13 +1294,13 @@ fn dfa_modes() {
         for (id, dfa) in dfas.iter() {
             if VERBOSE {
                 println!("## mode {id}");
-                print_graph(dfa);
+                print_dfa(dfa);
             }
         }
         if VERBOSE { println!("## Merged:"); }
         let dfa = Dfa::from_dfa_modes(dfas);
         if VERBOSE {
-            print_graph(&dfa);
+            print_dfa(&dfa);
             println!("-------------------------------------------------");
         }
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
@@ -1438,7 +1438,7 @@ fn dfa_optimize_graphs() {
         let _tr = dfa.optimize(true);
         if VERBOSE {
             println!("table: {}\n", _tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
-            print_graph(&dfa);
+            print_dfa(&dfa);
         }
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
         assert_eq!(dfa.end_states, BTreeMap::from_iter(exp_end_states.into_iter()), "test {test_id} failed");

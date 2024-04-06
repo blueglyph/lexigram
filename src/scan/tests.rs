@@ -4,7 +4,7 @@ use std::collections::BTreeMap;
 use std::io::Cursor;
 use crate::{btreemap, escape_string};
 use crate::dfa::{DfaBuilder, Token};
-use crate::dfa::tests::{build_re, print_graph};
+use crate::dfa::tests::{build_re, print_dfa};
 use crate::lexgen::tests::print_source_code;
 use super::*;
 
@@ -58,7 +58,7 @@ fn scanner() {
     for (test_id, token_tests, err_tests, stream_tests) in tests {
         let mut dfa = DfaBuilder::new(build_re(test_id)).build();
         dfa.normalize();
-        if VERBOSE { print_graph(&dfa); }
+        if VERBOSE { print_dfa(&dfa); }
         let lexgen = LexGen::new(dfa);
         if VERBOSE { print_source_code(&lexgen); }
         let mut scanner = Scanner::new(lexgen);

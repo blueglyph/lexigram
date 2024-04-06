@@ -1,7 +1,7 @@
 pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-#[cfg(disabled)]
+use crate::dfa::tests::print_graph;
 use crate::escape_char;
 use crate::intervals::Intervals;
 use super::dfa::*;
@@ -33,11 +33,13 @@ impl LexGen {
             state_table: Box::default(),
             terminal_table: Box::default(),
         };
+        #[cfg(disabled)]
         lexgen.create_input_tables();
         lexgen.create_state_tables();
         lexgen
     }
 
+    #[cfg(disabled)]
     fn create_input_tables(&mut self) {
         let symbol_part = partition_symbols(&self.dfa.state_graph);
         // let symbols = symbol_part.iter().flatten().map(|c| *c).collect::<BTreeSet<char>>();
@@ -92,10 +94,14 @@ pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, G
     }
 }
 
-fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Intervals {
-    let mut groups = Intervals::empty();    // todo: pre-fill with ASCII range?
+// todo: option to split ASCII range?
+fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Vec<Intervals> {
+    const VERBOSE: bool = true;
+    let mut groups = Vec::new();
+    if VERBOSE { print_graph(g, None); }
     // optimizes the intervals, in case it's not already done
-    for branches in g.values() {
+    for (_state, branches) in g {
+        // branches from a given state
         let mut map = BTreeMap::<StateId, Intervals>::new();
         for (intervals, destination) in branches {
             if let Some(i) = map.get_mut(destination) {
@@ -104,22 +110,16 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Int
                 map.insert(*destination, intervals.clone());
             }
         }
+        if VERBOSE { println!("- state {} => {}", _state, map.values().map(|i| {
+            let mut j = i.clone();
+            j.normalize();
+            format!("{j:X}")
+        }).collect::<Vec<_>>().join(", ")); }
         for intervals in map.values_mut() {
             intervals.normalize();
-            groups.partition(&intervals);
         }
     }
     groups
-    /*
-    for i in g.values().flat_map(|x| x.keys()) {
-        let mut opt_i = i.clone();
-        opt_i.normalize();
-        println!("{i} -> {opt_i}");
-        groups.partition(&opt_i);
-        println!("  => {groups}");
-    }
-    groups
-    */
     /*
     const VERBOSE: bool = false;
     let mut groups = Vec::<BTreeSet<char>>::new();
@@ -183,6 +183,7 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Int
     if VERBOSE { println!("result -> {}", char_groups_to_string(&groups)); }
     groups
     */
+
 }
 
 #[cfg(disabled)]
@@ -190,7 +191,6 @@ fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition
     partition.into_iter().map(|chars| chars_to_string(chars, true)).collect::<Vec<_>>().join(", ")
 }
 
-#[cfg(disabled)]
 fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
     let mut result = String::new();
     if bracket { result.push('['); }

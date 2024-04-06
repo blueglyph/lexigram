@@ -282,13 +282,29 @@ impl Iterator for ReTypeCharIter {
 
 #[cfg(test)]
 mod tests {
-    use std::fmt::LowerHex;
+    use std::fmt::{LowerHex, UpperHex};
     use super::*;
 
+    /// "{:x}" is used to show the raw intervals with codes
     impl LowerHex for Intervals {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             write!(f, "[{}]", self.iter()
                 .map(|(a, b)| if a == b { format!("{a}") } else { format!("{a}-{b}") })
+                .collect::<Vec<_>>()
+                .join(", ")
+            )
+        }
+    }
+
+    /// "{:X}" is used to show the raw intervals with characters
+    impl UpperHex for Intervals {
+        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+            write!(f, "[{}]", self.iter()
+                .map(|(a, b)| if a == b {
+                    format!("'{}'", escape_char(char::from_u32(*a).unwrap()))
+                } else {
+                    format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap()))
+                })
                 .collect::<Vec<_>>()
                 .join(", ")
             )
@@ -374,6 +390,8 @@ mod tests {
              (btreeset![(10, 20), (30, 40)], btreeset![(1, 9), (21, 29), (41, 50)], btreeset![])),
             (btreeset![(1, 10), (11, 15), (16, 20), (21, 35), (36, 37), (38, 50)], btreeset![(10, 20), (30, 40)],
              (btreeset![(10, 20), (30, 40)], btreeset![(1, 9), (21, 29), (41, 50)], btreeset![])),
+            (btreeset![(0, 9)], btreeset![(0, 0), (1, 9)],
+             (btreeset![(0, 9)], btreeset![], btreeset![])),
             (btreeset![], btreeset![],
              (btreeset![], btreeset![], btreeset![])),
         ];

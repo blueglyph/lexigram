@@ -10,8 +10,8 @@ fn lexgen_partition_symbols() {
             0 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1],
             1 => branch!['0' => 2],
             2 => branch!['0' => 1, '1' => 2, '2' => 2, '3' => 2],
-            3 => branch!['0' => 2, '1' => 2, '2' => 2, '3' => 3]
-        ], intervals!['0', '1'-'2', '3']), //["0", "12", "3"]),
+            3 => branch!['0' => 2, '1' => 2, '2' => 2, '3' => 3, 'x' => 2]
+        ], vec![intervals!['0'], intervals!['1'-'2', 'x'], intervals!['3']]), //["0", "12", "3"]),
 
         (2, btreemap![
             0 => branch!['0' => 3, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4],
@@ -23,12 +23,12 @@ fn lexgen_partition_symbols() {
             5 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
             6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6,
                 'A' => 6, 'B' => 6, 'C' => 6, 'D' => 6, 'E' => 6, 'F' => 6, 'a' => 6, 'b' => 6, 'c' => 6, 'd' => 6, 'e' => 6, 'f' => 6],
-        ], intervals!['0', '1'-'9', 'A'-'F', 'a'-'f', '.', 'x']), // btreeset!["0", "123456789", "ABCDEFabcdef", ".", "x"]),
+        ], vec![intervals!['0'], intervals!['1'-'9'], intervals!['A'-'F', 'a'-'f'], intervals!['.'], intervals!['x']]), // btreeset!["0", "123456789", "ABCDEFabcdef", ".", "x"]),
         (3, btreemap![
             0 => branch!['0' => 0, '1' => 1, '2' => 1, '3' => 1],
             1 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1],
             2 => branch!['0' => 2, '1' => 2, '2' => 2, '3' => 0]
-        ], intervals!['0', '1'-'2', '3']), //btreeset!["0", "12", "3"]),
+        ], vec![intervals!['0'], intervals!['1'-'2'], intervals!['3']]), //btreeset!["0", "12", "3"]),
 
     ];
     for (test_id, g, expected_groups) in tests {
@@ -44,7 +44,6 @@ fn lexgen_partition_symbols() {
     }
 }
 
-#[cfg(disabled)]
 #[test]
 fn lexgen_symbol_tables() {
     let tests = [
