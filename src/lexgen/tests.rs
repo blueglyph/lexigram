@@ -113,3 +113,81 @@ pub(crate) fn print_source_code(lexgen: &LexGen) {
     }
     println!("];")
 }
+
+#[cfg(test)]
+pub mod segments {
+    use super::*;
+
+    #[test]
+    fn btree_seg() {
+         let map = SegMap::from_iter([(Seg(1, 10), 1), (Seg(15, 20), 2), (Seg(21, 25), 3), (Seg(30, 40), 4), (Seg(99, 99), 5)]);
+        let tests = vec![
+            (0, 0), (5, 1), (10, 1), (12, 0), (15, 2), (99, 5), (100, 0), (50, 0), (35, 4), (100, 0)
+        ];
+        for (a, expected) in tests {
+            let result = map.get(a).unwrap_or(0);
+            assert_eq!(result, expected, "test on {a} failed");
+        }
+
+        let map = SegMap::from_iter([(Seg(0, 0), 1), (Seg(15, 20), 2), (Seg(21, 25), 3), (Seg(30, 40), 4), (Seg(99, 99), 5)]);
+        let tests = vec![
+            (0, 1), (1, 0), (12, 0), (15, 2), (99, 5), (100, 0), (50, 0), (35, 4), (100, 0)
+        ];
+        for (a, expected) in tests {
+            let result = map.get(a).unwrap_or(0);
+            assert_eq!(result, expected, "test on {a} failed");
+        }
+   }
+}
+
+#[cfg(possible_alternative)]
+#[cfg(test)]
+pub mod segments_alt {
+    use std::collections::BTreeMap;
+    use crate::lexgen::GroupId;
+
+    #[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord)]
+    pub struct Seg(u32, u32);
+
+    pub struct SegMap(BTreeMap<u32, (u32, GroupId)>);
+
+    impl SegMap {
+        pub fn new() -> Self {
+            SegMap(BTreeMap::new())
+        }
+
+        pub fn from_iter<T: IntoIterator<Item = (Seg, GroupId)>>(iter: T) -> Self {
+            SegMap(BTreeMap::from_iter(iter.into_iter().map(|(Seg(a, b), g)| (a, (b, g)))))
+        }
+
+        pub fn get(&self, value: u32) -> Option<GroupId> {
+            let (_a, (b, group)) = self.0.range(0..=value).next_back()?;
+            if *b >= value {
+                Some(*group)
+            } else {
+                None
+            }
+        }
+    }
+
+    #[test]
+    fn btree_seg() {
+        let map = SegMap::from_iter([(Seg(1, 10), 1), (Seg(15, 20), 2), (Seg(21, 25), 3), (Seg(30, 40), 4), (Seg(99, 99), 5)]);
+        let tests = vec![
+            (0, 0), (5, 1), (10, 1), (12, 0), (15, 2), (99, 5), (100, 0), (50, 0), (35, 4), (100, 0)
+        ];
+        for (a, expected) in tests {
+            let result = map.get(a).unwrap_or(0);
+            assert_eq!(result, expected, "test on {a} failed");
+        }
+
+        let map = SegMap::from_iter([(Seg(0, 0), 1), (Seg(15, 20), 2), (Seg(21, 25), 3), (Seg(30, 40), 4), (Seg(99, 99), 5)]);
+        let tests = vec![
+            (0, 1), (1, 0), (12, 0), (15, 2), (99, 5), (100, 0), (50, 0), (35, 4), (100, 0)
+        ];
+        for (a, expected) in tests {
+            let result = map.get(a).unwrap_or(0);
+            assert_eq!(result, expected, "test on {a} failed");
+        }
+    }
+}

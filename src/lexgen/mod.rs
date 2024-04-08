@@ -1,6 +1,7 @@
 pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::ops::Bound::Included;
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
 use crate::escape_char;
@@ -9,10 +10,35 @@ use super::dfa::*;
 
 pub type GroupId = usize;
 
+#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord)]
+pub struct Seg(u32, u32);
+
+pub struct SegMap<T>(BTreeMap<Seg, T>);
+
+impl<T: Clone> SegMap<T> {
+    pub fn new() -> Self {
+        SegMap(BTreeMap::new())
+    }
+
+    pub fn from_iter<I: IntoIterator<Item = (Seg, T)>>(iter: I) -> Self {
+        SegMap(BTreeMap::from_iter(iter))
+    }
+
+    pub fn get(&self, value: u32) -> Option<T> {
+        let (Seg(_a, b), data) = self.0.range((Included(&Seg(0, 0)), Included(&Seg(value, u32::MAX)))).next_back()?;
+        if *b >= value {
+            Some(data.clone())
+        } else {
+            None
+        }
+    }
+}
+
 pub struct LexGen {
     dfa: Dfa,
     pub ascii_to_group: Box<[GroupId]>,
     pub utf8_to_group: Box<HashMap<char, GroupId>>,
+    pub seg_to_group: SegMap<GroupId>,
     pub nbr_groups: usize,
     pub initial_state: StateId,
     pub first_end_state: StateId,   // accepting when state >= first_end_state
@@ -27,6 +53,7 @@ impl LexGen {
             dfa,
             ascii_to_group: Box::default(),
             utf8_to_group: Box::default(),
+            seg_to_group: SegMap::new(),
             nbr_groups: 0,
             initial_state: 0,
             first_end_state: 0,
@@ -34,17 +61,19 @@ impl LexGen {
             state_table: Box::default(),
             terminal_table: Box::default(),
         };
-        #[cfg(disabled)]
         lexgen.create_input_tables();
         lexgen.create_state_tables();
         lexgen
     }
 
-    #[cfg(disabled)]
     fn create_input_tables(&mut self) {
         let symbol_part = partition_symbols(&self.dfa.state_graph);
-        // let symbols = symbol_part.iter().flatten().map(|c| *c).collect::<BTreeSet<char>>();
-        let symbols = symbol_part.chars().collect::<BTreeSet<char>>();
+        let mut symbols = Intervals::empty();
+        for i in symbol_part {
+            symbols.extend(i.0);
+        }
+        todo!();
+        /*
         let mut symbol_to_group = BTreeMap::<char, GroupId>::new();
         for (id, (a, b)) in symbol_part.iter().enumerate() {
             symbol_to_group.extend((*a..=*b).map(|code| (char::from_u32(code).unwrap(), id as GroupId)));
@@ -57,6 +86,7 @@ impl LexGen {
         self.utf8_to_group = symbols.iter()
             .filter_map(|c| if c.is_ascii() { None } else { symbol_to_group.get(c).map(|g| (*c, *g as GroupId)) })
             .collect::<HashMap<char, GroupId>>().into();
+        */
     }
 
     fn create_state_tables(&mut self) {
