@@ -149,8 +149,8 @@ impl<R: Read> Scanner<R> {
                 if VERBOSE { print!(", char '{}' group {}", if c == EOF { "<EOF>".to_string() } else { escape_char(c) }, group); }
                 // we can use the state_table even if group = error = nrb_group (but we must
                 // ignore new_state and detect that the group is illegal):
-                let new_state = self.state_table[self.nbr_groups * state + group];
-                if new_state >= self.nbr_states || group >= self.nbr_groups { // we can't do anything with the current character
+                let new_state = self.state_table[self.nbr_groups * state + group as usize];
+                if new_state >= self.nbr_states || group as usize >= self.nbr_groups { // we can't do anything with the current character
                     if c != EOF {
                         input.rewind(c).expect(&format!("Can't rewind character '{}'", escape_char(c)));
                     }
@@ -180,7 +180,7 @@ impl<R: Read> Scanner<R> {
                             token_ch: None,
                             state,
                             is_eos: c == EOF,
-                            msg: (if c == EOF { "end of stream" } else { if group >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
+                            msg: (if c == EOF { "end of stream" } else { if group as usize >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
                         });
                         if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
                         return Err(self.error.as_ref().unwrap());

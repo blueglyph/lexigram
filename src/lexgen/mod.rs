@@ -1,6 +1,7 @@
 pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::btree_map::{IntoIter, Iter};
 use std::ops::Bound::Included;
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
@@ -8,11 +9,12 @@ use crate::escape_char;
 use crate::intervals::Intervals;
 use super::dfa::*;
 
-pub type GroupId = usize;
+pub type GroupId = u32;
 
 #[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord)]
 pub struct Seg(u32, u32);
 
+#[derive(Debug, PartialEq)]
 pub struct SegMap<T>(BTreeMap<Seg, T>);
 
 impl<T: Clone> SegMap<T> {
@@ -32,13 +34,39 @@ impl<T: Clone> SegMap<T> {
             None
         }
     }
+
+    pub fn insert(&mut self, key: Seg, value: T) -> Option<T> {
+        self.0.insert(key, value)
+    }
+
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+}
+
+impl<T> IntoIterator for SegMap<T> {
+    type Item = (Seg, T);
+    type IntoIter = IntoIter<Seg, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a SegMap<T> {
+    type Item = (&'a Seg, &'a T);
+    type IntoIter = Iter<'a, Seg, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
 }
 
 pub struct LexGen {
-    dfa: Dfa,
     pub ascii_to_group: Box<[GroupId]>,
     pub utf8_to_group: Box<HashMap<char, GroupId>>,
     pub seg_to_group: SegMap<GroupId>,
+    pub max_utf8_chars: u32,
     pub nbr_groups: usize,
     pub initial_state: StateId,
     pub first_end_state: StateId,   // accepting when state >= first_end_state
@@ -48,65 +76,94 @@ pub struct LexGen {
 }
 
 impl LexGen {
-    pub fn new(dfa: Dfa) -> Self {
-        let mut lexgen = LexGen {
-            dfa,
-            ascii_to_group: Box::default(),
+    pub fn new() -> Self {
+        LexGen {
+            ascii_to_group: vec![GroupId::MAX; 128].into_boxed_slice(),
             utf8_to_group: Box::default(),
             seg_to_group: SegMap::new(),
+            max_utf8_chars: 128,
             nbr_groups: 0,
             initial_state: 0,
             first_end_state: 0,
             nbr_states: 0,
             state_table: Box::default(),
             terminal_table: Box::default(),
-        };
-        lexgen.create_input_tables();
-        lexgen.create_state_tables();
+        }
+    }
+
+    pub fn from_dfa(dfa: &Dfa) -> Self {
+        let mut lexgen = LexGen::new();
+        lexgen.build(dfa);
         lexgen
     }
 
-    fn create_input_tables(&mut self) {
-        let symbol_part = partition_symbols(&self.dfa.state_graph);
-        let mut symbols = Intervals::empty();
-        for i in symbol_part {
-            symbols.extend(i.0);
-        }
-        todo!();
-        /*
-        let mut symbol_to_group = BTreeMap::<char, GroupId>::new();
-        for (id, (a, b)) in symbol_part.iter().enumerate() {
-            symbol_to_group.extend((*a..=*b).map(|code| (char::from_u32(code).unwrap(), id as GroupId)));
-        }
-        self.nbr_groups = symbol_part.len();
-        let error_id = self.nbr_groups;
-        self.ascii_to_group = (0..128_u8)
-            .map(|i| *symbol_to_group.get(&char::from(i)).unwrap_or(&error_id))
-            .collect::<Vec<_>>().into_boxed_slice();
-        self.utf8_to_group = symbols.iter()
-            .filter_map(|c| if c.is_ascii() { None } else { symbol_to_group.get(c).map(|g| (*c, *g as GroupId)) })
-            .collect::<HashMap<char, GroupId>>().into();
-        */
+    pub fn build(&mut self, dfa: &Dfa) {
+        self.create_input_tables(dfa);
+        self.create_state_tables(dfa);
     }
 
-    fn create_state_tables(&mut self) {
-        self.initial_state = self.dfa.initial_state.unwrap();
-        self.first_end_state = self.dfa.first_end_state.unwrap();
-        self.nbr_states = self.dfa.state_graph.len();
-        let nbr_states = self.dfa.state_graph.len();
+    fn create_input_tables(&mut self, dfa: &Dfa) {
+        const VERBOSE: bool = true;
+        let symbol_part = partition_symbols(&dfa.state_graph);
+        let symbol_to_group = SegMap::from_iter(
+            symbol_part.iter().enumerate().flat_map(|(id, i)| i.iter().map(move |(a, b)| (Seg(*a, *b), id as GroupId)))
+        );
+        self.nbr_groups = symbol_part.len();
+        let error_id = self.nbr_groups as GroupId;
+        self.ascii_to_group.fill(error_id);
+        self.utf8_to_group.clear();
+        self.seg_to_group.clear();
+        let mut left = self.max_utf8_chars;
+        for (seg, group_id) in symbol_to_group {
+            if seg.0 < 128 {
+                if VERBOSE {
+                    println!("ASCII: {}-{} ({}-{}) => {group_id}",
+                             escape_char(char::from_u32(seg.0).unwrap()), escape_char(char::from_u32(seg.1.min(127)).unwrap()),
+                             seg.0, seg.1.min(127));
+                }
+                for b in seg.0..=seg.1.min(127) {
+                    self.ascii_to_group[b as usize] = group_id;
+                }
+            }
+            if seg.1 >= 128 {
+                let low = 128.max(seg.0);
+                let high = seg.1.min(low + left - 1);
+                for u in low..=high {
+                    if VERBOSE { println!("UTF8: {} ({u}) => {group_id}", escape_char(char::from_u32(u).unwrap())); }
+                    self.utf8_to_group.insert(char::from_u32(u).unwrap(), group_id);
+                }
+                left -= 1 + high - low;
+                if high < seg.1 {
+                    if VERBOSE {
+                        println!("SEG: {}-{} ({}-{}) => {group_id}",
+                             escape_char(char::from_u32(high + 1).unwrap()), escape_char(char::from_u32(seg.1).unwrap()),
+                             high + 1, seg.1);
+                    }
+                    self.seg_to_group.insert(Seg(high + 1, seg.1), group_id);
+                }
+            }
+        }
+    }
+
+    fn create_state_tables(&mut self, dfa: &Dfa) {
+        return;
+        self.initial_state = dfa.initial_state.unwrap();
+        self.first_end_state = dfa.first_end_state.unwrap();
+        self.nbr_states = dfa.state_graph.len();
+        let nbr_states = dfa.state_graph.len();
         // we add one extra table index to allow for the 'error group', which equals nbr_group:
         // state_table[nbr_state * nbr_group + nbr_group] must exist; the content will be ignored.
         let mut state_table = vec!(self.nbr_states; self.nbr_groups * nbr_states + 1);
-        for (state_from, trans) in &self.dfa.state_graph {
+        for (state_from, trans) in &dfa.state_graph {
             for (intervals, state_to) in trans {
                 for symbol in intervals.chars() {
                     let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, symbol);
-                    state_table[self.nbr_groups * state_from + symbol_group] = *state_to;
+                    state_table[self.nbr_groups * state_from + symbol_group as usize] = *state_to;
                 }
             }
         }
         self.state_table = state_table.into_boxed_slice();
-        let terminal_table = self.dfa.end_states.iter()
+        let terminal_table = dfa.end_states.iter()
             .filter_map(|(&st, t)| if st >= self.first_end_state { Some(t.clone()) } else { None })
             .collect::<Vec<_>>();
         self.terminal_table = terminal_table.into_boxed_slice();

@@ -56,11 +56,11 @@ fn lexgen_symbol_tables() {
     for (test_id, g, expected_set) in tests {
         let mut dfa = Dfa::from_graph(g, 0, btreemap![3 => term![=0], 4 => term![=0], 5 => term![=1], 6 => term![=2]]);
         dfa.normalize();
-        let lexgen = LexGen::new(dfa);
+        let lexgen = LexGen::from_dfa(&dfa);
         let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups];
         for i in 0..128_u8 {
             let c = char::from(i);
-            let g = lexgen.ascii_to_group[i as usize];
+            let g = lexgen.ascii_to_group[i as usize] as usize;
             if g < lexgen.nbr_groups {
                 ascii_vec[g].insert(c);
             }
@@ -75,6 +75,38 @@ fn lexgen_symbol_tables() {
     }
 }
 
+#[test]
+fn lexgen_symbol_tables_corner() {
+    let tests = [
+        (0, 1, btreemap![
+            0 => branch![127 => 0, 128 => 0, 129 => 0]
+        ], btreemap!["\u{7f}" => 0], btreemap!["\u{80}" => 0], btreemap![Seg(129, 129) => 0])
+    ];
+    for (test_id, left, g, ascii, utf8, seg) in tests {
+        let dfa = Dfa::from_graph(g, 0, btreemap![]);
+        let mut lexgen = LexGen::new();
+        lexgen.max_utf8_chars = left;
+        lexgen.build(&dfa);
+        let error_id = lexgen.nbr_groups as GroupId;
+        let mut exp_ascii = vec![error_id; 128].into_boxed_slice();
+        for (s, id) in ascii {
+            for b in s.chars() {
+                exp_ascii[b as usize] = id;
+            }
+        }
+        let mut exp_utf8 = Box::new(HashMap::<char, GroupId>::new());
+        for (s, id) in utf8 {
+            for u in s.chars() {
+                exp_utf8.insert(u, id);
+            }
+        }
+        let exp_seg = SegMap::from_iter(seg.into_iter());
+        assert_eq!(lexgen.ascii_to_group, exp_ascii, "test {test_id} failed");
+        assert_eq!(lexgen.utf8_to_group, exp_utf8, "test {test_id} failed");
+        assert_eq!(lexgen.seg_to_group, exp_seg, "test {test_id} failed");
+    }
+}
+
 pub(crate) fn print_source_code(lexgen: &LexGen) {
     // Create source code:
     let mut groups = vec![BTreeSet::new(); lexgen.nbr_groups];
@@ -83,7 +115,7 @@ pub(crate) fn print_source_code(lexgen: &LexGen) {
         print!("    ");
         for j in 0..16_usize {
             let ascii = i * 16 + j;
-            let group = lexgen.ascii_to_group[i * 16 + j];
+            let group = lexgen.ascii_to_group[i * 16 + j] as usize;
             print!("{:3}, ", group);
             if group < lexgen.nbr_groups {
                 groups[group].insert(char::from(ascii as u8));

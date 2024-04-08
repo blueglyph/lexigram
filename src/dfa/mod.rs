@@ -308,7 +308,7 @@ impl DfaBuilder {
                 node.op = ReType::CharRange(Box::new(Intervals::from_char(c)));
             }
             if let ReType::CharRange(intervals) = &node.op {
-                symbols_part.partition(&intervals);
+                symbols_part.add_partition(&intervals);
             }
         }
         if VERBOSE { println!("symbols = {symbols_part}"); }

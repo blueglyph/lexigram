@@ -59,7 +59,7 @@ fn scanner() {
         let mut dfa = DfaBuilder::new(build_re(test_id)).build();
         dfa.normalize();
         if VERBOSE { print_dfa(&dfa); }
-        let lexgen = LexGen::new(dfa);
+        let lexgen = LexGen::from_dfa(&dfa);
         if VERBOSE { print_source_code(&lexgen); }
         let mut scanner = Scanner::new(lexgen);
         for (exp_token, inputs) in token_tests {

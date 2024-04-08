@@ -14,7 +14,7 @@ pub struct Intervals(pub BTreeSet<(u32, u32)>);
 // }
 
 impl Intervals {
-    pub fn empty() -> Intervals {
+    pub fn empty() -> Self {
         Intervals(btreeset![])
     }
 
@@ -89,7 +89,7 @@ impl Intervals {
         }
     }
 
-    pub fn intersect(&self, other: &Intervals) -> IntervalsCmp {
+    pub fn intersect(&self, other: &Self) -> IntervalsCmp {
         let mut ab_iter = self.iter();
         let mut cd_iter = other.iter();
         let mut ab = ab_iter.next().cloned();
@@ -142,10 +142,10 @@ impl Intervals {
     ///
     /// let mut a = Intervals(BTreeSet::from([(0, 10), (20, 30)]));
     /// let b = Intervals(BTreeSet::from([(5, 6), (15, 25)]));
-    /// assert!(a.partition(&b));
+    /// assert!(a.add_partition(&b));
     /// assert_eq!(a.0, BTreeSet::<(u32, u32)>::from([(0, 4), (5, 6), (7, 10), (15, 19), (20, 25), (26, 30)]));
     /// ```
-    pub fn partition(&mut self, other: &Self) -> bool {
+    pub fn add_partition(&mut self, other: &Self) -> bool {
         let cmp = self.intersect(other);
         if !(cmp.common.is_empty() && cmp.external.is_empty()) {
             self.clear();
@@ -428,7 +428,7 @@ mod tests {
         for (idx, (ab, cd, exp)) in tests.into_iter().enumerate() {
             let mut ab = Intervals(BTreeSet::<(u32, u32)>::from_iter(ab));
             let cd = Intervals(BTreeSet::from_iter(cd));
-            ab.partition(&cd);
+            ab.add_partition(&cd);
             let expected = Intervals(BTreeSet::from_iter(exp));
             assert_eq!(ab, expected, "test {idx} failed");
         }
