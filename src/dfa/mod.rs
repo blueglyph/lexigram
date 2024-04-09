@@ -3,7 +3,7 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use crate::{btreeset, escape_char, escape_string};
-use crate::intervals::{Segments, Seg};
+use crate::segments::{Segments, Seg};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 

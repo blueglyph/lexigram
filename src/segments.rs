@@ -143,7 +143,7 @@ impl Segments {
     /// Example:
     /// ```
     /// use std::collections::BTreeSet;
-    /// use rlexer::intervals::{Segments, Seg};
+    /// use rlexer::segments::{Segments, Seg};
     ///
     /// let mut a = Segments(BTreeSet::from([Seg(0, 10), Seg(20, 30)]));
     /// let b = Segments(BTreeSet::from([Seg(5, 6), Seg(15, 25)]));

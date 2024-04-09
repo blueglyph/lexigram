@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::*;
-use crate::intervals::{Seg, SegMap};
+use crate::segments::{Seg, SegMap};
 use super::*;
 
 #[test]

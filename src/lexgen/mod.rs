@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
 use crate::escape_char;
-use crate::intervals::{Segments, Seg, SegMap};
+use crate::segments::{Segments, Seg, SegMap};
 use super::dfa::*;
 
 pub type GroupId = u32;

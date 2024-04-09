@@ -4,7 +4,7 @@ use std::ops::Add;
 use crate::*;
 use crate::vectree::VecTree;
 use crate::dfa::*;
-use crate::intervals::Seg;
+use crate::segments::Seg;
 #[allow(unused)] // the compiler doesn't see it's used in a macro
 use crate::io::{UTF8_MAX, UTF8_MIN};
 
@@ -73,7 +73,7 @@ impl Add for Terminal {
 ///
 /// # Example
 /// ```
-/// #use rlexer::{btreeset, seg, intervals::Segments};
+/// #use rlexer::{btreeset, seg, segments::Segments};
 /// let mut x = Segments::empty();
 /// x.insert(seg!('a'));
 /// x.insert(seg!('0'-'9'));
@@ -89,7 +89,7 @@ macro_rules! seg {
 ///
 /// # Example
 /// ```
-/// #use rlexer::{btreeset, segments, seg, intervals::Segments};
+/// #use rlexer::{btreeset, segments, seg, segments::Segments};
 /// let a = segments!['a', 'b'-'z', '0'-'9'];
 /// assert_eq!(a, Segments(btreeset![('a' as u32, 'a' as u32), ('b' as u32, 'z' as u32), ('0' as u32, '9' as u32)]));
 /// ```
@@ -106,8 +106,8 @@ macro_rules! segments {
 /// # Example
 /// ```
 /// # use std::collections::{BTreeMap, BTreeSet};
-/// # use rlexer::{btreemap, segments, branch, intervals::Segments};
-/// # use rlexer::intervals::Seg;
+/// # use rlexer::{btreemap, segments, branch, segments::Segments};
+/// # use rlexer::segments::Seg;
 /// let transitions = btreemap![
 ///     0 => branch!['a'-'c' => 0, 'z' => 1, ['d'-'f', 'h'] => 2, ['x'-'z'] => 4],
 ///     1 => branch![['b'] => 3, '=' => 5],
