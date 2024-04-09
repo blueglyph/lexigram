@@ -332,6 +332,10 @@ impl<T: Clone> SegMap<T> {
     pub fn clear(&mut self) {
         self.0.clear();
     }
+
+    pub fn iter(&self) -> Iter<'_, Seg, T> {
+        self.into_iter()
+    }
 }
 
 impl<T> IntoIterator for SegMap<T> {

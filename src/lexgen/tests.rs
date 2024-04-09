@@ -108,7 +108,7 @@ fn lexgen_symbol_tables_corner() {
          BTreeMap::from_iter((10_u32..16).map(|x| (Seg(x * 16, x * 16 + 15), x as GroupId)))
         ),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (left, g, ascii, utf8, seg)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("Test {test_id}:"); }
         let end_states = g.values().flat_map(|x| x.values()).cloned().collect::<BTreeSet<StateId>>();
@@ -130,14 +130,16 @@ fn lexgen_symbol_tables_corner() {
                 exp_utf8.insert(u, id);
             }
         }
-        println!("LexGen: {}", std::mem::size_of::<LexGen>());
-        println!("lexgen: {}", std::mem::size_of_val(&lexgen));
-        println!("ascii_to_group: {}", std::mem::size_of_val(&lexgen.ascii_to_group));
-        println!("utf8_to_group:  {}", std::mem::size_of_val(&lexgen.utf8_to_group));
-        println!("seg_to_group:   {}", std::mem::size_of_val(&lexgen.seg_to_group));
+        if VERBOSE {
+            println!("LexGen: {}", std::mem::size_of::<LexGen>());
+            println!("lexgen: {}", std::mem::size_of_val(&lexgen));
+            println!("ascii_to_group: {}", std::mem::size_of_val(&lexgen.ascii_to_group));
+            println!("utf8_to_group:  {}", std::mem::size_of_val(&lexgen.utf8_to_group));
+            println!("seg_to_group:   {}", std::mem::size_of_val(&lexgen.seg_to_group));
+            print_source_code(&lexgen);
+        }
         let exp_seg = SegMap::from_iter(seg.into_iter());
         assert_eq!(lexgen.ascii_to_group, exp_ascii, "test {test_id} failed");
-        //assert_eq!(BTreeMap::from_iter(lexgen.utf8_to_group.iter()), BTreeMap::from_iter(exp_utf8.iter()), "test {test_id} failed");
         assert_eq!(lexgen.utf8_to_group, exp_utf8, "test {test_id} failed");
         assert_eq!(lexgen.seg_to_group, exp_seg, "test {test_id} failed");
     }
@@ -160,13 +162,21 @@ pub(crate) fn print_source_code(lexgen: &LexGen) {
         println!("  // {}-{}", i*16, i*16 + 15);
     }
     println!("];");
-    for (g, chars) in groups.iter().enumerate() {
-        println!("// group[{:3}] = [{}]", g, chars.iter().map(|c| escape_char(*c)).collect::<String>());
-    }
     println!("let utf8_to_group = hashmap![{}];",
              lexgen.utf8_to_group.iter().map(|(c, g)| format!("'{}' => {},", escape_char(*c), g)).collect::<String>()
     );
-    println!("let seg_to_group = SegMap::from_iter(...);");
+    for (c, g) in lexgen.utf8_to_group.iter() {
+        groups[*g as usize].insert(*c);
+    }
+    for (g, chars) in groups.iter().enumerate() {
+        if !chars.is_empty() {
+            let set = chars.iter().map(|c| escape_char(*c)).collect::<String>();
+            println!("// group[{g:3}] = [{set}]");
+        };
+    }
+    println!("let seg_to_group = SegMap::from_iter([{}]);",
+        lexgen.seg_to_group.iter().map(|(s, g)| format!("\n    (Seg({}, {}), {}),", s.0, s.1, g)).collect::<String>()
+    );
     println!("let nbr_groups = {};", lexgen.nbr_groups);
     println!("let initial_state = {};", lexgen.initial_state);
     println!("let first_end_state = {};", lexgen.first_end_state);

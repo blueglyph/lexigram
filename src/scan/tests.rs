@@ -10,8 +10,6 @@ use super::*;
 
 #[test]
 fn scanner() {
-    const VERBOSE: bool = false;
-
     fn eval(result: &Result<(Token, ChannelId), &LexScanError>, verbose: bool) -> Option<(Token, ChannelId)> {
         match result {
             Ok(token_ch) => {
@@ -55,6 +53,7 @@ fn scanner() {
          vec![("\ta = x; if i=j print b;\n", vec![0, 3, 0, 5, 1, 0, 3, 0, 2, 0, 5])]
         ),
     ];
+    const VERBOSE: bool = false;
     for (test_id, token_tests, err_tests, stream_tests) in tests {
         let mut dfa = DfaBuilder::new(build_re(test_id)).build();
         dfa.normalize();
