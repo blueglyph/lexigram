@@ -17,9 +17,10 @@ use crate::io::{UTF8_MAX, UTF8_MIN};
 /// ```
 /// # use std::collections::BTreeSet;
 /// # use rlexer::{dfa::*, node, io::{UTF8_MAX, UTF8_MIN}};
+/// # use rlexer::segments::{Seg, Segments};
 /// assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
-/// assert_eq!(node!(['a','z'; '0','9']), ReType::CharRange(Box::new(Intervals(BTreeSet::from([('a' as u32, 'z' as u32), ('0' as u32, '9' as u32)])))));
-/// assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Intervals(BTreeSet::from([(UTF8_MIN, UTF8_MAX)]))))));
+/// assert_eq!(node!(['a','z'; '0','9']), ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])))));
+/// assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_MAX)]))))));
 /// assert_eq!(node!(str "new"), ReNode::new(ReType::String(Box::new("new".to_string()))));
 /// assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token(5)), channel: 0, push_mode: None, push_state: None, pop: false })));
 /// assert_eq!(node!(&), ReNode::new(ReType::Concat));
@@ -69,7 +70,7 @@ impl Add for Terminal {
     }
 }
 
-/// Generates a tuple of u32 values from one or two values (characters or integers).
+/// Generates a Seg (tuple of u32 values) from one or two values (characters or integers).
 ///
 /// # Example
 /// ```
@@ -85,13 +86,13 @@ macro_rules! seg {
     ($a:literal) => { Seg($a as u32, $a as u32) };
 }
 
-/// Generates an Intervals initialization from tuples of u32.
+/// Generates a Segments initialization from Seg values.
 ///
 /// # Example
 /// ```
 /// #use rlexer::{btreeset, segments, seg, segments::Segments};
 /// let a = segments!['a', 'b'-'z', '0'-'9'];
-/// assert_eq!(a, Segments(btreeset![('a' as u32, 'a' as u32), ('b' as u32, 'z' as u32), ('0' as u32, '9' as u32)]));
+/// assert_eq!(a, Segments(btreeset![Seg('a' as u32, 'a' as u32), Seg('b' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]));
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! segments {
@@ -100,8 +101,8 @@ macro_rules! segments {
     ($($a:literal $(- $b:literal)?),*) => { Segments(BTreeSet::from([$(seg![$a$(- $b)?]),*]))};
 }
 
-/// Generates the key-value pairs corresponding to the `char => int` arguments, which can be
-/// used to add values to `BTreeMap<char, StateId>` state transitions.
+/// Generates the key-value pairs corresponding to the `Segments => int` arguments, which can be
+/// used to add values to `BTreeMap<Segments, StateId>` state transitions.
 ///
 /// # Example
 /// ```

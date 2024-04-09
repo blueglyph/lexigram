@@ -96,7 +96,7 @@ impl Display for ReType {
             ReType::Empty => write!(f, "-"),
             ReType::End(t) => write!(f, "{t}"),
             ReType::Char(c) => write!(f, "'{}'", escape_char(*c)),
-            ReType::CharRange(interval) => write!(f, "{interval}"),
+            ReType::CharRange(segments) => write!(f, "{segments}"),
             ReType::String(s) => write!(f, "'{}'", escape_string(&s)),
             ReType::Concat => write!(f, "&"),
             ReType::Star => write!(f, "*"),
