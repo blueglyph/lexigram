@@ -446,7 +446,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc2), node!(=1));
         },
         17 => {
-            // intervals: [a-f]+<end:0>|[d-i]+z<end:1>|ey<end:2>
+            // segments: [a-f]+<end:0>|[d-i]+z<end:1>|ey<end:2>
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
@@ -461,7 +461,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(cc3), [node!(chr 'e'), node!(chr 'y'), node!(=2)]);
         },
         18 => {
-            // intervals: [a-f]+<end:0>|[d-i]+z<end:1>
+            // segments: [a-f]+<end:0>|[d-i]+z<end:1>
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
@@ -1204,7 +1204,7 @@ fn dfa_states() {
             3 => branch!('B'-'C' => 3, 'Z' => 4),
             4 => branch!(),// <end:1>
         ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)]),
-        // intervals: [a-f]+<end:0>|[d-i]+z<end:1>|ey<end:2>
+        // segments: [a-f]+<end:0>|[d-i]+z<end:1>|ey<end:2>
         // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"
         (17, btreemap![
             0 => branch!('a'-'c' => 1, ['d', 'f'] => 2, 'e' => 3, 'g'-'i' => 4),

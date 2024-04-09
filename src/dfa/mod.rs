@@ -307,8 +307,8 @@ impl DfaBuilder {
             if let ReType::Char(c) = node.op {
                 node.op = ReType::CharRange(Box::new(Segments::from_char(c)));
             }
-            if let ReType::CharRange(intervals) = &node.op {
-                symbols_part.add_partition(&intervals);
+            if let ReType::CharRange(segments) = &node.op {
+                symbols_part.add_partition(&segments);
             }
         }
         if VERBOSE { println!("symbols = {symbols_part}"); }
@@ -330,9 +330,9 @@ impl DfaBuilder {
                         panic!("unexpected END symbol: {symbol:?}");
                     }
                 } else {
-                    if let ReType::CharRange(intervals) = symbol {
-                        let cmp = intervals.intersect(&symbols_part);
-                        assert!(cmp.internal.is_empty(), "{symbols_part} # {intervals} = {cmp}");
+                    if let ReType::CharRange(segments) = symbol {
+                        let cmp = segments.intersect(&symbols_part);
+                        assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
                         if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
                         for segment in cmp.common.0.into_iter() {
                             if let Some(ids) = trans.get_mut(&segment) {
@@ -364,15 +364,15 @@ impl DfaBuilder {
                     states.insert(state, current_id);
                     current_id
                 };
-                if let Some(intervals) = map.get_mut(&state_id) {
-                    intervals.insert(segment);
+                if let Some(segments) = map.get_mut(&state_id) {
+                    segments.insert(segment);
                 } else {
                     map.insert(state_id, Segments::new(segment));
                 }
             }
             // regroups the symbols per destination
-            for intervals in map.values_mut() {
-                intervals.normalize();
+            for segments in map.values_mut() {
+                segments.normalize();
             }
             if VERBOSE {
                 for (st, int) in &map {
@@ -380,7 +380,7 @@ impl DfaBuilder {
                 }
             }
             // finally, updates the graph with the reverse (symbol -> state) data
-            dfa.state_graph.insert(new_state_id, map.into_iter().map(|(id, intervals)| (intervals, id)).collect());
+            dfa.state_graph.insert(new_state_id, map.into_iter().map(|(id, segments)| (segments, id)).collect());
         }
         dfa
     }

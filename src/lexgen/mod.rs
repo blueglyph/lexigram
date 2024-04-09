@@ -101,8 +101,8 @@ impl LexGen {
         // state_table[nbr_state * nbr_group + nbr_group] must exist; the content will be ignored.
         let mut state_table = vec!(self.nbr_states; self.nbr_groups as usize * nbr_states + 1);
         for (state_from, trans) in &dfa.state_graph {
-            for (intervals, state_to) in trans {
-                for symbol in intervals.chars() {
+            for (segments, state_to) in trans {
+                for symbol in segments.chars() {
                     let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, symbol).unwrap_or(self.nbr_groups);
                     state_table[self.nbr_groups as usize * state_from + symbol_group as usize] = *state_to;
                 }
@@ -136,16 +136,16 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<
     for (_state, branches) in g {
         // branches from a given state
         let mut map = BTreeMap::<StateId, Segments>::new();
-        for (intervals, destination) in branches {
+        for (segments, destination) in branches {
             if let Some(i) = map.get_mut(destination) {
-                i.extend(&intervals.0);
+                i.extend(&segments.0);
             } else {
-                map.insert(*destination, intervals.clone());
+                map.insert(*destination, segments.clone());
             }
         }
-        // optimizes the intervals, in case it's not already done
-        for intervals in map.values_mut() {
-            intervals.normalize();
+        // optimizes the segments, in case it's not already done
+        for segments in map.values_mut() {
+            segments.normalize();
         }
         #[cfg(test)] if VERBOSE { println!("{_state} => {}", map.values().map(|i| format!("{i:X}")).collect::<Vec<_>>().join(", ")); }
         let mut state_sub = map.into_values().collect::<BTreeSet<Segments>>();

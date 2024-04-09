@@ -134,11 +134,11 @@ impl Segments {
         result
     }
 
-    /// Partitions the intervals in fonction of `other`'s intervals, splitting the current segments
-    /// according to `other` and adding intervals from `other`. Can be used iteratively on a collection
+    /// Partitions the segments in fonction of `other`'s segments, splitting the current segments
+    /// according to `other` and adding segments from `other`. Can be used iteratively on a collection
     /// of Intervals to obtain a partition of their segments.
     ///
-    /// Returns `true` if the intervals were modified.
+    /// Returns `true` if the segments were modified.
     ///
     /// Example:
     /// ```
@@ -166,9 +166,9 @@ impl Segments {
     pub fn normalize(&mut self) {
         if !self.is_empty() {
             let mut new = BTreeSet::<Seg>::new();
-            let mut intervals = std::mem::take(&mut self.0).into_iter();
-            let mut last = intervals.next().unwrap();
-            while let Some(Seg(a, b)) = intervals.next() {
+            let mut segments = std::mem::take(&mut self.0).into_iter();
+            let mut last = segments.next().unwrap();
+            while let Some(Seg(a, b)) = segments.next() {
                 if a > last.1 + 1 {
                     new.insert(last);
                     last = Seg(a, b);
@@ -182,7 +182,7 @@ impl Segments {
     }
 
     pub fn chars(&self) -> ReTypeCharIter {
-        ReTypeCharIter { intervals: Some(self.0.clone()), range: None }
+        ReTypeCharIter { segments: Some(self.0.clone()), range: None }
     }
 }
 
@@ -267,7 +267,7 @@ impl Display for IntervalsCmp {
 }
 
 pub struct ReTypeCharIter {
-    intervals: Option<BTreeSet<Seg>>,
+    segments: Option<BTreeSet<Seg>>,
     range: Option<RangeInclusive<u32>>
 }
 
@@ -277,7 +277,7 @@ impl Iterator for ReTypeCharIter {
     fn next(&mut self) -> Option<Self::Item> {
         let mut next = self.range.as_mut().and_then(|r| r.next());
         if next.is_none() {
-            if let Some(interval) = &mut self.intervals {
+            if let Some(interval) = &mut self.segments {
                 if let Some(Seg(a, b)) = interval.pop_first() {
                     self.range = Some(a..=b);
                     next = self.range.as_mut().and_then(|r| r.next());
@@ -362,7 +362,7 @@ mod tests {
     use crate::segments;
     use super::*;
 
-    /// "{:x}" is used to show the raw intervals with codes
+    /// "{:x}" is used to show the raw segments with codes
     impl LowerHex for Segments {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             write!(f, "[{}]", self.iter()
@@ -373,7 +373,7 @@ mod tests {
         }
     }
 
-    /// "{:X}" is used to show the raw intervals with characters
+    /// "{:X}" is used to show the raw segments with characters
     impl UpperHex for Segments {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             write!(f, "[{}]", self.iter()
@@ -512,8 +512,8 @@ mod tests {
             (segments!['a'-'c', 'x'-'z'], "abcxyz"),
             (segments!['a'-'b', 'd'-'d', 'f'-'f', 'x'-'z'], "abdfxyz"),
         ];
-        for (idx, (intervals, expected)) in tests.into_iter().enumerate() {
-            let result = intervals.chars().collect::<String>();
+        for (idx, (segments, expected)) in tests.into_iter().enumerate() {
+            let result = segments.chars().collect::<String>();
             assert_eq!(result, expected, "test {idx} failed");
         }
     }
