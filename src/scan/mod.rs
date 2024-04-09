@@ -6,7 +6,7 @@ use std::io::Read;
 use crate::dfa::{ChannelId, StateId, Terminal, Token};
 use crate::escape_char;
 use crate::io::{CharReader};
-use crate::lexgen::{char_to_group, GroupId, LexGen};
+use crate::lexgen::{char_to_group, GroupId, LexGen, SegMap};
 
 // ---------------------------------------------------------------------------------------------
 // Table-based lexer interpreter
@@ -44,7 +44,8 @@ pub struct Scanner<R> {
     start_state: StateId,
     pub ascii_to_group: Box<[GroupId]>,
     pub utf8_to_group: Box<HashMap<char, GroupId>>,
-    pub nbr_groups: usize,
+    pub seg_to_group: SegMap<GroupId>,
+    pub nbr_groups: u32,
     pub initial_state: StateId,
     pub first_end_state: StateId,   // accepting when state >= first_end_state
     pub nbr_states: StateId,        // error if state >= nbr_states
@@ -62,6 +63,7 @@ impl<R: Read> Scanner<R> {
             start_state: 0,
             ascii_to_group: lexgen.ascii_to_group,
             utf8_to_group: lexgen.utf8_to_group,
+            seg_to_group: lexgen.seg_to_group,
             nbr_groups: lexgen.nbr_groups,
             initial_state: lexgen.initial_state,
             first_end_state: lexgen.first_end_state,
@@ -145,12 +147,12 @@ impl<R: Read> Scanner<R> {
                 if VERBOSE { print!("- state = {state}"); }
                 // let offset = input.get_offset();
                 let c = input.get_char().unwrap_or(EOF);
-                let group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, c);
+                let group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, c).unwrap_or(self.nbr_groups);
                 if VERBOSE { print!(", char '{}' group {}", if c == EOF { "<EOF>".to_string() } else { escape_char(c) }, group); }
                 // we can use the state_table even if group = error = nrb_group (but we must
                 // ignore new_state and detect that the group is illegal):
-                let new_state = self.state_table[self.nbr_groups * state + group as usize];
-                if new_state >= self.nbr_states || group as usize >= self.nbr_groups { // we can't do anything with the current character
+                let new_state = self.state_table[self.nbr_groups as usize * state + group as usize];
+                if new_state >= self.nbr_states || group >= self.nbr_groups { // we can't do anything with the current character
                     if c != EOF {
                         input.rewind(c).expect(&format!("Can't rewind character '{}'", escape_char(c)));
                     }
@@ -180,7 +182,7 @@ impl<R: Read> Scanner<R> {
                             token_ch: None,
                             state,
                             is_eos: c == EOF,
-                            msg: (if c == EOF { "end of stream" } else { if group as usize >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
+                            msg: (if c == EOF { "end of stream" } else { if group >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
                         });
                         if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
                         return Err(self.error.as_ref().unwrap());

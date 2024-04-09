@@ -67,7 +67,7 @@ pub struct LexGen {
     pub utf8_to_group: Box<HashMap<char, GroupId>>,
     pub seg_to_group: SegMap<GroupId>,
     pub max_utf8_chars: u32,
-    pub nbr_groups: usize,
+    pub nbr_groups: u32,
     pub initial_state: StateId,
     pub first_end_state: StateId,   // accepting when state >= first_end_state
     pub nbr_states: StateId,        // error if state >= nbr_states
@@ -108,7 +108,7 @@ impl LexGen {
         let symbol_to_group = SegMap::from_iter(
             symbol_part.iter().enumerate().flat_map(|(id, i)| i.iter().map(move |(a, b)| (Seg(*a, *b), id as GroupId)))
         );
-        self.nbr_groups = symbol_part.len();
+        self.nbr_groups = symbol_part.len() as GroupId;
         let error_id = self.nbr_groups as GroupId;
         self.ascii_to_group.fill(error_id);
         self.utf8_to_group.clear();
@@ -146,19 +146,18 @@ impl LexGen {
     }
 
     fn create_state_tables(&mut self, dfa: &Dfa) {
-        return;
         self.initial_state = dfa.initial_state.unwrap();
         self.first_end_state = dfa.first_end_state.unwrap();
         self.nbr_states = dfa.state_graph.len();
         let nbr_states = dfa.state_graph.len();
         // we add one extra table index to allow for the 'error group', which equals nbr_group:
         // state_table[nbr_state * nbr_group + nbr_group] must exist; the content will be ignored.
-        let mut state_table = vec!(self.nbr_states; self.nbr_groups * nbr_states + 1);
+        let mut state_table = vec!(self.nbr_states; self.nbr_groups as usize * nbr_states + 1);
         for (state_from, trans) in &dfa.state_graph {
             for (intervals, state_to) in trans {
                 for symbol in intervals.chars() {
-                    let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, symbol);
-                    state_table[self.nbr_groups * state_from + symbol_group as usize] = *state_to;
+                    let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, symbol).unwrap_or(self.nbr_groups);
+                    state_table[self.nbr_groups as usize * state_from + symbol_group as usize] = *state_to;
                 }
             }
         }
@@ -174,11 +173,11 @@ impl LexGen {
 // Supporting functions
 
 #[inline]
-pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, GroupId>, char: char) -> GroupId {
-    if char.len_utf8() == 1 {
-        ascii_to_group[u8::try_from(char).unwrap() as usize]
+pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, GroupId>, seg_to_group: &SegMap<GroupId>, symbol: char) -> Option<GroupId> {
+    if symbol.len_utf8() == 1 {
+        Some(ascii_to_group[u8::try_from(symbol).unwrap() as usize])
     } else {
-        utf8_to_group[&char]
+        utf8_to_group.get(&symbol).cloned().or_else(|| seg_to_group.get(symbol as u32))
     }
 }
 

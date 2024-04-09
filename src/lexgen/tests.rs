@@ -57,12 +57,12 @@ fn lexgen_symbol_tables() {
         let mut dfa = Dfa::from_graph(g, 0, btreemap![3 => term![=0], 4 => term![=0], 5 => term![=1], 6 => term![=2]]);
         dfa.normalize();
         let lexgen = LexGen::from_dfa(&dfa);
-        let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups];
+        let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups as usize];
         for i in 0..128_u8 {
             let c = char::from(i);
-            let g = lexgen.ascii_to_group[i as usize] as usize;
+            let g = lexgen.ascii_to_group[i as usize];
             if g < lexgen.nbr_groups {
-                ascii_vec[g].insert(c);
+                ascii_vec[g as usize].insert(c);
             }
         }
         for (c, g) in lexgen.utf8_to_group.iter() {
@@ -78,24 +78,33 @@ fn lexgen_symbol_tables() {
 #[test]
 fn lexgen_symbol_tables_corner() {
     let tests: Vec<(u32,
-                 BTreeMap<StateId, BTreeMap<Intervals, StateId>>,   // graph
-                 BTreeMap<String, GroupId>,                         // ASCII (each string is a group of chars)
-                 BTreeMap<String, GroupId>,                         // UTF-8 (each string is a group of chars)
-                 BTreeMap<Seg, GroupId>)> = vec![                   // what didn't fit in UTF-8
+                    BTreeMap<StateId, BTreeMap<Intervals, StateId>>,    // graph
+                    BTreeMap<String, GroupId>,                          // ASCII (each string is a group of chars)
+                    BTreeMap<String, GroupId>,                          // UTF-8 (each string is a group of chars)
+                    BTreeMap<Seg, GroupId>)>                            // what didn't fit in UTF-8
+        = vec![
         (1, btreemap![
-            0 => branch![127 => 0, 128 => 0, 129 => 0]
+            0 => branch!(127 => 0, 128 => 0, 129 => 0)
         ], btreemap!["\u{7f}".to_string() => 0], btreemap!["\u{80}".to_string() => 0], btreemap![Seg(129, 129) => 0]),
-        (1024, btreemap![], btreemap![], btreemap![], btreemap![]),
-        (32, btreemap![0 => BTreeMap::from_iter((0_u32..16).map(|x| (Intervals::new((x*16, x*16+15)), x as StateId)))],
-         BTreeMap::from_iter((0_u32..8).map(|x| ((0..16).map(|y| char::from_u32(x*16+y).unwrap()).collect::<String>(), x as GroupId))),
-         BTreeMap::from_iter((8_u32..10).map(|x| ((0..16).map(|y| char::from_u32(x*16+y).unwrap()).collect::<String>(), x as GroupId))),
-         BTreeMap::from_iter((10_u32..16).map(|x| (Seg(x*16, x*16+15), x as GroupId)))
+        (1024, btreemap![
+            0 => branch!()
+        ], btreemap![], btreemap![], btreemap![]),
+        (32, btreemap![
+            0 => BTreeMap::from_iter((0_u32..16).map(|x| (Intervals::new((x*16, x*16+15)), x as StateId))),
+            1 => branch!(), 2 => branch!(), 3 => branch!(), 4 => branch!(), 5 => branch!(), 6 => branch!(), 7 => branch!(), 8 => branch!(),
+            9 => branch!(), 10 => branch!(), 11 => branch!(), 12 => branch!(), 13 => branch!(), 14 => branch!(), 15 => branch!()
+        ],
+         BTreeMap::from_iter((0_u32..8).map(|x| ((0..16).map(|y| char::from_u32(x * 16 + y).unwrap()).collect::<String>(), x as GroupId))),
+         BTreeMap::from_iter((8_u32..10).map(|x| ((0..16).map(|y| char::from_u32(x * 16 + y).unwrap()).collect::<String>(), x as GroupId))),
+         BTreeMap::from_iter((10_u32..16).map(|x| (Seg(x * 16, x * 16 + 15), x as GroupId)))
         ),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (left, g, ascii, utf8, seg)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("Test {test_id}:"); }
-        let dfa = Dfa::from_graph(g, 0, btreemap![]);
+        let end_states = g.values().flat_map(|x| x.values()).cloned().collect::<BTreeSet<StateId>>();
+        let mut dfa = Dfa::from_graph(g, 0, end_states.iter().map(|s| (*s, term!(=0))).collect::<BTreeMap<StateId, Terminal>>());
+        dfa.normalize();
         let mut lexgen = LexGen::new();
         lexgen.max_utf8_chars = left;
         lexgen.build(&dfa);
@@ -112,6 +121,11 @@ fn lexgen_symbol_tables_corner() {
                 exp_utf8.insert(u, id);
             }
         }
+        println!("LexGen: {}", std::mem::size_of::<LexGen>());
+        println!("lexgen: {}", std::mem::size_of_val(&lexgen));
+        println!("ascii_to_group: {}", std::mem::size_of_val(&lexgen.ascii_to_group));
+        println!("utf8_to_group:  {}", std::mem::size_of_val(&lexgen.utf8_to_group));
+        println!("seg_to_group:   {}", std::mem::size_of_val(&lexgen.seg_to_group));
         let exp_seg = SegMap::from_iter(seg.into_iter());
         assert_eq!(lexgen.ascii_to_group, exp_ascii, "test {test_id} failed");
         //assert_eq!(BTreeMap::from_iter(lexgen.utf8_to_group.iter()), BTreeMap::from_iter(exp_utf8.iter()), "test {test_id} failed");
@@ -122,16 +136,16 @@ fn lexgen_symbol_tables_corner() {
 
 pub(crate) fn print_source_code(lexgen: &LexGen) {
     // Create source code:
-    let mut groups = vec![BTreeSet::new(); lexgen.nbr_groups];
+    let mut groups = vec![BTreeSet::new(); lexgen.nbr_groups as usize];
     println!("let ascii_to_group = [");
     for i in 0..8_usize {
         print!("    ");
         for j in 0..16_usize {
             let ascii = i * 16 + j;
-            let group = lexgen.ascii_to_group[i * 16 + j] as usize;
+            let group = lexgen.ascii_to_group[i * 16 + j];
             print!("{:3}, ", group);
             if group < lexgen.nbr_groups {
-                groups[group].insert(char::from(ascii as u8));
+                groups[group as usize].insert(char::from(ascii as u8));
             }
         }
         println!("  // {}-{}", i*16, i*16 + 15);
@@ -143,15 +157,16 @@ pub(crate) fn print_source_code(lexgen: &LexGen) {
     println!("let utf8_to_group = hashmap![{}];",
              lexgen.utf8_to_group.iter().map(|(c, g)| format!("'{}' => {},", escape_char(*c), g)).collect::<String>()
     );
+    println!("let seg_to_group = SegMap::from_iter(...);");
     println!("let nbr_groups = {};", lexgen.nbr_groups);
     println!("let initial_state = {};", lexgen.initial_state);
     println!("let first_end_state = {};", lexgen.first_end_state);
     println!("let error_state = {};", lexgen.nbr_states);
     println!("let token_table = [{}];", lexgen.terminal_table.iter().map(|t| t.to_string()).collect::<Vec<_>>().join(", "));
     println!("let state_table = [");
-    for i in 0..lexgen.nbr_states {
+    for i in 0..lexgen.nbr_states as usize {
         println!("    {}, // state {}{}",
-            (0..lexgen.nbr_groups).map(|j| format!("{:3}", lexgen.state_table[i * lexgen.nbr_groups + j])).collect::<Vec<_>>().join(", "),
+            (0..lexgen.nbr_groups as usize).map(|j| format!("{:3}", lexgen.state_table[i * lexgen.nbr_groups as usize + j])).collect::<Vec<_>>().join(", "),
             i,
             if i >= lexgen.first_end_state { format!(" {}", lexgen.terminal_table[i - lexgen.first_end_state] ) } else { "".to_string() }
         );
