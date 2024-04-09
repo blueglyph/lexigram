@@ -32,7 +32,7 @@ use crate::io::{UTF8_MAX, UTF8_MIN};
 macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
     (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
-    ([$($char1:expr, $char2:expr);+]) => { ReNode::new(ReType::CharRange(Box::new(Intervals(btreeset![$( Seg($char1 as u32, $char2 as u32) ),+])))) };
+    ([$($char1:expr, $char2:expr);+]) => { ReNode::new(ReType::CharRange(Box::new(Segments(btreeset![$( Seg($char1 as u32, $char2 as u32) ),+])))) };
     (.) => { node!([UTF8_MIN, UTF8_MAX]) };
     (str $str:expr) => { ReNode::new(ReType::String(Box::new($str.to_string()))) };
     (&) => { ReNode::new(ReType::Concat) };
@@ -73,11 +73,11 @@ impl Add for Terminal {
 ///
 /// # Example
 /// ```
-/// #use rlexer::{btreeset, seg, intervals::Intervals};
-/// let mut x = Intervals::empty();
+/// #use rlexer::{btreeset, seg, intervals::Segments};
+/// let mut x = Segments::empty();
 /// x.insert(seg!('a'));
 /// x.insert(seg!('0'-'9'));
-/// assert_eq!(x, Intervals(btreeset![('a' as u32, 'a' as u32), ('0' as u32, '9' as u32)]));
+/// assert_eq!(x, Segments(btreeset![('a' as u32, 'a' as u32), ('0' as u32, '9' as u32)]));
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! seg {
@@ -89,15 +89,15 @@ macro_rules! seg {
 ///
 /// # Example
 /// ```
-/// #use rlexer::{btreeset, intervals, seg, intervals::Intervals};
-/// let a = intervals!['a', 'b'-'z', '0'-'9'];
-/// assert_eq!(a, Intervals(btreeset![('a' as u32, 'a' as u32), ('b' as u32, 'z' as u32), ('0' as u32, '9' as u32)]));
+/// #use rlexer::{btreeset, segments, seg, intervals::Segments};
+/// let a = segments!['a', 'b'-'z', '0'-'9'];
+/// assert_eq!(a, Segments(btreeset![('a' as u32, 'a' as u32), ('b' as u32, 'z' as u32), ('0' as u32, '9' as u32)]));
 /// ```
 #[macro_export(local_inner_macros)]
-macro_rules! intervals {
-    () => { Intervals::empty() };
-    ($($a:literal $(- $b:literal)?,)*) => { intervals![$($a$(- $b)?),*] };
-    ($($a:literal $(- $b:literal)?),*) => { Intervals(BTreeSet::from([$(seg![$a$(- $b)?]),*]))};
+macro_rules! segments {
+    () => { Segments::empty() };
+    ($($a:literal $(- $b:literal)?,)*) => { segments![$($a$(- $b)?),*] };
+    ($($a:literal $(- $b:literal)?),*) => { Segments(BTreeSet::from([$(seg![$a$(- $b)?]),*]))};
 }
 
 /// Generates the key-value pairs corresponding to the `char => int` arguments, which can be
@@ -106,7 +106,7 @@ macro_rules! intervals {
 /// # Example
 /// ```
 /// # use std::collections::{BTreeMap, BTreeSet};
-/// # use rlexer::{btreemap, intervals, branch, intervals::Intervals};
+/// # use rlexer::{btreemap, segments, branch, intervals::Segments};
 /// # use rlexer::intervals::Seg;
 /// let transitions = btreemap![
 ///     0 => branch!['a'-'c' => 0, 'z' => 1, ['d'-'f', 'h'] => 2, ['x'-'z'] => 4],
@@ -115,26 +115,26 @@ macro_rules! intervals {
 /// ];
 /// assert_eq!(transitions, BTreeMap::from([
 ///     (0, BTreeMap::from([
-///         (Intervals(BTreeSet::from([Seg('a' as u32, 'c' as u32)])), 0),
-///         (Intervals(BTreeSet::from([Seg('z' as u32, 'z' as u32)])), 1),
-///         (Intervals(BTreeSet::from([Seg('d' as u32, 'f' as u32), Seg('h' as u32, 'h' as u32)])), 2),
-///         (Intervals(BTreeSet::from([Seg('x' as u32, 'z' as u32)])), 4)])),
+///         (Segments(BTreeSet::from([Seg('a' as u32, 'c' as u32)])), 0),
+///         (Segments(BTreeSet::from([Seg('z' as u32, 'z' as u32)])), 1),
+///         (Segments(BTreeSet::from([Seg('d' as u32, 'f' as u32), Seg('h' as u32, 'h' as u32)])), 2),
+///         (Segments(BTreeSet::from([Seg('x' as u32, 'z' as u32)])), 4)])),
 ///     (1, BTreeMap::from([
-///         (Intervals(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
-///         (Intervals(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
+///         (Segments(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
+///         (Segments(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
 ///     (3, BTreeMap::new()), ]))
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! branch {
     ($( $([$($a:literal $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr),*)
-    => { btreemap![$(intervals![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
+    => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
     // a few guards for trailing comma:
     ($( $([$($a:literal $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
-    => { btreemap![$(intervals![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
+    => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
     ($( $([$($a:literal $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr)*)
-    => { btreemap![$(intervals![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
+    => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
     ($( $([$($a:literal $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
-    => { btreemap![$(intervals![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
+    => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
 }
 
 #[test]
@@ -146,13 +146,13 @@ fn macro_branch() {
     ];
     assert_eq!(transitions, BTreeMap::from([
         (0, BTreeMap::from([
-            (Intervals(BTreeSet::from([Seg('a' as u32, 'c' as u32)])), 0),
-            (Intervals(BTreeSet::from([Seg('z' as u32, 'z' as u32)])), 1),
-            (Intervals(BTreeSet::from([Seg('d' as u32, 'f' as u32), Seg('h' as u32, 'h' as u32)])), 2),
-            (Intervals(BTreeSet::from([Seg('x' as u32, 'z' as u32)])), 4)])),
+            (Segments(BTreeSet::from([Seg('a' as u32, 'c' as u32)])), 0),
+            (Segments(BTreeSet::from([Seg('z' as u32, 'z' as u32)])), 1),
+            (Segments(BTreeSet::from([Seg('d' as u32, 'f' as u32), Seg('h' as u32, 'h' as u32)])), 2),
+            (Segments(BTreeSet::from([Seg('x' as u32, 'z' as u32)])), 4)])),
         (1, BTreeMap::from([
-            (Intervals(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
-            (Intervals(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
+            (Segments(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
+            (Segments(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
         (3, BTreeMap::new()), ]))
 }
 
@@ -568,7 +568,7 @@ pub(crate) fn print_dfa(dfa: &Dfa) {
     println!("End states: [{}]", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).collect::<Vec<_>>().join(", "));
 }
 
-pub(crate) fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>, end_states: Option<&BTreeMap<StateId, Terminal>>) {
+pub(crate) fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>, end_states: Option<&BTreeMap<StateId, Terminal>>) {
     for (state, trans) in state_graph.clone() {
         println!("{:3} => branch!({}),{}",
                  state,
@@ -1264,7 +1264,7 @@ fn dfa_normalize() {
 
 #[test]
 fn dfa_modes() {
-    let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<Intervals, StateId>>, BTreeMap<StateId, Terminal>)> = vec![
+    let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<Segments, StateId>>, BTreeMap<StateId, Terminal>)> = vec![
         (1, btreemap![
             0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0' => 3), // <skip>
             1 => branch!(['\t'-'\n', '\r', ' '] => 1), // <skip>

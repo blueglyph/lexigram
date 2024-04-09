@@ -3,7 +3,7 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use crate::{btreeset, escape_char, escape_string};
-use crate::intervals::{Intervals, Seg};
+use crate::intervals::{Segments, Seg};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 
@@ -46,7 +46,7 @@ pub enum ReType {
     #[default] Empty,
     End(Box<Terminal>),
     Char(char),
-    CharRange(Box<Intervals>),
+    CharRange(Box<Segments>),
     String(Box<String>),
     Concat,
     Star,
@@ -301,11 +301,11 @@ impl DfaBuilder {
         dfa.initial_state = Some(current_id);
 
         // gets a partition of the symbol segments and changes Char to CharRange
-        let mut symbols_part = Intervals::empty();
+        let mut symbols_part = Segments::empty();
         for id in self.ids.values() {
             let node = self.re.get_mut(*id);
             if let ReType::Char(c) = node.op {
-                node.op = ReType::CharRange(Box::new(Intervals::from_char(c)));
+                node.op = ReType::CharRange(Box::new(Segments::from_char(c)));
             }
             if let ReType::CharRange(intervals) = &node.op {
                 symbols_part.add_partition(&intervals);
@@ -346,7 +346,7 @@ impl DfaBuilder {
             }
 
             // finds the destination ids (creating new states if necessary), and populates the symbols for each destination
-            let mut map = BTreeMap::<StateId, Intervals>::new();
+            let mut map = BTreeMap::<StateId, Segments>::new();
             for (segment, ids) in trans {
                 if VERBOSE { print!("  - {} in {}: ", segment, states_to_string(&ids)); }
                 let mut state = BTreeSet::new();
@@ -367,7 +367,7 @@ impl DfaBuilder {
                 if let Some(intervals) = map.get_mut(&state_id) {
                     intervals.insert(segment);
                 } else {
-                    map.insert(state_id, Intervals::new(segment));
+                    map.insert(state_id, Segments::new(segment));
                 }
             }
             // regroups the symbols per destination
@@ -394,7 +394,7 @@ impl DfaBuilder {
 // ---------------------------------------------------------------------------------------------
 
 pub struct Dfa {
-    pub(crate) state_graph: BTreeMap<StateId, BTreeMap<Intervals, StateId>>,
+    pub(crate) state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
     pub(crate) initial_state: Option<StateId>,
     pub(crate) end_states: BTreeMap<StateId, Terminal>,
     is_normalized: bool, // are states incrementally numeroted from 0, with non-end states < end states?
@@ -412,7 +412,7 @@ impl Dfa {
         }
     }
 
-    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<Intervals, StateId>>, init_state: StateId, end_states: T) -> Dfa
+    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T) -> Dfa
         where T: IntoIterator<Item=(StateId, Terminal)>
     {
         let mut dfa = Dfa {
@@ -488,7 +488,7 @@ impl Dfa {
     /// at the end.
     pub fn normalize(&mut self) -> BTreeMap<StateId, StateId> {
         let mut translate = BTreeMap::<StateId, StateId>::new();
-        let mut state_graph = BTreeMap::<StateId, BTreeMap<Intervals, StateId>>::new();
+        let mut state_graph = BTreeMap::<StateId, BTreeMap<Segments, StateId>>::new();
         let mut end_states = BTreeMap::<StateId, Terminal>::new();
         let nbr_end = self.end_states.len();
         let mut non_end_id = 0;

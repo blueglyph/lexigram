@@ -12,7 +12,7 @@ fn lexgen_partition_symbols() {
             1 => branch!['0' => 2],
             2 => branch!['0' => 1, '1' => 2, '2' => 2, '3' => 2, 'x' => 2],
             3 => branch!['0' => 2, '1' => 2, '2' => 2, '3' => 3, 'x' => 2]
-        ], vec![intervals!['0'], intervals!['1'-'2', 'x'], intervals!['3']]),
+        ], vec![segments!['0'], segments!['1'-'2', 'x'], segments!['3']]),
 
         (2, btreemap![
             0 => branch!['0' => 3, '1' => 4, '2' => 4, '3' => 4, '4' => 4, '5' => 4, '6' => 4, '7' => 4, '8' => 4, '9' => 4],
@@ -24,12 +24,12 @@ fn lexgen_partition_symbols() {
             5 => branch!['0' => 5, '1' => 5, '2' => 5, '3' => 5, '4' => 5, '5' => 5, '6' => 5, '7' => 5, '8' => 5, '9' => 5],
             6 => branch!['0' => 6, '1' => 6, '2' => 6, '3' => 6, '4' => 6, '5' => 6, '6' => 6, '7' => 6, '8' => 6, '9' => 6,
                 'A' => 6, 'B' => 6, 'C' => 6, 'D' => 6, 'E' => 6, 'F' => 6, 'a' => 6, 'b' => 6, 'c' => 6, 'd' => 6, 'e' => 6, 'f' => 6],
-        ], vec![intervals!['0'], intervals!['1'-'9'], intervals!['A'-'F', 'a'-'f'], intervals!['.'], intervals!['x']]),
+        ], vec![segments!['0'], segments!['1'-'9'], segments!['A'-'F', 'a'-'f'], segments!['.'], segments!['x']]),
         (3, btreemap![
             0 => branch!['0' => 0, '1' => 1, '2' => 1, '3' => 1],
             1 => branch!['0' => 1, '1' => 1, '2' => 1, '3' => 1],
             2 => branch!['0' => 2, '1' => 2, '2' => 2, '3' => 0]
-        ], vec![intervals!['0'], intervals!['1'-'2'], intervals!['3']]),
+        ], vec![segments!['0'], segments!['1'-'2'], segments!['3']]),
 
     ];
     for (test_id, g, expected_groups) in tests {
@@ -79,7 +79,7 @@ fn lexgen_symbol_tables() {
 #[test]
 fn lexgen_symbol_tables_corner() {
     let tests: Vec<(u32,
-                    BTreeMap<StateId, BTreeMap<Intervals, StateId>>,    // graph
+                    BTreeMap<StateId, BTreeMap<Segments, StateId>>,    // graph
                     BTreeMap<String, GroupId>,                          // ASCII (each string is a group of chars)
                     BTreeMap<String, GroupId>,                          // UTF-8 (each string is a group of chars)
                     BTreeMap<Seg, GroupId>)>                            // what didn't fit in UTF-8
@@ -91,7 +91,7 @@ fn lexgen_symbol_tables_corner() {
             0 => branch!()
         ], btreemap![], btreemap![], btreemap![]),
         (32, btreemap![
-            0 => BTreeMap::from_iter((0_u32..16).map(|x| (Intervals::new(Seg(x*16, x*16+15)), x as StateId))),
+            0 => BTreeMap::from_iter((0_u32..16).map(|x| (Segments::new(Seg(x*16, x*16+15)), x as StateId))),
             1 => branch!(), 2 => branch!(), 3 => branch!(), 4 => branch!(), 5 => branch!(), 6 => branch!(), 7 => branch!(), 8 => branch!(),
             9 => branch!(), 10 => branch!(), 11 => branch!(), 12 => branch!(), 13 => branch!(), 14 => branch!(), 15 => branch!()
         ],

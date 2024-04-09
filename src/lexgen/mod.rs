@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
 use crate::escape_char;
-use crate::intervals::{Intervals, Seg, SegMap};
+use crate::intervals::{Segments, Seg, SegMap};
 use super::dfa::*;
 
 pub type GroupId = u32;
@@ -129,13 +129,13 @@ pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, G
 }
 
 // todo: option to split ASCII range?
-fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Vec<Intervals> {
+fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<Segments> {
     const VERBOSE: bool = false;
     let mut groups = Vec::new();
     #[cfg(test)] if VERBOSE { print_graph(g, None); }
     for (_state, branches) in g {
         // branches from a given state
-        let mut map = BTreeMap::<StateId, Intervals>::new();
+        let mut map = BTreeMap::<StateId, Segments>::new();
         for (intervals, destination) in branches {
             if let Some(i) = map.get_mut(destination) {
                 i.extend(&intervals.0);
@@ -148,7 +148,7 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Vec
             intervals.normalize();
         }
         #[cfg(test)] if VERBOSE { println!("{_state} => {}", map.values().map(|i| format!("{i:X}")).collect::<Vec<_>>().join(", ")); }
-        let mut state_sub = map.into_values().collect::<BTreeSet<Intervals>>();
+        let mut state_sub = map.into_values().collect::<BTreeSet<Segments>>();
         while let Some(mut sub) = state_sub.pop_first() {
             if VERBOSE { println!("- sub = {sub}"); }
             for i in 0..groups.len() {
