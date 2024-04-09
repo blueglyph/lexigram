@@ -31,6 +31,7 @@ pub mod scan;
 pub(crate) fn escape_char(c: char) -> String {
     match c {
         '\x00'..='\x7f' => c.escape_default().to_string(),
+        '\u{10ffff}' => c.escape_default().to_string(),
         _ => c.to_string(),
     }
 }
