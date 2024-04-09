@@ -288,7 +288,7 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
         if VERBOSE { println!("new DFA"); }

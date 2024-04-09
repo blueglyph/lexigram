@@ -77,12 +77,24 @@ fn lexgen_symbol_tables() {
 
 #[test]
 fn lexgen_symbol_tables_corner() {
-    let tests = [
-        (0, 1, btreemap![
+    let tests: Vec<(u32,
+                 BTreeMap<StateId, BTreeMap<Intervals, StateId>>,   // graph
+                 BTreeMap<String, GroupId>,                         // ASCII (each string is a group of chars)
+                 BTreeMap<String, GroupId>,                         // UTF-8 (each string is a group of chars)
+                 BTreeMap<Seg, GroupId>)> = vec![                   // what didn't fit in UTF-8
+        (1, btreemap![
             0 => branch![127 => 0, 128 => 0, 129 => 0]
-        ], btreemap!["\u{7f}" => 0], btreemap!["\u{80}" => 0], btreemap![Seg(129, 129) => 0])
+        ], btreemap!["\u{7f}".to_string() => 0], btreemap!["\u{80}".to_string() => 0], btreemap![Seg(129, 129) => 0]),
+        (1024, btreemap![], btreemap![], btreemap![], btreemap![]),
+        (32, btreemap![0 => BTreeMap::from_iter((0_u32..16).map(|x| (Intervals::new((x*16, x*16+15)), x as StateId)))],
+         BTreeMap::from_iter((0_u32..8).map(|x| ((0..16).map(|y| char::from_u32(x*16+y).unwrap()).collect::<String>(), x as GroupId))),
+         BTreeMap::from_iter((8_u32..10).map(|x| ((0..16).map(|y| char::from_u32(x*16+y).unwrap()).collect::<String>(), x as GroupId))),
+         BTreeMap::from_iter((10_u32..16).map(|x| (Seg(x*16, x*16+15), x as GroupId)))
+        ),
     ];
-    for (test_id, left, g, ascii, utf8, seg) in tests {
+    const VERBOSE: bool = false;
+    for (test_id, (left, g, ascii, utf8, seg)) in tests.into_iter().enumerate() {
+        if VERBOSE { println!("Test {test_id}:"); }
         let dfa = Dfa::from_graph(g, 0, btreemap![]);
         let mut lexgen = LexGen::new();
         lexgen.max_utf8_chars = left;
@@ -102,6 +114,7 @@ fn lexgen_symbol_tables_corner() {
         }
         let exp_seg = SegMap::from_iter(seg.into_iter());
         assert_eq!(lexgen.ascii_to_group, exp_ascii, "test {test_id} failed");
+        //assert_eq!(BTreeMap::from_iter(lexgen.utf8_to_group.iter()), BTreeMap::from_iter(exp_utf8.iter()), "test {test_id} failed");
         assert_eq!(lexgen.utf8_to_group, exp_utf8, "test {test_id} failed");
         assert_eq!(lexgen.seg_to_group, exp_seg, "test {test_id} failed");
     }

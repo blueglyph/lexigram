@@ -103,7 +103,7 @@ impl LexGen {
     }
 
     fn create_input_tables(&mut self, dfa: &Dfa) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let symbol_part = partition_symbols(&dfa.state_graph);
         let symbol_to_group = SegMap::from_iter(
             symbol_part.iter().enumerate().flat_map(|(id, i)| i.iter().map(move |(a, b)| (Seg(*a, *b), id as GroupId)))

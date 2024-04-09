@@ -1223,7 +1223,7 @@ fn dfa_states() {
         ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)]),
 
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, expected, expected_ends) in tests {
         let re = build_re(test_id);
         if VERBOSE { println!("{test_id}:"); }
@@ -1287,7 +1287,7 @@ fn dfa_modes() {
              13 => term!(=0), 14 => term!(skip), 16 => term!(skip), 17 => term!(pop)]),
     ];
 
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, exp_graph, exp_ends) in tests {
         if VERBOSE { println!("{test_id}:"); }
         let dfas = build_dfa(test_id);
