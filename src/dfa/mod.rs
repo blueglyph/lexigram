@@ -288,7 +288,8 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
+        const EXPERIMENTAL_END_CAPTURING_STATES: bool = false; // doesn't work
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
         if VERBOSE { println!("new DFA"); }
@@ -347,8 +348,31 @@ impl DfaBuilder {
 
             // finds the destination ids (creating new states if necessary), and populates the symbols for each destination
             let mut map = BTreeMap::<StateId, Segments>::new();
-            for (segment, ids) in trans {
+            for (segment, mut ids) in trans {
                 if VERBOSE { print!("  - {} in {}: ", segment, states_to_string(&ids)); }
+
+                // end-capturing state?
+                if EXPERIMENTAL_END_CAPTURING_STATES && ids.len() > 1 {
+                    let mut end_id = None;
+                    for id in &ids {
+                        let f = &self.followpos[id];
+                        if f.len() == 1 {
+                            let next = f.iter().next().unwrap();
+                            let op = &self.re.get(self.ids[next]).op;
+                            if op.is_end() {
+                                if VERBOSE { println!("    BUT: {id} only leads to {next}, which is terminal {op} => remove other ids" ); }
+                                end_id = Some(*id);
+                                break;
+                            }
+                        }
+                    }
+                    if let Some(id) = end_id {
+                        ids.clear();
+                        ids.insert(id);
+                        if VERBOSE { print!("    {} in {}: ", segment, states_to_string(&ids)); }
+                    }
+                }
+
                 let mut state = BTreeSet::new();
                 for id in ids {
                     state.extend(&self.followpos[&id]);
