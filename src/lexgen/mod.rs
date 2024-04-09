@@ -179,31 +179,3 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<
     #[cfg(test)] if VERBOSE { println!("=> {}", groups.iter().map(|i| format!("{i:X}")).collect::<Vec<_>>().join(", ")); }
     groups
 }
-
-#[cfg(disabled)]
-fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition: T) -> String {
-    partition.into_iter().map(|chars| chars_to_string(chars, true)).collect::<Vec<_>>().join(", ")
-}
-
-
-fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
-    let mut result = String::new();
-    if bracket { result.push('['); }
-    result.push_str(&chars.into_iter().map(|c| format!("{}", escape_char(*c))).collect::<String>());
-    if bracket { result.push(']'); }
-    result
-}
-
-#[cfg(disabled)]
-fn group_transitions_to_string(p: &BTreeMap<BTreeSet<char>, StateId>) -> String {
-    format!("{}",
-             p.iter()
-                 .map(|(chars, st)|
-                     format!("[{}] => {}",
-                             chars.into_iter().map(|c| format!("{}", escape_char(*c))).collect::<String>(),
-                             st
-                     )
-                 ).collect::<Vec<_>>().join(", ")
-    )
-}
-

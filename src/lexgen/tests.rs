@@ -4,6 +4,14 @@ use crate::*;
 use crate::segments::{Seg, SegMap};
 use super::*;
 
+fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
+    let mut result = String::new();
+    if bracket { result.push('['); }
+    result.push_str(&chars.into_iter().map(|c| format!("{}", escape_char(*c))).collect::<String>());
+    if bracket { result.push(']'); }
+    result
+}
+
 #[test]
 fn lexgen_partition_symbols() {
     let tests = [

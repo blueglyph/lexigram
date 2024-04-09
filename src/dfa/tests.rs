@@ -1314,7 +1314,6 @@ fn dfa_modes() {
 
 #[test]
 fn dfa_optimize_graphs() {
-    const VERBOSE: bool = false;
     let tests = vec![
         (0, btreemap![
             0 => branch!('a' => 1, 'b' => 0),
@@ -1409,25 +1408,26 @@ fn dfa_optimize_graphs() {
         btreemap![ // no change
             0 => branch!('a' => 1),
             1 => branch!('b' => 2, 't' => 3),
-            2 => branch!('i' => 5, 's' => 4),// <end:3>
-            3 => branch!(),// <end:2>
-            4 => branch!(),// <end:0>
-            5 => branch!(),// <end:1>
-        ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=0), 5 => term!(=1)],
+            2 => branch!('i' => 4, 's' => 5), // <end:3>
+            3 => branch!(), // <end:2>
+            4 => branch!(), // <end:1>
+            5 => branch!(), // <end:0>
+        ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=1), 5 => term!(=0)],
         ),
 
         (17, btreemap![], btreemap![],
          btreemap![
-            0 => branch!('a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 4, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1),
-            1 => branch!('d' => 1, 'e' => 1, 'f' => 1, 'g' => 1, 'h' => 1, 'i' => 1, 'z' => 5),
-            2 => branch!('a' => 2, 'b' => 2, 'c' => 2, 'd' => 2, 'e' => 2, 'f' => 2), // <end:0>
-            3 => branch!('a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 3, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1, 'z' => 5), // <end:0>
-            4 => branch!('a' => 2, 'b' => 2, 'c' => 2, 'd' => 3, 'e' => 3, 'f' => 3, 'g' => 1, 'h' => 1, 'i' => 1, 'y' => 6, 'z' => 5), // <end:0>
+            0 => branch!('a'-'c' => 2, ['d', 'f'] => 3, 'e' => 4, 'g'-'i' => 1),
+            1 => branch!('d'-'i' => 1, 'z' => 5),
+            2 => branch!('a'-'f' => 2), // <end:0>
+            3 => branch!('a'-'c' => 2, 'd'-'f' => 3, 'g'-'i' => 1, 'z' => 5), // <end:0>
+            4 => branch!('a'-'c' => 2, 'd'-'f' => 3, 'g'-'i' => 1, 'y' => 6, 'z' => 5), // <end:0>
             5 => branch!(), // <end:1>
             6 => branch!(), // <end:2>
         ], btreemap![2 => term!(=0), 3 => term!(=0), 4 => term!(=0), 5 => term!(=1), 6 => term!(=2)]),
 
     ];
+    const VERBOSE: bool = false;
     for (test_id, mut graph, mut end_states, exp_graph, exp_end_states) in tests {
         if VERBOSE { println!("{test_id}:"); }
         if graph.is_empty() {
@@ -1439,7 +1439,7 @@ fn dfa_optimize_graphs() {
             end_states = dfa.end_states;
         }
         let mut dfa = Dfa::from_graph(graph, 0, end_states);
-        let _tr = dfa.optimize(true);
+        let _tr = dfa.optimize();
         if VERBOSE {
             println!("table: {}\n", _tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
             print_dfa(&dfa);

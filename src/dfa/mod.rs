@@ -521,19 +521,13 @@ impl Dfa {
         translate
     }
 
-    pub fn optimize(&mut self, _separate_end_states: bool) -> BTreeMap<StateId, StateId> {
-        todo!()
-    }
-    #[cfg(disabled)]
     /// Optimizes the number of states from `self.state_graph`. Returns a map to convert old
     /// state ids to new state ids.
-    ///
-    /// # Arguments
-    ///
-    /// * `separate_end_states` = `true` if different end (accepting) states should be kept apart;
-    /// for example, when it's important to differentiate tokens.
-    pub fn optimize(&mut self, separate_end_states: bool) -> BTreeMap<StateId, StateId> {
+    pub fn optimize(&mut self) -> BTreeMap<StateId, StateId> {
         const VERBOSE: bool = false;
+        // set `separate_end_states` = `true` if different end (accepting) states should be kept apart;
+        // for example, when it's important to differentiate tokens.
+        let separate_end_states = true;
         if VERBOSE { println!("-----------------------------------------------------------"); }
         let mut groups = Vec::<BTreeSet<StateId>>::new();
         let mut st_to_group = BTreeMap::<StateId, usize>::new();
@@ -571,11 +565,11 @@ impl Dfa {
                 // do all states have the same destination group for the same symbol?
                 if VERBOSE { println!("group #{id}: {p:?}:"); }
                 // stores combination -> group index:
-                let mut combinations = BTreeMap::<BTreeMap<char, usize>, usize>::new();
+                let mut combinations = BTreeMap::<BTreeMap<&Segments, usize>, usize>::new();
                 for &st_id in p {
                     let combination = self.state_graph.get(&st_id).unwrap().iter()
                         .filter(|(_, st)| st_to_group.contains_key(st)) // to avoid fake "end" states
-                        .map(|(s, st)| { (*s, st_to_group[st]) })
+                        .map(|(s, st)| { (s, st_to_group[st]) })
                         .collect::<BTreeMap<_, _>>();
                     if VERBOSE { print!("- state {st_id}{}: {combination:?}", if self.end_states.contains_key(&st_id) { " <END>" } else { "" }) };
                     if combinations.is_empty() {
@@ -660,8 +654,8 @@ impl Dfa {
         self.state_graph = self.state_graph.iter()
             .map(|(st_id, map_sym_st)| (
                 st_to_group[st_id] as StateId,
-                map_sym_st.iter().map(|(sym, st)| (sym.clone(), st_to_group[st] as StateId)).collect::<BTreeMap<_, _>>()))
-            .collect::<BTreeMap::<StateId, BTreeMap<char, StateId>>>();
+                map_sym_st.iter().map(|(segs, st)| (segs.clone(), st_to_group[st] as StateId)).collect::<BTreeMap<_, _>>()))
+            .collect::<BTreeMap::<StateId, BTreeMap<Segments, StateId>>>();
         if VERBOSE {
             println!("new_graph:   {:?}", self.state_graph);
             println!("new_initial: {:?}", self.initial_state);
