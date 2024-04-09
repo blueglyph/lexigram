@@ -82,6 +82,7 @@ impl Add for Terminal {
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! seg {
+    (.) => { Seg::DOT };
     ($a:literal - $b:literal) => { Seg($a as u32, $b as u32) };
     ($a:literal) => { Seg($a as u32, $a as u32) };
 }
@@ -97,8 +98,8 @@ macro_rules! seg {
 #[macro_export(local_inner_macros)]
 macro_rules! segments {
     () => { Segments::empty() };
-    ($($a:literal $(- $b:literal)?,)*) => { segments![$($a$(- $b)?),*] };
-    ($($a:literal $(- $b:literal)?),*) => { Segments(BTreeSet::from([$(seg![$a$(- $b)?]),*]))};
+    ($($a:tt $(- $b:literal)?,)*) => { segments![$($a$(- $b)?),*] };
+    ($($a:tt $(- $b:literal)?),*) => { Segments(BTreeSet::from([$(seg![$a$(- $b)?]),*]))};
 }
 
 /// Generates the key-value pairs corresponding to the `Segments => int` arguments, which can be
@@ -112,7 +113,7 @@ macro_rules! segments {
 /// let transitions = btreemap![
 ///     0 => branch!['a'-'c' => 0, 'z' => 1, ['d'-'f', 'h'] => 2, ['x'-'z'] => 4],
 ///     1 => branch![['b'] => 3, '=' => 5],
-///     3 => branch![]
+///     3 => branch![[.] => 4]
 /// ];
 /// assert_eq!(transitions, BTreeMap::from([
 ///     (0, BTreeMap::from([
@@ -123,18 +124,18 @@ macro_rules! segments {
 ///     (1, BTreeMap::from([
 ///         (Segments(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
 ///         (Segments(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
-///     (3, BTreeMap::new()), ]))
+///     (3, BTreeMap::from([(Segments(BTreeSet::from([Seg::DOT])), 4), ])), ]))
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! branch {
-    ($( $([$($a:literal $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr),*)
+    ($( $([$($a:tt $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr),*)
     => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
     // a few guards for trailing comma:
-    ($( $([$($a:literal $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
+    ($( $([$($a:tt $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
     => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
-    ($( $([$($a:literal $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr)*)
+    ($( $([$($a:tt $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr)*)
     => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
-    ($( $([$($a:literal $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
+    ($( $([$($a:tt $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
     => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
 }
 
@@ -143,7 +144,7 @@ fn macro_branch() {
     let transitions = btreemap![
         0 => branch!['a'-'c' => 0, 'z' => 1, ['d'-'f', 'h'] => 2, ['x'-'z'] => 4,],
         1 => branch![['b'] => 3, '=' => 5],
-        3 => branch![]
+        3 => branch![[.] => 4]
     ];
     assert_eq!(transitions, BTreeMap::from([
         (0, BTreeMap::from([
@@ -154,7 +155,7 @@ fn macro_branch() {
         (1, BTreeMap::from([
             (Segments(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
             (Segments(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
-        (3, BTreeMap::new()), ]))
+        (3, BTreeMap::from([(Segments(BTreeSet::from([Seg::DOT])), 4), ])), ]))
 }
 
 
@@ -474,6 +475,16 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc2), node![chr 'z']);
             re.add(Some(cc2), node!(=1));
         },
+        19 => {
+            // [0-9]+<end:0>|'.'<end:1>
+            let or = re.add(None, node!(|));
+            let cc1 = re.add(Some(or), node!(&));
+            let plus1 = re.add(Some(cc1), node!(+));
+            re.add(Some(plus1), node!(['a', 'f']));
+            re.add(Some(cc1), node!(=0));
+            let cc2 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc2), [node!(chr '\''), node!(.), node!(chr '\''), node!(=1)]);
+        }
         _ => { }
     }
     re
@@ -636,6 +647,7 @@ fn dfa_nullable() {
         (15, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"),
         (16, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"),
         (17, "|(&(+(1:'a'-'f'),2:<end:0>),&(+(3:'d'-'i'),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"),
+        (19, "|(&(+(1:'a'-'f'),2:<end:0>),&(3:'\\'',4:[.],5:'\\'',6:<end:1>))"),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -1225,6 +1237,15 @@ fn dfa_states() {
             3 => branch!('d'-'i' => 3, 'z' => 4),
             4 => branch!(),// <end:1>
         ], btreemap![1 => term!(=0), 2 => term!(=0), 4 => term!(=1)]),
+        // [0-9]+<end:0>|'.'<end:1>
+        // "|(&(+(1:'a'-'f'),2:<end:0>),&(3:'\\'',4:.,5:'\\'',6:<end:1>))"
+        (19, btreemap![
+            0 => branch!('\'' => 1, 'a'-'f' => 2),
+            1 => branch!([.] => 3),
+            2 => branch!('a'-'f' => 2), // <end:0>
+            3 => branch!('\'' => 4),
+            4 => branch!(), // <end:1>
+        ], btreemap![2 => term!(=0), 4 => term!(=1)])
 
     ];
     const VERBOSE: bool = false;

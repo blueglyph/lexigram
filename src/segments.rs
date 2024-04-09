@@ -4,6 +4,7 @@ use std::ops::{Deref, DerefMut, RangeInclusive};
 use std::collections::btree_map::{IntoIter, Iter};
 use std::ops::Bound::Included;
 use crate::{btreeset, escape_char};
+use crate::io::{UTF8_MAX, UTF8_MIN};
 
 // ---------------------------------------------------------------------------------------------
 // Segments
@@ -285,12 +286,20 @@ impl Iterator for ReTypeCharIter {
 #[derive(Clone, Copy, PartialOrd, PartialEq, Eq, Ord, Debug)]
 pub struct Seg(pub u32, pub u32);
 
+impl Seg {
+    pub const DOT: Seg = Seg(UTF8_MIN, UTF8_MAX);
+}
+
 impl Display for Seg {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if self.0 == self.1 {
             write!(f, "'{}'", escape_char(char::from_u32(self.0).unwrap()))
         } else {
-            write!(f, "'{}'-'{}'", escape_char(char::from_u32(self.0).unwrap()), escape_char(char::from_u32(self.1).unwrap()))
+            if *self == Seg::DOT {
+                write!(f, "[.]")
+            } else {
+                write!(f, "'{}'-'{}'", escape_char(char::from_u32(self.0).unwrap()), escape_char(char::from_u32(self.1).unwrap()))
+            }
         }
     }
 }
