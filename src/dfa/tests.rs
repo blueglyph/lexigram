@@ -494,7 +494,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
     let mut re = VecTree::new();
     let modes: BTreeMap<ModeId, VecTree<ReNode>> = match test {
         1 => {
-            // mode 0: ([ \t\n\r]*<skip>|/\*<push(1)><skip>|[0-9]+<end:0>)
+            // mode 0: ([ \t\n\r]*<skip>|/\*<skip,push(1)>|[0-9]+<end:0>)
             let or = re.add(None, node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
@@ -504,7 +504,9 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
             let cc1 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc1), [node![chr '/'], node![chr '*'], node![term![push 1] + term![skip]]]);
             let cc2 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc2), node![chr '0','9']);
+            let s2 = re.add(Some(cc2), node!(+));
+            let or2 = re.add(Some(s2), node!(|));
+            re.add_iter(Some(or2), node![chr '0','9']);
             re.add(Some(cc2), node![=0]);
 
             // mode 1: (\*/<pop>|[0-9]*<skip>)
@@ -1288,28 +1290,23 @@ fn dfa_normalize() {
 fn dfa_modes() {
     let tests: Vec<(usize, BTreeMap<StateId, BTreeMap<Segments, StateId>>, BTreeMap<StateId, Terminal>)> = vec![
         (1, btreemap![
-            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0' => 3), // <skip>
+            // mode 0: ([ \t\n\r]*<skip>|/\*<skip,push(1)>|[0-9]+<end:0>)
+            // mode 1: (\*/<pop>|[0-9]*<skip>)
+            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0'-'9' => 3), // <skip>
             1 => branch!(['\t'-'\n', '\r', ' '] => 1), // <skip>
             2 => branch!('*' => 4),
-            3 => branch!('1' => 5),
-            4 => branch!(), // <skip,push(mode 1,state 14)>
-            5 => branch!('2' => 6),
-            6 => branch!('3' => 7),
-            7 => branch!('4' => 8),
-            8 => branch!('5' => 9),
-            9 => branch!('6' => 10),
-            10 => branch!('7' => 11),
-            11 => branch!('8' => 12),
-            12 => branch!('9' => 13),
-            13 => branch!(), // <end:0>
-            14 => branch!('/' => 15, '0'-'9' => 16), // <skip>
-            15 => branch!('*' => 17),
-            16 => branch!('0'-'9' => 16), // <skip>
-            17 => branch!(), // <skip,pop>
+            3 => branch!('0'-'9' => 3), // <end:0>
+            4 => branch!(), // <skip,push(mode 1,state 5)>
+            5 => branch!('/' => 6, '0'-'9' => 7), // <skip>
+            6 => branch!('*' => 8),
+            7 => branch!('0'-'9' => 7), // <skip>
+            8 => branch!(), // <skip,pop>
         ],
          btreemap![
              0 => term!(skip), 1 => term!(skip), 4 => term!(push 1) + term!(pushst 14),
              13 => term!(=0), 14 => term!(skip), 16 => term!(skip), 17 => term!(pop)]),
+             0 => term!(skip), 1 => term!(skip), 3 => term!(=0),
+             4 => term!(push 1) + term!(pushst 5), 5 => term!(skip), 7 => term!(skip), 8 => term!(pop)]),
     ];
 
     const VERBOSE: bool = false;
