@@ -1,66 +1,13 @@
 pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
-use std::collections::btree_map::{IntoIter, Iter};
-use std::ops::Bound::Included;
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
 use crate::escape_char;
-use crate::intervals::Intervals;
+use crate::intervals::{Intervals, Seg, SegMap};
 use super::dfa::*;
 
 pub type GroupId = u32;
-
-#[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord)]
-pub struct Seg(u32, u32);
-
-#[derive(Debug, PartialEq)]
-pub struct SegMap<T>(BTreeMap<Seg, T>);
-
-impl<T: Clone> SegMap<T> {
-    pub fn new() -> Self {
-        SegMap(BTreeMap::new())
-    }
-
-    pub fn from_iter<I: IntoIterator<Item = (Seg, T)>>(iter: I) -> Self {
-        SegMap(BTreeMap::from_iter(iter))
-    }
-
-    pub fn get(&self, value: u32) -> Option<T> {
-        let (Seg(_a, b), data) = self.0.range((Included(&Seg(0, 0)), Included(&Seg(value, u32::MAX)))).next_back()?;
-        if *b >= value {
-            Some(data.clone())
-        } else {
-            None
-        }
-    }
-
-    pub fn insert(&mut self, key: Seg, value: T) -> Option<T> {
-        self.0.insert(key, value)
-    }
-
-    pub fn clear(&mut self) {
-        self.0.clear();
-    }
-}
-
-impl<T> IntoIterator for SegMap<T> {
-    type Item = (Seg, T);
-    type IntoIter = IntoIter<Seg, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.into_iter()
-    }
-}
-
-impl<'a, T> IntoIterator for &'a SegMap<T> {
-    type Item = (&'a Seg, &'a T);
-    type IntoIter = Iter<'a, Seg, T>;
-
-    fn into_iter(self) -> Self::IntoIter {
-        self.0.iter()
-    }
-}
 
 pub struct LexGen {
     pub ascii_to_group: Box<[GroupId]>,
@@ -106,7 +53,7 @@ impl LexGen {
         const VERBOSE: bool = false;
         let symbol_part = partition_symbols(&dfa.state_graph);
         let symbol_to_group = SegMap::from_iter(
-            symbol_part.iter().enumerate().flat_map(|(id, i)| i.iter().map(move |(a, b)| (Seg(*a, *b), id as GroupId)))
+            symbol_part.iter().enumerate().flat_map(|(id, i)| i.iter().map(move |ab| (*ab, id as GroupId)))
         );
         self.nbr_groups = symbol_part.len() as GroupId;
         let error_id = self.nbr_groups as GroupId;
@@ -237,6 +184,7 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Intervals, StateId>>) -> Vec
 fn char_groups_to_string<'a, T: IntoIterator<Item=&'a BTreeSet<char>>>(partition: T) -> String {
     partition.into_iter().map(|chars| chars_to_string(chars, true)).collect::<Vec<_>>().join(", ")
 }
+
 
 fn chars_to_string(chars: &BTreeSet<char>, bracket: bool) -> String {
     let mut result = String::new();

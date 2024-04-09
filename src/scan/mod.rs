@@ -5,8 +5,9 @@ use std::fmt::{Display, Formatter};
 use std::io::Read;
 use crate::dfa::{ChannelId, StateId, Terminal, Token};
 use crate::escape_char;
+use crate::intervals::SegMap;
 use crate::io::{CharReader};
-use crate::lexgen::{char_to_group, GroupId, LexGen, SegMap};
+use crate::lexgen::{char_to_group, GroupId, LexGen};
 
 // ---------------------------------------------------------------------------------------------
 // Table-based lexer interpreter

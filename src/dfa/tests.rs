@@ -4,6 +4,7 @@ use std::ops::Add;
 use crate::*;
 use crate::vectree::VecTree;
 use crate::dfa::*;
+use crate::intervals::Seg;
 #[allow(unused)] // the compiler doesn't see it's used in a macro
 use crate::io::{UTF8_MAX, UTF8_MIN};
 
@@ -31,7 +32,7 @@ use crate::io::{UTF8_MAX, UTF8_MIN};
 macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
     (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
-    ([$($char1:expr, $char2:expr);+]) => { ReNode::new(ReType::CharRange(Box::new(Intervals(btreeset![$( ($char1 as u32, $char2 as u32) ),+])))) };
+    ([$($char1:expr, $char2:expr);+]) => { ReNode::new(ReType::CharRange(Box::new(Intervals(btreeset![$( Seg($char1 as u32, $char2 as u32) ),+])))) };
     (.) => { node!([UTF8_MIN, UTF8_MAX]) };
     (str $str:expr) => { ReNode::new(ReType::String(Box::new($str.to_string()))) };
     (&) => { ReNode::new(ReType::Concat) };
@@ -80,8 +81,8 @@ impl Add for Terminal {
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! seg {
-    ($a:literal - $b:literal) => { ($a as u32, $b as u32) };
-    ($a:literal) => { ($a as u32, $a as u32) };
+    ($a:literal - $b:literal) => { Seg($a as u32, $b as u32) };
+    ($a:literal) => { Seg($a as u32, $a as u32) };
 }
 
 /// Generates an Intervals initialization from tuples of u32.
@@ -94,6 +95,7 @@ macro_rules! seg {
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! intervals {
+    () => { Intervals::empty() };
     ($($a:literal $(- $b:literal)?,)*) => { intervals![$($a$(- $b)?),*] };
     ($($a:literal $(- $b:literal)?),*) => { Intervals(BTreeSet::from([$(seg![$a$(- $b)?]),*]))};
 }
@@ -105,6 +107,7 @@ macro_rules! intervals {
 /// ```
 /// # use std::collections::{BTreeMap, BTreeSet};
 /// # use rlexer::{btreemap, intervals, branch, intervals::Intervals};
+/// # use rlexer::intervals::Seg;
 /// let transitions = btreemap![
 ///     0 => branch!['a'-'c' => 0, 'z' => 1, ['d'-'f', 'h'] => 2, ['x'-'z'] => 4],
 ///     1 => branch![['b'] => 3, '=' => 5],
@@ -112,13 +115,13 @@ macro_rules! intervals {
 /// ];
 /// assert_eq!(transitions, BTreeMap::from([
 ///     (0, BTreeMap::from([
-///         (Intervals(BTreeSet::from([('a' as u32, 'c' as u32)])), 0),
-///         (Intervals(BTreeSet::from([('z' as u32, 'z' as u32)])), 1),
-///         (Intervals(BTreeSet::from([('d' as u32, 'f' as u32), ('h' as u32, 'h' as u32)])), 2),
-///         (Intervals(BTreeSet::from([('x' as u32, 'z' as u32)])), 4)])),
+///         (Intervals(BTreeSet::from([Seg('a' as u32, 'c' as u32)])), 0),
+///         (Intervals(BTreeSet::from([Seg('z' as u32, 'z' as u32)])), 1),
+///         (Intervals(BTreeSet::from([Seg('d' as u32, 'f' as u32), Seg('h' as u32, 'h' as u32)])), 2),
+///         (Intervals(BTreeSet::from([Seg('x' as u32, 'z' as u32)])), 4)])),
 ///     (1, BTreeMap::from([
-///         (Intervals(BTreeSet::from([('b' as u32, 'b' as u32)])), 3),
-///         (Intervals(BTreeSet::from([('=' as u32, '=' as u32)])), 5), ])),
+///         (Intervals(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
+///         (Intervals(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
 ///     (3, BTreeMap::new()), ]))
 /// ```
 #[macro_export(local_inner_macros)]
@@ -143,13 +146,13 @@ fn macro_branch() {
     ];
     assert_eq!(transitions, BTreeMap::from([
         (0, BTreeMap::from([
-            (Intervals(BTreeSet::from([('a' as u32, 'c' as u32)])), 0),
-            (Intervals(BTreeSet::from([('z' as u32, 'z' as u32)])), 1),
-            (Intervals(BTreeSet::from([('d' as u32, 'f' as u32), ('h' as u32, 'h' as u32)])), 2),
-            (Intervals(BTreeSet::from([('x' as u32, 'z' as u32)])), 4)])),
+            (Intervals(BTreeSet::from([Seg('a' as u32, 'c' as u32)])), 0),
+            (Intervals(BTreeSet::from([Seg('z' as u32, 'z' as u32)])), 1),
+            (Intervals(BTreeSet::from([Seg('d' as u32, 'f' as u32), Seg('h' as u32, 'h' as u32)])), 2),
+            (Intervals(BTreeSet::from([Seg('x' as u32, 'z' as u32)])), 4)])),
         (1, BTreeMap::from([
-            (Intervals(BTreeSet::from([('b' as u32, 'b' as u32)])), 3),
-            (Intervals(BTreeSet::from([('=' as u32, '=' as u32)])), 5), ])),
+            (Intervals(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
+            (Intervals(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
         (3, BTreeMap::new()), ]))
 }
 

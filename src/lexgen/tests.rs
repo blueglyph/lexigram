@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use crate::*;
+use crate::intervals::{Seg, SegMap};
 use super::*;
 
 #[test]
@@ -90,7 +91,7 @@ fn lexgen_symbol_tables_corner() {
             0 => branch!()
         ], btreemap![], btreemap![], btreemap![]),
         (32, btreemap![
-            0 => BTreeMap::from_iter((0_u32..16).map(|x| (Intervals::new((x*16, x*16+15)), x as StateId))),
+            0 => BTreeMap::from_iter((0_u32..16).map(|x| (Intervals::new(Seg(x*16, x*16+15)), x as StateId))),
             1 => branch!(), 2 => branch!(), 3 => branch!(), 4 => branch!(), 5 => branch!(), 6 => branch!(), 7 => branch!(), 8 => branch!(),
             9 => branch!(), 10 => branch!(), 11 => branch!(), 12 => branch!(), 13 => branch!(), 14 => branch!(), 15 => branch!()
         ],

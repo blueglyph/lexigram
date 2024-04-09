@@ -3,7 +3,7 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use crate::{btreeset, escape_char, escape_string};
-use crate::intervals::{Intervals, segment_to_string};
+use crate::intervals::{Intervals, Seg};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 
@@ -317,7 +317,7 @@ impl DfaBuilder {
         while let Some(s) = new_states.pop_first() {
             let new_state_id = states.get(&s).unwrap().clone();
             if VERBOSE { println!("- state {} = {{{}}}", new_state_id, states_to_string(&s)); }
-            let mut trans = BTreeMap::<(u32, u32), BTreeSet<Id>>::new();
+            let mut trans = BTreeMap::<Seg, BTreeSet<Id>>::new();
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if symbol.is_end() {
                     if !dfa.state_graph.contains_key(&new_state_id) {
@@ -348,7 +348,7 @@ impl DfaBuilder {
             // finds the destination ids (creating new states if necessary), and populates the symbols for each destination
             let mut map = BTreeMap::<StateId, Intervals>::new();
             for (segment, ids) in trans {
-                if VERBOSE { print!("  - {} in {}: ", segment_to_string(&segment), states_to_string(&ids)); }
+                if VERBOSE { print!("  - {} in {}: ", segment, states_to_string(&ids)); }
                 let mut state = BTreeSet::new();
                 for id in ids {
                     state.extend(&self.followpos[&id]);

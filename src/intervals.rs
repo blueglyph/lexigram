@@ -1,10 +1,15 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Display, Formatter};
 use std::ops::{Deref, DerefMut, RangeInclusive};
+use std::collections::btree_map::{IntoIter, Iter};
+use std::ops::Bound::Included;
 use crate::{btreeset, escape_char};
 
+// ---------------------------------------------------------------------------------------------
+// Intervals
+
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub struct Intervals(pub BTreeSet<(u32, u32)>);
+pub struct Intervals(pub BTreeSet<Seg>);
 
 // impl Clone for Intervals {
 //     fn clone(&self) -> Self {
@@ -18,22 +23,22 @@ impl Intervals {
         Intervals(btreeset![])
     }
 
-    pub fn new((a, b): (u32, u32)) -> Self {
+    pub fn new(Seg(a, b): Seg) -> Self {
         if a <= b {
-            Intervals(btreeset![(a, b)])
+            Intervals(btreeset![Seg(a, b)])
         } else {
             Self::empty()
         }
     }
 
-    pub fn insert(&mut self, (a, b): (u32, u32)) {
-        if a <= b {
-            self.0.insert((a, b));
+    pub fn insert(&mut self, seg: Seg) {
+        if seg.0 <= seg.1 {
+            self.0.insert(seg);
         }
     }
 
     pub fn from_char(char: char) -> Self {
-        Intervals(btreeset![(char as u32, char as u32)])
+        Intervals(btreeset![Seg(char as u32, char as u32)])
     }
 
     pub fn to_char(&self) -> Option<char> {
@@ -48,16 +53,16 @@ impl Intervals {
 
     pub fn intersect_char(&self, char: char) -> IntervalsCmp {
         let c = char as u32;
-        let ci = Intervals(btreeset![(c, c)]);
-        for &(a, b) in &self.0 {
+        let ci = Intervals(btreeset![Seg(c, c)]);
+        for &Seg(a, b) in &self.0 {
             if a <= c && c <= b {
                 let mut inside = self.clone();
-                inside.replace((a, b)).expect("cannot extract original data");
+                inside.replace(Seg(a, b)).expect("cannot extract original data");
                 if a < c {
-                    inside.insert((a, c - 1));
+                    inside.insert(Seg(a, c - 1));
                 }
                 if c < b {
-                    inside.insert((c + 1, b));
+                    inside.insert(Seg(c + 1, b));
                 }
                 return IntervalsCmp { common: ci, internal: inside, external: Self::empty() };
             }
@@ -71,21 +76,21 @@ impl Intervals {
 
     // (a, b) inter (c, d) => (common, internal a-b, external a-b)
     // only processes a <= c || (a == c && b <= d)
-    pub fn segment_intersect((a, b): (u32, u32), (c, d): (u32, u32)) -> IntervalsCmp {
+    pub fn segment_intersect(Seg(a, b): Seg, Seg(c, d): Seg) -> IntervalsCmp {
         if a < c || (a == c && b <= d) {
             if a < c {
                 if b < c {
-                    IntervalsCmp { common: Intervals::empty(), internal: Intervals::new((a, b)), external: Intervals::new((c, d)) }
+                    IntervalsCmp { common: Intervals::empty(), internal: Intervals::new(Seg(a, b)), external: Intervals::new(Seg(c, d)) }
                 } else if b <= d {
-                    IntervalsCmp { common: Intervals::new((c, b)), internal: Intervals::new((a, c - 1)), external: Intervals::new((b + 1, d)) }
+                    IntervalsCmp { common: Intervals::new(Seg(c, b)), internal: Intervals::new(Seg(a, c - 1)), external: Intervals::new(Seg(b + 1, d)) }
                 } else {
-                    IntervalsCmp { common: Intervals::new((c, d)), internal: Intervals(btreeset![(a, c - 1), (d + 1, b)]), external: Intervals::empty() }
+                    IntervalsCmp { common: Intervals::new(Seg(c, d)), internal: Intervals(btreeset![Seg(a, c - 1), Seg(d + 1, b)]), external: Intervals::empty() }
                 }
             } else {
-                IntervalsCmp { common: Intervals::new((a, b)), internal: Intervals::empty(), external: Intervals::new((b + 1, d)) }
+                IntervalsCmp { common: Intervals::new(Seg(a, b)), internal: Intervals::empty(), external: Intervals::new(Seg(b + 1, d)) }
             }
         } else {
-            Self::segment_intersect((c, d), (a, b)).inverse()
+            Self::segment_intersect(Seg(c, d), Seg(a, b)).inverse()
         }
     }
 
@@ -95,26 +100,26 @@ impl Intervals {
         let mut ab = ab_iter.next().cloned();
         let mut cd = cd_iter.next().cloned();
         let mut result = IntervalsCmp::empty();
-        while let (Some((a, b)), Some((c, d))) = (ab, cd) {
-            let mut cmp = Self::segment_intersect((a, b), (c, d));
+        while let (Some(new_ab), Some(new_cd)) = (ab, cd) {
+            let mut cmp = Self::segment_intersect(new_ab, new_cd);
             if cmp.common.is_empty() {
-                if b < c {
-                    result.internal.insert((a, b));
+                if new_ab.1 < new_cd.0 {
+                    result.internal.insert(new_ab);
                     ab = ab_iter.next().cloned();
                 } else {
-                    result.external.insert((c, d));
+                    result.external.insert(new_cd);
                     cd = cd_iter.next().cloned();
                 }
             } else {
-                if b > d { // processes the trailing segment
+                if new_ab.1 > new_cd.1 { // processes the trailing segment
                     ab = cmp.internal.pop_last();
                 } else {
                     ab = ab_iter.next().cloned();
                 }
-                if d > b {
+                if new_cd.1 > new_ab.1 {
                     cd = cmp.external.pop_last();
                 } else {
-                    cd = cd_iter.next().cloned()
+                    cd = cd_iter.next().cloned();
                 }
                 result.extend(&cmp);
             }
@@ -138,12 +143,12 @@ impl Intervals {
     /// Example:
     /// ```
     /// use std::collections::BTreeSet;
-    /// use rlexer::intervals::Intervals;
+    /// use rlexer::intervals::{Intervals, Seg};
     ///
-    /// let mut a = Intervals(BTreeSet::from([(0, 10), (20, 30)]));
-    /// let b = Intervals(BTreeSet::from([(5, 6), (15, 25)]));
+    /// let mut a = Intervals(BTreeSet::from([Seg(0, 10), Seg(20, 30)]));
+    /// let b = Intervals(BTreeSet::from([Seg(5, 6), Seg(15, 25)]));
     /// assert!(a.add_partition(&b));
-    /// assert_eq!(a.0, BTreeSet::<(u32, u32)>::from([(0, 4), (5, 6), (7, 10), (15, 19), (20, 25), (26, 30)]));
+    /// assert_eq!(a.0, BTreeSet::from([Seg(0, 4), Seg(5, 6), Seg(7, 10), Seg(15, 19), Seg(20, 25), Seg(26, 30)]));
     /// ```
     pub fn add_partition(&mut self, other: &Self) -> bool {
         let cmp = self.intersect(other);
@@ -160,13 +165,13 @@ impl Intervals {
 
     pub fn normalize(&mut self) {
         if !self.is_empty() {
-            let mut new = BTreeSet::<(u32, u32)>::new();
+            let mut new = BTreeSet::<Seg>::new();
             let mut intervals = std::mem::take(&mut self.0).into_iter();
             let mut last = intervals.next().unwrap();
-            while let Some((a, b)) = intervals.next() {
+            while let Some(Seg(a, b)) = intervals.next() {
                 if a > last.1 + 1 {
                     new.insert(last);
-                    last = (a, b);
+                    last = Seg(a, b);
                 } else {
                     last.1 = b;
                 }
@@ -182,7 +187,7 @@ impl Intervals {
 }
 
 impl Deref for Intervals {
-    type Target = BTreeSet<(u32, u32)>;
+    type Target = BTreeSet<Seg>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -195,14 +200,14 @@ impl DerefMut for Intervals {
     }
 }
 
-#[inline]
-pub fn segment_to_string((a, b): &(u32, u32)) -> String {
-    if a == b {
-        format!("'{}'", escape_char(char::from_u32(*a).unwrap()))
-    } else {
-        format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap()))
-    }
-}
+// #[inline]
+// pub fn segment_to_string((a, b): &(u32, u32)) -> String {
+//     if a == b {
+//         format!("'{}'", escape_char(char::from_u32(*a).unwrap()))
+//     } else {
+//         format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap()))
+//     }
+// }
 
 impl Display for Intervals {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -211,13 +216,13 @@ impl Display for Intervals {
         } else {
             if self.0.len() == 1 {
                 write!(f, "{}", self.0.iter()
-                    .map(|seg| segment_to_string(seg))
+                    .map(|seg| seg.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
                 )
             } else {
                 write!(f, "[{}]", self.0.iter()
-                    .map(|seg| segment_to_string(seg))
+                    .map(|seg| seg.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
                 )
@@ -262,7 +267,7 @@ impl Display for IntervalsCmp {
 }
 
 pub struct ReTypeCharIter {
-    intervals: Option<BTreeSet<(u32, u32)>>,
+    intervals: Option<BTreeSet<Seg>>,
     range: Option<RangeInclusive<u32>>
 }
 
@@ -273,7 +278,7 @@ impl Iterator for ReTypeCharIter {
         let mut next = self.range.as_mut().and_then(|r| r.next());
         if next.is_none() {
             if let Some(interval) = &mut self.intervals {
-                if let Some((a, b)) = interval.pop_first() {
+                if let Some(Seg(a, b)) = interval.pop_first() {
                     self.range = Some(a..=b);
                     next = self.range.as_mut().and_then(|r| r.next());
                 }
@@ -284,19 +289,84 @@ impl Iterator for ReTypeCharIter {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Seg
+
+#[derive(Clone, Copy, PartialOrd, PartialEq, Eq, Ord, Debug)]
+pub struct Seg(pub u32, pub u32);
+
+impl Display for Seg {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.0 == self.1 {
+            write!(f, "'{}'", escape_char(char::from_u32(self.0).unwrap()))
+        } else {
+            write!(f, "'{}'-'{}'", escape_char(char::from_u32(self.0).unwrap()), escape_char(char::from_u32(self.1).unwrap()))
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct SegMap<T>(BTreeMap<Seg, T>);
+
+impl<T: Clone> SegMap<T> {
+    pub fn new() -> Self {
+        SegMap(BTreeMap::new())
+    }
+
+    pub fn from_iter<I: IntoIterator<Item = (Seg, T)>>(iter: I) -> Self {
+        SegMap(BTreeMap::from_iter(iter))
+    }
+
+    pub fn get(&self, value: u32) -> Option<T> {
+        let (Seg(_a, b), data) = self.0.range((Included(&Seg(0, 0)), Included(&Seg(value, u32::MAX)))).next_back()?;
+        if *b >= value {
+            Some(data.clone())
+        } else {
+            None
+        }
+    }
+
+    pub fn insert(&mut self, key: Seg, value: T) -> Option<T> {
+        self.0.insert(key, value)
+    }
+
+    pub fn clear(&mut self) {
+        self.0.clear();
+    }
+}
+
+impl<T> IntoIterator for SegMap<T> {
+    type Item = (Seg, T);
+    type IntoIter = IntoIter<Seg, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a SegMap<T> {
+    type Item = (&'a Seg, &'a T);
+    type IntoIter = Iter<'a, Seg, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------------------------
 
 #[cfg(test)]
 mod tests {
     use std::fmt::{LowerHex, UpperHex};
+    use crate::intervals;
     use super::*;
 
     /// "{:x}" is used to show the raw intervals with codes
     impl LowerHex for Intervals {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             write!(f, "[{}]", self.iter()
-                .map(|(a, b)| if a == b { format!("{a}") } else { format!("{a}-{b}") })
+                .map(|Seg(a, b)| if a == b { format!("{a}") } else { format!("{a}-{b}") })
                 .collect::<Vec<_>>()
                 .join(", ")
             )
@@ -307,7 +377,7 @@ mod tests {
     impl UpperHex for Intervals {
         fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
             write!(f, "[{}]", self.iter()
-                .map(|(a, b)| if a == b {
+                .map(|Seg(a, b)| if a == b {
                     format!("'{}'", escape_char(char::from_u32(*a).unwrap()))
                 } else {
                     format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap()))
@@ -324,33 +394,33 @@ mod tests {
         }
     }
 
-    fn new_cmp(c: (u32, u32), i: (u32, u32), e: (u32, u32)) -> IntervalsCmp {
+    fn new_cmp(c: Seg, i: Seg, e: Seg) -> IntervalsCmp {
         IntervalsCmp { common: Intervals::new(c), internal: Intervals::new(i), external: Intervals::new(e) }
     }
 
-    fn build_intervals() -> Vec<((u32, u32), (u32, u32), IntervalsCmp)> {
+    fn build_intervals() -> Vec<(Seg, Seg, IntervalsCmp)> {
         vec![
-            ((1, 2), (3, 4), new_cmp((9, 0), (1, 2), (3, 4))),
-            ((1, 2), (2, 3), new_cmp((2, 2), (1, 1), (3, 3))),
-            ((1, 3), (2, 4), new_cmp((2, 3), (1, 1), (4, 4))),
-            ((1, 3), (2, 3), new_cmp((2, 3), (1, 1), (9, 0))),
-            ((1, 4), (2, 3), IntervalsCmp { common: Intervals::new((2, 3)), internal: Intervals(btreeset![(1, 1), (4, 4)]), external: Intervals::empty() }),
-            ((1, 2), (1, 3), new_cmp((1, 2), (9, 0), (3, 3))),
-            ((1, 2), (1, 2), new_cmp((1, 2), (9, 0), (9, 0))),
-            ((1, 3), (1, 2), new_cmp((1, 2), (3, 3), (9, 0))),
-            ((2, 3), (1, 4), IntervalsCmp { common: Intervals::new((2, 3)), internal: Intervals::empty(), external: Intervals(btreeset![(1, 1), (4, 4)]) }),
-            ((2, 3), (1, 3), new_cmp((2, 3), (9, 0), (1, 1))),
-            ((2, 4), (1, 3), new_cmp((2, 3), (4, 4), (1, 1))),
-            ((2, 3), (1, 2), new_cmp((2, 2), (3, 3), (1, 1))),
-            ((3, 4), (1, 2), new_cmp((9, 0), (3, 4), (1, 2))),
+            (Seg(1, 2), Seg(3, 4), new_cmp(Seg(9, 0), Seg(1, 2), Seg(3, 4))),
+            (Seg(1, 2), Seg(2, 3), new_cmp(Seg(2, 2), Seg(1, 1), Seg(3, 3))),
+            (Seg(1, 3), Seg(2, 4), new_cmp(Seg(2, 3), Seg(1, 1), Seg(4, 4))),
+            (Seg(1, 3), Seg(2, 3), new_cmp(Seg(2, 3), Seg(1, 1), Seg(9, 0))),
+            (Seg(1, 4), Seg(2, 3), IntervalsCmp { common: Intervals::new(Seg(2, 3)), internal: Intervals(btreeset![Seg(1, 1), Seg(4, 4)]), external: Intervals::empty() }),
+            (Seg(1, 2), Seg(1, 3), new_cmp(Seg(1, 2), Seg(9, 0), Seg(3, 3))),
+            (Seg(1, 2), Seg(1, 2), new_cmp(Seg(1, 2), Seg(9, 0), Seg(9, 0))),
+            (Seg(1, 3), Seg(1, 2), new_cmp(Seg(1, 2), Seg(3, 3), Seg(9, 0))),
+            (Seg(2, 3), Seg(1, 4), IntervalsCmp { common: Intervals::new(Seg(2, 3)), internal: Intervals::empty(), external: Intervals(btreeset![Seg(1, 1), Seg(4, 4)]) }),
+            (Seg(2, 3), Seg(1, 3), new_cmp(Seg(2, 3), Seg(9, 0), Seg(1, 1))),
+            (Seg(2, 4), Seg(1, 3), new_cmp(Seg(2, 3), Seg(4, 4), Seg(1, 1))),
+            (Seg(2, 3), Seg(1, 2), new_cmp(Seg(2, 2), Seg(3, 3), Seg(1, 1))),
+            (Seg(3, 4), Seg(1, 2), new_cmp(Seg(9, 0), Seg(3, 4), Seg(1, 2))),
         ]
     }
 
     #[test]
     fn interval_segment_intersect() {
         let tests = build_intervals();
-        for (idx, ((a, b), (c, d), expected_cmp)) in tests.into_iter().enumerate() {
-            let cmp = Intervals::segment_intersect((a, b), (c, d));
+        for (idx, (ab, cd, expected_cmp)) in tests.into_iter().enumerate() {
+            let cmp = Intervals::segment_intersect(ab, cd);
             // println!("{a}-{b}, {c}-{d}: {cmp:x}");
             assert_eq!(cmp, expected_cmp, "test {idx} failed");
         }
@@ -363,13 +433,13 @@ mod tests {
             let mut ab = Intervals::empty();
             let mut cd = Intervals::empty();
             let mut expected_cmp = IntervalsCmp::empty();
-            for (idx, ((a, b), (c, d), cmp)) in iv.into_iter().enumerate() {
+            for (idx, (Seg(a, b), Seg(c, d), cmp)) in iv.into_iter().enumerate() {
                 let offset = scale * idx as u32;
-                ab.insert((a + offset, b + offset));
-                cd.insert((c + offset, d + offset));
-                expected_cmp.common.extend(cmp.common.iter().map(|(a, b)| (*a + offset, *b + offset)));
-                expected_cmp.internal.extend(cmp.internal.iter().map(|(a, b)| (*a + offset, *b + offset)));
-                expected_cmp.external.extend(cmp.external.iter().map(|(a, b)| (*a + offset, *b + offset)));
+                ab.insert(Seg(a + offset, b + offset));
+                cd.insert(Seg(c + offset, d + offset));
+                expected_cmp.common.extend(cmp.common.iter().map(|Seg(a, b)| Seg(*a + offset, *b + offset)));
+                expected_cmp.internal.extend(cmp.internal.iter().map(|Seg(a, b)| Seg(*a + offset, *b + offset)));
+                expected_cmp.external.extend(cmp.external.iter().map(|Seg(a, b)| Seg(*a + offset, *b + offset)));
             }
             let msg = format!("test failed for scale {scale}");
             let cmp = ab.intersect(&cd);
@@ -392,20 +462,20 @@ mod tests {
 
     #[test]
     fn interval_intersect_corner() {
-        let tests: Vec<(BTreeSet<(u32, u32)>, BTreeSet<(u32, u32)>, (BTreeSet<(u32, u32)>, BTreeSet<(u32, u32)>, BTreeSet<(u32, u32)>))> = vec![
-            (btreeset![(1, 50)], btreeset![(10, 20), (30, 40)],
-             (btreeset![(10, 20), (30, 40)], btreeset![(1, 9), (21, 29), (41, 50)], btreeset![])),
-            (btreeset![(1, 10), (11, 15), (16, 20), (21, 35), (36, 37), (38, 50)], btreeset![(10, 20), (30, 40)],
-             (btreeset![(10, 20), (30, 40)], btreeset![(1, 9), (21, 29), (41, 50)], btreeset![])),
-            (btreeset![(0, 9)], btreeset![(0, 0), (1, 9)],
-             (btreeset![(0, 9)], btreeset![], btreeset![])),
-            (btreeset![], btreeset![],
-             (btreeset![], btreeset![], btreeset![])),
+        let tests: Vec<(Intervals, Intervals, (Intervals, Intervals, Intervals))> = vec![
+            (intervals![1 - 50], intervals![10 - 20, 30 - 40],
+             (intervals![10-20, 30-40], intervals![1-9, 21-29, 41-50], intervals![])),
+            (intervals![1-10, 11-15, 16-20, 21-35, 36-37, 38-50], intervals![10-20, 30-40],
+             (intervals![10-20, 30-40], intervals![1-9, 21-29, 41-50], intervals![])),
+            (intervals![0-9], intervals![0-0, 1-9],
+             (intervals![0-9], intervals![], intervals![])),
+            (intervals![], intervals![],
+             (intervals![], intervals![], intervals![])),
         ];
         for (idx, (ab, cd, expected_cmp)) in tests.into_iter().enumerate() {
-            let ab = Intervals(ab);
-            let cd = Intervals(cd);
-            let expected_cmp = IntervalsCmp { common: Intervals(expected_cmp.0), internal: Intervals(expected_cmp.1), external: Intervals(expected_cmp.2) };
+            // let ab = Intervals(ab);
+            // let cd = Intervals(cd);
+            let expected_cmp = IntervalsCmp { common: expected_cmp.0, internal: expected_cmp.1, external: expected_cmp.2 };
             let mut cmp = ab.intersect(&cd);
             cmp.normalize();
             assert_eq!(cmp, expected_cmp, "test {idx} failed");
@@ -417,19 +487,19 @@ mod tests {
 
     #[test]
     fn interval_partition() {
-        let tests: Vec<(Vec<(u32, u32)>, Vec<(u32, u32)>, Vec<(u32, u32)>)> = vec![
-            (vec![(1, 4)], vec![(3, 6)], vec![(1, 2), (3, 4), (5, 6)]),
-            (vec![(1, 4)], vec![(5, 6)], vec![(1, 4), (5, 6)]),
-            (vec![(1, 6)], vec![(3, 4)], vec![(1, 2), (3, 4), (5, 6)]),
-            (vec![(1, 4), (5, 10)], vec![], vec![(1, 4), (5, 10)]),
-            (vec![], vec![(1, 4), (5, 10)], vec![(1, 4), (5, 10)]),
-            (vec![(1, 4), (5, 10)], vec![(3, 5)], vec![(1, 2), (3, 4), (5, 5), (6, 10)]),
+        let tests: Vec<(Intervals, Intervals, Intervals)> = vec![
+            (intervals![1-4], intervals![3-6], intervals![1-2, 3-4, 5-6]),
+            (intervals![1-4], intervals![5-6], intervals![1-4, 5-6]),
+            (intervals![1-6], intervals![3-4], intervals![1-2, 3-4, 5-6]),
+            (intervals![1-4, 5-10], intervals![], intervals![1-4, 5-10]),
+            (intervals![], intervals![1-4, 5-10], intervals![1-4, 5-10]),
+            (intervals![1-4, 5-10], intervals![3-5], intervals![1-2, 3-4, 5-5, 6-10]),
         ];
-        for (idx, (ab, cd, exp)) in tests.into_iter().enumerate() {
-            let mut ab = Intervals(BTreeSet::<(u32, u32)>::from_iter(ab));
-            let cd = Intervals(BTreeSet::from_iter(cd));
+        for (idx, (mut ab, cd, exp)) in tests.into_iter().enumerate() {
+            // let mut ab = Intervals(BTreeSet::<(u32, u32)>::from_iter(ab));
+            // let cd = Intervals(BTreeSet::from_iter(cd));
             ab.add_partition(&cd);
-            let expected = Intervals(BTreeSet::from_iter(exp));
+            let expected = exp;
             assert_eq!(ab, expected, "test {idx} failed");
         }
     }
@@ -437,13 +507,12 @@ mod tests {
     #[test]
     fn interval_chars() {
         let tests = vec![
-            (btreeset![('a', 'a')], "a"),
-            (btreeset![('a', 'd')], "abcd"),
-            (btreeset![('a', 'c'), ('x', 'z')], "abcxyz"),
-            (btreeset![('a', 'b'), ('d', 'd'), ('f', 'f'), ('x', 'z')], "abdfxyz"),
+            (intervals!['a'-'a'], "a"),
+            (intervals!['a'-'d'], "abcd"),
+            (intervals!['a'-'c', 'x'-'z'], "abcxyz"),
+            (intervals!['a'-'b', 'd'-'d', 'f'-'f', 'x'-'z'], "abdfxyz"),
         ];
-        for (idx, (set, expected)) in tests.into_iter().enumerate() {
-            let intervals = Intervals(set.into_iter().map(|(a, b)| (a as u32, b as u32)).collect());
+        for (idx, (intervals, expected)) in tests.into_iter().enumerate() {
             let result = intervals.chars().collect::<String>();
             assert_eq!(result, expected, "test {idx} failed");
         }
