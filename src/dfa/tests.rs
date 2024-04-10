@@ -46,6 +46,7 @@ macro_rules! node {
     (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
     ($id:expr) => { ReNode::new(ReType::End(Box::new($id))) };
 }
+//    ([$($char1:expr, $char2:expr);+]) => { ReNode::new(ReType::CharRange(Box::new(Segments(btreeset![$( Seg($char1 as u32, $char2 as u32) ),+])))) };
 
 #[macro_export(local_inner_macros)]
 macro_rules! term {
@@ -487,7 +488,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(cc2), [node!(chr '\''), node!([.]), node!(chr '\''), node!(=1)]);
         },
         20 => {
-            // mode 1: (\*/<pop>|.+<skip>)
+            // mode 1: ('*'/<pop>|.+<skip>)
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
@@ -497,6 +498,16 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc2), node!(term!(skip)));
         },
         21 => {
+            // mode 1: (.+<skip>|'*'/<pop>)
+            let or = re.add(None, node!(|));
+            let cc2 = re.add(Some(or), node!(&));
+            let s2 = re.add(Some(cc2), node!(+));
+            re.add(Some(s2), node!([.]));
+            re.add(Some(cc2), node!(term!(skip)));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
+        },
+        22 => {
             // revisiting 11:
             // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
             //       or1:                      ^         ^            ^        ^        ^
@@ -1156,7 +1167,6 @@ fn dfa_followpos() {
 #[test]
 fn dfa_states() {
     let tests = vec![
-/*
         (0, btreemap![
             0 => branch!('a' => 1, 'b' => 0),
             1 => branch!('a' => 1, 'b' => 2),
@@ -1239,7 +1249,6 @@ fn dfa_states() {
             6 => branch!('0'-'9' => 6), // <end:1>
             7 => branch!(['0'-'9', 'A'-'F', 'a'-'f'] => 7), // <end:2>
         ], btreemap![2 => term!(=0), 3 => term!(=0), 6 => term!(=1), 7 => term!(=2)]),
-
         (11, btreemap![
             0 => branch!(['\t'-'\n', '\r', ' '] => 0, '+' => 1, ';' => 2, '=' => 3, ['a'-'h', 'j'-'o', 'q'-'z'] => 4, 'i' => 5, 'p' => 6),
             1 => branch!(), // <end:4>
@@ -1256,7 +1265,6 @@ fn dfa_states() {
         ], btreemap![
             1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=0), 5 => term!(=0), 6 => term!(=0),
             7 => term!(=1), 8 => term!(=0), 9 => term!(=0), 10 => term!(=0), 11 => term!(=2)]),
-
         // (abs<end:0>|abi<end:1>|at<end:2>|ab<end:3>), to check if string paths are merged
         (12, btreemap![
             0 => branch!('a' => 1),
@@ -1290,12 +1298,13 @@ fn dfa_states() {
             2 => term!(=1), 3 => term!(=0)
         ]),
         // Ambiguous: [A-B]+<end:0>|[B-C]+<end:1>
+        // "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"
         (15, btreemap![
             0 => branch!('A' => 1, 'B' => 2, 'C' => 3),
             1 => branch!('A'-'B' => 1),// <end:0>
-            2 => branch!('A' => 1, 'B' => 2, 'C' => 3),// <end:1>
+            2 => branch!('A' => 1, 'B' => 2, 'C' => 3),// <end:0>
             3 => branch!('B'-'C' => 3),// <end:1>
-        ], btreemap![1 => term!(=0), 2 => term!(=1), 3 => term!(=1)]),
+        ], btreemap![1 => term!(=0), 2 => term!(=0), 3 => term!(=1)]),
         // [A-B]+<end:0>|[B-C]+Z<end:1>
         // "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"
         (16, btreemap![
@@ -1334,17 +1343,25 @@ fn dfa_states() {
             3 => branch!('\'' => 4),
             4 => branch!(), // <end:1>
         ], btreemap![2 => term!(=0), 4 => term!(=1)]),
-
-        // (\* /<pop>|.+<skip>)
+        // ('*'/<pop>|.+<skip>)
         // "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[.]),5:<skip>))"
         (20, btreemap![
             0 => branch!(['\u{0}'-')', '+'-'\u{10ffff}'] => 1, '*' => 2),
             1 => branch!([.] => 1), // <skip>
             2 => branch!(['\u{0}'-'.', '0'-'\u{10ffff}'] => 1, '/' => 3), // <skip>
-            3 => branch!(), // <end:1>
+            3 => branch!([.] => 1), // <end:1>
         ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)]),
-
+        // (.+<skip>|'*'/<pop>)
         (21, btreemap![
+            0 => branch!(['\u{0}'-')', '+'-'\u{10ffff}'] => 1, '*' => 2),
+            1 => branch!([.] => 1), // <skip>
+            2 => branch!(['\u{0}'-'.', '0'-'\u{10ffff}'] => 1, '/' => 3), // <skip>
+            3 => branch!([.] => 1), // <end:1>
+        ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)]),
+        // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
+        // "&(!*(1:['\t', '\n', '\r', ' ']),|(&(2:'a'-'z',!*(3:['0'-'9', 'a'-'z']),4:<end:0>),&(&(5:'i',6:'f'),7:<end:1>),
+        //    &(&(8:'p',9:'r',10:'i',11:'n',12:'t'),13:<end:2>),&(14:'=',15:<end:3>),&(16:'+',17:<end:4>),&(18:';',19:<end:5>)))"
+        (22, btreemap![
             0 => branch!(['\t'-'\n', '\r', ' '] => 0, '+' => 1, ';' => 2, '=' => 3, ['a'-'h', 'j'-'o', 'q'-'z'] => 4, 'i' => 5, 'p' => 6),
             1 => branch!(), // <end:4>
             2 => branch!(), // <end:5>
@@ -1361,7 +1378,7 @@ fn dfa_states() {
             1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=0), 5 => term!(=0), 6 => term!(=0),
             7 => term!(=1), 8 => term!(=0), 9 => term!(=0), 10 => term!(=0), 11 => term!(=2)]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, expected, expected_ends) in tests {
         if VERBOSE { println!("{test_id}:"); }
         let re = build_re(test_id);
@@ -1441,7 +1458,7 @@ fn dfa_modes() {
         ]),
     ];
 
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, exp_graph, exp_ends) in tests {
         if VERBOSE { println!("{test_id}:"); }
         let dfas = build_dfa(test_id);

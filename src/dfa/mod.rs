@@ -288,8 +288,8 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
-        const VERBOSE: bool = true;
-        const EXPERIMENTAL_END_CAPTURING_STATES: bool = false; // doesn't work
+        const VERBOSE: bool = false;
+        const EXPERIMENTAL_END_STATES: bool = true;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
         if VERBOSE { println!("new DFA"); }
@@ -319,6 +319,8 @@ impl DfaBuilder {
             let new_state_id = states.get(&s).unwrap().clone();
             if VERBOSE { println!("- state {} = {{{}}}", new_state_id, states_to_string(&s)); }
             let mut trans = BTreeMap::<Seg, BTreeSet<Id>>::new();
+            let mut end_states = BTreeMap::<Id, &Terminal>::new();
+            let mut id_transitions = BTreeSet::<Id>::new();
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if symbol.is_end() {
                     if !dfa.state_graph.contains_key(&new_state_id) {
@@ -326,12 +328,24 @@ impl DfaBuilder {
                         dfa.state_graph.insert(new_state_id, BTreeMap::new());
                     }
                     if let ReType::End(t) = symbol {
-                        dfa.end_states.insert(new_state_id, *t.clone());
+                        if EXPERIMENTAL_END_STATES {
+                            if end_states.contains_key(&id) {
+                                panic!("overriding {id} -> {t} in end_states {}", end_states.iter().map(|(id, t)| format!("{id} {t}")).collect::<Vec<_>>().join(", "));
+                            }
+                            end_states.insert(id, t);
+                        } else {
+                            if VERBOSE {
+                                println!("  # end state: id {id} {t}{}",
+                                         if dfa.end_states.contains_key(&new_state_id) { " ## OVERRIDING" } else {""} );
+                            }
+                            dfa.end_states.insert(new_state_id, *t.clone());
+                        }
                     } else {
                         panic!("unexpected END symbol: {symbol:?}");
                     }
                 } else {
                     if let ReType::CharRange(segments) = symbol {
+                        id_transitions.extend(&self.followpos[&id]);
                         let cmp = segments.intersect(&symbols_part);
                         assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
                         if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
@@ -345,33 +359,67 @@ impl DfaBuilder {
                     }
                 }
             }
+            if EXPERIMENTAL_END_STATES {
+                if end_states.len() > 1 {
+                    if VERBOSE {
+                        println!("  # {id_transitions:?}");
+                        println!("  # end state, several options: {}",
+                                 end_states.iter().map(|(id, t)| format!("{id} {t} (has{} trans)", if id_transitions.contains(id) { "" } else { " no" }) ).collect::<Vec<_>>().join(", ")
+                        );
+                    }
+                    let mut potentials = end_states.keys().cloned().filter(|id| id_transitions.get(id).is_none()).collect::<Vec<_>>();
+                    let chosen = match potentials.len() {
+                        0 => {
+                            if VERBOSE { println!("    all ids have transitions => AMBIGUOUS, selecting the first end state"); }
+                            *end_states.first_key_value().unwrap().0
+                        }
+                        1 => {
+                            if VERBOSE { println!("    only one id has no transitions => selecting it"); }
+                            potentials.remove(0)
+                        }
+                        n => {
+                            if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first one"); }
+                            potentials.remove(0)
+                        }
+                    };
+                    let t = end_states.remove(&chosen).unwrap().clone();
+                    if VERBOSE { println!("    end state: id {chosen} {t}"); }
+                    dfa.end_states.insert(new_state_id, t);
+                } else if let Some((id, terminal)) = end_states.pop_first() {
+                    if VERBOSE { println!("  # end state: id {id} {terminal}"); }
+                    dfa.end_states.insert(new_state_id, terminal.clone());
+                }
+            }
 
             // finds the destination ids (creating new states if necessary), and populates the symbols for each destination
             let mut map = BTreeMap::<StateId, Segments>::new();
-            for (segment, mut ids) in trans {
+            for (segment, ids) in trans {
                 if VERBOSE { print!("  - {} in {}: ", segment, states_to_string(&ids)); }
 
-                // end-capturing state?
-                if EXPERIMENTAL_END_CAPTURING_STATES && ids.len() > 1 {
-                    let mut end_id = None;
+                /*
+                // merging end-capturing state?
+                if EXPERIMENTAL_END_STATES && ids.len() > 1 {
+                    let mut end_states = BTreeMap::<Id, BTreeSet<(Id, Terminal)>>::new();
                     for id in &ids {
-                        let f = &self.followpos[id];
-                        if f.len() == 1 {
-                            let next = f.iter().next().unwrap();
+                        for next in &self.followpos[id] {
                             let op = &self.re.get(self.ids[next]).op;
-                            if op.is_end() {
-                                if VERBOSE { println!("    BUT: {id} only leads to {next}, which is terminal {op} => remove other ids" ); }
-                                end_id = Some(*id);
-                                break;
+                            if let ReType::End(terminal) = op {
+                                if !end_states.contains_key(id) {
+                                    end_states.insert(*id, BTreeSet::new());
+                                }
+                                end_states.get_mut(id).unwrap().insert((*next, terminal.as_ref().clone()));
                             }
                         }
                     }
-                    if let Some(id) = end_id {
-                        ids.clear();
-                        ids.insert(id);
-                        if VERBOSE { print!("    {} in {}: ", segment, states_to_string(&ids)); }
+                    if end_states.len() > 1 {
+                        if VERBOSE { print!("\n    ## merging several end states: {}\n    ",
+                            end_states.iter().map(|(id, terms)| format!("{id}: {}", terms.iter()
+                                .map(|(n, t)| format!("{n} -> {t}")).collect::<Vec<_>>().join(",")))
+                            .collect::<Vec<_>>().join("; "));
+                        }
                     }
                 }
+                */
 
                 let mut state = BTreeSet::new();
                 for id in ids {
