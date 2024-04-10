@@ -19,7 +19,7 @@ use crate::io::{UTF8_MAX, UTF8_MIN};
 /// # use rlexer::{dfa::*, node, io::{UTF8_MAX, UTF8_MIN}};
 /// # use rlexer::segments::{Seg, Segments};
 /// assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
-/// assert_eq!(node!(['a','z'; '0','9']), ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])))));
+/// assert_eq!(node!(['a'-'z', '0'-'9']), ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])))));
 /// assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_MAX)]))))));
 /// assert_eq!(node!(str "new"), ReNode::new(ReType::String(Box::new("new".to_string()))));
 /// assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token(5)), channel: 0, push_mode: None, push_state: None, pop: false })));
@@ -33,8 +33,9 @@ use crate::io::{UTF8_MAX, UTF8_MIN};
 macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
     (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
-    ([$($char1:expr, $char2:expr);+]) => { ReNode::new(ReType::CharRange(Box::new(Segments(btreeset![$( Seg($char1 as u32, $char2 as u32) ),+])))) };
-    (.) => { node!([UTF8_MIN, UTF8_MAX]) };
+    ([$($a:tt $(- $b:literal)?,)+]) => { ReNode::new(ReType::CharRange(Box::new(segments![$($a$(- $b)?,)+]))) };
+    ([$($a:tt $(- $b:literal)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![$($a$(- $b)?,)+]))) };
+    (.) => { node!([UTF8_MIN - UTF8_MAX]) };
     (str $str:expr) => { ReNode::new(ReType::String(Box::new($str.to_string()))) };
     (&) => { ReNode::new(ReType::Concat) };
     (|) => { ReNode::new(ReType::Or) };
@@ -317,10 +318,10 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let cc1 = re.add(Some(or1), node!(&));
             let s0 = re.add(Some(cc1), node!(*));
             let or0 = re.add(Some(s0), node!(|));
-            re.add_iter(Some(or0), [node![chr ' '], node![chr '\t'], node![chr '\n'], node![chr '\r']]);
+            re.add_iter(Some(or0), [node!(chr ' '), node!(chr '\t'), node!(chr '\n'), node!(chr '\r')]);
             let plus1 = re.add(Some(cc1), node!(+));
             let or3 = re.add(Some(plus1), node!(|));
-            re.add_iter(Some(or3), node![chr '0', '9']);
+            re.add_iter(Some(or3), node!(chr '0', '9'));
             let or4 = re.add(Some(cc1), node!(|));
             re.add(Some(or4), node!(=0));
 
@@ -328,7 +329,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc2), node!(chr '.'));
             let plus2 = re.add(Some(cc2), node!(+));
             let or5 = re.add(Some(plus2), node!(|));
-            re.add_iter(Some(or5), node![chr '0','9']);
+            re.add_iter(Some(or5), node!(chr '0','9'));
             re.add(Some(cc2), node!(=1));
 
             let cc3 = re.add(Some(or1), node!(&));
@@ -336,7 +337,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc3), node!(chr 'x'));
             let plus3 = re.add(Some(cc3), node!(+));
             let or6 = re.add(Some(plus3), node!(|));
-            re.add_iter(Some(or6), node![chr '0','9'; 'A','F'; 'a','f']);
+            re.add_iter(Some(or6), node!(chr '0','9'; 'A','F'; 'a','f'));
             re.add(Some(cc3), node!(=2));
         },
         11 => {
@@ -347,7 +348,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let cc0 = re.add(None, node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
-            re.add_iter(Some(or0), [node![chr ' '], node![chr '\t'], node![chr '\n'], node![chr '\r']]);
+            re.add_iter(Some(or0), [node!(chr ' '), node!(chr '\t'), node!(chr '\n'), node!(chr '\r')]);
             let or1 = re.add(Some(cc0), node!(|));
 
             let cc = re.add(Some(or1), node!(&));
@@ -401,12 +402,12 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let cc0 = re.add(Some(or0), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
-            re.add_iter(Some(or0), [node![chr ' '], node![chr '\t'], node![chr '\n'], node![chr '\r']]);
-            re.add_iter(Some(cc0), [node![term![#1] + term![=1]]]);
+            re.add_iter(Some(or0), [node!(chr ' '), node!(chr '\t'), node!(chr '\n'), node!(chr '\r')]);
+            re.add_iter(Some(cc0), [node!(term!(#1) + term!(=1))]);
 
             let cc1 = re.add(Some(or0), node!(&));
-            re.add_iter(Some(cc1), node![chr '0','9']);
-            re.add(Some(cc1), node![=0]);
+            re.add_iter(Some(cc1), node!(chr '0','9'));
+            re.add(Some(cc1), node!(=0));
         },
         14 => {
             // \* /<end:0>|.+<end:1>
@@ -444,7 +445,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let plus2 = re.add(Some(cc2), node!(+));
             let or21 = re.add(Some(plus2), node!(|));
             re.add_iter(Some(or21), [node!(chr 'B'), node!(chr 'C')]);
-            re.add(Some(cc2), node![chr 'Z']);
+            re.add(Some(cc2), node!(chr 'Z'));
             re.add(Some(cc2), node!(=1));
         },
         17 => {
@@ -452,12 +453,12 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
-            re.add(Some(plus1), node!(['a', 'f']));
+            re.add(Some(plus1), node!(['a'-'f']));
             re.add(Some(cc1), node!(=0));
             let cc2 = re.add(Some(or), node!(&));
             let plus2 = re.add(Some(cc2), node!(+));
-            re.add(Some(plus2), node!(['d', 'i']));
-            re.add(Some(cc2), node![chr 'z']);
+            re.add(Some(plus2), node!(['d'-'i']));
+            re.add(Some(cc2), node!(chr 'z'));
             re.add(Some(cc2), node!(=1));
             let cc3 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc3), [node!(chr 'e'), node!(chr 'y'), node!(=2)]);
@@ -467,12 +468,12 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
-            re.add(Some(plus1), node!(['a', 'f']));
+            re.add(Some(plus1), node!(['a'-'f']));
             re.add(Some(cc1), node!(=0));
             let cc2 = re.add(Some(or), node!(&));
             let plus2 = re.add(Some(cc2), node!(+));
-            re.add(Some(plus2), node!(['d', 'i']));
-            re.add(Some(cc2), node![chr 'z']);
+            re.add(Some(plus2), node!(['d'-'i']));
+            re.add(Some(cc2), node!(chr 'z'));
             re.add(Some(cc2), node!(=1));
         },
         19 => {
@@ -480,21 +481,59 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
-            re.add(Some(plus1), node!(['a', 'f']));
+            re.add(Some(plus1), node!(['a'-'f']));
             re.add(Some(cc1), node!(=0));
             let cc2 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc2), [node!(chr '\''), node!(.), node!(chr '\''), node!(=1)]);
+            re.add_iter(Some(cc2), [node!(chr '\''), node!([.]), node!(chr '\''), node!(=1)]);
         },
         20 => {
             // mode 1: (\*/<pop>|.+<skip>)
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term![=1])]);
+            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
             let cc2 = re.add(Some(or), node!(&));
             let s2 = re.add(Some(cc2), node!(+));
-            re.add(Some(s2), node!(.));
-            re.add(Some(cc2), node![term![skip]]);
+            re.add(Some(s2), node!([.]));
+            re.add(Some(cc2), node!(term!(skip)));
         },
+        21 => {
+            // revisiting 11:
+            // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
+            //       or1:                      ^         ^            ^        ^        ^
+            //          cc--------------------- --------- ------------ -------- -------- --------
+            //                        star3
+            let cc0 = re.add(None, node!(&));
+            let s0 = re.add(Some(cc0), node!(*));
+            re.add(Some(s0), node!([' ', '\t', '\n', '\r']));
+            let or1 = re.add(Some(cc0), node!(|));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(['a'-'z']));
+            let star3 = re.add(Some(cc), node!(*));
+            re.add(Some(star3), node!(['a'-'z', '0'-'9']));
+            re.add(Some(cc), node!(=0));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(str "if"));
+            re.add(Some(cc), node!(=1));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(str "print"));
+            re.add(Some(cc), node!(=2));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(chr '='));
+            re.add(Some(cc), node!(=3));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(chr '+'));
+            re.add(Some(cc), node!(=4));
+
+            let cc = re.add(Some(or1), node!(&));
+            re.add(Some(cc), node!(chr ';'));
+            re.add(Some(cc), node!(=5));
+        },
+
         _ => { }
     }
     re
@@ -509,26 +548,26 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
             let cc0 = re.add(Some(or), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
-            re.add_iter(Some(or0), [node![chr ' '], node![chr '\t'], node![chr '\n'], node![chr '\r']]);
-            re.add(Some(cc0), node![term![skip]]);
+            re.add_iter(Some(or0), [node!(chr ' '), node!(chr '\t'), node!(chr '\n'), node!(chr '\r')]);
+            re.add(Some(cc0), node!(term!(skip)));
             let cc1 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc1), [node![chr '/'], node![chr '*'], node![term![push 1] + term![skip]]]);
+            re.add_iter(Some(cc1), [node!(chr '/'), node!(chr '*'), node!(term!(push 1) + term!(skip))]);
             let cc2 = re.add(Some(or), node!(&));
             let s2 = re.add(Some(cc2), node!(+));
             let or2 = re.add(Some(s2), node!(|));
-            re.add_iter(Some(or2), node![chr '0','9']);
-            re.add(Some(cc2), node![=0]);
+            re.add_iter(Some(or2), node!(chr '0','9'));
+            re.add(Some(cc2), node!(=0));
 
             // mode 1: (\*/<pop>|[0-9]*<skip>)
             let mut re1 = VecTree::new();
             let or = re1.add(None, node!(|));
             let cc1 = re1.add(Some(or), node!(&));
-            re1.add_iter(Some(cc1), [node![chr '*'], node![chr '/'], node!(term![pop])]);
+            re1.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(pop))]);
             let cc2 = re1.add(Some(or), node!(&));
-            let s2 = re1.add(Some(cc2), node![*]);
-            let or2 = re1.add(Some(s2), node![|]);
-            re1.add_iter(Some(or2), node![chr '0','9']);
-            re1.add(Some(cc2), node![term![skip]]);
+            let s2 = re1.add(Some(cc2), node!(*));
+            let or2 = re1.add(Some(s2), node!(|));
+            re1.add_iter(Some(or2), node!(chr '0','9'));
+            re1.add(Some(cc2), node!(term!(skip)));
 
             btreemap![0 => re, 1 => re1]
         },
@@ -538,25 +577,25 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
             let cc0 = re.add(Some(or), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
-            re.add_iter(Some(or0), [node![chr ' '], node![chr '\t'], node![chr '\n'], node![chr '\r']]);
-            re.add(Some(cc0), node![term![skip]]);
+            re.add_iter(Some(or0), [node!(chr ' '), node!(chr '\t'), node!(chr '\n'), node!(chr '\r')]);
+            re.add(Some(cc0), node!(term!(skip)));
             let cc1 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc1), [node![chr '/'], node![chr '*'], node![term![push 1] + term![skip]]]);
+            re.add_iter(Some(cc1), [node!(chr '/'), node!(chr '*'), node!(term!(push 1) + term!(skip))]);
             let cc2 = re.add(Some(or), node!(&));
             let s2 = re.add(Some(cc2), node!(+));
             let or2 = re.add(Some(s2), node!(|));
-            re.add_iter(Some(or2), node![chr '0','9']);
-            re.add(Some(cc2), node![=0]);
+            re.add_iter(Some(or2), node!(chr '0','9'));
+            re.add(Some(cc2), node!(=0));
 
             // mode 1: (\*/<pop>|.+<skip>)
             let mut re1 = VecTree::new();
             let or = re1.add(None, node!(|));
             let cc1 = re1.add(Some(or), node!(&));
-            re1.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term![pop])]);
+            re1.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(pop))]);
             let cc2 = re1.add(Some(or), node!(&));
             let s2 = re1.add(Some(cc2), node!(+));
-            re1.add(Some(s2), node!(.));
-            re1.add(Some(cc2), node![term![skip]]);
+            re1.add(Some(s2), node!([.]));
+            re1.add(Some(cc2), node!(term!(skip)));
 
             btreemap![0 => re, 1 => re1]
         },
@@ -677,12 +716,13 @@ fn dfa_nullable() {
         (8, "&(1:'a',|(2:<end:0>,&(3:'b',4:<end:1>)))"),
         (9, "&(1:'a',+(|(2:'b',3:'c')),4:'d',5:<end:0>)"),
         (10, "|(&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),+(|(5:'0',6:'1',7:'2',8:'3',9:'4',10:'5',11:'6',12:'7',13:'8',14:'9')),|(15:<end:0>,&(16:'.',+(|(17:'0',18:'1',19:'2',20:'3',21:'4',22:'5',23:'6',24:'7',25:'8',26:'9')),27:<end:1>))),&(28:'0',29:'x',+(|(30:'0',31:'1',32:'2',33:'3',34:'4',35:'5',36:'6',37:'7',38:'8',39:'9',40:'A',41:'B',42:'C',43:'D',44:'E',45:'F',46:'a',47:'b',48:'c',49:'d',50:'e',51:'f')),52:<end:2>))"),
+        (11, "&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),|(&(|(5:'a',6:'b',7:'c',8:'d',9:'e',10:'f',11:'g',12:'h',13:'i',14:'j',15:'k',16:'l',17:'m',18:'n',19:'o',20:'p',21:'q',22:'r',23:'s',24:'t',25:'u',26:'v',27:'w',28:'x',29:'y',30:'z'),!*(|(31:'a',32:'b',33:'c',34:'d',35:'e',36:'f',37:'g',38:'h',39:'i',40:'j',41:'k',42:'l',43:'m',44:'n',45:'o',46:'p',47:'q',48:'r',49:'s',50:'t',51:'u',52:'v',53:'w',54:'x',55:'y',56:'z',57:'0',58:'1',59:'2',60:'3',61:'4',62:'5',63:'6',64:'7',65:'8',66:'9')),67:<end:0>),&(&(68:'i',69:'f'),70:<end:1>),&(&(71:'p',72:'r',73:'i',74:'n',75:'t'),76:<end:2>),&(77:'=',78:<end:3>),&(79:'+',80:<end:4>),&(81:';',82:<end:5>)))"),
         (12, "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:2>),&(&(12:'a',13:'b'),14:<end:3>))"),
         (15, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"),
         (16, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"),
         (17, "|(&(+(1:'a'-'f'),2:<end:0>),&(+(3:'d'-'i'),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"),
         (19, "|(&(+(1:'a'-'f'),2:<end:0>),&(3:'\\'',4:[.],5:'\\'',6:<end:1>))"),
-        (20, "|(&(1:'*',2:'/',3:<skip,pop>),&(+(4:[.]),5:<skip>))"),
+        (20, "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[.]),5:<skip>))"),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -1199,6 +1239,7 @@ fn dfa_states() {
             6 => branch!('0'-'9' => 6), // <end:1>
             7 => branch!(['0'-'9', 'A'-'F', 'a'-'f'] => 7), // <end:2>
         ], btreemap![2 => term!(=0), 3 => term!(=0), 6 => term!(=1), 7 => term!(=2)]),
+
         (11, btreemap![
             0 => branch!(['\t'-'\n', '\r', ' '] => 0, '+' => 1, ';' => 2, '=' => 3, ['a'-'h', 'j'-'o', 'q'-'z'] => 4, 'i' => 5, 'p' => 6),
             1 => branch!(), // <end:4>
@@ -1215,6 +1256,7 @@ fn dfa_states() {
         ], btreemap![
             1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=0), 5 => term!(=0), 6 => term!(=0),
             7 => term!(=1), 8 => term!(=0), 9 => term!(=0), 10 => term!(=0), 11 => term!(=2)]),
+
         // (abs<end:0>|abi<end:1>|at<end:2>|ab<end:3>), to check if string paths are merged
         (12, btreemap![
             0 => branch!('a' => 1),
@@ -1292,23 +1334,47 @@ fn dfa_states() {
             3 => branch!('\'' => 4),
             4 => branch!(), // <end:1>
         ], btreemap![2 => term!(=0), 4 => term!(=1)]),
-*/
 
+        // (\* /<pop>|.+<skip>)
+        // "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[.]),5:<skip>))"
         (20, btreemap![
             0 => branch!(['\u{0}'-')', '+'-'\u{10ffff}'] => 1, '*' => 2),
             1 => branch!([.] => 1), // <skip>
             2 => branch!(['\u{0}'-'.', '0'-'\u{10ffff}'] => 1, '/' => 3), // <skip>
             3 => branch!(), // <end:1>
         ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)]),
+
+        (21, btreemap![
+            0 => branch!(['\t'-'\n', '\r', ' '] => 0, '+' => 1, ';' => 2, '=' => 3, ['a'-'h', 'j'-'o', 'q'-'z'] => 4, 'i' => 5, 'p' => 6),
+            1 => branch!(), // <end:4>
+            2 => branch!(), // <end:5>
+            3 => branch!(), // <end:3>
+            4 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:0>
+            5 => branch!(['0'-'9', 'a'-'e', 'g'-'z'] => 4, 'f' => 7), // <end:0>
+            6 => branch!(['0'-'9', 'a'-'q', 's'-'z'] => 4, 'r' => 8), // <end:0>
+            7 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:1>
+            8 => branch!(['0'-'9', 'a'-'h', 'j'-'z'] => 4, 'i' => 9), // <end:0>
+            9 => branch!(['0'-'9', 'a'-'m', 'o'-'z'] => 4, 'n' => 10), // <end:0>
+            10 => branch!(['0'-'9', 'a'-'s', 'u'-'z'] => 4, 't' => 11), // <end:0>
+            11 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:2>
+        ], btreemap![
+            1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=0), 5 => term!(=0), 6 => term!(=0),
+            7 => term!(=1), 8 => term!(=0), 9 => term!(=0), 10 => term!(=0), 11 => term!(=2)]),
     ];
     const VERBOSE: bool = true;
     for (test_id, expected, expected_ends) in tests {
-        let re = build_re(test_id);
         if VERBOSE { println!("{test_id}:"); }
+        let re = build_re(test_id);
         let mut dfa_builder = DfaBuilder::new(re);
         let dfa = dfa_builder.build();
         if VERBOSE {
+            println!("{}", tree_to_string(&dfa_builder.re, false));
             print_dfa(&dfa);
+            let mut fpos = dfa_builder.followpos.iter()
+                .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")))
+                .collect::<Vec<_>>();
+            fpos.sort();
+            println!("followpos:\n{}", fpos.join("\n"));
             println!();
         }
         assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
