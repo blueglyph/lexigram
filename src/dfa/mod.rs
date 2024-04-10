@@ -149,6 +149,7 @@ pub struct DfaBuilder {
     followpos: HashMap<Id, HashSet<Id>>,
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
+    warnings: Vec<String>
 }
 
 impl DfaBuilder {
@@ -157,9 +158,14 @@ impl DfaBuilder {
             re,
             followpos: HashMap::new(),
             ids: HashMap::new(),
+            warnings: Vec::new()
         };
         builder.preprocess_re();
         builder
+    }
+
+    pub fn get_warnings(&self) -> &Vec<String> {
+        &self.warnings
     }
 
     /// Replaces ReType::String(s) with a concatenation of ReType::Char(s[i])
@@ -289,7 +295,7 @@ impl DfaBuilder {
 
     fn calc_states(&mut self) -> Dfa {
         const VERBOSE: bool = false;
-        const EXPERIMENTAL_END_STATES: bool = true;
+        const RESOLVE_END_STATES: bool = true;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
         if VERBOSE { println!("new DFA"); }
@@ -320,6 +326,7 @@ impl DfaBuilder {
             if VERBOSE { println!("- state {} = {{{}}}", new_state_id, states_to_string(&s)); }
             let mut trans = BTreeMap::<Seg, BTreeSet<Id>>::new();
             let mut end_states = BTreeMap::<Id, &Terminal>::new();
+            let mut first_end_state = None;
             let mut id_transitions = BTreeSet::<Id>::new();
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if symbol.is_end() {
@@ -328,17 +335,21 @@ impl DfaBuilder {
                         dfa.state_graph.insert(new_state_id, BTreeMap::new());
                     }
                     if let ReType::End(t) = symbol {
-                        if EXPERIMENTAL_END_STATES {
+                        if RESOLVE_END_STATES {
+                            if first_end_state.is_none() {
+                                first_end_state = Some(id);
+                            }
                             if end_states.contains_key(&id) {
                                 panic!("overriding {id} -> {t} in end_states {}", end_states.iter().map(|(id, t)| format!("{id} {t}")).collect::<Vec<_>>().join(", "));
                             }
                             end_states.insert(id, t);
                         } else {
-                            if VERBOSE {
-                                println!("  # end state: id {id} {t}{}",
-                                         if dfa.end_states.contains_key(&new_state_id) { " ## OVERRIDING" } else {""} );
+                            if !dfa.end_states.contains_key(&new_state_id) {
+                                dfa.end_states.insert(new_state_id, *t.clone());
+                                if VERBOSE { println!("  # end state: id {id} {t}"); }
+                            } else if VERBOSE {
+                                println!("  # end state: id {id} {t} ## DISCARDED since another one already taken");
                             }
-                            dfa.end_states.insert(new_state_id, *t.clone());
                         }
                     } else {
                         panic!("unexpected END symbol: {symbol:?}");
@@ -359,27 +370,36 @@ impl DfaBuilder {
                     }
                 }
             }
-            if EXPERIMENTAL_END_STATES {
+            if RESOLVE_END_STATES {
                 if end_states.len() > 1 {
                     if VERBOSE {
                         println!("  # {id_transitions:?}");
-                        println!("  # end state, several options: {}",
-                                 end_states.iter().map(|(id, t)| format!("{id} {t} (has{} trans)", if id_transitions.contains(id) { "" } else { " no" }) ).collect::<Vec<_>>().join(", ")
-                        );
+                        println!("  # end state ambiguity, several terminals: {}", end_states.iter()
+                            .map(|(id, t)| format!("{id} -> {t} (has{} trans)", if id_transitions.contains(id) { "" } else { " no" }))
+                            .collect::<Vec<_>>().join(", "));
                     }
-                    let mut potentials = end_states.keys().cloned().filter(|id| id_transitions.get(id).is_none()).collect::<Vec<_>>();
+                    let mut potentials = end_states.keys().cloned().filter(|id| id_transitions.get(id).is_none()).collect::<BTreeSet<_>>();
                     let chosen = match potentials.len() {
                         0 => {
-                            if VERBOSE { println!("    all ids have transitions => AMBIGUOUS, selecting the first end state"); }
-                            *end_states.first_key_value().unwrap().0
+                            if VERBOSE { println!("    all ids have transitions => AMBIGUOUS, selecting the first defined terminal"); }
+                            self.warnings.push(format!("conflicting terminals for state {new_state_id}, none having other transitions: {}",
+                                                       end_states.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).collect::<Vec<_>>().join(", ")));
+                            first_end_state.unwrap()
                         }
                         1 => {
                             if VERBOSE { println!("    only one id has no transitions => selecting it"); }
-                            potentials.remove(0)
+                            potentials.pop_first().unwrap()
                         }
                         n => {
-                            if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first one"); }
-                            potentials.remove(0)
+                            self.warnings.push(format!("conflicting terminals for state {new_state_id}, {n} having no other transition: {}",
+                                                       end_states.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).collect::<Vec<_>>().join(", ")));
+                            if potentials.contains(&first_end_state.unwrap()) {
+                                if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first defined terminal"); }
+                                first_end_state.unwrap()
+                            } else {
+                                if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first one of the list"); }
+                                potentials.pop_first().unwrap()
+                            }
                         }
                     };
                     let t = end_states.remove(&chosen).unwrap().clone();
@@ -458,6 +478,7 @@ impl DfaBuilder {
     }
 
     pub fn build(&mut self) -> Dfa {
+        self.warnings.clear();
         self.calc_node_pos();
         self.calc_states()
     }
