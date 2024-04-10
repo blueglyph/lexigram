@@ -583,7 +583,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
             btreemap![0 => re, 1 => re1]
         },
         2 => {
-            // mode 0: ([ \t\n\r]*<skip>|/\*<skip,push(1)>|[0-9]+<end:0>)
+            // mode 0: ([ \t\n\r]*<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
             let or = re.add(None, node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
@@ -598,7 +598,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
             re.add_iter(Some(or2), node!(chr '0','9'));
             re.add(Some(cc2), node!(=0));
 
-            // mode 1: (\*/<pop>|.+<skip>)
+            // mode 1: ('*'/<pop>|.+<skip>)
             let mut re1 = VecTree::new();
             let or = re1.add(None, node!(|));
             let cc1 = re1.add(Some(or), node!(&));
@@ -613,7 +613,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
         _ => btreemap![]
     };
     modes.into_iter()
-        .map(|(n, re)| (n, DfaBuilder::new(re).build()))
+        .map(|(n, re)| (n, DfaBuilder::from_re(re).build()))
         .collect()
 }
 
@@ -688,7 +688,7 @@ fn dfa_preprocess() {
     for (test_id, (expected1, expected2)) in tests.into_iter().enumerate() {
         let re = build_re(test_id);
         let result1 = tree_to_string(&re, false);
-        let dfa = DfaBuilder::new(re);
+        let dfa = DfaBuilder::from_re(re);
         let result2 = tree_to_string(&dfa.re, false);
         assert_eq!(result1, expected1, "test {test_id} failed (1st part)");
         assert_eq!(result2, expected2, "test {test_id} failed (2nd part)");
@@ -707,7 +707,7 @@ fn dfa_id() {
     ];
     for (test_id, expected) in tests.into_iter().enumerate() {
         let re = build_re(test_id);
-        let mut dfa = DfaBuilder::new(re);
+        let mut dfa = DfaBuilder::from_re(re);
         dfa.calc_node_pos();
         assert_eq!(tree_to_string(&dfa.re, true), expected, "test {test_id} failed");
     }
@@ -737,7 +737,7 @@ fn dfa_nullable() {
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::new(re);
+        let mut dfa_builder = DfaBuilder::from_re(re);
         dfa_builder.calc_node_pos();
         assert_eq!(tree_to_string(&dfa_builder.re, false), expected, "test {test_id} failed");
     }
@@ -873,7 +873,7 @@ fn dfa_firstpos() {
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::new(re);
+        let mut dfa_builder = DfaBuilder::from_re(re);
         dfa_builder.calc_node_pos();
         let mut result = Vec::new();
         for inode in dfa_builder.re.iter_depth() {
@@ -1005,7 +1005,7 @@ fn dfa_lastpos() {
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::new(re);
+        let mut dfa_builder = DfaBuilder::from_re(re);
         dfa_builder.calc_node_pos();
         let mut result = Vec::new();
         for inode in dfa_builder.re.iter_depth() {
@@ -1156,7 +1156,7 @@ fn dfa_followpos() {
     };
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::new(re);
+        let mut dfa_builder = DfaBuilder::from_re(re);
         dfa_builder.calc_node_pos();
         // to keep some things in order (easier for comparing):
         let res = BTreeMap::from_iter(dfa_builder.followpos.into_iter().map(|(s, st)| (s, BTreeSet::from_iter(st))));
@@ -1378,13 +1378,14 @@ fn dfa_states() {
     for (test_id, expected, expected_ends, expected_warnings) in tests {
         if VERBOSE { println!("{test_id}:"); }
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::new(re);
+        let mut dfa_builder = DfaBuilder::from_re(re);
         let dfa = dfa_builder.build();
         if VERBOSE {
             println!("{}", tree_to_string(&dfa_builder.re, false));
             print_dfa(&dfa);
-            if !dfa_builder.get_warnings().is_empty() {
-                println!("WARNINGS:\n- {}", dfa_builder.get_warnings().join("\n- "));
+            let msg = dfa_builder.get_messages();
+            if !msg.is_empty() {
+                println!("{msg}");
             }
             let mut fpos = dfa_builder.followpos.iter()
                 .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")))
@@ -1396,6 +1397,7 @@ fn dfa_states() {
         assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
         assert_eq!(dfa.end_states, expected_ends, "test {test_id} failed");
         assert_eq!(dfa_builder.get_warnings().len(), expected_warnings, "test {test_id} failed");
+        assert_eq!(dfa_builder.get_errors().len(), 0, "test {test_id} failed");
     }
 }
 
@@ -1407,7 +1409,7 @@ fn dfa_normalize() {
         if re.len() == 0 {
             break;
         }
-        let mut dfa = DfaBuilder::new(re).build();
+        let mut dfa = DfaBuilder::from_re(re).build();
         // println!("{test_id}: {}", if dfa.is_normalized() { "normalized" } else { "not normalized" });
         // print_dfa(&dfa);
         let _trans = dfa.normalize();
@@ -1469,7 +1471,9 @@ fn dfa_modes() {
             }
         }
         if VERBOSE { println!("## Merged:"); }
-        let dfa = Dfa::from_dfa_modes(dfas);
+        let mut dfa_builder = DfaBuilder::new();
+        let dfa = dfa_builder.build_from_dfa_modes(dfas)
+            .expect(&format!("test {test_id} failed to build Dfa: "));
         if VERBOSE {
             print_dfa(&dfa);
             println!("-------------------------------------------------");
@@ -1600,12 +1604,14 @@ fn dfa_optimize_graphs() {
         if graph.is_empty() {
             // fetches from the build_re
             let re = build_re(test_id);
-            let mut dfa_builder = DfaBuilder::new(re);
+            let mut dfa_builder = DfaBuilder::from_re(re);
             let dfa = dfa_builder.build();
             graph = dfa.state_graph;
             end_states = dfa.end_states;
         }
-        let mut dfa = Dfa::from_graph(graph, 0, end_states);
+        let mut dfa_builder = DfaBuilder::new();
+        let mut dfa = dfa_builder.build_from_graph(graph, 0, end_states)
+            .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
         let _tr = dfa.optimize();
         if VERBOSE {
             println!("table: {}\n", _tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));

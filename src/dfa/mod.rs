@@ -149,16 +149,28 @@ pub struct DfaBuilder {
     followpos: HashMap<Id, HashSet<Id>>,
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
-    warnings: Vec<String>
+    warnings: Vec<String>,
+    errors: Vec<String>
 }
 
 impl DfaBuilder {
-    pub fn new(re: VecTree<ReNode>) -> DfaBuilder {
+    pub fn new() -> Self {
+        DfaBuilder {
+            re: VecTree::new(),
+            followpos: HashMap::new(),
+            ids: HashMap::new(),
+            warnings: Vec::new(),
+            errors: Vec::new()
+        }
+    }
+
+    pub fn from_re(re: VecTree<ReNode>) -> Self {
         let mut builder = DfaBuilder {
             re,
             followpos: HashMap::new(),
             ids: HashMap::new(),
-            warnings: Vec::new()
+            warnings: Vec::new(),
+            errors: Vec::new()
         };
         builder.preprocess_re();
         builder
@@ -166,6 +178,21 @@ impl DfaBuilder {
 
     pub fn get_warnings(&self) -> &Vec<String> {
         &self.warnings
+    }
+
+    pub fn get_errors(&self) -> &Vec<String> {
+        &self.errors
+    }
+
+    pub fn get_messages(&self) -> String {
+        let mut result = String::new();
+        if !self.warnings.is_empty() {
+            result.push_str(&format!("Warnings:\n- {}", self.warnings.join("\n- ")));
+        }
+        if !self.errors.is_empty() {
+            result.push_str(&format!("ERRORS:\n- {}", self.errors.join("\n- ")));
+        }
+        result
     }
 
     /// Replaces ReType::String(s) with a concatenation of ReType::Char(s[i])
@@ -482,30 +509,8 @@ impl DfaBuilder {
         self.calc_node_pos();
         self.calc_states()
     }
-}
 
-// ---------------------------------------------------------------------------------------------
-
-pub struct Dfa {
-    pub(crate) state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
-    pub(crate) initial_state: Option<StateId>,
-    pub(crate) end_states: BTreeMap<StateId, Terminal>,
-    is_normalized: bool, // are states incrementally numeroted from 0, with non-end states < end states?
-    pub(crate) first_end_state: Option<StateId>
-}
-
-impl Dfa {
-    pub fn new() -> Self {
-        Dfa {
-            state_graph: BTreeMap::new(),
-            initial_state: None,
-            end_states: BTreeMap::new(),
-            is_normalized: false,
-            first_end_state: None
-        }
-    }
-
-    pub fn from_graph<T>(graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T) -> Dfa
+    pub fn build_from_graph<T>(&mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T) -> Option<Dfa>
         where T: IntoIterator<Item=(StateId, Terminal)>
     {
         let mut dfa = Dfa {
@@ -517,12 +522,13 @@ impl Dfa {
         };
         dfa.first_end_state = dfa.end_states.keys().min().map(|st| *st);
         dfa.is_normalized = dfa.is_normalized();
-        dfa
+        // TODO: add checks
+        Some(dfa)
     }
 
     /// Merges several DFA graphs into one. The graphs represent different modes that are called with the
     /// `Action::pushMode(id)` action.
-    pub fn from_dfa_modes<T>(dfas: T) -> Self
+    pub fn build_from_dfa_modes<T>(&mut self, dfas: T) -> Option<Dfa>
         where T: IntoIterator<Item = (ModeId, Dfa)>
     {
         let mut iter = dfas.into_iter();
@@ -544,12 +550,44 @@ impl Dfa {
         }
         if init_states.len() > 1 {
             for (_, term) in dfa.end_states.iter_mut() {
-                term.push_state = term.push_mode.map(|m| *init_states.get(&m).expect(&format!("unknown mode {m} in merged graph")));
+                term.push_state = term.push_mode.and_then(|m| {
+                    let state_opt = init_states.get(&m);
+                    if state_opt.is_none() {
+                        self.errors.push(format!("unknown mode {m} in merged graph"));
+                    }
+                    state_opt.cloned()
+                });
             }
             dfa.first_end_state = None;
             dfa.is_normalized = false;
         }
-        dfa
+        if self.errors.is_empty() {
+            Some(dfa)
+        } else {
+            None
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
+pub struct Dfa {
+    pub(crate) state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
+    pub(crate) initial_state: Option<StateId>,
+    pub(crate) end_states: BTreeMap<StateId, Terminal>,
+    is_normalized: bool, // are states incrementally numeroted from 0, with non-end states < end states?
+    pub(crate) first_end_state: Option<StateId>
+}
+
+impl Dfa {
+    pub fn new() -> Self {
+        Dfa {
+            state_graph: BTreeMap::new(),
+            initial_state: None,
+            end_states: BTreeMap::new(),
+            is_normalized: false,
+            first_end_state: None
+        }
     }
 
     /// Checks if the DFA is normalized: incremental state numbers, starting at 0, with all the accepting states

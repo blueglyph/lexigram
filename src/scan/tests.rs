@@ -55,7 +55,7 @@ fn scanner() {
     ];
     const VERBOSE: bool = false;
     for (test_id, token_tests, err_tests, stream_tests) in tests {
-        let mut dfa = DfaBuilder::new(build_re(test_id)).build();
+        let mut dfa = DfaBuilder::from_re(build_re(test_id)).build();
         dfa.normalize();
         if VERBOSE { print_dfa(&dfa); }
         let lexgen = LexGen::from_dfa(&dfa);
