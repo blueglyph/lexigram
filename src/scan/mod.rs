@@ -139,7 +139,7 @@ impl<R: Read> Scanner<R> {
     //              pos++
     //
     pub fn get_token(&mut self) -> Result<(Token, ChannelId), &LexScanError> {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const EOF: char = '\x1a';
         self.error = None;
         if let Some(input) = self.input.as_mut() {
@@ -173,7 +173,8 @@ impl<R: Read> Scanner<R> {
                             if VERBOSE { println!(" => OK: token {}", token.0); }
                             return Ok((token.clone(), terminal.channel));
                         }
-                        if VERBOSE { println!(" => skip"); }
+                        if VERBOSE { println!(" => skip, state {}", self.start_state); }
+                        state = self.start_state;
                         continue; // todo: maybe not necessary
                     } else { // EOF or invalid character
                         self.error = Some(LexScanError {

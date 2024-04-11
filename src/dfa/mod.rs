@@ -24,6 +24,18 @@ pub struct Terminal {
     pub pop: bool
 }
 
+impl Terminal {
+    #[inline]
+    pub fn is_only_skip(&self) -> bool {
+        self.token.is_none() && self.push_mode.is_none() && self.push_state.is_none() && !self.pop
+    }
+
+    #[inline]
+    pub fn is_token(&self) -> bool {
+        self.token.is_some()
+    }
+}
+
 impl Display for Terminal {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(tok) = &self.token { write!(f, "<end:{}", tok.0)?; } else { write!(f, "<skip")?; }
@@ -362,10 +374,17 @@ impl DfaBuilder {
                         dfa.state_graph.insert(new_state_id, BTreeMap::new());
                     }
                     if let ReType::End(t) = symbol {
-                        if RESOLVE_END_STATES {
-                            if first_end_state.is_none() {
-                                first_end_state = Some(id);
+                        if first_end_state.is_none() {
+                            first_end_state = Some(id);
+                            if new_state_id == 0 {
+                                if t.is_only_skip() {
+                                    self.warnings.push(format!("<skip> on initial state is a risk of infinite loop on bad input"));
+                                } else if t.is_token() {
+                                    self.warnings.push(format!("<token> on initial state returns a token on bad input"));
+                                }
                             }
+                        }
+                        if RESOLVE_END_STATES {
                             if end_states.contains_key(&id) {
                                 panic!("overriding {id} -> {t} in end_states {}", end_states.iter().map(|(id, t)| format!("{id} {t}")).collect::<Vec<_>>().join(", "));
                             }

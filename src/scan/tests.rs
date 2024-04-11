@@ -1,11 +1,13 @@
 #![cfg(test)]
 
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::io::Cursor;
-use crate::{btreemap, escape_string};
-use crate::dfa::{DfaBuilder, Token};
+use crate::{btreemap, escape_string, node, term};
+use crate::dfa::*;
+use crate::segments::*;
 use crate::dfa::tests::{build_re, print_dfa};
 use crate::lexgen::tests::print_source_code;
+use crate::vectree::VecTree;
 use super::*;
 
 #[test]
@@ -53,7 +55,7 @@ fn scanner() {
          vec![("\ta = x; if i=j print b;\n", vec![0, 3, 0, 5, 1, 0, 3, 0, 2, 0, 5])]
         ),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, token_tests, err_tests, stream_tests) in tests {
         let mut dfa = DfaBuilder::from_re(build_re(test_id)).build();
         dfa.normalize();

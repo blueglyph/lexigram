@@ -93,7 +93,7 @@ impl LexGen {
     }
 
     fn create_state_tables(&mut self, dfa: &Dfa) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         self.initial_state = dfa.initial_state.unwrap();
         self.first_end_state = dfa.first_end_state.unwrap();
         self.nbr_states = dfa.state_graph.len();
