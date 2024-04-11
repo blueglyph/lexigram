@@ -4,7 +4,7 @@ use std::ops::{Deref, DerefMut, RangeInclusive};
 use std::collections::btree_map::{IntoIter, Iter};
 use std::ops::Bound::Included;
 use crate::{btreeset, escape_char};
-use crate::io::{UTF8_MAX, UTF8_MIN};
+use crate::io::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN};
 
 // ---------------------------------------------------------------------------------------------
 // Segments
@@ -20,6 +20,8 @@ pub struct Segments(pub BTreeSet<Seg>);
 // }
 
 impl Segments {
+
+    #[inline]
     pub fn empty() -> Self {
         Segments(btreeset![])
     }
@@ -30,6 +32,16 @@ impl Segments {
         } else {
             Self::empty()
         }
+    }
+
+    #[inline]
+    pub fn is_dot(&self) -> bool {
+        self.len() == 2 && self.first().unwrap() == &Seg::DOT_LOW && self.last().unwrap() == &Seg::DOT_HIGH
+    }
+
+    #[inline]
+    pub fn dot() -> Segments {
+        Segments(BTreeSet::from([Seg::DOT_LOW, Seg::DOT_HIGH]))
     }
 
     pub fn insert(&mut self, seg: Seg) {
@@ -206,7 +218,9 @@ impl Display for Segments {
         if let Some(c) = self.to_char() {
             write!(f, "'{}'", escape_char(c))
         } else {
-            if self.0.len() == 1 {
+            if self.is_dot() {
+                write!(f, "[DOT]")
+            } else if self.0.len() == 1 {
                 write!(f, "{}", self.0.iter()
                     .map(|seg| seg.to_string())
                     .collect::<Vec<_>>()
@@ -287,7 +301,10 @@ impl Iterator for ReTypeCharIter {
 pub struct Seg(pub u32, pub u32);
 
 impl Seg {
-    pub const DOT: Seg = Seg(UTF8_MIN, UTF8_MAX);
+    /// low segment of Unicode codepoint values:
+    pub const DOT_LOW: Seg = Seg(UTF8_MIN, UTF8_LOW_MAX);
+    /// high segment of Unicode codepoint values:
+    pub const DOT_HIGH: Seg = Seg(UTF8_HIGH_MIN, UTF8_MAX);
 }
 
 impl Display for Seg {
@@ -295,11 +312,7 @@ impl Display for Seg {
         if self.0 == self.1 {
             write!(f, "'{}'", escape_char(char::from_u32(self.0).unwrap()))
         } else {
-            if *self == Seg::DOT {
-                write!(f, "[.]")
-            } else {
-                write!(f, "'{}'-'{}'", escape_char(char::from_u32(self.0).unwrap()), escape_char(char::from_u32(self.1).unwrap()))
-            }
+            write!(f, "'{}'-'{}'", escape_char(char::from_u32(self.0).unwrap()), escape_char(char::from_u32(self.1).unwrap()))
         }
     }
 }

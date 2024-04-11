@@ -93,6 +93,7 @@ impl LexGen {
     }
 
     fn create_state_tables(&mut self, dfa: &Dfa) {
+        const VERBOSE: bool = true;
         self.initial_state = dfa.initial_state.unwrap();
         self.first_end_state = dfa.first_end_state.unwrap();
         self.nbr_states = dfa.state_graph.len();
@@ -101,7 +102,9 @@ impl LexGen {
         // state_table[nbr_state * nbr_group + nbr_group] must exist; the content will be ignored.
         let mut state_table = vec!(self.nbr_states; self.nbr_groups as usize * nbr_states + 1);
         for (state_from, trans) in &dfa.state_graph {
+            if VERBOSE { println!("state {state_from}"); }
             for (segments, state_to) in trans {
+                if VERBOSE { println!("- {segments} -> state {state_to}"); }
                 for symbol in segments.chars() {
                     let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, symbol).unwrap_or(self.nbr_groups);
                     state_table[self.nbr_groups as usize * state_from + symbol_group as usize] = *state_to;

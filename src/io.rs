@@ -13,9 +13,24 @@ use std::io::{BufReader, Read};
 //                         |               |                                        |
 // uuuuu_zzzzyyyy_yyxxxxxx | 010000 10FFFF | 11110uuu  10uuzzzz  10yyyyyy  10xxxxxx | 110110ww_wwzzzzyy  110111yy_yyxxxxxx
 // (uuuuu: max 10000)      |               |                                        | (wwww = uuuuu-1)
+//
+// Valid codepoint values:
+//
+// 000000 - 00007f: 1 byte
+// 000080 - 0007ff: 2 bytes
+// 000800 - 00d7ff: 3 bytes
+// --------------------------
+// 00d800 - 00dfff: forbidden
+// --------------------------
+// 00e000 - 00ffff: 3 bytes
+// 010000 - 10ffff: 4 bytes
 
-pub const UTF8_MIN: u32 = 0;
-pub const UTF8_MAX: u32 = 0x10ffff;
+pub const UTF8_MIN: u32      =        0;
+pub const UTF8_LOW_MAX: u32  =   0xd7ff;
+pub const UTF8_GAP_MIN: u32  =   0xd800;
+pub const UTF8_GAP_MAX: u32  =   0xdfff;
+pub const UTF8_HIGH_MIN: u32 =   0xe000;
+pub const UTF8_MAX: u32      = 0x10ffff;
 
 const UTF8_LENGTH: [u8; 256] = [
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
