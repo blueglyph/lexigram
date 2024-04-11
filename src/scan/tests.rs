@@ -126,3 +126,89 @@ fn scanner() {
         }
     }
 }
+
+fn build_scanner<R: Read>(test: usize) -> Scanner<R> {
+    let mut re = VecTree::<ReNode>::new();
+    let trees = match test {
+        1 => {
+            // mode 0: ([ \t\n\r]+<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
+            let or = re.add(None, node!(|));
+            let cc0 = re.add(Some(or), node!(&));
+            let p0 = re.add(Some(cc0), node!(+));
+            let or0 = re.add(Some(p0), node!(|));
+            re.add(Some(or0), node!([' ', '\t', '\n', '\r']));
+            re.add(Some(cc0), node!(term!(skip)));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc1), [node!(chr '/'), node!(chr '*'), node!(term!(push 1) + term!(skip))]);
+            let cc2 = re.add(Some(or), node!(&));
+            let s2 = re.add(Some(cc2), node!(+));
+            let or2 = re.add(Some(s2), node!(|));
+            re.add(Some(or2), node!(['0'-'9']));
+            re.add(Some(cc2), node!(=0));
+
+            // mode 1: ('*'/<pop>|.+<skip>)
+            let mut re1 = VecTree::new();
+            let or = re1.add(None, node!(|));
+            let cc1 = re1.add(Some(or), node!(&));
+            re1.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(pop))]);
+            let cc2 = re1.add(Some(or), node!(&));
+            let s2 = re1.add(Some(cc2), node!(+));
+            re1.add(Some(s2), node!([DOT]));
+            re1.add(Some(cc2), node!(term!(skip)));
+            btreemap![0 => re, 1 => re1]
+        },
+        _ => btreemap![],
+    };
+    const VERBOSE: bool = true;
+    let dfas = trees.into_iter().map(|(mode, re)| {
+        if VERBOSE { println!("creating dfa for mode {mode}"); }
+        let dfa = DfaBuilder::from_re(re).build();
+        if VERBOSE { print_dfa(&dfa); }
+        (mode as u16, dfa)
+    }).collect::<Vec<_>>();
+    let mut dfa_builder = DfaBuilder::new();
+    if VERBOSE { println!("merging dfa modes"); }
+    let mut dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer #{test}\n{}", dfa_builder.get_messages()));
+    if VERBOSE {
+        print_dfa(&dfa);
+        println!("normalizing");
+    }
+    dfa.normalize();
+    if VERBOSE {
+        print_dfa(&dfa);
+        println!("creating lexer");
+    }
+    let lexer = LexGen::from_dfa(&dfa);
+    if VERBOSE { println!("creating scanner"); }
+    Scanner::new(lexer)
+}
+
+#[test]
+fn scanner_modes() {
+    todo!("EOF cannot be captured by DOT");
+    let tests = vec![
+        (1, 1, vec![
+            // no error
+            (" 10 20 30", vec![0, 0, 0]),
+            (" 10 20 ", vec![0, 0]),
+            (" 5 /* blabla */ 6", vec![0, 0]),
+        ])
+    ];
+    const VERBOSE: bool = true;
+    for (test_id, scan_id, inputs) in tests {
+        let mut scanner = build_scanner(scan_id);
+        for (input, expected_tokens) in inputs {
+            if VERBOSE { print!("\"{}\":", escape_string(input)); }
+            let stream = CharReader::new(Cursor::new(input));
+            scanner.attach_steam(stream);
+            let result = scanner.tokens().map(|t| {
+                assert_eq!(t.1, 0, "test {} failed for input {}", test_id, escape_string(input));
+                t.0.0
+            }).collect::<Vec<_>>();
+            assert_eq!(result, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
+            assert!(scanner.get_error() == None || scanner.get_error().unwrap().is_eos, "test {} failed for input '{}'",
+                    test_id, escape_string(input));
+
+        }
+    }
+}
