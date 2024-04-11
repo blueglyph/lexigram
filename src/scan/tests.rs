@@ -22,7 +22,8 @@ fn scanner() {
                 if verbose { print!("## {e}"); }
                 if e.token_ch.is_some() {
                     if verbose { println!(" => OK"); }
-                    e.token_ch.clone()
+                    panic!();
+                    // e.token_ch.clone()
                 } else {
                     if verbose { println!(" => Error"); }
                     None
