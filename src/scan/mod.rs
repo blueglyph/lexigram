@@ -140,21 +140,22 @@ impl<R: Read> Scanner<R> {
     //
     pub fn get_token(&mut self) -> Result<(Token, ChannelId), &LexScanError> {
         const VERBOSE: bool = true;
-        const EOF: char = '\x1a';
         self.error = None;
         if let Some(input) = self.input.as_mut() {
             let mut state = self.start_state;
             loop {
                 if VERBOSE { print!("- state = {state}"); }
                 // let offset = input.get_offset();
-                let c = input.get_char().unwrap_or(EOF);
-                let group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, c).unwrap_or(self.nbr_groups);
-                if VERBOSE { print!(", char '{}' group {}", if c == EOF { "<EOF>".to_string() } else { escape_char(c) }, group); }
+                let c_opt = input.get_char();
+                let is_eos = c_opt.is_none();
+                let group = c_opt.and_then(|c| char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, c))
+                    .unwrap_or(self.nbr_groups);
+                if VERBOSE { print!(", char '{}' group {}", if let Some(c) = c_opt { escape_char(c) } else { "<EOF>".to_string() }, group); }
                 // we can use the state_table even if group = error = nrb_group (but we must
                 // ignore new_state and detect that the group is illegal):
                 let new_state = self.state_table[self.nbr_groups as usize * state + group as usize];
                 if new_state >= self.nbr_states || group >= self.nbr_groups { // we can't do anything with the current character
-                    if c != EOF {
+                    if let Some(c) = c_opt {
                         input.rewind(c).expect(&format!("Can't rewind character '{}'", escape_char(c)));
                     }
                     if self.first_end_state <= state && state < self.nbr_states { // accepting
@@ -179,12 +180,12 @@ impl<R: Read> Scanner<R> {
                     } else { // EOF or invalid character
                         self.error = Some(LexScanError {
                             pos: self.pos,
-                            curr_char: Some(c),
+                            curr_char: c_opt,
                             group: Some(group),
                             token_ch: None,
                             state,
-                            is_eos: c == EOF,
-                            msg: (if c == EOF { "end of stream" } else { if group >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
+                            is_eos,
+                            msg: (if is_eos { "end of stream" } else { if group >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
                         });
                         if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
                         return Err(self.error.as_ref().unwrap());
