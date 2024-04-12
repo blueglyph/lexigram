@@ -191,15 +191,21 @@ fn build_scanner<R: Read>(test: usize) -> Scanner<R> {
         _ => btreemap![],
     };
     const VERBOSE: bool = true;
-    let dfas = trees.into_iter().map(|(mode, re)| {
+    let dfas = trees.into_iter().enumerate().map(|(dfa_id, (mode, re))| {
         if VERBOSE { println!("creating dfa for mode {mode}"); }
-        let dfa = DfaBuilder::from_re(re).build();
-        if VERBOSE { print_dfa(&dfa); }
+        // let dfa = DfaBuilder::from_re(re).build();
+        let mut dfa_builder = DfaBuilder::from_re(re);
+        let dfa = dfa_builder.build();
+        assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building scanner {test}: (DFA #{dfa_id})\n{}", dfa_builder.get_messages());
+        if VERBOSE {
+            print_dfa(&dfa);
+        }
         (mode as u16, dfa)
     }).collect::<Vec<_>>();
     let mut dfa_builder = DfaBuilder::new();
     if VERBOSE { println!("merging dfa modes"); }
     let mut dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer #{test}\n{}", dfa_builder.get_messages()));
+    assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building scanner {test} (merging DFAs):\n{}", dfa_builder.get_messages());
     if VERBOSE {
         print_dfa(&dfa);
         println!("normalizing");
