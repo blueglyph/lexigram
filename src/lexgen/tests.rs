@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use crate::*;
+use crate::dfa::tests::build_re;
 use crate::segments::{Seg, SegMap};
 use super::*;
 
@@ -148,6 +149,31 @@ fn lexgen_symbol_tables_corner() {
         assert_eq!(lexgen.seg_to_group, exp_seg, "test {test_id} failed");
     }
 }
+
+#[test]
+fn lexgen_build() {
+    const VERBOSE: bool = false;
+    let mut test_id = 0;
+    loop {
+        let re = build_re(test_id);
+        if re.len() == 0 {
+            break;
+        }
+        let lexgen;
+        time! { VERBOSE, {
+                let re = build_re(test_id);
+                let mut dfa_builder = DfaBuilder::from_re(re);
+                let mut dfa = dfa_builder.build();
+                dfa.normalize();
+                lexgen = LexGen::from_dfa(&dfa);
+                if VERBOSE { print!("- {test_id:2}: "); }
+            }
+        }
+        assert!(lexgen.state_table.len() > 0, "test {test_id} has an empty state table");
+        test_id += 1;
+    }
+}
+
 
 pub(crate) fn print_source_code(lexgen: &LexGen) {
     // Create source code:

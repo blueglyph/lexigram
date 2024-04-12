@@ -6,6 +6,9 @@ use std::ops::Bound::Included;
 use crate::{btreeset, escape_char};
 use crate::io::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN};
 
+#[cfg(test)]
+use std::fmt::{LowerHex, UpperHex};
+
 // ---------------------------------------------------------------------------------------------
 // Segments
 
@@ -22,7 +25,7 @@ pub struct Segments(pub BTreeSet<Seg>);
 impl Segments {
 
     #[inline]
-    pub fn empty() -> Self {
+    pub fn empty() -> Self {    // TODO: rename to `new()`
         Segments(btreeset![])
     }
 
@@ -176,6 +179,24 @@ impl Segments {
         }
     }
 
+    /// Slices the segments to match other's partition, but without merging self's initial partition.
+    /// ```
+    /// use std::collections::BTreeSet;
+    /// use rlexer::segments::{Seg, Segments};
+    /// let mut ab = Segments(BTreeSet::from([Seg(1 as u32, 50 as u32)]));
+    /// let cd = Segments(BTreeSet::from([Seg(10 as u32, 20 as u32), Seg(30 as u32, 40 as u32)]));
+    /// ab.slice_partitions(&cd);
+    /// assert_eq!(ab, Segments(BTreeSet::from([
+    ///     Seg(1 as u32, 9 as u32), Seg(10 as u32, 20 as u32), Seg(21 as u32, 29 as u32),
+    ///     Seg(30 as u32, 40 as u32), Seg(41 as u32, 50 as u32)])));
+    /// ```
+    pub fn slice_partitions(&mut self, other: &Self) {
+        let cmp = self.intersect(other);
+        self.clear();
+        self.extend(cmp.internal.0);
+        self.extend(cmp.common.0);
+    }
+
     pub fn normalize(&mut self) {
         if !self.is_empty() {
             let mut new = BTreeSet::<Seg>::new();
@@ -237,6 +258,34 @@ impl Display for Segments {
     }
 }
 
+#[cfg(test)]
+/// "{:x}" is used to show the raw segments with codes
+impl LowerHex for Segments {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}]", self.iter()
+            .map(|Seg(a, b)| if a == b { format!("{a}") } else { format!("{a}-{b}") })
+            .collect::<Vec<_>>()
+            .join(", ")
+        )
+    }
+}
+
+#[cfg(test)]
+/// "{:X}" is used to show the raw segments with characters
+impl UpperHex for Segments {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}]", self.iter()
+            .map(|Seg(a, b)| if a == b {
+                format!("'{}'", escape_char(char::from_u32(*a).unwrap()))
+            } else {
+                format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap()))
+            })
+            .collect::<Vec<_>>()
+            .join(", ")
+        )
+    }
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct SegmentsCmp {
     pub common: Segments,      // common to self and other
@@ -269,6 +318,14 @@ impl SegmentsCmp {
 impl Display for SegmentsCmp {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "<common: {}, internal: {}, external: {}>", self.common, self.internal, self.external)
+    }
+}
+
+#[cfg(test)]
+/// "{:x}" is used to show the raw segments with codes
+impl LowerHex for SegmentsCmp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<common: {:x}, internal: {:x}, external: {:x}>", self.common, self.internal, self.external)
     }
 }
 
@@ -325,6 +382,10 @@ impl<T: Clone> SegMap<T> {
         SegMap(BTreeMap::new())
     }
 
+    pub fn keys(&self) -> impl Iterator<Item = &Seg> {
+        self.0.keys()
+    }
+
     pub fn from_iter<I: IntoIterator<Item = (Seg, T)>>(iter: I) -> Self {
         SegMap(BTreeMap::from_iter(iter))
     }
@@ -375,41 +436,8 @@ impl<'a, T> IntoIterator for &'a SegMap<T> {
 
 #[cfg(test)]
 mod tests {
-    use std::fmt::{LowerHex, UpperHex};
     use crate::segments;
     use super::*;
-
-    /// "{:x}" is used to show the raw segments with codes
-    impl LowerHex for Segments {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            write!(f, "[{}]", self.iter()
-                .map(|Seg(a, b)| if a == b { format!("{a}") } else { format!("{a}-{b}") })
-                .collect::<Vec<_>>()
-                .join(", ")
-            )
-        }
-    }
-
-    /// "{:X}" is used to show the raw segments with characters
-    impl UpperHex for Segments {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            write!(f, "[{}]", self.iter()
-                .map(|Seg(a, b)| if a == b {
-                    format!("'{}'", escape_char(char::from_u32(*a).unwrap()))
-                } else {
-                    format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap()))
-                })
-                .collect::<Vec<_>>()
-                .join(", ")
-            )
-        }
-    }
-
-    impl LowerHex for SegmentsCmp {
-        fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-            write!(f, "<common: {:x}, internal: {:x}, external: {:x}>", self.common, self.internal, self.external)
-        }
-    }
 
     fn new_cmp(c: Seg, i: Seg, e: Seg) -> SegmentsCmp {
         SegmentsCmp { common: Segments::new(c), internal: Segments::new(i), external: Segments::new(e) }
@@ -488,10 +516,13 @@ mod tests {
             (segments![], segments![],
              (segments![], segments![], segments![])),
         ];
+        const VERBOSE: bool = false;
         for (idx, (ab, cd, expected_cmp)) in tests.into_iter().enumerate() {
             let expected_cmp = SegmentsCmp { common: expected_cmp.0, internal: expected_cmp.1, external: expected_cmp.2 };
             let mut cmp = ab.intersect(&cd);
+            if VERBOSE { println!("{ab:x} # {cd:x} = com: {:x}, int: {:x}, ext: {:x}", cmp.common, cmp.internal, cmp.external); }
             cmp.normalize();
+            if VERBOSE { println!("  normalized: com: {:x}, int: {:x}, ext: {:x}", cmp.common, cmp.internal, cmp.external); }
             assert_eq!(cmp, expected_cmp, "test {idx} failed");
             let mut cmp = cd.intersect(&ab);
             cmp.normalize();
@@ -513,6 +544,31 @@ mod tests {
             ab.add_partition(&cd);
             let expected = exp;
             assert_eq!(ab, expected, "test {idx} failed");
+        }
+    }
+
+    #[test]
+    fn segs_slice_partition() {
+        let tests: Vec<(Segments, Segments, Segments)> = vec![
+            (segments![1 - 50], segments![10 - 20, 30 - 40],
+             segments![1-9, 10-20, 21-29, 30-40, 41-50]),
+            (segments![10 - 20, 30 - 40], segments![1 - 50],
+             segments![10-20, 30-40]),
+            (segments![1-10, 11-15, 16-20, 21-35, 36-37, 38-50], segments![10-20, 30-40],
+             segments![1-9, 10, 11-15, 16-20, 21-29, 30-35, 36-37, 38-40, 41-50]),
+            (segments![0-9], segments![0-0, 1-9],
+             segments![0, 1-9]),
+            (segments![1-10, 30-40], segments![11-20, 25-29, 41-100],
+             segments![1-10, 30-40]),
+            (segments![], segments![],
+             segments![]),
+        ];
+        const VERBOSE: bool = false;
+        for (idx, (mut ab, cd, expected_part)) in tests.into_iter().enumerate() {
+            if VERBOSE { print!("{ab:x} # {cd:x} => "); }
+            ab.slice_partitions(&cd);
+            if VERBOSE { println!("{ab:x}"); }
+            assert_eq!(ab, expected_part, "test {idx} failed");
         }
     }
 

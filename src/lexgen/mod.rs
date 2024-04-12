@@ -10,6 +10,7 @@ use super::dfa::*;
 pub type GroupId = u32;
 
 pub struct LexGen {
+    // scanner tables and parameters:
     pub ascii_to_group: Box<[GroupId]>,
     pub utf8_to_group: Box<HashMap<char, GroupId>>,
     pub seg_to_group: SegMap<GroupId>,
@@ -20,6 +21,8 @@ pub struct LexGen {
     pub nbr_states: StateId,        // error if state >= nbr_states
     pub state_table: Box<[StateId]>,
     pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
+    // internal
+    group_partition: Segments,   // for optimization
 }
 
 impl LexGen {
@@ -35,6 +38,7 @@ impl LexGen {
             nbr_states: 0,
             state_table: Box::default(),
             terminal_table: Box::default(),
+            group_partition: Segments::empty(),
         }
     }
 
@@ -55,6 +59,12 @@ impl LexGen {
         let symbol_to_group = SegMap::from_iter(
             symbol_part.iter().enumerate().flat_map(|(id, i)| i.iter().map(move |ab| (*ab, id as GroupId)))
         );
+        self.group_partition = Segments(BTreeSet::from_iter(symbol_to_group.keys().cloned()));
+
+        if VERBOSE {
+            println!("symbol partition:{}\ntables:", symbol_to_group.iter()
+                .map(|(seg, g)| format!("\n- {seg} -> {g}")).collect::<String>());
+        }
         self.nbr_groups = symbol_part.len() as GroupId;
         let error_id = self.nbr_groups as GroupId;
         self.ascii_to_group.fill(error_id);
@@ -64,7 +74,7 @@ impl LexGen {
         for (seg, group_id) in symbol_to_group {
             if seg.0 < 128 {
                 if VERBOSE {
-                    println!("ASCII: {}-{} ({}-{}) => {group_id}",
+                    println!("- ASCII: {}-{} ({}-{}) => {group_id}",
                              escape_char(char::from_u32(seg.0).unwrap()), escape_char(char::from_u32(seg.1.min(127)).unwrap()),
                              seg.0, seg.1.min(127));
                 }
@@ -75,14 +85,16 @@ impl LexGen {
             if seg.1 >= 128 {
                 let low = 128.max(seg.0);
                 let high = seg.1.min(low + left - 1);
-                for u in low..=high {
-                    if VERBOSE { println!("UTF8: {} ({u}) => {group_id}", escape_char(char::from_u32(u).unwrap())); }
-                    self.utf8_to_group.insert(char::from_u32(u).unwrap(), group_id);
+                if left > 0 {
+                    for u in low..=high {
+                        if VERBOSE { println!("- UTF8: {} ({u}) => {group_id}", escape_char(char::from_u32(u).unwrap())); }
+                        self.utf8_to_group.insert(char::from_u32(u).unwrap(), group_id);
+                    }
+                    left -= 1 + high - low;
                 }
-                left -= 1 + high - low;
                 if high < seg.1 {
                     if VERBOSE {
-                        println!("SEG: {}-{} ({}-{}) => {group_id}",
+                        println!("- SEG: {}-{} ({}-{}) => {group_id}",
                              escape_char(char::from_u32(high + 1).unwrap()), escape_char(char::from_u32(seg.1).unwrap()),
                              high + 1, seg.1);
                     }
@@ -105,7 +117,10 @@ impl LexGen {
             if VERBOSE { println!("state {state_from}"); }
             for (segments, state_to) in trans {
                 if VERBOSE { println!("- {segments} -> state {state_to}"); }
-                for symbol in segments.chars() {
+                let mut segments_part = segments.clone();
+                segments_part.slice_partitions(&self.group_partition);
+                for seg in segments_part.iter() {
+                    let symbol = char::from_u32(seg.0).unwrap();
                     let symbol_group = char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, symbol).unwrap_or(self.nbr_groups);
                     state_table[self.nbr_groups as usize * state_from + symbol_group as usize] = *state_to;
                 }

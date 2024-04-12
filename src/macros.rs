@@ -89,6 +89,17 @@ macro_rules! btreeset {
 }
 
 #[cfg(test)]
+#[macro_export(local_inner_macros)]
+macro_rules! time {
+    ($verbose:expr, $p:block) => {
+        let macro_timer = std::time::Instant::now();
+        $p
+        let elapsed = macro_timer.elapsed().as_secs_f64();
+        if ($verbose) { std::println!("elapsed time: {elapsed:.3} s"); }
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use std::collections::{HashMap, BTreeMap, HashSet, BTreeSet};
 
