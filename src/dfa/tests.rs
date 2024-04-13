@@ -488,26 +488,6 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(cc2), [node!(chr '\''), node!([DOT]), node!(chr '\''), node!(=1)]);
         },
         20 => {
-            // mode 1: ('*'/<pop>|.+<skip>)
-            let or = re.add(None, node!(|));
-            let cc1 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
-            let cc2 = re.add(Some(or), node!(&));
-            let s2 = re.add(Some(cc2), node!(+));
-            re.add(Some(s2), node!([DOT]));
-            re.add(Some(cc2), node!(term!(skip)));
-        },
-        21 => {
-            // mode 1: (.+<skip>|'*'/<pop>)
-            let or = re.add(None, node!(|));
-            let cc2 = re.add(Some(or), node!(&));
-            let s2 = re.add(Some(cc2), node!(+));
-            re.add(Some(s2), node!([DOT]));
-            re.add(Some(cc2), node!(term!(skip)));
-            let cc1 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
-        },
-        22 => {
             // revisiting 11:
             // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
             //       or1:                      ^         ^            ^        ^        ^
@@ -544,7 +524,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc), node!(chr ';'));
             re.add(Some(cc), node!(=5));
         },
-        23 => {
+        21 => {
             // skip on a nullable alternative => bad, will skip bad input indefinitely
             // mode 0: ([ \t\n\r]*<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
             let or = re.add(None, node!(|));
@@ -561,7 +541,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(or2), node!(['0'-'9']));
             re.add(Some(cc2), node!(=0));
         },
-        24 => {
+        22 => {
             // mode 0: ([ \t\n\r]+<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
             let or = re.add(None, node!(|));
             let cc0 = re.add(Some(or), node!(&));
@@ -576,6 +556,43 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let or2 = re.add(Some(s2), node!(|));
             re.add(Some(or2), node!(['0'-'9']));
             re.add(Some(cc2), node!(=0));
+        },
+        // 23-26 don't work, need non-greedy repeaters
+        23 => {
+            // mode 1: ('*'/<pop>|.+<skip>)
+            let or = re.add(None, node!(|));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
+            let cc2 = re.add(Some(or), node!(&));
+            let s2 = re.add(Some(cc2), node!(+));
+            re.add(Some(s2), node!([DOT]));
+            re.add(Some(cc2), node!(term!(skip)));
+        },
+        24 => {
+            // mode 1: (.+<skip>|'*'/<pop>)
+            let or = re.add(None, node!(|));
+            let cc2 = re.add(Some(or), node!(&));
+            let s2 = re.add(Some(cc2), node!(+));
+            re.add(Some(s2), node!([DOT]));
+            re.add(Some(cc2), node!(term!(skip)));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
+        },
+        25 => {
+            // /'*'.+'*'/<end:0>
+            let cc =re.add(None, node!(&));
+            re.add_iter(Some(cc), [node!(chr '/'), node!(chr '*')]);
+            let p0 = re.add(Some(cc), node!(+));
+            re.add(Some(p0), node!([DOT]));
+            re.add_iter(Some(cc), [node!(chr '*'), node!(chr '/'), node!(=0)]);
+        },
+        26 => {
+            // /'*'.*'*'/<end:0>
+            let cc =re.add(None, node!(&));
+            re.add_iter(Some(cc), [node!(chr '/'), node!(chr '*')]);
+            let p0 = re.add(Some(cc), node!(*));
+            re.add(Some(p0), node!([DOT]));
+            re.add_iter(Some(cc), [node!(chr '*'), node!(chr '/'), node!(=0)]);
         },
 
         _ => { }
@@ -767,9 +784,11 @@ fn dfa_nullable() {
         (16, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"),
         (17, "|(&(+(1:'a'-'f'),2:<end:0>),&(+(3:'d'-'i'),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"),
         (19, "|(&(+(1:'a'-'f'),2:<end:0>),&(3:'\\'',4:[DOT],5:'\\'',6:<end:1>))"),
-        (20, "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[DOT]),5:<skip>))"),
-        (23, "|(&(!*(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:'0'-'9')),7:<end:0>))"),
-        (24, "|(&(+(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:'0'-'9')),7:<end:0>))"),
+        (21, "|(&(!*(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:'0'-'9')),7:<end:0>))"),
+        (22, "|(&(+(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:'0'-'9')),7:<end:0>))"),
+        (23, "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[DOT]),5:<skip>))"),
+        (25, "&(1:'/',2:'*',+(3:[DOT]),4:'*',5:'/',6:<end:0>)"),
+        (26, "&(1:'/',2:'*',!*(3:[DOT]),4:'*',5:'/',6:<end:0>)"),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -1182,7 +1201,7 @@ fn dfa_followpos() {
         ]),
         // (\*/<pop>|.+<skip>)
         // "|(&(1:'*',2:'/',3:<skip,pop>),&(+(4:[DOT]),5:<skip>))"
-        (20, btreemap![
+        (23, btreemap![
             1 => btreeset![2],
             2 => btreeset![3],
             3 => btreeset![],
@@ -1378,23 +1397,8 @@ fn dfa_states() {
             3 => branch!('\'' => 4),
             4 => branch!(), // <end:1>
         ], btreemap![2 => term!(=0), 4 => term!(=1)], 0),
-        // ('*'/<pop>|.+<skip>)
-        // "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[DOT]),5:<skip>))"
-        (20, btreemap![
-            0 => branch!(['\0'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2),
-            1 => branch!([DOT] => 1), // <skip>
-            2 => branch!(['\0'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '/' => 3), // <skip>
-            3 => branch!([DOT] => 1), // <end:1>
-        ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
-        // (.+<skip>|'*'/<pop>)
-        (21, btreemap![
-            0 => branch!(['\u{0}'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2),
-            1 => branch!([DOT] => 1), // <skip>
-            2 => branch!(['\u{0}'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '/' => 3), // <skip>
-            3 => branch!([DOT] => 1), // <end:1>
-        ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
         // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
-        (22, btreemap![
+        (20, btreemap![
             0 => branch!(['\t'-'\n', '\r', ' '] => 0, '+' => 1, ';' => 2, '=' => 3, ['a'-'h', 'j'-'o', 'q'-'z'] => 4, 'i' => 5, 'p' => 6),
             1 => branch!(), // <end:4>
             2 => branch!(), // <end:5>
@@ -1414,7 +1418,7 @@ fn dfa_states() {
         // |(  &(!*(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),
         //     &(3:'/',4:'*',5:<skip,push(mode 1)>),
         //     &(+(|(6:'0'-'9')),7:<end:0>))
-        (23, btreemap![
+        (21, btreemap![
             0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0'-'9' => 3), // <skip>
             1 => branch!(['\t'-'\n', '\r', ' '] => 1), // <skip>
             2 => branch!('*' => 4),
@@ -1425,15 +1429,51 @@ fn dfa_states() {
         // |(  &(+(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),
         //     &(3:'/',4:'*',5:<skip,push(mode 1)>),
         //     &(+(|(6:'0'-'9')),7:<end:0>))
-        (24, btreemap![
+        (22, btreemap![
             0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0'-'9' => 3),
             1 => branch!(['\t'-'\n', '\r', ' '] => 1), // <skip>
             2 => branch!('*' => 4),
             3 => branch!('0'-'9' => 3), // <end:0>
             4 => branch!(), // <skip,push(mode 1)>
         ], btreemap![1 => term!(skip), 3 => term!(=0), 4 => term!(push 1)], 0),
+
+        // 23-26 don't work, need non-greedy repeaters
+        // ('*'/<end:1>|.+?<skip>)
+        // "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[DOT]),5:<skip>))"
+        (23, btreemap![
+            0 => branch!(['\0'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2),
+            1 => branch!(['\u{0}'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2), // <skip>
+            2 => branch!(['\0'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '/' => 3), // <skip>
+            3 => branch!(), // <end:1>
+        ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
+        // (.+?<skip>|'*'/<end:1>)
+        (24, btreemap![
+            0 => branch!(['\u{0}'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2),
+            1 => branch!(['\u{0}'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2), // <skip>
+            2 => branch!(['\u{0}'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '/' => 3), // <skip>
+            3 => branch!(), // <end:1>
+        ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
+        // /'*'.+?'*'/<end:0>
+        // "&(1:'/',2:'*',+(3:[DOT]),4:'*',5:'/',6:<end:0>)"
+        (25, btreemap![
+            0 => branch!('/' => 1),
+            1 => branch!('*' => 2),
+            2 => branch!([DOT] => 3),
+            3 => branch!(['\0'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 3, '*' => 4),
+            4 => branch!(['\0'-')', '+'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 3, '*' => 4, '/' => 5),
+            5 => branch!(), // <end:0>
+        ], btreemap![5 => term!(=0)], 0),
+        // /'*'.*?'*'/<end:0>
+        // "&(1:'/',2:'*',+(3:[DOT]),4:'*',5:'/',6:<end:0>)"
+        (26, btreemap![
+            0 => branch!('/' => 1),
+            1 => branch!('*' => 2),
+            2 => branch!(['\0'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 2, '*' => 3),
+            3 => branch!(['\0'-')', '+'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 2, '*' => 3, '/' => 4),
+            4 => branch!(), // <end:0>
+        ], btreemap![4 => term!(=0)], 0),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, expected, expected_ends, expected_warnings) in tests {
         if VERBOSE { println!("{test_id}:"); }
         let re = build_re(test_id);
