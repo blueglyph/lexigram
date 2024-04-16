@@ -1,10 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 use std::ops::{Deref, DerefMut, RangeInclusive};
 use std::collections::btree_map::{IntoIter, Iter};
 use std::ops::Bound::Included;
 use crate::{btreeset, escape_char};
-use crate::io::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN};
+use crate::io::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN, UTF8_GAP_MIN, UTF8_GAP_MAX};
 
 #[cfg(test)]
 use std::fmt::{LowerHex, UpperHex};
@@ -12,7 +12,7 @@ use std::fmt::{LowerHex, UpperHex};
 // ---------------------------------------------------------------------------------------------
 // Segments
 
-#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
+#[derive(Clone, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub struct Segments(pub BTreeSet<Seg>);
 
 // impl Clone for Segments {
@@ -215,8 +215,49 @@ impl Segments {
         }
     }
 
+    pub fn normalized(&self) -> Self {
+        let mut n = self.clone();
+        n.normalize();
+        n
+    }
+
     pub fn chars(&self) -> ReTypeCharIter {
         ReTypeCharIter { segments: Some(self.0.clone()), range: None }
+    }
+
+    /// Inserts Seg(start, stop) in the current segment, except the UTF-8 gap between
+    /// UTF8_GAP_MIN (0xd800) and UTF8_GAP_MAX (0xdfff). If a part or the entirety of
+    /// that gap is within [start-stop], then it's extruded first.
+    pub fn insert_utf8(&mut self, start: u32, stop: u32) {
+        if start <= stop {
+            if stop < UTF8_GAP_MIN || start > UTF8_GAP_MAX {
+                self.0.insert(Seg(start, stop));
+            } else {
+                if start < UTF8_GAP_MIN {
+                    self.0.insert(Seg(start, UTF8_GAP_MIN - 1));
+                }
+                if stop > UTF8_GAP_MAX {
+                    self.0.insert(Seg(UTF8_GAP_MAX + 1, stop));
+                }
+            }
+        }
+    }
+
+    /// Negates the selection, except the UTF-8 gap between UTF8_GAP_MIN (0xd800) and
+    /// UTF8_GAP_MAX (0xdfff), which is always excluded.
+    pub fn not(&self) -> Self {
+        let mut inv = Segments::empty();
+        let mut start = 0;
+        for seg in &self.0 {
+            if seg.0 > start {
+                inv.insert_utf8(start, seg.0 - 1);
+            }
+            start = seg.1 + 1;
+        }
+        if start < UTF8_MAX {
+            inv.insert_utf8(start, UTF8_MAX);
+        }
+        inv
     }
 }
 
@@ -231,6 +272,12 @@ impl Deref for Segments {
 impl DerefMut for Segments {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.0
+    }
+}
+
+impl Debug for Segments {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Segments({})", self.0.iter().map(|seg| format!("Seg(0x{:x}, 0x{:x})", seg.0, seg.1)).collect::<Vec<_>>().join(", "))
     }
 }
 
@@ -583,6 +630,46 @@ mod tests {
         for (idx, (segments, expected)) in tests.into_iter().enumerate() {
             let result = segments.chars().collect::<String>();
             assert_eq!(result, expected, "test {idx} failed");
+        }
+    }
+
+    #[test]
+    fn segs_insert_utf8() {
+        let tests = vec![
+            (0, UTF8_MAX, segments![DOT]),
+            (32, UTF8_GAP_MIN + 2, segments![32-0xd7ff]),
+            (64, UTF8_GAP_MAX, segments![64-0xd7ff]),
+            (96, UTF8_GAP_MAX + 1, segments![96-0xd7ff, 0xe000]),
+            (UTF8_GAP_MIN, UTF8_GAP_MAX, segments![]),
+            (UTF8_GAP_MIN, UTF8_GAP_MAX + 1, segments![0xe000]),
+        ];
+        for (test_id, (a, b, expected)) in tests.into_iter().enumerate() {
+            let mut result = Segments::empty();
+            result.insert_utf8(a, b);
+            assert_eq!(result, expected, "test {test_id} failed");
+        }
+    }
+
+    #[test]
+    fn segs_not() {
+        let tests = vec![
+            (segments![DOT], segments![]),
+            (segments![], segments![DOT]),
+            (segments![0], segments![1-0xd7ff, 0xe000-0x10ffff]),
+            (segments![0-0x10ffff], segments![]),
+            (segments![1-0xd700], segments![0-0, 0xd701-0xd7ff, 0xe000-0x10ffff]),
+            (segments![2-0xd7fe], segments![0-1, 0xd7ff, 0xe000-0x10ffff]),
+            (segments![3-0xd7ff], segments![0-2, 0xe000-0x10ffff]),
+            (segments![4-0xdfff], segments![0-3, 0xe000-0x10ffff]),
+            (segments![5-0xe000], segments![0-4, 0xe001-0x10ffff]),
+            (segments![0-6, 0xd7ff-0xe000, 0x10ffff], segments![7-0xd7fe, 0xe001-0x10fffe]),
+            (segments![0-7, 0xd800-0xdfff], segments![8-0xd7ff, 0xe000-0x10ffff]),
+            (segments![0-8, 0xdfff-0xe001], segments![9-0xd7ff, 0xe002-0x10ffff]),
+            (segments![0-9, 0xe000-0x10ffff], segments![10-0xd7ff]),
+        ];
+        for (test_id, (segments, expected)) in tests.into_iter().enumerate() {
+            let result = segments.not();
+            assert_eq!(result.normalized(), expected.normalized(), "test {test_id} failed");
         }
     }
 }
