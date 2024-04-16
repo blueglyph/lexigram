@@ -54,7 +54,7 @@ impl Display for Terminal {
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub enum ReType {
+pub enum ReType { // todo: remove Boxes
     #[default] Empty,
     End(Box<Terminal>),
     Char(char),
@@ -124,8 +124,8 @@ type Id = u32;
 pub struct ReNode {
     id: Option<Id>,
     op: ReType,
-    firstpos: HashSet<Id>,
-    lastpos: HashSet<Id>,
+    firstpos: HashSet<Id>,  // todo: use BTreeSet or Vec instead? Move to DfaBuilder?
+    lastpos: HashSet<Id>,   // todo: use BTreeSet or Vec instead? Move to DfaBuilder?
     nullable: Option<bool>
 }
 
@@ -297,6 +297,7 @@ impl DfaBuilder {
                         // followpos:
                         // for all i in *.lastpos,
                         //     followpos[i].extend(*.firstpos)
+
                         for i in &inode.lastpos {
                             if !self.followpos.contains_key(i) {
                                 self.followpos.insert(*i, HashSet::new());
@@ -308,7 +309,7 @@ impl DfaBuilder {
                         // firstpos, lastpost = union of children's
                         let mut firstpos = HashSet::<Id>::new();
                         for child in inode.iter_children_simple() {
-                            firstpos.extend(&child.firstpos);   // todo: use BTreeSet instead (faster iter)?
+                            firstpos.extend(&child.firstpos);
                         }
                         inode.firstpos.extend(firstpos);
                         let mut lastpos = HashSet::<Id>::new();
