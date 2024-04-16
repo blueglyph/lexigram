@@ -580,7 +580,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         25 => {
             // /'*'.+'*'/<end:0>
-            let cc =re.add(None, node!(&));
+            let cc = re.add(None, node!(&));
             re.add_iter(Some(cc), [node!(chr '/'), node!(chr '*')]);
             let p0 = re.add(Some(cc), node!(+));
             re.add(Some(p0), node!([DOT]));
@@ -588,13 +588,53 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         26 => {
             // /'*'.*'*'/<end:0>
-            let cc =re.add(None, node!(&));
+            let cc = re.add(None, node!(&));
             re.add_iter(Some(cc), [node!(chr '/'), node!(chr '*')]);
             let p0 = re.add(Some(cc), node!(*));
             re.add(Some(p0), node!([DOT]));
             re.add_iter(Some(cc), [node!(chr '*'), node!(chr '/'), node!(=0)]);
         },
-
+        27 => {
+            // [a-c]*?[c-e]*?c<end:0>
+            let cc = re.add(None, node!(&));
+            let s1 = re.add(Some(cc), node!(*));
+            re.add(Some(s1), node!(['a'-'c']));
+            let s2 = re.add(Some(cc), node!(*));
+            re.add(Some(s2), node!(['c'-'e']));
+            re.add_iter(Some(cc), [node!(chr 'c'), node!(=0)]);
+        },
+        28 => {
+            // [a-c]*?a<end:0>|[a-c]*?b<end:1>|[a-c]*?c<end:2>
+            let or = re.add(None, node!(|));
+            let cc1 = re.add(Some(or), node!(&));
+            let s1 = re.add(Some(cc1), node!(*));
+            re.add(Some(s1), node!(['a'-'c']));
+            re.add_iter(Some(cc1), [node!(chr 'a'), node!(=0)]);
+            let cc2 = re.add(Some(or), node!(&));
+            let s2 = re.add(Some(cc2), node!(*));
+            re.add(Some(s2), node!(['a'-'c']));
+            re.add_iter(Some(cc2), [node!(chr 'b'), node!(=1)]);
+            let cc3 = re.add(Some(or), node!(&));
+            let s3 = re.add(Some(cc3), node!(*));
+            re.add(Some(s3), node!(['a'-'c']));
+            re.add_iter(Some(cc3), [node!(chr 'c'), node!(=2)]);
+        },
+        29 => {
+            // a<end:0>|b<end:1>|c<end:2>|[DOT]<end:3>
+            let or = re.add(None, node!(|));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add(Some(cc1), node!(chr 'a'));
+            re.add(Some(cc1), node!(=0));
+            let cc2 = re.add(Some(or), node!(&));
+            re.add(Some(cc2), node!(chr 'b'));
+            re.add(Some(cc2), node!(=1));
+            let cc3 = re.add(Some(or), node!(&));
+            re.add(Some(cc3), node!(chr 'c'));
+            re.add(Some(cc3), node!(=2));
+            let cc4 = re.add(Some(or), node!(&));
+            re.add(Some(cc4), node!([DOT]));
+            re.add(Some(cc4), node!(=3));
+        },
         _ => { }
     }
     re
@@ -1464,7 +1504,7 @@ fn dfa_states() {
             5 => branch!(), // <end:0>
         ], btreemap![5 => term!(=0)], 0),
         // /'*'.*?'*'/<end:0>
-        // "&(1:'/',2:'*',+(3:[DOT]),4:'*',5:'/',6:<end:0>)"
+        // "&(1:'/',2:'*',*(3:[DOT]),4:'*',5:'/',6:<end:0>)"
         (26, btreemap![
             0 => branch!('/' => 1),
             1 => branch!('*' => 2),
@@ -1472,6 +1512,31 @@ fn dfa_states() {
             3 => branch!(['\0'-')', '+'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 2, '*' => 3, '/' => 4),
             4 => branch!(), // <end:0>
         ], btreemap![4 => term!(=0)], 0),
+        // [a-c]*?[c-e]*?c<end:0>
+        // "&(!*(1:'a'-'c'),!*(2:'c'-'e'),3:'c',4:<end:0>)"
+        (27, btreemap![
+            0 => branch!('a'-'b' => 0, 'c' => 1, 'd'-'e' => 2),
+            1 => branch!('a'-'b' => 0, 'c' => 1, 'd'-'e' => 2), // <end:0>
+            2 => branch!('c' => 3, 'd'-'e' => 2),
+            3 => branch!('c' => 3, 'd'-'e' => 2), // <end:0>
+        ], btreemap![1 => term!(=0), 3 => term!(=0)], 0),
+        // [a-c]*?a<end:0>|[a-c]*?b<end:1>|[a-c]*?c<end:2>
+        // "|(&(!*(1:'a'-'c'),2:'a',3:<end:0>),&(!*(4:'a'-'c'),5:'b',6:<end:1>),&(!*(7:'a'-'c'),8:'c',9:<end:2>))"
+        (28, btreemap![
+            0 => branch!('a' => 1, 'b' => 2, 'c' => 3),
+            1 => branch!('a' => 1, 'b' => 2, 'c' => 3), // <end:0>
+            2 => branch!('a' => 1, 'b' => 2, 'c' => 3), // <end:1>
+            3 => branch!('a' => 1, 'b' => 2, 'c' => 3), // <end:2>
+        ], btreemap![1 => term!(=0), 2 => term!(=1), 3 => term!(=2)], 0),
+        // a<end:0>|b<end:1>|c<end:2>|[DOT]<end:3>
+        // "|(&(1:'a',2:<end:0>),&(3:'b',4:<end:1>),&(5:'c',6:<end:2>),&(7:[DOT],8:<end:3>))"
+        (29, btreemap![
+            0 => branch!(['\0'-'`', 'd'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, 'a' => 2, 'b' => 3, 'c' => 4),
+            1 => branch!(), // <end:3>
+            2 => branch!(), // <end:0>
+            3 => branch!(), // <end:1>
+            4 => branch!(), // <end:2>
+        ], btreemap![1 => term!(=3), 2 => term!(=0), 3 => term!(=1), 4 => term!(=2)], 0),
     ];
     const VERBOSE: bool = true;
     for (test_id, expected, expected_ends, expected_warnings) in tests {
