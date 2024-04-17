@@ -296,6 +296,11 @@ pub struct NodeProxy<'a, T> {
 }
 
 impl<'a, T> NodeProxy<'a, T> {
+    pub fn num_children(&self) -> usize {
+        let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
+        children.len()
+    }
+
     pub fn iter_children(&self) -> impl DoubleEndedIterator<Item=NodeProxy<'_, T>> {
         assert!(self.index < self.tree_size);
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
@@ -443,6 +448,12 @@ pub struct NodeProxyMut<'a, T> {
 }
 
 impl<'a, T> NodeProxyMut<'a, T> {
+    pub fn num_children(&self) -> usize {
+        assert!(self.index < self.tree_size);
+        let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
+        children.len()
+    }
+
     pub fn iter_children(&self) -> impl DoubleEndedIterator<Item = NodeProxy<'_, T>> {
         assert!(self.index < self.tree_size);
         let c = self.borrows.get();
