@@ -218,6 +218,7 @@ impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
     }
 
     fn create_proxy(&self, index: usize) -> Self::TProxy {
+        assert!(index < self.tree.len());
         return NodeProxySimple {
             index,
             data: unsafe { NonNull::new_unchecked((*self.tree.nodes.as_ptr().add(index)).data.get()) },
@@ -277,6 +278,7 @@ impl<'a, T> TreeDataIter for IterData<'a, T> {
     }
 
     fn create_proxy(&self, index: usize) -> Self::TProxy {
+        assert!(index < self.tree_size);
         return NodeProxy {
             index,
             data: unsafe { NonNull::new_unchecked((*self.tree_nodes_ptr.add(index)).data.get()) },
@@ -302,19 +304,20 @@ impl<'a, T> NodeProxy<'a, T> {
     }
 
     pub fn iter_children(&self) -> impl DoubleEndedIterator<Item=NodeProxy<'_, T>> {
-        assert!(self.index < self.tree_size);
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
-        children.iter().map(|&index| NodeProxy {
-            index,
-            data: unsafe { NonNull::new_unchecked((*self.tree_node_ptr.add(index)).data.get()) },
-            tree_node_ptr: self.tree_node_ptr,
-            tree_size: self.tree_size,
-            _marker: PhantomData
+        children.iter().map(|&index| {
+            assert!(index < self.tree_size);
+            NodeProxy {
+                index,
+                data: unsafe { NonNull::new_unchecked((*self.tree_node_ptr.add(index)).data.get()) },
+                tree_node_ptr: self.tree_node_ptr,
+                tree_size: self.tree_size,
+                _marker: PhantomData,
+            }
         })
     }
 
     pub fn iter_children_simple(&self) -> impl DoubleEndedIterator<Item=&T> {
-        assert!(self.index < self.tree_size);
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&c| unsafe { &*(*self.tree_node_ptr.add(c)).data.get() })
     }
@@ -358,6 +361,7 @@ impl<'a, T> TreeDataIter for IterDataSimpleMut<'a, T> {
     }
 
     fn create_proxy(&self, index: usize) -> Self::TProxy {
+        assert!(index < self.tree.len());
         return NodeProxySimpleMut {
             index,
             data: unsafe { NonNull::new_unchecked((*self.tree.nodes.as_ptr().add(index)).data.get()) },
@@ -427,6 +431,7 @@ impl<'a, T> TreeDataIter for IterDataMut<'a, T> {
     fn create_proxy(&self, index: usize) -> Self::TProxy {
         let c = self.borrows.get() + 1;
         self.borrows.set(c);
+        assert!(index < self.tree_size);
         return NodeProxyMut {
             index,
             data: unsafe { NonNull::new_unchecked((*self.tree_nodes_ptr.add(index)).data.get()) },
@@ -449,27 +454,27 @@ pub struct NodeProxyMut<'a, T> {
 
 impl<'a, T> NodeProxyMut<'a, T> {
     pub fn num_children(&self) -> usize {
-        assert!(self.index < self.tree_size);
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.len()
     }
 
     pub fn iter_children(&self) -> impl DoubleEndedIterator<Item = NodeProxy<'_, T>> {
-        assert!(self.index < self.tree_size);
         let c = self.borrows.get();
         assert!(c <= 1, "{} extra pending mutable reference(s) on children when requesting immutable references on them", c - 1);
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
-        children.iter().map(|&index| NodeProxy {
-            index,
-            data: unsafe { NonNull::new_unchecked((*self.tree_node_ptr.add(index)).data.get()) },
-            tree_node_ptr: self.tree_node_ptr,
-            tree_size: self.tree_size,
-            _marker: PhantomData
+        children.iter().map(|&index| {
+            assert!(index < self.tree_size);
+            NodeProxy {
+                index,
+                data: unsafe { NonNull::new_unchecked((*self.tree_node_ptr.add(index)).data.get()) },
+                tree_node_ptr: self.tree_node_ptr,
+                tree_size: self.tree_size,
+                _marker: PhantomData,
+            }
         })
     }
 
     pub fn iter_children_simple(&self) -> impl DoubleEndedIterator<Item=&T> {
-        assert!(self.index < self.tree_size);
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&c| unsafe { &*(*self.tree_node_ptr.add(c)).data.get() })
     }
