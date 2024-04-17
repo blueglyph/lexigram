@@ -261,6 +261,20 @@ impl Segments {
     }
 }
 
+impl<const N: usize> From<[Seg; N]> for Segments {
+    /// Converts a `[Seg; N]` into a `Segments`.
+    ///
+    /// ```
+    ///
+    ///
+    /// use rlexer::segments::{Seg, Segments};
+    /// let set1 = Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]);
+    /// ```
+    fn from(arr: [Seg; N]) -> Self {
+        Segments(BTreeSet::from(arr))
+    }
+}
+
 impl Deref for Segments {
     type Target = BTreeSet<Seg>;
 
@@ -287,15 +301,9 @@ impl Display for Segments {
             write!(f, "'{}'", escape_char(c))
         } else {
             if self.is_dot() {
-                write!(f, "[DOT]")
-            } else if self.0.len() == 1 {
-                write!(f, "{}", self.0.iter()
-                    .map(|seg| seg.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-                )
+                write!(f, "DOT")
             } else {
-                write!(f, "[{}]", self.0.iter()
+                write!(f, "{}", self.0.iter()
                     .map(|seg| seg.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
@@ -309,7 +317,7 @@ impl Display for Segments {
 /// "{:x}" is used to show the raw segments with codes
 impl LowerHex for Segments {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}]", self.iter()
+        write!(f, "{}", self.iter()
             .map(|Seg(a, b)| if a == b { format!("{a}") } else { format!("{a}-{b}") })
             .collect::<Vec<_>>()
             .join(", ")
@@ -321,7 +329,7 @@ impl LowerHex for Segments {
 /// "{:X}" is used to show the raw segments with characters
 impl UpperHex for Segments {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "[{}]", self.iter()
+        write!(f, "{}", self.iter()
             .map(|Seg(a, b)| if a == b {
                 format!("'{}'", escape_char(char::from_u32(*a).unwrap()))
             } else {
@@ -636,12 +644,12 @@ mod tests {
     #[test]
     fn segs_insert_utf8() {
         let tests = vec![
-            (0, UTF8_MAX, segments![DOT]),
-            (32, UTF8_GAP_MIN + 2, segments![32-0xd7ff]),
-            (64, UTF8_GAP_MAX, segments![64-0xd7ff]),
-            (96, UTF8_GAP_MAX + 1, segments![96-0xd7ff, 0xe000]),
-            (UTF8_GAP_MIN, UTF8_GAP_MAX, segments![]),
-            (UTF8_GAP_MIN, UTF8_GAP_MAX + 1, segments![0xe000]),
+            (0, UTF8_MAX,                    segments![DOT]),
+            (32, UTF8_GAP_MIN + 2,           segments![32-LOW_MAX]),
+            (64, UTF8_GAP_MAX,               segments![64-LOW_MAX]),
+            (96, UTF8_GAP_MAX + 1,           segments![96-LOW_MAX, HIGH_MIN]),
+            (UTF8_GAP_MIN, UTF8_GAP_MAX,     segments![]),
+            (UTF8_GAP_MIN, UTF8_GAP_MAX + 1, segments![HIGH_MIN]),
         ];
         for (test_id, (a, b, expected)) in tests.into_iter().enumerate() {
             let mut result = Segments::empty();
@@ -653,19 +661,19 @@ mod tests {
     #[test]
     fn segs_not() {
         let tests = vec![
-            (segments![DOT], segments![]),
-            (segments![], segments![DOT]),
-            (segments![0], segments![1-0xd7ff, 0xe000-0x10ffff]),
-            (segments![0-0x10ffff], segments![]),
-            (segments![1-0xd700], segments![0-0, 0xd701-0xd7ff, 0xe000-0x10ffff]),
-            (segments![2-0xd7fe], segments![0-1, 0xd7ff, 0xe000-0x10ffff]),
-            (segments![3-0xd7ff], segments![0-2, 0xe000-0x10ffff]),
-            (segments![4-0xdfff], segments![0-3, 0xe000-0x10ffff]),
-            (segments![5-0xe000], segments![0-4, 0xe001-0x10ffff]),
-            (segments![0-6, 0xd7ff-0xe000, 0x10ffff], segments![7-0xd7fe, 0xe001-0x10fffe]),
-            (segments![0-7, 0xd800-0xdfff], segments![8-0xd7ff, 0xe000-0x10ffff]),
-            (segments![0-8, 0xdfff-0xe001], segments![9-0xd7ff, 0xe002-0x10ffff]),
-            (segments![0-9, 0xe000-0x10ffff], segments![10-0xd7ff]),
+            (segments![DOT],                        segments![]),
+            (segments![],                           segments![DOT]),
+            (segments![0],                          segments![1-LOW_MAX, HIGH_MIN-MAX]),
+            (segments![0-MAX],                      segments![]),
+            (segments![1-0xd700],                   segments![0-0, 0xd701-LOW_MAX, HIGH_MIN-MAX]),
+            (segments![2-0xd7fe],                   segments![0-1, 0xd7ff, HIGH_MIN-MAX]),
+            (segments![3-LOW_MAX],                  segments![0-2, HIGH_MIN-MAX]),
+            (segments![4-0xdfff],                   segments![0-3, HIGH_MIN-MAX]),
+            (segments![5-HIGH_MIN],                 segments![0-4, 0xe001-MAX]),
+            (segments![0-6, LOW_MAX-HIGH_MIN, MAX], segments![7-0xd7fe, 0xe001-0x10fffe]),
+            (segments![0-7, GAP_MIN-GAP_MAX],       segments![8-LOW_MAX, HIGH_MIN-MAX]),
+            (segments![0-8, GAP_MAX-0xe001],        segments![9-LOW_MAX, 0xe002-MAX]),
+            (segments![0-9, HIGH_MIN-MAX],          segments![10-LOW_MAX]),
         ];
         for (test_id, (segments, expected)) in tests.into_iter().enumerate() {
             let result = segments.not();

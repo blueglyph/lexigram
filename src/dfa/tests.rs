@@ -33,9 +33,9 @@ use crate::io::{UTF8_MIN, UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX};
 macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
     (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
-    ([$($a:tt $(- $b:literal)?,)+]) => { ReNode::new(ReType::CharRange(Box::new(segments![$($a$(- $b)?,)+]))) };
-    ([$($a:tt $(- $b:literal)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![$($a$(- $b)?,)+]))) };
-    (.) => { node!([UTF8_MIN - UTF8_LOW_MAX, UTF8_HIGH_MIN - UTF8_MAX]) };
+    ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]))) };
+    ([~ $($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]))) };
+    (.) => { node![DOT] };
     (str $str:expr) => { ReNode::new(ReType::String(Box::new($str.to_string()))) };
     (&) => { ReNode::new(ReType::Concat) };
     (|) => { ReNode::new(ReType::Or) };
@@ -45,8 +45,10 @@ macro_rules! node {
     // actions:
     (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
     ($id:expr) => { ReNode::new(ReType::End(Box::new($id))) };
+    //
+    ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
+    ([~ $($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!(~ [$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
 }
-//    ([$($char1:expr, $char2:expr);+]) => { ReNode::new(ReType::CharRange(Box::new(Segments(btreeset![$( Seg($char1 as u32, $char2 as u32) ),+])))) };
 
 #[macro_export(local_inner_macros)]
 macro_rules! term {
@@ -72,6 +74,26 @@ impl Add for Terminal {
     }
 }
 
+#[test]
+fn macro_node() {
+    assert_eq!(node!([0 - LOW_MAX, HIGH_MIN - MAX]),   ReNode::new(ReType::CharRange(Box::new(Segments::dot()))));
+    assert_eq!(node!([~ 0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::new(ReType::CharRange(Box::new(Segments::empty()))));
+}
+
+// ---------------------------------------------------------------------------------------------
+
+/// Replaces a few identifiers by their codepoint value, and casts character / integer literals to `u32`.
+#[macro_export(local_inner_macros)]
+macro_rules! utf8 {
+    ( MIN )        => { 0_u32 };
+    ( LOW_MAX )    => { 0xd7ff_u32 };
+    ( GAP_MIN )    => { 0xd800_u32 };
+    ( GAP_MAX )    => { 0xdfff_u32 };
+    ( HIGH_MIN )   => { 0xe000_u32 };
+    ( MAX )        => { 0x10ffff_u32 };
+    ( $a:literal ) => { $a as u32 }
+}
+
 /// Generates a Seg (tuple of u32 values) from one or two values (characters or integers).
 ///
 /// # Example
@@ -84,28 +106,60 @@ impl Add for Terminal {
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! seg {
-    ($a:literal - $b:literal) => { Seg($a as u32, $b as u32) };
-    ($a:literal) => { Seg($a as u32, $a as u32) };
+    ($($a1:literal)?$($a2:ident)? - $($b1:literal)?$($b2:ident)?) => { Seg(utf8!($($a1)?$($a2)?), utf8!($($b1)?$($b2)?)) };
+    ($($a1:literal)?$($a2:ident)?) => { Seg(utf8!($($a1)?$($a2)?), utf8!($($a1)?$($a2)?)) };
 }
 
-/// Generates a Segments initialization from Seg values.
+/// Generates a Segments initialization from Seg values. The macro only accepts literals, either characters or integers,
+/// along with a few identifiers:
+///
+/// - `DOT` matches all UTF-8 characters
+/// - `MIN`      = 0
+/// - `LOW_MAX`  = 0xd7ff
+/// - `GAP_MIN`  = 0xd800 (GAP_MIN - GAP_MAX are forbidden UTF-8 codepoint values)
+/// - `GAP_MAX`  = 0xdfff
+/// - `HIGH_MIN` = 0xe000
+/// - `MAX`      = 0x10ffff
+///
+/// Integer values are UTF-8 codepoint values, not the 1-4 byte representation.
 ///
 /// # Example
 /// ```
-/// #use rlexer::{btreeset, segments, seg, segments::Segments};
-/// let a = segments!['a', 'b'-'z', '0'-'9'];
-/// assert_eq!(a, Segments(btreeset![Seg('a' as u32, 'a' as u32), Seg('b' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]));
+/// #use rlexer::{btreeset, segments, segments::{Segments, Seg}};
+/// assert_eq!(segments!('a', '0'-'9'), Segments(btreeset![Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
+/// assert_eq!(segments!(DOT), Segments::dot());
+/// assert_eq!(segments!(~ '1'-'8'), segments![MIN-'0', '9'-LOW_MAX, HIGH_MIN-MAX]);
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! segments {
     () => { Segments::empty() };
     (DOT) => { Segments::dot() };
-    ($($a:tt $(- $b:literal)?,)*) => { segments![$($a$(- $b)?),*] };
-    ($($a:tt $(- $b:literal)?),*) => { Segments(BTreeSet::from([$(seg![$a$(- $b)?]),*]))};
+    ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { Segments::from([$(seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+]) };
+    (~ $($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { segments![$($($a1)?$($a2)? $(- $($b1)?$($b2)?)?),+].not() };
+    //
+    ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+) => { segments![$(seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+] };
 }
 
 /// Generates the key-value pairs corresponding to the `Segments => int` arguments, which can be
 /// used to add values to `BTreeMap<Segments, StateId>` state transitions.
+///
+/// All segments must be with square brackets or without them, but it's not allowed to mix both
+/// formats in the same macro. Negation (`~`) can only be used with square brackets, and is placed
+/// in front of the opening bracket.
+///
+/// Segments are made up of any number of single character or codepoint literals, or inclusive
+/// ranges of character / codepoint literals.
+///
+/// A few identifiers can also be used:
+/// - `DOT` matches all UTF-8 characters
+/// - `MIN`      = 0
+/// - `LOW_MAX`  = 0xd7ff
+/// - `GAP_MIN`  = 0xd800 (GAP_MIN - GAP_MAX are forbidden UTF-8 codepoint values)
+/// - `GAP_MAX`  = 0xdfff
+/// - `HIGH_MIN` = 0xe000
+/// - `MAX`      = 0x10ffff
+///
+/// Integer values are UTF-8 codepoint values, not the 1-4 byte representation.
 ///
 /// # Example
 /// ```
@@ -113,53 +167,90 @@ macro_rules! segments {
 /// # use rlexer::{btreemap, segments, branch, segments::Segments};
 /// # use rlexer::segments::Seg;
 /// let transitions = btreemap![
-///     0 => branch!['a'-'c' => 0, 'z' => 1, ['d'-'f', 'h'] => 2, ['x'-'z'] => 4],
-///     1 => branch![['b'] => 3, '=' => 5],
-///     3 => branch![DOT => 4]
+///     0 => branch!['a'-'c' => 0],
+///     1 => branch!['a'-'c', '0'-'2' => 0],
+///     2 => branch!['a'-'c', '.' => 0],
+///     3 => branch!['a'-'c', '.' => 0, 'd'-'f' => 1],
+///     4 => branch![['a'-'c', '.'] => 0, ['d'-'f'] => 1],
+///     5 => branch![['a'-'c', '.'] => 0, ~['a'-'c', '.'] => 1],
+///     6 => branch![0 - LOW_MAX, HIGH_MIN - MAX => 0],
+///     7 => branch!['a' => 0, DOT => 1],
 /// ];
-/// assert_eq!(transitions, BTreeMap::from([
-///     (0, BTreeMap::from([
-///         (Segments(BTreeSet::from([Seg('a' as u32, 'c' as u32)])), 0),
-///         (Segments(BTreeSet::from([Seg('z' as u32, 'z' as u32)])), 1),
-///         (Segments(BTreeSet::from([Seg('d' as u32, 'f' as u32), Seg('h' as u32, 'h' as u32)])), 2),
-///         (Segments(BTreeSet::from([Seg('x' as u32, 'z' as u32)])), 4)])),
-///     (1, BTreeMap::from([
-///         (Segments(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
-///         (Segments(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
-///     (3, BTreeMap::from([(Segments(BTreeSet::from([Seg::DOT])), 4), ])), ]))
+/// assert_eq!(transitions,
+///     btreemap![
+///         0 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32)]) => 0],
+///         1 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('0' as u32, '2' as u32)]) => 0],
+///         2 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0],
+///         3 => btreemap![
+///             Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+///             Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+///         4 => btreemap![
+///             Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+///             Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+///         5 => btreemap![
+///             Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+///             Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]).not() => 1],
+///         6 => btreemap![Segments::from([Seg(0_u32, 0xd7ff_u32), Seg(0xe000_u32, 0x10ffff_u32)]) => 0],
+///         7 => btreemap![Segments::from([Seg('a' as u32, 'a' as u32)]) => 0, Segments::dot() => 1]
+///     ]);
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! branch {
-    ($( $([$($a:tt $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr),*)
-    => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
-    // a few guards for trailing comma:
-    ($( $([$($a:tt $(-$b:literal)?),+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
-    => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
-    ($( $([$($a:tt $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr)*)
-    => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),*] };
-    ($( $([$($a:tt $(-$b:literal)?,)+])? $($c:literal $(-$d:literal)?)? => $value:expr,)+)
-    => { btreemap![$(segments![$($($a$(- $b)?,)+)? $($c $(-$d)?)?] => $value),+] };
+    // doesn't work, so we can't mix [] and non-[] segments:
+    // ($( $($($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+)? $(~[$($($c1:literal)?$($c2:ident)? $(-$($d1:literal)?$($d2:ident)?)?),+])? => $value:expr ),*)
+    // => { btreemap![$($(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+])? $(segments![~ $($($c1)?$($c2)?$(- $($d1)?$($d2)?)?),+])? => $value),*] };
+
+    ($( $($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+ => $value:expr ),*)
+    => { btreemap![$(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+] => $value),*] };
+    ($( $([$($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+])? $(~[$($($c1:literal)?$($c2:ident)? $(-$($d1:literal)?$($d2:ident)?)?),+])? => $value:expr ),*)
+    => { btreemap![$($(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+])? $(segments![~ $($($c1)?$($c2)?$(- $($d1)?$($d2)?)?),+])? => $value),*] };
+}
+
+#[test]
+fn macro_segments() {
+    assert_eq!(seg!('a'-'z'), Seg('a' as u32, 'z' as u32));
+    assert_eq!(seg!('a'), Seg('a' as u32, 'a' as u32));
+    assert_eq!(segments!('a'-'z'), Segments::new(Seg('a' as u32, 'z' as u32)));
+    assert_eq!(segments!('a'), Segments::new(Seg('a' as u32, 'a' as u32)));
+    assert_eq!(segments!('a'-'z', '0'-'9'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]));
+    assert_eq!(segments!('a'-'z', '0'-'9', '-'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32), Seg('-' as u32, '-' as u32)]));
+    assert_eq!(segments!(~ '0'-'9', '.'), Segments::from([Seg('0' as u32, '9' as u32), Seg('.' as u32, '.' as u32)]).not());
+    assert_eq!(segments!(0 - LOW_MAX, HIGH_MIN - MAX), Segments::dot());
+    assert_eq!(segments!(~ 0 - LOW_MAX, HIGH_MIN - MAX), Segments::empty());
+    assert_eq!(segments!(DOT), Segments::dot());
+    assert_eq!(segments!(~ DOT), Segments::empty());
 }
 
 #[test]
 fn macro_branch() {
     let transitions = btreemap![
-        0 => branch!['a'-'c' => 0, 'z' => 1, ['d'-'f', 'h'] => 2, ['x'-'z'] => 4,],
-        1 => branch![['b'] => 3, '=' => 5],
-        3 => branch![[DOT] => 4]
+        0 => branch!['a'-'c' => 0],
+        1 => branch!['a'-'c', '0'-'2' => 0],
+        2 => branch!['a'-'c', '.' => 0],
+        3 => branch!['a'-'c', '.' => 0, 'd'-'f' => 1],
+        4 => branch![['a'-'c', '.'] => 0, ['d'-'f'] => 1],
+        5 => branch![['a'-'c', '.'] => 0, ~['a'-'c', '.'] => 1],
+        6 => branch![0 - LOW_MAX, HIGH_MIN - MAX => 0],
+        7 => branch!['a' => 0, DOT => 1],
     ];
-    assert_eq!(transitions, BTreeMap::from([
-        (0, BTreeMap::from([
-            (Segments(BTreeSet::from([Seg('a' as u32, 'c' as u32)])), 0),
-            (Segments(BTreeSet::from([Seg('z' as u32, 'z' as u32)])), 1),
-            (Segments(BTreeSet::from([Seg('d' as u32, 'f' as u32), Seg('h' as u32, 'h' as u32)])), 2),
-            (Segments(BTreeSet::from([Seg('x' as u32, 'z' as u32)])), 4)])),
-        (1, BTreeMap::from([
-            (Segments(BTreeSet::from([Seg('b' as u32, 'b' as u32)])), 3),
-            (Segments(BTreeSet::from([Seg('=' as u32, '=' as u32)])), 5), ])),
-        (3, BTreeMap::from([(Segments::dot(), 4), ])), ]))
+    assert_eq!(transitions,
+        btreemap![
+            0 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32)]) => 0],
+            1 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('0' as u32, '2' as u32)]) => 0],
+            2 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0],
+            3 => btreemap![
+                Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+                Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+            4 => btreemap![
+                Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+                Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+            5 => btreemap![
+                Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+                Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]).not() => 1],
+            6 => btreemap![Segments::from([Seg(0_u32, 0xd7ff_u32), Seg(0xe000_u32, 0x10ffff_u32)]) => 0],
+            7 => btreemap![Segments::from([Seg('a' as u32, 'a' as u32)]) => 0, Segments::dot() => 1]
+        ]);
 }
-
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
@@ -822,10 +913,10 @@ fn dfa_nullable() {
         (12, "|(&(&(1:'a',2:'b',3:'s'),4:<end:0>),&(&(5:'a',6:'b',7:'i'),8:<end:1>),&(&(9:'a',10:'t'),11:<end:2>),&(&(12:'a',13:'b'),14:<end:3>))"),
         (15, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:<end:1>))"),
         (16, "|(&(+(|(1:'A',2:'B')),3:<end:0>),&(+(|(4:'B',5:'C')),6:'Z',7:<end:1>))"),
-        (17, "|(&(+(1:'a'-'f'),2:<end:0>),&(+(3:'d'-'i'),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"),
-        (19, "|(&(+(1:'a'-'f'),2:<end:0>),&(3:'\\'',4:[DOT],5:'\\'',6:<end:1>))"),
-        (21, "|(&(!*(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:'0'-'9')),7:<end:0>))"),
-        (22, "|(&(+(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:'0'-'9')),7:<end:0>))"),
+        (17, "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"),
+        (19, "|(&(+(1:['a'-'f']),2:<end:0>),&(3:'\\'',4:[DOT],5:'\\'',6:<end:1>))"),
+        (21, "|(&(!*(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:['0'-'9'])),7:<end:0>))"),
+        (22, "|(&(+(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:['0'-'9'])),7:<end:0>))"),
         (23, "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[DOT]),5:<skip>))"),
         (25, "&(1:'/',2:'*',+(3:[DOT]),4:'*',5:'/',6:<end:0>)"),
         (26, "&(1:'/',2:'*',!*(3:[DOT]),4:'*',5:'/',6:<end:0>)"),
@@ -1335,8 +1426,8 @@ fn dfa_states() {
         // [ \t\n\r]*[0-9]+(<end:0>|\.[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
         // "|(&(!*(|(1:' ',2:'\\t',3:'\\n',4:'\\r')),+(|(5:'0',6:'1',7:'2',8:'3',9:'4',10:'5',11:'6',12:'7',13:'8',14:'9')),|(15:<end:0>,&(16:'.',+(|(17:'0',18:'1',19:'2',20:'3',21:'4',22:'5',23:'6',24:'7',25:'8',26:'9')),27:<end:1>))),&(28:'0',29:'x',+(|(30:'0',31:'1',32:'2',33:'3',34:'4',35:'5',36:'6',37:'7',38:'8',39:'9',40:'A',41:'B',42:'C',43:'D',44:'E',45:'F',46:'a',47:'b',48:'c',49:'d',50:'e',51:'f')),52:<end:2>))"
         (10, btreemap![
-            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '0' => 2, '1'-'9' => 3),
-            1 => branch!(['\t'-'\n', '\r', ' '] => 1, '0'-'9' => 3),
+            0 => branch!('\t'-'\n', '\r', ' ' => 1, '0' => 2, '1'-'9' => 3),
+            1 => branch!('\t'-'\n', '\r', ' ' => 1, '0'-'9' => 3),
             2 => branch!('.' => 4, '0'-'9' => 3, 'x' => 5), // <end:0>
             3 => branch!('.' => 4, '0'-'9' => 3), // <end:0>
             4 => branch!('0'-'9' => 6),
@@ -1345,18 +1436,18 @@ fn dfa_states() {
             7 => branch!(['0'-'9', 'A'-'F', 'a'-'f'] => 7), // <end:2>
         ], btreemap![2 => term!(=0), 3 => term!(=0), 6 => term!(=1), 7 => term!(=2)], 0),
         (11, btreemap![
-            0 => branch!(['\t'-'\n', '\r', ' '] => 0, '+' => 1, ';' => 2, '=' => 3, ['a'-'h', 'j'-'o', 'q'-'z'] => 4, 'i' => 5, 'p' => 6),
+            0 => branch!('\t'-'\n', '\r', ' ' => 0, '+' => 1, ';' => 2, '=' => 3, 'a'-'h', 'j'-'o', 'q'-'z' => 4, 'i' => 5, 'p' => 6),
             1 => branch!(), // <end:4>
             2 => branch!(), // <end:5>
             3 => branch!(), // <end:3>
-            4 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:0>
-            5 => branch!(['0'-'9', 'a'-'e', 'g'-'z'] => 4, 'f' => 7), // <end:0>
-            6 => branch!(['0'-'9', 'a'-'q', 's'-'z'] => 4, 'r' => 8), // <end:0>
-            7 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:1>
-            8 => branch!(['0'-'9', 'a'-'h', 'j'-'z'] => 4, 'i' => 9), // <end:0>
-            9 => branch!(['0'-'9', 'a'-'m', 'o'-'z'] => 4, 'n' => 10), // <end:0>
-            10 => branch!(['0'-'9', 'a'-'s', 'u'-'z'] => 4, 't' => 11), // <end:0>
-            11 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:2>
+            4 => branch!('0'-'9', 'a'-'z' => 4), // <end:0>
+            5 => branch!('0'-'9', 'a'-'e', 'g'-'z' => 4, 'f' => 7), // <end:0>
+            6 => branch!('0'-'9', 'a'-'q', 's'-'z' => 4, 'r' => 8), // <end:0>
+            7 => branch!('0'-'9', 'a'-'z' => 4), // <end:1>
+            8 => branch!('0'-'9', 'a'-'h', 'j'-'z' => 4, 'i' => 9), // <end:0>
+            9 => branch!('0'-'9', 'a'-'m', 'o'-'z' => 4, 'n' => 10), // <end:0>
+            10 => branch!('0'-'9', 'a'-'s', 'u'-'z' => 4, 't' => 11), // <end:0>
+            11 => branch!('0'-'9', 'a'-'z' => 4), // <end:2>
         ], btreemap![
             1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=0), 5 => term!(=0), 6 => term!(=0),
             7 => term!(=1), 8 => term!(=0), 9 => term!(=0), 10 => term!(=0), 11 => term!(=2)], 0),
@@ -1371,8 +1462,8 @@ fn dfa_states() {
         ], btreemap![2 => term!(=3), 3 => term!(=2), 4 => term!(=1), 5 => term!(=0)], 0),
         // ([ \t\n\r]*{channel(1)}<end:1>|[0-9]+<end:0>)
         (13, btreemap![
-            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '0' => 2),
-            1 => branch!(['\t'-'\n', '\r', ' '] => 1, '0' => 2), // <end:1,ch 1>
+            0 => branch!('\t'-'\n', '\r', ' ' => 1, '0' => 2),
+            1 => branch!('\t'-'\n', '\r', ' ' => 1, '0' => 2), // <end:1,ch 1>
             2 => branch!('1' => 3),
             3 => branch!('2' => 4),
             4 => branch!('3' => 5),
@@ -1411,7 +1502,7 @@ fn dfa_states() {
         // segments: [a-f]+<end:0>|[d-i]+z<end:1>|ey<end:2>
         // "|(&(+(1:['a'-'f']),2:<end:0>),&(+(3:['d'-'i']),4:'z',5:<end:1>),&(6:'e',7:'y',8:<end:2>))"
         (17, btreemap![
-            0 => branch!('a'-'c' => 1, ['d', 'f'] => 2, 'e' => 3, 'g'-'i' => 4),
+            0 => branch!('a'-'c' => 1, 'd', 'f' => 2, 'e' => 3, 'g'-'i' => 4),
             1 => branch!('a'-'f' => 1), // <end:0>
             2 => branch!('a'-'c' => 1, 'd'-'f' => 2, 'g'-'i' => 4, 'z' => 5), // <end:0>
             3 => branch!('a'-'c' => 1, 'd'-'f' => 2, 'g'-'i' => 4, 'y' => 6, 'z' => 5), // <end:0>
@@ -1439,18 +1530,18 @@ fn dfa_states() {
         ], btreemap![2 => term!(=0), 4 => term!(=1)], 0),
         // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
         (20, btreemap![
-            0 => branch!(['\t'-'\n', '\r', ' '] => 0, '+' => 1, ';' => 2, '=' => 3, ['a'-'h', 'j'-'o', 'q'-'z'] => 4, 'i' => 5, 'p' => 6),
+            0 => branch!('\t'-'\n', '\r', ' ' => 0, '+' => 1, ';' => 2, '=' => 3, 'a'-'h', 'j'-'o', 'q'-'z' => 4, 'i' => 5, 'p' => 6),
             1 => branch!(), // <end:4>
             2 => branch!(), // <end:5>
             3 => branch!(), // <end:3>
-            4 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:0>
-            5 => branch!(['0'-'9', 'a'-'e', 'g'-'z'] => 4, 'f' => 7), // <end:0>
-            6 => branch!(['0'-'9', 'a'-'q', 's'-'z'] => 4, 'r' => 8), // <end:0>
-            7 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:1>
-            8 => branch!(['0'-'9', 'a'-'h', 'j'-'z'] => 4, 'i' => 9), // <end:0>
-            9 => branch!(['0'-'9', 'a'-'m', 'o'-'z'] => 4, 'n' => 10), // <end:0>
-            10 => branch!(['0'-'9', 'a'-'s', 'u'-'z'] => 4, 't' => 11), // <end:0>
-            11 => branch!(['0'-'9', 'a'-'z'] => 4), // <end:2>
+            4 => branch!('0'-'9', 'a'-'z' => 4), // <end:0>
+            5 => branch!('0'-'9', 'a'-'e', 'g'-'z' => 4, 'f' => 7), // <end:0>
+            6 => branch!('0'-'9', 'a'-'q', 's'-'z' => 4, 'r' => 8), // <end:0>
+            7 => branch!('0'-'9', 'a'-'z' => 4), // <end:1>
+            8 => branch!('0'-'9', 'a'-'h', 'j'-'z' => 4, 'i' => 9), // <end:0>
+            9 => branch!('0'-'9', 'a'-'m', 'o'-'z' => 4, 'n' => 10), // <end:0>
+            10 => branch!('0'-'9', 'a'-'s', 'u'-'z' => 4, 't' => 11), // <end:0>
+            11 => branch!('0'-'9', 'a'-'z' => 4), // <end:2>
         ], btreemap![
             1 => term!(=4), 2 => term!(=5), 3 => term!(=3), 4 => term!(=0), 5 => term!(=0), 6 => term!(=0),
             7 => term!(=1), 8 => term!(=0), 9 => term!(=0), 10 => term!(=0), 11 => term!(=2)], 0),
@@ -1459,8 +1550,8 @@ fn dfa_states() {
         //     &(3:'/',4:'*',5:<skip,push(mode 1)>),
         //     &(+(|(6:'0'-'9')),7:<end:0>))
         (21, btreemap![
-            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0'-'9' => 3), // <skip>
-            1 => branch!(['\t'-'\n', '\r', ' '] => 1), // <skip>
+            0 => branch!('\t'-'\n', '\r', ' ' => 1, '/' => 2, '0'-'9' => 3), // <skip>
+            1 => branch!('\t'-'\n', '\r', ' ' => 1), // <skip>
             2 => branch!('*' => 4),
             3 => branch!('0'-'9' => 3), // <end:0>
             4 => branch!(), // <skip,push(mode 1)>
@@ -1470,27 +1561,27 @@ fn dfa_states() {
         //     &(3:'/',4:'*',5:<skip,push(mode 1)>),
         //     &(+(|(6:'0'-'9')),7:<end:0>))
         (22, btreemap![
-            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0'-'9' => 3),
-            1 => branch!(['\t'-'\n', '\r', ' '] => 1), // <skip>
+            0 => branch!('\t'-'\n', '\r', ' ' => 1, '/' => 2, '0'-'9' => 3),
+            1 => branch!('\t'-'\n', '\r', ' ' => 1), // <skip>
             2 => branch!('*' => 4),
             3 => branch!('0'-'9' => 3), // <end:0>
             4 => branch!(), // <skip,push(mode 1)>
         ], btreemap![1 => term!(skip), 3 => term!(=0), 4 => term!(push 1)], 0),
-/*
+
         // 23-26 don't work, need non-greedy repeaters
         // ('*'/<end:1>|.+?<skip>)
         // "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[DOT]),5:<skip>))"
         (23, btreemap![
-            0 => branch!(['\0'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2),
-            1 => branch!(['\u{0}'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2), // <skip>
-            2 => branch!(['\0'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '/' => 3), // <skip>
+            0 => branch!(~['*'] => 1, ['*'] => 2),
+            1 => branch!(~['*'] => 1, ['*'] => 2), // <skip>
+            2 => branch!(~['/'] => 1, ['/'] => 3), // <skip>
             3 => branch!(), // <end:1>
         ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
         // (.+?<skip>|'*'/<end:1>)
         (24, btreemap![
-            0 => branch!(['\u{0}'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2),
-            1 => branch!(['\u{0}'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '*' => 2), // <skip>
-            2 => branch!(['\u{0}'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, '/' => 3), // <skip>
+            0 => branch!(~['*'] => 1, ['*'] => 2),
+            1 => branch!(~['*'] => 1, ['*'] => 2), // <skip>
+            2 => branch!(~['/'] => 1, ['/'] => 3), // <skip>
             3 => branch!(), // <end:1>
         ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
         // /'*'.+?'*'/<end:0>
@@ -1499,8 +1590,8 @@ fn dfa_states() {
             0 => branch!('/' => 1),
             1 => branch!('*' => 2),
             2 => branch!([DOT] => 3),
-            3 => branch!(['\0'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 3, '*' => 4),
-            4 => branch!(['\0'-')', '+'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 3, '*' => 4, '/' => 5),
+            3 => branch!(~['*'] => 3, ['*'] => 4),
+            4 => branch!(~['*', '/'] => 3, ['*'] => 4, ['/'] => 5),
             5 => branch!(), // <end:0>
         ], btreemap![5 => term!(=0)], 0),
         // /'*'.*?'*'/<end:0>
@@ -1508,8 +1599,8 @@ fn dfa_states() {
         (26, btreemap![
             0 => branch!('/' => 1),
             1 => branch!('*' => 2),
-            2 => branch!(['\0'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 2, '*' => 3),
-            3 => branch!(['\0'-')', '+'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 2, '*' => 3, '/' => 4),
+            2 => branch!(~['*'] => 2, ['*'] => 3),
+            3 => branch!(~['*', '/'] => 2, ['*'] => 3, ['/'] => 4),
             4 => branch!(), // <end:0>
         ], btreemap![4 => term!(=0)], 0),
         // [a-c]*?[c-e]*?c<end:0>
@@ -1531,13 +1622,13 @@ fn dfa_states() {
         // a<end:0>|b<end:1>|c<end:2>|[DOT]<end:3>
         // "|(&(1:'a',2:<end:0>),&(3:'b',4:<end:1>),&(5:'c',6:<end:2>),&(7:[DOT],8:<end:3>))"
         (29, btreemap![
-            0 => branch!(['\0'-'`', 'd'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 1, 'a' => 2, 'b' => 3, 'c' => 4),
+            0 => branch!(~['a', 'b', 'c'] => 1, ['a'] => 2, ['b'] => 3, ['c'] => 4),
             1 => branch!(), // <end:3>
             2 => branch!(), // <end:0>
             3 => branch!(), // <end:1>
             4 => branch!(), // <end:2>
         ], btreemap![1 => term!(=3), 2 => term!(=0), 3 => term!(=1), 4 => term!(=2)], 0),
-*/
+
     ];
     const VERBOSE: bool = true;
     for (test_id, expected, expected_ends, expected_warnings) in tests {
@@ -1593,8 +1684,8 @@ fn dfa_modes() {
         (1, btreemap![
             // mode 0: ([ \t\n\r]*<skip>|/\*<skip,push(1)>|[0-9]+<end:0>)
             // mode 1: (\*/<pop>|[0-9]*<skip>)
-            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0'-'9' => 3), // <skip>
-            1 => branch!(['\t'-'\n', '\r', ' '] => 1), // <skip>
+            0 => branch!('\t'-'\n', '\r', ' ' => 1, '/' => 2, '0'-'9' => 3), // <skip>
+            1 => branch!('\t'-'\n', '\r', ' ' => 1), // <skip>
             2 => branch!('*' => 4),
             3 => branch!('0'-'9' => 3), // <end:0>
             4 => branch!(), // <skip,push(mode 1,state 5)>
@@ -1609,15 +1700,15 @@ fn dfa_modes() {
         (2, btreemap![
             // mode 0: ([ \t\n\r]*<skip>|/\*<skip,push(1)>|[0-9]+<end:0>)
             // mode 1: (\*/<pop>|.*<skip>)
-            0 => branch!(['\t'-'\n', '\r', ' '] => 1, '/' => 2, '0'-'9' => 3),
-            1 => branch!(['\t'-'\n', '\r', ' '] => 1), // <skip>
+            0 => branch!('\t'-'\n', '\r', ' ' => 1, '/' => 2, '0'-'9' => 3),
+            1 => branch!('\t'-'\n', '\r', ' ' => 1), // <skip>
             2 => branch!('*' => 4),
             3 => branch!('0'-'9' => 3), // <end:0>
             4 => branch!(), // <skip,push(mode 1,state 5)>
-            5 => branch!(['\u{0}'-')', '+'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 6, '*' => 7),
-            6 => branch!([DOT] => 6), // <skip>
-            7 => branch!(['\u{0}'-'.', '0'-'\u{d7ff}', '\u{e000}'-'\u{10ffff}'] => 6, '/' => 8), // <skip>
-            8 => branch!([DOT] => 6), // <pop>
+            5 => branch!('\u{0}'-')', '+'-LOW_MAX, HIGH_MIN-MAX => 6, '*' => 7),
+            6 => branch!(DOT => 6), // <skip>
+            7 => branch!('\u{0}'-'.', '0'-LOW_MAX, HIGH_MIN-MAX => 6, '/' => 8), // <skip>
+            8 => branch!(DOT => 6), // <pop>
         ],
         btreemap![
             1 => term!(skip), 3 => term!(=0), 4 => term!(push 1) + term!(pushst 5),
@@ -1753,7 +1844,7 @@ fn dfa_optimize_graphs() {
 
         (17, btreemap![], btreemap![],
          btreemap![
-            0 => branch!('a'-'c' => 2, ['d', 'f'] => 3, 'e' => 4, 'g'-'i' => 1),
+            0 => branch!('a'-'c' => 2, 'd', 'f' => 3, 'e' => 4, 'g'-'i' => 1),
             1 => branch!('d'-'i' => 1, 'z' => 5),
             2 => branch!('a'-'f' => 2), // <end:0>
             3 => branch!('a'-'c' => 2, 'd'-'f' => 3, 'g'-'i' => 1, 'z' => 5), // <end:0>

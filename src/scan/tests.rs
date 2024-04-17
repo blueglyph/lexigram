@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::BTreeMap;
 use std::io::Cursor;
 use crate::{btreemap, escape_string, node, term};
 use crate::dfa::*;
