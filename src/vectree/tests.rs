@@ -77,6 +77,7 @@ mod general {
         let mut result = String::new();
         let mut result_index = vec![];
         let mut result_num_children = vec![];
+        let mut result_size_subtree = vec![];
         for inode in tree.iter_depth() {
             let main_lineage = inode.to_lowercase().starts_with('c')
                 || inode.iter_children().any(|n| n.to_lowercase().starts_with('c'));
@@ -91,10 +92,16 @@ mod general {
             result.push(',');
             result_index.push(inode.index);
             result_num_children.push(inode.num_children());
+            let mut n = 0;
+            for _ichild in inode.iter_depth_simple() {
+                n += 1;
+            }
+            result_size_subtree.push(n);
         }
         assert_eq!(result, "a1,a2,a,b,C1,C2,C,ROOT,");
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
         assert_eq!(result_num_children, [0, 0, 2, 0, 0, 0, 2, 3]);
+        assert_eq!(result_size_subtree, [1, 1, 3, 1, 1, 1, 3, 8]);
     }
 
     // cargo +nightly miri test --lib tests::vectree::general::iter_depth_children -- --exact
@@ -139,6 +146,7 @@ mod general {
         let mut tree = build_tree();
         let mut result_index = vec![];
         let mut result_num_children = vec![];
+        let mut result_size_subtree = vec![];
         for mut inode in tree.iter_depth_mut() {
             let main_lineage = inode.to_lowercase().starts_with('c')
                 || inode.iter_children().any(|n| n.to_lowercase().starts_with('c'));
@@ -150,11 +158,17 @@ mod general {
             }
             result_index.push(inode.index);
             result_num_children.push(inode.num_children());
+            let mut n = 0;
+            for _ichild in inode.iter_depth_simple() {
+                n += 1;
+            }
+            result_size_subtree.push(n);
         }
         let result = tree_to_string(&tree);
         assert_eq!(result, "ROOT(a(a1,a2),b,C(C1,C2))");
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
         assert_eq!(result_num_children, [0, 0, 2, 0, 0, 0, 2, 3]);
+        assert_eq!(result_size_subtree, [1, 1, 3, 1, 1, 1, 3, 8]);
     }
 
     // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children -- --exact

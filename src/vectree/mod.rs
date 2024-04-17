@@ -321,6 +321,18 @@ impl<'a, T> NodeProxy<'a, T> {
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&c| unsafe { &*(*self.tree_node_ptr.add(c)).data.get() })
     }
+
+    pub fn iter_depth_simple(&'a self) -> VecTreeIter<IterData<'a, T>> {
+        VecTreeIter {
+            stack: Vec::new(),
+            next: Some(VisitNode::Down(self.index)),
+            data: IterData {
+                tree_nodes_ptr: self.tree_node_ptr,
+                tree_size: self.tree_size,
+                _marker: PhantomData
+            },
+        }
+    }
 }
 
 impl<T> Deref for NodeProxy<'_, T> {
@@ -477,6 +489,18 @@ impl<'a, T> NodeProxyMut<'a, T> {
     pub fn iter_children_simple(&self) -> impl DoubleEndedIterator<Item=&T> {
         let children = unsafe { &(*self.tree_node_ptr.add(self.index)).children };
         children.iter().map(|&c| unsafe { &*(*self.tree_node_ptr.add(c)).data.get() })
+    }
+
+    pub fn iter_depth_simple(&'a self) -> VecTreeIter<IterData<'a, T>> {
+        VecTreeIter {
+            stack: Vec::new(),
+            next: Some(VisitNode::Down(self.index)),
+            data: IterData {
+                tree_nodes_ptr: self.tree_node_ptr,
+                tree_size: self.tree_size,
+                _marker: PhantomData
+            },
+        }
     }
 }
 
