@@ -295,17 +295,18 @@ impl Debug for Segments {
     }
 }
 
-impl Display for Segments { // TODO: create wrapper to set the desired style (no bracket / bracket, no neg / neg)
+impl Display for Segments { // TODO: create wrapper to set the desired style (no bracket / bracket, no neg / neg, normalized / not)
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if let Some(c) = self.to_char() {
             write!(f, "'{}'", escape_char(c))
         } else {
-            if self.is_dot() {
+            let normalized = self.normalized();
+            if normalized.is_dot() {
                 write!(f, "DOT")
             } else {
-                if self.len() > 1 {
-                    let alt = self.not();
-                    if alt.len() < self.len() {
+                if normalized.len() > 1 {
+                    let alt = normalized.not();
+                    if alt.len() < normalized.len() {
                         return write!(f, "~ {}", alt.0.iter()
                             .map(|seg| seg.to_string())
                             .collect::<Vec<_>>()
@@ -313,7 +314,7 @@ impl Display for Segments { // TODO: create wrapper to set the desired style (no
                         );
                     }
                 }
-                write!(f, "{}", self.0.iter()
+                write!(f, "{}", normalized.0.iter()
                     .map(|seg| seg.to_string())
                     .collect::<Vec<_>>()
                     .join(", ")
