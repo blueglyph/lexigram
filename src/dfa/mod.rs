@@ -63,7 +63,8 @@ pub enum ReType { // todo: remove Boxes
     Concat,
     Star,
     Plus,
-    Or
+    Or,
+    Lazy,
 }
 
 #[test]
@@ -84,7 +85,7 @@ impl ReType {
     pub fn is_nullable(&self) -> Option<bool> {
         match self {
             ReType::Empty | ReType::Star => Some(true),
-            ReType::End(_) | ReType::Char(_) | ReType::CharRange(_) | ReType::String(_) | ReType::Plus => Some(false),
+            ReType::End(_) | ReType::Char(_) | ReType::CharRange(_) | ReType::String(_) | ReType::Plus | ReType::Lazy => Some(false),
             _ => None
         }
     }
@@ -113,7 +114,8 @@ impl Display for ReType {
             ReType::Concat => write!(f, "&"),
             ReType::Star => write!(f, "*"),
             ReType::Plus => write!(f, "+"),
-            ReType::Or => write!(f, "|")
+            ReType::Or => write!(f, "|"),
+            ReType::Lazy => write!(f, "??"),
         }
     }
 }
@@ -159,6 +161,8 @@ pub struct DfaBuilder {
     re: VecTree<ReNode>,
     /// `followpos` table, containing the `Id` -> `Id` graph of `re`
     followpos: HashMap<Id, HashSet<Id>>,
+    /// `lazypos[id_child]` includes `id_lazy` when `id_child` is a child of a lazy operator `id_lazy`
+    lazypos: HashMap<Id, HashSet<usize>>,
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
     warnings: Vec<String>,
@@ -170,6 +174,7 @@ impl DfaBuilder {
         DfaBuilder {
             re: VecTree::new(),
             followpos: HashMap::new(),
+            lazypos: HashMap::new(),
             ids: HashMap::new(),
             warnings: Vec::new(),
             errors: Vec::new()
@@ -180,6 +185,7 @@ impl DfaBuilder {
         let mut builder = DfaBuilder {
             re,
             followpos: HashMap::new(),
+            lazypos: HashMap::new(),
             ids: HashMap::new(),
             warnings: Vec::new(),
             errors: Vec::new()
@@ -322,6 +328,21 @@ impl DfaBuilder {
                         }
                         inode.lastpos.extend(lastpos);
                     }
+                    ReType::Lazy => {
+                        assert_eq!(inode.num_children(), 1);
+                        let child = inode.iter_children_simple().next().unwrap();
+                        let firstpos = child.firstpos.clone();
+                        let lastpos = child.lastpos.clone();
+                        inode.firstpos = firstpos;
+                        inode.lastpos = lastpos;
+                        for ichild in inode.iter_depth_simple().filter(|node| node.is_leaf()) {
+                            let ichild_id = ichild.id.unwrap();
+                            if !self.lazypos.contains_key(&ichild_id) {
+                                self.lazypos.insert(ichild_id, HashSet::new());
+                            }
+                            self.lazypos.get_mut(&ichild_id).unwrap().insert(inode.index); // FIXME: fake id
+                        }
+                    }
                     _ => panic!("{:?}: no way to compute firstpos/...", &*inode)
                 }
             }
@@ -367,7 +388,11 @@ impl DfaBuilder {
         // prepares the segments and their source ids
         while let Some(s) = new_states.pop_first() {
             let new_state_id = states.get(&s).unwrap().clone();
-            if VERBOSE { println!("- state {} = {{{}}}", new_state_id, states_to_string(&s)); }
+            if VERBOSE {
+                let lazy_st = s.iter().filter_map(|st| if self.lazypos.contains_key(st) { Some(st.to_string()) } else { None }).collect::<Vec<_>>().join(", ");
+                let complement = if lazy_st.is_empty() { "".to_string() } else { format!(", lazy IDs: {lazy_st}" )};
+                println!("- state {} = {{{}}}{}", new_state_id, states_to_string(&s), complement);
+            }
             let mut trans = BTreeMap::<Seg, BTreeSet<Id>>::new();
             let mut end_states = BTreeMap::<Id, &Terminal>::new();
             let mut first_end_state = None;

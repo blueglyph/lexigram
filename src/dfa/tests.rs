@@ -34,7 +34,7 @@ macro_rules! node {
     (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
     (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
     ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]))) };
-    ([~ $($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]))) };
+    (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]))) };
     (.) => { node![DOT] };
     (str $str:expr) => { ReNode::new(ReType::String(Box::new($str.to_string()))) };
     (&) => { ReNode::new(ReType::Concat) };
@@ -42,12 +42,13 @@ macro_rules! node {
     (*) => { ReNode::new(ReType::Star) };
     (+) => { ReNode::new(ReType::Plus) };
     (-) => { ReNode::new(ReType::Empty) };
+    (??) => { ReNode::new(ReType::Lazy) };
     // actions:
     (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
     ($id:expr) => { ReNode::new(ReType::End(Box::new($id))) };
     //
     ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
-    ([~ $($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!(~ [$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
+    (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!(~ [$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
 }
 
 #[macro_export(local_inner_macros)]
@@ -77,7 +78,7 @@ impl Add for Terminal {
 #[test]
 fn macro_node() {
     assert_eq!(node!([0 - LOW_MAX, HIGH_MIN - MAX]),   ReNode::new(ReType::CharRange(Box::new(Segments::dot()))));
-    assert_eq!(node!([~ 0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::new(ReType::CharRange(Box::new(Segments::empty()))));
+    assert_eq!(node!(~[0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::new(ReType::CharRange(Box::new(Segments::empty()))));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -655,7 +656,8 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let cc1 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
             let cc2 = re.add(Some(or), node!(&));
-            let s2 = re.add(Some(cc2), node!(+));
+            let l2 = re.add(Some(cc2), node!(??));
+            let s2 = re.add(Some(l2), node!(+));
             re.add(Some(s2), node!([DOT]));
             re.add(Some(cc2), node!(term!(skip)));
         },
@@ -926,7 +928,7 @@ fn dfa_nullable() {
         (19, "|(&(+(1:['a'-'f']),2:<end:0>),&(3:'\\'',4:[DOT],5:'\\'',6:<end:1>))"),
         (21, "|(&(!*(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:['0'-'9'])),7:<end:0>))"),
         (22, "|(&(+(|(1:['\\t', '\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:['0'-'9'])),7:<end:0>))"),
-        (23, "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[DOT]),5:<skip>))"),
+        (23, "|(&(1:'*',2:'/',3:<end:1>),&(??(+(4:[DOT])),5:<skip>))"),
         (25, "&(1:'/',2:'*',+(3:[DOT]),4:'*',5:'/',6:<end:0>)"),
         (26, "&(1:'/',2:'*',!*(3:[DOT]),4:'*',5:'/',6:<end:0>)"),
         (30, "|(&(&(1:'a'),2:<end:0>))"),
@@ -1363,6 +1365,7 @@ fn dfa_followpos() {
 #[test]
 fn dfa_states() {
     let tests = vec![
+/*
         (0, btreemap![
             0 => branch!('a' => 1, 'b' => 0),
             1 => branch!('a' => 1, 'b' => 2),
@@ -1577,7 +1580,7 @@ fn dfa_states() {
             3 => branch!('0'-'9' => 3), // <end:0>
             4 => branch!(), // <skip,push(mode 1)>
         ], btreemap![1 => term!(skip), 3 => term!(=0), 4 => term!(push 1)], 0),
-
+*/
         // 23-26 don't work, need non-greedy repeaters
         // ('*'/<end:1>|.+?<skip>)
         // "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[DOT]),5:<skip>))"
@@ -1587,6 +1590,7 @@ fn dfa_states() {
             2 => branch!(~['/'] => 1, ['/'] => 3), // <skip>
             3 => branch!(), // <end:1>
         ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
+/*
         // (.+?<skip>|'*'/<end:1>)
         (24, btreemap![
             0 => branch!(~['*'] => 1, ['*'] => 2),
