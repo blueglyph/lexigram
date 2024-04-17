@@ -240,6 +240,7 @@ impl DfaBuilder {
         let mut id = 0;
         for mut inode in self.re.iter_depth_mut() {
             if inode.is_leaf() {
+                assert_eq!(inode.num_children(), 0);
                 id += 1;
                 inode.id = Some(id);
                 if !inode.is_empty() {
@@ -253,6 +254,7 @@ impl DfaBuilder {
             } else {
                 match inode.op {
                     ReType::Concat => {
+                        assert!(inode.num_children() > 0);
                         // firstpos = union of all firstpos until the first non-nullable child (included)
                         let mut firstpos = HashSet::<Id>::new();
                         for child in inode.iter_children_simple().take_until(|&n| !n.nullable.unwrap()) {
@@ -289,6 +291,7 @@ impl DfaBuilder {
                         }
                     }
                     ReType::Star | ReType::Plus => {
+                        assert_eq!(inode.num_children(), 1);
                         // firstpos, lastpos identical to child's
                         let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).collect::<Vec<_>>();
                         inode.firstpos.extend(firstpos);
@@ -306,6 +309,7 @@ impl DfaBuilder {
                         }
                     }
                     ReType::Or => {
+                        assert!(inode.num_children() > 0);
                         // firstpos, lastpost = union of children's
                         let mut firstpos = HashSet::<Id>::new();
                         for child in inode.iter_children_simple() {

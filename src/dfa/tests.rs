@@ -726,6 +726,15 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc4), node!([DOT]));
             re.add(Some(cc4), node!(=3));
         },
+        30 => {
+            // & and | with only one child: "|(&(&(1:'a'),2:<end:0>))"
+            // a<end:0>
+            let or = re.add(None, node!(|));
+            let cc1 = re.add(Some(or), node!(&));
+            let cc2 = re.add(Some(cc1), node!(&));
+            re.add(Some(cc2), node!(chr 'a'));
+            re.add(Some(cc1), node!(=0));
+        }
         _ => { }
     }
     re
@@ -920,6 +929,7 @@ fn dfa_nullable() {
         (23, "|(&(1:'*',2:'/',3:<end:1>),&(+(4:[DOT]),5:<skip>))"),
         (25, "&(1:'/',2:'*',+(3:[DOT]),4:'*',5:'/',6:<end:0>)"),
         (26, "&(1:'/',2:'*',!*(3:[DOT]),4:'*',5:'/',6:<end:0>)"),
+        (30, "|(&(&(1:'a'),2:<end:0>))"),
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
@@ -1628,7 +1638,13 @@ fn dfa_states() {
             3 => branch!(), // <end:1>
             4 => branch!(), // <end:2>
         ], btreemap![1 => term!(=3), 2 => term!(=0), 3 => term!(=1), 4 => term!(=2)], 0),
-
+*/
+        // tests that & and | work correclty with only one child
+        // "|(&(&(1:'a'),2:<end:0>))"
+        (30, btreemap![
+            0 => branch!('a' => 1),
+            1 => branch!(), // <end:0>
+        ], btreemap![1 => term!(=0)], 0),
     ];
     const VERBOSE: bool = true;
     for (test_id, expected, expected_ends, expected_warnings) in tests {
