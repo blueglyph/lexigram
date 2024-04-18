@@ -605,11 +605,12 @@ mod tests {
             (segments![1-4, 5-10], segments![], segments![1-4, 5-10]),
             (segments![], segments![1-4, 5-10], segments![1-4, 5-10]),
             (segments![1-4, 5-10], segments![3-5], segments![1-2, 3-4, 5-5, 6-10]),
+            (segments![10-15, 20-25], segments![1-100], segments![1-9, 10-15, 16-19, 20-25, 26-100]),
         ];
         for (idx, (mut ab, cd, exp)) in tests.into_iter().enumerate() {
             ab.add_partition(&cd);
             let expected = exp;
-            assert_eq!(ab, expected, "test {idx} failed");
+            assert_eq!(ab, expected, "test {idx} failed: {ab:x} instead of {expected:x}");
         }
     }
 
