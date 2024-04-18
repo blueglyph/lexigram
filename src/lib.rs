@@ -43,3 +43,19 @@ pub(crate) fn escape_char(c: char) -> String {
 pub(crate) fn escape_string(s: &str) -> String {
     s.chars().map(|c| escape_char(c)).collect::<String>()
 }
+
+pub(crate) trait CollectJoin {
+    fn join(&mut self) -> String;
+}
+
+impl<T: std::fmt::Display, I: Iterator<Item=T>> CollectJoin for I {
+    fn join(&mut self) -> String {
+        self.map(|x| x.to_string()).collect::<Vec<_>>().join(", ")
+    }
+}
+
+#[test]
+fn test_col_to_string() {
+    let x = std::collections::BTreeSet::<u32>::from([10, 20, 25]);
+    assert_eq!(x.iter().join(), "10, 20, 25");
+}
