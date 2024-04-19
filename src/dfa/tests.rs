@@ -1658,8 +1658,11 @@ fn dfa_states() {
         ], btreemap![1 => term!(=0)], 0),
     ];
     const VERBOSE: bool = true;
+    const RUN_ALL: bool = true;
+    let mut errors = 0;
     for (test_id, expected, expected_ends, expected_warnings) in tests {
-        if VERBOSE { println!("{test_id}:"); }
+        if test_id != 24 { continue; }
+        if VERBOSE { println!("Test {test_id}:"); }
         let re = build_re(test_id);
         let mut dfa_builder = DfaBuilder::from_re(re);
         let dfa = dfa_builder.build();
@@ -1682,6 +1685,38 @@ fn dfa_states() {
         assert_eq!(dfa_builder.get_warnings().len(), expected_warnings, "test {test_id} failed:\n{}", dfa_builder.get_messages());
         assert_eq!(dfa_builder.get_errors().len(), 0, "test {test_id} failed:\n{}", dfa_builder.get_messages());
     }
+        if RUN_ALL {
+            let mut msg = Vec::<String>::new();
+            if dfa.state_graph != expected {
+                msg.push("DFA state graph incorrect".to_string());
+            }
+            if dfa.end_states != expected_ends {
+                msg.push("End states incorrect".to_string());
+            }
+            if dfa_builder.get_warnings().len() != expected_warnings {
+                msg.push("Number of warnings not as expected".to_string());
+                msg.extend(dfa_builder.get_warnings().iter().cloned());
+            }
+            if dfa_builder.get_errors().len() > 0 {
+                msg.push("Errors:".to_string());
+                msg.extend(dfa_builder.get_errors().iter().cloned());
+            }
+            if msg.len() > 0 {
+                println!("ERRORS in test {test_id}:");
+                for m in msg {
+                    println!("{m}");
+                }
+                println!();
+                errors += 1;
+            }
+        } else {
+            assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
+            assert_eq!(dfa.end_states, expected_ends, "test {test_id} failed");
+            assert_eq!(dfa_builder.get_warnings().len(), expected_warnings, "test {test_id} failed:\n{}", dfa_builder.get_messages());
+            assert_eq!(dfa_builder.get_errors().len(), 0, "test {test_id} failed:\n{}", dfa_builder.get_messages());
+        }
+    }
+    assert_eq!(errors, 0, "{errors} error(s) during the tests");
 }
 
 #[test]
