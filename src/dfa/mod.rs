@@ -2,7 +2,7 @@ pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use crate::{btreeset, escape_char, escape_string, CollectJoin};
+use crate::{btreeset, escape_char, escape_string};
 use crate::segments::{Segments, Seg};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
@@ -361,8 +361,6 @@ impl DfaBuilder {
     fn calc_states(&mut self) -> Dfa {
         const VERBOSE: bool = true;
         const RESOLVE_END_STATES: bool = true;
-        const RM_LAZY_END_STATES: bool = true; // remove end states from lazy items when they mask non-lazy end state
-        const RM_LAZY_TRANS: bool = true;      // remove transitions from lazy items when they interfere with non-lazy end states
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
         if VERBOSE { println!("new DFA"); }
@@ -372,9 +370,6 @@ impl DfaBuilder {
         new_states.insert(key.clone());
         let mut states = BTreeMap::<BTreeSet<Id>, StateId>::new();
         states.insert(key, current_id);
-        let lazy_ids_default = BTreeSet::from_iter(self.lazypos.iter().map(|(id, _)| *id));
-        let mut lazy_st = BTreeMap::<StateId, BTreeSet<Id>>::new(); // state -> lazy ids
-        // lazy_st.insert(current_id, BTreeSet::from_iter(self.lazypos.iter().map(|(id, _)| *id)));
         dfa.initial_state = Some(current_id);
 
         // gets a partition of the symbol segments and changes Char to CharRange
@@ -388,16 +383,14 @@ impl DfaBuilder {
                 symbols_part.add_partition(&segments);
             }
         }
-        if VERBOSE { println!("symbols = {symbols_part:X}"); }
+        if VERBOSE { println!("symbols = {symbols_part}"); }
 
         // prepares the segments and their source ids
         while let Some(s) = new_states.pop_first() {
             let new_state_id = states.get(&s).unwrap().clone();
-            let mut lazy_ids = lazy_st.get(&new_state_id).cloned().unwrap_or(BTreeSet::new());
-            lazy_ids.extend(&lazy_ids_default);
             if VERBOSE {
-                let lazy_str = lazy_ids.iter().map(|st| st.to_string()).collect::<Vec<_>>().join(", ");
-                let complement = if lazy_str.is_empty() { "".to_string() } else { format!(", lazy IDs: {lazy_str}")};
+                let lazy_st = s.iter().filter_map(|st| if self.lazypos.contains_key(st) { Some(st.to_string()) } else { None }).collect::<Vec<_>>().join(", ");
+                let complement = if lazy_st.is_empty() { "".to_string() } else { format!(", lazy IDs: {lazy_st}" )};
                 println!("- state {} = {{{}}}{}", new_state_id, states_to_string(&s), complement);
             }
             let mut trans = BTreeMap::<Seg, BTreeSet<Id>>::new();
@@ -415,9 +408,9 @@ impl DfaBuilder {
                             first_end_state = Some(id);
                             if new_state_id == 0 {
                                 if t.is_only_skip() {
-                                    self.warnings.push(format!("<skip> on initial state is a risk of infinite loop on bad input ({t})"));
+                                    self.warnings.push(format!("<skip> on initial state is a risk of infinite loop on bad input"));
                                 } else if t.is_token() {
-                                    self.warnings.push(format!("<token> on initial state returns a token on bad input ({t})"));
+                                    self.warnings.push(format!("<token> on initial state returns a token on bad input"));
                                 }
                             }
                         }
@@ -450,37 +443,13 @@ impl DfaBuilder {
                                 trans.insert(segment, btreeset![id]);
                             }
                         }
-                    } else {
-                        panic!("Not a range symbol, nor an end: {symbol:?}");
                     }
                 }
             }
-            // let mut lazy_removed = BTreeSet::<Id>::new();
-            if RM_LAZY_END_STATES {
-                if end_states.len() > 1 {
-                    if VERBOSE {
-                        print!("  # end states: {{{}}}, removing lazy IDs {{{}}}", end_states.iter().map(|(id, _)| id).join(),
-                               lazy_ids.iter().filter(|id| end_states.contains_key(id)).join());
-                    }
-                    for id in &lazy_ids {
-                        if end_states.remove(id).is_some() {
-                            // lazy_removed.extend(&lazy_ids);
-                        }
-                    }
-                    if VERBOSE { println!(" -> {{{}}}", end_states.iter().map(|(id, _)| id).join()); }
-                }
-            }
-            let rm_lazy_trans = RM_LAZY_TRANS && end_states.iter().any(|(id, _)| !lazy_ids.contains(id)) && end_states.len() > 0;
-            println!("  # rm_lazy_trans = {rm_lazy_trans}, end_states = {{{}}}", end_states.iter().map(|(id, _)| id).join());
             if RESOLVE_END_STATES {
                 if end_states.len() > 1 {
                     if VERBOSE {
-                        print!("  # {id_transitions:?}");
-                        if end_states.iter().filter(|(id, _)| !lazy_ids.contains(*id)).count() == 0 {
-                            println!(" => can be solved by removing lazy IDs");
-                        } else {
-                            println!();
-                        }
+                        println!("  # {id_transitions:?}");
                         println!("  # end state ambiguity, several terminals: {}", end_states.iter()
                             .map(|(id, t)| format!("{id} -> {t} (has{} trans)", if id_transitions.contains(id) { "" } else { " no" }))
                             .collect::<Vec<_>>().join(", "));
@@ -520,45 +489,40 @@ impl DfaBuilder {
 
             // finds the destination ids (creating new states if necessary), and populates the symbols for each destination
             let mut map = BTreeMap::<StateId, Segments>::new();
-            for (segment, mut ids) in trans {
-                // let ids = ids_unfiltered.iter().filter(|id| !lazy_ids.contains(id)).collect::<BTreeSet<_>>();
-                if VERBOSE { print!("  - {segment}"); }
-                if rm_lazy_trans {
-                    if VERBOSE {
-                        let list = lazy_ids.iter().filter(|id| ids.contains(id)).join();
-                        if !list.is_empty() { print!(" (removing {list})"); }
+            for (segment, ids) in trans {
+                if VERBOSE { print!("  - {} in {}: ", segment, states_to_string(&ids)); }
+
+                /*
+                // merging end-capturing state?
+                if EXPERIMENTAL_END_STATES && ids.len() > 1 {
+                    let mut end_states = BTreeMap::<Id, BTreeSet<(Id, Terminal)>>::new();
+                    for id in &ids {
+                        for next in &self.followpos[id] {
+                            let op = &self.re.get(self.ids[next]).op;
+                            if let ReType::End(terminal) = op {
+                                if !end_states.contains_key(id) {
+                                    end_states.insert(*id, BTreeSet::new());
+                                }
+                                end_states.get_mut(id).unwrap().insert((*next, terminal.as_ref().clone()));
+                            }
+                        }
                     }
-                    for id in &lazy_ids {
-                        ids.remove(id);
+                    if end_states.len() > 1 {
+                        if VERBOSE { print!("\n    ## merging several end states: {}\n    ",
+                            end_states.iter().map(|(id, terms)| format!("{id}: {}", terms.iter()
+                                .map(|(n, t)| format!("{n} -> {t}")).collect::<Vec<_>>().join(",")))
+                            .collect::<Vec<_>>().join("; "));
+                        }
                     }
                 }
-                if ids.is_empty() {
-                    if VERBOSE { println!(" -> transition removed"); }
-                    continue;
-                }
-                if VERBOSE { print!("in {}: ", states_to_string(&ids)); }
+                */
+
                 let mut state = BTreeSet::new();
-                let mut new_lazy_ids = lazy_ids.clone();
-                let mut not_lazy_ids = BTreeSet::new();
                 for id in ids {
-                    let followers = &self.followpos[&id];
-                    state.extend(followers);
-                    if lazy_ids.contains(&id) {
-                        new_lazy_ids.extend(followers);
-                    } else {
-                        not_lazy_ids.extend(followers);
-                    }
+                    state.extend(&self.followpos[&id]);
                 }
-                if VERBOSE {
-                    print!("follow = {{{}}}", states_to_string(&state));
-                    print!(", lazy + {{{}}} - {{{}}}", new_lazy_ids.iter().join(), not_lazy_ids.iter().join());
-                }
-                let new_lazy_ids = new_lazy_ids.difference(&not_lazy_ids).cloned().collect::<BTreeSet<_>>();
-                if !new_lazy_ids.is_empty() {
-                    print!(" -> {{{}}}", new_lazy_ids.iter().join());
-                }
+                if VERBOSE { print!("follow = {{{}}}", states_to_string(&state)); }
                 let state_id = if let Some(state_id) = states.get(&state) {
-                    lazy_st.get_mut(&state_id).unwrap().extend(&new_lazy_ids);
                     if VERBOSE { println!(" => state {state_id}"); }
                     *state_id
                 } else {
@@ -566,7 +530,6 @@ impl DfaBuilder {
                     current_id += 1;
                     if VERBOSE { println!(" => new state {} = {{{}}}", current_id, states_to_string(&state)); }
                     states.insert(state, current_id);
-                    lazy_st.insert(current_id, new_lazy_ids);
                     current_id
                 };
                 if let Some(segments) = map.get_mut(&state_id) {
