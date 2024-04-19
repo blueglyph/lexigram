@@ -731,6 +731,18 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc4), node!(=3));
         },
         30 => {
+            // variation on 24: (.+?'/'<skip>|'*/'<pop>)
+            let or = re.add(None, node!(|));
+            let cc2 = re.add(Some(or), node!(&));
+            let l2 = re.add(Some(cc2), node!(??));
+            let s2 = re.add(Some(l2), node!(+));
+            re.add(Some(s2), node!([DOT]));
+            re.add(Some(cc2), node!(chr '/'));
+            re.add(Some(cc2), node!(term!(skip)));
+            let cc1 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
+        },
+        31 => {
             // & and | with only one child: "|(&(&(1:'a'),2:<end:0>))"
             // a<end:0>
             let or = re.add(None, node!(|));
@@ -738,7 +750,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let cc2 = re.add(Some(cc1), node!(&));
             re.add(Some(cc2), node!(chr 'a'));
             re.add(Some(cc1), node!(=0));
-        }
+        },
         _ => { }
     }
     re
@@ -1368,7 +1380,6 @@ fn dfa_followpos() {
 #[test]
 fn dfa_states() {
     let tests = vec![
-/*
         (0, btreemap![
             0 => branch!('a' => 1, 'b' => 0),
             1 => branch!('a' => 1, 'b' => 2),
@@ -1604,7 +1615,6 @@ fn dfa_states() {
             2 => branch!(~['/'] => 1, ['/'] => 3), // <skip>
             3 => branch!(), // <end:1>
         ], btreemap![1 => term!(skip), 2 => term!(skip), 3 => term!(=1)], 0),
-*/
         // /'*'.+?'*'/<end:0>
         // "&(1:['/'],2:['*'],??(+(3:[DOT])),4:['*'],5:['/'],6:<end:0>)"
         (25, btreemap![
@@ -1649,10 +1659,18 @@ fn dfa_states() {
             3 => branch!(), // <end:1>
             4 => branch!(), // <end:2>
         ], btreemap![1 => term!(=3), 2 => term!(=0), 3 => term!(=1), 4 => term!(=2)], 0),
-
+        // (.+?'/'<skip>|'*/'<end:1>)
+        // "|(&(??(+(1:[DOT])),2:['/'],3:<skip>),&(4:['*'],5:['/'],6:<end:1>))"
+        (30, btreemap![
+            0 => branch!(~['*'] => 1, ['*'] => 2),
+            1 => branch!(~['/'] => 1, ['/'] => 3),
+            2 => branch!(~['/'] => 1, ['/'] => 4),
+            3 => branch!(~['/'] => 1, ['/'] => 3), // <skip>
+            4 => branch!(), // <end:1>
+        ], btreemap![3 => term!(skip), 4 => term!(=1)], 0),
         // tests that & and | work correclty with only one child
         // "|(&(&(1:'a'),2:<end:0>))"
-        (30, btreemap![
+        (31, btreemap![
             0 => branch!('a' => 1),
             1 => branch!(), // <end:0>
         ], btreemap![1 => term!(=0)], 0),
@@ -1680,11 +1698,6 @@ fn dfa_states() {
             println!("followpos:\n{}", fpos.join("\n"));
             println!();
         }
-        assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
-        assert_eq!(dfa.end_states, expected_ends, "test {test_id} failed");
-        assert_eq!(dfa_builder.get_warnings().len(), expected_warnings, "test {test_id} failed:\n{}", dfa_builder.get_messages());
-        assert_eq!(dfa_builder.get_errors().len(), 0, "test {test_id} failed:\n{}", dfa_builder.get_messages());
-    }
         if RUN_ALL {
             let mut msg = Vec::<String>::new();
             if dfa.state_graph != expected {
