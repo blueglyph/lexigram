@@ -372,10 +372,10 @@ impl DfaBuilder {
         let mut states = BTreeMap::<BTreeSet<Id>, StateId>::new();
         states.insert(key, current_id);
         dfa.initial_state = Some(current_id);
-        let lazy_followpos = self.lazypos.iter().filter_map(|(id, _)| self.followpos.get(id))
-            .flatten()
-            .cloned()
-            .collect::<BTreeSet<Id>>();
+
+        // gathers lazy ids and their immediate followpos to remove phantom branches:
+        let mut lazy_followpos = self.lazypos.iter().map(|(id, _)| *id).collect::<BTreeSet<Id>>();
+        lazy_followpos.extend(self.lazypos.iter().filter_map(|(id, _)| self.followpos.get(id)).flatten());
         if VERBOSE { println!("lazy_followpos = {{{}}}", lazy_followpos.iter().join()); }
 
         // gets a partition of the symbol segments and changes Char to CharRange
@@ -398,11 +398,11 @@ impl DfaBuilder {
             if VERBOSE {
                 println!("- state {} = {{{}}}{}", new_state_id, states_to_string(&s), if is_lazy_state { ", lazy state" } else { "" });
             }
-            let mut trans = BTreeMap::<Seg, BTreeSet<Id>>::new();
-            let mut end_states = BTreeMap::<Id, &Terminal>::new();
-            let mut first_end_state = None;
-            let mut id_transitions = BTreeSet::<Id>::new();
-            let mut id_terminal = None;
+            let mut trans = BTreeMap::<Seg, BTreeSet<Id>>::new();   // transitions partitioned by `symbol_parts`
+            let mut terminals = BTreeMap::<Id, &Terminal>::new();   // all terminals (used if terminal conflicts)
+            let mut first_terminal_id: Option<Id> = None;   // first met terminal id, if any (used if terminal conflicts)
+            let mut id_transitions = BTreeSet::<Id>::new(); // ids that are destination from current state (used if terminal conflicts)
+            let mut id_terminal: Option<Id> = None;         // selected terminal id, if any (used to remove phantom branches)
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if symbol.is_end() {
                     if !dfa.state_graph.contains_key(&new_state_id) {
@@ -411,8 +411,8 @@ impl DfaBuilder {
                     }
                     if let ReType::End(t) = symbol {
                         id_terminal = Some(id);
-                        if first_end_state.is_none() {
-                            first_end_state = Some(id);
+                        if first_terminal_id.is_none() {
+                            first_terminal_id = Some(id);
                             if new_state_id == 0 {
                                 if t.is_only_skip() {
                                     self.warnings.push(format!("<skip> on initial state is a risk of infinite loop on bad input ({t})"));
@@ -422,10 +422,11 @@ impl DfaBuilder {
                             }
                         }
                         if RESOLVE_END_STATES {
-                            if end_states.contains_key(&id) {
-                                panic!("overriding {id} -> {t} in end_states {}", end_states.iter().map(|(id, t)| format!("{id} {t}")).collect::<Vec<_>>().join(", "));
+                            if terminals.contains_key(&id) {
+                                panic!("overriding {id} -> {t} in end_states {}",
+                                       terminals.iter().map(|(id, t)| format!("{id} {t}")).join());
                             }
-                            end_states.insert(id, t);
+                            terminals.insert(id, t);
                         } else {
                             if !dfa.end_states.contains_key(&new_state_id) {
                                 dfa.end_states.insert(new_state_id, *t.clone());
@@ -454,20 +455,23 @@ impl DfaBuilder {
                 }
             }
             if RESOLVE_END_STATES {
-                if end_states.len() > 1 {
+                if terminals.len() > 1 {
                     if VERBOSE {
                         println!("  # {id_transitions:?}");
-                        println!("  # end state conflict, several terminals: {}", end_states.iter()
+                        println!("  # terminal conflict: {}", terminals.iter()
                             .map(|(id, t)| format!("{id} -> {t} (has{} trans)", if id_transitions.contains(id) { "" } else { " no" }))
-                            .collect::<Vec<_>>().join(", "));
+                            .join());
                     }
-                    let mut potentials = end_states.keys().cloned().filter(|id| id_transitions.get(id).is_none()).collect::<BTreeSet<_>>();
+                    // The potential terminals are obtained by removing all terminals associated with an id that is already the destination
+                    // of at least one transition from this state. The idea is to favour terminals that don't have another chance to be
+                    // used, in case of terminal conflict.
+                    let mut potentials = terminals.keys().cloned().filter(|id| !id_transitions.contains(id)).collect::<BTreeSet<_>>();
                     let chosen = match potentials.len() {
                         0 => {
                             if VERBOSE { println!("    all ids have transitions => AMBIGUOUS, selecting the first defined terminal"); }
                             self.warnings.push(format!("conflicting terminals for state {new_state_id}, none having other transitions: {}",
-                                                       end_states.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).collect::<Vec<_>>().join(", ")));
-                            first_end_state.unwrap()
+                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join()));
+                            first_terminal_id.unwrap()
                         }
                         1 => {
                             if VERBOSE { println!("    only one id has no transitions => selecting it"); }
@@ -475,10 +479,10 @@ impl DfaBuilder {
                         }
                         n => {
                             self.warnings.push(format!("conflicting terminals for state {new_state_id}, {n} having no other transition: {}",
-                                                       end_states.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).collect::<Vec<_>>().join(", ")));
-                            if potentials.contains(&first_end_state.unwrap()) {
+                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join()));
+                            if potentials.contains(&first_terminal_id.unwrap()) {
                                 if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first defined terminal"); }
-                                first_end_state.unwrap()
+                                first_terminal_id.unwrap()
                             } else {
                                 if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first one of the list"); }
                                 potentials.pop_first().unwrap()
@@ -486,10 +490,10 @@ impl DfaBuilder {
                         }
                     };
                     id_terminal = Some(chosen);
-                    let t = end_states.remove(&chosen).unwrap().clone();
+                    let t = terminals.remove(&chosen).unwrap().clone();
                     if VERBOSE { println!("    end state: id {chosen} {t}"); }
                     dfa.end_states.insert(new_state_id, t);
-                } else if let Some((id, terminal)) = end_states.pop_first() {
+                } else if let Some((id, terminal)) = terminals.pop_first() {
                     id_terminal = Some(id);
                     if VERBOSE { println!("  # end state: id {id} {terminal}"); }
                     dfa.end_states.insert(new_state_id, terminal.clone());
@@ -839,5 +843,5 @@ impl Dfa {
 }
 
 fn states_to_string<T: Display>(s: &BTreeSet<T>) -> String {
-    s.iter().map(|id| id.to_string()).collect::<Vec<_>>().join(", ")
+    s.iter().map(|id| id.to_string()).join()
 }
