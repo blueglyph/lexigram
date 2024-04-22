@@ -2,7 +2,7 @@ pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use crate::{btreeset, escape_char, escape_string};
+use crate::{btreeset, CollectJoin, escape_char, escape_string};
 use crate::segments::{Segments, Seg};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
@@ -85,8 +85,8 @@ impl ReType {
     pub fn is_nullable(&self) -> Option<bool> {
         match self {
             ReType::Empty | ReType::Star => Some(true),
-            ReType::End(_) | ReType::Char(_) | ReType::CharRange(_) | ReType::String(_) | ReType::Plus | ReType::Lazy => Some(false),
-            _ => None
+            ReType::End(_) | ReType::Char(_) | ReType::CharRange(_) | ReType::String(_) | ReType::Plus => Some(false),
+            ReType::Concat | ReType::Or | ReType::Lazy => None,
         }
     }
 
@@ -350,7 +350,7 @@ impl DfaBuilder {
                 inode.nullable = Some(nullable);
             } else {
                 inode.nullable = match &inode.op {
-                    ReType::Concat => Some(inode.iter_children_simple().all(|child| child.nullable.unwrap())),
+                    ReType::Concat | ReType::Lazy => Some(inode.iter_children_simple().all(|child| child.nullable.unwrap())),
                     ReType::Or => Some(inode.iter_children_simple().any(|child| child.nullable.unwrap())),
                     op => panic!("{:?} should have a fixed nullable property", op)
                 }
@@ -359,8 +359,9 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const RESOLVE_END_STATES: bool = true;
+        const RM_LAZY_BRANCHES: bool = true;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
         if VERBOSE { println!("new DFA"); }
@@ -371,6 +372,11 @@ impl DfaBuilder {
         let mut states = BTreeMap::<BTreeSet<Id>, StateId>::new();
         states.insert(key, current_id);
         dfa.initial_state = Some(current_id);
+        let lazy_followpos = self.lazypos.iter().filter_map(|(id, _)| self.followpos.get(id))
+            .flatten()
+            .cloned()
+            .collect::<BTreeSet<Id>>();
+        if VERBOSE { println!("lazy_followpos = {{{}}}", lazy_followpos.iter().join()); }
 
         // gets a partition of the symbol segments and changes Char to CharRange
         let mut symbols_part = Segments::empty();
@@ -388,15 +394,15 @@ impl DfaBuilder {
         // prepares the segments and their source ids
         while let Some(s) = new_states.pop_first() {
             let new_state_id = states.get(&s).unwrap().clone();
+            let is_lazy_state = s.iter().all(|id| lazy_followpos.contains(id));
             if VERBOSE {
-                let lazy_st = s.iter().filter_map(|st| if self.lazypos.contains_key(st) { Some(st.to_string()) } else { None }).collect::<Vec<_>>().join(", ");
-                let complement = if lazy_st.is_empty() { "".to_string() } else { format!(", lazy IDs: {lazy_st}" )};
-                println!("- state {} = {{{}}}{}", new_state_id, states_to_string(&s), complement);
+                println!("- state {} = {{{}}}{}", new_state_id, states_to_string(&s), if is_lazy_state { ", lazy state" } else { "" });
             }
             let mut trans = BTreeMap::<Seg, BTreeSet<Id>>::new();
             let mut end_states = BTreeMap::<Id, &Terminal>::new();
             let mut first_end_state = None;
             let mut id_transitions = BTreeSet::<Id>::new();
+            let mut id_terminal = None;
             for (symbol, id) in s.iter().map(|id| (&self.re.get(self.ids[id]).op, *id)) {
                 if symbol.is_end() {
                     if !dfa.state_graph.contains_key(&new_state_id) {
@@ -404,13 +410,14 @@ impl DfaBuilder {
                         dfa.state_graph.insert(new_state_id, BTreeMap::new());
                     }
                     if let ReType::End(t) = symbol {
+                        id_terminal = Some(id);
                         if first_end_state.is_none() {
                             first_end_state = Some(id);
                             if new_state_id == 0 {
                                 if t.is_only_skip() {
-                                    self.warnings.push(format!("<skip> on initial state is a risk of infinite loop on bad input"));
+                                    self.warnings.push(format!("<skip> on initial state is a risk of infinite loop on bad input ({t})"));
                                 } else if t.is_token() {
-                                    self.warnings.push(format!("<token> on initial state returns a token on bad input"));
+                                    self.warnings.push(format!("<token> on initial state returns a token on bad input ({t})"));
                                 }
                             }
                         }
@@ -450,7 +457,7 @@ impl DfaBuilder {
                 if end_states.len() > 1 {
                     if VERBOSE {
                         println!("  # {id_transitions:?}");
-                        println!("  # end state ambiguity, several terminals: {}", end_states.iter()
+                        println!("  # end state conflict, several terminals: {}", end_states.iter()
                             .map(|(id, t)| format!("{id} -> {t} (has{} trans)", if id_transitions.contains(id) { "" } else { " no" }))
                             .collect::<Vec<_>>().join(", "));
                     }
@@ -478,45 +485,27 @@ impl DfaBuilder {
                             }
                         }
                     };
+                    id_terminal = Some(chosen);
                     let t = end_states.remove(&chosen).unwrap().clone();
                     if VERBOSE { println!("    end state: id {chosen} {t}"); }
                     dfa.end_states.insert(new_state_id, t);
                 } else if let Some((id, terminal)) = end_states.pop_first() {
+                    id_terminal = Some(id);
                     if VERBOSE { println!("  # end state: id {id} {terminal}"); }
                     dfa.end_states.insert(new_state_id, terminal.clone());
                 }
             }
 
+            let has_non_lazy_terminal = id_terminal.map(|id| !lazy_followpos.contains(&id)).unwrap_or(false);
+
             // finds the destination ids (creating new states if necessary), and populates the symbols for each destination
             let mut map = BTreeMap::<StateId, Segments>::new();
             for (segment, ids) in trans {
                 if VERBOSE { print!("  - {} in {}: ", segment, states_to_string(&ids)); }
-
-                /*
-                // merging end-capturing state?
-                if EXPERIMENTAL_END_STATES && ids.len() > 1 {
-                    let mut end_states = BTreeMap::<Id, BTreeSet<(Id, Terminal)>>::new();
-                    for id in &ids {
-                        for next in &self.followpos[id] {
-                            let op = &self.re.get(self.ids[next]).op;
-                            if let ReType::End(terminal) = op {
-                                if !end_states.contains_key(id) {
-                                    end_states.insert(*id, BTreeSet::new());
-                                }
-                                end_states.get_mut(id).unwrap().insert((*next, terminal.as_ref().clone()));
-                            }
-                        }
-                    }
-                    if end_states.len() > 1 {
-                        if VERBOSE { print!("\n    ## merging several end states: {}\n    ",
-                            end_states.iter().map(|(id, terms)| format!("{id}: {}", terms.iter()
-                                .map(|(n, t)| format!("{n} -> {t}")).collect::<Vec<_>>().join(",")))
-                            .collect::<Vec<_>>().join("; "));
-                        }
-                    }
+                if RM_LAZY_BRANCHES && !is_lazy_state && has_non_lazy_terminal && ids.iter().all(|id| lazy_followpos.contains(id)) {
+                    if VERBOSE { println!(" => lazy, removed"); }
+                    continue;
                 }
-                */
-
                 let mut state = BTreeSet::new();
                 for id in ids {
                     state.extend(&self.followpos[&id]);

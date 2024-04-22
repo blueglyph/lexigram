@@ -651,7 +651,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         // 23-26 don't work, need non-greedy repeaters
         23 => {
-            // mode 1: ('*'/<pop>|.+<skip>)
+            // ('*'/<end:1>|.+<skip>)
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
@@ -662,7 +662,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc2), node!(term!(skip)));
         },
         24 => {
-            // mode 1: (.+?<skip>|'*'/<pop>)
+            // (.+?<skip>|'*'/<pop>)
             let or = re.add(None, node!(|));
             let cc2 = re.add(Some(or), node!(&));
             let l2 = re.add(Some(cc2), node!(??));
@@ -682,40 +682,50 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(cc), [node!(chr '*'), node!(chr '/'), node!(=0)]);
         },
         26 => {
-            // /'*'.*'*'/<end:0>
+            // /'*'.*?'*'/<end:0>
             let cc = re.add(None, node!(&));
             re.add_iter(Some(cc), [node!(chr '/'), node!(chr '*')]);
-            let p0 = re.add(Some(cc), node!(*));
+            let l0 = re.add(Some(cc), node!(??));
+            let p0 = re.add(Some(l0), node!(*));
             re.add(Some(p0), node!([DOT]));
             re.add_iter(Some(cc), [node!(chr '*'), node!(chr '/'), node!(=0)]);
         },
         27 => {
             // [a-c]*?[c-e]*?c<end:0>
             let cc = re.add(None, node!(&));
-            let s1 = re.add(Some(cc), node!(*));
+            let l1 = re.add(Some(cc), node!(??));
+            let s1 = re.add(Some(l1), node!(*));
             re.add(Some(s1), node!(['a'-'c']));
-            let s2 = re.add(Some(cc), node!(*));
+            let l2 = re.add(Some(cc), node!(??));
+            let s2 = re.add(Some(l2), node!(*));
             re.add(Some(s2), node!(['c'-'e']));
             re.add_iter(Some(cc), [node!(chr 'c'), node!(=0)]);
         },
         28 => {
             // [a-c]*?a<end:0>|[a-c]*?b<end:1>|[a-c]*?c<end:2>
+            // Ambiguous case that fails on most lexer/regex. Since the *s are non-greedy,
+            // this should be equivalent to: (a<end:0>|b<end:1>|c<end:2>)
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
-            let s1 = re.add(Some(cc1), node!(*));
+            let l1 = re.add(Some(cc1), node!(??));
+            let s1 = re.add(Some(l1), node!(*));
             re.add(Some(s1), node!(['a'-'c']));
             re.add_iter(Some(cc1), [node!(chr 'a'), node!(=0)]);
             let cc2 = re.add(Some(or), node!(&));
-            let s2 = re.add(Some(cc2), node!(*));
+            let l2 = re.add(Some(cc2), node!(??));
+            let s2 = re.add(Some(l2), node!(*));
             re.add(Some(s2), node!(['a'-'c']));
             re.add_iter(Some(cc2), [node!(chr 'b'), node!(=1)]);
             let cc3 = re.add(Some(or), node!(&));
-            let s3 = re.add(Some(cc3), node!(*));
+            let l3 = re.add(Some(cc3), node!(??));
+            let s3 = re.add(Some(l3), node!(*));
             re.add(Some(s3), node!(['a'-'c']));
             re.add_iter(Some(cc3), [node!(chr 'c'), node!(=2)]);
         },
         29 => {
             // a<end:0>|b<end:1>|c<end:2>|[DOT]<end:3>
+            // Priority of first terminal is used for a, b, and c, but it issues warnings.
+            // To avoid the warning, use: a<end:0>|b<end:1>|c<end:2>|~[a-c]<end:3>
             let or = re.add(None, node!(|));
             let cc1 = re.add(Some(or), node!(&));
             re.add(Some(cc1), node!(chr 'a'));
@@ -751,6 +761,14 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(cc2), node!(chr 'a'));
             re.add(Some(cc1), node!(=0));
         },
+        32 => {
+            // .+?abc<end:0>
+            let cc = re.add(None, node!(&));
+            let l0 = re.add(Some(cc), node!(??));
+            let p0 = re.add(Some(l0), node!(+));
+            re.add(Some(p0), node!([DOT]));
+            re.add_iter(Some(cc), [node!(chr 'a'), node!(chr 'b'), node!(chr 'c'), node!(=0)]);
+        }
         _ => { }
     }
     re
@@ -945,7 +963,7 @@ fn dfa_nullable() {
         (22, "|(&(+(|(1:['\\t'-'\\n', '\\r', ' '])),2:<skip>),&(3:'/',4:'*',5:<skip,push(mode 1)>),&(+(|(6:['0'-'9'])),7:<end:0>))"),
         (23, "|(&(1:'*',2:'/',3:<end:1>),&(??(+(4:[DOT])),5:<skip>))"),
         (25, "&(1:'/',2:'*',??(+(3:[DOT])),4:'*',5:'/',6:<end:0>)"),
-        (26, "&(1:'/',2:'*',!*(3:[DOT]),4:'*',5:'/',6:<end:0>)"),
+        (26, "&(1:'/',2:'*',!??(!*(3:[DOT])),4:'*',5:'/',6:<end:0>)"),
         (30, "|(&(??(+(1:[DOT])),2:'/',3:<skip>),&(4:'*',5:'/',6:<end:1>))"),
     ];
     for (test_id, expected) in tests.into_iter() {
@@ -1625,8 +1643,8 @@ fn dfa_states() {
             4 => branch!(~['*', '/'] => 3, ['*'] => 4, ['/'] => 5),
             5 => branch!(), // <end:0>
         ], btreemap![5 => term!(=0)], 0),
-        // /'*'.*?'*'/<end:0>
-        // "&(1:'/',2:'*',*(3:[DOT]),4:'*',5:'/',6:<end:0>)"
+        // '/*'.*?'*/'<end:0>
+        // "&(1:['/'],2:['*'],??(!*(3:[DOT])),4:['*'],5:['/'],6:<end:0>)"
         (26, btreemap![
             0 => branch!('/' => 1),
             1 => branch!('*' => 2),
@@ -1635,20 +1653,20 @@ fn dfa_states() {
             4 => branch!(), // <end:0>
         ], btreemap![4 => term!(=0)], 0),
         // [a-c]*?[c-e]*?c<end:0>
-        // "&(!*(1:'a'-'c'),!*(2:'c'-'e'),3:'c',4:<end:0>)"
+        // "&(!??(!*(1:['a'-'c'])),!??(!*(2:['c'-'e'])),3:['c'],4:<end:0>)"
         (27, btreemap![
             0 => branch!('a'-'b' => 0, 'c' => 1, 'd'-'e' => 2),
-            1 => branch!('a'-'b' => 0, 'c' => 1, 'd'-'e' => 2), // <end:0>
+            1 => branch!(), // <end:0>
             2 => branch!('c' => 3, 'd'-'e' => 2),
-            3 => branch!('c' => 3, 'd'-'e' => 2), // <end:0>
+            3 => branch!(), // <end:0>
         ], btreemap![1 => term!(=0), 3 => term!(=0)], 0),
-        // [a-c]*?a<end:0>|[a-c]*?b<end:1>|[a-c]*?c<end:2>
-        // "|(&(!*(1:'a'-'c'),2:'a',3:<end:0>),&(!*(4:'a'-'c'),5:'b',6:<end:1>),&(!*(7:'a'-'c'),8:'c',9:<end:2>))"
+        // ([a-c]*?a<end:0>|[a-c]*?b<end:1>|[a-c]*?c<end:2>)
+        // "|(&(!??(!*(1:['a'-'c'])),2:['a'],3:<end:0>),&(!??(!*(4:['a'-'c'])),5:['b'],6:<end:1>),&(!??(!*(7:['a'-'c'])),8:['c'],9:<end:2>))"
         (28, btreemap![
             0 => branch!('a' => 1, 'b' => 2, 'c' => 3),
-            1 => branch!('a' => 1, 'b' => 2, 'c' => 3), // <end:0>
-            2 => branch!('a' => 1, 'b' => 2, 'c' => 3), // <end:1>
-            3 => branch!('a' => 1, 'b' => 2, 'c' => 3), // <end:2>
+            1 => branch!(), // <end:0>
+            2 => branch!(), // <end:1>
+            3 => branch!(), // <end:2>
         ], btreemap![1 => term!(=0), 2 => term!(=1), 3 => term!(=2)], 0),
         // a<end:0>|b<end:1>|c<end:2>|[DOT]<end:3>
         // "|(&(1:'a',2:<end:0>),&(3:'b',4:<end:1>),&(5:'c',6:<end:2>),&(7:[DOT],8:<end:3>))"
@@ -1658,14 +1676,14 @@ fn dfa_states() {
             2 => branch!(), // <end:0>
             3 => branch!(), // <end:1>
             4 => branch!(), // <end:2>
-        ], btreemap![1 => term!(=3), 2 => term!(=0), 3 => term!(=1), 4 => term!(=2)], 0),
+        ], btreemap![1 => term!(=3), 2 => term!(=0), 3 => term!(=1), 4 => term!(=2)], 3),
         // (.+?'/'<skip>|'*/'<end:1>)
         // "|(&(??(+(1:[DOT])),2:['/'],3:<skip>),&(4:['*'],5:['/'],6:<end:1>))"
         (30, btreemap![
             0 => branch!(~['*'] => 1, ['*'] => 2),
             1 => branch!(~['/'] => 1, ['/'] => 3),
             2 => branch!(~['/'] => 1, ['/'] => 4),
-            3 => branch!(~['/'] => 1, ['/'] => 3), // <skip>
+            3 => branch!(), // <skip>
             4 => branch!(), // <end:1>
         ], btreemap![3 => term!(skip), 4 => term!(=1)], 0),
         // tests that & and | work correclty with only one child
@@ -1674,12 +1692,20 @@ fn dfa_states() {
             0 => branch!('a' => 1),
             1 => branch!(), // <end:0>
         ], btreemap![1 => term!(=0)], 0),
+        // .+?abc<end:0>
+        (32, btreemap![
+            0 => branch!(DOT => 1),
+            1 => branch!(~['a'] => 1, ['a'] => 2),
+            2 => branch!(~['a'-'b'] => 1, ['a'] => 2, ['b'] => 3),
+            3 => branch!(~['a', 'c'] => 1, ['a'] => 2, ['c'] => 4),
+            4 => branch!(), // <end:0>
+        ], btreemap![4 => term!(=0)], 0),
     ];
-    const VERBOSE: bool = true;
-    const RUN_ALL: bool = true;
+    const VERBOSE: bool = false;
+    const RUN_ALL: bool = false;
     let mut errors = 0;
     for (test_id, expected, expected_ends, expected_warnings) in tests {
-        if test_id != 24 { continue; }
+        // if test_id != 29 { continue; }
         if VERBOSE { println!("Test {test_id}:"); }
         let re = build_re(test_id);
         let mut dfa_builder = DfaBuilder::from_re(re);
@@ -1791,7 +1817,7 @@ fn dfa_modes() {
         ]),
     ];
 
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, exp_graph, exp_ends) in tests {
         if VERBOSE { println!("{test_id}:"); }
         let dfas = build_dfa(test_id);
