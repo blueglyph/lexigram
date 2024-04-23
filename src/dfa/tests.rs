@@ -769,6 +769,16 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(p0), node!([DOT]));
             re.add_iter(Some(cc), [node!(chr 'a'), node!(chr 'b'), node!(chr 'c'), node!(=0)]);
         }
+        33 => {
+            // (if<end:0>|[a-z]+<end:1>)
+            let or = re.add(None, node!(|));
+            let cc0 = re.add(Some(or), node!(&));
+            re.add_iter(Some(cc0), [node!(str "if"), node!(=0)]);
+            let cc1 = re.add(Some(or), node!(&));
+            let p1 = re.add(Some(cc1), node!(+));
+            re.add(Some(p1), node!(['a'-'z']));
+            re.add(Some(cc1), node!(=1));
+        }
         _ => { }
     }
     re
@@ -1700,12 +1710,19 @@ fn dfa_states() {
             3 => branch!(~['a', 'c'] => 1, ['a'] => 2, ['c'] => 4),
             4 => branch!(), // <end:0>
         ], btreemap![4 => term!(=0)], 0),
+        // (if<end:0>|[a-z]+<end:1>)
+        // "|(&(&(1:['i'],2:['f']),3:<end:0>),&(+(4:['a'-'z']),5:<end:1>))"
+        (33, btreemap![
+            0 => branch!('a'-'h', 'j'-'z' => 1, 'i' => 2),
+            1 => branch!('a'-'z' => 1), // <end:1>
+            2 => branch!('a'-'e', 'g'-'z' => 1, 'f' => 3), // <end:1>
+            3 => branch!('a'-'z' => 1), // <end:0>
+        ], btreemap![1 => term!(=1), 2 => term!(=1), 3 => term!(=0)], 0),
     ];
     const VERBOSE: bool = false;
     const RUN_ALL: bool = false;
     let mut errors = 0;
     for (test_id, expected, expected_ends, expected_warnings) in tests {
-        // if test_id != 29 { continue; }
         if VERBOSE { println!("Test {test_id}:"); }
         let re = build_re(test_id);
         let mut dfa_builder = DfaBuilder::from_re(re);
