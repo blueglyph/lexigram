@@ -2,10 +2,11 @@
 
 - [x] ~~ranges~~
 - [x] ~~lazy/non-greedy repeaters and ranges~~
-- [ ] how to retrieve original text behind tokens?
+- [x] ~~how to retrieve original text behind tokens?~~
 - [ ] lexer hooks? (using traits?)
 - [ ] define lexer file basic syntax (1st step)
 - [ ] basic lexer and parser
+- [ ] error reporting
 
 # Structure
 

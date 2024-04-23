@@ -12,7 +12,7 @@ use super::*;
 
 #[test]
 fn scanner() {
-    fn eval(result: &Result<(Token, ChannelId), &LexScanError>, verbose: bool) -> Option<(Token, ChannelId)> {
+    fn eval(result: &Result<(Token, ChannelId, String), &LexScanError>, verbose: bool) -> Option<(Token, ChannelId, String)> {
         match result {
             Ok(token_ch) => {
                 if verbose { println!("=> OK {}, #{}", token_ch.0.0, token_ch.1); }
@@ -35,9 +35,9 @@ fn scanner() {
     let tests = vec![
         // [ \t\n\r]*[0-9]+(<end:0>|'.'[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
         (10, btreemap![
-            0 => vec!["0", "0 ", "10", "9876543210"],
-            1 => vec!["0.5", "0.1 ", "9876543210.0123456789"],
-            2 => vec!["0x0", "0xF ", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]
+            0 => (vec!["0", "0 ", "10", "9876543210", " 0"], vec!["0", "0", "10", "9876543210", " 0"]),
+            1 => (vec!["0.5", "0.1 ", "9876543210.0123456789"], vec!["0.5", "0.1", "9876543210.0123456789"]),
+            2 => (vec!["0x0", "0xF ", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"], vec!["0x0", "0xF", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]),
          ],
          vec![("a", 0, false), (".5", 0, false), ("()", 0, false), ("0xy", 2, false), ("0.a", 2, false), ("", 0, true), (" ", 1, true)],
          vec![("0 1 2 ", vec![0, 0, 0]), ("0x1 0.5 15", vec![2, 1, 0])],
@@ -45,12 +45,12 @@ fn scanner() {
 
         // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|'+'<end:4>|;<end:5>)
         (11, btreemap![
-            0 => vec!["a", "id", "id05b", "ifa", "printa"],
-            1 => vec!["if", "if x"],
-            2 => vec!["print", "print "],
-            3 => vec!["=", "=5", "=a"],
-            4 => vec!["+", "+5", "+a"],
-            5 => vec![";", ";a"]
+            0 => (vec!["a", "id", "id05b", "ifa", "printa", "\t\nx "], vec!["a", "id", "id05b", "ifa", "printa", "\t\nx"]),
+            1 => (vec!["if", "if x"], vec!["if", "if"]),
+            2 => (vec!["print", "print "], vec!["print", "print"]),
+            3 => (vec!["=", "=5", "=a"], vec!["=", "=", "="]),
+            4 => (vec!["+", "+5", "+a"], vec!["+", "+", "+"]),
+            5 => (vec![";", ";a"], vec![";", ";"]),
          ],
          vec![("0", 0, false), ("", 0, true), ("-", 0, false), ("*", 0, false)],
          vec![("\ta = x; if i=j print b;\n", vec![0, 3, 0, 5, 1, 0, 3, 0, 2, 0, 5])]
@@ -64,14 +64,14 @@ fn scanner() {
         let lexgen = LexGen::from_dfa(&dfa);
         if VERBOSE { print_source_code(&lexgen); }
         let mut scanner = Scanner::new(lexgen);
-        for (exp_token, inputs) in token_tests {
-            for input in inputs {
+        for (exp_token, (inputs, outputs)) in token_tests {
+            for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
                 if VERBOSE { println!("\"{}\": (should succeed)", escape_string(input)); }
                 let stream = CharReader::new(Cursor::new(input));
                 scanner.attach_steam(stream);
                 let result = scanner.get_token();
                 let token = eval(&result, VERBOSE);
-                assert_eq!(token, Some((Token(exp_token), 0)), "test {} failed for input '{}'", test_id, escape_string(input));
+                assert_eq!(token, Some((Token(exp_token), 0, output.to_string())), "test {} failed for input '{}'", test_id, escape_string(input));
                 scanner.detach_stream();
             }
         }
@@ -226,30 +226,31 @@ fn scanner_modes() {
     let tests = vec![
         (1, vec![
             // no error
-            (" 10 20 30", vec![0, 0, 0]),
-            (" 10 20 ", vec![0, 0]),
-            (" 5 /* bla bla */ 6", vec![0, 0]),
+            (" 10 20 30", vec![0, 0, 0], vec!["10", "20", "30"]),
+            (" 10 20 ", vec![0, 0], vec!["10", "20"]),
+            (" 5 /* bla bla */ 6", vec![0, 0], vec!["5", "6"]),
         ]),
         (2, vec![
             // no error
-            (" 10 20 30", vec![0, 0, 0]),
-            (" 10 20 ", vec![0, 0]),
-            (" 5 /* bla bla */ 6", vec![0, 0]),
+            (" 10 20 30", vec![0, 0, 0], vec!["10", "20", "30"]),
+            (" 10 20 ", vec![0, 0], vec!["10", "20"]),
+            (" 5 /* bla bla */ 6", vec![0, 0], vec!["5", "6"]),
         ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (scan_id, inputs)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("test {test_id}:"); }
         let mut scanner = build_scanner(scan_id);
-        for (input, expected_tokens) in inputs {
+        for (input, expected_tokens, expected_texts) in inputs {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             scanner.attach_steam(stream);
-            let result = scanner.tokens().map(|t| {
-                assert_eq!(t.1, 0, "test {} failed for input {}", test_id, escape_string(input));
-                t.0.0
-            }).collect::<Vec<_>>();
-            assert_eq!(result, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
+            let (tokens, texts): (Vec<TokenId>, Vec<String>) = scanner.tokens().map(|(tok, ch, text)| {
+                assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
+                (tok.0, text)
+            }).unzip();
+            assert_eq!(tokens, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
+            assert_eq!(texts, expected_texts, "test {} failed for input '{}'", test_id, escape_string(input));
             assert!(scanner.get_error() == None || scanner.get_error().unwrap().is_eos, "test {} failed for input '{}'",
                     test_id, escape_string(input));
 

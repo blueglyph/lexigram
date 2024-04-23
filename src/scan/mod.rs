@@ -20,6 +20,7 @@ pub struct LexScanError {
     pub token_ch: Option<(Token, ChannelId)>,
     pub state: StateId,
     pub is_eos: bool,
+    pub text: String,
     pub msg: String
 }
 
@@ -138,9 +139,10 @@ impl<R: Read> Scanner<R> {
     //              state = next_state
     //              pos++
     //
-    pub fn get_token(&mut self) -> Result<(Token, ChannelId), &LexScanError> {
+    pub fn get_token(&mut self) -> Result<(Token, ChannelId, String), &LexScanError> {
         const VERBOSE: bool = false;
         self.error = None;
+        let mut text = String::new();
         if let Some(input) = self.input.as_mut() {
             let mut state = self.start_state;
             loop {
@@ -172,10 +174,11 @@ impl<R: Read> Scanner<R> {
                         }
                         if let Some(token) = &terminal.token {
                             if VERBOSE { println!(" => OK: token {}", token.0); }
-                            return Ok((token.clone(), terminal.channel));
+                            return Ok((token.clone(), terminal.channel, text));
                         }
                         if VERBOSE { println!(" => skip, state {}", self.start_state); }
                         state = self.start_state;
+                        text.clear();
                         continue; // todo: maybe not necessary
                     } else { // EOF or invalid character
                         self.error = Some(LexScanError {
@@ -185,12 +188,16 @@ impl<R: Read> Scanner<R> {
                             token_ch: None,
                             state,
                             is_eos,
+                            text,
                             msg: (if is_eos { "end of stream" } else { if group >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
                         });
                         if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
                         return Err(self.error.as_ref().unwrap());
                     }
                 } else {
+                    if let Some(c) = c_opt {
+                        text.push(c);
+                    }
                     if VERBOSE { println!(" => state {new_state}"); }
                     state = new_state;
                     self.pos += 1;
@@ -204,6 +211,7 @@ impl<R: Read> Scanner<R> {
             token_ch: None,
             state: 0,
             is_eos: true,
+            text,
             msg: "no stream attached".to_string(),
         });
         if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
@@ -221,13 +229,13 @@ pub struct LexInterpretIter<'a, R> {
 }
 
 impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
-    type Item = (Token, ChannelId);
+    type Item = (Token, ChannelId, String);
 
     fn next(&mut self) -> Option<Self::Item> {
         let t = self.scanner.get_token();
         match t {
-            Ok((token, channel)) => Some((token, channel)),
-            Err(&LexScanError { token_ch: Some((ref token, channel)), .. }) => Some((token.clone(), channel)),
+            Ok((token, channel, str)) => Some((token, channel, str)),
+            Err(&LexScanError { token_ch: Some((ref token, channel)), ref text, .. }) => Some((token.clone(), channel, text.clone())),
             _ => None
         }
     }
