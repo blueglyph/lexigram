@@ -1,11 +1,11 @@
 # Features
 
 - [x] ~~ranges~~
-- [x] lazy/non-greedy repeaters and ranges
+- [x] ~~lazy/non-greedy repeaters and ranges~~
 - [ ] how to retrieve original text behind tokens?
 - [ ] lexer hooks? (using traits?)
 - [ ] define lexer file basic syntax (1st step)
-- [ ] basic parser
+- [ ] basic lexer and parser
 
 # Structure
 
