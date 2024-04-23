@@ -33,7 +33,7 @@ fn scanner() {
     }
 
     let tests = vec![
-        // [ \t\n\r]*[0-9]+(<end:0>|\.[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
+        // [ \t\n\r]*[0-9]+(<end:0>|'.'[0-9]+<end:1>)|0x[0-9A-Fa-f]+<end:2>
         (10, btreemap![
             0 => vec!["0", "0 ", "10", "9876543210"],
             1 => vec!["0.5", "0.1 ", "9876543210.0123456789"],
@@ -43,7 +43,7 @@ fn scanner() {
          vec![("0 1 2 ", vec![0, 0, 0]), ("0x1 0.5 15", vec![2, 1, 0])],
         ),
 
-        // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|+<end:4>|;<end:5>)
+        // [ \t\n\r]*([a-z][a-z0-9]*<end:0>|if<end:1>|print<end:2>|=<end:3>|'+'<end:4>|;<end:5>)
         (11, btreemap![
             0 => vec!["a", "id", "id05b", "ifa", "printa"],
             1 => vec!["if", "if x"],
@@ -56,7 +56,7 @@ fn scanner() {
          vec![("\ta = x; if i=j print b;\n", vec![0, 3, 0, 5, 1, 0, 3, 0, 2, 0, 5])]
         ),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, token_tests, err_tests, stream_tests) in tests {
         let mut dfa = DfaBuilder::from_re(build_re(test_id)).build();
         dfa.normalize();
@@ -146,7 +146,7 @@ fn build_scanner<R: Read>(test: usize) -> Scanner<R> {
             re.add(Some(or2), node!(['0'-'9']));
             re.add(Some(cc2), node!(=0));
 
-            // mode 1: ('*'/<pop>|.+<skip>)
+            // mode 1: ('*/'<pop>|[' ', '\t', '\n', '\r', 'a'-'z']+<skip>)
             let mut re1 = VecTree::new();
             let or = re1.add(None, node!(|));
             let cc1 = re1.add(Some(or), node!(&));
@@ -158,9 +158,8 @@ fn build_scanner<R: Read>(test: usize) -> Scanner<R> {
 
             btreemap![0 => re, 1 => re1]
         },
-
         2 => {
-            // mode 0: ([ \t\n\r]+<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
+            // mode 0: ([ \t\n\r]+<skip>|'/*'<push(1)>|[0-9]+<end:0>)
             let or = re.add(None, node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let p0 = re.add(Some(cc0), node!(+));
@@ -168,29 +167,26 @@ fn build_scanner<R: Read>(test: usize) -> Scanner<R> {
             re.add(Some(or0), node!([' ', '\t', '\n', '\r']));
             re.add(Some(cc0), node!(term!(skip)));
             let cc1 = re.add(Some(or), node!(&));
-            re.add_iter(Some(cc1), [node!(chr '/'), node!(chr '*'), node!(term!(push 1) + term!(skip))]);
+            re.add_iter(Some(cc1), [node!(chr '/'), node!(chr '*'), node!(term!(push 1))]);
             let cc2 = re.add(Some(or), node!(&));
             let s2 = re.add(Some(cc2), node!(+));
             let or2 = re.add(Some(s2), node!(|));
             re.add(Some(or2), node!(['0'-'9']));
             re.add(Some(cc2), node!(=0));
 
-            // mode 1: ('*'/<pop>|.+<skip>)
+            // mode 1: .*?'*/'<pop>
             let mut re1 = VecTree::new();
-            let or = re1.add(None, node!(|));
-            let cc1 = re1.add(Some(or), node!(&));
-            re1.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(pop))]);
-            let cc2 = re1.add(Some(or), node!(&));
-            let s2 = re1.add(Some(cc2), node!(+));
+            let cc = re1.add(None, node!(&));
+            let l0 = re1.add(Some(cc), node!(??));
+            let s2 = re1.add(Some(l0), node!(*));
             re1.add(Some(s2), node!([DOT]));
-            re1.add(Some(cc2), node!(term!(skip)));
+            re1.add_iter(Some(cc), [node!(str "*/"), node!(term!(pop))]);
 
             btreemap![0 => re, 1 => re1]
         },
-
         _ => btreemap![],
     };
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     let dfas = trees.into_iter().enumerate().map(|(dfa_id, (mode, re))| {
         if VERBOSE { println!("creating dfa for mode {mode}"); }
         // let dfa = DfaBuilder::from_re(re).build();
@@ -232,16 +228,16 @@ fn scanner_modes() {
             // no error
             (" 10 20 30", vec![0, 0, 0]),
             (" 10 20 ", vec![0, 0]),
-            (" 5 /* blabla */ 6", vec![0, 0]),
+            (" 5 /* bla bla */ 6", vec![0, 0]),
         ]),
         (2, vec![
             // no error
             (" 10 20 30", vec![0, 0, 0]),
             (" 10 20 ", vec![0, 0]),
-            (" 5 /* blabla */ 6", vec![0, 0]),
+            (" 5 /* bla bla */ 6", vec![0, 0]),
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (scan_id, inputs)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("test {test_id}:"); }
         let mut scanner = build_scanner(scan_id);

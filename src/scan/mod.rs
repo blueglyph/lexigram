@@ -139,7 +139,7 @@ impl<R: Read> Scanner<R> {
     //              pos++
     //
     pub fn get_token(&mut self) -> Result<(Token, ChannelId), &LexScanError> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         self.error = None;
         if let Some(input) = self.input.as_mut() {
             let mut state = self.start_state;
