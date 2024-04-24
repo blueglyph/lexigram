@@ -6,13 +6,14 @@ use crate::{btreemap, escape_string, node, term};
 use crate::dfa::*;
 use crate::segments::*;
 use crate::dfa::tests::{build_re, print_dfa};
+use crate::lexgen::LexGen;
 use crate::lexgen::tests::print_source_code;
 use crate::vectree::VecTree;
 use super::*;
 
 #[test]
-fn scanner() {
-    fn eval(result: &Result<(Token, ChannelId, String), &LexScanError>, verbose: bool) -> Option<(Token, ChannelId, String)> {
+fn lexer_simple() {
+    fn eval(result: &Result<(Token, ChannelId, String), &LexerError>, verbose: bool) -> Option<(Token, ChannelId, String)> {
         match result {
             Ok(token_ch) => {
                 if verbose { println!("=> OK {}, #{}", token_ch.0.0, token_ch.1); }
@@ -63,23 +64,23 @@ fn scanner() {
         if VERBOSE { print_dfa(&dfa); }
         let lexgen = LexGen::from_dfa(&dfa);
         if VERBOSE { print_source_code(&lexgen); }
-        let mut scanner = Scanner::new(lexgen);
+        let mut lexer = lexgen.make_lexer();
         for (exp_token, (inputs, outputs)) in token_tests {
             for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
                 if VERBOSE { println!("\"{}\": (should succeed)", escape_string(input)); }
                 let stream = CharReader::new(Cursor::new(input));
-                scanner.attach_steam(stream);
-                let result = scanner.get_token();
+                lexer.attach_stream(stream);
+                let result = lexer.get_token();
                 let token = eval(&result, VERBOSE);
                 assert_eq!(token, Some((Token(exp_token), 0, output.to_string())), "test {} failed for input '{}'", test_id, escape_string(input));
-                scanner.detach_stream();
+                lexer.detach_stream();
             }
         }
         for (input, expected_pos, expected_eos) in err_tests {
             if VERBOSE { println!("\"{}\": (should fail)", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
-            scanner.attach_steam(stream);
-            let result = scanner.get_token();
+            lexer.attach_stream(stream);
+            let result = lexer.get_token();
             let token = eval(&result, VERBOSE);
             assert_eq!(token, None, "test {} failed for input '{}'", test_id, escape_string(input));
             if let Err(e) = result {
@@ -91,10 +92,10 @@ fn scanner() {
         for (input, expected_tokens) in stream_tests.clone() {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
-            scanner.attach_steam(stream);
+            lexer.attach_stream(stream);
             let mut result = Vec::new();
-            while scanner.is_open() {
-                let token = &scanner.get_token();
+            while lexer.is_open() {
+                let token = &lexer.get_token();
                 let t = eval(token, false);
                 if let Some(token_ch) = t {
                     if VERBOSE { print!(" {}, #{}", token_ch.0.0, token_ch.1); }
@@ -112,22 +113,22 @@ fn scanner() {
         for (input, expected_tokens) in stream_tests {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
-            scanner.attach_steam(stream);
-            let result = scanner.tokens().map(|t| {
+            lexer.attach_stream(stream);
+            let result = lexer.tokens().map(|t| {
                 assert_eq!(t.1, 0, "test {} failed for input {}", test_id, escape_string(input));
                 t.0.0
             }).collect::<Vec<_>>();
             assert_eq!(result, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
-            assert!(scanner.get_error() == None || scanner.get_error().unwrap().is_eos, "test {} failed for input '{}'",
+            assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for input '{}'",
                     test_id, escape_string(input));
             // or:
-            // assert!(!matches!(interpret.get_error(), Some(LexScanError { is_eos: false, .. })), "test {} failed for input '{}'",
+            // assert!(!matches!(interpret.get_error(), Some(LexerError { is_eos: false, .. })), "test {} failed for input '{}'",
             //         test_id, escape_string(input));
         }
     }
 }
 
-fn build_scanner<R: Read>(test: usize) -> Scanner<R> {
+fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
     let mut re = VecTree::<ReNode>::new();
     let trees = match test {
         1 => {
@@ -192,7 +193,7 @@ fn build_scanner<R: Read>(test: usize) -> Scanner<R> {
         // let dfa = DfaBuilder::from_re(re).build();
         let mut dfa_builder = DfaBuilder::from_re(re);
         let dfa = dfa_builder.build();
-        assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building scanner {test}: (DFA #{dfa_id})\n{}", dfa_builder.get_messages());
+        assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building lexer #{test}: (DFA #{dfa_id})\n{}", dfa_builder.get_messages());
         if VERBOSE {
             print_dfa(&dfa);
         }
@@ -201,7 +202,7 @@ fn build_scanner<R: Read>(test: usize) -> Scanner<R> {
     let mut dfa_builder = DfaBuilder::new();
     if VERBOSE { println!("merging dfa modes"); }
     let mut dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer #{test}\n{}", dfa_builder.get_messages()));
-    assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building scanner {test} (merging DFAs):\n{}", dfa_builder.get_messages());
+    assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building lexer #{test} (merging DFAs):\n{}", dfa_builder.get_messages());
     if VERBOSE {
         print_dfa(&dfa);
         println!("normalizing");
@@ -213,16 +214,16 @@ fn build_scanner<R: Read>(test: usize) -> Scanner<R> {
     }
     let mut lexgen = LexGen::new();
     // lexgen.max_utf8_chars = 10;
-    lexgen.build(&dfa);
+    lexgen.build_tables(&dfa);
     // if VERBOSE {
     //     print_source_code(&lexgen);
-    //     println!("creating scanner");
+    //     println!("creating lexer");
     // }
-    Scanner::new(lexgen)
+    lexgen.make_lexer()
 }
 
 #[test]
-fn scanner_modes() {
+fn lexer_modes() {
     let tests = vec![
         (1, vec![
             // no error
@@ -238,20 +239,20 @@ fn scanner_modes() {
         ]),
     ];
     const VERBOSE: bool = false;
-    for (test_id, (scan_id, inputs)) in tests.into_iter().enumerate() {
+    for (test_id, (lexer_id, inputs)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("test {test_id}:"); }
-        let mut scanner = build_scanner(scan_id);
+        let mut lexer = build_lexer(lexer_id);
         for (input, expected_tokens, expected_texts) in inputs {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
-            scanner.attach_steam(stream);
-            let (tokens, texts): (Vec<TokenId>, Vec<String>) = scanner.tokens().map(|(tok, ch, text)| {
+            lexer.attach_stream(stream);
+            let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text)| {
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
                 (tok.0, text)
             }).unzip();
             assert_eq!(tokens, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
             assert_eq!(texts, expected_texts, "test {} failed for input '{}'", test_id, escape_string(input));
-            assert!(scanner.get_error() == None || scanner.get_error().unwrap().is_eos, "test {} failed for input '{}'",
+            assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for input '{}'",
                     test_id, escape_string(input));
 
         }

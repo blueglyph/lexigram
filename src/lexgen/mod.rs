@@ -1,24 +1,27 @@
 pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::io::Read;
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
 use crate::escape_char;
+use crate::lexer::Lexer;
 use crate::segments::{Segments, Seg, SegMap};
 use super::dfa::*;
 
 pub type GroupId = u32;
 
 pub struct LexGen {
-    // scanner tables and parameters:
-    pub ascii_to_group: Box<[GroupId]>,
-    pub utf8_to_group: Box<HashMap<char, GroupId>>,
-    pub seg_to_group: SegMap<GroupId>,
+    // parameters:
     pub max_utf8_chars: u32,
     pub nbr_groups: u32,
     pub initial_state: StateId,
     pub first_end_state: StateId,   // accepting when state >= first_end_state
     pub nbr_states: StateId,        // error if state >= nbr_states
+    // tables:
+    pub ascii_to_group: Box<[GroupId]>,
+    pub utf8_to_group: Box<HashMap<char, GroupId>>,
+    pub seg_to_group: SegMap<GroupId>,
     pub state_table: Box<[StateId]>,
     pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
     // internal
@@ -28,14 +31,14 @@ pub struct LexGen {
 impl LexGen {
     pub fn new() -> Self {
         LexGen {
-            ascii_to_group: vec![GroupId::MAX; 128].into_boxed_slice(),
-            utf8_to_group: Box::default(),
-            seg_to_group: SegMap::new(),
             max_utf8_chars: 128,
             nbr_groups: 0,
             initial_state: 0,
             first_end_state: 0,
             nbr_states: 0,
+            ascii_to_group: vec![GroupId::MAX; 128].into_boxed_slice(),
+            utf8_to_group: Box::default(),
+            seg_to_group: SegMap::new(),
             state_table: Box::default(),
             terminal_table: Box::default(),
             group_partition: Segments::empty(),
@@ -44,13 +47,28 @@ impl LexGen {
 
     pub fn from_dfa(dfa: &Dfa) -> Self {
         let mut lexgen = LexGen::new();
-        lexgen.build(dfa);
+        lexgen.build_tables(dfa);
         lexgen
     }
 
-    pub fn build(&mut self, dfa: &Dfa) {
+    pub fn build_tables(&mut self, dfa: &Dfa) {
         self.create_input_tables(dfa);
         self.create_state_tables(dfa);
+    }
+
+    pub fn make_lexer<R: Read>(self) -> Lexer<R> {
+        assert!(!self.state_table.is_empty(), "tables are not built");
+        Lexer::new(
+            self.nbr_groups,
+            self.initial_state,
+            self.first_end_state,
+            self.nbr_states,
+            self.ascii_to_group,
+            self.utf8_to_group,
+            self.seg_to_group,
+            self.state_table,
+            self.terminal_table,
+        )
     }
 
     fn create_input_tables(&mut self, dfa: &Dfa) {

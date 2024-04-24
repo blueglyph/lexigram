@@ -1,13 +1,13 @@
 // Copyright 2023 Redglyph
 
-pub mod segments;
 mod macros;
 mod take_until;
 mod vectree;
+pub mod segments;
 pub mod io;
-pub mod lexgen;
 pub mod dfa;
-pub mod scan;
+pub mod lexgen;
+pub mod lexer;
 
 // Regular expressions / DFA, See:
 // - https://blog.burntsushi.net/regex-internals/
