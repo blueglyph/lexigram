@@ -4,7 +4,7 @@
 - [x] ~~lazy/non-greedy repeaters and ranges~~
 - [x] ~~how to retrieve original text behind tokens?~~
 - [ ] lexer hooks? (using traits?)
-- [ ] define lexer file basic syntax (1st step)
+- [x] ~~define lexer file basic syntax (1st step)~~
 - [ ] basic lexer and parser
 - [ ] error reporting
 

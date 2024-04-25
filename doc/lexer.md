@@ -76,5 +76,127 @@ The regular expressions used on the right of the colon, in each matching or frag
   - `('--'|'==')*`: zero or more pairs of '-' or '='
 - `+`: one or more instances of the left item (same principle as `*`)
 - `?`: zero or one instances of the left item (same principle as `*`)
+  - after `*` or `+`: lazy repeater; for example, `'/*' .*? '*/'`
 - `|`: alternative between several items; for example, `( 'if' | 'while' | [a-z]+ )`
 - fragment; for example, `( DIGIT | [a-f] )+` where `DIGIT' has been defined as a fragment
+
+## ANTLR Lexer Rules
+
+```
+lexer grammar RLLexer;
+
+fragment BlockComment   : '/*' .*? '*/';
+fragment LineComment    : '//' ~[\r\n]*;
+fragment HexDigit       : [0-9a-fA-F];
+fragment UnicodeEsc     : 'u{' HexDigit+ '}';
+fragment EscChar        : BACKSLASH ([nrt'\\] | UnicodeEsc);
+fragment Char           : EscChar | ~[\n\r\t'\\];
+fragment CharLiteral    : SQUOTE Char SQUOTE;
+fragment StrLiteral     : SQUOTE Char Char+ SQUOTE;
+fragment FixedSet       : ('\\w' | '\\d');
+// Char inside a '[' ']' set
+fragment EscSetChar     : BACKSLASH ([nrt\\[\]\-] | UnicodeEsc);
+fragment SetChar        : EscSetChar | ~[\n\r\t\\];
+
+ARROW           : '->';
+BACKSLASH       : '\\';
+COLON           : ':';
+COMMA           : ',';
+ELLIPSIS        : '..';
+LBRACKET        : '{';
+LSBRACKET       : '[';
+LPAREN          : '(';
+MINUS           : '-';
+NEGATE          : '~';
+PLUS            : '+';
+OR              : '|';
+QUESTION        : '?';
+QUOTE           : '"';
+RBRACKET        : '}';
+RSBRACKET       : ']';
+RPAREN          : ')';
+SEMICOLON       : ';';
+SQUOTE          : '\'';
+STAR            : '*';
+
+CHANNELS        : 'channels';
+FRAGMENT        : 'fragment';
+GRAMMAR         : 'grammar';
+LEXER           : 'lexer';
+MODE            : 'mode';
+POP             : 'pop';
+PUSH            : 'push';
+RETURN          : 'return';
+SiKP            : 'skip';
+SYM_EOF         : 'EOF';
+
+COMMENT         : BlockComment              -> skip;
+LINECOMMENT     : LineComment               -> skip;
+WHITESPACE      : [ \n\r\t]+                -> skip;
+
+ID              : [a-zA-Z][a-zA-Z_0-9]*;
+
+CHAR_LIT        : CharLiteral;
+CHAR_SET        : '[' (SetChar '-' SetChar | SetChar | FixedSet)* ']'
+                | '.'
+                | FixedSet;
+STR_LIT         : StrLiteral;
+```
+
+## ANTLR Parser Rules
+
+```
+parser grammar RLParser;
+options { tokenVocab = RLLexer; }
+
+file: header? (declaration | rule)* EOF;
+
+header:
+    LEXER GRAMMAR ID SEMICOLON
+;
+
+declaration:
+    MODE ID SEMICOLON
+;
+
+rule:
+    FRAGMENT ID COLON match SEMICOLON
+|   ID COLON match (ARROW actions)? SEMICOLON
+;
+
+actions:
+    action (COMMA action)*
+;
+
+action:
+    PUSH LPAREN ID RPAREN
+|   POP
+|   SiKP
+|   RETURN
+;
+
+match:
+    alt_item
+;
+
+alt_item:
+    alt_item OR alt_item
+|   repeat_item+
+;
+
+repeat_item:
+    repeat_item STAR QUESTION?
+|   repeat_item PLUS QUESTION?
+|   item
+;
+
+item:
+    ID
+|   CHAR_LIT
+|   STR_LIT
+|   CHAR_SET
+|   LPAREN alt_item RPAREN
+|   NEGATE item
+|   item QUESTION
+;
+```
