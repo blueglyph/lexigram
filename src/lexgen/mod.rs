@@ -20,7 +20,7 @@ pub struct LexGen {
     pub nbr_states: StateId,        // error if state >= nbr_states
     // tables:
     pub ascii_to_group: Box<[GroupId]>,
-    pub utf8_to_group: Box<HashMap<char, GroupId>>,
+    pub utf8_to_group: HashMap<char, GroupId>,
     pub seg_to_group: SegMap<GroupId>,
     pub state_table: Box<[StateId]>,
     pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
@@ -37,7 +37,7 @@ impl LexGen {
             first_end_state: 0,
             nbr_states: 0,
             ascii_to_group: vec![GroupId::MAX; 128].into_boxed_slice(),
-            utf8_to_group: Box::default(),
+            utf8_to_group: HashMap::default(),
             seg_to_group: SegMap::new(),
             state_table: Box::default(),
             terminal_table: Box::default(),

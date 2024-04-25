@@ -52,7 +52,7 @@ pub struct Lexer<R> {
     pub nbr_states: StateId,        // error if state >= nbr_states
     // tables
     pub ascii_to_group: Box<[GroupId]>,
-    pub utf8_to_group: Box<HashMap<char, GroupId>>,
+    pub utf8_to_group: HashMap<char, GroupId>,
     pub seg_to_group: SegMap<GroupId>,
     pub state_table: Box<[StateId]>,
     pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
@@ -67,7 +67,7 @@ impl<R: Read> Lexer<R> {
         nbr_states: StateId,        // error if state >= nbr_states
         // tables
         ascii_to_group: Box<[GroupId]>,
-        utf8_to_group: Box<HashMap<char, GroupId>>,
+        utf8_to_group: HashMap<char, GroupId>,
         seg_to_group: SegMap<GroupId>,
         state_table: Box<[StateId]>,
         terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]

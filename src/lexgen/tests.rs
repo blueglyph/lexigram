@@ -129,7 +129,7 @@ fn lexgen_symbol_tables_corner() {
                 exp_ascii[b as usize] = id;
             }
         }
-        let mut exp_utf8 = Box::new(HashMap::<char, GroupId>::new());
+        let mut exp_utf8 = HashMap::<char, GroupId>::new();
         for (s, id) in utf8 {
             for u in s.chars() {
                 exp_utf8.insert(u, id);
