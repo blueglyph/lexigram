@@ -476,6 +476,10 @@ impl<T: Clone> SegMap<T> {
     pub fn iter(&self) -> Iter<'_, Seg, T> {
         self.into_iter()
     }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
 }
 
 impl<T> IntoIterator for SegMap<T> {

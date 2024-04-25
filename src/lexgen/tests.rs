@@ -177,8 +177,14 @@ fn lexgen_build() {
 
 pub(crate) fn print_source_code(lexgen: &LexGen) {
     // Create source code:
+    println!("// -------------------------------------------------------------------------");
+    println!("// Copied from a print_source_code(&lexgen)\n");
+    println!("const NBR_GROUPS: u32 = {};", lexgen.nbr_groups);
+    println!("const INITIAL_STATE: StateId = {};", lexgen.initial_state);
+    println!("const FIRST_END_STATE: StateId = {};", lexgen.first_end_state);
+    println!("const NBR_STATES: StateId = {};", lexgen.nbr_states);
     let mut groups = vec![BTreeSet::new(); lexgen.nbr_groups as usize];
-    println!("let ascii_to_group = [");
+    println!("const ASCII_TO_GROUP: [GroupId; 128] = [");
     for i in 0..8_usize {
         print!("    ");
         for j in 0..16_usize {
@@ -192,9 +198,11 @@ pub(crate) fn print_source_code(lexgen: &LexGen) {
         println!("  // {}-{}", i*16, i*16 + 15);
     }
     println!("];");
-    println!("let utf8_to_group = hashmap![{}];",
-             lexgen.utf8_to_group.iter().map(|(c, g)| format!("'{}' => {},", escape_char(*c), g)).collect::<String>()
+    println!("const UTF8_TO_GROUP: [(char, GroupId); {}] = [{}];",
+             lexgen.utf8_to_group.len(),
+             lexgen.utf8_to_group.iter().map(|(c, g)| format!("('{}', {}),", escape_char(*c), g)).collect::<String>()
     );
+    /*
     for (c, g) in lexgen.utf8_to_group.iter() {
         groups[*g as usize].insert(*c);
     }
@@ -204,15 +212,15 @@ pub(crate) fn print_source_code(lexgen: &LexGen) {
             println!("// group[{g:3}] = [{set}]");
         };
     }
-    println!("let seg_to_group = SegMap::from_iter([{}]);",
+    */
+    println!("const SEG_TO_GROUP: [(Seg, GroupId); {}] = [{}];",
+        lexgen.seg_to_group.len(),
         lexgen.seg_to_group.iter().map(|(s, g)| format!("\n    (Seg({}, {}), {}),", s.0, s.1, g)).collect::<String>()
     );
-    println!("let nbr_groups = {};", lexgen.nbr_groups);
-    println!("let initial_state = {};", lexgen.initial_state);
-    println!("let first_end_state = {};", lexgen.first_end_state);
-    println!("let error_state = {};", lexgen.nbr_states);
-    println!("let token_table = [{}];", lexgen.terminal_table.iter().map(|t| t.to_string()).collect::<Vec<_>>().join(", "));
-    println!("let state_table = [");
+    println!("const TERMINAL_TABLE: [Terminal;{}] = {:?};",
+             lexgen.terminal_table.len(),
+             lexgen.terminal_table /*.terminal_table.iter().map(|t| t.to_string()).join()*/);
+    println!("const STATE_TABLE: [StateId; {}] = [", lexgen.state_table.len());
     for i in 0..lexgen.nbr_states as usize {
         println!("    {}, // state {}{}",
             (0..lexgen.nbr_groups as usize).map(|j| format!("{:3}", lexgen.state_table[i * lexgen.nbr_groups as usize + j])).collect::<Vec<_>>().join(", "),
@@ -220,7 +228,23 @@ pub(crate) fn print_source_code(lexgen: &LexGen) {
             if i >= lexgen.first_end_state { format!(" {}", lexgen.terminal_table[i - lexgen.first_end_state] ) } else { "".to_string() }
         );
     }
-    println!("];")
+    println!("];\n");
+    println!("fn build_lexer<R: Read>() -> Lexer<R> {{");
+    println!("    Lexer::new(");
+    println!("        // parameters");
+    println!("        NBR_GROUPS,");
+    println!("        INITIAL_STATE,");
+    println!("        FIRST_END_STATE,");
+    println!("        NBR_STATES,");
+    println!("        // tables");
+    println!("        Box::new(ASCII_TO_GROUP),");
+    println!("        HashMap::<char, GroupId>::from(UTF8_TO_GROUP),");
+    println!("        SegMap::<GroupId>::from_iter(SEG_TO_GROUP),");
+    println!("        Box::new(STATE_TABLE),");
+    println!("        Box::new(TERMINAL_TABLE)");
+    println!("    )");
+    println!("}}");
+    println!("// -------------------------------------------------------------------------");
 }
 
 #[cfg(test)]
