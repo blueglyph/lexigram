@@ -55,6 +55,18 @@ impl<T> VecTree<T> {
         index
     }
 
+    pub fn addc(&mut self, parent_index: Option<usize>, item: T, child: T) -> usize {
+        let index = self.add(parent_index, item);
+        self.add(Some(index), child);
+        index
+    }
+
+    pub fn addi(&mut self, parent_index: Option<usize>, item: T, child_id: usize) -> usize {
+        let node_id = self.add(parent_index, item);
+        self.nodes[node_id].children.push(child_id);
+        node_id
+    }
+
     pub fn add_iter<U: IntoIterator<Item = T>>(&mut self, parent_index: Option<usize>, items: U) -> Vec<usize> {
         let mut indices = Vec::new();
         for item in items {
@@ -62,6 +74,12 @@ impl<T> VecTree<T> {
         }
         // &self.nodes[parent_index].children
         indices
+    }
+
+    pub fn addc_iter<U: IntoIterator<Item = T>>(&mut self, parent_index: Option<usize>, item: T, children: U) -> usize {
+        let index = self.add(parent_index, item);
+        self.add_iter(Some(index), children);
+        index
     }
 
     pub fn len(&self) -> usize {
