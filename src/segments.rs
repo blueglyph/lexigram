@@ -501,6 +501,176 @@ impl<'a, T> IntoIterator for &'a SegMap<T> {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Macros
+
+pub mod macros {
+    #[allow(unused)] // the compiler doesn't see it's used in a macro
+    use crate::btreemap;
+    #[allow(unused)] // the compiler doesn't see it's used in a macro
+    use super::*;
+
+    /// Generates a Seg (tuple of u32 values) from one or two values (characters or integers).
+    ///
+    /// # Example
+    /// ```
+    /// # use std::collections::BTreeSet;
+    /// # use rlexer::{btreeset, seg, segments::{Segments, Seg}};
+    /// let mut x = Segments::empty();
+    /// x.insert(seg!('a'));
+    /// x.insert(seg!('0'-'9'));
+    /// assert_eq!(x, Segments(btreeset![Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
+    /// ```
+    #[macro_export(local_inner_macros)]
+    macro_rules! seg {
+        ($($a1:literal)?$($a2:ident)? - $($b1:literal)?$($b2:ident)?) => { Seg(utf8!($($a1)?$($a2)?), utf8!($($b1)?$($b2)?)) };
+        ($($a1:literal)?$($a2:ident)?) => { Seg(utf8!($($a1)?$($a2)?), utf8!($($a1)?$($a2)?)) };
+    }
+
+    /// Generates a Segments initialization from Seg values. The macro only accepts literals, either characters or integers,
+    /// along with a few identifiers:
+    ///
+    /// - `DOT` matches all UTF-8 characters
+    /// - `MIN`      = 0
+    /// - `LOW_MAX`  = 0xd7ff
+    /// - `GAP_MIN`  = 0xd800 (GAP_MIN - GAP_MAX are forbidden UTF-8 codepoint values)
+    /// - `GAP_MAX`  = 0xdfff
+    /// - `HIGH_MIN` = 0xe000
+    /// - `MAX`      = 0x10ffff
+    ///
+    /// Integer values are UTF-8 codepoint values, not the 1-4 byte representation.
+    ///
+    /// # Example
+    /// ```
+    /// # use std::collections::BTreeSet;
+    /// # use rlexer::{btreeset, segments, segments::{Segments, Seg}};
+    /// assert_eq!(segments!('a', '0'-'9'), Segments(btreeset![Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
+    /// assert_eq!(segments!(DOT), Segments::dot());
+    /// assert_eq!(segments!(~ '1'-'8'), segments![MIN-'0', '9'-LOW_MAX, HIGH_MIN-MAX]);
+    /// ```
+    #[macro_export(local_inner_macros)]
+    macro_rules! segments {
+        () => { Segments::empty() };
+        (DOT) => { Segments::dot() };
+        ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { Segments::from([$(seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+]) };
+        (~ $($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { segments![$($($a1)?$($a2)? $(- $($b1)?$($b2)?)?),+].not() };
+        //
+        ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+) => { segments![$(seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+] };
+    }
+
+    /// Generates the key-value pairs corresponding to the `Segments => int` arguments, which can be
+    /// used to add values to `BTreeMap<Segments, StateId>` state transitions.
+    ///
+    /// All segments must be with square brackets or without them, but it's not allowed to mix both
+    /// formats in the same macro. Negation (`~`) can only be used with square brackets, and is placed
+    /// in front of the opening bracket.
+    ///
+    /// Segments are made up of any number of single character or codepoint literals, or inclusive
+    /// ranges of character / codepoint literals.
+    ///
+    /// A few identifiers can also be used:
+    /// - `DOT` matches all UTF-8 characters
+    /// - `MIN`      = 0
+    /// - `LOW_MAX`  = 0xd7ff
+    /// - `GAP_MIN`  = 0xd800 (GAP_MIN - GAP_MAX are forbidden UTF-8 codepoint values)
+    /// - `GAP_MAX`  = 0xdfff
+    /// - `HIGH_MIN` = 0xe000
+    /// - `MAX`      = 0x10ffff
+    ///
+    /// Integer values are UTF-8 codepoint values, not the 1-4 byte representation.
+    ///
+    /// # Example
+    /// ```
+    /// # use std::collections::{BTreeMap, BTreeSet};
+    /// # use rlexer::{btreemap, segments, branch, segments::Segments};
+    /// # use rlexer::segments::Seg;
+    /// let transitions = btreemap![
+    ///     0 => branch!['a'-'c' => 0],
+    ///     1 => branch!['a'-'c', '0'-'2' => 0],
+    ///     2 => branch!['a'-'c', '.' => 0],
+    ///     3 => branch!['a'-'c', '.' => 0, 'd'-'f' => 1],
+    ///     4 => branch![['a'-'c', '.'] => 0, ['d'-'f'] => 1],
+    ///     5 => branch![['a'-'c', '.'] => 0, ~['a'-'c', '.'] => 1],
+    ///     6 => branch![0 - LOW_MAX, HIGH_MIN - MAX => 0],
+    ///     7 => branch!['a' => 0, DOT => 1],
+    /// ];
+    /// assert_eq!(transitions,
+    ///     btreemap![
+    ///         0 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32)]) => 0],
+    ///         1 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('0' as u32, '2' as u32)]) => 0],
+    ///         2 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0],
+    ///         3 => btreemap![
+    ///             Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+    ///             Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+    ///         4 => btreemap![
+    ///             Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+    ///             Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+    ///         5 => btreemap![
+    ///             Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+    ///             Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]).not() => 1],
+    ///         6 => btreemap![Segments::from([Seg(0_u32, 0xd7ff_u32), Seg(0xe000_u32, 0x10ffff_u32)]) => 0],
+    ///         7 => btreemap![Segments::from([Seg('a' as u32, 'a' as u32)]) => 0, Segments::dot() => 1]
+    ///     ]);
+    /// ```
+    #[macro_export(local_inner_macros)]
+    macro_rules! branch {
+        // doesn't work, so we can't mix [] and non-[] segments:
+        // ($( $($($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+)? $(~[$($($c1:literal)?$($c2:ident)? $(-$($d1:literal)?$($d2:ident)?)?),+])? => $value:expr ),*)
+        // => { btreemap![$($(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+])? $(segments![~ $($($c1)?$($c2)?$(- $($d1)?$($d2)?)?),+])? => $value),*] };
+
+        ($( $($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+ => $value:expr ),*)
+        => { btreemap![$(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+] => $value),*] };
+        ($( $([$($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+])? $(~[$($($c1:literal)?$($c2:ident)? $(-$($d1:literal)?$($d2:ident)?)?),+])? => $value:expr ),*)
+        => { btreemap![$($(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+])? $(segments![~ $($($c1)?$($c2)?$(- $($d1)?$($d2)?)?),+])? => $value),*] };
+    }
+
+    #[test]
+    fn macro_segments() {
+        assert_eq!(seg!('a'-'z'), Seg('a' as u32, 'z' as u32));
+        assert_eq!(seg!('a'), Seg('a' as u32, 'a' as u32));
+        assert_eq!(segments!('a'-'z'), Segments::new(Seg('a' as u32, 'z' as u32)));
+        assert_eq!(segments!('a'), Segments::new(Seg('a' as u32, 'a' as u32)));
+        assert_eq!(segments!('a'-'z', '0'-'9'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]));
+        assert_eq!(segments!('a'-'z', '0'-'9', '-'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32), Seg('-' as u32, '-' as u32)]));
+        assert_eq!(segments!(~ '0'-'9', '.'), Segments::from([Seg('0' as u32, '9' as u32), Seg('.' as u32, '.' as u32)]).not());
+        assert_eq!(segments!(0 - LOW_MAX, HIGH_MIN - MAX), Segments::dot());
+        assert_eq!(segments!(~ 0 - LOW_MAX, HIGH_MIN - MAX), Segments::empty());
+        assert_eq!(segments!(DOT), Segments::dot());
+        assert_eq!(segments!(~ DOT), Segments::empty());
+    }
+
+    #[test]
+    fn macro_branch() {
+        let transitions = btreemap![
+            0 => branch!['a'-'c' => 0],
+            1 => branch!['a'-'c', '0'-'2' => 0],
+            2 => branch!['a'-'c', '.' => 0],
+            3 => branch!['a'-'c', '.' => 0, 'd'-'f' => 1],
+            4 => branch![['a'-'c', '.'] => 0, ['d'-'f'] => 1],
+            5 => branch![['a'-'c', '.'] => 0, ~['a'-'c', '.'] => 1],
+            6 => branch![0 - LOW_MAX, HIGH_MIN - MAX => 0],
+            7 => branch!['a' => 0, DOT => 1],
+        ];
+        assert_eq!(transitions,
+            btreemap![
+                0 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32)]) => 0],
+                1 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('0' as u32, '2' as u32)]) => 0],
+                2 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0],
+                3 => btreemap![
+                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+                    Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+                4 => btreemap![
+                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+                    Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+                5 => btreemap![
+                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]).not() => 1],
+                6 => btreemap![Segments::from([Seg(0_u32, 0xd7ff_u32), Seg(0xe000_u32, 0x10ffff_u32)]) => 0],
+                7 => btreemap![Segments::from([Seg('a' as u32, 'a' as u32)]) => 0, Segments::dot() => 1]
+            ]);
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------------------------
 

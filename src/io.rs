@@ -213,6 +213,23 @@ impl<'a, R: Read> Iterator for CharReaderIter<'a, R> {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Macros
+
+pub mod macros {
+    /// Replaces a few identifiers by their codepoint value, and casts character / integer literals to `u32`.
+    #[macro_export(local_inner_macros)]
+    macro_rules! utf8 {
+        ( MIN )        => { 0_u32 };
+        ( LOW_MAX )    => { 0xd7ff_u32 };
+        ( GAP_MIN )    => { 0xd800_u32 };
+        ( GAP_MAX )    => { 0xdfff_u32 };
+        ( HIGH_MIN )   => { 0xe000_u32 };
+        ( MAX )        => { 0x10ffff_u32 };
+        ( $a:literal ) => { $a as u32 }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------------------------
 

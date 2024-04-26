@@ -845,3 +845,94 @@ impl Dfa {
 fn states_to_string<T: Display>(s: &BTreeSet<T>) -> String {
     s.iter().map(|id| id.to_string()).join()
 }
+
+// ---------------------------------------------------------------------------------------------
+// Macros
+
+pub mod macros {
+    use std::ops::Add;
+    #[allow(unused)]
+    use crate::io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN};
+    use super::*;
+
+    /// Generates an `ReNode` instance.
+    ///
+    /// # Examples
+    /// ```
+    /// # use std::collections::BTreeSet;
+    /// # use rlexer::{dfa::*, node, io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN}};
+    /// # use rlexer::segments::{Seg, Segments};
+    /// assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
+    /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))))));
+    /// assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))))));
+    /// assert_eq!(node!(str "new"), ReNode::new(ReType::String(Box::new("new".to_string()))));
+    /// assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token(5)), channel: 0, push_mode: None, push_state: None, pop: false }))));
+    /// assert_eq!(node!(&), ReNode::new(ReType::Concat));
+    /// assert_eq!(node!(|), ReNode::new(ReType::Or));
+    /// assert_eq!(node!(*), ReNode::new(ReType::Star));
+    /// assert_eq!(node!(+), ReNode::new(ReType::Plus));
+    /// assert_eq!(node!(-), ReNode::new(ReType::Empty));
+    /// ```
+    #[macro_export(local_inner_macros)]
+    macro_rules! node {
+        (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
+        (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
+        ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]))) };
+        (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]))) };
+        (.) => { node!([DOT]) };
+        (str $str:expr) => { ReNode::new(ReType::String(Box::new($str.to_string()))) };
+        (&) => { ReNode::new(ReType::Concat) };
+        (|) => { ReNode::new(ReType::Or) };
+        (*) => { ReNode::new(ReType::Star) };
+        (+) => { ReNode::new(ReType::Plus) };
+        (-) => { ReNode::new(ReType::Empty) };
+        (??) => { ReNode::new(ReType::Lazy) };
+        // actions:
+        (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
+        ($id:expr) => { ReNode::new(ReType::End(Box::new($id))) };
+        //
+        ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
+        (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!(~ [$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
+    }
+
+    #[macro_export(local_inner_macros)]
+    macro_rules! term {
+        (= $id:expr ) =>   { Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false } };
+        (skip) =>          { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false } };
+        (push $id:expr) => { Terminal { token: None, channel: 0, push_mode: Some($id), push_state: None, pop: false } };
+        (pushst $id:expr) => { Terminal { token: None, channel: 0, push_mode: None, push_state: Some($id), pop: false } };
+        (pop) =>           { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true } };
+        (# $id:expr) =>    { Terminal { token: None, channel: $id, push_mode: None, push_state: None, pop: false } };
+    }
+
+    impl Add for Terminal {
+        type Output = Terminal;
+
+        fn add(self, rhs: Self) -> Self::Output {
+            Terminal {
+                token: if self.token.is_some() { self.token } else { rhs.token },
+                channel: self.channel + rhs.channel,
+                push_mode: if self.push_mode.is_some() { self.push_mode } else { rhs.push_mode },
+                push_state: if self.push_state.is_some() { self.push_state } else { rhs.push_state },
+                pop: self.pop || rhs.pop
+            }
+        }
+    }
+
+    #[test]
+    fn macro_node() {
+        assert_eq!(node!([0 - LOW_MAX, HIGH_MIN - MAX]),   ReNode::new(ReType::CharRange(Box::new(Segments::dot()))));
+        assert_eq!(node!(~[0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::new(ReType::CharRange(Box::new(Segments::empty()))));
+
+        assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
+        assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))))));
+        assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))))));
+        assert_eq!(node!(str "new"), ReNode::new(ReType::String(Box::new("new".to_string()))));
+        assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token(5)), channel: 0, push_mode: None, push_state: None, pop: false }))));
+        assert_eq!(node!(&), ReNode::new(ReType::Concat));
+        assert_eq!(node!(|), ReNode::new(ReType::Or));
+        assert_eq!(node!(*), ReNode::new(ReType::Star));
+        assert_eq!(node!(+), ReNode::new(ReType::Plus));
+        assert_eq!(node!(-), ReNode::new(ReType::Empty));
+    }
+}
