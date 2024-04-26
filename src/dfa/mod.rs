@@ -194,6 +194,10 @@ impl DfaBuilder {
         builder
     }
 
+    pub fn get_re(&self) -> &VecTree<ReNode> {
+        &self.re
+    }
+
     pub fn get_warnings(&self) -> &Vec<String> {
         &self.warnings
     }
@@ -389,7 +393,7 @@ impl DfaBuilder {
                 symbols_part.add_partition(&segments);
             }
         }
-        if VERBOSE { println!("symbols = {symbols_part}"); }
+        if VERBOSE { println!("symbols = {symbols_part:X}"); }
 
         // prepares the segments and their source ids
         while let Some(s) = new_states.pop_first() {

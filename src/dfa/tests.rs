@@ -53,7 +53,15 @@ pub(crate) fn term_to_string(t: &Terminal) -> String {
     }
 }
 
-fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
+pub(crate) fn followpos_to_string(dfa_builder: &DfaBuilder) -> String {
+    let mut fpos = dfa_builder.followpos.iter()
+        .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")))
+        .collect::<Vec<_>>();
+    fpos.sort();
+    fpos.join("\n")
+}
+
+pub(crate) fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
     if tree.len() > 0 {
         node_to_string(tree, 0, basic)
     } else {
@@ -1486,11 +1494,7 @@ fn dfa_states() {
             if !msg.is_empty() {
                 println!("{msg}");
             }
-            let mut fpos = dfa_builder.followpos.iter()
-                .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")))
-                .collect::<Vec<_>>();
-            fpos.sort();
-            println!("followpos:\n{}", fpos.join("\n"));
+            println!("followpos:\n{}", followpos_to_string(&dfa_builder));
             println!();
         }
         if RUN_ALL {

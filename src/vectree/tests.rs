@@ -17,7 +17,7 @@ fn node_to_string<T: Display>(tree: &VecTree<T>, index: usize) -> String {
     result
 }
 
-fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
+pub(crate) fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
     if tree.len() > 0 {
         node_to_string(tree, 0)
     } else {
