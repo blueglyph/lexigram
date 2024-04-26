@@ -123,7 +123,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let bc_opt = re.add(Some(root), node!(|));
             re.add_iter(Some(root), [node!(chr 'd'), node!(=0)]);
             re.add(Some(bc_opt), node!(str "bc"));
-            re.add(Some(bc_opt), node!(-));
+            re.add(Some(bc_opt), node!(e));
         },
         7 => {  // a(bc)?d?e = a(bc|-)(d|-)e<end>
             let root = re.add(None, node!(&));
@@ -132,9 +132,9 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             let d_opt = re.add(Some(root), node!(|));
             re.add_iter(Some(root), [node!(chr 'e'), node!(=0)]);
             re.add(Some(bc_opt), node!(str "bc"));
-            re.add(Some(bc_opt), node!(-));
+            re.add(Some(bc_opt), node!(e));
             re.add(Some(d_opt), node!(chr 'd'));
-            re.add(Some(d_opt), node!(-));
+            re.add(Some(d_opt), node!(e));
         },
         8 => {  // a(<end>|b<end>)
             let root = re.add(None, node!(&));

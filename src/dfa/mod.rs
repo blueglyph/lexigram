@@ -885,7 +885,7 @@ pub mod macros {
         (|) => { ReNode::new(ReType::Or) };
         (*) => { ReNode::new(ReType::Star) };
         (+) => { ReNode::new(ReType::Plus) };
-        (-) => { ReNode::new(ReType::Empty) };
+        (e) => { ReNode::new(ReType::Empty) };
         (??) => { ReNode::new(ReType::Lazy) };
         // actions:
         (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
@@ -933,6 +933,6 @@ pub mod macros {
         assert_eq!(node!(|), ReNode::new(ReType::Or));
         assert_eq!(node!(*), ReNode::new(ReType::Star));
         assert_eq!(node!(+), ReNode::new(ReType::Plus));
-        assert_eq!(node!(-), ReNode::new(ReType::Empty));
+        assert_eq!(node!(e), ReNode::new(ReType::Empty));
     }
 }
