@@ -8,26 +8,6 @@ use crate::segments::Seg;
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
-    let node = tree.get(index);
-    let mut result = String::new();
-    if !basic {
-        if node.nullable.is_none() {
-            result.push('?');
-        } else if node.nullable.unwrap() {
-            result.push('!');
-        }
-    }
-    result.push_str(&node.to_string());
-    let children = tree.children(index);
-    if !children.is_empty() {
-        result.push_str("(");
-        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c, basic)).collect::<Vec<_>>().join(","));
-        result.push_str(")");
-    }
-    result
-}
-
 #[allow(unused)]
 pub(crate) fn term_to_string(t: &Terminal) -> String {
     let mut str = Vec::<String>::new();
@@ -50,22 +30,6 @@ pub(crate) fn term_to_string(t: &Terminal) -> String {
         "term!(skip)".to_string()
     } else {
         str.join(" + ")
-    }
-}
-
-pub(crate) fn followpos_to_string(dfa_builder: &DfaBuilder) -> String {
-    let mut fpos = dfa_builder.followpos.iter()
-        .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")))
-        .collect::<Vec<_>>();
-    fpos.sort();
-    fpos.join("\n")
-}
-
-pub(crate) fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
-    if tree.len() > 0 {
-        node_to_string(tree, 0, basic)
-    } else {
-        "None".to_string()
     }
 }
 

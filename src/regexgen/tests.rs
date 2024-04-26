@@ -1,13 +1,13 @@
 #![cfg(test)]
 
 use std::io::{Cursor, Read};
-use crate::dfa::{DfaBuilder, TokenId};
+use crate::dfa::{DfaBuilder, TokenId, tree_to_string};
 use crate::escape_string;
 use crate::io::CharReader;
 use crate::lexer::Lexer;
 use crate::lexgen::LexGen;
 use super::*;
-use crate::dfa::tests::{print_dfa, tree_to_string};
+use crate::dfa::tests::print_dfa;
 use crate::lexgen::tests::print_source_code;
 
 fn make_lexer<R: Read>() -> Lexer<R> {
@@ -30,7 +30,7 @@ fn make_lexer<R: Read>() -> Lexer<R> {
 #[test]
 fn regexgen_re() {
     let re = build_re();
-    println!("{}", crate::dfa::tests::tree_to_string(&re, true));
+    println!("{}", crate::dfa::tree_to_string(&re, true));
 
 }
 
@@ -41,17 +41,17 @@ fn regexgen_lexer() {
 
         (1, vec![
             // no error
-            ("-> \\ : , .. { [ ( - ~ + | ? \" } ] ) ; ' * channels fragment grammar lexer mode pop push return skip EOF",
-             vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
-             vec!["->", "\\", ":", ",", "..", "{", "[", "(", "-", "~", "+", "|", "?", "\"", "}", "]", ")", ";", "'", "*", "channels", "fragment", "grammar", "lexer", "mode", "pop", "push", "return", "skip", "EOF"]),
+            ("-> : , .. { ( ~ + | ? } ) ; * channels fragment grammar lexer mode pop push return skip",
+             vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
+             vec!["->", ":", ",", "..", "{", "(", "~", "+", "|", "?", "}", ")", ";", "*", "channels", "fragment", "grammar", "lexer", "mode", "pop", "push", "return", "skip"]),
         ]),
-/*
+
         (2, vec![
-            ("",
+            (LEXICON,
             vec![],
             vec![])
         ]),
-*/
+
     ];
     const VERBOSE: bool = true;
 

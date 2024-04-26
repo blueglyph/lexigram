@@ -155,14 +155,39 @@ impl<R: Read> Lexer<R> {
     //              pos++
     //
     pub fn get_token(&mut self) -> Result<(Token, ChannelId, String), &LexerError> {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         self.error = None;
         let mut text = String::new();
         if let Some(input) = self.input.as_mut() {
             let mut state = self.start_state;
+            #[cfg(debug_assertions)] let mut last_state: Option<StateId> = None;
+            #[cfg(debug_assertions)] let mut last_offset: Option<u64> = None;
+            #[cfg(debug_assertions)] let mut infinite_loop_cnt = 0_u32;
             loop {
                 if VERBOSE { print!("- state = {state}"); }
-                // let offset = input.get_offset();
+                #[cfg(debug_assertions)] {
+                    if last_state.map(|st| st == state).unwrap_or(false) && last_offset.map(|offset| offset == input.get_offset()).unwrap_or(false) {
+                        if infinite_loop_cnt > 3 {
+                            self.error = Some(LexerError {
+                                pos: self.pos,
+                                curr_char: None,
+                                group: None,
+                                token_ch: None,
+                                state: 0,
+                                is_eos: true,
+                                text: "".to_string(),
+                                msg: "infinite loop".to_string(),
+                            });
+                            if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
+                            return Err(self.error.as_ref().unwrap());
+                        }
+                        infinite_loop_cnt += 1;
+                    } else {
+                        infinite_loop_cnt = 0;
+                    }
+                    last_state = Some(state);
+                    last_offset = Some(input.get_offset());
+                }
                 let c_opt = input.get_char();
                 let is_eos = c_opt.is_none();
                 let group = c_opt.and_then(|c| char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, c))
@@ -191,11 +216,15 @@ impl<R: Read> Lexer<R> {
                             if VERBOSE { println!(" => OK: token {}", token.0); }
                             return Ok((token.clone(), terminal.channel, text));
                         }
-                        if VERBOSE { println!(" => skip, state {}", self.start_state); }
-                        state = self.start_state;
-                        text.clear();
-                        continue; // todo: maybe not necessary
-                    } else { // EOF or invalid character
+                        if c_opt.is_some() {
+                            // EOF, if we skip here, we'll loop indefinitely
+                            if VERBOSE { println!(" => skip, state {}", self.start_state); }
+                            state = self.start_state;
+                            text.clear();
+                            continue; // todo: maybe not necessary
+                        }
+                    } // else
+                    { // EOF or invalid character
                         self.error = Some(LexerError {
                             pos: self.pos,
                             curr_char: c_opt,

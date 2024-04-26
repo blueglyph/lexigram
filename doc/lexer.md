@@ -89,34 +89,28 @@ fragment BlockComment   : '/*' .*? '*/';
 fragment LineComment    : '//' ~[\r\n]*;
 fragment HexDigit       : [0-9a-fA-F];
 fragment UnicodeEsc     : 'u{' HexDigit+ '}';
-fragment EscChar        : BACKSLASH ([nrt'\\] | UnicodeEsc);
+fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
 fragment Char           : EscChar | ~[\n\r\t'\\];
-fragment CharLiteral    : SQUOTE Char SQUOTE;
-fragment StrLiteral     : SQUOTE Char Char+ SQUOTE;
+fragment CharLiteral    : '\'' Char '\'';
+fragment StrLiteral     : '\'' Char Char+ '\'';
 fragment FixedSet       : ('\\w' | '\\d');
 // Char inside a '[' ']' set
-fragment EscSetChar     : BACKSLASH ([nrt\\[\]\-] | UnicodeEsc);
+fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
 fragment SetChar        : EscSetChar | ~[\n\r\t\\];
 
 ARROW           : '->';
-BACKSLASH       : '\\';
 COLON           : ':';
 COMMA           : ',';
 ELLIPSIS        : '..';
 LBRACKET        : '{';
-LSBRACKET       : '[';
 LPAREN          : '(';
-MINUS           : '-';
 NEGATE          : '~';
 PLUS            : '+';
 OR              : '|';
 QUESTION        : '?';
-QUOTE           : '"';
 RBRACKET        : '}';
-RSBRACKET       : ']';
 RPAREN          : ')';
 SEMICOLON       : ';';
-SQUOTE          : '\'';
 STAR            : '*';
 
 CHANNELS        : 'channels';
@@ -149,7 +143,7 @@ STR_LIT         : StrLiteral;
 parser grammar RLParser;
 options { tokenVocab = RLLexer; }
 
-file: header? (declaration | rule)* EOF;
+file: header? (option | declaration | rule)* EOF;
 
 header:
     LEXER GRAMMAR ID SEMICOLON
@@ -157,6 +151,10 @@ header:
 
 declaration:
     MODE ID SEMICOLON
+;
+
+option:
+    CHANNELS LBRACKET ID (COMMA ID)* RBRACKET
 ;
 
 rule:
@@ -192,7 +190,8 @@ repeat_item:
 
 item:
     ID
-|   CHAR_LIT
+|   SYM_EOF
+|   CHAR_LIT (ELLIPSIS CHAR_LIT)?
 |   STR_LIT
 |   CHAR_SET
 |   LPAREN alt_item RPAREN

@@ -1,13 +1,10 @@
 use std::collections::{BTreeMap, BTreeSet};
-use std::fmt::{Debug, Display, Formatter};
+use std::fmt::{Debug, Display, Formatter, LowerHex, UpperHex};
 use std::ops::{Deref, DerefMut, RangeInclusive};
 use std::collections::btree_map::{IntoIter, Iter};
 use std::ops::Bound::Included;
 use crate::{btreeset, escape_char};
 use crate::io::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN, UTF8_GAP_MIN, UTF8_GAP_MAX};
-
-#[cfg(test)]
-use std::fmt::{LowerHex, UpperHex};
 
 // ---------------------------------------------------------------------------------------------
 // Segments
@@ -324,7 +321,6 @@ impl Display for Segments { // TODO: create wrapper to set the desired style (no
     }
 }
 
-#[cfg(test)]
 /// "{:x}" is used to show the raw segments with codes
 impl LowerHex for Segments {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -336,7 +332,6 @@ impl LowerHex for Segments {
     }
 }
 
-#[cfg(test)]
 /// "{:X}" is used to show the raw segments with characters
 impl UpperHex for Segments {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

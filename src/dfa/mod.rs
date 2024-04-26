@@ -363,7 +363,7 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const RESOLVE_END_STATES: bool = true;
         const RM_LAZY_BRANCHES: bool = true;
         // initial state from firstpos(top node)
@@ -444,6 +444,13 @@ impl DfaBuilder {
                     }
                 } else {
                     if let ReType::CharRange(segments) = symbol {
+                        if !self.followpos.contains_key(&id) {
+                            println!("{id} is not in followpos; are you missing an accepting state?");
+                            println!("dbg: {segments}");
+                            println!("dbg: {id}");
+                            println!("dbg: tree = {}", crate::dfa::tree_to_string(&self.re, true));
+                            println!("dbg: followpos = {}", crate::dfa::followpos_to_string(&self));
+                        }
                         id_transitions.extend(&self.followpos[&id]);
                         let cmp = segments.intersect(&symbols_part);
                         assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
@@ -846,8 +853,47 @@ impl Dfa {
     }
 }
 
+// ---------------------------------------------------------------------------------------------
+// Supporting functions
+
 fn states_to_string<T: Display>(s: &BTreeSet<T>) -> String {
     s.iter().map(|id| id.to_string()).join()
+}
+
+pub(crate) fn followpos_to_string(dfa_builder: &DfaBuilder) -> String {
+    let mut fpos = dfa_builder.followpos.iter()
+        .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")))
+        .collect::<Vec<_>>();
+    fpos.sort();
+    fpos.join("\n")
+}
+
+fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
+    let node = tree.get(index);
+    let mut result = String::new();
+    if !basic {
+        if node.nullable.is_none() {
+            result.push('?');
+        } else if node.nullable.unwrap() {
+            result.push('!');
+        }
+    }
+    result.push_str(&node.to_string());
+    let children = tree.children(index);
+    if !children.is_empty() {
+        result.push_str("(");
+        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c, basic)).collect::<Vec<_>>().join(","));
+        result.push_str(")");
+    }
+    result
+}
+
+pub(crate) fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
+    if tree.len() > 0 {
+        node_to_string(tree, 0, basic)
+    } else {
+        "None".to_string()
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -875,7 +921,7 @@ pub mod macros {
     /// assert_eq!(node!(|), ReNode::new(ReType::Or));
     /// assert_eq!(node!(*), ReNode::new(ReType::Star));
     /// assert_eq!(node!(+), ReNode::new(ReType::Plus));
-    /// assert_eq!(node!(-), ReNode::new(ReType::Empty));
+    /// assert_eq!(node!(e), ReNode::new(ReType::Empty));
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! node {
