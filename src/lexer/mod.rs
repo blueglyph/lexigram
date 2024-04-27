@@ -122,7 +122,7 @@ impl<R: Read> Lexer<R> {
         LexInterpretIter { lexer: self }
     }
 
-    // if next char returns EOF at the end, we can simplify:
+    // get_token flow:
     //
     //      if input.is_none
     //          return error
@@ -131,10 +131,8 @@ impl<R: Read> Lexer<R> {
     //          next char
     //          group       -> group == nbr_groups => unrecognized
     //          next_state  -> [normal] < first_end_state <= [accepting] <= nbr_states <= [invalid char]
-    //          if next_state >= nbr_states || group >= nbr_groups
-    //              if EOS
-    //                  close
-    //              else
+    //          if next_state >= nbr_states || group >= nbr_groups (invalid char)
+    //              if !EOS
     //                  rewind char
     //              if first_end_state <= state < nbr_states (accepting)
     //                  // process skip/push/pop:
@@ -147,9 +145,10 @@ impl<R: Read> Lexer<R> {
     //                      state = n
     //                  if !skip
     //                      return (token, channel)
-    //                  [else continue]
-    //              else
-    //                  return error/EOS
+    //                  if !EOS
+    //                      state = start
+    //                      continue // skip
+    //              return error/EOS
     //          else
     //              state = next_state
     //              pos++
@@ -216,8 +215,7 @@ impl<R: Read> Lexer<R> {
                             if VERBOSE { println!(" => OK: token {}", token.0); }
                             return Ok((token.clone(), terminal.channel, text));
                         }
-                        if c_opt.is_some() {
-                            // EOF, if we skip here, we'll loop indefinitely
+                        if !is_eos { // we can't skip if <EOF> or we'll loop indefinitely
                             if VERBOSE { println!(" => skip, state {}", self.start_state); }
                             state = self.start_state;
                             text.clear();
