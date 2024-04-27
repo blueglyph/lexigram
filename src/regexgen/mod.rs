@@ -1,4 +1,5 @@
 mod tests;
+mod gen;
 
 use crate::dfa::{ReNode, ReType, Token, TokenId, Terminal};
 use crate::segments::{Segments, Seg};
