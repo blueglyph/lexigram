@@ -5,17 +5,29 @@
   - [ ] create simple top-down parser for rlexer's grammar (manually)
   - [ ] transform regex AST to vectree
   - [ ] make binary application (lexicon file -> AST -> vectree -> dfa -> lexgen -> sources)
+- [ ] don't pour big ranges (.) into utf8 table
+- improve robustness
+  - [ ] detect dead ends without a terminal
+  - [ ] detect missing terminals (present in vectree but not in dfa)
+- improve performances / memory
+  - [ ] table storage in lexer and lexgen (either generated dynamically or from const)
+  - [ ] ReNode size
+  - [ ] buffer <> Strings returned by get_token()
+  - terminal table
+    - [ ] redundancy (2.5x larger than necessary)
+    - [ ] Terminal is 32 bytes long
 - [x] ~~ranges~~
 - [x] ~~lazy/non-greedy repeaters and ranges~~
 - [x] ~~how to retrieve original text behind tokens?~~
 - [ ] lexer hooks? (using traits?)
 - [x] ~~define lexer file basic syntax (1st step)~~
 - [ ] error reporting
+- [ ] independence from reader type (Lexer<R: Read>)
 
 ## Structure
 
 - [ ] extract vectree into another lib
-- [ ] move macros
+- [x] ~~move macros~~
 
 ## Tests
 
