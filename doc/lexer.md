@@ -66,7 +66,7 @@ The regular expressions used on the right of the colon, in each matching or frag
   - `\s` represents a space character: `[ \t\r\n]`
   - `\d` represents a decimal digit: `[0-9]`
   - `.` represents any character
-  - `\n \r \t \\ \[ \] \- \.` are escape codes for literals that cannot be directly put into square brackets
+  - `\n \r \t \\ \] \- \.` are escape codes for literals that cannot be directly put into square brackets (both `[` and `\[` are accepted, though)
 - `~`: negates the character set on the right
   - `~[ \t\n\r]`: any non-space character
   - `~( 'a' | 'b' | 'c' )`: any character but 'a', 'b', or 'c', equivalent to `~'a'..'c'`
@@ -85,56 +85,58 @@ The regular expressions used on the right of the colon, in each matching or frag
 ```
 lexer grammar RLLexer;
 
-fragment BlockComment   : '/*' .*? '*/';
-fragment LineComment    : '//' ~[\r\n]*;
-fragment HexDigit       : [0-9a-fA-F];
-fragment UnicodeEsc     : 'u{' HexDigit+ '}';
-fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
-fragment Char           : EscChar | ~[\n\r\t'\\];
-fragment CharLiteral    : '\'' Char '\'';
-fragment StrLiteral     : '\'' Char Char+ '\'';
-fragment FixedSet       : ('\\w' | '\\d');
+fragment BlockComment	: '/*' .*? '*/';
+fragment LineComment	: '//' ~[\r\n]*;
+fragment HexDigit		: [0-9a-fA-F];
+fragment UnicodeEsc		: 'u{' HexDigit+ '}';
+fragment EscChar		: '\\' ([nrt'\\] | UnicodeEsc);
+fragment Char			: EscChar | ~[\n\r\t'\\];
+fragment CharLiteral	: '\'' Char '\'';
+fragment StrLiteral		: '\'' Char Char+ '\'';
+fragment FixedSet		: ('\\w' | '\\d');
 // Char inside a '[' ']' set
-fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
-fragment SetChar        : EscSetChar | ~[\n\r\t\\];
+fragment EscSetChar		: '\\' ([nrt\\[\]\-] | UnicodeEsc);
+fragment SetChar		: (EscSetChar | ~[\n\r\t\\\]]);
 
-ARROW           : '->';
-COLON           : ':';
-COMMA           : ',';
-ELLIPSIS        : '..';
-LBRACKET        : '{';
-LPAREN          : '(';
-NEGATE          : '~';
-PLUS            : '+';
-OR              : '|';
-QUESTION        : '?';
-RBRACKET        : '}';
-RPAREN          : ')';
-SEMICOLON       : ';';
-STAR            : '*';
+ARROW			: '->';
+COLON			: ':';
+COMMA			: ',';
+ELLIPSIS		: '..';
+LBRACKET    	: '{';
+LPAREN			: '(';
+NEGATE			: '~';
+PLUS			: '+';
+OR				: '|';
+QUESTION		: '?';
+RBRACKET    	: '}';
+RPAREN			: ')';
+SEMICOLON		: ';';
+STAR			: '*';
 
-CHANNELS        : 'channels';
-FRAGMENT        : 'fragment';
-GRAMMAR         : 'grammar';
-LEXER           : 'lexer';
-MODE            : 'mode';
-POP             : 'pop';
-PUSH            : 'push';
-RETURN          : 'return';
-SiKP            : 'skip';
-SYM_EOF         : 'EOF';
+CHANNELS		: 'channels';
+FRAGMENT		: 'fragment';
+GRAMMAR			: 'grammar';
+LEXER			: 'lexer';
+MODE			: 'mode';
+POP				: 'pop';
+PUSH			: 'push';
+RETURN			: 'return';
+SiKP			: 'skip';
+SYM_EOF			: 'EOF';
 
-COMMENT         : BlockComment              -> skip;
-LINECOMMENT     : LineComment               -> skip;
-WHITESPACE      : [ \n\r\t]+                -> skip;
+COMMENT			: BlockComment 				-> skip;
+LINECOMMENT		: LineComment				-> skip;
+WHITESPACE		: [ \n\r\t]+				-> skip;
 
-ID              : [a-zA-Z][a-zA-Z_0-9]*;
+ID				: [a-zA-Z][a-zA-Z_0-9]*;
 
-CHAR_LIT        : CharLiteral;
-CHAR_SET        : '[' (SetChar '-' SetChar | SetChar | FixedSet)* ']'
+CHAR_LIT		: CharLiteral;
+
+CHAR_SET		: '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
                 | '.'
                 | FixedSet;
-STR_LIT         : StrLiteral;
+
+STR_LIT			: StrLiteral;
 ```
 
 ## ANTLR Parser Rules

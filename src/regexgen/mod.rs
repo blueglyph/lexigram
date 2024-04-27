@@ -40,7 +40,7 @@ pub enum Id {
 pub fn build_re() -> VecTree<ReNode> {
     let mut re = VecTree::new();
     let top = re.add(None, node!(|));
-    re.addc_iter(Some(top), node!(&), [node!(str "->"), node!(=Id::Arrow as TokenId)]);
+    re.addc_iter(Some(top), node!(&), [node!(str "->"      ), node!(=Id::Arrow as TokenId)]);
     re.addc_iter(Some(top), node!(&), [node!(chr ':'       ), node!(=Id::Colon     as TokenId)]);
     re.addc_iter(Some(top), node!(&), [node!(chr ','       ), node!(=Id::Comma     as TokenId)]);
     re.addc_iter(Some(top), node!(&), [node!(str ".."      ), node!(=Id::Ellipsis  as TokenId)]);
@@ -230,6 +230,7 @@ CHAR_SET		: '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
 STR_LIT			: StrLiteral;
 "#;
 
+#[cfg(test)]
 const LEXICON_TOKENS: [TokenId; 266] = [
     17, 16, 24,                                         // lexer grammar RLLexer;
     12, 14, 4, 24, 2, 24, 10,                           // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
@@ -281,6 +282,7 @@ const LEXICON_TOKENS: [TokenId; 266] = [
     24, 1, 24, 12,                                      // STR_LIT     : StrLiteral;
 ];
 
+#[cfg(test)]
 const LEXICON_TEXT: [&str; 266] = [
     "lexer", "grammar", "RLLexer", ";", "channels", "{", "CH_WHITESPACE", ",", "CH_COMMENTS", "}", "fragment", "BlockComment", ":", "'/*'", ".", "*", "?",
     "'*/'", ";", "fragment", "LineComment", ":", "'//'", "~", r#"[\r\n]"#, "*", ";", "fragment", "HexDigit", ":", "[0-9a-fA-F]", ";", "fragment",

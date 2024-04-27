@@ -155,7 +155,7 @@ impl<R: Read> Lexer<R> {
     //              pos++
     //
     pub fn get_token(&mut self) -> Result<(Token, ChannelId, String), &LexerError> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         self.error = None;
         let mut text = String::new();
         if let Some(input) = self.input.as_mut() {
@@ -221,23 +221,22 @@ impl<R: Read> Lexer<R> {
                             if VERBOSE { println!(" => skip, state {}", self.start_state); }
                             state = self.start_state;
                             text.clear();
-                            continue; // todo: maybe not necessary
+                            continue;
                         }
-                    } // else
-                    { // EOF or invalid character
-                        self.error = Some(LexerError {
-                            pos: self.pos,
-                            curr_char: c_opt,
-                            group: Some(group),
-                            token_ch: None,
-                            state,
-                            is_eos,
-                            text,
-                            msg: (if is_eos { "end of stream" } else { if group >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
-                        });
-                        if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
-                        return Err(self.error.as_ref().unwrap());
                     }
+                    // EOF or invalid character
+                    self.error = Some(LexerError {
+                        pos: self.pos,
+                        curr_char: c_opt,
+                        group: Some(group),
+                        token_ch: None,
+                        state,
+                        is_eos,
+                        text,
+                        msg: (if is_eos { "end of stream" } else { if group >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
+                    });
+                    if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
+                    return Err(self.error.as_ref().unwrap());
                 } else {
                     if let Some(c) = c_opt {
                         text.push(c);

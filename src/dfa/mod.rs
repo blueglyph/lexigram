@@ -363,7 +363,7 @@ impl DfaBuilder {
     }
 
     fn calc_states(&mut self) -> Dfa {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const RESOLVE_END_STATES: bool = true;
         const RM_LAZY_BRANCHES: bool = true;
         // initial state from firstpos(top node)

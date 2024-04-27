@@ -11,7 +11,7 @@ use crate::dfa::tests::print_dfa;
 use crate::lexgen::tests::print_source_code;
 
 fn make_lexer<R: Read>() -> Lexer<R> {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     let re = build_re();
     let mut dfa_builder = DfaBuilder::from_re(re);
     let mut dfa = dfa_builder.build();
@@ -48,7 +48,7 @@ fn regexgen_lexer() {
         (2, vec![(LEXICON, LEXICON_TOKENS.to_vec(), LEXICON_TEXT.to_vec())]),
 
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
 
     for (test_id, inputs) in tests.into_iter() {
         if VERBOSE { println!("test {test_id}:"); }
