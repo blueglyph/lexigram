@@ -38,19 +38,14 @@ fn regexgen_re() {
 fn regexgen_lexer() {
     let mut lexer = make_lexer();
     let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
-
         (1, vec![
             // no error
             ("-> : , .. { ( ~ + | ? } ) ; * channels fragment grammar lexer mode pop push return skip",
              vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
-             vec!["->", ":", ",", "..", "{", "(", "~", "+", "|", "?", "}", ")", ";", "*", "channels", "fragment", "grammar", "lexer", "mode", "pop", "push", "return", "skip"]),
+             vec!["->", ":", ",", "..", "{", "(", "~", "+", "|", "?", "}", ")", ";", "*",
+                  "channels", "fragment", "grammar", "lexer", "mode", "pop", "push", "return", "skip"]),
         ]),
-
-        (2, vec![
-            (LEXICON,
-            vec![],
-            vec![])
-        ]),
+        (2, vec![(LEXICON, LEXICON_TOKENS.to_vec(), LEXICON_TEXT.to_vec())]),
 
     ];
     const VERBOSE: bool = true;
@@ -58,6 +53,7 @@ fn regexgen_lexer() {
     for (test_id, inputs) in tests.into_iter() {
         if VERBOSE { println!("test {test_id}:"); }
         for (input, expected_tokens, expected_texts) in inputs {
+            //let expected_texts = expected_texts.iter().map(|s| s.escape_default());
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             lexer.attach_stream(stream);
@@ -73,5 +69,4 @@ fn regexgen_lexer() {
         }
         if VERBOSE { println!("--------------------------------------\n"); }
     }
-
 }

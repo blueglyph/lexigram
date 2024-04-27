@@ -82,12 +82,15 @@ pub fn build_re() -> VecTree<ReNode> {
     let whitespace = re.add(Some(top), node!(&));
     re.addc(Some(whitespace), node!(+), node!([' ', '\n', '\r', '\t']));
     re.add(Some(whitespace), node!(term!(skip)));
+
     // Id: [a-zA-Z][a-zA-Z_0-9]*
     let id = re.add(Some(top), node!(&));
     re.add(Some(id), node!(['a'-'z', 'A'-'Z']));
     re.addc(Some(id), node!(*), node!(['_', '0'-'9', 'a'-'z', 'A'-'Z']));
     re.add(Some(id), node!(=Id::Id as TokenId));
 
+    // Staggered form of Char (easier to decompose):
+    //
     // CharLit: '\'' Char '\''
     // Char: (                                        |             )
     //        '\\' (         |                      )   ~[\n\r\t'\\]
@@ -127,7 +130,8 @@ pub fn build_re() -> VecTree<ReNode> {
                         re.add(Some(cc4), node!(str "u{"));
                         re.addc(Some(cc4), node!(+), node!(['0'-'9', 'a'-'f', 'A'-'F']));
                         re.add(Some(cc4), node!(chr '}'));
-            re.add(Some(or1), node!(~['\n', '\r', '\t', '\\', '[', ']']));
+            // Note: we accept the opening bracket within brackets, with or without escaping: [a-z[] or [a-z\[]
+            re.add(Some(or1), node!(~['\n', '\r', '\t', '\\', ']']));
     }
     let char_set = re.add(Some(top), node!(&));
         let or1 = re.add(Some(char_set), node!(|));
@@ -137,7 +141,8 @@ pub fn build_re() -> VecTree<ReNode> {
                     let or4 = re.add(Some(s3), node!(|));
                         let cc5 = re.add(Some(or4), node!(&));
                             add_set_char(&mut re, cc5);
-                            let or6 = re.add(Some(cc5), node!(|)); // ('-' SetChar )? = ('-' SetChar | <empty>)
+                            // Since x? isn't defined, ('-' SetChar )? = ('-' SetChar | <empty>)
+                            let or6 = re.add(Some(cc5), node!(|));
                                 let cc7 = re.add(Some(or6), node!(&));
                                     re.add(Some(cc7), node!(chr '-'));
                                     add_set_char(&mut re, cc7);
@@ -162,59 +167,134 @@ pub fn build_re() -> VecTree<ReNode> {
 }
 
 #[cfg(test)]
+/// The lexicon of the lexer's regular expression implemented manually above.
+/// It's also used in the tests to see if it can scan itself (hence the dummy lines).
+/// The expected results are defined in `LEXICON_TOKENS` and `LEXICON_TEXT` below.
 const LEXICON: &str = r#"
 lexer grammar RLLexer;
-channels { CH_WHITESPACE, CH_COMMENTS }  // dummy
+channels { CH_WHITESPACE, CH_COMMENTS }	// dummy
 
-fragment BlockComment   : '/*' .*? '*/';
-fragment LineComment    : '//' ~[\r\n]*;
-fragment HexDigit       : [0-9a-fA-F];
-fragment UnicodeEsc     : 'u{' HexDigit+ '}';
-fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
-fragment Char           : EscChar | ~[\n\r\t'\\];
-fragment CharLiteral    : '\'' Char '\'';
-fragment StrLiteral     : '\'' Char Char+ '\'';
-fragment FixedSet       : ('\\w' | '\\d');
+fragment BlockComment	: '/*' .*? '*/';
+fragment LineComment	: '//' ~[\r\n]*;
+fragment HexDigit		: [0-9a-fA-F];
+fragment UnicodeEsc		: 'u{' HexDigit+ '}';
+fragment EscChar		: '\\' ([nrt'\\] | UnicodeEsc);
+fragment Char			: EscChar | ~[\n\r\t'\\];
+fragment CharLiteral	: '\'' Char '\'';
+fragment StrLiteral		: '\'' Char Char+ '\'';
+fragment FixedSet		: ('\\w' | '\\d');
 // Char inside a '[' ']' set
-fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
-fragment SetChar        : EscSetChar | ~[\n\r\t\\\[\]];
-fragment Letter         : 'a'..'z';  // dummy
-fragment NonLetter      : ~'a'..'z'; // dummy
+fragment EscSetChar		: '\\' ([nrt\\[\]\-] | UnicodeEsc);
+fragment SetChar		: (EscSetChar | ~[\n\r\t\\\]]);
+fragment Letter			: 'a'..'z';  // dummy
+fragment NonLetter		: ~'a'..'z'; // dummy
 
-ARROW           : '->';  /* // first token // */
-COLON           : ':';
-COMMA           : ',';
-ELLIPSIS        : '..';
-LBRACKET        : '{';
-LPAREN          : '(';
-NEGATE          : '~';
-PLUS            : '+';
-OR              : '|';
-QUESTION        : '?';
-RBRACKET        : '}';
-RPAREN          : ')';
-SEMICOLON       : ';';
-STAR            : '*';
-CHANNELS        : 'channels';
-FRAGMENT        : 'fragment';
-GRAMMAR         : 'grammar';
-LEXER           : 'lexer';
-MODE            : 'mode';
-POP             : 'pop';
-PUSH            : 'push';
-RETURN          : 'return';
-SiKP            : 'skip';
-SYM_EOF         : 'EOF';
+ARROW			: '->'; /* // first token // */
+COLON			: ':';
+COMMA			: ',';
+ELLIPSIS		: '..';
+LBRACKET    	: '{';
+LPAREN			: '(';
+NEGATE			: '~';
+PLUS			: '+';
+OR				: '|';
+QUESTION		: '?';
+RBRACKET    	: '}';
+RPAREN			: ')';
+SEMICOLON		: ';';
+STAR			: '*';
 
-COMMENT         : BlockComment              -> skip;
-LINECOMMENT     : LineComment               -> skip;
-WHITESPACE      : [ \n\r\t]+                -> skip;
+CHANNELS		: 'channels';
+FRAGMENT		: 'fragment';
+GRAMMAR			: 'grammar';
+LEXER			: 'lexer';
+MODE			: 'mode';
+POP				: 'pop';
+PUSH			: 'push';
+RETURN			: 'return';
+SiKP			: 'skip';
+SYM_EOF			: 'EOF';
 
-ID              : [a-zA-Z][a-zA-Z_0-9]*;
+COMMENT			: BlockComment 				-> skip;
+LINECOMMENT		: LineComment				-> skip;
+WHITESPACE		: [ \n\r\t]+				-> skip;
 
-CHAR_LIT        : CharLiteral;
-CHAR_SET        : '[' (SetChar '-' SetChar | SetChar | FixedSet)* ']'
+ID				: [a-zA-Z][a-zA-Z_0-9]*;
+
+CHAR_LIT		: CharLiteral;
+
+CHAR_SET		: '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
                 | '.'
                 | FixedSet;
-STR_LIT         : StrLiteral;
+
+STR_LIT			: StrLiteral;
 "#;
+
+const LEXICON_TOKENS: [TokenId; 266] = [
+    17, 16, 24,                                         // lexer grammar RLLexer;
+    12, 14, 4, 24, 2, 24, 10,                           // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
+    15, 24, 1, 27, 26, 13, 9, 27, 12,                   // fragment BlockComment   : '/*' .*? '*/';
+    15, 24, 1, 27, 6, 26, 13, 12,                       // fragment LineComment    : '//' ~[\r\n]*;
+    15, 24, 1, 26, 12,                                  // fragment HexDigit       : [0-9a-fA-F];
+    15, 24, 1, 27, 24, 7, 25, 12,                       // fragment UnicodeEsc     : 'u{' HexDigit+ '}';
+    15, 24, 1, 25, 5, 26, 8, 24, 11, 12,                // fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
+    15, 24, 1, 24, 8, 6, 26, 12,                        // fragment Char           : EscChar | ~[\n\r\t'\\];
+    15, 24, 1, 25, 24, 25, 12,                          // fragment CharLiteral    : '\'' Char '\'';
+    15, 24, 1, 25, 24, 24, 7, 25, 12,                   // fragment StrLiteral     : '\'' Char Char+ '\'';
+    15, 24, 1, 5, 27, 8, 27, 11, 12,                    // fragment FixedSet       : ('\\w' | '\\d');
+    15, 24, 1, 25, 5, 26, 8, 24, 11, 12,                // fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
+    15, 24, 1, 5, 24, 8, 6, 26, 11, 12,                 // fragment SetChar        : (EscSetChar | ~[\n\r\t\\\]]);
+    15, 24, 1, 25, 3, 25, 12,                           // fragment Letter         : 'a'..'z';  // dummy
+    15, 24, 1, 6, 25, 3, 25, 12,                        // fragment NonLetter      : ~'a'..'z'; // dummy
+    24, 1, 27, 12,                                      // ARROW       : '->';
+    24, 1, 25, 12,                                      // COLON       : ':';
+    24, 1, 25, 12,                                      // COMMA       : ',';
+    24, 1, 27, 12,                                      // ELLIPSIS    : '..';
+    24, 1, 25, 12,                                      // LBRACKET    : '{';
+    24, 1, 25, 12,                                      // LPAREN      : '(';
+    24, 1, 25, 12,                                      // NEGATE      : '~';
+    24, 1, 25, 12,                                      // PLUS        : '+';
+    24, 1, 25, 12,                                      // OR          : '|';
+    24, 1, 25, 12,                                      // QUESTION    : '?';
+    24, 1, 25, 12,                                      // RBRACKET    : '}';
+    24, 1, 25, 12,                                      // RPAREN      : ')';
+    24, 1, 25, 12,                                      // SEMICOLON   : ';';
+    24, 1, 25, 12,                                      // STAR        : '*';
+    24, 1, 27, 12,                                      // CHANNELS    : 'channels';
+    24, 1, 27, 12,                                      // FRAGMENT    : 'fragment';
+    24, 1, 27, 12,                                      // GRAMMAR     : 'grammar';
+    24, 1, 27, 12,                                      // LEXER       : 'lexer';
+    24, 1, 27, 12,                                      // MODE        : 'mode';
+    24, 1, 27, 12,                                      // POP         : 'pop';
+    24, 1, 27, 12,                                      // PUSH        : 'push';
+    24, 1, 27, 12,                                      // RETURN      : 'return';
+    24, 1, 27, 12,                                      // SiKP        : 'skip';
+    24, 1, 27, 12,                                      // SYM_EOF     : 'EOF';
+    24, 1, 24, 0, 22, 12,                               // COMMENT     : BlockComment           -> skip;
+    24, 1, 24, 0, 22, 12,                               // LINECOMMENT : LineComment            -> skip;
+    24, 1, 26, 7, 0, 22, 12,                            // WHITESPACE  : [ \n\r\t]+             -> skip;
+    24, 1, 26, 26, 13, 12,                              // ID          : [a-zA-Z][a-zA-Z_0-9]*;
+    24, 1, 24, 12,                                      // CHAR_LIT    : CharLiteral;
+    24, 1, 25, 5, 24, 25, 24, 8, 24, 8, 24, 11, 7, 25,  // CHAR_SET : '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
+        8, 25,                                          //          | '.'
+        8, 24, 12,                                      //          | FixedSet;
+    24, 1, 24, 12,                                      // STR_LIT     : StrLiteral;
+];
+
+const LEXICON_TEXT: [&str; 266] = [
+    "lexer", "grammar", "RLLexer", ";", "channels", "{", "CH_WHITESPACE", ",", "CH_COMMENTS", "}", "fragment", "BlockComment", ":", "'/*'", ".", "*", "?",
+    "'*/'", ";", "fragment", "LineComment", ":", "'//'", "~", r#"[\r\n]"#, "*", ";", "fragment", "HexDigit", ":", "[0-9a-fA-F]", ";", "fragment",
+    "UnicodeEsc", ":", "'u{'", "HexDigit", "+", "'}'", ";", "fragment", "EscChar", ":", r#"'\\'"#, "(", r#"[nrt'\\]"#, "|", "UnicodeEsc", ")", ";", "fragment",
+    "Char", ":", "EscChar", "|", "~", r#"[\n\r\t'\\]"#, ";", "fragment", "CharLiteral", ":", r#"'\''"#, "Char", r#"'\''"#, ";", "fragment", "StrLiteral",
+    ":", r#"'\''"#, "Char", "Char", "+", r#"'\''"#, ";", "fragment", "FixedSet", ":", "(", r#"'\\w'"#, "|", r#"'\\d'"#, ")", ";", "fragment", "EscSetChar",
+    ":", r#"'\\'"#, "(", r#"[nrt\\[\]\-]"#, "|", "UnicodeEsc", ")", ";", "fragment", "SetChar", ":", "(", "EscSetChar", "|", "~", r#"[\n\r\t\\\]]"#, ")",
+    ";", "fragment", "Letter", ":", "'a'", "..", "'z'", ";", "fragment", "NonLetter", ":", "~", "'a'", "..", "'z'", ";", "ARROW", ":", "'->'", ";", "COLON",
+    ":", "':'", ";", "COMMA", ":", "','", ";", "ELLIPSIS", ":", "'..'", ";", "LBRACKET", ":", "'{'", ";", "LPAREN", ":", "'('", ";", "NEGATE", ":", "'~'",
+    ";", "PLUS", ":", "'+'", ";", "OR", ":", "'|'", ";", "QUESTION", ":", "'?'", ";", "RBRACKET", ":", "'}'", ";", "RPAREN", ":", "')'", ";", "SEMICOLON",
+    ":", "';'", ";", "STAR", ":", "'*'", ";", "CHANNELS", ":", "'channels'", ";", "FRAGMENT", ":", "'fragment'", ";", "GRAMMAR", ":", "'grammar'", ";",
+    "LEXER", ":", "'lexer'", ";", "MODE", ":", "'mode'", ";", "POP", ":", "'pop'", ";", "PUSH", ":", "'push'", ";", "RETURN", ":", "'return'", ";",
+    "SiKP", ":", "'skip'", ";", "SYM_EOF", ":", "'EOF'", ";", "COMMENT", ":", "BlockComment", "->", "skip", ";", "LINECOMMENT", ":", "LineComment", "->",
+    "skip", ";", "WHITESPACE", ":", r#"[ \n\r\t]"#, "+", "->", "skip", ";", "ID", ":", "[a-zA-Z]", "[a-zA-Z_0-9]", "*", ";", "CHAR_LIT", ":", "CharLiteral",
+    ";", "CHAR_SET", ":", "'['", "(", "SetChar", "'-'", "SetChar", "|", "SetChar", "|", "FixedSet", ")", "+", "']'", "|", "'.'", "|", "FixedSet", ";",
+    "STR_LIT", ":", "StrLiteral", ";"
+];
