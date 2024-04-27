@@ -9,6 +9,7 @@
 - improve robustness
   - [ ] detect dead ends without a terminal
   - [ ] detect missing terminals (present in vectree but not in dfa)
+  - [ ] detect potential infinite loops for some illegal characters (with skip, if that can still happen)
 - improve performances / memory
   - [ ] table storage in lexer and lexgen (either generated dynamically or from const)
   - [ ] ReNode size
