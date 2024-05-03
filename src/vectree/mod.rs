@@ -9,7 +9,8 @@ mod tests;
 #[derive(Debug)]
 pub struct VecTree<T> {
     nodes: Vec<Node<T>>,
-    borrows: Cell<u32>
+    borrows: Cell<u32>,
+    root: Option<usize>
 }
 
 #[derive(Debug)]
@@ -28,21 +29,22 @@ enum VisitNode<T> {
 
 impl<T> VecTree<T> {
     pub fn new() -> Self {
-        VecTree { nodes: Vec::new(), borrows: Cell::new(0) }
+        VecTree { nodes: Vec::new(), borrows: Cell::new(0), root: None }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        VecTree { nodes: Vec::with_capacity(capacity), borrows: Cell::new(0) }
+        VecTree { nodes: Vec::with_capacity(capacity), borrows: Cell::new(0), root: None }
     }
 
-    pub fn set_root(&mut self, item: T) -> Result<usize, ()> {
-        if self.nodes.is_empty() {
-            let node = Node { data: UnsafeCell::new(item), children: Vec::new() };
-            self.nodes.push(node);
-            Ok(0)
-        } else {
-            Err(())
-        }
+    pub fn set_root(&mut self, index: usize) -> usize {
+        assert!(index < self.nodes.len());
+        self.root = Some(index);
+        index
+    }
+
+    pub fn add_root(&mut self, item: T) -> usize {
+        self.root = Some(self.add(None, item));
+        self.root.unwrap()
     }
 
     pub fn add(&mut self, parent_index: Option<usize>, item: T) -> usize {
@@ -67,12 +69,17 @@ impl<T> VecTree<T> {
         node_id
     }
 
+    pub fn addi_iter<U: IntoIterator<Item = usize>>(&mut self, parent_index: Option<usize>, item: T, children_id: U) -> usize {
+        let node_id = self.add(parent_index, item);
+        self.nodes[node_id].children.extend(children_id);
+        node_id
+    }
+
     pub fn add_iter<U: IntoIterator<Item = T>>(&mut self, parent_index: Option<usize>, items: U) -> Vec<usize> {
         let mut indices = Vec::new();
         for item in items {
             indices.push(self.add(parent_index, item));
         }
-        // &self.nodes[parent_index].children
         indices
     }
 
@@ -132,6 +139,7 @@ impl<T: Clone> Clone for VecTree<T> {
         VecTree {
             nodes: self.nodes.clone(),
             borrows: Cell::new(0),
+            root: self.root
         }
     }
 }
@@ -221,6 +229,7 @@ impl<'a, T> VecTree<T> {
     pub fn clear(&mut self) {
         self.nodes.clear();
         *self.borrows.get_mut() = 0;
+        self.root = None;
     }
 }
 
@@ -231,7 +240,7 @@ impl<'a, T> VecTreeIter<IterDataSimple<'a, T>> {
     fn new(tree: &'a VecTree<T>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
-            next: Some(VisitNode::Down(0)),
+            next: tree.root.map(|id| VisitNode::Down(id)),
             data: IterDataSimple { tree },
         }
     }
@@ -283,7 +292,7 @@ impl<'a, T> VecTreeIter<IterData<'a, T>> {
     fn new(tree: &VecTree<T>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
-            next: Some(VisitNode::Down(0)),
+            next: tree.root.map(|id| VisitNode::Down(id)),
             data: IterData {
                 tree_nodes_ptr: tree.nodes.as_ptr(),
                 tree_size: tree.nodes.len(),
@@ -386,7 +395,7 @@ impl<'a, T> VecTreeIter<IterDataSimpleMut<'a, T>> {
     fn new(tree: &'a mut VecTree<T>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
-            next: Some(VisitNode::Down(0)),
+            next: tree.root.map(|id| VisitNode::Down(id)),
             data: IterDataSimpleMut { tree },
         }
     }
@@ -444,7 +453,7 @@ impl<'a, T> VecTreeIter<IterDataMut<'a, T>> {
     fn new(tree: &'a mut VecTree<T>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
-            next: Some(VisitNode::Down(0)),
+            next: tree.root.map(|id| VisitNode::Down(id)),
             data: IterDataMut {
                 tree_nodes_ptr: tree.nodes.as_mut_ptr(),
                 tree_size: tree.nodes.len(),

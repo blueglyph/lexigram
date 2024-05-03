@@ -133,7 +133,7 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
     let trees = match test {
         1 => {
             // mode 0: ([ \t\n\r]+<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let p0 = re.add(Some(cc0), node!(+));
             let or0 = re.add(Some(p0), node!(|));
@@ -149,7 +149,7 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
 
             // mode 1: ('*/'<pop>|[' ', '\t', '\n', '\r', 'a'-'z']+<skip>)
             let mut re1 = VecTree::new();
-            let or = re1.add(None, node!(|));
+            let or = re1.add_root(node!(|));
             let cc1 = re1.add(Some(or), node!(&));
             re1.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(pop))]);
             let cc2 = re1.add(Some(or), node!(&));
@@ -161,7 +161,7 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
         },
         2 => {
             // mode 0: ([ \t\n\r]+<skip>|'/*'<push(1)>|[0-9]+<end:0>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let p0 = re.add(Some(cc0), node!(+));
             let or0 = re.add(Some(p0), node!(|));
@@ -177,7 +177,7 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
 
             // mode 1: .*?'*/'<pop>
             let mut re1 = VecTree::new();
-            let cc = re1.add(None, node!(&));
+            let cc = re1.add_root(node!(&));
             let l0 = re1.add(Some(cc), node!(??));
             let s2 = re1.add(Some(l0), node!(*));
             re1.add(Some(s2), node!([DOT]));

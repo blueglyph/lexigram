@@ -37,7 +37,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
     let mut re = VecTree::new();
     match test {
         0 => { // (a|b)*abb<end>
-            let f = re.set_root(node!(&)).expect("expect empty tree");
+            let f = re.add_root(node!(&));
             let e = re.add_iter(Some(f), [node!(&), node!(=0)])[0];
             let d = re.add_iter(Some(e), [node!(&), node!(chr 'b')])[0];
             let c = re.add_iter(Some(d), [node!(&), node!(chr 'b')])[0];
@@ -46,7 +46,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
         },
         1 => { // (a|b)*abb<end>
-            let c = re.set_root(node!(&)).expect("expect empty tree");
+            let c = re.add_root(node!(&));
             let b = re.add_iter(Some(c), [
                 node!(*),
                 node!(chr 'a'),
@@ -58,7 +58,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
         },
         2 => { // (a|b)*abb<end>
-            let c = re.set_root(node!(&)).expect("expect empty tree");
+            let c = re.add_root(node!(&));
             let b = re.add_iter(Some(c), [
                 node!(*),
                 node!(str "abb"),
@@ -68,21 +68,21 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
         }
         3 => { // abc(a|b)<end>
-            let root = re.add(None, node!(&));
+            let root = re.add_root(node!(&));
             re.add(Some(root), node!(str "abc"));
             let a = re.add(Some(root), node!(|));
             re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
             re.add(Some(root), node!(=0));
         }
         4 => { // s(a|b)<end>
-            let root = re.add(None, node!(&));
+            let root = re.add_root(node!(&));
             re.add(Some(root), node!(chr 's'));
             let a = re.add(Some(root), node!(|));
             re.add_iter(Some(a), [node!(chr 'a'), node!(chr 'b')]);
             re.add(Some(root), node!(=0));
         }
         5 => {  // s(a<end>|b<end>)
-            let root = re.add(None, node!(&));
+            let root = re.add_root(node!(&));
             re.add(Some(root), node!(chr 's'));
             let a = re.add(Some(root), node!(|));
             let cd = re.add_iter(Some(a), [node!(&), node!(&)]);
@@ -90,7 +90,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(cd[1]), [node!(chr 'b'), node!(=1)]);
         }
         6 => {  // a(bc)?d = a(bc|-)d<end>
-            let root = re.add(None, node!(&));
+            let root = re.add_root(node!(&));
             re.add(Some(root), node!(chr 'a'));
             let bc_opt = re.add(Some(root), node!(|));
             re.add_iter(Some(root), [node!(chr 'd'), node!(=0)]);
@@ -98,7 +98,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(bc_opt), node!(e));
         },
         7 => {  // a(bc)?d?e = a(bc|-)(d|-)e<end>
-            let root = re.add(None, node!(&));
+            let root = re.add_root(node!(&));
             re.add(Some(root), node!(chr 'a'));
             let bc_opt = re.add(Some(root), node!(|));
             let d_opt = re.add(Some(root), node!(|));
@@ -109,7 +109,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(d_opt), node!(e));
         },
         8 => {  // a(<end>|b<end>)
-            let root = re.add(None, node!(&));
+            let root = re.add_root(node!(&));
             re.add(Some(root), node!(chr 'a'));
             let b1 = re.add(Some(root), node!(|));
             re.add(Some(b1), node!(=0));
@@ -117,7 +117,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add_iter(Some(b2), [node!(chr 'b'), node!(=1)]);
         },
         9 => {  // a(b|c)+d<end>
-            let root = re.add(None, node!(&));
+            let root = re.add_root(node!(&));
             re.add(Some(root), node!(chr 'a'));
             let plus = re.add(Some(root), node!(+));
             let or = re.add(Some(plus), node!(|));
@@ -130,7 +130,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             // [------------------cc1-----------------]or1[-------cc3--------]
             //         s0 or3 p1      or4[----cc2-----]        or6    p3
             //                             or5 p2
-            let or1 = re.add(None, node!(|));
+            let or1 = re.add_root(node!(|));
 
             let cc1 = re.add(Some(or1), node!(&));
             let s0 = re.add(Some(cc1), node!(*));
@@ -162,7 +162,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             //       or1:                      ^         ^            ^        ^        ^
             //          cc--------------------- --------- ------------ -------- -------- --------
             //             or2    or3 star3
-            let cc0 = re.add(None, node!(&));
+            let cc0 = re.add_root(node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
             re.add_iter(Some(or0), [node!(chr ' '), node!(chr '\t'), node!(chr '\n'), node!(chr '\r')]);
@@ -199,7 +199,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         12 => {
             // (abs<end:0>|abi<end:1>|at<end:2>|ab<end:3>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc0 = re.add(Some(or), node!(&));
             re.add(Some(cc0), node!(str "abs"));
             re.add(Some(cc0), node!(=0));
@@ -215,7 +215,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         13 => {
             // ([ \t\n\r]+<end:1,ch 1>|[0-9]+<end:0>)
-            let or0 = re.add(None, node!(|));
+            let or0 = re.add_root(node!(|));
             let cc0 = re.add(Some(or0), node!(&));
             let p0 = re.add(Some(cc0), node!(+));
             let or0 = re.add(Some(p0), node!(|));
@@ -228,7 +228,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         14 => {
             // \* /<end:0>|.+<end:1>
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(=0)]);
             let cc2 = re.add(Some(or), node!(&));
@@ -238,7 +238,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         15 => {
             // Ambiguous: [A-B]+<end:0>|[B-C]+<end:1>
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
             let or11 = re.add(Some(plus1), node!(|));
@@ -252,7 +252,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         16 => {
             // [A-B]+<end:0>|[B-C]+Z<end:1>
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
             let or11 = re.add(Some(plus1), node!(|));
@@ -267,7 +267,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         17 => {
             // segments: [a-f]+<end:0>|[d-i]+z<end:1>|ey<end:2>
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
             re.add(Some(plus1), node!(['a'-'f']));
@@ -282,7 +282,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         18 => {
             // segments: [a-f]+<end:0>|[d-i]+z<end:1>
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
             re.add(Some(plus1), node!(['a'-'f']));
@@ -295,7 +295,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         19 => {
             // [0-9]+<end:0>|'.'<end:1>
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let plus1 = re.add(Some(cc1), node!(+));
             re.add(Some(plus1), node!(['a'-'f']));
@@ -309,7 +309,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             //       or1:                      ^         ^            ^        ^        ^
             //          cc--------------------- --------- ------------ -------- -------- --------
             //                        star3
-            let cc0 = re.add(None, node!(&));
+            let cc0 = re.add_root(node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             re.add(Some(s0), node!([' ', '\t', '\n', '\r']));
             let or1 = re.add(Some(cc0), node!(|));
@@ -343,7 +343,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         21 => {
             // skip on a nullable alternative => bad, will skip bad input indefinitely
             // mode 0: ([ \t\n\r]*<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
@@ -359,7 +359,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         22 => {
             // mode 0: ([ \t\n\r]+<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let p0 = re.add(Some(cc0), node!(+));
             let or0 = re.add(Some(p0), node!(|));
@@ -376,7 +376,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         // 23-26 don't work, need non-greedy repeaters
         23 => {
             // ('*'/<end:1>|.+<skip>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(=1))]);
             let cc2 = re.add(Some(or), node!(&));
@@ -387,7 +387,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         24 => {
             // (.+?<skip>|'*'/<pop>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc2 = re.add(Some(or), node!(&));
             let l2 = re.add(Some(cc2), node!(??));
             let s2 = re.add(Some(l2), node!(+));
@@ -398,7 +398,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         25 => {
             // /'*'.+?'*'/<end:0>
-            let cc = re.add(None, node!(&));
+            let cc = re.add_root(node!(&));
             re.add_iter(Some(cc), [node!(chr '/'), node!(chr '*')]);
             let l0 = re.add(Some(cc), node!(??));
             let p0 = re.add(Some(l0), node!(+));
@@ -407,7 +407,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         26 => {
             // /'*'.*?'*'/<end:0>
-            let cc = re.add(None, node!(&));
+            let cc = re.add_root(node!(&));
             re.add_iter(Some(cc), [node!(chr '/'), node!(chr '*')]);
             let l0 = re.add(Some(cc), node!(??));
             let p0 = re.add(Some(l0), node!(*));
@@ -416,7 +416,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         27 => {
             // [a-c]*?[c-e]*?c<end:0>
-            let cc = re.add(None, node!(&));
+            let cc = re.add_root(node!(&));
             let l1 = re.add(Some(cc), node!(??));
             let s1 = re.add(Some(l1), node!(*));
             re.add(Some(s1), node!(['a'-'c']));
@@ -429,7 +429,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             // [a-c]*?a<end:0>|[a-c]*?b<end:1>|[a-c]*?c<end:2>
             // Ambiguous case that fails on most lexer/regex. Since the *s are non-greedy,
             // this should be equivalent to: (a<end:0>|b<end:1>|c<end:2>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let l1 = re.add(Some(cc1), node!(??));
             let s1 = re.add(Some(l1), node!(*));
@@ -450,7 +450,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             // a<end:0>|b<end:1>|c<end:2>|[DOT]<end:3>
             // Priority of first terminal is used for a, b, and c, but it issues warnings.
             // To avoid the warning, use: a<end:0>|b<end:1>|c<end:2>|~[a-c]<end:3>
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             re.add(Some(cc1), node!(chr 'a'));
             re.add(Some(cc1), node!(=0));
@@ -466,7 +466,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         30 => {
             // variation on 24: (.+?'/'<skip>|'*/'<pop>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc2 = re.add(Some(or), node!(&));
             let l2 = re.add(Some(cc2), node!(??));
             let s2 = re.add(Some(l2), node!(+));
@@ -479,7 +479,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         31 => {
             // & and | with only one child: "|(&(&(1:'a'),2:<end:0>))"
             // a<end:0>
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc1 = re.add(Some(or), node!(&));
             let cc2 = re.add(Some(cc1), node!(&));
             re.add(Some(cc2), node!(chr 'a'));
@@ -487,7 +487,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         },
         32 => {
             // .+?abc<end:0>
-            let cc = re.add(None, node!(&));
+            let cc = re.add_root(node!(&));
             let l0 = re.add(Some(cc), node!(??));
             let p0 = re.add(Some(l0), node!(+));
             re.add(Some(p0), node!([DOT]));
@@ -495,7 +495,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
         }
         33 => {
             // (if<end:0>|[a-z]+<end:1>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc0 = re.add(Some(or), node!(&));
             re.add_iter(Some(cc0), [node!(str "if"), node!(=0)]);
             let cc1 = re.add(Some(or), node!(&));
@@ -513,7 +513,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
     let modes: BTreeMap<ModeId, VecTree<ReNode>> = match test {
         1 => {
             // mode 0: ([ \t\n\r]*<skip>|/\*<skip,push(1)>|[0-9]+<end:0>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let s0 = re.add(Some(cc0), node!(*));
             let or0 = re.add(Some(s0), node!(|));
@@ -529,7 +529,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
 
             // mode 1: (\*/<pop>|[0-9]*<skip>)
             let mut re1 = VecTree::new();
-            let or = re1.add(None, node!(|));
+            let or = re1.add_root(node!(|));
             let cc1 = re1.add(Some(or), node!(&));
             re1.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(pop))]);
             let cc2 = re1.add(Some(or), node!(&));
@@ -542,7 +542,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
         },
         2 => {
             // mode 0: ([ \t\n\r]+<skip>|/'*'<skip,push(1)>|[0-9]+<end:0>)
-            let or = re.add(None, node!(|));
+            let or = re.add_root(node!(|));
             let cc0 = re.add(Some(or), node!(&));
             let p0 = re.add(Some(cc0), node!(+));
             let or0 = re.add(Some(p0), node!(|));
@@ -558,7 +558,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
 
             // mode 1: ('*'/<pop>|.+<skip>)
             let mut re1 = VecTree::new();
-            let or = re1.add(None, node!(|));
+            let or = re1.add_root(node!(|));
             let cc1 = re1.add(Some(or), node!(&));
             re1.add_iter(Some(cc1), [node!(chr '*'), node!(chr '/'), node!(term!(pop))]);
             let cc2 = re1.add(Some(or), node!(&));

@@ -71,7 +71,7 @@ pub const SYMBOLS: [(&str, Option<&str>); 28] = [
 
 pub fn build_re() -> VecTree<ReNode> {
     let mut re = VecTree::new();
-    let top = re.add(None, node!(|));
+    let top = re.add_root(node!(|));
 
     // All symbols
     for (id, (_, text_op)) in SYMBOLS.iter().enumerate() {

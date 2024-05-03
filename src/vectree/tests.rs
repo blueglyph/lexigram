@@ -18,8 +18,8 @@ fn node_to_string<T: Display>(tree: &VecTree<T>, index: usize) -> String {
 }
 
 pub(crate) fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
-    if tree.len() > 0 {
-        node_to_string(tree, 0)
+    if let Some(id) = tree.root {
+        node_to_string(tree, id)
     } else {
         "None".to_string()
     }
@@ -27,7 +27,7 @@ pub(crate) fn tree_to_string<T: Display>(tree: &VecTree<T>) -> String {
 
 fn build_tree() -> VecTree<String> {
     let mut tree = VecTree::new();
-    let root = tree.set_root("root".to_string()).expect("empty tree");
+    let root = tree.add_root("root".to_string());
     let a = tree.add(Some(root), "a".to_string());
     let _ = tree.add(Some(root), "b".to_string());
     let c = tree.add(Some(root), "c".to_string());
@@ -278,6 +278,73 @@ mod borrow {
         }
         let result = tree_to_string(&tree);
         assert_eq!(result, "root(a(A1,a2),b,c(c1,c2))");
+    }
+}
+
+mod alternate_root {
+    use super::*;
+
+    fn build_tree2() -> VecTree<String> {
+        let mut tree = VecTree::new();
+        let a = tree.add(None, "a".to_string());
+        let b = tree.add(None, "b".to_string());
+        let c = tree.add(None, "c".to_string());
+        let root = tree.addi_iter(None, "root".to_string(), [a, b, c]);
+        tree.add_iter(Some(a), ["a1".to_string(), "a2".to_string()]);
+        tree.add_iter(Some(c), ["c1", "c2"].map(|s| s.to_string()));
+        tree.set_root(root);
+        tree
+    }
+
+    #[test]
+    fn test_build_tree2() {
+        let tree = build_tree2();
+        assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1,c2))");
+    }
+
+    #[test]
+    fn test_iterators() {
+        let mut tree = build_tree2();
+        let mut result = String::new();
+        for i in tree.iter_depth_simple() {
+            result.push_str(&format!("{}:{}", i.index, &i.to_string()));
+            result.push(',');
+        }
+        assert_eq!(result, "4:a1,5:a2,0:a,1:b,6:c1,7:c2,2:c,3:root,");
+        result.clear();
+        for i in tree.iter_depth() {
+            result.push_str(&format!("{}:{}", i.index, &i.to_string()));
+            if i.num_children() > 0 {
+                result.push('(');
+                for j in i.iter_children_simple() {
+                    result.push_str(j);
+                    result.push(',');
+                }
+                result.push(')');
+            }
+            result.push(',');
+        }
+        assert_eq!(result, "4:a1,5:a2,0:a(a1,a2,),1:b,6:c1,7:c2,2:c(c1,c2,),3:root(a,b,c,),");
+        for mut i in tree.iter_depth_simple_mut() {
+            if i.starts_with("a") {
+                *i = i.to_uppercase();
+            }
+        }
+        assert_eq!(tree_to_string(&tree), "root(A(A1,A2),b,c(c1,c2))");
+        for mut i in tree.iter_depth_mut() {
+            if i.index != 3 && i.num_children() > 0 {
+                *i = "-".to_string();
+            }
+        }
+        assert_eq!(tree_to_string(&tree), "root(-(A1,A2),b,-(c1,c2))");
+    }
+
+    #[test]
+    fn clone() {
+        let tree = build_tree();
+        let other_tree = tree.clone();
+        drop(tree);
+        assert_eq!(tree_to_string(&other_tree), "root(a(a1,a2),b,c(c1,c2))");
     }
 }
 
