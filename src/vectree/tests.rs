@@ -70,7 +70,7 @@ mod general {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_children_direct -- --exact
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children_direct -- --exact
     #[test]
     fn iter_depth_children_direct() {
         let tree = build_tree();
@@ -104,7 +104,7 @@ mod general {
         assert_eq!(result_size_subtree, [1, 1, 3, 1, 1, 1, 3, 8]);
     }
 
-    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_children -- --exact
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children -- --exact
     #[test]
     fn iter_depth_children() {
         let tree = build_tree();
@@ -126,7 +126,7 @@ mod general {
         assert_eq!(result, "a1,a2,a,b,c1,c2,C,ROOT,");
     }
 
-    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children_simple -- --exact
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut_children_simple -- --exact
     #[test]
     fn iter_depth_mut_children_simple() {
         let mut tree = build_tree();
@@ -140,7 +140,7 @@ mod general {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children_direct -- --exact
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut_children_direct -- --exact
     #[test]
     fn iter_depth_mut_children_direct() {
         let mut tree = build_tree();
@@ -171,7 +171,7 @@ mod general {
         assert_eq!(result_size_subtree, [1, 1, 3, 1, 1, 1, 3, 8]);
     }
 
-    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children -- --exact
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut_children -- --exact
     #[test]
     fn iter_depth_mut_children() {
         let mut tree = build_tree();
@@ -190,7 +190,7 @@ mod general {
         assert_eq!(result, "ROOT(a(a1,a2),b,C(c1,c2))");
     }
 
-    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children_simple_miri -- --exact
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut_children_simple_miri -- --exact
     #[test]
     fn iter_depth_mut_children_simple_miri() {
         let mut tree = build_tree();
@@ -202,7 +202,7 @@ mod general {
         assert_eq!(result, "ROOT(A(A1,A2),B,C(C1,C2))");
     }
 
-    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_mut_children_miri -- --exact
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut_children_miri -- --exact
     #[test]
     fn iter_depth_mut_children_miri() {
         let mut tree = build_tree();
