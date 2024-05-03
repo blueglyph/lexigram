@@ -9,6 +9,7 @@ pub mod dfa;
 pub mod lexgen;
 pub mod lexer;
 pub mod regexgen;
+pub mod grammar;
 
 // Regular expressions / DFA, See:
 // - https://blog.burntsushi.net/regex-internals/
