@@ -38,33 +38,47 @@ pub enum Id {
     StrLit,     // 27
 }
 
+pub const SYMBOLS: [(&str, Option<&str>); 28] = [
+    ("Arrow",     Some("->")),
+    ("Colon",     Some(":")),
+    ("Comma",     Some(",")),
+    ("Ellipsis",  Some("..")),
+    ("Lbracket",  Some("{")),
+    ("Lparen",    Some("(")),
+    ("Negate",    Some("~")),
+    ("Plus",      Some("+")),
+    ("Or",        Some("|")),
+    ("Question",  Some("?")),
+    ("Rbracket",  Some("}")),
+    ("Rparen",    Some(")")),
+    ("Semicolon", Some(";")),
+    ("Star",      Some("*")),
+    ("Channels",  Some("channels")),
+    ("Fragment",  Some("fragment")),
+    ("Grammar",   Some("grammar")),
+    ("Lexer",     Some("lexer")),
+    ("Mode",      Some("mode")),
+    ("Pop",       Some("pop")),
+    ("Push",      Some("push")),
+    ("Return",    Some("return")),
+    ("Skip",      Some("skip")),
+    ("SymEof",    Some("EOF")),
+    ("Id",        None),
+    ("CharLit",   None),
+    ("CharSet",   None),
+    ("StrLit",    None),
+];
+
 pub fn build_re() -> VecTree<ReNode> {
     let mut re = VecTree::new();
     let top = re.add(None, node!(|));
-    re.addc_iter(Some(top), node!(&), [node!(str "->"      ), node!(=Id::Arrow as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr ':'       ), node!(=Id::Colon     as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr ','       ), node!(=Id::Comma     as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str ".."      ), node!(=Id::Ellipsis  as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr '{'       ), node!(=Id::Lbracket  as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr '('       ), node!(=Id::Lparen    as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr '~'       ), node!(=Id::Negate    as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr '+'       ), node!(=Id::Plus      as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr '|'       ), node!(=Id::Or        as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr '?'       ), node!(=Id::Question  as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr '}'       ), node!(=Id::Rbracket  as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr ')'       ), node!(=Id::Rparen    as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr ';'       ), node!(=Id::Semicolon as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(chr '*'       ), node!(=Id::Star      as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "channels"), node!(=Id::Channels  as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "fragment"), node!(=Id::Fragment  as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "grammar" ), node!(=Id::Grammar   as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "lexer"   ), node!(=Id::Lexer     as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "mode"    ), node!(=Id::Mode      as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "pop"     ), node!(=Id::Pop       as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "push"    ), node!(=Id::Push      as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "return"  ), node!(=Id::Return    as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "skip"    ), node!(=Id::Skip      as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "EOF"     ), node!(=Id::SymEof    as TokenId)]);
+
+    // All symbols
+    for (id, (_, text_op)) in SYMBOLS.iter().enumerate() {
+        if let Some(text) = text_op {
+            re.addc_iter(Some(top), node!(&), [node!(str *text), node!(=id as TokenId)]);
+        }
+    }
 
     // Comment: '/' '*' .*? '*' '/'
     let comment = re.add(Some(top), node!(&));
