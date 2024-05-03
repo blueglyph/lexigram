@@ -55,8 +55,13 @@ impl<T: std::fmt::Display, I: Iterator<Item=T>> CollectJoin for I {
     }
 }
 
-#[test]
-fn test_col_to_string() {
-    let x = std::collections::BTreeSet::<u32>::from([10, 20, 25]);
-    assert_eq!(x.iter().join(), "10, 20, 25");
+#[cfg(test)]
+mod libtests {
+    use super::*;
+
+    #[test]
+    fn test_col_to_string() {
+        let x = std::collections::BTreeSet::<u32>::from([10, 20, 25]);
+        assert_eq!(x.iter().join(), "10, 20, 25");
+    }
 }
