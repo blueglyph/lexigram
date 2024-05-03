@@ -30,7 +30,7 @@ pub enum Id {
     Pop,        // 19
     Push,       // 20
     Return,     // 21
-    Sikp,       // 22
+    Skip,       // 22
     SymEof,     // 23
     Id,         // 24
     CharLit,    // 25
@@ -63,7 +63,7 @@ pub fn build_re() -> VecTree<ReNode> {
     re.addc_iter(Some(top), node!(&), [node!(str "pop"     ), node!(=Id::Pop       as TokenId)]);
     re.addc_iter(Some(top), node!(&), [node!(str "push"    ), node!(=Id::Push      as TokenId)]);
     re.addc_iter(Some(top), node!(&), [node!(str "return"  ), node!(=Id::Return    as TokenId)]);
-    re.addc_iter(Some(top), node!(&), [node!(str "skip"    ), node!(=Id::Sikp      as TokenId)]);
+    re.addc_iter(Some(top), node!(&), [node!(str "skip"    ), node!(=Id::Skip      as TokenId)]);
     re.addc_iter(Some(top), node!(&), [node!(str "EOF"     ), node!(=Id::SymEof    as TokenId)]);
 
     // Comment: '/' '*' .*? '*' '/'
@@ -213,7 +213,7 @@ MODE			: 'mode';
 POP				: 'pop';
 PUSH			: 'push';
 RETURN			: 'return';
-SiKP			: 'skip';
+SKiP			: 'skip';
 SYM_EOF			: 'EOF';
 
 COMMENT			: BlockComment 				-> skip;
@@ -270,7 +270,7 @@ const LEXICON_TOKENS: [TokenId; 266] = [
     24, 1, 27, 12,                                      // POP         : 'pop';
     24, 1, 27, 12,                                      // PUSH        : 'push';
     24, 1, 27, 12,                                      // RETURN      : 'return';
-    24, 1, 27, 12,                                      // SiKP        : 'skip';
+    24, 1, 27, 12,                                      // SKiP        : 'skip';
     24, 1, 27, 12,                                      // SYM_EOF     : 'EOF';
     24, 1, 24, 0, 22, 12,                               // COMMENT     : BlockComment           -> skip;
     24, 1, 24, 0, 22, 12,                               // LINECOMMENT : LineComment            -> skip;
@@ -296,7 +296,7 @@ const LEXICON_TEXT: [&str; 266] = [
     ";", "PLUS", ":", "'+'", ";", "OR", ":", "'|'", ";", "QUESTION", ":", "'?'", ";", "RBRACKET", ":", "'}'", ";", "RPAREN", ":", "')'", ";", "SEMICOLON",
     ":", "';'", ";", "STAR", ":", "'*'", ";", "CHANNELS", ":", "'channels'", ";", "FRAGMENT", ":", "'fragment'", ";", "GRAMMAR", ":", "'grammar'", ";",
     "LEXER", ":", "'lexer'", ";", "MODE", ":", "'mode'", ";", "POP", ":", "'pop'", ";", "PUSH", ":", "'push'", ";", "RETURN", ":", "'return'", ";",
-    "SiKP", ":", "'skip'", ";", "SYM_EOF", ":", "'EOF'", ";", "COMMENT", ":", "BlockComment", "->", "skip", ";", "LINECOMMENT", ":", "LineComment", "->",
+    "SKiP", ":", "'skip'", ";", "SYM_EOF", ":", "'EOF'", ";", "COMMENT", ":", "BlockComment", "->", "skip", ";", "LINECOMMENT", ":", "LineComment", "->",
     "skip", ";", "WHITESPACE", ":", r#"[ \n\r\t]"#, "+", "->", "skip", ";", "ID", ":", "[a-zA-Z]", "[a-zA-Z_0-9]", "*", ";", "CHAR_LIT", ":", "CharLiteral",
     ";", "CHAR_SET", ":", "'['", "(", "SetChar", "'-'", "SetChar", "|", "SetChar", "|", "FixedSet", ")", "+", "']'", "|", "'.'", "|", "FixedSet", ";",
     "STR_LIT", ":", "StrLiteral", ";"
