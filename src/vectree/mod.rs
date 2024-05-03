@@ -127,6 +127,24 @@ impl<T> IndexMut<usize> for VecTree<T> {
     }
 }
 
+impl<T: Clone> Clone for VecTree<T> {
+    fn clone(&self) -> Self {
+        VecTree {
+            nodes: self.nodes.clone(),
+            borrows: Cell::new(0),
+        }
+    }
+}
+
+impl<T: Clone> Clone for Node<T> {
+    fn clone(&self) -> Self {
+        Node {
+            data: UnsafeCell::new(unsafe { (*self.data.get()).clone() }),
+            children: self.children.clone()
+        }
+    }
+}
+
 impl<T: Display> Display for VisitNode<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {

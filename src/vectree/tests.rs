@@ -55,7 +55,17 @@ mod general {
         assert_eq!(tree.nodes.len(), 0);
         assert_eq!(tree.borrows.get(), 0);
     }
-    // cargo +nightly miri test --lib tests::vectree::general::iter_depth_children_simple -- --exact
+
+    // cargo +nightly miri test --lib vectree::tests::general::clone -- --exact
+    #[test]
+    fn clone() {
+        let tree = build_tree();
+        let other_tree = tree.clone();
+        drop(tree);
+        assert_eq!(tree_to_string(&other_tree), "root(a(a1,a2),b,c(c1,c2))");
+    }
+
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children_simple -- --exact
     #[test]
     fn iter_depth_children_simple() {
         let tree = build_tree();
