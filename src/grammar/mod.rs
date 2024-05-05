@@ -105,7 +105,7 @@ impl RuleTree {
                         let mut n_leaves = 0;
                         let mut n_concat = 0;
                         let mut n_or = 0;
-                        let mut children = stack.drain(stack.len() - n..stack.len())
+                        let mut children = stack.drain(stack.len() - n..)
                             .map(|id| {
                                 match new.0.get(id) {
                                     GrNode::Concat => n_concat += 1,
