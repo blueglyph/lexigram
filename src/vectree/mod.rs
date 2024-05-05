@@ -47,6 +47,7 @@ impl<T> VecTree<T> {
         self.root.unwrap()
     }
 
+    /// Adds an item to the tree, optionally attaching it to a parent.
     pub fn add(&mut self, parent_index: Option<usize>, item: T) -> usize {
         let index = self.nodes.len();
         if let Some(parent_index) = parent_index {
@@ -57,24 +58,28 @@ impl<T> VecTree<T> {
         index
     }
 
+    /// Adds an item and its child to the tree, optionally attaching it to a parent.
     pub fn addc(&mut self, parent_index: Option<usize>, item: T, child: T) -> usize {
         let index = self.add(parent_index, item);
         self.add(Some(index), child);
         index
     }
 
-    pub fn addi(&mut self, parent_index: Option<usize>, item: T, child_id: usize) -> usize {
+    /// Adds an item to the tree, attaching an existing child to it, and optionally attaching it to a parent.
+    pub fn addci(&mut self, parent_index: Option<usize>, item: T, child_id: usize) -> usize {
         let node_id = self.add(parent_index, item);
         self.nodes[node_id].children.push(child_id);
         node_id
     }
 
-    pub fn addi_iter<U: IntoIterator<Item = usize>>(&mut self, parent_index: Option<usize>, item: T, children_id: U) -> usize {
+    /// Adds an item to the tree, attaching existing children to it, and optionally attaching it to a parent.
+    pub fn addci_iter<U: IntoIterator<Item = usize>>(&mut self, parent_index: Option<usize>, item: T, children_id: U) -> usize {
         let node_id = self.add(parent_index, item);
         self.nodes[node_id].children.extend(children_id);
         node_id
     }
 
+    /// Adds items to the tree, optionally attaching them to a parent.
     pub fn add_iter<U: IntoIterator<Item = T>>(&mut self, parent_index: Option<usize>, items: U) -> Vec<usize> {
         let mut indices = Vec::new();
         for item in items {
@@ -83,10 +88,16 @@ impl<T> VecTree<T> {
         indices
     }
 
+    /// Adds an item and its children to the tree, optionally attaching it to a parent.
     pub fn addc_iter<U: IntoIterator<Item = T>>(&mut self, parent_index: Option<usize>, item: T, children: U) -> usize {
         let index = self.add(parent_index, item);
         self.add_iter(Some(index), children);
         index
+    }
+
+    /// Attaches existing children to an existing parent.
+    pub fn attach_children<U: IntoIterator<Item = usize>>(&mut self, parent_index: usize, children_index: U) {
+        self.nodes[parent_index].children.extend(children_index);
     }
 
     pub fn len(&self) -> usize {
@@ -567,6 +578,27 @@ impl<T> Drop for NodeProxyMut<'_, T> {
     fn drop(&mut self) {
         let c = self.borrows.get() - 1;
         self.borrows.set(c);
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Shortcuts
+
+impl<'a, T> IntoIterator for &'a VecTree<T> {
+    type Item = NodeProxySimple<'a, T>;
+    type IntoIter = VecTreeIter<IterDataSimple<'a, T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_depth_simple()
+    }
+}
+
+impl<'a, T> IntoIterator for &'a mut VecTree<T> {
+    type Item = NodeProxySimpleMut<'a, T>;
+    type IntoIter = VecTreeIter<IterDataSimpleMut<'a, T>>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.iter_depth_simple_mut()
     }
 }
 

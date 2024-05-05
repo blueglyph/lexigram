@@ -289,7 +289,7 @@ mod alternate_root {
         let a = tree.add(None, "a".to_string());
         let b = tree.add(None, "b".to_string());
         let c = tree.add(None, "c".to_string());
-        let root = tree.addi_iter(None, "root".to_string(), [a, b, c]);
+        let root = tree.addci_iter(None, "root".to_string(), [a, b, c]);
         tree.add_iter(Some(a), ["a1".to_string(), "a2".to_string()]);
         tree.add_iter(Some(c), ["c1", "c2"].map(|s| s.to_string()));
         tree.set_root(root);
