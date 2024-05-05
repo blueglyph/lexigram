@@ -4,7 +4,9 @@
 mod tests;
 
 use std::fmt::{Display, Formatter};
+use std::ops::Deref;
 use crate::dfa::TokenId;
+use crate::gnode;
 use crate::vectree::VecTree;
 
 pub type VarId = u16;
@@ -78,10 +80,83 @@ impl RuleTree {
         RuleTree(VecTree::new())
     }
 
-    fn remove_repetitions(self) -> Self {
-        let new = RuleTree::new();
-        todo!()
-        new
+    /// Transforms the production rule tree into a list of rules in normalized format:
+    /// `var -> &(leaf_1, leaf_2, ...leaf_n)`
+    ///
+    /// The product may have to be split if operators like `+` or `*` are used. In this
+    /// case, new non-terminals are created, with increasing IDs starting from
+    /// `next_var_id`.
+    fn normalize(self, var_id: VarId, next_var_id: VarId) -> Vec<(VarId, Self)> {
+        let mut new = RuleTree::new();
+        let mut rules = Vec::<(VarId, RuleTree)>::new();
+        let mut stack = Vec::<usize>::new();                // indices in new
+        for sym in self.0.iter_depth() {
+            let n = sym.num_children();
+            if n == 0 {
+                stack.push(new.0.add(None, self.0.get(sym.index).clone()));
+            } else {
+                match sym.deref() {
+                    GrNode::Concat | GrNode::Or => {
+                        // we must rearrange the operations so that any item on the stack is only
+                        // one of those combinations:
+                        // - a leaf
+                        // - a &(leaves)
+                        // - a |(&(leaves) or leaves)
+                        let mut n_leaves = 0;
+                        let mut n_concat = 0;
+                        let mut n_or = 0;
+                        let mut children = stack.drain(stack.len() - n..stack.len())
+                            .map(|id| {
+                                match new.0.get(id) {
+                                    GrNode::Concat => n_concat += 1,
+                                    GrNode::Or => n_or += 1,
+                                    _ => n_leaves += 1,
+                                };
+                                id
+                            })
+                            .collect::<Vec<_>>();
+                        if n == n_leaves {
+                            // trivial case (could be removed and treated as a general case)
+                            new.0.addc_iter(None, sym.clone(), children.into_iter().map(|i| self.0.get(i).clone()));
+                        } else {
+                            // if sym is p:| => preserving the children's order:
+                            //                  - attach '|' children's children directly under p (discarding the '|' children)
+                            //                  - attach '&' children under p
+                            //                  push p back to stack
+                            // if sym is p:& => merge adjacent leaves and '&' children (optional)
+                            //                  distribute cross-product of all '|' children and '&' children,
+                            //                      adding new '&' nodes for each product
+                            //                  add r:'|' node to tree, attaching the new '&' nodes under it
+                            //                  push r to stack
+                            todo!()
+                        }
+                    }
+                    GrNode::Maybe => {
+                        assert_eq!(n, 1);
+                        let empty = new.0.add(None, gnode!(e));
+                        let id = new.0.addci_iter(None, gnode!(|), [stack.pop().unwrap(), empty]);
+                        stack.push(id);
+                    }
+                    GrNode::Plus => {
+                        assert_eq!(n, 1);
+                        // create new production rule:
+                        // P -> αβ+γ becomes P -> αQγ
+                        //                   Q -> βQ | β
+                        todo!()
+                    }
+                    GrNode::Star => {
+                        assert_eq!(n, 1);
+                        // create new production rule:
+                        // P -> αβ*γ becomes P -> αQγ
+                        //                   Q -> βQ | ε
+                        todo!()
+                    }
+                    _ => panic!("Unexpected {}", sym.deref())
+                }
+            }
+        }
+        rules.push((var_id, new));
+        rules
     }
 }
 
