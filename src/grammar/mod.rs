@@ -147,32 +147,50 @@ impl RuleTree {
                         // - a leaf
                         // - a &(leaves)
                         // - a |(&(leaves) or leaves)
-                        let mut n_leaves = 0;
-                        let mut n_concat = 0;
-                        let mut n_or = 0;
                         let mut children = stack.drain(stack.len() - n..)
-                            .map(|id| {
-                                match new.0.get(id) {
-                                    GrNode::Concat => n_concat += 1,
-                                    GrNode::Or => n_or += 1,
-                                    _ => n_leaves += 1,
-                                };
-                                id
-                            })
                             .collect::<Vec<_>>();
-                        if n == n_leaves {
+                        if children.iter().all(|&idx| !matches!(new.0.get(idx), GrNode::Concat|GrNode::Or)) {
                             // trivial case (could be removed and treated as a general case)
                             new.0.addc_iter(None, sym.clone(), children.into_iter().map(|i| self.0.get(i).clone()));
                         } else {
-                            // if sym is p:| => preserving the children's order:
-                            //                  - attach '|' children's children directly under p (discarding the '|' children)
-                            //                  - attach '&' children under p
-                            //                  push p back to stack
-                            // if sym is p:& => merge adjacent leaves and '&' children (optional)
-                            //                  distribute cross-product of all '|' children and '&' children,
-                            //                      adding new '&' nodes for each product
-                            //                  add r:'|' node to tree, attaching the new '&' nodes under it
-                            //                  push r to stack
+                            if let GrNode::Or = sym.deref() {
+                                // if parent sym is p:|
+                                // - preserving the children's order:
+                                //   - attach '|' children's children directly under p (discarding the '|' children)
+                                //   - attach '&' children under p
+                                // - push p back to stack
+                                // ex: P: AB | (C|D) | E | (F|G)      -> P: AB | C | D | E | F | G
+                                //        |(&(A,B),|(C,D),E,|(F,G))         |(&(A,B),C,D,E,F,G)
+                                let mut new_children = Vec::new();
+                                for id in children {
+                                    match new.0.get(id) {
+                                        GrNode::Symbol(_) | GrNode::Concat =>
+                                            new_children.push(id),
+                                        GrNode::Or =>
+                                            new_children.extend(new.0.children(id)),
+                                        x => panic!("unexpected node type under | node: {x:?}"),
+                                    }
+                                }
+                                new.0.addci_iter(None, gnode!(|), new_children);
+                            } else { // GrNode::Concat
+                                // if parent sym is p:&
+                                // - merge adjacent leaves and '&' children (optional)
+                                // - distribute cross-product of all '|' children and '&' children,
+                                //       adding new '&' nodes for each product
+                                // - add r:'|' node to tree, attaching the new '&' nodes under it
+                                // - push r to stack
+                                // ex: P: AB & (C|D) & E & (F|G)      -> P: ABCEF | ABCEG | ABDEF | ABDEG
+                                //        &(&(A,B),|(C,D),E,|(F,G))         |(&(A,B,C,E,F),&(A,B,C,E,G),&(A,B,D,E,F),&(A,B,D,E,G)
+                                let mut index_or = Vec::new();
+                                let mut dup_children = children.iter().map(|&id| {
+                                    if matches!(new.0.get(id), GrNode::Or) {
+                                        index_or.push(id);
+                                    }
+                                    Dup::new(id)
+                                }).collect::<Vec<_>>();
+
+
+                            }
                             todo!()
                         }
                     }

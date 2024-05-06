@@ -27,7 +27,7 @@ enum VisitNode<T> {
 
 // ---------------------------------------------------------------------------------------------
 
-impl<T> VecTree<T> {
+impl<'a, T> VecTree<T> {
     pub fn new() -> Self {
         VecTree { nodes: Vec::new(), borrows: Cell::new(0), root: None }
     }
@@ -96,7 +96,7 @@ impl<T> VecTree<T> {
     }
 
     /// Attaches existing children to an existing parent.
-    pub fn attach_children<U: IntoIterator<Item = usize>>(&mut self, parent_index: usize, children_index: U) {
+    pub fn attach_children<U: IntoIterator<Item = &'a usize>>(&mut self, parent_index: usize, children_index: U) {
         self.nodes[parent_index].children.extend(children_index);
     }
 
@@ -113,7 +113,7 @@ impl<T> VecTree<T> {
     }
 
     pub fn children(&self, index: usize) -> &[usize] {
-        &self.nodes.get(index).unwrap().children
+        self.nodes.get(index).unwrap().children.as_slice()
     }
 
     pub fn iter_children(&self, index: usize) -> impl DoubleEndedIterator<Item = &Node<T>> {
