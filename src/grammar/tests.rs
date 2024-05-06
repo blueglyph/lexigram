@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use super::{GrNode, Symbol, VarId};
+use super::*;
 use crate::dfa::TokenId;
 use crate::gnode;
 
@@ -29,4 +29,20 @@ fn gnode() {
     assert_eq!(gnode!(?), GrNode::Maybe);
     assert_eq!(gnode!(+), GrNode::Plus);
     assert_eq!(gnode!(*), GrNode::Star);
+}
+
+#[test]
+fn dup() {
+    let mut tree = RuleTree::new();
+    let mut a = Dup::new(tree.0.add(None, gnode!(nt 1)));
+    let mut b = Dup::new(tree.0.add(None, gnode!(nt 2)));
+    let mut result = Vec::new();
+    for i in 1..=3 {
+        result.push(tree.get_dup(&mut a));
+        result.push(tree.get_dup(&mut b));
+    }
+    assert_eq!(result, [0, 1, 2, 3, 4, 5]);
+    assert_eq!(tree.0.len(), 6);
+    let result2 = (0..6).map(|i| tree.0.get(i).clone()).collect::<Vec<_>>();
+    assert_eq!(result2, [gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2)]);
 }

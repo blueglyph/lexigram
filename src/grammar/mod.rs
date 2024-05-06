@@ -72,12 +72,57 @@ impl GrNode {
 
 // ---------------------------------------------------------------------------------------------
 
+/// Simple index object that returns `Original(<value>)` on the first `index.get()`, then
+/// `Copy(<value>)` on subsequent calls. The indices are stored on 31 bits, keeping one bit
+/// for the 'original' flag. Trying to store larger values triggers a panic.
+#[derive(Clone, Copy, Debug)]
+struct Dup {
+    index: u32
+}
+
+#[derive(Clone, Copy, Debug)]
+enum DupVal{
+    Original(u32),
+    Copy(u32)
+}
+
+impl Dup {
+    const MASK: u32 = 1 << (u32::BITS - 1);
+
+    fn new(index: usize) -> Self {
+        assert!(index < Self::MASK as usize);
+        Self { index: index as u32 }
+    }
+
+    fn get(&mut self) -> DupVal {
+        let idx = self.index;
+        if idx & Self::MASK == 0 {
+            self.index |= Self::MASK;
+            DupVal::Original(idx)
+        } else {
+            DupVal::Copy(idx & !Self::MASK)
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
 #[derive(Clone, Debug)]
 pub struct RuleTree(VecTree<GrNode>);
 
 impl RuleTree {
     fn new() -> Self {
         RuleTree(VecTree::new())
+    }
+
+    fn get_dup(&mut self, dup_index: &mut Dup) -> usize {
+        match dup_index.get() {
+            DupVal::Original(index) => index as usize,
+            DupVal::Copy(index) => {
+                let node = self.0.get(index as usize).clone();
+                self.0.add(None, node)
+            }
+        }
     }
 
     /// Transforms the production rule tree into a list of rules in normalized format:
