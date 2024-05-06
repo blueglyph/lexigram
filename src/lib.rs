@@ -2,6 +2,7 @@
 
 mod macros;
 mod take_until;
+mod cproduct;
 mod vectree;
 pub mod segments;
 pub mod io;
