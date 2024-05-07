@@ -208,4 +208,18 @@ mod tests {
         it.next();
         assert_eq!(it.size_hint(), (0, Some(0)));
     }
+
+    #[ignore]
+    #[test]
+    fn cproduct_perf() {
+        for i in 0..5 {
+            const LENGTH: usize = 8;
+            const WIDTH: usize = 10;
+            let ids = (0..LENGTH).map(|_| (0..WIDTH).collect::<Vec<_>>()).collect::<Vec<_>>();
+            assert_eq!(ids.iter().cproduct().count(), WIDTH.pow(LENGTH as u32));
+            let mut count = 0;
+            time!(true, { ids.iter().cproduct().for_each(|x| if *x[0] == 0 { count += 1; }); });
+            assert_eq!(count, WIDTH.pow((LENGTH - 1) as u32));
+        }
+    }
 }
