@@ -12,6 +12,20 @@ pub struct RepeaterIter<T: Clone> {
 pub trait Repeater<T>: Iterator<Item=T>
     where T: Clone, Self: Sized
 {
+    /// Takes an iterator and creates an infinite iterator that repeats the original
+    /// sequence endlessly.
+    ///
+    /// Each output is a tuple `(T, bool)` where the flag indicates the last item
+    /// of the original sequence when it's true.
+    ///
+    /// # Example
+    /// ```#ignore
+    /// let a = vec![1, 3, 4];
+    /// let c = a.into_iter().repeat();
+    /// let result = c.take(8).collect::<Vec<_>>();
+    /// assert_eq!(result, [(1, false), (3, false), (4, true), (1, false),
+    ///                     (3, false), (4, true), (1, false), (3, false)]);
+    /// ```
     fn repeat(self) -> RepeaterIter<T> {
         RepeaterIter { values: self.collect::<Vec<_>>(), cur: 0 }
     }
@@ -57,15 +71,27 @@ pub struct CProductIter<T: Clone> {
     len: usize
 }
 
-// let ids = vec![vec![1, 2], vec![3, 4, 5], vec![8], vec![6, 7]];
-// let result = ids.into_iter().cproduct().collect::<Vec<_>>();
-//
 pub trait CProduct<T>
     where T: Clone,
           Self: Sized,
           Self: Iterator,
           Self::Item: IntoIterator<Item=T>,
 {
+    /// Takes an iterator of `IntoIterator` objects and outputs the cartesian product of their
+    /// values. The last (rightmost) `IntoIterator` object is iterated through first. Once its
+    /// last element has been output, it's reset and the previous one is taken to its next
+    /// iteration, and so on.
+    ///
+    /// Objects that only have one iteration repeats the same value all the time. If any object
+    /// has no iteration (e.g. an empty vector), the whole sequence is empty.
+    ///
+    /// # Example
+    /// ```#ignore
+    /// let source = vec![vec![3, 1], vec![0], vec![5, 6, 8]];
+    /// let products = source.into_iter().cproduct().collect::<Vec<_>>();
+    /// assert_eq!(products, vec![vec![3, 0, 5], vec![3, 0, 6], vec![3, 0, 8],
+    ///                           vec![1, 0, 5], vec![1, 0, 6], vec![1, 0, 8]]);
+    /// ```
     fn cproduct(self) -> CProductIter<T> {
         let mut tumblers = self.into_iter().map(|it| it.into_iter().repeat()).collect::<Vec<_>>();
         let n_tumblers = tumblers.len();
@@ -102,29 +128,6 @@ impl <T: Clone> Iterator for CProductIter<T> {
         }
     }
 
-    /*
-        fn next(&mut self) -> Option<Self::Item> {
-            if let Some(cur) = self.cur.as_mut() {
-                let val = Some(cur.iter().map(|(v, _)| v.clone()).collect());
-                let mut it = cur.iter_mut().rev().zip(self.tumblers.iter_mut().rev());
-                let mut last_carry = false;
-                while let Some(((v, carry), t)) = it.next()  {
-                    last_carry = *carry;
-                    (*v, *carry) = t.next().unwrap();
-                    if !last_carry {
-                        break;
-                    }
-                }
-                if it.next().is_none() && last_carry {
-                    self.cur = None;
-                }
-                val
-            } else {
-                None
-            }
-        }
-    */
-
     fn size_hint(&self) -> (usize, Option<usize>) {
         (self.len, Some(self.len))
     }
@@ -142,6 +145,7 @@ impl<T: Clone, I: Iterator> CProduct<T> for I
 
 #[cfg(test)]
 mod tests {
+    use crate::time;
     use super::*;
     use super::CProduct;
 

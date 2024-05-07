@@ -25,11 +25,40 @@
 - [ ] error reporting
 - [ ] independence from reader type (Lexer<R: Read>)
 
+# RParser
+
+- parser lib
+  - [x] ~~RuleTree to store the parsed production rules (RuleVec will be used for normalized production rules)~~
+  - [x] normalize
+    - [x] transforms to | of &s 
+    - [x] translate *, +, ? -> tree
+  - [ ] remove left recursion -> rules
+  - [ ] left factoring -> rules
+  - top-down
+    - [ ] calc first
+    - [ ] calc follow
+    - [ ] check if LL(1)
+    - [ ] build parsing table
+    - [ ] predictive parsing algorithm
+    - [ ] hooks: how to link back to original RuleTree?
+    - [ ] generate code
+- basic rparser
+  - parser text -> RuleTree
+    - [ ] generate lexer tree with basic rlexer (lexicon file)
+    - [ ] adapt rlexer's top-down parser (manually)
+    - [ ] transform AST to top-down (or LR?) data
+  - [ ] make binary application
+
 ## Structure
 
 - [ ] extract vectree into another lib
 - [x] ~~move macros~~
 
+## Performances
+
+- [ ] clone iterators instead of cloning Vec in cproduct
+- [ ] check BTreeMap vs HashMap
+ 
 ## Tests
 
 - [ ] code coverage
@@ -38,18 +67,9 @@
 - [ ] profile on big inputs
   - [ ] profile perfs 
   - [ ] profile memory
-- [ ] check BTreeMap vs HashMap
 
 ## Other
 
 - [ ] README.md
 - [ ] rustdoc & comments
 - [ ] doc on main algorithms
-
-# RParser
-
-- basic rparser
-  - [ ] generate lexer with basic rlexer (lexicon file)
-  - [ ] adapt rlexer's top-down parser (manually)
-  - [ ] transform AST to top-down (or LR?) data
-  - [ ] make binary application
