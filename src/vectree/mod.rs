@@ -104,6 +104,16 @@ impl<'a, T> VecTree<T> {
         self.nodes.len()
     }
 
+    /// Calculates the tree depth, which is the maximum number of levels (not including the root).
+    ///
+    /// Note that the depth returned by the iterators are zero-based, and thus `iterator.depth`
+    /// is between `0` and `tree.depth()`.
+    ///
+    /// Returns `None` if the tree has no root.
+    pub fn depth(&self) -> Option<u32> {
+        self.iter_depth_simple().map(|x| x.depth).max()
+    }
+
     pub fn get(&self, index: usize) -> &T {
         unsafe { &*self.nodes.get(index).unwrap().data.get() }
     }
@@ -178,6 +188,7 @@ impl<T: Display> Display for VisitNode<T> {
 
 pub struct VecTreeIter<TData> {
     stack: Vec<VisitNode<usize>>,
+    depth: u32,
     next: Option<VisitNode<usize>>,
     data: TData
 }
@@ -186,7 +197,7 @@ pub trait TreeDataIter {
     type TProxy;
     fn get_children(&self, index: usize) -> &[usize];
     fn get_size(&self) -> usize;
-    fn create_proxy(&self, index: usize) -> Self::TProxy;
+    fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy;
 }
 
 impl<'a, TData: TreeDataIter> Iterator for VecTreeIter<TData> {
@@ -200,6 +211,7 @@ impl<'a, TData: TreeDataIter> Iterator for VecTreeIter<TData> {
                     if children.is_empty() {
                         Some(index.clone())
                     } else {
+                        self.depth += 1;
                         self.stack.push(VisitNode::Up(index.clone()));
                         for index in children.iter().rev() {
                             self.stack.push(VisitNode::Down(*index));
@@ -208,12 +220,13 @@ impl<'a, TData: TreeDataIter> Iterator for VecTreeIter<TData> {
                     }
                 }
                 VisitNode::Up(index) => {
+                    self.depth -= 1;
                     Some(index)
                 }
             };
             self.next = self.stack.pop();
             if let Some(index) = index_option {
-                return Some(self.data.create_proxy(index));
+                return Some(self.data.create_proxy(index, self.depth));
             }
         }
         None
@@ -251,6 +264,7 @@ impl<'a, T> VecTreeIter<IterDataSimple<'a, T>> {
     fn new(tree: &'a VecTree<T>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
+            depth: 0,
             next: tree.root.map(|id| VisitNode::Down(id)),
             data: IterDataSimple { tree },
         }
@@ -273,10 +287,11 @@ impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
         self.tree.len()
     }
 
-    fn create_proxy(&self, index: usize) -> Self::TProxy {
+    fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
         assert!(index < self.tree.len());
         return NodeProxySimple {
             index,
+            depth,
             data: unsafe { NonNull::new_unchecked((*self.tree.nodes.as_ptr().add(index)).data.get()) },
             _marker: PhantomData
         }
@@ -285,6 +300,7 @@ impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
 
 pub struct NodeProxySimple<'a, T> {
     pub index: usize,
+    pub depth: u32,
     data: NonNull<T>,
     _marker: PhantomData<&'a T>
 }
@@ -303,6 +319,7 @@ impl<'a, T> VecTreeIter<IterData<'a, T>> {
     fn new(tree: &VecTree<T>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
+            depth: 0,
             next: tree.root.map(|id| VisitNode::Down(id)),
             data: IterData {
                 tree_nodes_ptr: tree.nodes.as_ptr(),
@@ -333,10 +350,11 @@ impl<'a, T> TreeDataIter for IterData<'a, T> {
         self.tree_size
     }
 
-    fn create_proxy(&self, index: usize) -> Self::TProxy {
+    fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
         assert!(index < self.tree_size);
         return NodeProxy {
             index,
+            depth,
             data: unsafe { NonNull::new_unchecked((*self.tree_nodes_ptr.add(index)).data.get()) },
             tree_node_ptr: self.tree_nodes_ptr,
             tree_size: self.tree_size,
@@ -347,6 +365,7 @@ impl<'a, T> TreeDataIter for IterData<'a, T> {
 
 pub struct NodeProxy<'a, T> {
     pub index: usize,
+    pub depth: u32,
     data: NonNull<T>,
     tree_node_ptr: *const Node<T>,
     tree_size: usize,
@@ -365,6 +384,7 @@ impl<'a, T> NodeProxy<'a, T> {
             assert!(index < self.tree_size);
             NodeProxy {
                 index,
+                depth: self.depth + 1,
                 data: unsafe { NonNull::new_unchecked((*self.tree_node_ptr.add(index)).data.get()) },
                 tree_node_ptr: self.tree_node_ptr,
                 tree_size: self.tree_size,
@@ -381,6 +401,7 @@ impl<'a, T> NodeProxy<'a, T> {
     pub fn iter_depth_simple(&'a self) -> VecTreeIter<IterData<'a, T>> {
         VecTreeIter {
             stack: Vec::new(),
+            depth: 0,
             next: Some(VisitNode::Down(self.index)),
             data: IterData {
                 tree_nodes_ptr: self.tree_node_ptr,
@@ -406,6 +427,7 @@ impl<'a, T> VecTreeIter<IterDataSimpleMut<'a, T>> {
     fn new(tree: &'a mut VecTree<T>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
+            depth: 0,
             next: tree.root.map(|id| VisitNode::Down(id)),
             data: IterDataSimpleMut { tree },
         }
@@ -428,10 +450,11 @@ impl<'a, T> TreeDataIter for IterDataSimpleMut<'a, T> {
         self.tree.len()
     }
 
-    fn create_proxy(&self, index: usize) -> Self::TProxy {
+    fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
         assert!(index < self.tree.len());
         return NodeProxySimpleMut {
             index,
+            depth,
             data: unsafe { NonNull::new_unchecked((*self.tree.nodes.as_ptr().add(index)).data.get()) },
             _marker: PhantomData
         }
@@ -440,6 +463,7 @@ impl<'a, T> TreeDataIter for IterDataSimpleMut<'a, T> {
 
 pub struct NodeProxySimpleMut<'a, T> {
     pub index: usize,
+    pub depth: u32,
     data: NonNull<T>,
     _marker: PhantomData<&'a mut T>     // must be invariant for T
 }
@@ -464,6 +488,7 @@ impl<'a, T> VecTreeIter<IterDataMut<'a, T>> {
     fn new(tree: &'a mut VecTree<T>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
+            depth: 0,
             next: tree.root.map(|id| VisitNode::Down(id)),
             data: IterDataMut {
                 tree_nodes_ptr: tree.nodes.as_mut_ptr(),
@@ -496,12 +521,13 @@ impl<'a, T> TreeDataIter for IterDataMut<'a, T> {
         self.tree_size
     }
 
-    fn create_proxy(&self, index: usize) -> Self::TProxy {
+    fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
         let c = self.borrows.get() + 1;
         self.borrows.set(c);
         assert!(index < self.tree_size);
         return NodeProxyMut {
             index,
+            depth,
             data: unsafe { NonNull::new_unchecked((*self.tree_nodes_ptr.add(index)).data.get()) },
             tree_node_ptr: self.tree_nodes_ptr,
             tree_size: self.tree_size,
@@ -513,6 +539,7 @@ impl<'a, T> TreeDataIter for IterDataMut<'a, T> {
 
 pub struct NodeProxyMut<'a, T> {
     pub index: usize,
+    pub depth: u32,
     data: NonNull<T>,
     tree_node_ptr: *const Node<T>,
     tree_size: usize,
@@ -534,6 +561,7 @@ impl<'a, T> NodeProxyMut<'a, T> {
             assert!(index < self.tree_size);
             NodeProxy {
                 index,
+                depth: self.depth + 1,
                 data: unsafe { NonNull::new_unchecked((*self.tree_node_ptr.add(index)).data.get()) },
                 tree_node_ptr: self.tree_node_ptr,
                 tree_size: self.tree_size,
@@ -550,6 +578,7 @@ impl<'a, T> NodeProxyMut<'a, T> {
     pub fn iter_depth_simple(&'a self) -> VecTreeIter<IterData<'a, T>> {
         VecTreeIter {
             stack: Vec::new(),
+            depth: 0,
             next: Some(VisitNode::Down(self.index)),
             data: IterData {
                 tree_nodes_ptr: self.tree_node_ptr,

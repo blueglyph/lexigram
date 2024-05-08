@@ -165,7 +165,7 @@ impl RuleTree {
                         let children = stack.drain(stack.len() - n..).to_vec();
                         let new_id = if children.iter().all(|&idx| !matches!(new.0.get(idx), GrNode::Concat|GrNode::Or)) {
                             if VERBOSE { print!("  trivial {}: children={children:?}\n  ", sym.deref()); }
-                            // trivial case (could be removed and treated as a general case)
+                            // trivial case with only leaves as children (could be removed and treated as a general case)
                             new.0.addci_iter(None, sym.clone(), children)
                         } else {
                             if let GrNode::Or = sym.deref() {
@@ -175,8 +175,8 @@ impl RuleTree {
                                 //   - attach '|' children's children directly under p (discarding the '|' children)
                                 //   - attach '&' children under p
                                 // - push p back to stack
-                                // ex: P: AB | (C|D) | E | (F|G)      -> P: AB | C | D | E | F | G
-                                //        |(&(A,B),|(C,D),E,|(F,G))         |(&(A,B),C,D,E,F,G)
+                                // ex: P: AB | (C|D) | E | (FG|HI)             -> P: AB | C | D | E | FG | HI
+                                //        |(&(A,B),|(C,D),E,|(&(F,G),&(H,I)))        |(&(A,B),C,D,E,&(F,G),&(H,I))
                                 let mut new_children = Vec::new();
                                 for id in children {
                                     match new.0.get(id) {
@@ -200,8 +200,8 @@ impl RuleTree {
                                 //       duplicating nodes are required
                                 // - add r:'|' node to tree, attaching the new '&' nodes under it
                                 // - push r to stack
-                                // ex: P: AB & (C|D) & E & (F|G)      -> P: ABCEF | ABCEG | ABDEF | ABDEG
-                                //        &(&(A,B),|(C,D),E,|(F,G))         |(&(A,B,C,E,F),&(A,B,C,E,G),&(A,B,D,E,F),&(A,B,D,E,G)
+                                // ex: P: AB & (C|D) & E & (FG|H)        -> P: ABCEFG | ABCEH | ABDEFG | ABDEH
+                                //        &(&(A,B),|(C,D),E,|(&(F,G),H))      |(&(A,B,C,E,F,G),&(A,B,C,E,H),&(A,B,D,E,F,G),&(A,B,D,E,H)
 
                                 // we store the dups in an array and reference them by index, because there will be multiple instances
                                 // pointing to the same Dup and we can't do that with mutable references (which must be unique):
@@ -212,7 +212,9 @@ impl RuleTree {
                                     } else {
                                         vec![vadd(&mut children_dup, Dup::new(id))]
                                     }}) // -> Iterator<Vec<dup id of &-children (before distribution)>>
+                                    //.inspect(|x| println!("      >> {}", x.iter().join(", ")))
                                     .cproduct() // -> Iterator<Vec<dup id of &-children (after distribution)>>
+                                    //.inspect(|x| println!("      >> {}", x.iter().join(", ")))
                                     .map(|dup_ids|
                                         dup_ids.into_iter()
                                             .map(|dup_id| new.get_dup(children_dup.get_mut(dup_id).unwrap())).to_vec())
@@ -268,22 +270,29 @@ impl RuleTree {
 
 impl Display for RuleTree {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        fn snode(show_ids: bool, node: &GrNode, node_id: usize) -> String {
-            if show_ids {
-                format!("{node_id}:{node}")
-            } else {
-                node.to_string()
+        fn snode(show_ids: bool, show_depth: bool, node: &GrNode, node_id: usize, depth: u32) -> String {
+            let mut result = String::new();
+            if show_depth {
+                result.push_str(&depth.to_string());
+                result.push('>');
             }
+            if show_ids {
+                result.push_str(&node_id.to_string());
+                result.push(':');
+            }
+            result.push_str(&node.to_string());
+            result
         }
         let show_ids = f.alternate();
+        let show_depth = f.sign_plus();
         let mut stack = Vec::<String>::new();
         for node in self.0.iter_depth() {
             let n = node.num_children();
             if n > 0 {
                 let children = stack.drain(stack.len() - n..).join(", ");
-                stack.push(format!("{}({children})", snode(show_ids, &node, node.index)));
+                stack.push(format!("{}({children})", snode(show_ids, show_depth, &node, node.index, node.depth)));
             } else {
-                stack.push(snode(show_ids, &node, node.index));
+                stack.push(snode(show_ids, show_depth, &node, node.index, node.depth));
             }
         }
         write!(f, "{}", stack.pop().unwrap_or("empty".to_string()))

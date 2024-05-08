@@ -1,8 +1,9 @@
 #![cfg(test)]
 
+use std::collections::HashMap;
 use super::*;
 use crate::dfa::TokenId;
-use crate::gnode;
+use crate::{gnode, hashmap};
 
 #[test]
 fn gnode() {
@@ -47,12 +48,51 @@ fn dup() {
     assert_eq!(result2, [gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2)]);
 }
 
+fn build_tree(id: u32) -> RuleTree {
+    let mut tree = RuleTree::new();
+    match id {
+        0 => {
+            let top = tree.0.addc_iter(None, gnode!(|), [gnode!(t 1), gnode!(t 2), gnode!(nt 3)]);
+            tree.0.set_root(top);
+        }
+        1 => {
+            let top = tree.0.add_root(gnode!(|));
+            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(t 3), gnode!(t 4)]);
+            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
+            let or = tree.0.addc_iter(Some(top), gnode!(|), [gnode!(t 7), gnode!(t 8)]);
+            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 9), gnode!(nt 10)]);
+        }
+        2 => {
+            let top = tree.0.add_root(gnode!(&));
+            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
+            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
+            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 7), gnode!(nt 8)]);
+        }
+        _ => {}
+    }
+    tree
+}
+
 #[test]
 fn ruletree_normalize() {
-    let mut tree = RuleTree::new();
-    let top = tree.0.addc_iter(None, gnode!(|), [gnode!(t 1), gnode!(t 2), gnode!(nt 3)]);
-    tree.0.set_root(top);
-    println!("0 -> {tree:#}");
-    let new = tree.normalize(0, 1);
-    println!("{}", new.into_iter().map(|(id, t)| format!("{id} -> {t:#}")).join("\n"));
+    let tests: Vec<(u32, HashMap<VarId, &str>)> = vec![
+/*
+        (0, hashmap![0 => "|([1], [2], 3)"]),
+        // |(&(1, 2), |([3], [4]), &(5, 6), |([7], [8], &(9, 10)))
+        (1, hashmap![0 => "|(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))"]),
+*/
+        (2, hashmap![0 => ""]),
+    ];
+    const VERBOSE: bool = true;
+    for (test_id, expected) in tests {
+        let mut tree = build_tree(test_id);
+        if VERBOSE { println!("0 -> {tree:#} /* depth: {} */", tree.0.depth().unwrap()); }
+        let new = tree.normalize(0, 1);
+        let result = HashMap::from_iter(new.iter().map(|(id, t)| (*id, format!("{t}"))));
+        if VERBOSE { println!("{}", new.into_iter().map(|(id, t)| format!("{id} => \"{t:#}\" /* depth: {} */", t.0.depth().unwrap())).join("\n")); }
+        let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<HashMap<_, _>>();
+        assert_eq!(result, expected, "test {test_id} failed");
+    }
 }
