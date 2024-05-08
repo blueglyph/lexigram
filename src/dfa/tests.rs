@@ -589,22 +589,22 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
             result.push('!');
         }
         result.push_str(&node.op.to_string());
-        let children = tree.children(i).iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
+        let children = tree.children(i).iter().map(|n| n.to_string()).join(",");
         if children.len() > 0 {
             result.push_str(" -> [");
             result.push_str(&children);
             result.push(']');
         }
-        let mut firstpos = node.firstpos.iter().collect::<Vec<_>>();
+        let mut firstpos = node.firstpos.iter().to_vec();
         firstpos.sort();
-        let firstpos = firstpos.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
+        let firstpos = firstpos.iter().map(|n| n.to_string()).join(",");
         if firstpos.len() > 0 {
             result.push_str(" fp:");
             result.push_str(&firstpos);
         }
-        let mut lastpos = node.lastpos.iter().collect::<Vec<_>>();
+        let mut lastpos = node.lastpos.iter().to_vec();
         lastpos.sort();
-        let lastpos = lastpos.iter().map(|n| n.to_string()).collect::<Vec<_>>().join(",");
+        let lastpos = lastpos.iter().map(|n| n.to_string()).join(",");
         if lastpos.len() > 0 {
             result.push_str(" lp:");
             result.push_str(&lastpos);
@@ -620,15 +620,14 @@ pub(crate) fn print_dfa(dfa: &Dfa) {
     println!("Initial state: {}", if let Some(st) = dfa.initial_state { st.to_string() } else { "none".to_string() });
     println!("Graph:");
     print_graph(&dfa.state_graph, Some(&dfa.end_states));
-    println!("End states: [{}]", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).collect::<Vec<_>>().join(", "));
+    println!("End states: [{}]", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).join(", "));
 }
 
 pub(crate) fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>, end_states: Option<&BTreeMap<StateId, Terminal>>) {
     for (state, trans) in state_graph.clone() {
         println!("{:3} => branch!({}),{}",
                  state,
-                 trans.iter().map(|(sym, st)| format!("{sym} => {st}"))
-                     .collect::<Vec<_>>().join(", "),
+                 trans.iter().map(|(sym, st)| format!("{sym} => {st}")).join(", "),
                  end_states.and_then(|map| map.get(&state).map(|token| format!(" // {}", token))).unwrap_or("".to_string()),
         );
     }
@@ -842,7 +841,7 @@ fn dfa_firstpos() {
         dfa_builder.calc_node_pos();
         let mut result = Vec::new();
         for inode in dfa_builder.re.iter_depth() {
-            let mut firstpos = inode.firstpos.iter().map(|n| *n).collect::<Vec<_>>();
+            let mut firstpos = inode.firstpos.iter().map(|n| *n).to_vec();
             firstpos.sort();
             result.push(firstpos)
         }
@@ -974,7 +973,7 @@ fn dfa_lastpos() {
         dfa_builder.calc_node_pos();
         let mut result = Vec::new();
         for inode in dfa_builder.re.iter_depth() {
-            let mut lastpos = inode.lastpos.iter().map(|n| *n).collect::<Vec<_>>();
+            let mut lastpos = inode.lastpos.iter().map(|n| *n).to_vec();
             lastpos.sort();
             result.push(lastpos)
         }
@@ -1708,7 +1707,7 @@ fn dfa_optimize_graphs() {
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
         let _tr = dfa.optimize();
         if VERBOSE {
-            println!("table: {}\n", _tr.iter().map(|(a, b)| format!("{a} -> {b}")).collect::<Vec<_>>().join(", "));
+            println!("table: {}\n", _tr.iter().map(|(a, b)| format!("{a} -> {b}")).join(", "));
             print_dfa(&dfa);
         }
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");

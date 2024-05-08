@@ -236,7 +236,7 @@ pub mod macros {
 #[cfg(test)]
 mod char_reader {
     use std::io::Cursor;
-    use crate::escape_char;
+    use crate::{CollectJoin, escape_char};
     use super::*;
 
     fn get_tests() -> Vec::<(&'static str, Vec<u64>)> {
@@ -336,13 +336,13 @@ mod char_reader {
                     text.chars().map(|c| Some(c)).chain([None])
                         .enumerate()
                         .filter_map(|(i, c)| if i & 1 == 0 { Some(c) } else { None })
-                        .collect::<Vec<_>>()
+                        .to_vec()
                 } else {
                     text.chars().map(|c| Some(c)).chain([None])
                         .skip(1)// no initial peek
                         .enumerate()
                         .filter_map(|(i, c)| if i & 1 == 1 { Some(c) } else { None })
-                        .collect::<Vec<_>>()
+                        .to_vec()
                 };
                 let error = format!("test #{index} for early_peek={early_peek}");
                 assert_eq!(result, *text, "{error}");

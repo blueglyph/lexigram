@@ -3,7 +3,7 @@ use std::fmt::{Debug, Display, Formatter, LowerHex, UpperHex};
 use std::ops::{Deref, DerefMut, RangeInclusive};
 use std::collections::btree_map::{IntoIter, Iter};
 use std::ops::Bound::Included;
-use crate::{btreeset, escape_char};
+use crate::{btreeset, CollectJoin, escape_char};
 use crate::io::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN, UTF8_GAP_MIN, UTF8_GAP_MAX};
 
 // ---------------------------------------------------------------------------------------------
@@ -288,7 +288,7 @@ impl DerefMut for Segments {
 
 impl Debug for Segments {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Segments({})", self.0.iter().map(|seg| format!("Seg(0x{:x}, 0x{:x})", seg.0, seg.1)).collect::<Vec<_>>().join(", "))
+        write!(f, "Segments({})", self.0.iter().map(|seg| format!("Seg(0x{:x}, 0x{:x})", seg.0, seg.1)).join(", "))
     }
 }
 
@@ -306,14 +306,12 @@ impl Display for Segments { // TODO: create wrapper to set the desired style (no
                     if alt.len() < normalized.len() {
                         return write!(f, "~ {}", alt.0.iter()
                             .map(|seg| seg.to_string())
-                            .collect::<Vec<_>>()
                             .join(", ")
                         );
                     }
                 }
                 write!(f, "{}", normalized.0.iter()
                     .map(|seg| seg.to_string())
-                    .collect::<Vec<_>>()
                     .join(", ")
                 )
             }
@@ -326,7 +324,6 @@ impl LowerHex for Segments {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", self.iter()
             .map(|Seg(a, b)| if a == b { format!("{a}") } else { format!("{a}-{b}") })
-            .collect::<Vec<_>>()
             .join(", ")
         )
     }
@@ -341,7 +338,6 @@ impl UpperHex for Segments {
             } else {
                 format!("'{}'-'{}'", escape_char(char::from_u32(*a).unwrap()), escape_char(char::from_u32(*b).unwrap()))
             })
-            .collect::<Vec<_>>()
             .join(", ")
         )
     }

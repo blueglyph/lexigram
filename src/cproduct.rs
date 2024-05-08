@@ -1,5 +1,6 @@
 // ---------------------------------------------------------------------------------------------
 
+use crate::CollectJoin;
 use crate::take_until::TakeMutUntilIterator;
 
 pub struct RepeaterIter<I: Iterator> {
@@ -63,7 +64,7 @@ impl <I: Iterator + Clone> Iterator for CProductIter<I>
                 }
             } else {
                 // 1st time
-                self.cur = Some(self.tumblers.iter_mut().map(|t| t.next().unwrap()).collect::<Vec<_>>());
+                self.cur = Some(self.tumblers.iter_mut().map(|t| t.next().unwrap()).to_vec());
             }
             self.cur.clone()
         }
@@ -114,7 +115,7 @@ pub trait CProduct: Iterator {
               <<Self as Iterator>::Item as IntoIterator>::IntoIter: Clone,
               <<Self as Iterator>::Item as IntoIterator>::Item: Clone
     {
-        let tumblers = self.map(|it| it.into_iter().repeat()).collect::<Vec<_>>();
+        let tumblers = self.map(|it| it.into_iter().repeat()).to_vec();
         let empty = tumblers.iter().any(|t| t.cycle_len() == 0);
         CProductIter {
             tumblers,
@@ -130,7 +131,7 @@ impl<I: Iterator> CProduct for I {}
 
 #[cfg(test)]
 mod tests {
-    use crate::time;
+    use crate::{CollectJoin, time};
     use super::CProduct;
 
     #[test]
@@ -138,7 +139,7 @@ mod tests {
         let a = vec![1, 3, 4];
         let mut c = a.into_iter().repeat();
         assert_eq!(c.cycle_len(), 3);
-        let result = (0..8).map(|_| c.next()).collect::<Vec<_>>();
+        let result = (0..8).map(|_| c.next()).to_vec();
         assert_eq!(result, [Some(1), Some(3), Some(4), None, Some(1), Some(3), Some(4), None]);
     }
 
@@ -146,7 +147,7 @@ mod tests {
     fn cycle_empty() {
         let a = Vec::<u32>::new();
         let mut c = a.into_iter().repeat();
-        let result = (0..8).map(|_| c.next()).collect::<Vec<_>>();
+        let result = (0..8).map(|_| c.next()).to_vec();
         assert_eq!(result, [None, None, None, None, None, None, None, None]);
     }
 
@@ -155,7 +156,7 @@ mod tests {
         let ids = vec![vec![1, 2], vec![3, 4, 5], vec![8], vec![6, 7]];
         assert_eq!(ids.iter().cproduct().count(), 2 * 3 * 1 * 2);
         let result = ids.into_iter().cproduct()
-            .take(13).collect::<Vec<_>>();
+            .take(13).to_vec();
         assert_eq!(result, vec![
             vec![1, 3, 8, 6],
             vec![1, 3, 8, 7],
@@ -176,7 +177,7 @@ mod tests {
     fn cproduct_empty() {
         let ids = vec![vec![1, 2], vec![3, 4, 5], vec![8], vec![]];
         assert_eq!(ids.iter().cproduct().count(), 2 * 3 * 1 * 0);
-        let result = ids.into_iter().cproduct().take(13).collect::<Vec<_>>();
+        let result = ids.into_iter().cproduct().take(13).to_vec();
         assert_eq!(result, Vec::<Vec<i32>>::new());
     }
 
@@ -186,7 +187,7 @@ mod tests {
         for _ in 0..4 {
             const LENGTH: usize = 8;
             const WIDTH: usize = 10;
-            let ids = (0..LENGTH).map(|_| (0..WIDTH).collect::<Vec<_>>()).collect::<Vec<_>>();
+            let ids = (0..LENGTH).map(|_| (0..WIDTH).to_vec()).to_vec();
             assert_eq!(ids.iter().cproduct().count(), WIDTH.pow(LENGTH as u32));
             let mut count = 0;
             time!(true, { ids.iter().cproduct().for_each(|x| {

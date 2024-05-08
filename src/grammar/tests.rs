@@ -43,6 +43,6 @@ fn dup() {
     }
     assert_eq!(result, [0, 1, 2, 3, 4, 5]);
     assert_eq!(tree.0.len(), 6);
-    let result2 = (0..6).map(|i| tree.0.get(i).clone()).collect::<Vec<_>>();
+    let result2 = (0..6).map(|i| tree.0.get(i).clone()).to_vec();
     assert_eq!(result2, [gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2)]);
 }

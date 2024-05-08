@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 use std::io::Cursor;
-use crate::{btreemap, escape_string, node, term};
+use crate::{btreemap, CollectJoin, escape_string, node, term};
 use crate::dfa::*;
 use crate::segments::*;
 use crate::dfa::tests::{build_re, print_dfa};
@@ -117,7 +117,7 @@ fn lexer_simple() {
             let result = lexer.tokens().map(|t| {
                 assert_eq!(t.1, 0, "test {} failed for input {}", test_id, escape_string(input));
                 t.0.0
-            }).collect::<Vec<_>>();
+            }).to_vec();
             assert_eq!(result, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
             assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for input '{}'",
                     test_id, escape_string(input));
@@ -198,7 +198,7 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
             print_dfa(&dfa);
         }
         (mode as u16, dfa)
-    }).collect::<Vec<_>>();
+    }).to_vec();
     let mut dfa_builder = DfaBuilder::new();
     if VERBOSE { println!("merging dfa modes"); }
     let mut dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer #{test}\n{}", dfa_builder.get_messages()));

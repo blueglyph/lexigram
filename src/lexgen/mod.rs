@@ -6,7 +6,7 @@ use std::io::Read;
 use std::io::{BufWriter, stdout, Write};
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
-use crate::escape_char;
+use crate::{CollectJoin, escape_char};
 use crate::lexer::Lexer;
 use crate::segments::{Segments, Seg, SegMap};
 use super::dfa::*;
@@ -149,7 +149,7 @@ impl LexGen {
         self.state_table = state_table.into_boxed_slice();
         let terminal_table = dfa.end_states.iter()
             .filter_map(|(&st, t)| if st >= self.first_end_state { Some(t.clone()) } else { None })
-            .collect::<Vec<_>>();
+            .to_vec();
         self.terminal_table = terminal_table.into_boxed_slice();
     }
 }
@@ -213,7 +213,7 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
     writeln!(out, "const STATE_TABLE: [StateId; {}] = [", lexgen.state_table.len() - 1)?;
     for i in 0..lexgen.nbr_states as usize {
         writeln!(out, "    {}, // state {}{}",
-            (0..lexgen.nbr_groups as usize).map(|j| format!("{:3}", lexgen.state_table[i * lexgen.nbr_groups as usize + j])).collect::<Vec<_>>().join(", "),
+            (0..lexgen.nbr_groups as usize).map(|j| format!("{:3}", lexgen.state_table[i * lexgen.nbr_groups as usize + j])).join(", "),
             i,
             if i >= lexgen.first_end_state { format!(" {}", lexgen.terminal_table[i - lexgen.first_end_state] ) } else { "".to_string() }
         )?;
@@ -274,7 +274,7 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<
         for segments in map.values_mut() {
             segments.normalize();
         }
-        #[cfg(test)] if VERBOSE { println!("{_state} => {}", map.values().map(|i| format!("{i:X}")).collect::<Vec<_>>().join(", ")); }
+        #[cfg(test)] if VERBOSE { println!("{_state} => {}", map.values().map(|i| format!("{i:X}")).join(", ")); }
         let mut state_sub = map.into_values().collect::<BTreeSet<Segments>>();
         while let Some(mut sub) = state_sub.pop_first() {
             if VERBOSE { println!("- sub = {sub}"); }
@@ -303,6 +303,6 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<
             }
         }
     }
-    #[cfg(test)] if VERBOSE { println!("=> {}", groups.iter().map(|i| format!("{i:X}")).collect::<Vec<_>>().join(", ")); }
+    #[cfg(test)] if VERBOSE { println!("=> {}", groups.iter().map(|i| format!("{i:X}")).join(", ")); }
     groups
 }

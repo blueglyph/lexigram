@@ -303,9 +303,9 @@ impl DfaBuilder {
                     ReType::Star | ReType::Plus => {
                         assert_eq!(inode.num_children(), 1);
                         // firstpos, lastpos identical to child's
-                        let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).collect::<Vec<_>>();
+                        let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).to_vec();
                         inode.firstpos.extend(firstpos);
-                        let lastpos = inode.iter_children_simple().next().unwrap().lastpos.iter().map(|&n| n).collect::<Vec<_>>();
+                        let lastpos = inode.iter_children_simple().next().unwrap().lastpos.iter().map(|&n| n).to_vec();
                         inode.lastpos.extend(lastpos);
                         // followpos:
                         // for all i in *.lastpos,
@@ -380,7 +380,7 @@ impl DfaBuilder {
         // gathers lazy ids and their immediate followpos to remove phantom branches:
         let mut lazy_followpos = self.lazypos.iter().map(|(id, _)| *id).collect::<BTreeSet<Id>>();
         lazy_followpos.extend(self.lazypos.iter().filter_map(|(id, _)| self.followpos.get(id)).flatten());
-        if VERBOSE { println!("lazy_followpos = {{{}}}", lazy_followpos.iter().join()); }
+        if VERBOSE { println!("lazy_followpos = {{{}}}", lazy_followpos.iter().join(", ")); }
 
         // gets a partition of the symbol segments and changes Char to CharRange
         let mut symbols_part = Segments::empty();
@@ -428,7 +428,7 @@ impl DfaBuilder {
                         if RESOLVE_END_STATES {
                             if terminals.contains_key(&id) {
                                 panic!("overriding {id} -> {t} in end_states {}",
-                                       terminals.iter().map(|(id, t)| format!("{id} {t}")).join());
+                                       terminals.iter().map(|(id, t)| format!("{id} {t}")).join(", "));
                             }
                             terminals.insert(id, t);
                         } else {
@@ -471,7 +471,7 @@ impl DfaBuilder {
                         println!("  # {id_transitions:?}");
                         println!("  # terminal conflict: {}", terminals.iter()
                             .map(|(id, t)| format!("{id} -> {t} (has{} trans)", if id_transitions.contains(id) { "" } else { " no" }))
-                            .join());
+                            .join(", "));
                     }
                     // The potential terminals are obtained by removing all terminals associated with an id that is already the destination
                     // of at least one transition from this state. The idea is to favour terminals that don't have another chance to be
@@ -481,7 +481,7 @@ impl DfaBuilder {
                         0 => {
                             if VERBOSE { println!("    all ids have transitions => AMBIGUOUS, selecting the first defined terminal"); }
                             self.warnings.push(format!("conflicting terminals for state {new_state_id}, none having other transitions: {}",
-                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join()));
+                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
                             first_terminal_id.unwrap()
                         }
                         1 => {
@@ -490,7 +490,7 @@ impl DfaBuilder {
                         }
                         n => {
                             self.warnings.push(format!("conflicting terminals for state {new_state_id}, {n} having no other transition: {}",
-                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join()));
+                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
                             if potentials.contains(&first_terminal_id.unwrap()) {
                                 if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first defined terminal"); }
                                 first_terminal_id.unwrap()
@@ -649,7 +649,7 @@ impl Dfa {
         if self.state_graph.is_empty() {
             return true;
         }
-        let mut states = self.state_graph.keys().collect::<Vec<_>>();
+        let mut states = self.state_graph.keys().to_vec();
         states.sort();
         if *states[0] != 0 {
             false
@@ -814,7 +814,7 @@ impl Dfa {
             groups = groups.into_iter().enumerate()
                 .filter(|(id, _)| *id <= last_non_end_id || *id >= first_ending_id)
                 .map(|(_, g)| g)
-                .collect::<Vec<_>>();
+                .to_vec();
             if VERBOSE {
                 println!("st_to_group: {st_to_group:?}");
                 println!("groups: {groups:?}");
@@ -857,13 +857,13 @@ impl Dfa {
 // Supporting functions
 
 fn states_to_string<T: Display>(s: &BTreeSet<T>) -> String {
-    s.iter().map(|id| id.to_string()).join()
+    s.iter().map(|id| id.to_string()).join(", ")
 }
 
 pub(crate) fn followpos_to_string(dfa_builder: &DfaBuilder) -> String {
     let mut fpos = dfa_builder.followpos.iter()
-        .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).collect::<Vec<_>>().join(", ")))
-        .collect::<Vec<_>>();
+        .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).join(", ")))
+        .to_vec();
     fpos.sort();
     fpos.join("\n")
 }
@@ -882,7 +882,7 @@ fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
     let children = tree.children(index);
     if !children.is_empty() {
         result.push_str("(");
-        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c, basic)).collect::<Vec<_>>().join(","));
+        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c, basic)).to_vec().join(","));
         result.push_str(")");
     }
     result

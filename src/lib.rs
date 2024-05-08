@@ -48,14 +48,22 @@ pub(crate) fn escape_string(s: &str) -> String {
 }
 
 pub(crate) trait CollectJoin {
-    fn join(&mut self) -> String;
-}
+    fn join(&mut self, separator: &str) -> String
+        where Self: Iterator,
+              <Self as Iterator>::Item: ToString
+    {
+        self.map(|x| x.to_string()).collect::<Vec<_>>().join(separator)
+    }
 
-impl<T: std::fmt::Display, I: Iterator<Item=T>> CollectJoin for I {
-    fn join(&mut self) -> String {
-        self.map(|x| x.to_string()).collect::<Vec<_>>().join(", ")
+    fn to_vec(self) -> Vec<<Self as Iterator>::Item>
+        where Self: Iterator + Sized
+    {
+        self.collect::<Vec<_>>()
     }
 }
+
+impl<I: Iterator> CollectJoin for I {}
+
 
 #[cfg(test)]
 mod libtests {
@@ -64,6 +72,11 @@ mod libtests {
     #[test]
     fn test_col_to_string() {
         let x = std::collections::BTreeSet::<u32>::from([10, 20, 25]);
-        assert_eq!(x.iter().join(), "10, 20, 25");
+        assert_eq!(x.iter().join(", "), "10, 20, 25");
+    }
+
+    #[test]
+    fn test_to_vec() {
+        assert_eq!((0..5).to_vec(), vec![0, 1, 2, 3, 4]);
     }
 }

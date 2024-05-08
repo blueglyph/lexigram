@@ -5,6 +5,7 @@ mod tests;
 
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
+use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::gnode;
 use crate::vectree::VecTree;
@@ -147,8 +148,7 @@ impl RuleTree {
                         // - a leaf
                         // - a &(leaves)
                         // - a |(&(leaves) or leaves)
-                        let mut children = stack.drain(stack.len() - n..)
-                            .collect::<Vec<_>>();
+                        let children = stack.drain(stack.len() - n..).to_vec();
                         if children.iter().all(|&idx| !matches!(new.0.get(idx), GrNode::Concat|GrNode::Or)) {
                             // trivial case (could be removed and treated as a general case)
                             new.0.addc_iter(None, sym.clone(), children.into_iter().map(|i| self.0.get(i).clone()));
