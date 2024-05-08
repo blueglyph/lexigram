@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::gnode;
+use crate::{CollectJoin, gnode, vadd};
 use crate::vectree::VecTree;
 
 pub type VarId = u16;
@@ -76,7 +76,7 @@ impl GrNode {
 /// Simple index object that returns `Original(<value>)` on the first `index.get()`, then
 /// `Copy(<value>)` on subsequent calls. The indices are stored on 31 bits, keeping one bit
 /// for the 'original' flag. Trying to store larger values triggers a panic.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 struct Dup {
     index: u32
 }
@@ -102,6 +102,17 @@ impl Dup {
             DupVal::Original(idx)
         } else {
             DupVal::Copy(idx & !Self::MASK)
+        }
+    }
+}
+
+impl std::fmt::Debug for Dup {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Dup{{")?;
+        if self.index & Self::MASK == 0 {
+            write!(f, "{}}}", self.index)
+        } else {
+            write!(f, "copy {}}}", self.index & !Dup::MASK)
         }
     }
 }
@@ -133,13 +144,16 @@ impl RuleTree {
     /// case, new non-terminals are created, with increasing IDs starting from
     /// `next_var_id`.
     fn normalize(self, var_id: VarId, next_var_id: VarId) -> Vec<(VarId, Self)> {
+        const VERBOSE: bool = true;
         let mut new = RuleTree::new();
         let mut rules = Vec::<(VarId, RuleTree)>::new();
         let mut stack = Vec::<usize>::new();                // indices in new
         for sym in self.0.iter_depth() {
             let n = sym.num_children();
+            if VERBOSE { println!("- old {}:{}", sym.index, sym.deref()); }
             if n == 0 {
                 stack.push(new.0.add(None, self.0.get(sym.index).clone()));
+                if VERBOSE { print!("  leaf: "); }
             } else {
                 match sym.deref() {
                     GrNode::Concat | GrNode::Or => {
@@ -149,11 +163,13 @@ impl RuleTree {
                         // - a &(leaves)
                         // - a |(&(leaves) or leaves)
                         let children = stack.drain(stack.len() - n..).to_vec();
-                        if children.iter().all(|&idx| !matches!(new.0.get(idx), GrNode::Concat|GrNode::Or)) {
+                        let new_id = if children.iter().all(|&idx| !matches!(new.0.get(idx), GrNode::Concat|GrNode::Or)) {
+                            if VERBOSE { print!("  trivial {}: children={children:?}\n  ", sym.deref()); }
                             // trivial case (could be removed and treated as a general case)
-                            new.0.addc_iter(None, sym.clone(), children.into_iter().map(|i| self.0.get(i).clone()));
+                            new.0.addci_iter(None, sym.clone(), children)
                         } else {
                             if let GrNode::Or = sym.deref() {
+                                if VERBOSE { println!("  or: children={children:?}"); }
                                 // if parent sym is p:|
                                 // - preserving the children's order:
                                 //   - attach '|' children's children directly under p (discarding the '|' children)
@@ -164,37 +180,53 @@ impl RuleTree {
                                 let mut new_children = Vec::new();
                                 for id in children {
                                     match new.0.get(id) {
-                                        GrNode::Symbol(_) | GrNode::Concat =>
-                                            new_children.push(id),
-                                        GrNode::Or =>
-                                            new_children.extend(new.0.children(id)),
+                                        GrNode::Symbol(_) | GrNode::Concat => {
+                                            if VERBOSE { println!("  - child {id} is {}", new.0.get(id)); }
+                                            new_children.push(id);
+                                        }
+                                        GrNode::Or => {
+                                            if VERBOSE { println!("  - child {id} is | with children {:?}", new.0.children(id)); }
+                                            new_children.extend(new.0.children(id));
+                                        }
                                         x => panic!("unexpected node type under | node: {x:?}"),
                                     }
                                 }
-                                new.0.addci_iter(None, gnode!(|), new_children);
+                                new.0.addci_iter(None, gnode!(|), new_children)
                             } else { // GrNode::Concat
+                                if VERBOSE { println!("  &: children={children:?}"); }
                                 // if parent sym is p:&
                                 // - merge adjacent leaves and '&' children (optional)
-                                // - distribute cross-product of all '|' children and '&' children,
-                                //       adding new '&' nodes for each product
+                                // - cartesian product of all '|' children's children and '&' children,
+                                //       duplicating nodes are required
                                 // - add r:'|' node to tree, attaching the new '&' nodes under it
                                 // - push r to stack
                                 // ex: P: AB & (C|D) & E & (F|G)      -> P: ABCEF | ABCEG | ABDEF | ABDEG
                                 //        &(&(A,B),|(C,D),E,|(F,G))         |(&(A,B,C,E,F),&(A,B,C,E,G),&(A,B,D,E,F),&(A,B,D,E,G)
-                                let mut index_or = Vec::new();
-                                let mut dup_children = children.iter().map(|&id| {
+
+                                // we store the dups in an array and reference them by index, because there will be multiple instances
+                                // pointing to the same Dup and we can't do that with mutable references (which must be unique):
+                                let mut children_dup = Vec::<Dup>::new();
+                                let concats_children = children.into_iter().map(|id| {
                                     if matches!(new.0.get(id), GrNode::Or) {
-                                        index_or.push(id);
-                                    }
-                                    Dup::new(id)
-                                }).collect::<Vec<_>>();
-
-
+                                        new.0.children(id).iter().map(|idc| vadd(&mut children_dup, Dup::new(*idc))).to_vec()
+                                    } else {
+                                        vec![vadd(&mut children_dup, Dup::new(id))]
+                                    }}) // -> Iterator<Vec<dup id of &-children (before distribution)>>
+                                    .cproduct() // -> Iterator<Vec<dup id of &-children (after distribution)>>
+                                    .map(|dup_ids|
+                                        dup_ids.into_iter()
+                                            .map(|dup_id| new.get_dup(children_dup.get_mut(dup_id).unwrap())).to_vec())
+                                    .to_vec();  // -> Vec<Vec<node id of &-children>>
+                                let concats = concats_children.into_iter()
+                                    .map(|children_ids| new.0.addci_iter(None, gnode!(&), children_ids))
+                                    .to_vec();  // -> Vec<node id of &-branch>
+                                new.0.addci_iter(None, gnode!(|), concats)
                             }
-                            todo!()
-                        }
+                        };
+                        stack.push(new_id);
                     }
                     GrNode::Maybe => {
+                        if VERBOSE { print!("  ?: "); }
                         assert_eq!(n, 1);
                         let empty = new.0.add(None, gnode!(e));
                         let id = new.0.addci_iter(None, gnode!(|), [stack.pop().unwrap(), empty]);
@@ -217,9 +249,44 @@ impl RuleTree {
                     _ => panic!("Unexpected {}", sym.deref())
                 }
             }
+            if VERBOSE {
+                println!("stack: {}", stack.iter()
+                    .map(|id| {
+                        let children = new.0.children(*id);
+                        format!("{id}:{}{}", new.0.get(*id), if children.is_empty() { "".to_string() } else { format!("({})", children.iter().join(",")) })
+                    }).join(", ")
+                );
+            }
         }
+        assert_eq!(stack.len(), 1);
+        if VERBOSE { println!("Final stack id: {}", stack[0]); }
+        new.0.set_root(stack.pop().unwrap());
         rules.push((var_id, new));
         rules
+    }
+}
+
+impl Display for RuleTree {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        fn snode(show_ids: bool, node: &GrNode, node_id: usize) -> String {
+            if show_ids {
+                format!("{node_id}:{node}")
+            } else {
+                node.to_string()
+            }
+        }
+        let show_ids = f.alternate();
+        let mut stack = Vec::<String>::new();
+        for node in self.0.iter_depth() {
+            let n = node.num_children();
+            if n > 0 {
+                let children = stack.drain(stack.len() - n..).join(", ");
+                stack.push(format!("{}({children})", snode(show_ids, &node, node.index)));
+            } else {
+                stack.push(snode(show_ids, &node, node.index));
+            }
+        }
+        write!(f, "{}", stack.pop().unwrap_or("empty".to_string()))
     }
 }
 
@@ -243,10 +310,6 @@ impl GrammarBuilder {
             rules: parsed_rules,
             symbols: Vec::new()
         }
-    }
-
-    fn remove_repetitions(&mut self) {
-
     }
 }
 

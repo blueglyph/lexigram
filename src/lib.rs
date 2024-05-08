@@ -31,6 +31,9 @@ pub mod grammar;
 // - https://github.com/maciejhirsz/logos
 // - https://alic.dev/blog/fast-lexing
 
+// ---------------------------------------------------------------------------------------------
+// General helper functions
+
 pub(crate) fn escape_char(c: char) -> String {
     match c {
         // '\x00'..='\x7f' => c.escape_debug().to_string(),
@@ -46,6 +49,15 @@ pub(crate) fn escape_char(c: char) -> String {
 pub(crate) fn escape_string(s: &str) -> String {
     s.chars().map(|c| escape_char(c)).collect::<String>()
 }
+
+pub(crate) fn vadd<T>(v: &mut Vec<T>, item: T) -> usize {
+    let new_index = v.len();
+    v.push(item);
+    new_index
+}
+
+// ---------------------------------------------------------------------------------------------
+// General helper traits
 
 pub(crate) trait CollectJoin {
     fn join(&mut self, separator: &str) -> String
@@ -64,7 +76,6 @@ pub(crate) trait CollectJoin {
 
 impl<I: Iterator> CollectJoin for I {}
 
-
 #[cfg(test)]
 mod libtests {
     use super::*;
@@ -80,3 +91,5 @@ mod libtests {
         assert_eq!((0..5).to_vec(), vec![0, 1, 2, 3, 4]);
     }
 }
+
+// ---------------------------------------------------------------------------------------------

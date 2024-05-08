@@ -46,3 +46,13 @@ fn dup() {
     let result2 = (0..6).map(|i| tree.0.get(i).clone()).to_vec();
     assert_eq!(result2, [gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2)]);
 }
+
+#[test]
+fn ruletree_normalize() {
+    let mut tree = RuleTree::new();
+    let top = tree.0.addc_iter(None, gnode!(|), [gnode!(t 1), gnode!(t 2), gnode!(nt 3)]);
+    tree.0.set_root(top);
+    println!("0 -> {tree:#}");
+    let new = tree.normalize(0, 1);
+    println!("{}", new.into_iter().map(|(id, t)| format!("{id} -> {t:#}")).join("\n"));
+}
