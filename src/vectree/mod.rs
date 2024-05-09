@@ -235,19 +235,35 @@ impl<'a, TData: TreeDataIter> Iterator for VecTreeIter<TData> {
 
 impl<'a, T> VecTree<T> {
     pub fn iter_depth_simple(&'a self) -> VecTreeIter<IterDataSimple<'a, T>> {
-        VecTreeIter::<IterDataSimple<'a, T>>::new(self)
+        VecTreeIter::<IterDataSimple<'a, T>>::new(self, self.root)
+    }
+
+    pub fn iter_depth_simple_at(&'a self, top: usize) -> VecTreeIter<IterDataSimple<'a, T>> {
+        VecTreeIter::<IterDataSimple<'a, T>>::new(self, Some(top))
     }
 
     pub fn iter_depth(&self) -> VecTreeIter<IterData<'a, T>> {
-        VecTreeIter::<IterData<'a, T>>::new(&self)
+        VecTreeIter::<IterData<'a, T>>::new(&self, self.root)
+    }
+
+    pub fn iter_depth_at(&self, top: usize) -> VecTreeIter<IterData<'a, T>> {
+        VecTreeIter::<IterData<'a, T>>::new(&self, Some(top))
     }
 
     pub fn iter_depth_simple_mut(&'a mut self) -> VecTreeIter<IterDataSimpleMut<'a, T>> {
-        VecTreeIter::<IterDataSimpleMut<'a, T>>::new(self)
+        VecTreeIter::<IterDataSimpleMut<'a, T>>::new(self, self.root)
+    }
+
+    pub fn iter_depth_simple_mut_at(&'a mut self, top: usize) -> VecTreeIter<IterDataSimpleMut<'a, T>> {
+        VecTreeIter::<IterDataSimpleMut<'a, T>>::new(self, Some(top))
     }
 
     pub fn iter_depth_mut(&'a mut self) -> VecTreeIter<IterDataMut<'a, T>> {
-        VecTreeIter::<IterDataMut<'a, T>>::new(self)
+        VecTreeIter::<IterDataMut<'a, T>>::new(self, self.root)
+    }
+
+    pub fn iter_depth_mut_at(&'a mut self, top: usize) -> VecTreeIter<IterDataMut<'a, T>> {
+        VecTreeIter::<IterDataMut<'a, T>>::new(self, Some(top))
     }
 
     pub fn clear(&mut self) {
@@ -261,11 +277,11 @@ impl<'a, T> VecTree<T> {
 // Immutable iterator
 
 impl<'a, T> VecTreeIter<IterDataSimple<'a, T>> {
-    fn new(tree: &'a VecTree<T>) -> Self {
+    fn new(tree: &'a VecTree<T>, top: Option<usize>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
             depth: 0,
-            next: tree.root.map(|id| VisitNode::Down(id)),
+            next: top.map(|id| VisitNode::Down(id)),
             data: IterDataSimple { tree },
         }
     }
@@ -316,11 +332,11 @@ impl<T> Deref for NodeProxySimple<'_, T> {
 // -- with children
 
 impl<'a, T> VecTreeIter<IterData<'a, T>> {
-    fn new(tree: &VecTree<T>) -> Self {
+    fn new(tree: &VecTree<T>, top: Option<usize>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
             depth: 0,
-            next: tree.root.map(|id| VisitNode::Down(id)),
+            next: top.map(|id| VisitNode::Down(id)),
             data: IterData {
                 tree_nodes_ptr: tree.nodes.as_ptr(),
                 tree_size: tree.nodes.len(),
@@ -424,11 +440,11 @@ impl<T> Deref for NodeProxy<'_, T> {
 // Mutable iterator
 
 impl<'a, T> VecTreeIter<IterDataSimpleMut<'a, T>> {
-    fn new(tree: &'a mut VecTree<T>) -> Self {
+    fn new(tree: &'a mut VecTree<T>, top: Option<usize>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
             depth: 0,
-            next: tree.root.map(|id| VisitNode::Down(id)),
+            next: top.map(|id| VisitNode::Down(id)),
             data: IterDataSimpleMut { tree },
         }
     }
@@ -485,11 +501,11 @@ impl<T> DerefMut for NodeProxySimpleMut<'_, T> {
 // -- with children
 
 impl<'a, T> VecTreeIter<IterDataMut<'a, T>> {
-    fn new(tree: &'a mut VecTree<T>) -> Self {
+    fn new(tree: &'a mut VecTree<T>, top: Option<usize>) -> Self {
         VecTreeIter {
             stack: Vec::new(),
             depth: 0,
-            next: tree.root.map(|id| VisitNode::Down(id)),
+            next: top.map(|id| VisitNode::Down(id)),
             data: IterDataMut {
                 tree_nodes_ptr: tree.nodes.as_mut_ptr(),
                 tree_size: tree.nodes.len(),

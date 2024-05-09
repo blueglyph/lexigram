@@ -67,7 +67,7 @@ mod general {
 
     // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children_simple -- --exact
     #[test]
-    fn iter_depth_children_simple() {
+    fn iter_depth_simple() {
         let tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
@@ -80,9 +80,23 @@ mod general {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children_direct -- --exact
     #[test]
-    fn iter_depth_children_direct() {
+    fn iter_depth_simple_at() {
+        let tree = build_tree();
+        let mut result = String::new();
+        let mut result_index = vec![];
+        for inode in tree.iter_depth_simple_at(3) {
+            result.push_str(&inode);
+            result.push(',');
+            result_index.push(inode.index);
+        }
+        assert_eq!(result, "c1,c2,c,");
+        assert_eq!(result_index, [6, 7, 3]);
+    }
+
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth -- --exact
+    #[test]
+    fn iter_depth() {
         let tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
@@ -114,6 +128,20 @@ mod general {
         assert_eq!(result_size_subtree, [1, 1, 3, 1, 1, 1, 3, 8]);
     }
 
+    #[test]
+    fn iter_depth_at() {
+        let tree = build_tree();
+        let mut result = String::new();
+        let mut result_index = vec![];
+        for inode in tree.iter_depth_at(3) {
+            result.push_str(&inode);
+            result.push(',');
+            result_index.push(inode.index);
+        }
+        assert_eq!(result, "c1,c2,c,");
+        assert_eq!(result_index, [6, 7, 3]);
+    }
+
     // cargo +nightly miri test --lib vectree::tests::general::iter_depth_children -- --exact
     #[test]
     fn iter_depth_children() {
@@ -136,9 +164,9 @@ mod general {
         assert_eq!(result, "a1,a2,a,b,c1,c2,C,ROOT,");
     }
 
-    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut_children_simple -- --exact
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_simple_mut -- --exact
     #[test]
-    fn iter_depth_mut_children_simple() {
+    fn iter_depth_simple_mut() {
         let mut tree = build_tree();
         let mut result_index = vec![];
         for mut inode in tree.iter_depth_simple_mut() {
@@ -150,9 +178,24 @@ mod general {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
     }
 
-    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut_children_direct -- --exact
     #[test]
-    fn iter_depth_mut_children_direct() {
+    fn iter_depth_simple_mut_at() {
+        let mut tree = build_tree();
+        let mut result = String::new();
+        let mut result_index = vec![];
+        for mut inode in tree.iter_depth_simple_mut_at(3) {
+            *inode = inode.to_uppercase();
+            result.push_str(&inode);
+            result.push(',');
+            result_index.push(inode.index);
+        }
+        assert_eq!(result, "C1,C2,C,");
+        assert_eq!(result_index, [6, 7, 3]);
+    }
+
+    // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut -- --exact
+    #[test]
+    fn iter_depth_mut() {
         let mut tree = build_tree();
         let mut result_index = vec![];
         let mut result_num_children = vec![];
@@ -179,6 +222,21 @@ mod general {
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
         assert_eq!(result_num_children, [0, 0, 2, 0, 0, 0, 2, 3]);
         assert_eq!(result_size_subtree, [1, 1, 3, 1, 1, 1, 3, 8]);
+    }
+
+    #[test]
+    fn iter_depth_mut_at() {
+        let mut tree = build_tree();
+        let mut result = String::new();
+        let mut result_index = vec![];
+        for mut inode in tree.iter_depth_mut_at(3) {
+            *inode = inode.to_uppercase();
+            result.push_str(&inode);
+            result.push(',');
+            result_index.push(inode.index);
+        }
+        assert_eq!(result, "C1,C2,C,");
+        assert_eq!(result_index, [6, 7, 3]);
     }
 
     // cargo +nightly miri test --lib vectree::tests::general::iter_depth_mut_children -- --exact
