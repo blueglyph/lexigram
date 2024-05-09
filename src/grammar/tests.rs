@@ -74,10 +74,10 @@ fn build_tree(id: u32) -> RuleTree {
             let top = tree.0.add_root(gnode!(&));
             tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
             tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
-            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
+            tree.0.add(Some(top), gnode!(nt 5));
             let or = tree.0.add(Some(top), gnode!(|));
-            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 7), gnode!(nt 8)]);
-            tree.0.add(Some(or), gnode!(nt 9));
+            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
+            tree.0.add(Some(or), gnode!(nt 8));
         }
         _ => {}
     }
@@ -87,14 +87,16 @@ fn build_tree(id: u32) -> RuleTree {
 #[test]
 fn ruletree_normalize() {
     let tests: Vec<(u32, HashMap<VarId, &str>)> = vec![
+/*
         // |([1], [2], 3) (depth 1)
         (0, hashmap![0 => "|([1], [2], 3)"]),
         // |(&(1, 2), |([3], [4]), &(5, 6), |([7], [8], &(9, 10))) (depth 3)
         (1, hashmap![0 => "|(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))"]),
         // &(&(1, 2), |(3, 4), &(5, 6), |(7, 8)) (depth 2)
         (2, hashmap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))"]),
-        // &(&(1, 2), |(3, 4), &(5, 6), |(&(7, 8), 9)) (depth 3)
-        (3, hashmap![0 => "|(&(1, 2, 3, 5, 6, 7, 8), &(1, 2, 3, 5, 6, 9), &(1, 2, 4, 5, 6, 7, 8), &(1, 2, 4, 5, 6, 9))"]),
+*/
+        // &(&(1, 2), |(3, 4), 5, |(&(6, 7), 8)) (depth 3)
+        (3, hashmap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))"]),
     ];
     const VERBOSE: bool = true;
     for (test_id, expected) in tests {

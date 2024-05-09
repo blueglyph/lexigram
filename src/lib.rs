@@ -50,11 +50,11 @@ pub(crate) fn escape_string(s: &str) -> String {
     s.chars().map(|c| escape_char(c)).collect::<String>()
 }
 
-pub(crate) fn vadd<T>(v: &mut Vec<T>, item: T) -> usize {
-    let new_index = v.len();
-    v.push(item);
-    new_index
-}
+// pub(crate) fn vadd<T>(v: &mut Vec<T>, item: T) -> usize {
+//     let new_index = v.len();
+//     v.push(item);
+//     new_index
+// }
 
 // ---------------------------------------------------------------------------------------------
 // General helper traits
