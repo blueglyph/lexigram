@@ -336,8 +336,57 @@ impl RuleTree {
                         // create new production rule:
                         // P -> αβ*γ becomes P -> αQγ
                         //                   Q -> βQ | ε
-                        if VERBOSE { print!("  *: "); }
-                        todo!()
+                        //
+                        // self              new  new(Q=next_var_id)     simpler format
+                        // -----------------------------------------------------------------------
+                        // *(A)           -> Q    |(&(A,Q), ε)           AQ|ε
+                        // *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
+                        // *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
+                        if VERBOSE { print!("  *"); }
+                        let child = stack.pop().unwrap();
+                        let mut qtree = RuleTree::new();
+                        match new.0.get(child) {
+                            GrNode::Symbol(s) => {
+                                if VERBOSE { print!("({child}:{s}) "); }
+                                // note: we cannot use the child id in qtree!
+                                let or = qtree.0.add_root(gnode!(|));
+                                let cc = qtree.0.addc(Some(or), gnode!(&), GrNode::Symbol(s.clone()));
+                                qtree.0.add(Some(cc), gnode!(nt next_var_id));
+                                qtree.0.add(Some(or), gnode!(e));
+                            }
+                            GrNode::Concat => {
+                                let children = new.0.children(child);
+                                if VERBOSE { print!("({child}:&({})) ", children.iter().join(", ")); }
+                                let or = qtree.0.add_root(gnode!(|));
+                                let cc1 = qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(child));
+                                qtree.0.add(Some(cc1), gnode!(nt next_var_id));
+                                qtree.0.add(Some(or), gnode!(e));
+                            }
+                            GrNode::Or => {
+                                let children = new.0.children(child);
+                                if VERBOSE { print!("({child}:|({})) ", children.iter().join(", ")); }
+                                let or = qtree.0.add_root(gnode!(|));
+                                for id_child in children {
+                                    let child = new.0.get(*id_child);
+                                    match child {
+                                        GrNode::Symbol(s) => {
+                                            qtree.0.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt next_var_id)]);
+                                        }
+                                        GrNode::Concat => {
+                                            let cc = qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(*id_child));
+                                            qtree.0.add(Some(cc), gnode!(nt next_var_id));
+                                        }
+                                        x => panic!("unexpected node type under | node: {x}"),
+                                    }
+                                }
+                                qtree.0.add(Some(or), gnode!(e));
+                            }
+                            _ => panic!("Unexpected {} under * node", new.0.get(child))
+                        }
+                        let id = new.0.add(None, gnode!(nt next_var_id));
+                        rules.push((next_var_id, qtree));
+                        next_var_id += 1;
+                        stack.push(id);
                     }
                     _ => panic!("Unexpected {}", sym.deref())
                 }

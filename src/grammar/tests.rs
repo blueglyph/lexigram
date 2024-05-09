@@ -123,6 +123,25 @@ fn build_tree(id: u32) -> RuleTree {
             tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
             tree.0.add(Some(or), gnode!(nt 4));
         }
+        11 => { // 12*
+            let cc = tree.0.add_root(gnode!(&));
+            tree.0.add(Some(cc), gnode!(nt 1));
+            tree.0.addc(Some(cc), gnode!(*), gnode!(nt 2));
+        }
+        12 => { // 1(23)*
+            let cc = tree.0.add_root(gnode!(&));
+            tree.0.add(Some(cc), gnode!(nt 1));
+            let p = tree.0.add(Some(cc), gnode!(*));
+            tree.0.addc_iter(Some(p), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
+        }
+        13 => { // 1(23|4)*
+            let cc = tree.0.add_root(gnode!(&));
+            tree.0.add(Some(cc), gnode!(nt 1));
+            let p = tree.0.add(Some(cc), gnode!(*));
+            let or = tree.0.add(Some(p), gnode!(|));
+            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
+            tree.0.add(Some(or), gnode!(nt 4));
+        }
 
         _ => {}
     }
@@ -169,6 +188,12 @@ fn ruletree_normalize() {
         (9, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(2, 3))"]),
         // &(1, +(|(&(2, 3), 4))) (depth 4)
         (10, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(2, 3), &(4, 10), 4)"]),
+        // &(1, *(2))
+        (11, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 10), ε)"]),
+        // &(1, *(&(2, 3))) (depth 3)
+        (12, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), ε)"]),
+        // &(1, *(|(&(2, 3), 4))) (depth 4)
+        (13, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(4, 10), ε)"]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
