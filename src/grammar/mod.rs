@@ -144,7 +144,7 @@ impl RuleTree {
     /// case, new non-terminals are created, with increasing IDs starting from
     /// `next_var_id`.
     fn normalize(self, var_id: VarId, next_var_id: VarId) -> Vec<(VarId, Self)> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let mut new = RuleTree::new();
         let mut rules = Vec::<(VarId, RuleTree)>::new();
         let mut stack = Vec::<usize>::new();                // indices in new
@@ -206,21 +206,35 @@ impl RuleTree {
                                 // we store the dups in an array and reference them by index, because there will be multiple instances
                                 // pointing to the same Dup and we can't do that with mutable references (which must be unique):
                                 let mut children_dup = Vec::<Dup>::new();
-                                let concats_children = children.into_iter().map(|id| {
-                                    if matches!(new.0.get(id), GrNode::Or) {
-                                        new.0.children(id).iter().map(|idc| vadd(&mut children_dup, Dup::new(*idc))).to_vec()
-                                    } else {
-                                        vec![vadd(&mut children_dup, Dup::new(id))]
-                                    }}) // -> Iterator<Vec<dup id of &-children (before distribution)>>
-                                    //.inspect(|x| println!("      >> {}", x.iter().join(", ")))
-                                    .cproduct() // -> Iterator<Vec<dup id of &-children (after distribution)>>
-                                    //.inspect(|x| println!("      >> {}", x.iter().join(", ")))
+                                let concats_children = children.into_iter()
+                                    // iterations: &(A,B) -> |(C,D) -> E
+                                    // todo: &(A,B) -> |(C,D) -> E -> |(&(F,G),H))
+                                    //                                ^^^^^^^^^^^^
+                                    .flat_map(|id| {
+                                        match new.0.get(id) {
+                                            GrNode::Concat =>
+                                                new.0.children(id).iter().map(|idc| vec![vadd(&mut children_dup, Dup::new(*idc))]).to_vec(),
+                                            GrNode::Or =>
+                                                vec![new.0.children(id).iter().map(|idc| vadd(&mut children_dup, Dup::new(*idc))).to_vec()],
+                                            _ =>
+                                                vec![vec![vadd(&mut children_dup, Dup::new(id))]],
+                                        }
+                                    })
+                                    // [dup(A)] -> [dup(B)] -> [dup(C),dup(D)] -> [dup(E)]
+                                    // todo: [d(A)] -> [d(B)] -> [d(C),d(D)] -> [d(E)] -> [d(&(d(F),d(G))),d(H)]
+                                    .cproduct()
+                                    // [dup(A),dup(B),dup(C),dup(E)] -> [dup(A),dup(B),dup(D),dup(E)]
+                                    // todo: [dup(A),dup(B),dup(C),dup(E),d(&)] -> [dup(A),dup(B),dup(C),dup(E),d(H)] ->
+                                    //       [dup(A),dup(B),dup(D),dup(E),d(&)] -> [dup(A),dup(B),dup(D),dup(E),d(H)]
                                     .map(|dup_ids|
                                         dup_ids.into_iter()
                                             .map(|dup_id| new.get_dup(children_dup.get_mut(dup_id).unwrap())).to_vec())
-                                    .to_vec();  // -> Vec<Vec<node id of &-children>>
+                                    .to_vec();
+                                    // [A,B,C,E] -> [A',B',D,E']
+                                    // todo: [A,B,C,E,F,G] -> [A',B',C',E',H] -> [A'',B'',D,E'',F',G'] -> [A''',B''',D',E''',H']
                                 let concats = concats_children.into_iter()
                                     .map(|children_ids| new.0.addci_iter(None, gnode!(&), children_ids))
+                                    // &(A,B,C,E) -> &(A',B',D,E')
                                     .to_vec();  // -> Vec<node id of &-branch>
                                 new.0.addci_iter(None, gnode!(|), concats)
                             }

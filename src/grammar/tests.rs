@@ -70,6 +70,15 @@ fn build_tree(id: u32) -> RuleTree {
             tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
             tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 7), gnode!(nt 8)]);
         }
+        3 => {
+            let top = tree.0.add_root(gnode!(&));
+            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
+            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
+            let or = tree.0.add(Some(top), gnode!(|));
+            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 7), gnode!(nt 8)]);
+            tree.0.add(Some(or), gnode!(nt 9));
+        }
         _ => {}
     }
     tree
@@ -78,20 +87,25 @@ fn build_tree(id: u32) -> RuleTree {
 #[test]
 fn ruletree_normalize() {
     let tests: Vec<(u32, HashMap<VarId, &str>)> = vec![
-/*
+        // |([1], [2], 3) (depth 1)
         (0, hashmap![0 => "|([1], [2], 3)"]),
-        // |(&(1, 2), |([3], [4]), &(5, 6), |([7], [8], &(9, 10)))
+        // |(&(1, 2), |([3], [4]), &(5, 6), |([7], [8], &(9, 10))) (depth 3)
         (1, hashmap![0 => "|(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))"]),
-*/
-        (2, hashmap![0 => ""]),
+        // &(&(1, 2), |(3, 4), &(5, 6), |(7, 8)) (depth 2)
+        (2, hashmap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))"]),
+        // &(&(1, 2), |(3, 4), &(5, 6), |(&(7, 8), 9)) (depth 3)
+        (3, hashmap![0 => "|(&(1, 2, 3, 5, 6, 7, 8), &(1, 2, 3, 5, 6, 9), &(1, 2, 4, 5, 6, 7, 8), &(1, 2, 4, 5, 6, 9))"]),
     ];
     const VERBOSE: bool = true;
     for (test_id, expected) in tests {
         let mut tree = build_tree(test_id);
-        if VERBOSE { println!("0 -> {tree:#} /* depth: {} */", tree.0.depth().unwrap()); }
+        if VERBOSE { println!("test {test_id}:\n- 0 -> {tree} (depth {})", tree.0.depth().unwrap()); }
         let new = tree.normalize(0, 1);
         let result = HashMap::from_iter(new.iter().map(|(id, t)| (*id, format!("{t}"))));
-        if VERBOSE { println!("{}", new.into_iter().map(|(id, t)| format!("{id} => \"{t:#}\" /* depth: {} */", t.0.depth().unwrap())).join("\n")); }
+        if VERBOSE {
+            println!("{}", new.iter().map(|(ref id, t)| format!("- {id} => {t:#} (depth {})", t.0.depth().unwrap())).join("\n"));
+            println!("{}", new.iter().map(|(ref id, t)| format!("    => \"{t}\"")).join("\n"));
+        }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<HashMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");
     }
