@@ -79,6 +79,31 @@ fn build_tree(id: u32) -> RuleTree {
             tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
             tree.0.add(Some(or), gnode!(nt 8));
         }
+        4 => {
+            let top = tree.0.add_root(gnode!(&));
+            let cc = tree.0.add(Some(top), gnode!(&));
+            tree.0.addc_iter(Some(cc), gnode!(&), [gnode!(nt 0), gnode!(nt 1)]);
+            tree.0.add(Some(cc), gnode!(nt 2));
+            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
+            tree.0.add(Some(top), gnode!(nt 5));
+            let or = tree.0.add(Some(top), gnode!(|));
+            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
+            tree.0.add(Some(or), gnode!(nt 8));
+        }
+        5 => {
+            let top = tree.0.add_root(gnode!(?));
+            tree.0.add(Some(top), gnode!(nt 1));
+        }
+        6 => {
+            let top = tree.0.add_root(gnode!(?));
+            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+        }
+        7 => {
+            let top = tree.0.add_root(gnode!(?));
+            let or = tree.0.add(Some(top), gnode!(|));
+            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.0.add(Some(or), gnode!(nt 3));
+        }
         _ => {}
     }
     tree
@@ -95,11 +120,19 @@ fn ruletree_normalize() {
         (2, hashmap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))"]),
         // &(&(1, 2), |(3, 4), 5, |(&(6, 7), 8)) (depth 3)
         (3, hashmap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))"]),
+        // &(&(&(0, 1), 2), |(3, 4), 5, |(&(6, 7), 8)) (depth 3)
+        (4, hashmap![0 => "|(&(0, 1, 2, 3, 5, 6, 7), &(0, 1, 2, 3, 5, 8), &(0, 1, 2, 4, 5, 6, 7), &(0, 1, 2, 4, 5, 8))"]),
+        // ?(1)
+        (5, hashmap![0 => "|(1, ε)"]),
+        // ?(&(1, 2))
+        (6, hashmap![0 => "|(&(1, 2), ε)"]),
+        // ?(|(&(1, 2), 3))
+        (7, hashmap![0 => "|(&(1, 2), 3, ε)"]),
     ];
     const VERBOSE: bool = true;
     for (test_id, expected) in tests {
         let mut tree = build_tree(test_id);
-        if VERBOSE { println!("test {test_id}:\n- 0 -> {tree} (depth {})", tree.0.depth().unwrap()); }
+        if VERBOSE { println!("test {test_id}:\n- 0 -> {tree} (depth {})", 1000 /*tree.0.depth().unwrap()*/); }
         let new = tree.normalize(0, 1);
         let result = HashMap::from_iter(new.iter().map(|(id, t)| (*id, format!("{t}"))));
         if VERBOSE {

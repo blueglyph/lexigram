@@ -161,12 +161,12 @@ impl RuleTree {
                 if VERBOSE { print!("  leaf: "); }
             } else {
                 match sym.deref() {
+                    // we must rearrange the operations so that any item on the stack is only
+                    // one of those patterns:
+                    // - a leaf
+                    // - a &(leaves)
+                    // - a |(&(leaves) or leaves)
                     GrNode::Concat | GrNode::Or => {
-                        // we must rearrange the operations so that any item on the stack is only
-                        // one of those combinations:
-                        // - a leaf
-                        // - a &(leaves)
-                        // - a |(&(leaves) or leaves)
                         let children = stack.drain(stack.len() - n..).to_vec();
                         let new_id = if children.iter().all(|&idx| !matches!(new.0.get(idx), GrNode::Concat|GrNode::Or)) {
                             if VERBOSE { print!("  trivial {}: children={children:?}\n  ", sym.deref()); }
@@ -256,10 +256,22 @@ impl RuleTree {
                         stack.push(new_id);
                     }
                     GrNode::Maybe => {
-                        if VERBOSE { print!("  ?: "); }
                         assert_eq!(n, 1);
+                        // self              new
+                        // -------------------------------
+                        // ?(A)           -> |(A,ε)
+                        // ?(&(A,B))      -> |(&(A,B),ε)
+                        // ?(|(&(A,B),C)) -> |(&(A,B),C,ε)
+                        if VERBOSE { print!("  ?: "); }
+                        let child = stack.pop().unwrap();
                         let empty = new.0.add(None, gnode!(e));
-                        let id = new.0.addci_iter(None, gnode!(|), [stack.pop().unwrap(), empty]);
+                        let id = match new.0.get(child) {
+                            GrNode::Or => {
+                                new.0.add(Some(child), gnode!(e));
+                                child
+                            }
+                            _ => new.0.addci_iter(None, gnode!(|), [child, empty])
+                        };
                         stack.push(id);
                     }
                     GrNode::Plus => {
