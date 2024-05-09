@@ -129,21 +129,24 @@ fn build_tree(id: u32) -> RuleTree {
     tree
 }
 
-fn check_sanity(tree: &RuleTree) -> Option<String> {
+fn check_sanity(id: VarId, tree: &RuleTree, verbose: bool) -> Option<String> {
     let mut indices = HashSet::<usize>::new();
+    let mut n = 0;
     for node in tree.0.iter_depth_simple() {
+        n += 1;
         if indices.contains(&node.index) {
             return Some(format!("duplicate index {} in tree {:#}", node.index, tree));
         }
         indices.insert(node.index);
     }
+    if verbose { println!("  {id} uses {}/{} nodes", n, tree.0.len()); }
     None
 }
 
+// cargo +nightly miri test --package rlexer --lib grammar::tests::ruletree_normalize -- --exact
 #[test]
 fn ruletree_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
-/*
         // |([1], [2], 3) (depth 1)
         (0, btreemap![0 => "|([1], [2], 3)"]),
         // |(&(1, 2), |([3], [4]), &(5, 6), |([7], [8], &(9, 10))) (depth 3)
@@ -162,26 +165,25 @@ fn ruletree_normalize() {
         (7, btreemap![0 => "|(&(1, 2), 3, ε)"]),
         // &(1, +(2))
         (8, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 10), 2)"]),
-*/
         // &(1, +(&(2, 3))) (depth 3)
         (9, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(2, 3))"]),
         // &(1, +(|(&(2, 3), 4))) (depth 4)
-        (10, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(4, 10), &(2, 3), 4)"]),
+        (10, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(2, 3), &(4, 10), 4)"]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, expected) in tests {
         let mut tree = build_tree(test_id);
         if VERBOSE { println!("test {test_id}:\n- 0 -> {tree} (depth {})", tree.0.depth().unwrap()); }
         let new = tree.normalize(0, 10);
         for (id, t) in &new {
-            if let Some(err) = check_sanity(t) {
+            if let Some(err) = check_sanity(*id, t, VERBOSE) {
                 panic!("test {test_id} failed on NT {id}: {}", err);
             }
         }
         let result = BTreeMap::from_iter(new.iter().map(|(id, t)| (*id, format!("{t}"))));
         if VERBOSE {
             println!("{}", new.iter().map(|(ref id, t)| format!("- {id} => {t:#} (depth {})", t.0.depth().unwrap_or(0))).join("\n"));
-            println!("({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
+            println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");

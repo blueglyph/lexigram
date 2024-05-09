@@ -148,7 +148,7 @@ impl RuleTree {
     /// case, new non-terminals are created, with increasing IDs starting from
     /// `next_var_id`.
     fn normalize(self, var_id: VarId, mut next_var_id: VarId) -> Vec<(VarId, Self)> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
         let mut new = RuleTree::new();
         let mut rules = Vec::<(VarId, RuleTree)>::new();
@@ -193,7 +193,7 @@ impl RuleTree {
                                             if VERBOSE { println!("  - child {id} is | with children {:?}", new.0.children(id)); }
                                             new_children.extend(new.0.children(id));
                                         }
-                                        x => panic!("unexpected node type under | node: {x:?}"),
+                                        x => panic!("unexpected node type under | node: {x}"),
                                     }
                                 }
                                 new.0.addci_iter(None, gnode!(|), new_children)
@@ -229,8 +229,7 @@ impl RuleTree {
                                                     }
                                                 }).to_vec()]
                                             }
-                                            _ =>
-                                                vec![vec![vaddi(&mut dups, [Dup::new(id)])]],
+                                            _ => vec![vec![vaddi(&mut dups, [Dup::new(id)])]],
                                         }
                                     })
                                     // [d(A)] -> [d(B)] -> [d(C),d(D)] -> [d(E)] -> [d(&(d(F),d(G))),d(H)]
@@ -280,11 +279,11 @@ impl RuleTree {
                         // P -> αβ+γ becomes P -> αQγ
                         //                   Q -> βQ | β
                         //
-                        // self              new(var_id=P)  new(next_var_id=Q)               simpler format
+                        // self              new  new(Q=next_var_id)               simpler format
                         // --------------------------------------------------------------------------------------------------
-                        // +(A)           -> Q              |(&(A,Q), A')                    AQ|A
-                        // +(&(A,B))      -> Q              |(&(A,B,Q),&(A',B'))             ABQ|AB
-                        // +(|(&(A,B),C)) -> |(&(A,B),C,ε)  |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
+                        // +(A)           -> Q    |(&(A,Q), A')                    AQ|A
+                        // +(&(A,B))      -> Q    |(&(A,B,Q),&(A',B'))             ABQ|AB
+                        // +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
                         if VERBOSE { print!("  +"); }
                         let child = stack.pop().unwrap();
                         let mut qtree = RuleTree::new();
@@ -308,6 +307,22 @@ impl RuleTree {
                             GrNode::Or => {
                                 let children = new.0.children(child);
                                 if VERBOSE { print!("({child}:|({})) ", children.iter().join(", ")); }
+                                let or = qtree.0.add_root(gnode!(|));
+                                for id_child in children {
+                                    let child = new.0.get(*id_child);
+                                    match child {
+                                        GrNode::Symbol(s) => {
+                                            qtree.0.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt next_var_id)]);
+                                            qtree.0.add(Some(or), GrNode::Symbol(s.clone()));
+                                        }
+                                        GrNode::Concat => {
+                                            let cc = qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(*id_child));
+                                            qtree.0.add(Some(cc), gnode!(nt next_var_id));
+                                            qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(*id_child));
+                                        }
+                                        x => panic!("unexpected node type under | node: {x}"),
+                                    }
+                                }
                             }
                             _ => panic!("Unexpected {} under + node", new.0.get(child))
                         }
