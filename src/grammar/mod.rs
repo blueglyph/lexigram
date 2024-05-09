@@ -285,18 +285,32 @@ impl RuleTree {
                         // +(A)           -> Q              |(&(A,Q), A')                    AQ|A
                         // +(&(A,B))      -> Q              |(&(A,B,Q),&(A',B'))             ABQ|AB
                         // +(|(&(A,B),C)) -> |(&(A,B),C,ε)  |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
-                        if VERBOSE { print!("  +: "); }
+                        if VERBOSE { print!("  +"); }
                         let child = stack.pop().unwrap();
                         let mut qtree = RuleTree::new();
                         match new.0.get(child) {
                             GrNode::Symbol(s) => {
+                                if VERBOSE { print!("({child}:{s}) "); }
+                                // note: we cannot use the child id in qtree!
                                 let or = qtree.0.add_root(gnode!(|));
                                 let cc = qtree.0.addc(Some(or), gnode!(&), GrNode::Symbol(s.clone()));
                                 qtree.0.add(Some(cc), gnode!(nt next_var_id));
                                 qtree.0.add(Some(or), GrNode::Symbol(s.clone()));
                             }
-                            GrNode::Concat => {}
-                            GrNode::Or => {}
+                            GrNode::Concat => {
+                                let children = new.0.children(child);
+                                if VERBOSE { print!("({child}:&({})) ", children.iter().join(", ")); }
+                                let or = qtree.0.add_root(gnode!(|));
+                                let cc1 = qtree.0.addc_iter(Some(or), gnode!(&), children.iter().map(|id|
+                                    new.0.get(*id).clone()));
+                                qtree.0.add(Some(cc1), gnode!(nt next_var_id));
+                                qtree.0.addc_iter(Some(or), gnode!(&), children.iter().map(|id|
+                                    new.0.get(*id).clone()));
+                            }
+                            GrNode::Or => {
+                                let children = new.0.children(child);
+                                if VERBOSE { print!("({child}:|({})) ", children.iter().join(", ")); }
+                            }
                             _ => panic!("Unexpected {} under + node", new.0.get(child))
                         }
                         let id = new.0.add(None, gnode!(nt next_var_id));

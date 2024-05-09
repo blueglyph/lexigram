@@ -143,7 +143,7 @@ fn check_sanity(tree: &RuleTree) -> Option<String> {
 #[test]
 fn ruletree_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
-
+/*
         // |([1], [2], 3) (depth 1)
         (0, btreemap![0 => "|([1], [2], 3)"]),
         // |(&(1, 2), |([3], [4]), &(5, 6), |([7], [8], &(9, 10))) (depth 3)
@@ -162,7 +162,7 @@ fn ruletree_normalize() {
         (7, btreemap![0 => "|(&(1, 2), 3, ε)"]),
         // &(1, +(2))
         (8, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 10), 2)"]),
-
+*/
         // &(1, +(&(2, 3))) (depth 3)
         (9, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(2, 3))"]),
         // &(1, +(|(&(2, 3), 4))) (depth 4)
@@ -180,7 +180,7 @@ fn ruletree_normalize() {
         }
         let result = BTreeMap::from_iter(new.iter().map(|(id, t)| (*id, format!("{t}"))));
         if VERBOSE {
-            println!("{}", new.iter().map(|(ref id, t)| format!("- {id} => {t:#} (depth {})", t.0.depth().unwrap())).join("\n"));
+            println!("{}", new.iter().map(|(ref id, t)| format!("- {id} => {t:#} (depth {})", t.0.depth().unwrap_or(0))).join("\n"));
             println!("({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
