@@ -50,11 +50,28 @@ pub(crate) fn escape_string(s: &str) -> String {
     s.chars().map(|c| escape_char(c)).collect::<String>()
 }
 
-// pub(crate) fn vadd<T>(v: &mut Vec<T>, item: T) -> usize {
+#[allow(unused)]
+pub(crate) fn vadd<T>(v: &mut Vec<T>, item: T) -> usize {
+    let new_index = v.len();
+    v.push(item);
+    new_index
+}
+
+pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, item: I) -> usize
+    where I: IntoIterator<Item=T> + Clone
+{
+    let new_index = v.len();
+    v.push(Vec::from_iter(item));
+    new_index
+}
+
+// fn vadd<T>(v: &mut Vec<Vec<Dup>>, item: T) -> usize where T: IntoIterator<Item=Dup> + Clone {
 //     let new_index = v.len();
-//     v.push(item);
+//     if VERBOSE_CC { print!("_{}=dup [{}], ", new_index, item.clone().into_iter().map(|i| i.peek().to_string()).join(", ")); }
+//     v.push(Vec::from_iter(item));
 //     new_index
 // }
+
 
 // ---------------------------------------------------------------------------------------------
 // General helper traits

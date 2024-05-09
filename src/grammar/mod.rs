@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, gnode, /*vadd*/};
+use crate::{CollectJoin, gnode, vaddi};
 use crate::vectree::VecTree;
 
 pub type VarId = u16;
@@ -149,7 +149,7 @@ impl RuleTree {
     /// `next_var_id`.
     fn normalize(self, var_id: VarId, next_var_id: VarId) -> Vec<(VarId, Self)> {
         const VERBOSE: bool = false;
-        const VERBOSE_CC: bool = true;
+        const VERBOSE_CC: bool = false;
         let mut new = RuleTree::new();
         let mut rules = Vec::<(VarId, RuleTree)>::new();
         let mut stack = Vec::<usize>::new();                // indices in new
@@ -207,60 +207,43 @@ impl RuleTree {
                                 // - push r to stack
                                 // ex: P: AB & (C|D) & E & (FG|H)        -> P: ABCEFG | ABCEH | ABDEFG | ABDEH
                                 //        &(&(A,B),|(C,D),E,|(&(F,G),H))      |(&(A,B,C,E,F,G),&(A,B,C,E,H),&(A,B,D,E,F,G),&(A,B,D,E,H)
-fn vadd(v: &mut Vec<Dup>, item: Dup) -> usize {
-    let new_index = v.len();
-    v.push(item);
-    if VERBOSE_CC { print!("_{}=dup {}, ", new_index, item.peek()); }
-    new_index
-}
 
                                 // we store the dups in an array and reference them by index, because there will be multiple instances
                                 // pointing to the same Dup and we can't do that with mutable references (which must be unique):
-                                let mut dups = Vec::<Dup>::new();
+                                let mut dups = Vec::<Vec<Dup>>::new();
                                 let concats_children = children.into_iter()
                                     // iterations: &(A,B) -> |(C,D) -> E -> |(&(F,G),H))
                                     .flat_map(|id| {
                                         if VERBOSE_CC { print!("      FL {}: ", new.0.get(id)); }
-                                        let x = match new.0.get(id) {
+                                        match new.0.get(id) {
                                             GrNode::Concat =>
-                                                new.0.children(id).iter().map(|idc| vec![vadd(&mut dups, Dup::new(*idc))]).to_vec(),
+                                                new.0.children(id).iter().map(|idc| vec![vaddi(&mut dups, [Dup::new(*idc)])]).to_vec(),
                                             GrNode::Or => {
                                                 let children = new.0.children(id).to_vec();
                                                 vec![children.into_iter().map(|idc| {
                                                     if let GrNode::Concat = new.0.get(idc) {
-                                                        let idc_children = new.0.children(idc).to_vec();
-                                                        let new_cc = new.0.addci_iter(None, gnode!(&), idc_children.into_iter()
-                                                            .map(|i| vadd(&mut dups, Dup::new(i))));
-                                                        vadd(&mut dups, Dup::new(new_cc))
+                                                        let idc_children = new.0.children(idc).iter().map(|i| Dup::new(*i)).to_vec();
+                                                        vaddi(&mut dups, idc_children)
                                                     } else {
-                                                        vadd(&mut dups, Dup::new(idc))
+                                                        vaddi(&mut dups, [Dup::new(idc)])
                                                     }
                                                 }).to_vec()]
                                             }
                                             _ =>
-                                                vec![vec![vadd(&mut dups, Dup::new(id))]],
-                                        };
-                                        if VERBOSE_CC { println!(); }
-                                        x
+                                                vec![vec![vaddi(&mut dups, [Dup::new(id)])]],
+                                        }
                                     })
                                     // [d(A)] -> [d(B)] -> [d(C),d(D)] -> [d(E)] -> [d(&(d(F),d(G))),d(H)]
-                                    .inspect(|x| println!("      >> {}", x.iter().map(|i| format!("_{i}")).join(", ")))
+                                    // .inspect(|x| println!("      >> {}", x.iter().map(|i| format!("_{i}")).join(", ")))
                                     .cproduct()
-                                    .inspect(|x| println!("      << {}", x.iter().map(|i| format!("_{i}")).join(", ")))
+                                    // .inspect(|x| println!("      << {}", x.iter().map(|i| format!("_{i}")).join(", ")))
                                     // [dup(A),dup(B),dup(C),dup(E),d(&)] -> [dup(A),dup(B),dup(C),dup(E),d(H)] ->
                                     //       [dup(A),dup(B),dup(D),dup(E),d(&)] -> [dup(A),dup(B),dup(D),dup(E),d(H)]
                                     .map(|dup_ids| dup_ids.into_iter()
-                                        .flat_map(|dup_id| {
-                                            let peek = dups[dup_id].peek();
-                                            if let GrNode::Concat = new.0.get(peek) {
-                                                // no need to duplicate the fake &, hence the peek
-                                                let children = new.0.children(peek).to_vec();
-                                                children.into_iter().map(|idc| new.get_dup(dups.get_mut(idc).unwrap())).to_vec()
-                                            } else {
-                                                vec![new.get_dup(dups.get_mut(dup_id).unwrap())]
-                                            }
-                                        }).to_vec())
-                                    .inspect(|x| println!("      :: {}", x.iter().map(|i| format!("{i}")).join(", ")))
+                                        .flat_map(|dup_id| dups.get_mut(dup_id).unwrap().iter_mut()
+                                            .map(|dup| new.get_dup(dup)).to_vec()).to_vec()
+                                    )
+                                    // .inspect(|x| println!("      :: {}", x.iter().map(|i| format!("{i}")).join(", ")))
                                     .to_vec();
                                     // [A,B,C,E,F,G] -> [A',B',C',E',H] -> [A'',B'',D,E'',F',G'] -> [A''',B''',D',E''',H']
                                 let concats = concats_children.into_iter()
