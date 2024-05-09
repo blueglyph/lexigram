@@ -131,6 +131,32 @@ impl<'a, T> VecTree<T> {
     }
 }
 
+impl<'a, T:'a> VecTree<T> {
+    pub fn add_from_tree<U>(&mut self, parent_index: Option<usize>, items: U) -> usize
+        where U: Iterator<Item=NodeProxy<'a, T>>,
+              T: Clone
+    {
+        let mut stack = Vec::<usize>::new();
+        for item in items {
+            let node = item.deref().clone();
+            let num_children = item.num_children();
+            let index = if num_children > 0 {
+                let children = stack.drain(stack.len() - num_children..);
+                self.addci_iter(None, node, children)
+            } else {
+                self.add(None, node)
+            };
+            stack.push(index);
+        }
+        assert_eq!(stack.len(), 1, "something is wrong with the structure of the provided items");
+        let index = stack.pop().unwrap();
+        if let Some(parent) = parent_index {
+            self.nodes[parent].children.push(index);
+        }
+        index
+    }
+}
+
 impl<T> Node<T> {
     pub fn has_children(&self) -> bool {
         !self.children.is_empty()
