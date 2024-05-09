@@ -1,9 +1,9 @@
 #![cfg(test)]
 
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashSet};
 use super::*;
 use crate::dfa::TokenId;
-use crate::{gnode, hashmap};
+use crate::{btreemap, gnode};
 
 #[test]
 fn gnode() {
@@ -104,42 +104,86 @@ fn build_tree(id: u32) -> RuleTree {
             tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
             tree.0.add(Some(or), gnode!(nt 3));
         }
+        8 => { // 12+
+            let cc = tree.0.add_root(gnode!(&));
+            tree.0.add(Some(cc), gnode!(nt 1));
+            tree.0.addc(Some(cc), gnode!(+), gnode!(nt 2));
+        }
+        9 => { // 1(23)+
+            let cc = tree.0.add_root(gnode!(&));
+            tree.0.add(Some(cc), gnode!(nt 1));
+            let p = tree.0.add(Some(cc), gnode!(+));
+            tree.0.addc_iter(Some(p), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
+        }
+        10 => { // 1(23|4)+
+            let cc = tree.0.add_root(gnode!(&));
+            tree.0.add(Some(cc), gnode!(nt 1));
+            let p = tree.0.add(Some(cc), gnode!(+));
+            let or = tree.0.add(Some(p), gnode!(|));
+            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
+            tree.0.add(Some(or), gnode!(nt 4));
+        }
+
         _ => {}
     }
     tree
 }
 
+fn check_sanity(tree: &RuleTree) -> Option<String> {
+    let mut indices = HashSet::<usize>::new();
+    for node in tree.0.iter_depth_simple() {
+        if indices.contains(&node.index) {
+            return Some(format!("duplicate index {} in tree {:#}", node.index, tree));
+        }
+        indices.insert(node.index);
+    }
+    None
+}
+
 #[test]
 fn ruletree_normalize() {
-    let tests: Vec<(u32, HashMap<VarId, &str>)> = vec![
+    let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
+
         // |([1], [2], 3) (depth 1)
-        (0, hashmap![0 => "|([1], [2], 3)"]),
+        (0, btreemap![0 => "|([1], [2], 3)"]),
         // |(&(1, 2), |([3], [4]), &(5, 6), |([7], [8], &(9, 10))) (depth 3)
-        (1, hashmap![0 => "|(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))"]),
+        (1, btreemap![0 => "|(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))"]),
         // &(&(1, 2), |(3, 4), &(5, 6), |(7, 8)) (depth 2)
-        (2, hashmap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))"]),
+        (2, btreemap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))"]),
         // &(&(1, 2), |(3, 4), 5, |(&(6, 7), 8)) (depth 3)
-        (3, hashmap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))"]),
+        (3, btreemap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))"]),
         // &(&(&(0, 1), 2), |(3, 4), 5, |(&(6, 7), 8)) (depth 3)
-        (4, hashmap![0 => "|(&(0, 1, 2, 3, 5, 6, 7), &(0, 1, 2, 3, 5, 8), &(0, 1, 2, 4, 5, 6, 7), &(0, 1, 2, 4, 5, 8))"]),
+        (4, btreemap![0 => "|(&(0, 1, 2, 3, 5, 6, 7), &(0, 1, 2, 3, 5, 8), &(0, 1, 2, 4, 5, 6, 7), &(0, 1, 2, 4, 5, 8))"]),
         // ?(1)
-        (5, hashmap![0 => "|(1, ε)"]),
+        (5, btreemap![0 => "|(1, ε)"]),
         // ?(&(1, 2))
-        (6, hashmap![0 => "|(&(1, 2), ε)"]),
+        (6, btreemap![0 => "|(&(1, 2), ε)"]),
         // ?(|(&(1, 2), 3))
-        (7, hashmap![0 => "|(&(1, 2), 3, ε)"]),
+        (7, btreemap![0 => "|(&(1, 2), 3, ε)"]),
+        // &(1, +(2))
+        (8, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 10), 2)"]),
+
+        // &(1, +(&(2, 3))) (depth 3)
+        (9, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(2, 3))"]),
+        // &(1, +(|(&(2, 3), 4))) (depth 4)
+        (10, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(4, 10), &(2, 3), 4)"]),
     ];
     const VERBOSE: bool = true;
     for (test_id, expected) in tests {
         let mut tree = build_tree(test_id);
-        if VERBOSE { println!("test {test_id}:\n- 0 -> {tree} (depth {})", 1000 /*tree.0.depth().unwrap()*/); }
-        let new = tree.normalize(0, 1);
-        let result = HashMap::from_iter(new.iter().map(|(id, t)| (*id, format!("{t}"))));
+        if VERBOSE { println!("test {test_id}:\n- 0 -> {tree} (depth {})", tree.0.depth().unwrap()); }
+        let new = tree.normalize(0, 10);
+        for (id, t) in &new {
+            if let Some(err) = check_sanity(t) {
+                panic!("test {test_id} failed on NT {id}: {}", err);
+            }
+        }
+        let result = BTreeMap::from_iter(new.iter().map(|(id, t)| (*id, format!("{t}"))));
         if VERBOSE {
             println!("{}", new.iter().map(|(ref id, t)| format!("- {id} => {t:#} (depth {})", t.0.depth().unwrap())).join("\n"));
-            println!("{}", new.iter().map(|(ref id, t)| format!("    => \"{t}\"")).join("\n"));
+            println!("({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
-        let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<HashMap<_, _>>();
+        let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");
     }
 }

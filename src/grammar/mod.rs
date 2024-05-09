@@ -147,8 +147,8 @@ impl RuleTree {
     /// The product may have to be split if operators like `+` or `*` are used. In this
     /// case, new non-terminals are created, with increasing IDs starting from
     /// `next_var_id`.
-    fn normalize(self, var_id: VarId, next_var_id: VarId) -> Vec<(VarId, Self)> {
-        const VERBOSE: bool = false;
+    fn normalize(self, var_id: VarId, mut next_var_id: VarId) -> Vec<(VarId, Self)> {
+        const VERBOSE: bool = true;
         const VERBOSE_CC: bool = false;
         let mut new = RuleTree::new();
         let mut rules = Vec::<(VarId, RuleTree)>::new();
@@ -279,19 +279,43 @@ impl RuleTree {
                         // create new production rule:
                         // P -> αβ+γ becomes P -> αQγ
                         //                   Q -> βQ | β
-                        todo!()
+                        //
+                        // self              new(var_id=P)  new(next_var_id=Q)               simpler format
+                        // --------------------------------------------------------------------------------------------------
+                        // +(A)           -> Q              |(&(A,Q), A')                    AQ|A
+                        // +(&(A,B))      -> Q              |(&(A,B,Q),&(A',B'))             ABQ|AB
+                        // +(|(&(A,B),C)) -> |(&(A,B),C,ε)  |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
+                        if VERBOSE { print!("  +: "); }
+                        let child = stack.pop().unwrap();
+                        let mut qtree = RuleTree::new();
+                        match new.0.get(child) {
+                            GrNode::Symbol(s) => {
+                                let or = qtree.0.add_root(gnode!(|));
+                                let cc = qtree.0.addc(Some(or), gnode!(&), GrNode::Symbol(s.clone()));
+                                qtree.0.add(Some(cc), gnode!(nt next_var_id));
+                                qtree.0.add(Some(or), GrNode::Symbol(s.clone()));
+                            }
+                            GrNode::Concat => {}
+                            GrNode::Or => {}
+                            _ => panic!("Unexpected {} under + node", new.0.get(child))
+                        }
+                        let id = new.0.add(None, gnode!(nt next_var_id));
+                        rules.push((next_var_id, qtree));
+                        next_var_id += 1;
+                        stack.push(id);
                     }
                     GrNode::Star => {
                         assert_eq!(n, 1);
                         // create new production rule:
                         // P -> αβ*γ becomes P -> αQγ
                         //                   Q -> βQ | ε
+                        if VERBOSE { print!("  *: "); }
                         todo!()
                     }
                     _ => panic!("Unexpected {}", sym.deref())
                 }
             }
-            if VERBOSE_CC {
+            if VERBOSE {
                 println!("stack: {}", stack.iter()
                     .map(|id| {
                         let children = new.0.children(*id);
