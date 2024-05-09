@@ -301,11 +301,9 @@ impl RuleTree {
                                 let children = new.0.children(child);
                                 if VERBOSE { print!("({child}:&({})) ", children.iter().join(", ")); }
                                 let or = qtree.0.add_root(gnode!(|));
-                                let cc1 = qtree.0.addc_iter(Some(or), gnode!(&), children.iter().map(|id|
-                                    new.0.get(*id).clone()));
+                                let cc1 = qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(child));
                                 qtree.0.add(Some(cc1), gnode!(nt next_var_id));
-                                qtree.0.addc_iter(Some(or), gnode!(&), children.iter().map(|id|
-                                    new.0.get(*id).clone()));
+                                qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(child));
                             }
                             GrNode::Or => {
                                 let children = new.0.children(child);
