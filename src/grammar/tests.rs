@@ -34,7 +34,7 @@ fn gnode() {
 
 #[test]
 fn dup() {
-    let mut rules = RuleTreeSet::new();
+    let mut rules = RuleTreeSet::<General>::new();
     let tree = rules.new_var(0);
     let mut a = Dup::new(tree.add(None, gnode!(nt 1)));
     let mut b = Dup::new(tree.add(None, gnode!(nt 2)));
@@ -49,7 +49,7 @@ fn dup() {
     assert_eq!(result2, [gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2)]);
 }
 
-fn build_rules(id: u32) -> RuleTreeSet {
+fn build_rules(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();
     rules.new_var(0);
     // reserve a few variables just so the NT indices are not confusing:
@@ -155,7 +155,7 @@ fn build_rules(id: u32) -> RuleTreeSet {
     rules
 }
 
-fn check_sanity(rules: &RuleTreeSet, verbose: bool) -> Option<String> {
+fn check_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> {
     let mut msg = String::new();
     for (var, tree) in &rules.trees {
         let mut indices = HashSet::<usize>::new();

@@ -5,6 +5,7 @@ mod tests;
 
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
+use std::marker::PhantomData;
 use std::ops::Deref;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
@@ -172,27 +173,27 @@ impl Display for GrTree {
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
-pub struct RuleTreeSet {
+pub struct RuleTreeSet<T> {
     trees: HashMap<VarId, GrTree>,
-    next_var: Option<VarId>
+    next_var: Option<VarId>,
+    _phantom: PhantomData<T>
 }
 
-impl RuleTreeSet {
-    pub fn new() -> Self {
-        RuleTreeSet { trees: HashMap::new(), next_var: None }
-    }
+/// Marker for general tree form (not normalized). This form may include any
+/// operators like `*`, `+`, and `?`, and doesn't have a restriction on depth.
+pub struct General;
+/// Marker for normalized form. This form may only have `|`, `&`, and symbols,
+/// and must have one of the 3 following patterns:
+/// - a symbol
+/// - a `&` with only symbols as children
+/// - a `|` with only `&(symbols)` or symbols as children
+pub struct Normalized;
 
-    pub fn new_var(&mut self, var: VarId) -> &mut GrTree {
-        self.trees.insert(var, VecTree::new());
-        self.trees.get_mut(&var).unwrap()
-    }
-
+// Methods for both General and Normalized forms. There can only be immutable methods
+// in the normalized form.
+impl<T> RuleTreeSet<T> {
     pub fn get_tree(&self, var: VarId) -> Option<&GrTree> {
         self.trees.get(&var)
-    }
-
-    pub fn get_tree_mut(&mut self, var: VarId) -> Option<&mut GrTree> {
-        self.trees.get_mut(&var)
     }
 
     pub fn get_vars(&self) -> impl Iterator<Item=&VarId> {
@@ -202,6 +203,22 @@ impl RuleTreeSet {
     /// Returns a variable ID that doesn't exist yet.
     pub fn get_next_var(&self) -> VarId {
         self.trees.keys().max().map(|last| last + 1).unwrap_or(0)
+    }
+}
+
+// Mutable methods for the General form.
+impl RuleTreeSet<General> {
+    pub fn new() -> Self {
+        RuleTreeSet { trees: HashMap::new(), next_var: None, _phantom: PhantomData }
+    }
+
+    pub fn new_var(&mut self, var: VarId) -> &mut GrTree {
+        self.trees.insert(var, VecTree::new());
+        self.trees.get_mut(&var).unwrap()
+    }
+
+    pub fn get_tree_mut(&mut self, var: VarId) -> Option<&mut GrTree> {
+        self.trees.get_mut(&var)
     }
 
     pub fn set_next_var(&mut self, var: Option<VarId>) {
@@ -464,6 +481,14 @@ impl RuleTreeSet {
     }
 }
 
+impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
+    /// Transforms a `General` ruleset to a `Normalized` ruleset
+    fn from(mut value: RuleTreeSet<General>) -> Self {
+        value.normalize();
+        RuleTreeSet::<Normalized> { trees: value.trees, next_var: value.next_var, _phantom: PhantomData }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 
 /// Stores a normalized production rule, where each factor (e.g. `BC`) is stored in
@@ -495,12 +520,11 @@ impl RuleProdSet {
     }
 }
 
-impl From<RuleTreeSet> for RuleProdSet {
-    fn from(mut rules: RuleTreeSet) -> Self {
+impl From<RuleTreeSet<Normalized>> for RuleProdSet {
+    fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
         fn children_to_vec(tree: &GrTree, parent_id: usize) -> Vec<GrNode> {
             tree.children(parent_id).iter().map(|id| tree.get(*id).clone()).to_vec()
         }
-        rules.normalize();
         let mut prods = Self::new();
         for var in rules.get_vars() {
             let tree = rules.get_tree(*var).unwrap();
@@ -527,6 +551,12 @@ impl From<RuleTreeSet> for RuleProdSet {
     }
 }
 
+impl From<RuleTreeSet<General>> for RuleProdSet {
+    fn from(value: RuleTreeSet<General>) -> Self {
+        RuleProdSet::from(RuleTreeSet::<Normalized>::from(value))
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 
 pub struct GrammarBuilder {
@@ -542,14 +572,24 @@ impl GrammarBuilder {
         }
     }
 
-    pub fn from(mut parsed_rules: RuleTreeSet) -> Self {
+    fn build(&mut self) {
+        todo!()
+    }
+}
+
+impl From<RuleTreeSet<Normalized>> for GrammarBuilder {
+    fn from(value: RuleTreeSet<Normalized>) -> Self {
         GrammarBuilder {
-            rules: RuleProdSet::from(parsed_rules),
+            rules: RuleProdSet::from(value),
             symbols: Vec::new()
         }
     }
+}
 
-    fn build(&mut self) {
+impl From<RuleTreeSet<General>> for GrammarBuilder {
+    fn from(value: RuleTreeSet<General>) -> Self {
+        let normalized = RuleTreeSet::<Normalized>::from(value);
+        Self::from(normalized)
     }
 }
 
