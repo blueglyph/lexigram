@@ -3,6 +3,7 @@
 
 mod tests;
 
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use crate::cproduct::CProduct;
@@ -123,20 +124,84 @@ impl std::fmt::Debug for Dup {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Clone, Debug)]
-pub struct RuleTree(VecTree<GrNode>);
+type GrTree = VecTree<GrNode>;
 
-impl RuleTree {
-    fn new() -> Self {
-        RuleTree(VecTree::new())
-    }
-
+impl GrTree {
     fn get_dup(&mut self, dup_index: &mut Dup) -> usize {
         match dup_index.get() {
             DupVal::Original(index) => index as usize,
             DupVal::Copy(index) => {
-                let node = self.0.get(index as usize).clone();
-                self.0.add(None, node)
+                let node = self.get(index as usize).clone();
+                self.add(None, node)
+            }
+        }
+    }
+}
+
+impl Display for GrTree {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        fn snode(show_ids: bool, show_depth: bool, node: &GrNode, node_id: usize, depth: u32) -> String {
+            let mut result = String::new();
+            if show_depth {
+                result.push_str(&depth.to_string());
+                result.push('>');
+            }
+            if show_ids {
+                result.push_str(&node_id.to_string());
+                result.push(':');
+            }
+            result.push_str(&node.to_string());
+            result
+        }
+        let show_ids = f.alternate();
+        let show_depth = f.sign_plus();
+        let mut stack = Vec::<String>::new();
+        for node in self.iter_depth() {
+            let n = node.num_children();
+            if n > 0 {
+                let children = stack.drain(stack.len() - n..).join(", ");
+                stack.push(format!("{}({children})", snode(show_ids, show_depth, &node, node.index, node.depth)));
+            } else {
+                stack.push(snode(show_ids, show_depth, &node, node.index, node.depth));
+            }
+        }
+        write!(f, "{}", stack.pop().unwrap_or("empty".to_string()))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
+#[derive(Clone, Debug)]
+pub struct RuleTreeSet(HashMap<VarId, GrTree>);
+
+impl RuleTreeSet {
+    pub fn new() -> Self {
+        RuleTreeSet(HashMap::new())
+    }
+
+    pub fn new_var(&mut self, var: VarId) -> &mut GrTree {
+        self.0.insert(var, VecTree::new());
+        self.0.get_mut(&var).unwrap()
+    }
+
+    pub fn get_tree(&self, var: VarId) -> Option<&GrTree> {
+        self.0.get(&var)
+    }
+
+    pub fn get_tree_mut(&mut self, var: VarId) -> Option<&mut GrTree> {
+        self.0.get_mut(&var)
+    }
+
+    pub fn get_vars(&self) -> impl Iterator<Item=&VarId> {
+        self.0.keys()
+    }
+
+    fn get_dup(tree: &mut VecTree<GrNode>, dup_index: &mut Dup) -> usize {
+        match dup_index.get() {
+            DupVal::Original(index) => index as usize,
+            DupVal::Copy(index) => {
+                let node = tree.get(index as usize).clone();
+                tree.add(None, node)
             }
         }
     }
@@ -146,18 +211,19 @@ impl RuleTree {
     ///
     /// The product may have to be split if operators like `+` or `*` are used. In this
     /// case, new non-terminals are created, with increasing IDs starting from
-    /// `next_var_id`.
-    fn normalize(self, var_id: VarId, mut next_var_id: VarId) -> Vec<(VarId, Self)> {
+    /// `new_var`.
+    pub fn normalize(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
-        let mut new = RuleTree::new();
-        let mut rules = Vec::<(VarId, RuleTree)>::new();
+        let mut new_var = self.0.keys().max().map(|last| last + 1).unwrap_or(0);
+        let orig = self.0.remove(&var).unwrap();
+        let mut new = VecTree::<GrNode>::new();
         let mut stack = Vec::<usize>::new();                // indices in new
-        for sym in self.0.iter_depth() {
+        for sym in orig.iter_depth() {
             let n = sym.num_children();
             if VERBOSE { println!("- old {}:{}", sym.index, sym.deref()); }
             if n == 0 {
-                stack.push(new.0.add(None, self.0.get(sym.index).clone()));
+                stack.push(new.add(None, orig.get(sym.index).clone()));
                 if VERBOSE { print!("  leaf: "); }
             } else {
                 match sym.deref() {
@@ -168,10 +234,10 @@ impl RuleTree {
                     // - a |(&(leaves) or leaves)
                     GrNode::Concat | GrNode::Or => {
                         let children = stack.drain(stack.len() - n..).to_vec();
-                        let new_id = if children.iter().all(|&idx| !matches!(new.0.get(idx), GrNode::Concat|GrNode::Or)) {
+                        let new_id = if children.iter().all(|&idx| !matches!(new.get(idx), GrNode::Concat|GrNode::Or)) {
                             if VERBOSE { print!("  trivial {}: children={children:?}\n  ", sym.deref()); }
                             // trivial case with only leaves as children (could be removed and treated as a general case)
-                            new.0.addci_iter(None, sym.clone(), children)
+                            new.addci_iter(None, sym.clone(), children)
                         } else {
                             if let GrNode::Or = sym.deref() {
                                 if VERBOSE { println!("  or: children={children:?}"); }
@@ -184,19 +250,19 @@ impl RuleTree {
                                 //        |(&(A,B),|(C,D),E,|(&(F,G),&(H,I)))        |(&(A,B),C,D,E,&(F,G),&(H,I))
                                 let mut new_children = Vec::new();
                                 for id in children {
-                                    match new.0.get(id) {
+                                    match new.get(id) {
                                         GrNode::Symbol(_) | GrNode::Concat => {
-                                            if VERBOSE { println!("  - child {id} is {}", new.0.get(id)); }
+                                            if VERBOSE { println!("  - child {id} is {}", new.get(id)); }
                                             new_children.push(id);
                                         }
                                         GrNode::Or => {
-                                            if VERBOSE { println!("  - child {id} is | with children {:?}", new.0.children(id)); }
-                                            new_children.extend(new.0.children(id));
+                                            if VERBOSE { println!("  - child {id} is | with children {:?}", new.children(id)); }
+                                            new_children.extend(new.children(id));
                                         }
                                         x => panic!("unexpected node type under | node: {x}"),
                                     }
                                 }
-                                new.0.addci_iter(None, gnode!(|), new_children)
+                                new.addci_iter(None, gnode!(|), new_children)
                             } else { // GrNode::Concat
                                 if VERBOSE_CC { println!("  &: children={children:?}"); }
                                 // if parent sym is p:&
@@ -214,15 +280,15 @@ impl RuleTree {
                                 let concats_children = children.into_iter()
                                     // iterations: &(A,B) -> |(C,D) -> E -> |(&(F,G),H))
                                     .flat_map(|id| {
-                                        if VERBOSE_CC { print!("      FL {}: ", new.0.get(id)); }
-                                        match new.0.get(id) {
+                                        if VERBOSE_CC { print!("      FL {}: ", new.get(id)); }
+                                        match new.get(id) {
                                             GrNode::Concat =>
-                                                new.0.children(id).iter().map(|idc| vec![vaddi(&mut dups, [Dup::new(*idc)])]).to_vec(),
+                                                new.children(id).iter().map(|idc| vec![vaddi(&mut dups, [Dup::new(*idc)])]).to_vec(),
                                             GrNode::Or => {
-                                                let children = new.0.children(id).to_vec();
+                                                let children = new.children(id).to_vec();
                                                 vec![children.into_iter().map(|idc| {
-                                                    if let GrNode::Concat = new.0.get(idc) {
-                                                        let idc_children = new.0.children(idc).iter().map(|i| Dup::new(*i)).to_vec();
+                                                    if let GrNode::Concat = new.get(idc) {
+                                                        let idc_children = new.children(idc).iter().map(|i| Dup::new(*i)).to_vec();
                                                         vaddi(&mut dups, idc_children)
                                                     } else {
                                                         vaddi(&mut dups, [Dup::new(idc)])
@@ -246,10 +312,10 @@ impl RuleTree {
                                     .to_vec();
                                     // [A,B,C,E,F,G] -> [A',B',C',E',H] -> [A'',B'',D,E'',F',G'] -> [A''',B''',D',E''',H']
                                 let concats = concats_children.into_iter()
-                                    .map(|children_ids| new.0.addci_iter(None, gnode!(&), children_ids))
+                                    .map(|children_ids| new.addci_iter(None, gnode!(&), children_ids))
                                     .to_vec();
                                     // Vec<node id of &-branch>
-                                new.0.addci_iter(None, gnode!(|), concats)
+                                new.addci_iter(None, gnode!(|), concats)
                             }
                         };
                         stack.push(new_id);
@@ -263,13 +329,13 @@ impl RuleTree {
                         // ?(|(&(A,B),C)) -> |(&(A,B),C,ε)
                         if VERBOSE { print!("  ?: "); }
                         let child = stack.pop().unwrap();
-                        let empty = new.0.add(None, gnode!(e));
-                        let id = match new.0.get(child) {
+                        let empty = new.add(None, gnode!(e));
+                        let id = match new.get(child) {
                             GrNode::Or => {
-                                new.0.add(Some(child), gnode!(e));
+                                new.add(Some(child), gnode!(e));
                                 child
                             }
-                            _ => new.0.addci_iter(None, gnode!(|), [child, empty])
+                            _ => new.addci_iter(None, gnode!(|), [child, empty])
                         };
                         stack.push(id);
                     }
@@ -285,9 +351,9 @@ impl RuleTree {
                         // +(&(A,B))      -> Q    |(&(A,B,Q),&(A',B'))             ABQ|AB
                         // +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
                         if VERBOSE { print!("  +"); }
-                        let (id, qtree) = Self::normalize_plus_or_star(&mut stack, &mut new, next_var_id, true);
-                        rules.push((next_var_id, qtree));
-                        next_var_id += 1;
+                        let (id, qtree) = Self::normalize_plus_or_star(&mut stack, &mut new, new_var, true);
+                        self.0.insert(new_var, qtree);
+                        new_var += 1;
                         stack.push(id);
                     }
                     GrNode::Star => {
@@ -302,9 +368,9 @@ impl RuleTree {
                         // *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
                         // *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
                         if VERBOSE { print!("  *"); }
-                        let (id, qtree) = Self::normalize_plus_or_star(&mut stack, &mut new, next_var_id, false);
-                        rules.push((next_var_id, qtree));
-                        next_var_id += 1;
+                        let (id, qtree) = Self::normalize_plus_or_star(&mut stack, &mut new, new_var, false);
+                        self.0.insert(new_var, qtree);
+                        new_var += 1;
                         stack.push(id);
                     }
                     _ => panic!("Unexpected {}", sym.deref())
@@ -313,125 +379,100 @@ impl RuleTree {
             if VERBOSE {
                 println!("stack: {}", stack.iter()
                     .map(|id| {
-                        let children = new.0.children(*id);
-                        format!("{id}:{}{}", new.0.get(*id), if children.is_empty() { "".to_string() } else { format!("({})", children.iter().join(",")) })
+                        let children = new.children(*id);
+                        format!("{id}:{}{}", new.get(*id), if children.is_empty() { "".to_string() } else { format!("({})", children.iter().join(",")) })
                     }).join(", ")
                 );
             }
         }
         assert_eq!(stack.len(), 1);
         if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
-        new.0.set_root(stack.pop().unwrap());
-        rules.push((var_id, new));
-        rules
+        new.set_root(stack.pop().unwrap());
+        self.0.insert(var, new);
     }
 
-    fn normalize_plus_or_star(stack: &mut Vec<usize>, new: &mut RuleTree, next_var_id: VarId, is_plus: bool) -> (usize, RuleTree) {
+    fn normalize_plus_or_star(stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, new_var: VarId, is_plus: bool) -> (usize, VecTree<GrNode>) {
         const VERBOSE: bool = false;
-        let mut qtree = RuleTree::new();
+        let mut qtree = VecTree::<GrNode>::new();
         let child = stack.pop().unwrap();
-        match new.0.get(child) {
+        match new.get(child) {
             GrNode::Symbol(s) => {
                 if VERBOSE { print!("({child}:{s}) "); }
                 // note: we cannot use the child id in qtree!
-                let or = qtree.0.add_root(gnode!(|));
-                let cc = qtree.0.addc(Some(or), gnode!(&), GrNode::Symbol(s.clone()));
-                qtree.0.add(Some(cc), gnode!(nt next_var_id));
-                qtree.0.add(Some(or), if is_plus { GrNode::Symbol(s.clone()) } else { gnode!(e) });
+                let or = qtree.add_root(gnode!(|));
+                let cc = qtree.addc(Some(or), gnode!(&), GrNode::Symbol(s.clone()));
+                qtree.add(Some(cc), gnode!(nt new_var));
+                qtree.add(Some(or), if is_plus { GrNode::Symbol(s.clone()) } else { gnode!(e) });
             }
             GrNode::Concat => {
-                let children = new.0.children(child);
+                let children = new.children(child);
                 if VERBOSE { print!("({child}:&({})) ", children.iter().join(", ")); }
-                let or = qtree.0.add_root(gnode!(|));
-                let cc1 = qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(child));
-                qtree.0.add(Some(cc1), gnode!(nt next_var_id));
+                let or = qtree.add_root(gnode!(|));
+                let cc1 = qtree.add_from_tree(Some(or), new.iter_depth_at(child));
+                qtree.add(Some(cc1), gnode!(nt new_var));
                 if is_plus {
-                    qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(child));
+                    qtree.add_from_tree(Some(or), new.iter_depth_at(child));
                 } else {
-                    qtree.0.add(Some(or), gnode!(e));
+                    qtree.add(Some(or), gnode!(e));
                 }
             }
             GrNode::Or => {
-                let children = new.0.children(child);
+                let children = new.children(child);
                 if VERBOSE { print!("({child}:|({})) ", children.iter().join(", ")); }
-                let or = qtree.0.add_root(gnode!(|));
+                let or = qtree.add_root(gnode!(|));
                 for id_child in children {
-                    let child = new.0.get(*id_child);
+                    let child = new.get(*id_child);
                     match child {
                         GrNode::Symbol(s) => {
-                            qtree.0.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt next_var_id)]);
+                            qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt new_var)]);
                             if is_plus {
-                                qtree.0.add(Some(or), GrNode::Symbol(s.clone()));
+                                qtree.add(Some(or), GrNode::Symbol(s.clone()));
                             }
                         }
                         GrNode::Concat => {
-                            let cc = qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(*id_child));
-                            qtree.0.add(Some(cc), gnode!(nt next_var_id));
+                            let cc = qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child));
+                            qtree.add(Some(cc), gnode!(nt new_var));
                             if is_plus {
-                                qtree.0.add_from_tree(Some(or), new.0.iter_depth_at(*id_child));
+                                qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child));
                             }
                         }
                         x => panic!("unexpected node type under | node: {x}"),
                     }
                 }
                 if !is_plus {
-                    qtree.0.add(Some(or), gnode!(e));
+                    qtree.add(Some(or), gnode!(e));
                 }
             }
-            _ => panic!("Unexpected {} under + node", new.0.get(child))
+            _ => panic!("Unexpected {} under + node", new.get(child))
         }
-        let id = new.0.add(None, gnode!(nt next_var_id));
+        let id = new.add(None, gnode!(nt new_var));
         (id, qtree)
     }
-}
 
-impl Display for RuleTree {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        fn snode(show_ids: bool, show_depth: bool, node: &GrNode, node_id: usize, depth: u32) -> String {
-            let mut result = String::new();
-            if show_depth {
-                result.push_str(&depth.to_string());
-                result.push('>');
-            }
-            if show_ids {
-                result.push_str(&node_id.to_string());
-                result.push(':');
-            }
-            result.push_str(&node.to_string());
-            result
+    pub fn purge_empty(&mut self) {
+        let empty = self.0.iter().filter_map(|(id, t)| if t.is_empty() { Some(*id) } else { None }).to_vec();
+        for var in empty {
+            self.0.remove(&var);
         }
-        let show_ids = f.alternate();
-        let show_depth = f.sign_plus();
-        let mut stack = Vec::<String>::new();
-        for node in self.0.iter_depth() {
-            let n = node.num_children();
-            if n > 0 {
-                let children = stack.drain(stack.len() - n..).join(", ");
-                stack.push(format!("{}({children})", snode(show_ids, show_depth, &node, node.index, node.depth)));
-            } else {
-                stack.push(snode(show_ids, show_depth, &node, node.index, node.depth));
-            }
-        }
-        write!(f, "{}", stack.pop().unwrap_or("empty".to_string()))
     }
 }
 
 // ---------------------------------------------------------------------------------------------
 
 pub struct GrammarBuilder {
-    rules: Vec<RuleTree>,
+    rules: RuleTreeSet,
     symbols: Vec<(String, Option<String>)>
 }
 
 impl GrammarBuilder {
     pub fn new() -> Self {
         GrammarBuilder {
-            rules: Vec::new(),
+            rules: RuleTreeSet::new(),
             symbols: Vec::new()
         }
     }
 
-    pub fn from(parsed_rules: Vec<RuleTree>) -> Self {
+    pub fn from(parsed_rules: RuleTreeSet) -> Self {
         GrammarBuilder {
             rules: parsed_rules,
             symbols: Vec::new()

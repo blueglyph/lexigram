@@ -104,6 +104,10 @@ impl<'a, T> VecTree<T> {
         self.nodes.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     /// Calculates the tree depth, which is the maximum number of levels (not including the root).
     ///
     /// Note that the depth returned by the iterators are zero-based, and thus `iterator.depth`

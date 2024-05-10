@@ -34,132 +34,147 @@ fn gnode() {
 
 #[test]
 fn dup() {
-    let mut tree = RuleTree::new();
-    let mut a = Dup::new(tree.0.add(None, gnode!(nt 1)));
-    let mut b = Dup::new(tree.0.add(None, gnode!(nt 2)));
+    let mut rules = RuleTreeSet::new();
+    let mut tree = rules.new_var(0);
+    let mut a = Dup::new(tree.add(None, gnode!(nt 1)));
+    let mut b = Dup::new(tree.add(None, gnode!(nt 2)));
     let mut result = Vec::new();
     for i in 1..=3 {
         result.push(tree.get_dup(&mut a));
         result.push(tree.get_dup(&mut b));
     }
     assert_eq!(result, [0, 1, 2, 3, 4, 5]);
-    assert_eq!(tree.0.len(), 6);
-    let result2 = (0..6).map(|i| tree.0.get(i).clone()).to_vec();
+    assert_eq!(tree.len(), 6);
+    let result2 = (0..6).map(|i| tree.get(i).clone()).to_vec();
     assert_eq!(result2, [gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2)]);
 }
 
-fn build_tree(id: u32) -> RuleTree {
-    let mut tree = RuleTree::new();
+fn build_rules(id: u32) -> RuleTreeSet {
+    let mut rules = RuleTreeSet::new();
+    for i in 0..=9 {
+        // reserve a few variables just so the NT indices are not confusing:
+        // we want new variables to begin at 10.
+        rules.new_var(i);
+    }
+    let mut tree = rules.get_tree_mut(0).unwrap();
+
     match id {
         0 => {
-            let top = tree.0.addc_iter(None, gnode!(|), [gnode!(t 1), gnode!(t 2), gnode!(nt 3)]);
-            tree.0.set_root(top);
+            let top = tree.addc_iter(None, gnode!(|), [gnode!(t 1), gnode!(t 2), gnode!(nt 3)]);
+            tree.set_root(top);
         }
         1 => {
-            let top = tree.0.add_root(gnode!(|));
-            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
-            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(t 3), gnode!(t 4)]);
-            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
-            let or = tree.0.addc_iter(Some(top), gnode!(|), [gnode!(t 7), gnode!(t 8)]);
-            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 9), gnode!(nt 10)]);
+            let top = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(t 3), gnode!(t 4)]);
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
+            let or = tree.addc_iter(Some(top), gnode!(|), [gnode!(t 7), gnode!(t 8)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 9), gnode!(nt 10)]);
         }
         2 => {
-            let top = tree.0.add_root(gnode!(&));
-            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
-            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
-            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
-            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 7), gnode!(nt 8)]);
+            let top = tree.add_root(gnode!(&));
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 7), gnode!(nt 8)]);
         }
         3 => {
-            let top = tree.0.add_root(gnode!(&));
-            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
-            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
-            tree.0.add(Some(top), gnode!(nt 5));
-            let or = tree.0.add(Some(top), gnode!(|));
-            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
-            tree.0.add(Some(or), gnode!(nt 8));
+            let top = tree.add_root(gnode!(&));
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
+            tree.add(Some(top), gnode!(nt 5));
+            let or = tree.add(Some(top), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
+            tree.add(Some(or), gnode!(nt 8));
         }
         4 => {
-            let top = tree.0.add_root(gnode!(&));
-            let cc = tree.0.add(Some(top), gnode!(&));
-            tree.0.addc_iter(Some(cc), gnode!(&), [gnode!(nt 0), gnode!(nt 1)]);
-            tree.0.add(Some(cc), gnode!(nt 2));
-            tree.0.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
-            tree.0.add(Some(top), gnode!(nt 5));
-            let or = tree.0.add(Some(top), gnode!(|));
-            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
-            tree.0.add(Some(or), gnode!(nt 8));
+            let top = tree.add_root(gnode!(&));
+            let cc = tree.add(Some(top), gnode!(&));
+            tree.addc_iter(Some(cc), gnode!(&), [gnode!(nt 0), gnode!(nt 1)]);
+            tree.add(Some(cc), gnode!(nt 2));
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
+            tree.add(Some(top), gnode!(nt 5));
+            let or = tree.add(Some(top), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
+            tree.add(Some(or), gnode!(nt 8));
         }
         5 => {
-            let top = tree.0.add_root(gnode!(?));
-            tree.0.add(Some(top), gnode!(nt 1));
+            let top = tree.add_root(gnode!(?));
+            tree.add(Some(top), gnode!(nt 1));
         }
         6 => {
-            let top = tree.0.add_root(gnode!(?));
-            tree.0.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            let top = tree.add_root(gnode!(?));
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
         }
         7 => {
-            let top = tree.0.add_root(gnode!(?));
-            let or = tree.0.add(Some(top), gnode!(|));
-            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
-            tree.0.add(Some(or), gnode!(nt 3));
+            let top = tree.add_root(gnode!(?));
+            let or = tree.add(Some(top), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.add(Some(or), gnode!(nt 3));
         }
         8 => { // 12+
-            let cc = tree.0.add_root(gnode!(&));
-            tree.0.add(Some(cc), gnode!(nt 1));
-            tree.0.addc(Some(cc), gnode!(+), gnode!(nt 2));
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(nt 1));
+            tree.addc(Some(cc), gnode!(+), gnode!(nt 2));
         }
         9 => { // 1(23)+
-            let cc = tree.0.add_root(gnode!(&));
-            tree.0.add(Some(cc), gnode!(nt 1));
-            let p = tree.0.add(Some(cc), gnode!(+));
-            tree.0.addc_iter(Some(p), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(nt 1));
+            let p = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(p), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
         }
         10 => { // 1(23|4)+
-            let cc = tree.0.add_root(gnode!(&));
-            tree.0.add(Some(cc), gnode!(nt 1));
-            let p = tree.0.add(Some(cc), gnode!(+));
-            let or = tree.0.add(Some(p), gnode!(|));
-            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
-            tree.0.add(Some(or), gnode!(nt 4));
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(nt 1));
+            let p = tree.add(Some(cc), gnode!(+));
+            let or = tree.add(Some(p), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
+            tree.add(Some(or), gnode!(nt 4));
         }
         11 => { // 12*
-            let cc = tree.0.add_root(gnode!(&));
-            tree.0.add(Some(cc), gnode!(nt 1));
-            tree.0.addc(Some(cc), gnode!(*), gnode!(nt 2));
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(nt 1));
+            tree.addc(Some(cc), gnode!(*), gnode!(nt 2));
         }
         12 => { // 1(23)*
-            let cc = tree.0.add_root(gnode!(&));
-            tree.0.add(Some(cc), gnode!(nt 1));
-            let p = tree.0.add(Some(cc), gnode!(*));
-            tree.0.addc_iter(Some(p), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(nt 1));
+            let p = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(p), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
         }
         13 => { // 1(23|4)*
-            let cc = tree.0.add_root(gnode!(&));
-            tree.0.add(Some(cc), gnode!(nt 1));
-            let p = tree.0.add(Some(cc), gnode!(*));
-            let or = tree.0.add(Some(p), gnode!(|));
-            tree.0.addc_iter(Some(or), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
-            tree.0.add(Some(or), gnode!(nt 4));
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(nt 1));
+            let p = tree.add(Some(cc), gnode!(*));
+            let or = tree.add(Some(p), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
+            tree.add(Some(or), gnode!(nt 4));
         }
 
         _ => {}
     }
-    tree
+    rules
 }
 
-fn check_sanity(id: VarId, tree: &RuleTree, verbose: bool) -> Option<String> {
-    let mut indices = HashSet::<usize>::new();
-    let mut n = 0;
-    for node in tree.0.iter_depth_simple() {
-        n += 1;
-        if indices.contains(&node.index) {
-            return Some(format!("duplicate index {} in tree {:#}", node.index, tree));
+fn check_sanity(rules: &RuleTreeSet, verbose: bool) -> Option<String> {
+    let mut msg = String::new();
+    for (var, tree) in &rules.0 {
+        let mut indices = HashSet::<usize>::new();
+        let mut n = 0;
+        for node in tree.iter_depth_simple() {
+            n += 1;
+            if indices.contains(&node.index) {
+                msg.push_str(&format!("duplicate index {} for var {var} in tree {tree:#}\n", node.index));
+            }
+            indices.insert(node.index);
         }
-        indices.insert(node.index);
+        if verbose { println!("  {var} uses {}/{} nodes", n, tree.len()); }
     }
-    if verbose { println!("  {id} uses {}/{} nodes", n, tree.0.len()); }
-    None
+    if msg.is_empty() {
+        None
+    } else {
+        Some(msg)
+    }
 }
 
 // cargo +nightly miri test --package rlexer --lib grammar::tests::ruletree_normalize -- --exact
@@ -195,19 +210,22 @@ fn ruletree_normalize() {
         // &(1, *(|(&(2, 3), 4))) (depth 4)
         (13, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(4, 10), ε)"]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, expected) in tests {
-        let mut tree = build_tree(test_id);
-        if VERBOSE { println!("test {test_id}:\n- 0 -> {tree} (depth {})", tree.0.depth().unwrap()); }
-        let new = tree.normalize(0, 10);
-        for (id, t) in &new {
-            if let Some(err) = check_sanity(*id, t, VERBOSE) {
-                panic!("test {test_id} failed on NT {id}: {}", err);
-            }
+        let mut rules = build_rules(test_id);
+        let vars = rules.get_vars().filter(|var| !rules.0.get(var).unwrap().is_empty()).cloned().to_vec();
+        for var in vars {
+            let mut tree = rules.get_tree_mut(var).unwrap();
+            if VERBOSE { println!("test {test_id}:\n- {var} -> {tree} (depth {})", tree.depth().unwrap()); }
+            rules.normalize(0);
         }
-        let result = BTreeMap::from_iter(new.iter().map(|(id, t)| (*id, format!("{t}"))));
+        rules.purge_empty();
+        if let Some(err) = check_sanity(&rules, VERBOSE) {
+            panic!("test {test_id} failed:\n{}", err);
+        }
+        let result = BTreeMap::from_iter(rules.0.iter().map(|(id, t)| (*id, format!("{t}"))));
         if VERBOSE {
-            println!("{}", new.iter().map(|(ref id, t)| format!("- {id} => {t:#} (depth {})", t.0.depth().unwrap_or(0))).join("\n"));
+            println!("{}", rules.0.iter().map(|(ref id, t)| format!("- {id} => {t:#} (depth {})", t.depth().unwrap_or(0))).join("\n"));
             println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();

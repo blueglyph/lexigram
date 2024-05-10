@@ -29,9 +29,9 @@
 
 - parser lib
   - [x] ~~RuleTree to store the parsed production rules (RuleVec will be used for normalized production rules)~~
-  - [x] normalize
+  - [x] ~~normalize~~
     - [x] ~~transforms to | of &s~~ 
-    - [x] translate *, +, ? -> tree
+    - [x] ~~translate *, +, ? -> tree~~
   - [ ] remove left recursion -> rules
   - [ ] left factoring -> rules
   - top-down
