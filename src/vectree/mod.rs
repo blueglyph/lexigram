@@ -36,6 +36,10 @@ impl<'a, T> VecTree<T> {
         VecTree { nodes: Vec::with_capacity(capacity), borrows: Cell::new(0), root: None }
     }
 
+    pub fn get_root(&self) -> Option<usize> {
+        self.root
+    }
+
     pub fn set_root(&mut self, index: usize) -> usize {
         assert!(index < self.nodes.len());
         self.root = Some(index);

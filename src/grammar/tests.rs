@@ -213,11 +213,7 @@ fn ruletree_normalize() {
     for (test_id, expected) in tests {
         let mut rules = build_rules(test_id);
         let vars = rules.get_vars().cloned().to_vec();
-        for var in vars {
-            let tree = rules.get_tree_mut(var).unwrap();
-            if VERBOSE { println!("test {test_id}:\n- {var} -> {tree} (depth {})", tree.depth().unwrap()); }
-            rules.normalize(0);
-        }
+        rules.normalize();
         if let Some(err) = check_sanity(&rules, VERBOSE) {
             panic!("test {test_id} failed:\n{}", err);
         }
@@ -227,6 +223,93 @@ fn ruletree_normalize() {
             println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
+        assert_eq!(result, expected, "test {test_id} failed");
+    }
+}
+
+#[test]
+fn ruleprod_from() {
+    let tests: Vec<(u32, BTreeMap<VarId, Vec<Vec<GrNode>>>)> = vec![
+        (0, btreemap![0 => vec![vec![gnode!(t 1)], vec![gnode!(t 2)], vec![gnode!(nt 3)]]]),
+        // |(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))
+        (1, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 2)], vec![gnode!(t 3)], vec![gnode!(t 4)], vec![gnode!(nt 5), gnode!(nt 6)],
+            vec![gnode!(t 7)], vec![gnode!(t 8)], vec![gnode!(nt 9), gnode!(nt 10)] 
+        ]]),
+        // |(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))
+        (2, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
+            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 6), gnode!(nt 8)], 
+            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
+            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 6), gnode!(nt 8)]
+        ]]),
+        // |(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))
+        (3, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
+            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 8)], 
+            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
+            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 8)],
+        ]]),
+        // |(&(0, 1, 2, 3, 5, 6, 7), &(0, 1, 2, 3, 5, 8), &(0, 1, 2, 4, 5, 6, 7), &(0, 1, 2, 4, 5, 8))
+        (4, btreemap![0 => vec![
+            vec![gnode!(nt 0), gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
+            vec![gnode!(nt 0), gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 8)], 
+            vec![gnode!(nt 0), gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
+            vec![gnode!(nt 0), gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 8)],
+        ]]),
+        // |(1, ε)
+        (5, btreemap![0 => vec![
+            vec![gnode!(nt 1)], vec![gnode!(e)]
+        ]]),
+        // |(&(1, 2), ε)
+        (6, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 2)], vec![gnode!(e)]
+        ]]),
+        // |(&(1, 2), 3, ε)
+        (7, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 2)], vec![gnode!(nt 3)], vec![gnode!(e)]
+        ]]),
+        // 0 => &(1, 10), 10 => |(&(2, 10), 2)
+        (8, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 10)]
+        ], 10 => vec![
+            vec![gnode!(nt 2), gnode!(nt 10)], vec![gnode!(nt 2)]
+        ]]),
+        // 0 => &(1, 10), 10 => |(&(2, 3, 10), &(2, 3))
+        (9, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 10)]
+        ], 10 => vec![
+            vec![gnode!(nt 2), gnode!(nt 3), gnode!(nt 10)], vec![gnode!(nt 2), gnode!(nt 3)]
+        ]]),
+        // 0 => &(1, 10), 10 => |(&(2, 3, 10), &(2, 3), &(4, 10), 4)
+        (10, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 10)]
+        ], 10 => vec![
+            vec![gnode!(nt 2), gnode!(nt 3), gnode!(nt 10)], vec![gnode!(nt 2), gnode!(nt 3)], vec![gnode!(nt 4), gnode!(nt 10)], vec![gnode!(nt 4)]
+        ]]),
+        // 0 => "&(1, 10)", 10 => "|(&(2, 10), ε)"
+        (11, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 10)]
+        ], 10 => vec![
+            vec![gnode!(nt 2), gnode!(nt 10)], vec![gnode!(e)]
+        ]]),
+        // [0 => "&(1, 10)", 10 => "|(&(2, 3, 10), ε)"]
+        (12, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 10)]
+        ], 10 => vec![
+            vec![gnode!(nt 2), gnode!(nt 3), gnode!(nt 10)], vec![gnode!(e)]
+        ]]),
+        // 0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(4, 10), ε)"
+        (13, btreemap![0 => vec![
+            vec![gnode!(nt 1), gnode!(nt 10)]
+        ], 10 => vec![
+            vec![gnode!(nt 2), gnode!(nt 3), gnode!(nt 10)], vec![gnode!(nt 4), gnode!(nt 10)], vec![gnode!(e)]
+        ]]),
+    ];
+    for (test_id, expected) in tests {
+        let trees = build_rules(test_id);
+        let prods = RuleProdSet::from(trees);
+        let result = prods.prods.iter().map(|(id, p)| (*id, p.0.clone())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");
     }
 }

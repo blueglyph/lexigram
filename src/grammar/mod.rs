@@ -212,13 +212,21 @@ impl RuleTreeSet {
         self.next_var = var;
     }
 
+    /// Normalizes all the production rules.
+    pub fn normalize(&mut self) {
+        let vars = self.get_vars().cloned().to_vec();
+        for var in vars {
+            self.normalize_var(var);
+        }
+    }
+
     /// Transforms the production rule tree into a list of rules in normalized format:
     /// `var -> &(leaf_1, leaf_2, ...leaf_n)`
     ///
     /// The product may have to be split if operators like `+` or `*` are used. In this
     /// case, new non-terminals are created, with increasing IDs starting from
     /// `new_var`.
-    pub fn normalize(&mut self, var: VarId) {
+    pub fn normalize_var(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
         let mut new_var = self.next_var.unwrap_or(self.get_next_var());
@@ -458,24 +466,90 @@ impl RuleTreeSet {
 
 // ---------------------------------------------------------------------------------------------
 
+/// Stores a normalized production rule, where each factor (e.g. `BC`) is stored in
+/// a `Vec<GrNode>` and all the factors are stored in a `Vec`.
+///
+/// ## Example
+/// `A -> BC | D | ε`
+///
+/// where A=0, B=1, C=2, D=3, is stored as:
+///
+/// `[[gnode!(nt 1), gnode!(nt 2)],[gnode!(nt 3)],[gnode!(e)]]`
+///
+/// (where the representation of vectors has been simplified to square brackets).
+struct Prod(Vec<Vec<GrNode>>);
+
+impl Prod {
+    pub fn new() -> Self {
+        Self(Vec::new())
+    }
+}
+
+struct RuleProdSet {
+    prods: HashMap<VarId, Prod>
+}
+
+impl RuleProdSet {
+    pub fn new() -> Self {
+        Self { prods: HashMap::new() }
+    }
+}
+
+impl From<RuleTreeSet> for RuleProdSet {
+    fn from(mut rules: RuleTreeSet) -> Self {
+        fn children_to_vec(tree: &GrTree, parent_id: usize) -> Vec<GrNode> {
+            tree.children(parent_id).iter().map(|id| tree.get(*id).clone()).to_vec()
+        }
+        rules.normalize();
+        let mut prods = Self::new();
+        for var in rules.get_vars() {
+            let tree = rules.get_tree(*var).unwrap();
+            let root = tree.get_root().expect("tree {var} has no root");
+            let root_sym = tree.get(root);
+            let prod = match root_sym {
+                GrNode::Symbol(_) => vec![vec![root_sym.clone()]],
+                GrNode::Concat => vec![children_to_vec(tree, root)],
+                GrNode::Or => tree.children(root).iter()
+                    .map(|id| {
+                        let child = tree.get(*id);
+                        if let GrNode::Symbol(_) = child {
+                            vec![child.clone()]
+                        } else {
+                            assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
+                            children_to_vec(tree, *id)
+                        }
+                    }).to_vec(),
+                s => panic!("unexpected symbol {s} as root of normalized GrTree")
+            };
+            prods.prods.insert(*var, Prod(prod));
+        }
+        prods
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
 pub struct GrammarBuilder {
-    rules: RuleTreeSet,
+    rules: RuleProdSet,
     symbols: Vec<(String, Option<String>)>
 }
 
 impl GrammarBuilder {
     pub fn new() -> Self {
         GrammarBuilder {
-            rules: RuleTreeSet::new(),
+            rules: RuleProdSet::new(),
             symbols: Vec::new()
         }
     }
 
-    pub fn from(parsed_rules: RuleTreeSet) -> Self {
+    pub fn from(mut parsed_rules: RuleTreeSet) -> Self {
         GrammarBuilder {
-            rules: parsed_rules,
+            rules: RuleProdSet::from(parsed_rules),
             symbols: Vec::new()
         }
+    }
+
+    fn build(&mut self) {
     }
 }
 
