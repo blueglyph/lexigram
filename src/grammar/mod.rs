@@ -196,6 +196,11 @@ impl RuleTreeSet {
         self.0.keys()
     }
 
+    /// Returns a variable ID that doesn't exist yet.
+    pub fn get_new_var(&self) -> VarId {
+        self.0.keys().max().map(|last| last + 1).unwrap_or(0)
+    }
+
     /// Transforms the production rule tree into a list of rules in normalized format:
     /// `var -> &(leaf_1, leaf_2, ...leaf_n)`
     ///
@@ -205,10 +210,10 @@ impl RuleTreeSet {
     pub fn normalize(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
-        let mut new_var = self.0.keys().max().map(|last| last + 1).unwrap_or(0);
+        let mut new_var = self.get_new_var();
         let orig = self.0.remove(&var).unwrap();
         let mut new = VecTree::<GrNode>::new();
-        let mut stack = Vec::<usize>::new();                // indices in new
+        let mut stack = Vec::<usize>::new();    // indices in new
         for sym in orig.iter_depth() {
             let n = sym.num_children();
             if VERBOSE { println!("- old {}:{}", sym.index, sym.deref()); }
@@ -341,9 +346,7 @@ impl RuleTreeSet {
                         // +(&(A,B))      -> Q    |(&(A,B,Q),&(A',B'))             ABQ|AB
                         // +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
                         if VERBOSE { print!("  +"); }
-                        let (id, qtree) = Self::normalize_plus_or_star(&mut stack, &mut new, new_var, true);
-                        self.0.insert(new_var, qtree);
-                        new_var += 1;
+                        let id = self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, true);
                         stack.push(id);
                     }
                     GrNode::Star => {
@@ -358,9 +361,7 @@ impl RuleTreeSet {
                         // *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
                         // *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
                         if VERBOSE { print!("  *"); }
-                        let (id, qtree) = Self::normalize_plus_or_star(&mut stack, &mut new, new_var, false);
-                        self.0.insert(new_var, qtree);
-                        new_var += 1;
+                        let id = self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, false);
                         stack.push(id);
                     }
                     _ => panic!("Unexpected {}", sym.deref())
@@ -381,17 +382,18 @@ impl RuleTreeSet {
         self.0.insert(var, new);
     }
 
-    fn normalize_plus_or_star(stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, new_var: VarId, is_plus: bool) -> (usize, VecTree<GrNode>) {
+    fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, new_var: &mut VarId, is_plus: bool) -> usize {
         const VERBOSE: bool = false;
         let mut qtree = VecTree::<GrNode>::new();
         let child = stack.pop().unwrap();
+        // See comments in `normalize` near the calls to this method for details about the operations below
         match new.get(child) {
             GrNode::Symbol(s) => {
                 if VERBOSE { print!("({child}:{s}) "); }
                 // note: we cannot use the child id in qtree!
                 let or = qtree.add_root(gnode!(|));
                 let cc = qtree.addc(Some(or), gnode!(&), GrNode::Symbol(s.clone()));
-                qtree.add(Some(cc), gnode!(nt new_var));
+                qtree.add(Some(cc), gnode!(nt *new_var));
                 qtree.add(Some(or), if is_plus { GrNode::Symbol(s.clone()) } else { gnode!(e) });
             }
             GrNode::Concat => {
@@ -399,7 +401,7 @@ impl RuleTreeSet {
                 if VERBOSE { print!("({child}:&({})) ", children.iter().join(", ")); }
                 let or = qtree.add_root(gnode!(|));
                 let cc1 = qtree.add_from_tree(Some(or), new.iter_depth_at(child));
-                qtree.add(Some(cc1), gnode!(nt new_var));
+                qtree.add(Some(cc1), gnode!(nt *new_var));
                 if is_plus {
                     qtree.add_from_tree(Some(or), new.iter_depth_at(child));
                 } else {
@@ -414,14 +416,14 @@ impl RuleTreeSet {
                     let child = new.get(*id_child);
                     match child {
                         GrNode::Symbol(s) => {
-                            qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt new_var)]);
+                            qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)]);
                             if is_plus {
                                 qtree.add(Some(or), GrNode::Symbol(s.clone()));
                             }
                         }
                         GrNode::Concat => {
                             let cc = qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child));
-                            qtree.add(Some(cc), gnode!(nt new_var));
+                            qtree.add(Some(cc), gnode!(nt *new_var));
                             if is_plus {
                                 qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child));
                             }
@@ -435,8 +437,10 @@ impl RuleTreeSet {
             }
             _ => panic!("Unexpected {} under + node", new.get(child))
         }
-        let id = new.add(None, gnode!(nt new_var));
-        (id, qtree)
+        let id = new.add(None, gnode!(nt *new_var));
+        self.0.insert(*new_var, qtree);
+        *new_var += 1;
+        id
     }
 
     pub fn purge_empty(&mut self) {

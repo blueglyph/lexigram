@@ -210,7 +210,7 @@ fn ruletree_normalize() {
         // &(1, *(|(&(2, 3), 4))) (depth 4)
         (13, btreemap![0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(4, 10), ε)"]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, expected) in tests {
         let mut rules = build_rules(test_id);
         let vars = rules.get_vars().filter(|var| !rules.0.get(var).unwrap().is_empty()).cloned().to_vec();

@@ -135,7 +135,7 @@ fn regexgen_stability() {
 #[ignore]
 #[test]
 fn regexgen_optimize() {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for opt in [false, true] {
         println!("-----------------------------------------\n{} DFA:", if opt { "optimized" } else { "normalized" });
         let mut dfa = make_dfa();
