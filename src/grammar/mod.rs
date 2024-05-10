@@ -196,16 +196,6 @@ impl RuleTreeSet {
         self.0.keys()
     }
 
-    fn get_dup(tree: &mut VecTree<GrNode>, dup_index: &mut Dup) -> usize {
-        match dup_index.get() {
-            DupVal::Original(index) => index as usize,
-            DupVal::Copy(index) => {
-                let node = tree.get(index as usize).clone();
-                tree.add(None, node)
-            }
-        }
-    }
-
     /// Transforms the production rule tree into a list of rules in normalized format:
     /// `var -> &(leaf_1, leaf_2, ...leaf_n)`
     ///

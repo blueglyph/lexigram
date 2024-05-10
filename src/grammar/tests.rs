@@ -35,11 +35,11 @@ fn gnode() {
 #[test]
 fn dup() {
     let mut rules = RuleTreeSet::new();
-    let mut tree = rules.new_var(0);
+    let tree = rules.new_var(0);
     let mut a = Dup::new(tree.add(None, gnode!(nt 1)));
     let mut b = Dup::new(tree.add(None, gnode!(nt 2)));
     let mut result = Vec::new();
-    for i in 1..=3 {
+    for _ in 1..=3 {
         result.push(tree.get_dup(&mut a));
         result.push(tree.get_dup(&mut b));
     }
@@ -56,7 +56,7 @@ fn build_rules(id: u32) -> RuleTreeSet {
         // we want new variables to begin at 10.
         rules.new_var(i);
     }
-    let mut tree = rules.get_tree_mut(0).unwrap();
+    let tree = rules.get_tree_mut(0).unwrap();
 
     match id {
         0 => {
@@ -215,7 +215,7 @@ fn ruletree_normalize() {
         let mut rules = build_rules(test_id);
         let vars = rules.get_vars().filter(|var| !rules.0.get(var).unwrap().is_empty()).cloned().to_vec();
         for var in vars {
-            let mut tree = rules.get_tree_mut(var).unwrap();
+            let tree = rules.get_tree_mut(var).unwrap();
             if VERBOSE { println!("test {test_id}:\n- {var} -> {tree} (depth {})", tree.depth().unwrap()); }
             rules.normalize(0);
         }
