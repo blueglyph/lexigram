@@ -54,7 +54,7 @@ fn build_rules(id: u32) -> RuleTreeSet {
     rules.new_var(0);
     // reserve a few variables just so the NT indices are not confusing:
     // we want new variables to begin at 10.
-    rules.next_var = 10;
+    rules.set_next_var(Some(10));
     let tree = rules.get_tree_mut(0).unwrap();
 
     match id {

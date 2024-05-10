@@ -174,12 +174,12 @@ impl Display for GrTree {
 #[derive(Clone, Debug)]
 pub struct RuleTreeSet {
     trees: HashMap<VarId, GrTree>,
-    next_var: VarId
+    next_var: Option<VarId>
 }
 
 impl RuleTreeSet {
     pub fn new() -> Self {
-        RuleTreeSet { trees: HashMap::new(), next_var: 0 }
+        RuleTreeSet { trees: HashMap::new(), next_var: None }
     }
 
     pub fn new_var(&mut self, var: VarId) -> &mut GrTree {
@@ -200,8 +200,16 @@ impl RuleTreeSet {
     }
 
     /// Returns a variable ID that doesn't exist yet.
-    pub fn get_free_var(&self) -> VarId {
+    pub fn get_next_var(&self) -> VarId {
         self.trees.keys().max().map(|last| last + 1).unwrap_or(0)
+    }
+
+    pub fn set_next_var(&mut self, var: Option<VarId>) {
+        if let Some(v) = var {
+            let min = self.get_next_var();
+            assert!(v >= min, "the minimum value for next_var is {min}");
+        }
+        self.next_var = var;
     }
 
     /// Transforms the production rule tree into a list of rules in normalized format:
@@ -213,7 +221,7 @@ impl RuleTreeSet {
     pub fn normalize(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
-        let mut new_var = self.next_var;
+        let mut new_var = self.next_var.unwrap_or(self.get_next_var());
         let orig = self.trees.remove(&var).unwrap();
         let mut new = VecTree::<GrNode>::new();
         let mut stack = Vec::<usize>::new();    // indices in new
@@ -383,7 +391,7 @@ impl RuleTreeSet {
         if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
         new.set_root(stack.pop().unwrap());
         self.trees.insert(var, new);
-        self.next_var = new_var;
+        self.next_var = Some(new_var);
     }
 
     fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, new_var: &mut VarId, is_plus: bool) -> usize {
