@@ -172,33 +172,36 @@ impl Display for GrTree {
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
-pub struct RuleTreeSet(HashMap<VarId, GrTree>);
+pub struct RuleTreeSet {
+    trees: HashMap<VarId, GrTree>,
+    next_var: VarId
+}
 
 impl RuleTreeSet {
     pub fn new() -> Self {
-        RuleTreeSet(HashMap::new())
+        RuleTreeSet { trees: HashMap::new(), next_var: 0 }
     }
 
     pub fn new_var(&mut self, var: VarId) -> &mut GrTree {
-        self.0.insert(var, VecTree::new());
-        self.0.get_mut(&var).unwrap()
+        self.trees.insert(var, VecTree::new());
+        self.trees.get_mut(&var).unwrap()
     }
 
     pub fn get_tree(&self, var: VarId) -> Option<&GrTree> {
-        self.0.get(&var)
+        self.trees.get(&var)
     }
 
     pub fn get_tree_mut(&mut self, var: VarId) -> Option<&mut GrTree> {
-        self.0.get_mut(&var)
+        self.trees.get_mut(&var)
     }
 
     pub fn get_vars(&self) -> impl Iterator<Item=&VarId> {
-        self.0.keys()
+        self.trees.keys()
     }
 
     /// Returns a variable ID that doesn't exist yet.
-    pub fn get_new_var(&self) -> VarId {
-        self.0.keys().max().map(|last| last + 1).unwrap_or(0)
+    pub fn get_free_var(&self) -> VarId {
+        self.trees.keys().max().map(|last| last + 1).unwrap_or(0)
     }
 
     /// Transforms the production rule tree into a list of rules in normalized format:
@@ -210,8 +213,8 @@ impl RuleTreeSet {
     pub fn normalize(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
-        let mut new_var = self.get_new_var();
-        let orig = self.0.remove(&var).unwrap();
+        let mut new_var = self.next_var;
+        let orig = self.trees.remove(&var).unwrap();
         let mut new = VecTree::<GrNode>::new();
         let mut stack = Vec::<usize>::new();    // indices in new
         for sym in orig.iter_depth() {
@@ -379,7 +382,8 @@ impl RuleTreeSet {
         assert_eq!(stack.len(), 1);
         if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
         new.set_root(stack.pop().unwrap());
-        self.0.insert(var, new);
+        self.trees.insert(var, new);
+        self.next_var = new_var;
     }
 
     fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, new_var: &mut VarId, is_plus: bool) -> usize {
@@ -438,16 +442,9 @@ impl RuleTreeSet {
             _ => panic!("Unexpected {} under + node", new.get(child))
         }
         let id = new.add(None, gnode!(nt *new_var));
-        self.0.insert(*new_var, qtree);
+        self.trees.insert(*new_var, qtree);
         *new_var += 1;
         id
-    }
-
-    pub fn purge_empty(&mut self) {
-        let empty = self.0.iter().filter_map(|(id, t)| if t.is_empty() { Some(*id) } else { None }).to_vec();
-        for var in empty {
-            self.0.remove(&var);
-        }
     }
 }
 
