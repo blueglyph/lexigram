@@ -489,6 +489,13 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     }
 }
 
+impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
+    /// Transforms a `Normalized` ruleset to a `General` ruleset
+    fn from(mut value: RuleTreeSet<Normalized>) -> Self {
+        RuleTreeSet::<General> { trees: value.trees, next_var: value.next_var, _phantom: PhantomData }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 
 /// Stores a normalized production rule, where each factor (e.g. `BC`) is stored in

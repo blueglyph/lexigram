@@ -28,12 +28,14 @@
 # RParser
 
 - parser lib
-  - [x] ~~RuleTree to store the parsed production rules (RuleVec will be used for normalized production rules)~~
-  - [x] ~~normalize~~
+  - ~~RuleTreeSet to store the parsed production rules~~
+    - [x] ~~normalize~~
     - [x] ~~transforms to | of &s~~ 
     - [x] ~~translate *, +, ? -> tree~~
-  - [ ] remove left recursion -> rules
-  - [ ] left factoring -> rules
+    - [x] ~~transform normalized tree rules -> production rules~~
+  - RuleProdSet to store the normalized production rules (as `Vec<Vec<GrNode>>`)
+    - [ ] remove left recursion -> rules
+    - [ ] left factoring -> rules
   - top-down
     - [ ] calc first
     - [ ] calc follow
