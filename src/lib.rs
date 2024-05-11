@@ -32,17 +32,18 @@ pub mod grammar;
 // - https://alic.dev/blog/fast-lexing
 
 // ---------------------------------------------------------------------------------------------
-// General types
+// Shared types
 
-/// Marker for general tree form (not normalized).
+/// Unit type used as generic parameter to indicate general, non-normalized form.
 ///
-/// - For `Dfa`, this form may have accepting states with IDs smaller than non-accepting states' IDs, or non-incremntal IDs.
-/// - For `RuleTreeSet`, this form may include any operators like `*`, `+`, and `?`, and doesn't have a restriction on depth.
+/// - `Dfa<General>` may have accepting states with IDs smaller than non-accepting states' IDs, or non-incremntal IDs.
+/// - `RuleTreeSet<General>` may include any operators like `*`, `+`, and `?`, and doesn't have a restriction on depth.
 pub struct General;
-/// Marker for normalized form.
+
+/// Unit type used as generic parameter to indicate normalized form.
 ///
-/// - For `Dfa`, this form always has incremental state numbers, starting at 0, with all the accepting states at the end.
-/// - For `RuleTreeSet`, this form only has `|`, `&`, and symbols, and must have one of the 3 following patterns:
+/// - `Dfa<Normalized>` always has incremental state numbers, starting at 0, with all the accepting states at the end.
+/// - `RuleTreeSet<Normalized>` only has `|`, `&`, and symbols, and must have one of the 3 following patterns:
 ///   - a symbol
 ///   - a `&` with only symbols as children
 ///   - a `|` with only `&(symbols)` or symbols as children
