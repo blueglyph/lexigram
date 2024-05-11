@@ -59,8 +59,8 @@ fn lexer_simple() {
     ];
     const VERBOSE: bool = false;
     for (test_id, token_tests, err_tests, stream_tests) in tests {
-        let mut dfa = DfaBuilder::from_re(build_re(test_id)).build();
-        dfa.normalize();
+        let dfa = DfaBuilder::from_re(build_re(test_id)).build();
+        let dfa = dfa.normalize();
         if VERBOSE { print_dfa(&dfa); }
         let lexgen = LexGen::from_dfa(&dfa);
         if VERBOSE { print_source_code(&lexgen); }
@@ -201,13 +201,13 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
     }).to_vec();
     let mut dfa_builder = DfaBuilder::new();
     if VERBOSE { println!("merging dfa modes"); }
-    let mut dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer #{test}\n{}", dfa_builder.get_messages()));
+    let dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer #{test}\n{}", dfa_builder.get_messages()));
     assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building lexer #{test} (merging DFAs):\n{}", dfa_builder.get_messages());
     if VERBOSE {
         print_dfa(&dfa);
         println!("normalizing");
     }
-    dfa.normalize();
+    let dfa = dfa.normalize();
     if VERBOSE {
         print_dfa(&dfa);
         println!("creating lexer");

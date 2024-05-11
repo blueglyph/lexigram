@@ -6,7 +6,7 @@ use std::io::Read;
 use std::io::{BufWriter, stdout, Write};
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
-use crate::{CollectJoin, escape_char};
+use crate::{CollectJoin, escape_char, Normalized};
 use crate::lexer::Lexer;
 use crate::segments::{Segments, Seg, SegMap};
 use super::dfa::*;
@@ -47,13 +47,13 @@ impl LexGen {
         }
     }
 
-    pub fn from_dfa(dfa: &Dfa) -> Self {
+    pub fn from_dfa(dfa: &Dfa<Normalized>) -> Self {
         let mut lexgen = LexGen::new();
         lexgen.build_tables(dfa);
         lexgen
     }
 
-    pub fn build_tables(&mut self, dfa: &Dfa) {
+    pub fn build_tables(&mut self, dfa: &Dfa<Normalized>) {
         self.create_input_tables(dfa);
         self.create_state_tables(dfa);
     }
@@ -73,9 +73,9 @@ impl LexGen {
         )
     }
 
-    fn create_input_tables(&mut self, dfa: &Dfa) {
+    fn create_input_tables(&mut self, dfa: &Dfa<Normalized>) {
         const VERBOSE: bool = false;
-        let symbol_part = partition_symbols(&dfa.state_graph);
+        let symbol_part = partition_symbols(dfa.get_state_graph());
         let symbol_to_group = SegMap::from_iter(
             symbol_part.iter().enumerate().flat_map(|(id, i)| i.iter().map(move |ab| (*ab, id as GroupId)))
         );
@@ -124,16 +124,16 @@ impl LexGen {
         }
     }
 
-    fn create_state_tables(&mut self, dfa: &Dfa) {
+    fn create_state_tables(&mut self, dfa: &Dfa<Normalized>) {
         const VERBOSE: bool = false;
-        self.initial_state = dfa.initial_state.unwrap();
-        self.first_end_state = dfa.first_end_state.unwrap();
-        self.nbr_states = dfa.state_graph.len();
-        let nbr_states = dfa.state_graph.len();
+        self.initial_state = dfa.get_initial_state().unwrap();
+        self.first_end_state = dfa.get_first_end_state().unwrap();
+        self.nbr_states = dfa.get_state_graph().len();
+        let nbr_states = dfa.get_state_graph().len();
         // we add one extra table index to allow for the 'error group', which equals nbr_group:
         // state_table[nbr_state * nbr_group + nbr_group] must exist; the content will be ignored.
         let mut state_table = vec!(self.nbr_states; self.nbr_groups as usize * nbr_states + 1);
-        for (state_from, trans) in &dfa.state_graph {
+        for (state_from, trans) in dfa.get_state_graph() {
             if VERBOSE { println!("state {state_from}"); }
             for (segments, state_to) in trans {
                 if VERBOSE { println!("- {segments} -> state {state_to}"); }
@@ -147,7 +147,7 @@ impl LexGen {
             }
         }
         self.state_table = state_table.into_boxed_slice();
-        let terminal_table = dfa.end_states.iter()
+        let terminal_table = dfa.get_end_states().iter()
             .filter_map(|(&st, t)| if st >= self.first_end_state { Some(t.clone()) } else { None })
             .to_vec();
         self.terminal_table = terminal_table.into_boxed_slice();

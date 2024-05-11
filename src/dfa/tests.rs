@@ -508,7 +508,7 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
     re
 }
 
-pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa> {
+pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa<General>> {
     let mut re = VecTree::new();
     let modes: BTreeMap<ModeId, VecTree<ReNode>> = match test {
         1 => {
@@ -615,7 +615,7 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
 }
 
 #[allow(unused)]
-pub(crate) fn print_dfa(dfa: &Dfa) {
+pub(crate) fn print_dfa<T>(dfa: &Dfa<T>) {
     // println!("  graph:      {:?}", dfa.state_graph);
     println!("Initial state: {}", if let Some(st) = dfa.initial_state { st.to_string() } else { "none".to_string() });
     println!("Graph:");
@@ -1502,11 +1502,10 @@ fn dfa_normalize() {
         if re.len() == 0 {
             break;
         }
-        let mut dfa = DfaBuilder::from_re(re).build();
+        let dfa = DfaBuilder::from_re(re).build();
         // println!("{test_id}: {}", if dfa.is_normalized() { "normalized" } else { "not normalized" });
         // print_dfa(&dfa);
-        let _trans = dfa.normalize();
-        // println!("{_trans:?}");
+        let dfa = dfa.normalize();
         // print_dfa(&dfa);
         assert!(dfa.is_normalized(), "test {test_id} failed");
         assert_eq!(dfa.first_end_state, Some(dfa.state_graph.len() - dfa.end_states.len()), "test {test_id} failed");
@@ -1703,11 +1702,10 @@ fn dfa_optimize_graphs() {
             end_states = dfa.end_states;
         }
         let mut dfa_builder = DfaBuilder::new();
-        let mut dfa = dfa_builder.build_from_graph(graph, 0, end_states)
+        let dfa = dfa_builder.build_from_graph(graph, 0, end_states)
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
-        let _tr = dfa.optimize();
+        let dfa = dfa.optimize();
         if VERBOSE {
-            println!("table: {}\n", _tr.iter().map(|(a, b)| format!("{a} -> {b}")).join(", "));
             print_dfa(&dfa);
         }
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");

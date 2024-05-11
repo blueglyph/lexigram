@@ -5,7 +5,7 @@ use std::fs::File;
 use std::io::{Cursor, Read, Write};
 use std::mem::size_of_val;
 use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string};
-use crate::escape_string;
+use crate::{escape_string, General};
 use crate::io::CharReader;
 use crate::lexer::Lexer;
 use crate::lexgen::LexGen;
@@ -16,7 +16,7 @@ use crate::lexgen::{print_source_code, write_source_code};
 #[derive(Debug, Clone, Copy)]
 enum LexerType { Normalized, Optimized, Generated }
 
-fn make_dfa() -> Dfa {
+fn make_dfa() -> Dfa<General> {
     const VERBOSE: bool = false;
     let re = build_re();
     let mut dfa_builder = DfaBuilder::from_re(re);
@@ -33,12 +33,12 @@ fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
     const VERBOSE: bool = false;
     match ltype {
         LexerType::Normalized | LexerType::Optimized => {
-            let mut dfa = make_dfa();
-            if let LexerType::Normalized = ltype {
-                dfa.normalize();
+            let dfa = make_dfa();
+            let dfa = if let LexerType::Normalized = ltype {
+                dfa.normalize()
             } else {
-                dfa.optimize();
-            }
+                dfa.optimize()
+            };
             if VERBOSE { print_dfa(&dfa); }
             let lexgen = LexGen::from_dfa(&dfa);
             if VERBOSE { println!("Sources:"); print_source_code(&lexgen); }
@@ -61,8 +61,8 @@ fn regexgen_re() {
 #[test]
 fn gen_lexer_source() {
     const FILENAME: &str = "src/regexgen/gen.rs";
-    let mut dfa = make_dfa();
-    dfa.optimize();
+    let dfa = make_dfa();
+    let dfa = dfa.optimize();
     let mut lexgen = LexGen::new();
     lexgen.max_utf8_chars = 0;
     lexgen.build_tables(&dfa);
@@ -138,16 +138,16 @@ fn regexgen_optimize() {
     const VERBOSE: bool = false;
     for opt in [false, true] {
         println!("-----------------------------------------\n{} DFA:", if opt { "optimized" } else { "normalized" });
-        let mut dfa = make_dfa();
-        if opt {
-            dfa.optimize();
+        let dfa = make_dfa();
+        let dfa = if opt {
+            dfa.optimize()
         } else {
-            dfa.normalize();
-        }
+            dfa.normalize()
+        };
         println!("DFA:\n- {} states\n- {} terminals\n- {} end states",
-                 dfa.state_graph.len(),
-                 dfa.end_states.iter().map(|(_, t)| t.clone()).collect::<BTreeSet<Terminal>>().len(),
-                 dfa.end_states.len()
+                 dfa.get_state_graph().len(),
+                 dfa.get_end_states().iter().map(|(_, t)| t.clone()).collect::<BTreeSet<Terminal>>().len(),
+                 dfa.get_end_states().len()
         );
         if VERBOSE { print_dfa(&dfa); }
         let mut lexgen = LexGen::new();

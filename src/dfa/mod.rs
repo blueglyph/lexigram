@@ -2,7 +2,8 @@ pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
-use crate::{btreeset, CollectJoin, escape_char, escape_string};
+use std::marker::PhantomData;
+use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized};
 use crate::segments::{Segments, Seg};
 use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
@@ -362,7 +363,7 @@ impl DfaBuilder {
         }
     }
 
-    fn calc_states(&mut self) -> Dfa {
+    fn calc_states(&mut self) -> Dfa<General> {
         const VERBOSE: bool = false;
         const RESOLVE_END_STATES: bool = true;
         const RM_LAZY_BRANCHES: bool = true;
@@ -557,32 +558,31 @@ impl DfaBuilder {
         dfa
     }
 
-    pub fn build(&mut self) -> Dfa {
+    pub fn build(&mut self) -> Dfa<General> {
         self.warnings.clear();
         self.calc_node_pos();
         self.calc_states()
     }
 
-    pub fn build_from_graph<T>(&mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T) -> Option<Dfa>
+    pub fn build_from_graph<T>(&mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T) -> Option<Dfa<General>>
         where T: IntoIterator<Item=(StateId, Terminal)>
     {
-        let mut dfa = Dfa {
+        let mut dfa = Dfa::<General> {
             state_graph: graph,
             initial_state: Some(init_state),
             end_states: BTreeMap::from_iter(end_states),
-            is_normalized: false,
-            first_end_state: None
+            first_end_state: None,
+            _phantom: PhantomData
         };
         dfa.first_end_state = dfa.end_states.keys().min().map(|st| *st);
-        dfa.is_normalized = dfa.is_normalized();
         // TODO: add checks
         Some(dfa)
     }
 
     /// Merges several DFA graphs into one. The graphs represent different modes that are called with the
     /// `Action::pushMode(id)` action.
-    pub fn build_from_dfa_modes<T>(&mut self, dfas: T) -> Option<Dfa>
-        where T: IntoIterator<Item = (ModeId, Dfa)>
+    pub fn build_from_dfa_modes<T, U>(&mut self, dfas: T) -> Option<Dfa<General>>
+        where T: IntoIterator<Item = (ModeId, Dfa<U>)>
     {
         let mut iter = dfas.into_iter();
         let (idx, mut dfa) = iter.next().expect("no DFA");
@@ -612,10 +612,15 @@ impl DfaBuilder {
                 });
             }
             dfa.first_end_state = None;
-            dfa.is_normalized = false;
         }
         if self.errors.is_empty() {
-            Some(dfa)
+            Some(Dfa::<General> {
+                state_graph: dfa.state_graph,
+                initial_state: dfa.initial_state,
+                end_states: dfa.end_states,
+                first_end_state: dfa.first_end_state,
+                _phantom: PhantomData,
+            })
         } else {
             None
         }
@@ -624,23 +629,41 @@ impl DfaBuilder {
 
 // ---------------------------------------------------------------------------------------------
 
-pub struct Dfa {
-    pub(crate) state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
-    pub(crate) initial_state: Option<StateId>,
-    pub(crate) end_states: BTreeMap<StateId, Terminal>,
-    is_normalized: bool, // are states incrementally numeroted from 0, with non-end states < end states?
-    pub(crate) first_end_state: Option<StateId>
+pub struct Dfa<T> {
+    state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
+    initial_state: Option<StateId>,
+    end_states: BTreeMap<StateId, Terminal>,
+    first_end_state: Option<StateId>,
+    _phantom: PhantomData<T>
 }
 
-impl Dfa {
-    pub fn new() -> Self {
-        Dfa {
+impl Dfa<General> {
+    pub fn new() -> Dfa<General> {
+        Dfa::<General> {
             state_graph: BTreeMap::new(),
             initial_state: None,
             end_states: BTreeMap::new(),
-            is_normalized: false,
-            first_end_state: None
+            first_end_state: None,
+            _phantom: PhantomData
         }
+    }
+}
+
+impl<T> Dfa<T> {
+    pub fn get_state_graph(&self) -> &BTreeMap<StateId, BTreeMap<Segments, StateId>> {
+        &self.state_graph
+    }
+
+    pub fn get_initial_state(&self) -> &Option<StateId> {
+        &self.initial_state
+    }
+
+    pub fn get_end_states(&self) -> &BTreeMap<StateId, Terminal> {
+        &self.end_states
+    }
+
+    pub fn get_first_end_state(&self) -> &Option<StateId> {
+        &self.first_end_state
     }
 
     /// Checks if the DFA is normalized: incremental state numbers, starting at 0, with all the accepting states
@@ -670,7 +693,7 @@ impl Dfa {
 
     /// Normalizes the DFA: incremental state number0, starting at 0, with all the accepting states
     /// at the end.
-    pub fn normalize(&mut self) -> BTreeMap<StateId, StateId> {
+    pub fn normalize(mut self) -> Dfa<Normalized> {
         let mut translate = BTreeMap::<StateId, StateId>::new();
         let mut state_graph = BTreeMap::<StateId, BTreeMap<Segments, StateId>>::new();
         let mut end_states = BTreeMap::<StateId, Terminal>::new();
@@ -702,12 +725,18 @@ impl Dfa {
             state_graph.insert(translate[&id], trans);
         }
         self.state_graph = state_graph;
-        translate
+        Dfa::<Normalized> {
+            state_graph: self.state_graph,
+            initial_state: self.initial_state,
+            end_states: self.end_states,
+            first_end_state: self.first_end_state,
+            _phantom: PhantomData,
+        }
     }
 
     /// Optimizes the number of states from `self.state_graph`. Returns a map to convert old
     /// state ids to new state ids.
-    pub fn optimize(&mut self) -> BTreeMap<StateId, StateId> {
+    pub fn optimize(mut self) -> Dfa<Normalized> {
         const VERBOSE: bool = false;
         // set `separate_end_states` = `true` if different end (accepting) states should be kept apart;
         // for example, when it's important to differentiate tokens.
@@ -848,8 +877,19 @@ impl Dfa {
         }
         debug_assert!(self.is_normalized(), "optimized state machine isn't regular\nend_states={:?}\ngraph={:?}",
                       self.end_states, self.state_graph);
-        self.is_normalized = true;
-        st_to_group
+        Dfa::<Normalized> {
+            state_graph: self.state_graph,
+            initial_state: self.initial_state,
+            end_states: self.end_states,
+            first_end_state: self.first_end_state,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl From<Dfa<General>> for Dfa<Normalized> {
+    fn from(dfa: Dfa<General>) -> Self {
+        dfa.normalize()
     }
 }
 

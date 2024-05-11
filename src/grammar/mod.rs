@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, gnode, vaddi};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi};
 use crate::vectree::VecTree;
 
 pub type VarId = u16;
@@ -178,16 +178,6 @@ pub struct RuleTreeSet<T> {
     next_var: Option<VarId>,
     _phantom: PhantomData<T>
 }
-
-/// Marker for general tree form (not normalized). This form may include any
-/// operators like `*`, `+`, and `?`, and doesn't have a restriction on depth.
-pub struct General;
-/// Marker for normalized form. This form may only have `|`, `&`, and symbols,
-/// and must have one of the 3 following patterns:
-/// - a symbol
-/// - a `&` with only symbols as children
-/// - a `|` with only `&(symbols)` or symbols as children
-pub struct Normalized;
 
 // Methods for both General and Normalized forms. There can only be immutable methods
 // in the normalized form.

@@ -65,9 +65,9 @@ fn lexgen_symbol_tables() {
     ];
     for (test_id, g, expected_set) in tests {
         let mut dfa_builder = DfaBuilder::new();
-        let mut dfa = dfa_builder.build_from_graph(g, 0, btreemap![3 => term![=0], 4 => term![=0], 5 => term![=1], 6 => term![=2]])
+        let dfa = dfa_builder.build_from_graph(g, 0, btreemap![3 => term![=0], 4 => term![=0], 5 => term![=1], 6 => term![=2]])
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
-        dfa.normalize();
+        let dfa = dfa.normalize();
         let lexgen = LexGen::from_dfa(&dfa);
         let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups as usize];
         for i in 0..128_u8 {
@@ -116,9 +116,9 @@ fn lexgen_symbol_tables_corner() {
         if VERBOSE { println!("Test {test_id}:"); }
         let end_states = g.values().flat_map(|x| x.values()).cloned().collect::<BTreeSet<StateId>>();
         let mut dfa_builder = DfaBuilder::new();
-        let mut dfa = dfa_builder.build_from_graph(g, 0, end_states.iter().map(|s| (*s, term!(=0))).collect::<BTreeMap<StateId, Terminal>>())
+        let dfa = dfa_builder.build_from_graph(g, 0, end_states.iter().map(|s| (*s, term!(=0))).collect::<BTreeMap<StateId, Terminal>>())
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
-        dfa.normalize();
+        let dfa = dfa.normalize();
         let mut lexgen = LexGen::new();
         lexgen.max_utf8_chars = left;
         lexgen.build_tables(&dfa);
@@ -163,8 +163,8 @@ fn lexgen_build() {
         time! { VERBOSE, {
                 let re = build_re(test_id);
                 let mut dfa_builder = DfaBuilder::from_re(re);
-                let mut dfa = dfa_builder.build();
-                dfa.normalize();
+                let dfa = dfa_builder.build();
+                let dfa = dfa.normalize();
                 lexgen = LexGen::from_dfa(&dfa);
                 if VERBOSE { print!("- {test_id:2}: "); }
             }
