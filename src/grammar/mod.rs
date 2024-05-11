@@ -139,6 +139,12 @@ impl GrTree {
     }
 }
 
+impl Default for GrTree {
+    fn default() -> Self {
+        GrTree::new()
+    }
+}
+
 impl Display for GrTree {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         fn snode(show_ids: bool, show_depth: bool, node: &GrNode, node_id: usize, depth: u32) -> String {
@@ -174,7 +180,7 @@ impl Display for GrTree {
 
 #[derive(Clone, Debug)]
 pub struct RuleTreeSet<T> {
-    trees: HashMap<VarId, GrTree>,
+    trees: Vec<GrTree>,
     next_var: Option<VarId>,
     _phantom: PhantomData<T>
 }
@@ -183,45 +189,72 @@ pub struct RuleTreeSet<T> {
 // in the normalized form.
 impl<T> RuleTreeSet<T> {
     pub fn get_tree(&self, var: VarId) -> Option<&GrTree> {
-        self.trees.get(&var)
+        self.trees.get(var as usize)
     }
 
-    pub fn get_vars(&self) -> impl Iterator<Item=&VarId> {
-        self.trees.keys()
+    /// Returns all the non-empty trees
+    pub fn get_trees_iter(&self) -> impl Iterator<Item=(VarId, &GrTree)> {
+        self.trees.iter().enumerate().filter_map(|(id, t)| if t.is_empty() { None } else { Some((id as VarId, t)) })
+    }
+
+    /// Returns all the variables corresponding to a non-empty tree
+    pub fn get_vars(&self) -> impl Iterator<Item=VarId> + '_ {
+        (0..self.trees.len()).filter_map(|id| if self.trees[id].is_empty() { None } else { Some(id as VarId) })
     }
 
     /// Returns a variable ID that doesn't exist yet.
-    pub fn get_next_var(&self) -> VarId {
-        self.trees.keys().max().map(|last| last + 1).unwrap_or(0)
+    pub fn get_next_available_var(&self) -> VarId {
+        self.trees.len() as VarId
     }
 }
 
 // Mutable methods for the General form.
 impl RuleTreeSet<General> {
     pub fn new() -> Self {
-        RuleTreeSet { trees: HashMap::new(), next_var: None, _phantom: PhantomData }
+        RuleTreeSet { trees: Vec::new(), next_var: None, _phantom: PhantomData }
     }
 
-    pub fn new_var(&mut self, var: VarId) -> &mut GrTree {
-        self.trees.insert(var, VecTree::new());
-        self.trees.get_mut(&var).unwrap()
+    /// Gets the tree corresponding to `var`. Creates it if it doesn't exist yet.
+    pub fn get_tree_mut(&mut self, var: VarId) -> &mut GrTree {
+        let var = var as usize;
+        if var >= self.trees.len() {
+            self.trees.resize(var + 1, GrTree::new());
+        }
+        &mut self.trees[var]
     }
 
-    pub fn get_tree_mut(&mut self, var: VarId) -> Option<&mut GrTree> {
-        self.trees.get_mut(&var)
+    /// Sets the tree corresponding to `var`. If the variable already exists,
+    /// the tree is replaced. Otherwise, the set is enlarged to add it.
+    pub fn set_tree(&mut self, var: VarId, tree: GrTree) {
+        let var = var as usize;
+        if var >= self.trees.len() {
+            if var > self.trees.len() {
+                if self.trees.capacity() < var + 1 {
+                    // if capacity = 2, var = 3 => we need 4, so 2 more
+                    self.trees.reserve(var + 1 - self.trees.capacity())
+                }
+                self.trees.resize(var, GrTree::new());
+            }
+            self.trees.push(tree);
+        } else {
+            self.trees[var] = tree;
+        }
     }
 
+    /// Forces the next variable ID to be used when a new rule must be created
+    /// by the normalization if `var` is `Some(id)`. If `var` is `None`, lets
+    /// the normalization determine the next ID.
     pub fn set_next_var(&mut self, var: Option<VarId>) {
         if let Some(v) = var {
-            let min = self.get_next_var();
-            assert!(v >= min, "the minimum value for next_var is {min}");
+            let min = self.trees.len();
+            assert!(v as usize >= min, "the minimum value for next_var is {min}");
         }
         self.next_var = var;
     }
 
     /// Normalizes all the production rules.
     pub fn normalize(&mut self) {
-        let vars = self.get_vars().cloned().to_vec();
+        let vars = self.get_vars().to_vec();
         for var in vars {
             self.normalize_var(var);
         }
@@ -236,8 +269,9 @@ impl RuleTreeSet<General> {
     pub fn normalize_var(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
-        let mut new_var = self.next_var.unwrap_or(self.get_next_var());
-        let orig = self.trees.remove(&var).unwrap();
+        let mut new_var = self.next_var.unwrap_or(self.get_next_available_var());
+        // let orig = self.trees.remove(&var).unwrap();
+        let orig = std::mem::take(&mut self.trees[var as usize]);
         let mut new = VecTree::<GrNode>::new();
         let mut stack = Vec::<usize>::new();    // indices in new
         for sym in orig.iter_depth() {
@@ -405,7 +439,7 @@ impl RuleTreeSet<General> {
         assert_eq!(stack.len(), 1);
         if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
         new.set_root(stack.pop().unwrap());
-        self.trees.insert(var, new);
+        self.set_tree(var, new);
         self.next_var = Some(new_var);
     }
 
@@ -465,7 +499,8 @@ impl RuleTreeSet<General> {
             _ => panic!("Unexpected {} under + node", new.get(child))
         }
         let id = new.add(None, gnode!(nt *new_var));
-        self.trees.insert(*new_var, qtree);
+        assert!(*new_var as usize >= self.trees.len() || self.trees[*new_var as usize].is_empty(), "overwriting tree {new_var}");
+        self.set_tree(*new_var, qtree);
         *new_var += 1;
         id
     }
@@ -525,7 +560,7 @@ impl ProdRuleSet<LR> {
         self.prods.keys().max().map(|last| last + 1).unwrap_or(0)
     }
 
-    /// Eliminates left recursion from production rules:
+    /// Eliminates left recursion from production rules, and updates the symbol table if provided.
     ///
     /// A -> Aα | β;
     ///
@@ -533,12 +568,16 @@ impl ProdRuleSet<LR> {
     ///
     /// A -> βA';
     /// A' -> αA' | ε;
-    pub fn remove_left_recursion(&mut self) {
+    pub fn remove_left_recursion(&mut self, symbol_table: &mut Option<Vec<(String, Option<String>)>>) {
+        if let Some(t) = symbol_table {
+            t.push(("new".to_string(), None));
+        }
         todo!()
     }
 
     /// Factorizes all the common left symbols in alternative productions rules so that the
     /// grammar only requires one input symbol lookahead at each step.
+    /// Updates the symbol table if provided.
     ///
     /// A -> αβ | αγ;
     ///
@@ -546,7 +585,7 @@ impl ProdRuleSet<LR> {
     ///
     /// A -> αA';
     /// A' -> β | γ;
-    pub fn left_factorize(&mut self) {
+    pub fn left_factorize(&mut self, symbol_table: &mut Option<Vec<(String, Option<String>)>>) {
         todo!()
     }
 }
@@ -563,7 +602,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<LR> {
         }
         let mut prules = Self::new();
         for var in rules.get_vars() {
-            let tree = rules.get_tree(*var).unwrap();
+            let tree = rules.get_tree(var).unwrap();
             let root = tree.get_root().expect("tree {var} has no root");
             let root_sym = tree.get(root);
             let prod = match root_sym {
@@ -581,7 +620,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<LR> {
                     }).to_vec(),
                 s => panic!("unexpected symbol {s} as root of normalized GrTree")
             };
-            prules.prods.insert(*var, ProdRule(prod));
+            prules.prods.insert(var, ProdRule(prod));
         }
         prules
     }
@@ -595,8 +634,8 @@ impl From<RuleTreeSet<General>> for ProdRuleSet<LR> {
 
 impl From<ProdRuleSet<LR>> for ProdRuleSet<LL1> {
     fn from(mut rules: ProdRuleSet<LR>) -> Self {
-        rules.remove_left_recursion();
-        rules.left_factorize();
+        rules.remove_left_recursion(&mut None);
+        rules.left_factorize(&mut None);
         ProdRuleSet::<LL1> {
             prods: rules.prods,
             _phantom: PhantomData,

@@ -35,7 +35,7 @@ fn gnode() {
 #[test]
 fn dup() {
     let mut rules = RuleTreeSet::<General>::new();
-    let tree = rules.new_var(0);
+    let tree = rules.get_tree_mut(0);
     let mut a = Dup::new(tree.add(None, gnode!(nt 1)));
     let mut b = Dup::new(tree.add(None, gnode!(nt 2)));
     let mut result = Vec::new();
@@ -51,11 +51,10 @@ fn dup() {
 
 fn build_rules(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();
-    rules.new_var(0);
     // reserve a few variables just so the NT indices are not confusing:
     // we want new variables to begin at 10.
     rules.set_next_var(Some(10));
-    let tree = rules.get_tree_mut(0).unwrap();
+    let tree = rules.get_tree_mut(0);
 
     match id {
         0 => {
@@ -157,7 +156,7 @@ fn build_rules(id: u32) -> RuleTreeSet<General> {
 
 fn check_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> {
     let mut msg = String::new();
-    for (var, tree) in &rules.trees {
+    for (var, tree) in rules.get_trees_iter() {
         let mut indices = HashSet::<usize>::new();
         let mut n = 0;
         for node in tree.iter_depth_simple() {
@@ -212,14 +211,14 @@ fn ruletree_normalize() {
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
         let mut rules = build_rules(test_id);
-        let vars = rules.get_vars().cloned().to_vec();
+        let vars = rules.get_vars().to_vec();
         rules.normalize();
         if let Some(err) = check_sanity(&rules, VERBOSE) {
             panic!("test {test_id} failed:\n{}", err);
         }
-        let result = BTreeMap::from_iter(rules.trees.iter().map(|(id, t)| (*id, format!("{t}"))));
+        let result = BTreeMap::from_iter(rules.get_trees_iter().map(|(id, t)| (id, format!("{t}"))));
         if VERBOSE {
-            println!("{}", rules.trees.iter().map(|(ref id, t)| format!("- {id} => {t:#} (depth {})", t.depth().unwrap_or(0))).join("\n"));
+            println!("{}", rules.get_trees_iter().map(|(id, t)| format!("- {id} => {t:#} (depth {})", t.depth().unwrap_or(0))).join("\n"));
             println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
