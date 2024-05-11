@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, HashSet};
 use super::*;
 use crate::dfa::TokenId;
-use crate::{btreemap, gnode};
+use crate::{btreemap, gnode, sym};
 
 #[test]
 fn gnode() {
@@ -228,88 +228,88 @@ fn ruletree_normalize() {
 }
 
 #[test]
-fn ruleprod_from() {
-    let tests: Vec<(u32, BTreeMap<VarId, Vec<Vec<GrNode>>>)> = vec![
-        (0, btreemap![0 => vec![vec![gnode!(t 1)], vec![gnode!(t 2)], vec![gnode!(nt 3)]]]),
+fn prodrule_from() {
+    let tests: Vec<(u32, BTreeMap<VarId, Vec<Vec<Symbol>>>)> = vec![
+        (0, btreemap![0 => vec![vec![sym!(t 1)], vec![sym!(t 2)], vec![sym!(nt 3)]]]),
         // |(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))
         (1, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 2)], vec![gnode!(t 3)], vec![gnode!(t 4)], vec![gnode!(nt 5), gnode!(nt 6)],
-            vec![gnode!(t 7)], vec![gnode!(t 8)], vec![gnode!(nt 9), gnode!(nt 10)] 
+            vec![sym!(nt 1), sym!(nt 2)], vec![sym!(t 3)], vec![sym!(t 4)], vec![sym!(nt 5), sym!(nt 6)],
+            vec![sym!(t 7)], vec![sym!(t 8)], vec![sym!(nt 9), sym!(nt 10)]
         ]]),
         // |(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))
         (2, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
-            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 6), gnode!(nt 8)], 
-            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
-            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 6), gnode!(nt 8)]
+            vec![sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
+            vec![sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 6), sym!(nt 8)],
+            vec![sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
+            vec![sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 6), sym!(nt 8)]
         ]]),
         // |(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))
         (3, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
-            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 8)], 
-            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
-            vec![gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 8)],
+            vec![sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
+            vec![sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 8)],
+            vec![sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
+            vec![sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 8)],
         ]]),
         // |(&(0, 1, 2, 3, 5, 6, 7), &(0, 1, 2, 3, 5, 8), &(0, 1, 2, 4, 5, 6, 7), &(0, 1, 2, 4, 5, 8))
         (4, btreemap![0 => vec![
-            vec![gnode!(nt 0), gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
-            vec![gnode!(nt 0), gnode!(nt 1), gnode!(nt 2), gnode!(nt 3), gnode!(nt 5), gnode!(nt 8)], 
-            vec![gnode!(nt 0), gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 6), gnode!(nt 7)], 
-            vec![gnode!(nt 0), gnode!(nt 1), gnode!(nt 2), gnode!(nt 4), gnode!(nt 5), gnode!(nt 8)],
+            vec![sym!(nt 0), sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
+            vec![sym!(nt 0), sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 8)],
+            vec![sym!(nt 0), sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
+            vec![sym!(nt 0), sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 8)],
         ]]),
         // |(1, ε)
         (5, btreemap![0 => vec![
-            vec![gnode!(nt 1)], vec![gnode!(e)]
+            vec![sym!(nt 1)], vec![sym!(e)]
         ]]),
         // |(&(1, 2), ε)
         (6, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 2)], vec![gnode!(e)]
+            vec![sym!(nt 1), sym!(nt 2)], vec![sym!(e)]
         ]]),
         // |(&(1, 2), 3, ε)
         (7, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 2)], vec![gnode!(nt 3)], vec![gnode!(e)]
+            vec![sym!(nt 1), sym!(nt 2)], vec![sym!(nt 3)], vec![sym!(e)]
         ]]),
         // 0 => &(1, 10), 10 => |(&(2, 10), 2)
         (8, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 10)]
+            vec![sym!(nt 1), sym!(nt 10)]
         ], 10 => vec![
-            vec![gnode!(nt 2), gnode!(nt 10)], vec![gnode!(nt 2)]
+            vec![sym!(nt 2), sym!(nt 10)], vec![sym!(nt 2)]
         ]]),
         // 0 => &(1, 10), 10 => |(&(2, 3, 10), &(2, 3))
         (9, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 10)]
+            vec![sym!(nt 1), sym!(nt 10)]
         ], 10 => vec![
-            vec![gnode!(nt 2), gnode!(nt 3), gnode!(nt 10)], vec![gnode!(nt 2), gnode!(nt 3)]
+            vec![sym!(nt 2), sym!(nt 3), sym!(nt 10)], vec![sym!(nt 2), sym!(nt 3)]
         ]]),
         // 0 => &(1, 10), 10 => |(&(2, 3, 10), &(2, 3), &(4, 10), 4)
         (10, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 10)]
+            vec![sym!(nt 1), sym!(nt 10)]
         ], 10 => vec![
-            vec![gnode!(nt 2), gnode!(nt 3), gnode!(nt 10)], vec![gnode!(nt 2), gnode!(nt 3)], vec![gnode!(nt 4), gnode!(nt 10)], vec![gnode!(nt 4)]
+            vec![sym!(nt 2), sym!(nt 3), sym!(nt 10)], vec![sym!(nt 2), sym!(nt 3)], vec![sym!(nt 4), sym!(nt 10)], vec![sym!(nt 4)]
         ]]),
         // 0 => "&(1, 10)", 10 => "|(&(2, 10), ε)"
         (11, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 10)]
+            vec![sym!(nt 1), sym!(nt 10)]
         ], 10 => vec![
-            vec![gnode!(nt 2), gnode!(nt 10)], vec![gnode!(e)]
+            vec![sym!(nt 2), sym!(nt 10)], vec![sym!(e)]
         ]]),
         // [0 => "&(1, 10)", 10 => "|(&(2, 3, 10), ε)"]
         (12, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 10)]
+            vec![sym!(nt 1), sym!(nt 10)]
         ], 10 => vec![
-            vec![gnode!(nt 2), gnode!(nt 3), gnode!(nt 10)], vec![gnode!(e)]
+            vec![sym!(nt 2), sym!(nt 3), sym!(nt 10)], vec![sym!(e)]
         ]]),
         // 0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(4, 10), ε)"
         (13, btreemap![0 => vec![
-            vec![gnode!(nt 1), gnode!(nt 10)]
+            vec![sym!(nt 1), sym!(nt 10)]
         ], 10 => vec![
-            vec![gnode!(nt 2), gnode!(nt 3), gnode!(nt 10)], vec![gnode!(nt 4), gnode!(nt 10)], vec![gnode!(e)]
+            vec![sym!(nt 2), sym!(nt 3), sym!(nt 10)], vec![sym!(nt 4), sym!(nt 10)], vec![sym!(e)]
         ]]),
     ];
     for (test_id, expected) in tests {
         let trees = build_rules(test_id);
-        let prods = RuleProdSet::from(trees);
-        let result = prods.prods.iter().map(|(id, p)| (*id, p.0.clone())).collect::<BTreeMap<_, _>>();
+        let rules = ProdRuleSet::from(trees);
+        let result = rules.prods.iter().map(|(id, p)| (*id, p.0.clone())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");
     }
 }

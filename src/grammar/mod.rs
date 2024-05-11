@@ -473,16 +473,16 @@ impl RuleTreeSet<General> {
 
 impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     /// Transforms a `General` ruleset to a `Normalized` ruleset
-    fn from(mut value: RuleTreeSet<General>) -> Self {
-        value.normalize();
-        RuleTreeSet::<Normalized> { trees: value.trees, next_var: value.next_var, _phantom: PhantomData }
+    fn from(mut rules: RuleTreeSet<General>) -> Self {
+        rules.normalize();
+        RuleTreeSet::<Normalized> { trees: rules.trees, next_var: rules.next_var, _phantom: PhantomData }
     }
 }
 
 impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
     /// Transforms a `Normalized` ruleset to a `General` ruleset
-    fn from(mut value: RuleTreeSet<Normalized>) -> Self {
-        RuleTreeSet::<General> { trees: value.trees, next_var: value.next_var, _phantom: PhantomData }
+    fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
+        RuleTreeSet::<General> { trees: rules.trees, next_var: rules.next_var, _phantom: PhantomData }
     }
 }
 
@@ -499,42 +499,81 @@ impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
 /// `[[gnode!(nt 1), gnode!(nt 2)],[gnode!(nt 3)],[gnode!(e)]]`
 ///
 /// (where the representation of vectors has been simplified to square brackets).
-struct Prod(Vec<Vec<GrNode>>);
+struct ProdRule(Vec<Vec<Symbol>>);
 
-impl Prod {
+impl ProdRule {
     pub fn new() -> Self {
         Self(Vec::new())
     }
 }
 
-struct RuleProdSet {
-    prods: HashMap<VarId, Prod>
+struct LR;
+struct LL1;
+
+struct ProdRuleSet<T> {
+    prods: HashMap<VarId, ProdRule>,
+    _phantom: PhantomData<T>
 }
 
-impl RuleProdSet {
+impl ProdRuleSet<LR> {
     pub fn new() -> Self {
-        Self { prods: HashMap::new() }
+        Self { prods: HashMap::new(), _phantom: PhantomData }
+    }
+
+    /// Returns a variable ID that doesn't exist yet.
+    pub fn get_next_var(&self) -> VarId {
+        self.prods.keys().max().map(|last| last + 1).unwrap_or(0)
+    }
+
+    /// Eliminates left recursion from production rules:
+    ///
+    /// A -> Aα | β;
+    ///
+    /// becomes
+    ///
+    /// A -> βA';
+    /// A' -> αA' | ε;
+    pub fn remove_left_recursion(&mut self) {
+        todo!()
+    }
+
+    /// Factorizes all the common left symbols in alternative productions rules so that the
+    /// grammar only requires one input symbol lookahead at each step.
+    ///
+    /// A -> αβ | αγ;
+    ///
+    /// becomes
+    ///
+    /// A -> αA';
+    /// A' -> β | γ;
+    pub fn left_factorize(&mut self) {
+        todo!()
     }
 }
 
-impl From<RuleTreeSet<Normalized>> for RuleProdSet {
+impl From<RuleTreeSet<Normalized>> for ProdRuleSet<LR> {
     fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
-        fn children_to_vec(tree: &GrTree, parent_id: usize) -> Vec<GrNode> {
-            tree.children(parent_id).iter().map(|id| tree.get(*id).clone()).to_vec()
+        fn children_to_vec(tree: &GrTree, parent_id: usize) -> Vec<Symbol> {
+            tree.children(parent_id).iter().map(|id| {
+                match tree.get(*id) {
+                    GrNode::Symbol(s) => s.clone(),
+                    x => panic!("unexpected symbol {x} under &")
+                }
+            }).to_vec()
         }
-        let mut prods = Self::new();
+        let mut prules = Self::new();
         for var in rules.get_vars() {
             let tree = rules.get_tree(*var).unwrap();
             let root = tree.get_root().expect("tree {var} has no root");
             let root_sym = tree.get(root);
             let prod = match root_sym {
-                GrNode::Symbol(_) => vec![vec![root_sym.clone()]],
+                GrNode::Symbol(s) => vec![vec![s.clone()]],
                 GrNode::Concat => vec![children_to_vec(tree, root)],
                 GrNode::Or => tree.children(root).iter()
                     .map(|id| {
                         let child = tree.get(*id);
-                        if let GrNode::Symbol(_) = child {
-                            vec![child.clone()]
+                        if let GrNode::Symbol(s) = child {
+                            vec![s.clone()]
                         } else {
                             assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
                             children_to_vec(tree, *id)
@@ -542,51 +581,66 @@ impl From<RuleTreeSet<Normalized>> for RuleProdSet {
                     }).to_vec(),
                 s => panic!("unexpected symbol {s} as root of normalized GrTree")
             };
-            prods.prods.insert(*var, Prod(prod));
+            prules.prods.insert(*var, ProdRule(prod));
         }
-        prods
+        prules
     }
 }
 
-impl From<RuleTreeSet<General>> for RuleProdSet {
-    fn from(value: RuleTreeSet<General>) -> Self {
-        RuleProdSet::from(RuleTreeSet::<Normalized>::from(value))
+impl From<RuleTreeSet<General>> for ProdRuleSet<LR> {
+    fn from(rules: RuleTreeSet<General>) -> Self {
+        ProdRuleSet::from(RuleTreeSet::<Normalized>::from(rules))
+    }
+}
+
+impl From<ProdRuleSet<LR>> for ProdRuleSet<LL1> {
+    fn from(mut rules: ProdRuleSet<LR>) -> Self {
+        rules.remove_left_recursion();
+        rules.left_factorize();
+        ProdRuleSet::<LL1> {
+            prods: rules.prods,
+            _phantom: PhantomData,
+        }
     }
 }
 
 // ---------------------------------------------------------------------------------------------
 
-pub struct GrammarBuilder {
-    rules: RuleProdSet,
-    symbols: Vec<(String, Option<String>)>
-}
+#[allow(unused)]
+mod for_later {
+    use super::*;
+    pub struct GrammarBuilder {
+        rules: ProdRuleSet<LR>,
+        symbols: Vec<(String, Option<String>)>,
+    }
 
-impl GrammarBuilder {
-    pub fn new() -> Self {
-        GrammarBuilder {
-            rules: RuleProdSet::new(),
-            symbols: Vec::new()
+    impl GrammarBuilder {
+        pub fn new() -> Self {
+            GrammarBuilder {
+                rules: ProdRuleSet::new(),
+                symbols: Vec::new(),
+            }
+        }
+
+        fn build(&mut self) {
+            todo!()
         }
     }
 
-    fn build(&mut self) {
-        todo!()
-    }
-}
-
-impl From<RuleTreeSet<Normalized>> for GrammarBuilder {
-    fn from(value: RuleTreeSet<Normalized>) -> Self {
-        GrammarBuilder {
-            rules: RuleProdSet::from(value),
-            symbols: Vec::new()
+    impl From<RuleTreeSet<Normalized>> for GrammarBuilder {
+        fn from(rules: RuleTreeSet<Normalized>) -> Self {
+            GrammarBuilder {
+                rules: ProdRuleSet::from(rules),
+                symbols: Vec::new(),
+            }
         }
     }
-}
 
-impl From<RuleTreeSet<General>> for GrammarBuilder {
-    fn from(value: RuleTreeSet<General>) -> Self {
-        let normalized = RuleTreeSet::<Normalized>::from(value);
-        Self::from(normalized)
+    impl From<RuleTreeSet<General>> for GrammarBuilder {
+        fn from(rules: RuleTreeSet<General>) -> Self {
+            let normalized = RuleTreeSet::<Normalized>::from(rules);
+            Self::from(normalized)
+        }
     }
 }
 
@@ -625,4 +679,20 @@ pub mod macros {
         (*) => { GrNode::Star };
     }
 
+    /// Generates a `Symbol` instance.
+    ///
+    /// # Examples
+    /// ```
+    /// # use rlexer::dfa::TokenId;
+    /// # use rlexer::sym;
+    /// # use rlexer::grammar::{Symbol, VarId};
+    /// assert_eq!(sym!(t 2), Symbol::T(2 as TokenId));
+    /// assert_eq!(sym!(nt 3), Symbol::NT(3 as VarId));
+    /// assert_eq!(sym!(e), Symbol::Empty);
+    #[macro_export(local_inner_macros)]
+    macro_rules! sym {
+        (t $id:expr) => { Symbol::T($id as TokenId) };
+        (nt $id:expr) => { Symbol::NT($id as VarId) };
+        (e) => { Symbol::Empty };
+    }
 }
