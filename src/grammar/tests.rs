@@ -308,7 +308,7 @@ fn prodrule_from() {
     for (test_id, expected) in tests {
         let trees = build_rules(test_id);
         let rules = ProdRuleSet::from(trees);
-        let result = rules.prods.iter().map(|(id, p)| (*id, p.0.clone())).collect::<BTreeMap<_, _>>();
+        let result = rules.get_prods_iter().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");
     }
 }

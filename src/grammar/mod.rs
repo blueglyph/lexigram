@@ -534,30 +534,33 @@ impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
 /// `[[gnode!(nt 1), gnode!(nt 2)],[gnode!(nt 3)],[gnode!(e)]]`
 ///
 /// (where the representation of vectors has been simplified to square brackets).
-struct ProdRule(Vec<Vec<Symbol>>);
-
-impl ProdRule {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-}
+type ProdRule = Vec<Vec<Symbol>>;
 
 struct LR;
 struct LL1;
 
 struct ProdRuleSet<T> {
-    prods: HashMap<VarId, ProdRule>,
+    prods: Vec<ProdRule>,
     _phantom: PhantomData<T>
 }
 
 impl ProdRuleSet<LR> {
     pub fn new() -> Self {
-        Self { prods: HashMap::new(), _phantom: PhantomData }
+        Self { prods: Vec::new(), _phantom: PhantomData }
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self { prods: Vec::with_capacity(capacity), _phantom: PhantomData }
     }
 
     /// Returns a variable ID that doesn't exist yet.
-    pub fn get_next_var(&self) -> VarId {
-        self.prods.keys().max().map(|last| last + 1).unwrap_or(0)
+    pub fn get_next_available_var(&self) -> VarId {
+        self.prods.len() as VarId
+    }
+
+    /// Returns all the non-empty prods
+    pub fn get_prods_iter(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
+        self.prods.iter().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
     }
 
     /// Eliminates left recursion from production rules, and updates the symbol table if provided.
@@ -600,27 +603,30 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<LR> {
                 }
             }).to_vec()
         }
-        let mut prules = Self::new();
-        for var in rules.get_vars() {
-            let tree = rules.get_tree(var).unwrap();
-            let root = tree.get_root().expect("tree {var} has no root");
-            let root_sym = tree.get(root);
-            let prod = match root_sym {
-                GrNode::Symbol(s) => vec![vec![s.clone()]],
-                GrNode::Concat => vec![children_to_vec(tree, root)],
-                GrNode::Or => tree.children(root).iter()
-                    .map(|id| {
-                        let child = tree.get(*id);
-                        if let GrNode::Symbol(s) = child {
-                            vec![s.clone()]
-                        } else {
-                            assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
-                            children_to_vec(tree, *id)
-                        }
-                    }).to_vec(),
-                s => panic!("unexpected symbol {s} as root of normalized GrTree")
-            };
-            prules.prods.insert(var, ProdRule(prod));
+        let mut prules = Self::with_capacity(rules.trees.len());
+        for (var, tree) in rules.trees.iter().enumerate() {
+            if !tree.is_empty() {
+                let root = tree.get_root().expect("tree {var} has no root");
+                let root_sym = tree.get(root);
+                let prod = match root_sym {
+                    GrNode::Symbol(s) => vec![vec![s.clone()]],
+                    GrNode::Concat => vec![children_to_vec(tree, root)],
+                    GrNode::Or => tree.children(root).iter()
+                        .map(|id| {
+                            let child = tree.get(*id);
+                            if let GrNode::Symbol(s) = child {
+                                vec![s.clone()]
+                            } else {
+                                assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
+                                children_to_vec(tree, *id)
+                            }
+                        }).to_vec(),
+                    s => panic!("unexpected symbol {s} as root of normalized GrTree")
+                };
+                prules.prods.push(prod);
+            } else {
+                prules.prods.push(ProdRule::new()); // empty
+            }
         }
         prules
     }
