@@ -544,15 +544,7 @@ struct ProdRuleSet<T> {
     _phantom: PhantomData<T>
 }
 
-impl ProdRuleSet<LR> {
-    pub fn new() -> Self {
-        Self { prods: Vec::new(), _phantom: PhantomData }
-    }
-
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self { prods: Vec::with_capacity(capacity), _phantom: PhantomData }
-    }
-
+impl<T> ProdRuleSet<T> {
     /// Returns a variable ID that doesn't exist yet.
     pub fn get_next_available_var(&self) -> VarId {
         self.prods.len() as VarId
@@ -561,6 +553,20 @@ impl ProdRuleSet<LR> {
     /// Returns all the non-empty prods
     pub fn get_prods_iter(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
         self.prods.iter().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
+    }
+
+    pub fn get_prods_iter_mut(&mut self) -> impl Iterator<Item=(VarId, &mut ProdRule)> {
+        self.prods.iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
+    }
+}
+
+impl ProdRuleSet<LR> {
+    pub fn new() -> Self {
+        Self { prods: Vec::new(), _phantom: PhantomData }
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self { prods: Vec::with_capacity(capacity), _phantom: PhantomData }
     }
 
     /// Eliminates left recursion from production rules, and updates the symbol table if provided.
