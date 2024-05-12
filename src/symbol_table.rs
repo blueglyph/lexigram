@@ -14,7 +14,7 @@ use crate::grammar::{Symbol, VarId};
 /// ```
 ///
 /// If `Arrow` is 0 and `ID` is 24 (simplifying the strings to &str),
-/// ```rust,ignored
+/// ```ignore
 /// t[0] = ("Arrow", Some("->"));
 /// t[24] = ("ID", None);
 /// ```
@@ -26,7 +26,7 @@ use crate::grammar::{Symbol, VarId};
 /// expr: expr Plus term | term;
 /// ```
 /// If `expr` is 0 and `term` is 1,
-/// ```rust,ignored
+/// ```ignore
 /// nt[0] = "expr";
 /// nt[1] = "term";
 /// ```
@@ -36,7 +36,7 @@ use crate::grammar::{Symbol, VarId};
 /// expr_0: Plus term expr_0 | ε;
 /// ```
 /// and this non-terminal is added:
-/// ```rust,ignored
+/// ```ignore
 /// nt[2] = "expr_0";
 /// ```
 ///

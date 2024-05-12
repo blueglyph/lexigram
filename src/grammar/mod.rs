@@ -791,4 +791,41 @@ pub mod macros {
         (nt $id:expr) => { Symbol::NT($id as VarId) };
         (e) => { Symbol::Empty };
     }
+
+    /// Generates a production rule factor. A factor is made up of symbols separated by a comma.
+    /// Each symbol is either
+    /// - a non-terminal: `nt` {integer}
+    /// - a terminal: `t` {integer}
+    /// - the empty symbol: `e`
+    ///
+    /// # Example
+    /// ```
+    /// # use rlexer::dfa::TokenId;
+    /// # use rlexer::grammar::{Symbol, VarId};
+    /// # use rlexer::{prodf, sym};
+    /// assert_eq!(prodf!(nt 1, t 2, e), vec![sym!(nt 1), sym!(t 2), sym!(e)]);
+    /// ```
+    #[macro_export(local_inner_macros)]
+    macro_rules! prodf {
+        ($($a:ident $($b:expr)?,)+) => { prodf![$($a $($b)?),+] };
+        ($($a:ident $($b:expr)?),*) => { std::vec![$(sym!($a $($b)?)),*]};
+    }
+
+    /// Generates a production rule. It is made up of factors separated by a semi-colon.
+    ///
+    /// Example
+    /// ```
+    /// # use rlexer::dfa::TokenId;
+    /// # use rlexer::grammar::{Symbol, VarId};
+    /// # use rlexer::{prod, prodf, sym};
+    /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e),
+    ///            vec![vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)],
+    ///                 vec![sym!(nt  2)],
+    ///                 vec![sym!(e)]]);
+    /// ```
+    #[macro_export(local_inner_macros)]
+    macro_rules! prod {
+        ($($($a:ident $($b:expr)?),*;)*) => { prod![$($($a $($b)?),+);*] };
+        ($($($a:ident $($b:expr)?),*);*) => { std::vec![$(prodf![$($a $($b)?),+]),*]};
+    }
 }

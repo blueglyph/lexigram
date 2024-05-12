@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, HashSet};
 use super::*;
 use crate::dfa::TokenId;
-use crate::{btreemap, gnode, sym};
+use crate::{btreemap, gnode, prod, prodf, sym};
 
 #[test]
 fn gnode() {
@@ -331,11 +331,12 @@ fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals((0..20).map(|i| (format!("T{i}"), if i < 10 { Some(format!("<{i}>")) } else { None })));
     let prods = &mut rules.prods;
+    let toto = std::vec![10, 20];
     match id {
         0 => {
             prods.extend([
-                /* 0 */ vec![vec![sym!(nt 0), sym!(t 1)], vec![sym!(nt 0), sym!(t 2)], vec![sym!(t 3)], vec![sym!(t 4)]],
-                /* 1 */ vec![vec![sym!(nt 0), sym!(t 5)], vec![sym!(t 6)], vec![sym!(t 7)]],
+                /* 0 */ prod!(nt 0, t 1; nt 0, t 2; t 3; t 4),
+                /* 1 */ prod!(nt 0, t 5; t 6; t 7),
             ]);
         }
         _ => {}
@@ -363,9 +364,9 @@ fn test_remove_left_recursion() {
     const VERBOSE: bool = true;
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
-            0 => vec![vec![sym!(t 3), sym!(nt 2)], vec![sym!(t 4), sym!(nt 2)]],
-            1 => vec![vec![sym!(nt 0), sym!(t 5)], vec![sym!(t 6)], vec![sym!(t 7)]],
-            2 => vec![vec![sym!(t 1), sym!(nt 2)], vec![sym!(t 2), sym!(nt 2)], vec![sym!(e)]],
+            0 => prod!(t 3, nt 2; t 4, nt 2),
+            1 => prod!(nt 0, t 5; t 6; t 7),
+            2 => prod!(t 1, nt 2; t 2, nt 2; e),
         ])
     ];
     for (test_id, expected) in tests {
