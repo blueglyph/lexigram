@@ -7,20 +7,6 @@ use crate::{btreemap, gnode, sym};
 
 #[test]
 fn gnode() {
-    let symbols = [
-        ("Arrow".to_string(), Some("->".to_string())),
-        ("Colon".to_string(), Some(":".to_string())),
-        ("Id".to_string(), None),
-    ];
-    let t: GrNode = gnode!(t crate::regexgen::Id::Arrow);
-    assert_eq!(t.to_string(), "[0]");
-    assert_eq!(t.to_str(&symbols), "'->'");
-    if let GrNode::Symbol(s) = t {
-        assert_eq!(s.to_string(), "[0]");
-        assert_eq!(s.to_str(&symbols), "'->'");
-    } else {
-        panic!();
-    };
     assert_eq!(gnode!([1]), GrNode::Symbol(Symbol::T(1 as TokenId)));
     assert_eq!(gnode!(t 2), GrNode::Symbol(Symbol::T(2 as TokenId)));
     assert_eq!(gnode!(nt 3), GrNode::Symbol(Symbol::NT(3 as VarId)));
@@ -30,6 +16,31 @@ fn gnode() {
     assert_eq!(gnode!(?), GrNode::Maybe);
     assert_eq!(gnode!(+), GrNode::Plus);
     assert_eq!(gnode!(*), GrNode::Star);
+}
+
+#[test]
+fn symbol_to_str() {
+    let mut symtable = SymbolTable::new();
+    symtable.extend_terminals([
+        ("Arrow".to_string(), Some("->".to_string())),
+        ("Colon".to_string(), Some(":".to_string())),
+        ("Id".to_string(), None),
+    ]);
+    symtable.extend_non_terminals((0_u8..26).map(|i| format!("{}", char::from(i + 65))));
+    let tests = vec![
+        (sym!(t 0), vec!["->", "[0]"]),
+        (sym!(t 1), vec![":", "[1]"]),
+        (sym!(t 2), vec!["Id", "[2]"]),
+        (sym!(nt 0), vec!["A", "0"]),
+        (sym!(e), vec!["ε", "ε"]),
+    ];
+    for (symbol, expected) in tests {
+        assert_eq!(symbol.to_str(Some(&symtable)), expected[0], "test on {symbol} has failed");
+        assert_eq!(symbol.to_str(None), expected[1], "test on {symbol} has failed");
+        let node = GrNode::Symbol(symbol);
+        assert_eq!(node.to_str(Some(&symtable)), expected[0], "test on {symbol} has failed");
+        assert_eq!(node.to_str(None), expected[1], "test on {symbol} has failed");
+    }
 }
 
 #[test]
@@ -317,6 +328,8 @@ fn prodrule_from() {
 
 fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
     let mut rules = ProdRuleSet::new();
+    let mut symbol_table = SymbolTable::new();
+    symbol_table.extend_terminals((0..20).map(|i| (format!("T{i}"), if i < 10 { Some(format!("<{i}>")) } else { None })));
     let prods = &mut rules.prods;
     match id {
         0 => {
@@ -327,7 +340,22 @@ fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
         }
         _ => {}
     };
+    let num_nt = prods.len().max(prods.iter().map(|p|
+        p.iter().map(|f|
+            f.iter().filter_map(|s|
+                if let Symbol::NT(v) = s { Some(*v) } else { None }).max().unwrap_or(0)).max().unwrap_or(0)
+    ).max().unwrap_or(0) as usize + 1);
+    symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
+    rules.set_symbol_table(symbol_table);
     rules
+}
+
+fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
+    println!("   {}", prods.get_prods_iter().map(|(var, p)|
+        format!("{} -> {}",
+                Symbol::NT(var).to_str(prods.get_symbol_table()),
+                prod_to_string(p, prods.get_symbol_table()))
+    ).join("\n   "));
 }
 
 #[test]
@@ -344,11 +372,12 @@ fn test_remove_left_recursion() {
         let mut rules = build_prodrules(test_id);
         if VERBOSE {
             println!("test {test_id}:");
-            println!("   {}", rules.get_prods_iter().map(|(var, p)| format!("{var} -> {}", prod_to_string(p))).join("\n   "));
+            print_production_rules(&rules);
         }
         rules.remove_left_recursion();
         if VERBOSE {
-            println!("=> {}", rules.get_prods_iter().map(|(var, p)| format!("{var} -> {}", prod_to_string(p))).join("\n   "));
+            println!("=>");
+            print_production_rules(&rules);
         }
         let result = rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");

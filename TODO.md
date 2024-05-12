@@ -11,7 +11,6 @@
   - [ ] detect missing terminals (present in vectree but not in dfa)
   - [ ] detect potential infinite loops for some illegal characters (with skip, if that can still happen)
 - improve performances / memory
-  - [ ] table storage in lexer and lexgen (either generated dynamically or from const)
   - [ ] ReNode size
   - [ ] buffer <> Strings returned by get_token()
   - terminal table
@@ -36,7 +35,7 @@
   - RuleProdSet to store the normalized production rules (as `Vec<Vec<Symbol>>`)
     - [x] ~~remove left recursion -> rules~~
     - [ ] left factoring -> rules
-    - [ ] manage symbol table
+    - [x] manage symbol table
   - top-down
     - [ ] calc first
     - [ ] calc follow
@@ -59,6 +58,7 @@
 
 ## Performances
 
+- [ ] table storage in lexer, lexgen, and parser (either generated dynamically or from const)
 - [ ] clone iterators instead of cloning Vec in cproduct
 - [ ] check BTreeMap vs HashMap
  

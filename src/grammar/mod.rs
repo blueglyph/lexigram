@@ -11,6 +11,7 @@ use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi};
 use crate::vectree::VecTree;
+use crate::symbol_table::SymbolTable;
 
 pub type VarId = u16;
 
@@ -55,19 +56,15 @@ impl Display for GrNode {
 }
 
 impl Symbol {
-    pub fn to_str(&self, symbol_table: &[(String, Option<String>)]) -> String {
-        match self {
-            Symbol::Empty => "ε".to_string(),
-            Symbol::T(id) => format!("'{}'", symbol_table[*id as usize].1.as_ref().unwrap()),
-            Symbol::NT(id) => format!("{}", symbol_table[*id as usize].0),
-        }
+    pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
+        symbol_table.map(|t| t.get_name(self)).unwrap_or(self.to_string())
     }
 }
 
 impl GrNode {
-    pub fn to_str(&self, symbol_table: &[(String, Option<String>)]) -> String {
+    pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
         match self {
-            GrNode::Symbol(s) => s.to_str(symbol_table),
+            GrNode::Symbol(s) => symbol_table.map(|t| t.get_name(s)).unwrap_or(s.to_string()),
             _ => self.to_string()
         }
     }
@@ -536,36 +533,19 @@ impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
 /// (where the representation of vectors has been simplified to square brackets).
 type ProdRule = Vec<Vec<Symbol>>;
 
-pub fn prod_to_string(prod: &ProdRule) -> String {
+pub fn prod_to_string(prod: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
     prod.iter().map(|factor|
-        factor.iter().map(|symbol| symbol.to_string()).join(" ")).join(" | ")
+        factor.iter().map(|symbol|
+            symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
+        ).join(" ")).join(" | ")
 }
 
 struct LR;
 struct LL1;
 
-// trait IterNonEmpty {
-//     type Item;
-//     fn iter_non_empty(&self) -> impl Iterator<Item=(VarId, &Self::Item)>;
-//     fn iter_non_empty_mut(&mut self) -> impl Iterator<Item=(VarId, &mut Self::Item)>;
-// }
-//
-// impl<T> IterNonEmpty for Vec<Vec<T>> {
-//     type Item = Vec<T>;
-//
-//     fn iter_non_empty(&self) -> impl Iterator<Item=(VarId, &Self::Item)> {
-//         self.iter().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
-//     }
-//
-//     fn iter_non_empty_mut(&mut self) -> impl Iterator<Item=(VarId, &mut Self::Item)> {
-//         self.iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
-//     }
-// }
-
 struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
-    symbol_table: Option<Vec<(String, Option<String>)>>,
-    symbol_names: HashSet<String>,
+    symbol_table: Option<SymbolTable>,
     _phantom: PhantomData<T>
 }
 
@@ -578,45 +558,28 @@ impl<T> ProdRuleSet<T> {
     /// Returns all the non-empty prods
     pub fn get_prods_iter(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
         self.prods.iter().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
-        // self.prods.iter_non_empty()
     }
 
     pub fn get_prods_iter_mut(&mut self) -> impl Iterator<Item=(VarId, &mut ProdRule)> {
         self.prods.iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
-        // self.prods.iter_non_empty_mut()
     }
 
-    pub fn attach_names(&mut self, symbol_table: Vec<(String, Option<String>)>) {
-        self.symbol_names = HashSet::from_iter(symbol_table.iter().map(|(n, _)| n.clone()));
+    pub fn set_symbol_table(&mut self, symbol_table: SymbolTable) {
         self.symbol_table = Some(symbol_table);
     }
 
-    fn add_var_prime_name(&mut self, var: VarId, var_prime: VarId) {
-        if let Some(table) = &mut self.symbol_table {
-            assert_eq!(table.len(), var_prime as usize, "symbol table incomplete");
-            let name = &table[var as usize].0.clone();
-            for i in 1.. {
-                let name_prime = format!("{name}_{i}");
-                if !self.symbol_names.contains(&name_prime) {
-                    self.symbol_names.insert(name_prime.clone());
-                    table.push((name_prime, None));
-                    break;
-                }
-            }
-            todo!("wrong, we need a proper SymbolTable that stores both T and NT symbols");
-            assert_eq!(table.len(), var_prime as usize + 1, "couldn't find a associated name for '{name}'");
-        }
+    pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
+        self.symbol_table.as_ref()
     }
-
 }
 
 impl ProdRuleSet<LR> {
     pub fn new() -> Self {
-        Self { prods: Vec::new(), symbol_table: None, symbol_names: HashSet::new(), _phantom: PhantomData }
+        Self { prods: Vec::new(), symbol_table: None, _phantom: PhantomData }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { prods: Vec::with_capacity(capacity), symbol_table: None, symbol_names: HashSet::new(), _phantom: PhantomData }
+        Self { prods: Vec::with_capacity(capacity), symbol_table: None, _phantom: PhantomData }
     }
 
     /// Eliminates left recursion from production rules, and updates the symbol table if provided.
@@ -629,20 +592,24 @@ impl ProdRuleSet<LR> {
     /// A' -> α1A' | ... | αmA' | ε;
     pub fn remove_left_recursion(&mut self) {
         const VERBOSE: bool = true;
-        // we must remove prods from self for the borrow checker
+        // we must remove either prods or the symbol table from self for the borrow checker
+        let mut symbol_table = self.symbol_table.take();
         let mut new_var = self.get_next_available_var();
-        let mut prods = std::mem::take(&mut self.prods);
+        // let mut prods = std::mem::take(&mut self.prods);
         let mut extra = Vec::<ProdRule>::new();
-        for (i, prod) in prods.iter_mut().enumerate() {
+        for (i, prod) in self.prods.iter_mut().enumerate() {
             let var = i as VarId;
             let symbol = Symbol::NT(var);
             if prod.iter().any(|p| *p.first().unwrap() == symbol) {
-                if VERBOSE { println!("- left recursion: {}", prod_to_string(prod)); }
+                if VERBOSE { println!("- left recursion: {}", prod_to_string(prod, self.symbol_table.as_ref())); }
                 let (mut left, mut fine) : (Vec<_>, Vec<_>) = prod.iter().cloned()
                     .partition(|factor| *factor.first().unwrap() == symbol);
                 // apply the transformation
                 let var_prime = new_var;
-                self.add_var_prime_name(var, var_prime);
+                if let Some(table) = &mut symbol_table {
+                    println!("- adding {var_prime} (from {var}) to symbols");
+                    table.add_var_prime_name(var, var_prime);
+                }
                 let symbol_prime = Symbol::NT(var_prime);
                 for factor in &mut fine {
                     factor.push(symbol_prime.clone());
@@ -657,8 +624,8 @@ impl ProdRuleSet<LR> {
                 new_var += 1;
             }
         }
-        prods.extend(extra);
-        self.prods = prods;
+        self.prods.extend(extra);
+        self.symbol_table = symbol_table;
     }
 
     /// Factorizes all the common left symbols in alternative productions rules so that the
@@ -728,7 +695,6 @@ impl From<ProdRuleSet<LR>> for ProdRuleSet<LL1> {
         ProdRuleSet::<LL1> {
             prods: rules.prods,
             symbol_table: rules.symbol_table,
-            symbol_names: rules.symbol_names,
             _phantom: PhantomData,
         }
     }
@@ -741,14 +707,14 @@ mod for_later {
     use super::*;
     pub struct GrammarBuilder {
         rules: ProdRuleSet<LR>,
-        symbols: Vec<(String, Option<String>)>,
+        symbol_table: Option<SymbolTable>,
     }
 
     impl GrammarBuilder {
         pub fn new() -> Self {
             GrammarBuilder {
                 rules: ProdRuleSet::new(),
-                symbols: Vec::new(),
+                symbol_table: None,
             }
         }
 
@@ -761,7 +727,7 @@ mod for_later {
         fn from(rules: RuleTreeSet<Normalized>) -> Self {
             GrammarBuilder {
                 rules: ProdRuleSet::from(rules),
-                symbols: Vec::new(),
+                symbol_table: None,
             }
         }
     }
