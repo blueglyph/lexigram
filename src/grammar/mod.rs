@@ -3,7 +3,7 @@
 
 mod tests;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -536,11 +536,36 @@ impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
 /// (where the representation of vectors has been simplified to square brackets).
 type ProdRule = Vec<Vec<Symbol>>;
 
+pub fn prod_to_string(prod: &ProdRule) -> String {
+    prod.iter().map(|factor|
+        factor.iter().map(|symbol| symbol.to_string()).join(" ")).join(" | ")
+}
+
 struct LR;
 struct LL1;
 
+// trait IterNonEmpty {
+//     type Item;
+//     fn iter_non_empty(&self) -> impl Iterator<Item=(VarId, &Self::Item)>;
+//     fn iter_non_empty_mut(&mut self) -> impl Iterator<Item=(VarId, &mut Self::Item)>;
+// }
+//
+// impl<T> IterNonEmpty for Vec<Vec<T>> {
+//     type Item = Vec<T>;
+//
+//     fn iter_non_empty(&self) -> impl Iterator<Item=(VarId, &Self::Item)> {
+//         self.iter().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
+//     }
+//
+//     fn iter_non_empty_mut(&mut self) -> impl Iterator<Item=(VarId, &mut Self::Item)> {
+//         self.iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
+//     }
+// }
+
 struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
+    symbol_table: Option<Vec<(String, Option<String>)>>,
+    symbol_names: HashSet<String>,
     _phantom: PhantomData<T>
 }
 
@@ -553,35 +578,87 @@ impl<T> ProdRuleSet<T> {
     /// Returns all the non-empty prods
     pub fn get_prods_iter(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
         self.prods.iter().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
+        // self.prods.iter_non_empty()
     }
 
     pub fn get_prods_iter_mut(&mut self) -> impl Iterator<Item=(VarId, &mut ProdRule)> {
         self.prods.iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
+        // self.prods.iter_non_empty_mut()
     }
+
+    pub fn attach_names(&mut self, symbol_table: Vec<(String, Option<String>)>) {
+        self.symbol_names = HashSet::from_iter(symbol_table.iter().map(|(n, _)| n.clone()));
+        self.symbol_table = Some(symbol_table);
+    }
+
+    fn add_var_prime_name(&mut self, var: VarId, var_prime: VarId) {
+        if let Some(table) = &mut self.symbol_table {
+            assert_eq!(table.len(), var_prime as usize, "symbol table incomplete");
+            let name = &table[var as usize].0.clone();
+            for i in 1.. {
+                let name_prime = format!("{name}_{i}");
+                if !self.symbol_names.contains(&name_prime) {
+                    self.symbol_names.insert(name_prime.clone());
+                    table.push((name_prime, None));
+                    break;
+                }
+            }
+            todo!("wrong, we need a proper SymbolTable that stores both T and NT symbols");
+            assert_eq!(table.len(), var_prime as usize + 1, "couldn't find a associated name for '{name}'");
+        }
+    }
+
 }
 
 impl ProdRuleSet<LR> {
     pub fn new() -> Self {
-        Self { prods: Vec::new(), _phantom: PhantomData }
+        Self { prods: Vec::new(), symbol_table: None, symbol_names: HashSet::new(), _phantom: PhantomData }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { prods: Vec::with_capacity(capacity), _phantom: PhantomData }
+        Self { prods: Vec::with_capacity(capacity), symbol_table: None, symbol_names: HashSet::new(), _phantom: PhantomData }
     }
 
     /// Eliminates left recursion from production rules, and updates the symbol table if provided.
     ///
-    /// A -> Aα | β;
+    /// A -> Aα1 | ... | Aαm | β1 | ... | βn;
     ///
     /// becomes
     ///
-    /// A -> βA';
-    /// A' -> αA' | ε;
-    pub fn remove_left_recursion(&mut self, symbol_table: &mut Option<Vec<(String, Option<String>)>>) {
-        if let Some(t) = symbol_table {
-            t.push(("new".to_string(), None));
+    /// A -> β1A' | ... | βnA';
+    /// A' -> α1A' | ... | αmA' | ε;
+    pub fn remove_left_recursion(&mut self) {
+        const VERBOSE: bool = true;
+        // we must remove prods from self for the borrow checker
+        let mut new_var = self.get_next_available_var();
+        let mut prods = std::mem::take(&mut self.prods);
+        let mut extra = Vec::<ProdRule>::new();
+        for (i, prod) in prods.iter_mut().enumerate() {
+            let var = i as VarId;
+            let symbol = Symbol::NT(var);
+            if prod.iter().any(|p| *p.first().unwrap() == symbol) {
+                if VERBOSE { println!("- left recursion: {}", prod_to_string(prod)); }
+                let (mut left, mut fine) : (Vec<_>, Vec<_>) = prod.iter().cloned()
+                    .partition(|factor| *factor.first().unwrap() == symbol);
+                // apply the transformation
+                let var_prime = new_var;
+                self.add_var_prime_name(var, var_prime);
+                let symbol_prime = Symbol::NT(var_prime);
+                for factor in &mut fine {
+                    factor.push(symbol_prime.clone());
+                }
+                for factor in &mut left {
+                    factor.remove(0);
+                    factor.push(symbol_prime.clone());
+                }
+                left.push(vec![Symbol::Empty]);
+                *prod = fine;
+                extra.push(left);
+                new_var += 1;
+            }
         }
-        todo!()
+        prods.extend(extra);
+        self.prods = prods;
     }
 
     /// Factorizes all the common left symbols in alternative productions rules so that the
@@ -594,7 +671,7 @@ impl ProdRuleSet<LR> {
     ///
     /// A -> αA';
     /// A' -> β | γ;
-    pub fn left_factorize(&mut self, symbol_table: &mut Option<Vec<(String, Option<String>)>>) {
+    pub fn left_factorize(&mut self) {
         todo!()
     }
 }
@@ -646,10 +723,12 @@ impl From<RuleTreeSet<General>> for ProdRuleSet<LR> {
 
 impl From<ProdRuleSet<LR>> for ProdRuleSet<LL1> {
     fn from(mut rules: ProdRuleSet<LR>) -> Self {
-        rules.remove_left_recursion(&mut None);
-        rules.left_factorize(&mut None);
+        rules.remove_left_recursion();
+        rules.left_factorize();
         ProdRuleSet::<LL1> {
             prods: rules.prods,
+            symbol_table: rules.symbol_table,
+            symbol_names: rules.symbol_names,
             _phantom: PhantomData,
         }
     }

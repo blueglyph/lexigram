@@ -312,3 +312,45 @@ fn prodrule_from() {
         assert_eq!(result, expected, "test {test_id} failed");
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+
+fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
+    let mut rules = ProdRuleSet::new();
+    let prods = &mut rules.prods;
+    match id {
+        0 => {
+            prods.extend([
+                /* 0 */ vec![vec![sym!(nt 0), sym!(t 1)], vec![sym!(nt 0), sym!(t 2)], vec![sym!(t 3)], vec![sym!(t 4)]],
+                /* 1 */ vec![vec![sym!(nt 0), sym!(t 5)], vec![sym!(t 6)], vec![sym!(t 7)]],
+            ]);
+        }
+        _ => {}
+    };
+    rules
+}
+
+#[test]
+fn test_remove_left_recursion() {
+    const VERBOSE: bool = true;
+    let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
+        (0, btreemap![
+            0 => vec![vec![sym!(t 3), sym!(nt 2)], vec![sym!(t 4), sym!(nt 2)]],
+            1 => vec![vec![sym!(nt 0), sym!(t 5)], vec![sym!(t 6)], vec![sym!(t 7)]],
+            2 => vec![vec![sym!(t 1), sym!(nt 2)], vec![sym!(t 2), sym!(nt 2)], vec![sym!(e)]],
+        ])
+    ];
+    for (test_id, expected) in tests {
+        let mut rules = build_prodrules(test_id);
+        if VERBOSE {
+            println!("test {test_id}:");
+            println!("   {}", rules.get_prods_iter().map(|(var, p)| format!("{var} -> {}", prod_to_string(p))).join("\n   "));
+        }
+        rules.remove_left_recursion();
+        if VERBOSE {
+            println!("=> {}", rules.get_prods_iter().map(|(var, p)| format!("{var} -> {}", prod_to_string(p))).join("\n   "));
+        }
+        let result = rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>();
+        assert_eq!(result, expected, "test {test_id} failed");
+    }
+}
