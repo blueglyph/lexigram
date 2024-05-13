@@ -9,13 +9,13 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf};
 use crate::vectree::VecTree;
 use crate::symbol_table::SymbolTable;
 
 pub type VarId = u16;
 
-#[derive(Clone, Copy, Default, PartialEq, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Debug)]
 pub enum Symbol {
     #[default] Empty,
     T(TokenId),
@@ -36,7 +36,7 @@ impl Display for Symbol {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Symbol::Empty => write!(f, "ε"),
-            Symbol::T(id) => write!(f, "[{id}]"),
+            Symbol::T(id) => write!(f, ":{id}"),
             Symbol::NT(id) => write!(f, "{id}"),
         }
     }
@@ -532,12 +532,16 @@ impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
 ///
 /// (where the representation of vectors has been simplified to square brackets).
 type ProdRule = Vec<Vec<Symbol>>;
+type ProdFactor = Vec<Symbol>;
+
+pub fn factor_to_string(factor: &Vec<Symbol>, symbol_table: Option<&SymbolTable>) -> String {
+    factor.iter().map(|symbol|
+            symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
+        ).join(" ")
+}
 
 pub fn prod_to_string(prod: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
-    prod.iter().map(|factor|
-        factor.iter().map(|symbol|
-            symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
-        ).join(" ")).join(" | ")
+    prod.iter().map(|factor| factor_to_string(factor, symbol_table)).join(" | ")
 }
 
 struct LR;
@@ -584,18 +588,17 @@ impl ProdRuleSet<LR> {
 
     /// Eliminates left recursion from production rules, and updates the symbol table if provided.
     ///
-    /// A -> Aα1 | ... | Aαm | β1 | ... | βn;
+    /// A -> A α1 | ... | A αm | β1 | ... | βn;
     ///
     /// becomes
     ///
-    /// A -> β1A' | ... | βnA';
-    /// A' -> α1A' | ... | αmA' | ε;
+    /// A   -> β1 A_0 | ... | βn A_0;
+    /// A_0 -> α1 A_0 | ... | αm A_0 | ε;
     pub fn remove_left_recursion(&mut self) {
         const VERBOSE: bool = false;
         // we must remove either prods or the symbol table from self for the borrow checker
         let mut symbol_table = self.symbol_table.take();
         let mut new_var = self.get_next_available_var();
-        // let mut prods = std::mem::take(&mut self.prods);
         let mut extra = Vec::<ProdRule>::new();
         for (i, prod) in self.prods.iter_mut().enumerate() {
             let var = i as VarId;
@@ -614,10 +617,10 @@ impl ProdRuleSet<LR> {
                 if let Some(table) = &mut symbol_table {
                     table.add_var_prime_name(var, var_prime);
                 }
-                if VERBOSE { println!("- adding non-terminal {var_prime} ({}), deriving from {var} ({})",
-                    &Symbol::NT(var_prime).to_str(symbol_table.as_ref()), symbol.to_str((symbol_table.as_ref())));
-                }
                 let symbol_prime = Symbol::NT(var_prime);
+                if VERBOSE { println!("- adding non-terminal {var_prime} ({}), deriving from {var} ({})",
+                    symbol_prime.to_str(symbol_table.as_ref()), symbol.to_str((symbol_table.as_ref())));
+                }
                 for factor in &mut fine {
                     factor.push(symbol_prime.clone());
                 }
@@ -635,18 +638,94 @@ impl ProdRuleSet<LR> {
         self.symbol_table = symbol_table;
     }
 
-    /// Factorizes all the common left symbols in alternative productions rules so that the
-    /// grammar only requires one input symbol lookahead at each step.
-    /// Updates the symbol table if provided.
+    /// Factorizes all the left symbols that are common to several factors by rejecting the non-common part
+    /// to a new non-terminal.Updates the symbol table if provided.
     ///
-    /// A -> αβ | αγ;
+    /// Finds the longest prefix α common to two or more factors:
     ///
-    /// becomes
+    /// A -> α β1 | ... | α βm | γ1 | ... | γn;
     ///
-    /// A -> αA';
-    /// A' -> β | γ;
+    /// Puts the different parts into a new production rule:
+    ///
+    /// A   -> α A_0 | γ1 | ... | γn ;
+    /// A_0 -> β1 | ... | βm;
+    ///
+    /// Reiterates until all factors start with different symbols in every production rule.
     pub fn left_factorize(&mut self) {
-        todo!()
+        fn similarity(a: &ProdFactor, b: &ProdFactor) -> usize {
+            a.iter().zip(b.iter()).take_while(|(a, b)| a == b).count()
+        }
+
+        const VERBOSE: bool = false;
+        // we must remove either prods or the symbol table from self for the borrow checker
+        let mut symbol_table = self.symbol_table.take();
+        let mut new_var = self.get_next_available_var();
+        let mut start = Some(0);
+        let last = self.prods.len();
+        while let Some(first) = start {
+            let range = first..last;
+            start = None;
+            let mut extra = Vec::<ProdRule>::new();
+            for i in range {
+                let mut prod = &mut self.prods[i];
+                if prod.len() < 2 {
+                    continue
+                }
+                let var = i as VarId;
+                let mut factors = prod.clone();
+                factors.sort();
+                if VERBOSE { println!("{i}: {} -> {}", Symbol::NT(var).to_str(symbol_table.as_ref()), prod_to_string(prod, symbol_table.as_ref())); }
+                while factors.len() > 1 {
+                    let mut max = (0, 0);
+                    let mut max_len = 0;
+                    let simi = factors.windows(2).enumerate().map(|(j, x)| {
+                        let s = similarity(&x[0], &x[1]);
+                        if s > max.1 {
+                            max = (j, s);
+                            max_len = 2;
+                        } else if s == max.1 && j + 1 == max.0 + max_len {
+                            max_len += 1;
+                        }
+                        s
+                    }).to_vec();
+                    if max.1 == 0 {
+                        if VERBOSE { println!(" nothing to factorize"); }
+                        break;
+                    }
+                    if VERBOSE {
+                        let t = symbol_table.as_ref();
+                        println!(" - sorted: {} => {}", &factors.iter().map(|f| factor_to_string(f, t)).join(" | "), simi.iter().join(", "));
+                        println!("   max: {} for {}", max.1, (0..max_len).map(|j| factor_to_string(&factors[max.0 + j], t)).join(", "));
+                    }
+                    let var_prime = new_var;
+                    new_var += 1;
+                    if let Some(table) = &mut symbol_table {
+                        table.add_var_prime_name(var, var_prime);
+                    }
+                    let symbol_prime = Symbol::NT(var_prime);
+                    if VERBOSE {
+                        println!("   adding non-terminal {var_prime} ({}), deriving from {var} ({})",
+                                 symbol_prime.to_str(symbol_table.as_ref()), Symbol::NT(var).to_str((symbol_table.as_ref())));
+                    }
+                    let mut new_prod = ProdRule::new();
+                    for j in 0..max_len {
+                        new_prod.push(if factors[max.0 + j].len() > max.1 { factors[max.0 + j][max.1..].to_vec() } else { prodf!(e) })
+                    }
+                    if VERBOSE { println!("   new {var_prime}: {} -> {}", symbol_prime.to_str(symbol_table.as_ref()), prod_to_string(&new_prod, symbol_table.as_ref())); }
+                    extra.push(new_prod);
+                    for j in 1..max_len {
+                        factors.remove(max.0);
+                    }
+                    factors[max.0].truncate(max.1);
+                    factors[max.0].push(symbol_prime);
+                    *prod = factors.clone();
+                    if VERBOSE { println!("   mod {var}: {} -> {}", Symbol::NT(var).to_str(symbol_table.as_ref()), prod_to_string(&prod, symbol_table.as_ref())); }
+                    if start.is_none() { start = Some(i + 1); }
+                }
+            }
+            self.prods.extend(extra);
+        }
+        self.symbol_table = symbol_table;
     }
 }
 

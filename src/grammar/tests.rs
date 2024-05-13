@@ -28,9 +28,9 @@ fn symbol_to_str() {
     ]);
     symtable.extend_non_terminals((0_u8..26).map(|i| format!("{}", char::from(i + 65))));
     let tests = vec![
-        (sym!(t 0), vec!["->", "[0]"]),
-        (sym!(t 1), vec![":", "[1]"]),
-        (sym!(t 2), vec!["Id", "[2]"]),
+        (sym!(t 0), vec!["->", ":0"]),
+        (sym!(t 1), vec![":", ":1"]),
+        (sym!(t 2), vec!["Id", ":2"]),
         (sym!(nt 0), vec!["A", "0"]),
         (sym!(e), vec!["ε", "ε"]),
     ];
@@ -191,9 +191,9 @@ fn check_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> {
 fn ruletree_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
         // |([1], [2], 3) (depth 1)
-        (0, btreemap![0 => "|([1], [2], 3)"]),
-        // |(&(1, 2), |([3], [4]), &(5, 6), |([7], [8], &(9, 10))) (depth 3)
-        (1, btreemap![0 => "|(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))"]),
+        (0, btreemap![0 => "|(:1, :2, 3)"]),
+        // |(&(1, 2), |(:3, :4), &(5, 6), |(:7, :8, &(9, 10))) (depth 3)
+        (1, btreemap![0 => "|(&(1, 2), :3, :4, &(5, 6), :7, :8, &(9, 10))"]),
         // &(&(1, 2), |(3, 4), &(5, 6), |(7, 8)) (depth 2)
         (2, btreemap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))"]),
         // &(&(1, 2), |(3, 4), 5, |(&(6, 7), 8)) (depth 3)
@@ -308,14 +308,28 @@ fn prodrule_from() {
 fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
-    symbol_table.extend_terminals((0..20).map(|i| (format!("T{i}"), if i < 10 { Some(format!("<{i}>")) } else { None })));
+    symbol_table.extend_terminals((0..26).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
     let prods = &mut rules.prods;
-    let toto = std::vec![10, 20];
     match id {
         0 => {
             prods.extend([
                 /* 0 */ prod!(nt 0, t 1; nt 0, t 2; t 3; t 4),
                 /* 1 */ prod!(nt 0, t 5; t 6; t 7),
+            ]);
+        }
+        1 => {
+            prods.extend([
+                // A -> d c | b b c d | d c e | b d e g | b b c | c b | b c g | b d e f
+                prod!(
+                    t 3, t 2;
+                    t 1, t 1, t 2, t 3;
+                    t 3, t 2, t 4;
+                    t 1, t 3, t 4, t 6;
+                    t 1, t 1, t 2;
+                    t 2, t 1;
+                    t 1, t 2, t 6;
+                    t 1, t 3, t 4, t 5;
+                )
             ]);
         }
         _ => {}
@@ -360,6 +374,46 @@ fn test_remove_left_recursion() {
             print_production_rules(&rules);
         }
         let result = rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>();
+        assert_eq!(result, expected, "test {test_id} failed");
+    }
+}
+
+#[test]
+fn test_left_factorize() {
+    let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
+        (1, btreemap![
+            // A -> b A_4 | c b | d c A_3
+            // A_1 -> ε | d
+            // A_2 -> f | g
+            // A_3 -> ε | e
+            // A_4 -> b c A_1 | c g | d e A_2
+            0 => prod!(t 1, nt 4; t 2, t 1; t 3, t 2, nt 3),
+            1 => prod!(e; t 3),
+            2 => prod!(t 5; t 6),
+            3 => prod!(e; t 4),
+            4 => prod!(t 1, t 2, nt 1; t 2, t 6; t 3, t 4, nt 2),
+        ])
+    ];
+    const VERBOSE: bool = false;
+    for (test_id, expected) in tests {
+        let mut rules = build_prodrules(test_id);
+        if VERBOSE {
+            println!("test {test_id}:");
+            print_production_rules(&rules);
+        }
+        rules.left_factorize();
+        let result = rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>();
+        if VERBOSE {
+            println!("=>");
+            print_production_rules(&rules);
+            println!("{}", result.iter().map(|(i, p)|
+                format!("{i} => prod!({}),", p.iter().map(|f| f.iter().map(|s|
+                    match s {
+                        Symbol::Empty => "e".to_string(),
+                        Symbol::T(x) => format!("t {x}"),
+                        Symbol::NT(x) => format!("nt {x}")
+                    }).join(", ")).join("; "))).join("\n"))
+        }
         assert_eq!(result, expected, "test {test_id} failed");
     }
 }
