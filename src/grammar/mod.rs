@@ -591,7 +591,7 @@ impl ProdRuleSet<LR> {
     /// A -> β1A' | ... | βnA';
     /// A' -> α1A' | ... | αmA' | ε;
     pub fn remove_left_recursion(&mut self) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         // we must remove either prods or the symbol table from self for the borrow checker
         let mut symbol_table = self.symbol_table.take();
         let mut new_var = self.get_next_available_var();
@@ -601,14 +601,21 @@ impl ProdRuleSet<LR> {
             let var = i as VarId;
             let symbol = Symbol::NT(var);
             if prod.iter().any(|p| *p.first().unwrap() == symbol) {
-                if VERBOSE { println!("- left recursion: {}", prod_to_string(prod, self.symbol_table.as_ref())); }
+                if VERBOSE {
+                    // println!("- left recursion: {}", prod_to_string(prod, self.symbol_table.as_ref()));
+                    println!("- left recursion: {}", format!("{} -> {}",
+                        Symbol::NT(var).to_str(symbol_table.as_ref()),
+                        prod_to_string(prod, symbol_table.as_ref())));
+                }
                 let (mut left, mut fine) : (Vec<_>, Vec<_>) = prod.iter().cloned()
                     .partition(|factor| *factor.first().unwrap() == symbol);
                 // apply the transformation
                 let var_prime = new_var;
                 if let Some(table) = &mut symbol_table {
-                    println!("- adding {var_prime} (from {var}) to symbols");
                     table.add_var_prime_name(var, var_prime);
+                }
+                if VERBOSE { println!("- adding non-terminal {var_prime} ({}), deriving from {var} ({})",
+                    &Symbol::NT(var_prime).to_str(symbol_table.as_ref()), symbol.to_str((symbol_table.as_ref())));
                 }
                 let symbol_prime = Symbol::NT(var_prime);
                 for factor in &mut fine {

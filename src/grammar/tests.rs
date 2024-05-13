@@ -240,81 +240,60 @@ fn ruletree_normalize() {
 #[test]
 fn prodrule_from() {
     let tests: Vec<(u32, BTreeMap<VarId, Vec<Vec<Symbol>>>)> = vec![
-        (0, btreemap![0 => vec![vec![sym!(t 1)], vec![sym!(t 2)], vec![sym!(nt 3)]]]),
+        (0, btreemap![0 => prod!(t 1; t 2; nt 3)]),
         // |(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))
-        (1, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 2)], vec![sym!(t 3)], vec![sym!(t 4)], vec![sym!(nt 5), sym!(nt 6)],
-            vec![sym!(t 7)], vec![sym!(t 8)], vec![sym!(nt 9), sym!(nt 10)]
-        ]]),
+        (1, btreemap![0 => prod!(nt 1, nt 2; t 3; t 4; nt 5, nt 6;t 7; t 8; nt 9, nt 10)]),
         // |(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))
-        (2, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
-            vec![sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 6), sym!(nt 8)],
-            vec![sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
-            vec![sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 6), sym!(nt 8)]
-        ]]),
+        (2, btreemap![0 => prod!(
+            nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
+            nt 1, nt 2, nt 3, nt 5, nt 6, nt 8;
+            nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
+            nt 1, nt 2, nt 4, nt 5, nt 6, nt 8;
+        )]),
         // |(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))
-        (3, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
-            vec![sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 8)],
-            vec![sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
-            vec![sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 8)],
-        ]]),
+        (3, btreemap![0 => prod!(
+            nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
+            nt 1, nt 2, nt 3, nt 5, nt 8;
+            nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
+            nt 1, nt 2, nt 4, nt 5, nt 8;
+        )]),
         // |(&(0, 1, 2, 3, 5, 6, 7), &(0, 1, 2, 3, 5, 8), &(0, 1, 2, 4, 5, 6, 7), &(0, 1, 2, 4, 5, 8))
-        (4, btreemap![0 => vec![
-            vec![sym!(nt 0), sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
-            vec![sym!(nt 0), sym!(nt 1), sym!(nt 2), sym!(nt 3), sym!(nt 5), sym!(nt 8)],
-            vec![sym!(nt 0), sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 6), sym!(nt 7)],
-            vec![sym!(nt 0), sym!(nt 1), sym!(nt 2), sym!(nt 4), sym!(nt 5), sym!(nt 8)],
-        ]]),
+        (4, btreemap![0 => prod!(
+            nt 0, nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
+            nt 0, nt 1, nt 2, nt 3, nt 5, nt 8;
+            nt 0, nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
+            nt 0, nt 1, nt 2, nt 4, nt 5, nt 8;
+        )]),
         // |(1, ε)
-        (5, btreemap![0 => vec![
-            vec![sym!(nt 1)], vec![sym!(e)]
-        ]]),
+        (5, btreemap![0 => prod!(nt 1; e)]),
         // |(&(1, 2), ε)
-        (6, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 2)], vec![sym!(e)]
-        ]]),
+        (6, btreemap![0 => prod!(nt 1, nt 2; e)]),
         // |(&(1, 2), 3, ε)
-        (7, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 2)], vec![sym!(nt 3)], vec![sym!(e)]
-        ]]),
+        (7, btreemap![0 => prod!(nt 1, nt 2; nt 3; e)]),
         // 0 => &(1, 10), 10 => |(&(2, 10), 2)
-        (8, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 10)]
-        ], 10 => vec![
-            vec![sym!(nt 2), sym!(nt 10)], vec![sym!(nt 2)]
-        ]]),
+        (8, btreemap![
+            0 => prod!(nt 1, nt 10),
+            10 => prod!(nt 2, nt 10; nt 2)]),
         // 0 => &(1, 10), 10 => |(&(2, 3, 10), &(2, 3))
-        (9, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 10)]
-        ], 10 => vec![
-            vec![sym!(nt 2), sym!(nt 3), sym!(nt 10)], vec![sym!(nt 2), sym!(nt 3)]
-        ]]),
+        (9, btreemap![
+            0 => prod!(nt 1, nt 10),
+            10 => prod!(nt 2, nt 3, nt 10; nt 2, nt 3)]),
         // 0 => &(1, 10), 10 => |(&(2, 3, 10), &(2, 3), &(4, 10), 4)
-        (10, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 10)]
-        ], 10 => vec![
-            vec![sym!(nt 2), sym!(nt 3), sym!(nt 10)], vec![sym!(nt 2), sym!(nt 3)], vec![sym!(nt 4), sym!(nt 10)], vec![sym!(nt 4)]
-        ]]),
+        (10, btreemap![
+            0 => prod!(nt 1, nt 10),
+            10 => prod!(nt 2, nt 3, nt 10; nt 2, nt 3; nt 4, nt 10; nt 4)]),
         // 0 => "&(1, 10)", 10 => "|(&(2, 10), ε)"
-        (11, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 10)]
-        ], 10 => vec![
-            vec![sym!(nt 2), sym!(nt 10)], vec![sym!(e)]
-        ]]),
-        // [0 => "&(1, 10)", 10 => "|(&(2, 3, 10), ε)"]
-        (12, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 10)]
-        ], 10 => vec![
-            vec![sym!(nt 2), sym!(nt 3), sym!(nt 10)], vec![sym!(e)]
-        ]]),
+        (11, btreemap![
+            0 => prod!(nt 1, nt 10),
+            10 => prod!(nt 2, nt 10; e)]),
+        // [0 => "&(1, 10)", 10 => "|(&(2, 3, 10), ε)"],
+        (12, btreemap![
+            0 => prod!(nt 1, nt 10),
+            10 => prod!(nt 2, nt 3, nt 10; e)]),
         // 0 => "&(1, 10)", 10 => "|(&(2, 3, 10), &(4, 10), ε)"
-        (13, btreemap![0 => vec![
-            vec![sym!(nt 1), sym!(nt 10)]
-        ], 10 => vec![
-            vec![sym!(nt 2), sym!(nt 3), sym!(nt 10)], vec![sym!(nt 4), sym!(nt 10)], vec![sym!(e)]
-        ]]),
+        (13, btreemap![
+            0 => prod!(nt 1, nt 10),
+            10 => prod!(nt 2, nt 3, nt 10; nt 4, nt 10; e)]),
     ];
     for (test_id, expected) in tests {
         let trees = build_rules(test_id);
@@ -361,7 +340,7 @@ fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
 
 #[test]
 fn test_remove_left_recursion() {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
             0 => prod!(t 3, nt 2; t 4, nt 2),
