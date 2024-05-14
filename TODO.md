@@ -32,14 +32,14 @@
     - [x] ~~transforms to | of &s~~ 
     - [x] ~~translate *, +, ? -> tree~~
     - [x] ~~transform normalized tree rules -> production rules~~
-  - RuleProdSet to store the normalized production rules (as `Vec<Vec<Symbol>>`)
+  - ~~RuleProdSet to store the normalized production rules (as `Vec<Vec<Symbol>>`)~~
     - [x] ~~remove left recursion -> rules~~
-    - [ ] left factoring -> rules
-    - [x] manage symbol table
+    - [x] ~~left factoring -> rules~~
+    - [x] ~~manage symbol table~~
   - top-down
-    - [ ] calc first
-    - [ ] calc follow
-    - [ ] check if LL(1)
+    - [x] ~~calc first~~
+    - [x] ~~calc follow~~
+    - [x] ~~check if LL(1)~~
     - [ ] build parsing table
     - [ ] predictive parsing algorithm
     - [ ] hooks: how to link back to original RuleTree?

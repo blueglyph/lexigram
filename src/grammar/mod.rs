@@ -599,7 +599,7 @@ impl<T> ProdRuleSet<T> {
         let mut symbols = HashSet::<Symbol>::from([Symbol::NT(self.start.unwrap())]);
         while let Some(sym) = symbols.iter().find(|s| !first.contains_key(s)).cloned() {
             match &sym {
-                Symbol::T(_) | Symbol::Empty | Symbol::End => {
+                Symbol::T(_) | Symbol::Empty => {
                     first.insert(sym.clone(), hashset![sym.clone()]);
                 }
                 Symbol::NT(s) => {
@@ -607,11 +607,12 @@ impl<T> ProdRuleSet<T> {
                     first.insert(sym, HashSet::new());
                     symbols.extend(self.prods[*s as usize].iter().flatten());
                 }
+                Symbol::End =>
+                    panic!("found reserved symbol 'end' in production rules"),
             }
             if VERBOSE { println!("- sym {} -> {}", sym.to_str(self.symbol_table.as_ref()),
                                   symbols.iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", ")); }
         }
-        first.remove(&Symbol::End);
         let mut change = true;
         let rules = (0..self.prods.len() as VarId).filter(|var| first.contains_key(&Symbol::NT(*var))).to_vec();
         if VERBOSE { println!("rules: {}", rules.iter().map(|v| Symbol::NT(*v).to_str(self.symbol_table.as_ref())).join(", ")); }
