@@ -550,10 +550,21 @@ struct LL1;
 struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
     symbol_table: Option<SymbolTable>,
+    start: Option<VarId>,
     _phantom: PhantomData<T>
 }
 
 impl<T> ProdRuleSet<T> {
+    /// Returns the starting production rule.
+    pub fn get_start(&self) -> Option<VarId> {
+        self.start
+    }
+
+    /// Sets the starting production rule.
+    pub fn set_start(&mut self, start: Option<VarId>) {
+        self.start = start;
+    }
+
     /// Returns a variable ID that doesn't exist yet.
     pub fn get_next_available_var(&self) -> VarId {
         self.prods.len() as VarId
@@ -579,11 +590,11 @@ impl<T> ProdRuleSet<T> {
 
 impl ProdRuleSet<LR> {
     pub fn new() -> Self {
-        Self { prods: Vec::new(), symbol_table: None, _phantom: PhantomData }
+        Self { prods: Vec::new(), symbol_table: None, start: None, _phantom: PhantomData }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { prods: Vec::with_capacity(capacity), symbol_table: None, _phantom: PhantomData }
+        Self { prods: Vec::with_capacity(capacity), symbol_table: None, start: None, _phantom: PhantomData }
     }
 
     /// Eliminates left recursion from production rules, and updates the symbol table if provided.
@@ -605,7 +616,6 @@ impl ProdRuleSet<LR> {
             let symbol = Symbol::NT(var);
             if prod.iter().any(|p| *p.first().unwrap() == symbol) {
                 if VERBOSE {
-                    // println!("- left recursion: {}", prod_to_string(prod, self.symbol_table.as_ref()));
                     println!("- left recursion: {}", format!("{} -> {}",
                         Symbol::NT(var).to_str(symbol_table.as_ref()),
                         prod_to_string(prod, symbol_table.as_ref())));
@@ -781,6 +791,7 @@ impl From<ProdRuleSet<LR>> for ProdRuleSet<LL1> {
         ProdRuleSet::<LL1> {
             prods: rules.prods,
             symbol_table: rules.symbol_table,
+            start: rules.start,
             _phantom: PhantomData,
         }
     }
