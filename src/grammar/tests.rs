@@ -421,6 +421,9 @@ fn test_remove_left_recursion() {
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
+        rules.remove_left_recursion();
+        let result = <BTreeMap<_, _>>::from(&rules);
+        assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
     }
 }
 
@@ -473,6 +476,9 @@ fn test_left_factorize() {
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
+        rules.left_factorize();
+        let result = BTreeMap::<_, _>::from(&rules);
+        assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
     }
 }
 
@@ -509,7 +515,7 @@ fn ll1_from() {
             println!("test {test_id}:");
             print_production_rules(&rules_lr);
         }
-        let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr);
+        let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&rules_ll1);
         if VERBOSE {
             println!("=>");
@@ -517,5 +523,8 @@ fn ll1_from() {
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
+        let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let result = BTreeMap::<_, _>::from(&rules_ll1);
+        assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
    }
 }
