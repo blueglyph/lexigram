@@ -5,6 +5,40 @@ use super::*;
 use crate::dfa::TokenId;
 use crate::{btreemap, gnode, prod, prodf, sym};
 
+// ---------------------------------------------------------------------------------------------
+// Supporting functions
+
+fn check_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> {
+    let mut msg = String::new();
+    for (var, tree) in rules.get_trees_iter() {
+        let mut indices = HashSet::<usize>::new();
+        let mut n = 0;
+        for node in tree.iter_depth_simple() {
+            n += 1;
+            if indices.contains(&node.index) {
+                msg.push_str(&format!("duplicate index {} for var {var} in tree {tree:#}\n", node.index));
+            }
+            indices.insert(node.index);
+        }
+        if verbose { println!("  {var} uses {}/{} nodes", n, tree.len()); }
+    }
+    if msg.is_empty() {
+        None
+    } else {
+        Some(msg)
+    }
+}
+
+fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
+    println!("   {}", prods.get_prods_iter().map(|(var, p)|
+        format!("{} -> {}",
+                Symbol::NT(var).to_str(prods.get_symbol_table()),
+                prod_to_string(p, prods.get_symbol_table()))
+    ).join("\n   "));
+}
+
+// ---------------------------------------------------------------------------------------------
+
 #[test]
 fn gnode() {
     assert_eq!(gnode!([1]), GrNode::Symbol(Symbol::T(1 as TokenId)));
@@ -59,6 +93,9 @@ fn dup() {
     let result2 = (0..6).map(|i| tree.get(i).clone()).to_vec();
     assert_eq!(result2, [gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2), gnode!(nt 1), gnode!(nt 2)]);
 }
+
+// ---------------------------------------------------------------------------------------------
+// RuleTreeSet
 
 fn build_rules(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();
@@ -163,27 +200,6 @@ fn build_rules(id: u32) -> RuleTreeSet<General> {
         _ => {}
     }
     rules
-}
-
-fn check_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> {
-    let mut msg = String::new();
-    for (var, tree) in rules.get_trees_iter() {
-        let mut indices = HashSet::<usize>::new();
-        let mut n = 0;
-        for node in tree.iter_depth_simple() {
-            n += 1;
-            if indices.contains(&node.index) {
-                msg.push_str(&format!("duplicate index {} for var {var} in tree {tree:#}\n", node.index));
-            }
-            indices.insert(node.index);
-        }
-        if verbose { println!("  {var} uses {}/{} nodes", n, tree.len()); }
-    }
-    if msg.is_empty() {
-        None
-    } else {
-        Some(msg)
-    }
 }
 
 // cargo +nightly miri test --package rlexer --lib grammar::tests::ruletree_normalize -- --exact
@@ -304,6 +320,24 @@ fn prodrule_from() {
 }
 
 // ---------------------------------------------------------------------------------------------
+// ProdRuleSet
+
+fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
+    println!("\n            {}", result.iter().map(|(i, p)|
+        format!("{i} => prod!({}),", p.iter().map(|f| f.iter().map(|s|
+            match s {
+                Symbol::Empty => "e".to_string(),
+                Symbol::T(x) => format!("t {x}"),
+                Symbol::NT(x) => format!("nt {x}")
+            }).join(", ")).join("; "))).join("\n            "))
+}
+
+impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
+    fn from(rules: &ProdRuleSet<T>) -> Self {
+        rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
+
+    }
+}
 
 fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
     let mut rules = ProdRuleSet::new();
@@ -313,8 +347,10 @@ fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
     match id {
         0 => {
             prods.extend([
-                /* 0 */ prod!(nt 0, t 1; nt 0, t 2; t 3; t 4),
-                /* 1 */ prod!(nt 0, t 5; t 6; t 7),
+                // A -> A b | A c | d | e
+                prod!(nt 0, t 1; nt 0, t 2; t 3; t 4),
+                // B -> A f | g | h
+                prod!(nt 0, t 5; t 6; t 7),
             ]);
         }
         1 => {
@@ -334,27 +370,20 @@ fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
         }
         _ => {}
     };
+    // finds the highest NT and populates the symbol table:
     let num_nt = prods.len().max(prods.iter().map(|p|
         p.iter().map(|f|
             f.iter().filter_map(|s|
                 if let Symbol::NT(v) = s { Some(*v) } else { None }).max().unwrap_or(0)).max().unwrap_or(0)
     ).max().unwrap_or(0) as usize + 1);
+    assert!(num_nt <= 26);
     symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
     rules.set_symbol_table(symbol_table);
     rules
 }
 
-fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
-    println!("   {}", prods.get_prods_iter().map(|(var, p)|
-        format!("{} -> {}",
-                Symbol::NT(var).to_str(prods.get_symbol_table()),
-                prod_to_string(p, prods.get_symbol_table()))
-    ).join("\n   "));
-}
-
 #[test]
 fn test_remove_left_recursion() {
-    const VERBOSE: bool = false;
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
             0 => prod!(t 3, nt 2; t 4, nt 2),
@@ -362,6 +391,7 @@ fn test_remove_left_recursion() {
             2 => prod!(t 1, nt 2; t 2, nt 2; e),
         ])
     ];
+    const VERBOSE: bool = false;
     for (test_id, expected) in tests {
         let mut rules = build_prodrules(test_id);
         if VERBOSE {
@@ -369,11 +399,12 @@ fn test_remove_left_recursion() {
             print_production_rules(&rules);
         }
         rules.remove_left_recursion();
+        let result = <BTreeMap<_, _>>::from(&rules);
         if VERBOSE {
             println!("=>");
             print_production_rules(&rules);
+            print_expected_code(&result);
         }
-        let result = rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");
     }
 }
@@ -402,18 +433,46 @@ fn test_left_factorize() {
             print_production_rules(&rules);
         }
         rules.left_factorize();
-        let result = rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>();
+        let result = BTreeMap::<_, _>::from(&rules);
         if VERBOSE {
             println!("=>");
             print_production_rules(&rules);
-            println!("{}", result.iter().map(|(i, p)|
-                format!("{i} => prod!({}),", p.iter().map(|f| f.iter().map(|s|
-                    match s {
-                        Symbol::Empty => "e".to_string(),
-                        Symbol::T(x) => format!("t {x}"),
-                        Symbol::NT(x) => format!("nt {x}")
-                    }).join(", ")).join("; "))).join("\n"))
+            print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
     }
+}
+
+#[test]
+fn ll1_from() {
+    let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
+        (0, btreemap![
+            0 => prod!(t 3, nt 2; t 4, nt 2),
+            1 => prod!(nt 0, t 5; t 6; t 7),
+            2 => prod!(t 1, nt 2; t 2, nt 2; e),
+        ]),
+        (1, btreemap![
+            0 => prod!(t 1, nt 4; t 2, t 1; t 3, t 2, nt 3),
+            1 => prod!(e; t 3),
+            2 => prod!(t 5; t 6),
+            3 => prod!(e; t 4),
+            4 => prod!(t 1, t 2, nt 1; t 2, t 6; t 3, t 4, nt 2),
+        ]),
+    ];
+    const VERBOSE: bool = false;
+    for (test_id, expected) in tests {
+        let rules_lr = build_prodrules(test_id);
+        if VERBOSE {
+            println!("test {test_id}:");
+            print_production_rules(&rules_lr);
+        }
+        let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr);
+        let result = BTreeMap::<_, _>::from(&rules_ll1);
+        if VERBOSE {
+            println!("=>");
+            print_production_rules(&rules_ll1);
+            print_expected_code(&result);
+        }
+        assert_eq!(result, expected, "test {test_id} failed");
+   }
 }

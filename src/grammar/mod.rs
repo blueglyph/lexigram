@@ -893,6 +893,7 @@ pub mod macros {
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! prodf {
+        () => { std::vec![] };
         ($($a:ident $($b:expr)?,)+) => { prodf![$($a $($b)?),+] };
         ($($a:ident $($b:expr)?),*) => { std::vec![$(sym!($a $($b)?)),*]};
     }
@@ -911,7 +912,8 @@ pub mod macros {
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! prod {
-        ($($($a:ident $($b:expr)?),*;)*) => { prod![$($($a $($b)?),+);*] };
+        () => { std::vec![] };
+        ($($($a:ident $($b:expr)?),*;)+) => { prod![$($($a $($b)?),+);+] };
         ($($($a:ident $($b:expr)?),*);*) => { std::vec![$(prodf![$($a $($b)?),+]),*]};
     }
 }
