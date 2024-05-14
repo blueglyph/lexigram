@@ -648,3 +648,46 @@ fn prs_calc_first() {
         assert_eq!(first, expected, "test {test_id} failed");
    }
 }
+
+#[test]
+fn prs_calc_follow() {
+    let tests: Vec<(u32, VarId, HashMap<Symbol, HashSet<Symbol>>)> = vec![
+        (4, 0, hashmap![
+            // E -> T E_1
+            // T -> F T_1
+            // F -> ( E ) | NUM | ID
+            // E_1 -> + T E_1 | - T E_1 | ε
+            // T_1 -> * F T_1 | / F T_1 | ε
+            //
+            // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
+            // NT: 0:E, 1:T, 2:F, 3:E_1, 4:T_1
+            sym!(nt 0) => hashset![sym!(t 5), sym!(end)],
+            sym!(nt 1) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(end)],
+            sym!(nt 2) => hashset![sym!(t 0), sym!(t 1), sym!(t 2), sym!(t 3), sym!(t 5), sym!(end)],
+            sym!(nt 3) => hashset![sym!(t 5), sym!(end)],
+            sym!(nt 4) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(end)],
+        ]),
+    ];
+    const VERBOSE: bool = true;
+    for (test_id, start, expected) in tests {
+        let rules_lr = build_prs(test_id);
+        if VERBOSE {
+            println!("test {test_id}:");
+        }
+        let mut rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        rules_ll1.set_start(Some(start));
+        let first = rules_ll1.calc_follow();
+        if VERBOSE {
+            print_production_rules(&rules_ll1);
+            let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
+            for (sym, set) in &b {
+                println!("// {} => {},", sym.to_str(rules_ll1.get_symbol_table()), set.iter().map(|s| s.to_str(rules_ll1.get_symbol_table())).join(", "));
+            }
+            for (sym, set) in &b {
+                println!("            {} => hashset![{}],", symbol_to_code(sym),
+                    set.iter().map(|s| symbol_to_code(s)).join(", "));
+            }
+        }
+        assert_eq!(first, expected, "test {test_id} failed");
+   }
+}

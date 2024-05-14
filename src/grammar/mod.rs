@@ -653,6 +653,14 @@ impl<T> ProdRuleSet<T> {
         }
         first
     }
+
+    pub fn calc_follow(&self) -> HashMap<Symbol, HashSet<Symbol>> {
+        const VERBOSE: bool = false;
+        assert!(self.start.is_some(), "start NT symbol not defined");
+        let mut follow = HashMap::<Symbol, HashSet<Symbol>>::new();
+
+        follow
+    }
 }
 
 impl ProdRuleSet<LR> {
