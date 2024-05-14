@@ -625,7 +625,7 @@ fn prs_calc_first() {
             sym!(nt 4) => hashset![sym!(t 2), sym!(t 3), sym!(e)],
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, start, expected) in tests {
         let rules_lr = build_prs(test_id);
         if VERBOSE {
@@ -668,7 +668,7 @@ fn prs_calc_follow() {
             sym!(nt 4) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(end)],
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, start, expected) in tests {
         let rules_lr = build_prs(test_id);
         if VERBOSE {
@@ -676,10 +676,11 @@ fn prs_calc_follow() {
         }
         let mut rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         rules_ll1.set_start(Some(start));
-        let first = rules_ll1.calc_follow();
+        let first = rules_ll1.calc_first();
+        let follow = rules_ll1.calc_follow(&first);
         if VERBOSE {
             print_production_rules(&rules_ll1);
-            let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
+            let b = follow.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
             for (sym, set) in &b {
                 println!("// {} => {},", sym.to_str(rules_ll1.get_symbol_table()), set.iter().map(|s| s.to_str(rules_ll1.get_symbol_table())).join(", "));
             }
@@ -688,6 +689,6 @@ fn prs_calc_follow() {
                     set.iter().map(|s| symbol_to_code(s)).join(", "));
             }
         }
-        assert_eq!(first, expected, "test {test_id} failed");
+        assert_eq!(follow, expected, "test {test_id} failed");
    }
 }

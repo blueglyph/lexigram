@@ -654,11 +654,49 @@ impl<T> ProdRuleSet<T> {
         first
     }
 
-    pub fn calc_follow(&self) -> HashMap<Symbol, HashSet<Symbol>> {
+    pub fn calc_follow(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashMap<Symbol, HashSet<Symbol>> {
         const VERBOSE: bool = false;
         assert!(self.start.is_some(), "start NT symbol not defined");
-        let mut follow = HashMap::<Symbol, HashSet<Symbol>>::new();
-
+        let mut follow = first.iter()
+            .filter_map(|(s, _)| if matches!(s, Symbol::NT(_)) { Some((*s, HashSet::<Symbol>::new())) } else { None })
+            .collect::<HashMap<_, _>>();
+        follow.get_mut(&Symbol::NT(self.start.unwrap())).unwrap().insert(Symbol::End);
+        let rules = (0..self.prods.len() as VarId).filter(|var| follow.contains_key(&Symbol::NT(*var))).to_vec();
+        let mut change = true;
+        while change {
+            change = false;
+            for i in &rules {
+                let prod = &self.prods[*i as usize];
+                let symbol = Symbol::NT(*i as VarId);
+                if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prod_to_string(prod, self.symbol_table.as_ref())); }
+                for factor in prod {
+                    if VERBOSE { println!("  - {}", factor_to_string(factor, self.symbol_table.as_ref())); }
+                    let mut trail = follow.get(&symbol).unwrap().clone();
+                    for (i, sym_i) in factor.iter().enumerate().rev() {
+                        if let Symbol::NT(v) = sym_i {
+                            let num_items = follow.get(sym_i).unwrap().len();
+                            follow.get_mut(sym_i).unwrap().extend(&trail);
+                            if VERBOSE {
+                                if follow.get(sym_i).unwrap().len() > num_items {
+                                    println!("    follow[{}] -> {}", sym_i.to_str(self.get_symbol_table()),
+                                             follow.get(sym_i).unwrap().iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
+                                }
+                            }
+                            change |= follow.get(sym_i).unwrap().len() > num_items;
+                            if first[sym_i].contains(&Symbol::Empty) {
+                                trail.extend(first[sym_i].iter().filter(|s| *s != &Symbol::Empty));
+                            } else {
+                                trail.clear();
+                                trail.extend(&first[sym_i]);
+                            }
+                        } else {
+                            trail.clear();
+                            trail.insert(*sym_i);
+                        }
+                    }
+                }
+            }
+        }
         follow
     }
 }
