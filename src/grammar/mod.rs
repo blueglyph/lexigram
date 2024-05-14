@@ -613,15 +613,13 @@ impl<T> ProdRuleSet<T> {
         }
         first.remove(&Symbol::End);
         let mut change = true;
-        let num_prods = self.prods.len() as VarId;
-        let rules = (0..num_prods).filter(|var| first.contains_key(&Symbol::NT(*var))).to_vec();
+        let rules = (0..self.prods.len() as VarId).filter(|var| first.contains_key(&Symbol::NT(*var))).to_vec();
         if VERBOSE { println!("rules: {}", rules.iter().map(|v| Symbol::NT(*v).to_str(self.symbol_table.as_ref())).join(", ")); }
         while change {
             change = false;
             for i in &rules {
                 let prod = &self.prods[*i as usize];
-                let var = *i as VarId;
-                let symbol = Symbol::NT(var);
+                let symbol = Symbol::NT(*i as VarId);
                 if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prod_to_string(prod, self.symbol_table.as_ref())); }
                 let num_items = first[&symbol].len();
                 for factor in prod {
@@ -646,7 +644,14 @@ impl<T> ProdRuleSet<T> {
                     if trail && first[factor.last().unwrap()].contains(&Symbol::Empty) {
                         new.insert(Symbol::Empty);
                     }
+                    let _n = first.get(&symbol).unwrap().len();
                     first.get_mut(&symbol).unwrap().extend(new);
+                    if VERBOSE {
+                        if first.get(&symbol).unwrap().len() > _n {
+                            println!("    first[{}] -> {}", symbol.to_str(self.get_symbol_table()),
+                                     first.get(&symbol).unwrap().iter().map(|s| s.to_str(self.get_symbol_table())).join(", "));
+                        }
+                    }
                 }
                 change |= first[&symbol].len() > num_items;
             }
