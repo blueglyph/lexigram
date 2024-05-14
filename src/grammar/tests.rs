@@ -8,27 +8,6 @@ use crate::{btreemap, gnode, prod, prodf, sym};
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-fn check_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> {
-    let mut msg = String::new();
-    for (var, tree) in rules.get_trees_iter() {
-        let mut indices = HashSet::<usize>::new();
-        let mut n = 0;
-        for node in tree.iter_depth_simple() {
-            n += 1;
-            if indices.contains(&node.index) {
-                msg.push_str(&format!("duplicate index {} for var {var} in tree {tree:#}\n", node.index));
-            }
-            indices.insert(node.index);
-        }
-        if verbose { println!("  {var} uses {}/{} nodes", n, tree.len()); }
-    }
-    if msg.is_empty() {
-        None
-    } else {
-        Some(msg)
-    }
-}
-
 fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
     println!("   {}", prods.get_prods_iter().map(|(var, p)|
         format!("{} -> {}",
@@ -97,7 +76,28 @@ fn dup() {
 // ---------------------------------------------------------------------------------------------
 // RuleTreeSet
 
-fn build_rules(id: u32) -> RuleTreeSet<General> {
+fn check_rts_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> {
+    let mut msg = String::new();
+    for (var, tree) in rules.get_trees_iter() {
+        let mut indices = HashSet::<usize>::new();
+        let mut n = 0;
+        for node in tree.iter_depth_simple() {
+            n += 1;
+            if indices.contains(&node.index) {
+                msg.push_str(&format!("duplicate index {} for var {var} in tree {tree:#}\n", node.index));
+            }
+            indices.insert(node.index);
+        }
+        if verbose { println!("  {var} uses {}/{} nodes", n, tree.len()); }
+    }
+    if msg.is_empty() {
+        None
+    } else {
+        Some(msg)
+    }
+}
+
+fn build_rts(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();
     // reserve a few variables just so the NT indices are not confusing:
     // we want new variables to begin at 10.
@@ -204,7 +204,7 @@ fn build_rules(id: u32) -> RuleTreeSet<General> {
 
 // cargo +nightly miri test --package rlexer --lib grammar::tests::ruletree_normalize -- --exact
 #[test]
-fn ruletree_normalize() {
+fn rts_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
         // |([1], [2], 3) (depth 1)
         (0, btreemap![0 => "|(:1, :2, 3)"]),
@@ -237,10 +237,10 @@ fn ruletree_normalize() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
-        let mut rules = build_rules(test_id);
+        let mut rules = build_rts(test_id);
         let vars = rules.get_vars().to_vec();
         rules.normalize();
-        if let Some(err) = check_sanity(&rules, VERBOSE) {
+        if let Some(err) = check_rts_sanity(&rules, VERBOSE) {
             panic!("test {test_id} failed:\n{}", err);
         }
         let result = BTreeMap::from_iter(rules.get_trees_iter().map(|(id, t)| (id, format!("{t}"))));
@@ -254,7 +254,7 @@ fn ruletree_normalize() {
 }
 
 #[test]
-fn prodrule_from() {
+fn rts_prodrule_from() {
     let tests: Vec<(u32, BTreeMap<VarId, Vec<Vec<Symbol>>>)> = vec![
         (0, btreemap![0 => prod!(t 1; t 2; nt 3)]),
         // |(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))
@@ -312,7 +312,7 @@ fn prodrule_from() {
             10 => prod!(nt 2, nt 3, nt 10; nt 4, nt 10; e)]),
     ];
     for (test_id, expected) in tests {
-        let trees = build_rules(test_id);
+        let trees = build_rts(test_id);
         let rules = ProdRuleSet::from(trees);
         let result = rules.get_prods_iter().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");
@@ -340,7 +340,7 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
     }
 }
 
-fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
+fn build_prs(id: u32) -> ProdRuleSet<LR> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals((0..26).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
@@ -394,7 +394,7 @@ fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
 }
 
 #[test]
-fn test_remove_left_recursion() {
+fn prs_remove_left_recursion() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
            // A -> d A_1 | d e A_1
@@ -408,7 +408,7 @@ fn test_remove_left_recursion() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
-        let mut rules = build_prodrules(test_id);
+        let mut rules = build_prs(test_id);
         if VERBOSE {
             println!("test {test_id}:");
             print_production_rules(&rules);
@@ -428,7 +428,7 @@ fn test_remove_left_recursion() {
 }
 
 #[test]
-fn test_left_factorize() {
+fn prs_left_factorize() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
            // A -> d A_1 | A A_2
@@ -463,7 +463,7 @@ fn test_left_factorize() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
-        let mut rules = build_prodrules(test_id);
+        let mut rules = build_prs(test_id);
         if VERBOSE {
             println!("test {test_id}:");
             print_production_rules(&rules);
@@ -483,7 +483,7 @@ fn test_left_factorize() {
 }
 
 #[test]
-fn ll1_from() {
+fn prs_ll1_from() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
            // A -> d A_2
@@ -510,7 +510,7 @@ fn ll1_from() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
-        let rules_lr = build_prodrules(test_id);
+        let rules_lr = build_prs(test_id);
         if VERBOSE {
             println!("test {test_id}:");
             print_production_rules(&rules_lr);
