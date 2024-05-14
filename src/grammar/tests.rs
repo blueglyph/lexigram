@@ -333,6 +333,21 @@ fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
             }).join(", ")).join("; "))).join("\n            "))
 }
 
+fn def_arith_symbols(symbol_table: &mut SymbolTable) {
+    symbol_table.extend_terminals([
+        ("PLUS".to_string(), Some("+".to_string())),
+        ("MINUS".to_string(), Some("-".to_string())),
+        ("MUL".to_string(), Some("*".to_string())),
+        ("DIV".to_string(), Some("/".to_string())),
+        ("LPAREN".to_string(), Some("(".to_string())),
+        ("RPAREN".to_string(), Some(")".to_string())),
+        ("NUM".to_string(), None),
+        ("ID".to_string(), None)
+    ]);
+    symbol_table.extend_non_terminals([
+        "E".to_string(), "T".to_string(), "F".to_string()
+    ]);
+}
 impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
     fn from(rules: &ProdRuleSet<T>) -> Self {
         rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
@@ -343,15 +358,12 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
 fn build_prs(id: u32) -> ProdRuleSet<LR> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
-    symbol_table.extend_terminals((0..26).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
     let prods = &mut rules.prods;
     match id {
         0 => {
             prods.extend([
-                // A -> A b | A c | d | d e
-                prod!(nt 0, t 1; nt 0, t 2; t 3; t 3, t 4),
-                // B -> A f | g | h
-                prod!(nt 0, t 5; t 6; t 7),
+                prod!(nt 0, t 1; nt 0, t 2; t 3; t 3, t 4), // A -> A b | A c | d | d e
+                prod!(nt 0, t 5; t 6; t 7),                 // B -> A f | g | h
             ]);
         }
         1 => {
@@ -372,23 +384,39 @@ fn build_prs(id: u32) -> ProdRuleSet<LR> {
         2 => { // tests empty prod
             prods.extend([]);
         }
-        3 => { // tests contiue / break consistency
+        3 => { // tests continue / break consistency in left_factorize
             prods.extend([
                 prod!(t 0),
                 prod!(t 2, t 0; t 2),
                 prod!(t 2; t 1),
                 prod!(t 3)]);
         }
+        4 => {
+            // classical arithmetic grammar
+            // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
+            // NT: 0:E, 1:T, 2:F
+            def_arith_symbols(&mut symbol_table);
+            prods.extend([
+                prod!(nt 0, t 0, nt 1; nt 0, t 1, nt 1; nt 1),  // E -> E + T | E - T | T
+                prod!(nt 1, t 2, nt 2; nt 1, t 3, nt 2; nt 2),  // T -> T * F | T / F | F
+                prod!(t 4, nt 0, t 5; t 6; t 7),                // F -> ( E ) | NUM | ID
+            ]);
+        }
         _ => {}
     };
-    // finds the highest NT and populates the symbol table:
-    let num_nt = prods.len().max(prods.iter().map(|p|
-        p.iter().map(|f|
-            f.iter().filter_map(|s|
-                if let Symbol::NT(v) = s { Some(*v) } else { None }).max().unwrap_or(0)).max().unwrap_or(0)
-    ).max().unwrap_or(0) as usize + 1);
-    assert!(num_nt <= 26);
-    symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
+    if symbol_table.get_terminals().is_empty() {
+        symbol_table.extend_terminals((0..26).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
+    }
+    if symbol_table.get_non_terminals().is_empty() {
+        // finds the highest NT and populates the symbol table:
+        let num_nt = prods.len().max(prods.iter().map(|p|
+            p.iter().map(|f|
+                f.iter().filter_map(|s|
+                    if let Symbol::NT(v) = s { Some(*v) } else { None }).max().unwrap_or(0)).max().unwrap_or(0)
+        ).max().unwrap_or(0) as usize + 1);
+        assert!(num_nt <= 26);
+        symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
+    }
     rules.set_symbol_table(symbol_table);
     rules
 }
@@ -405,6 +433,18 @@ fn prs_remove_left_recursion() {
             2 => prod!(t 1, nt 2; t 2, nt 2; e),
         ]),
         (2, btreemap![]),
+        (4, btreemap![
+           // E -> T E_1
+           // T -> F T_1
+           // F -> ( E ) | NUM | ID
+           // E_1 -> + T E_1 | - T E_1 | ε
+           // T_1 -> * F T_1 | / F T_1 | ε
+            0 => prod!(nt 1, nt 3),
+            1 => prod!(nt 2, nt 4),
+            2 => prod!(t 4, nt 0, t 5; t 6; t 7),
+            3 => prod!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
+            4 => prod!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -460,6 +500,18 @@ fn prs_left_factorize() {
             3 => prod!(t 3),
             4 => prod!(e; t 0),
         ]),
+        (4, btreemap![
+           // E -> E E_1 | T
+           // T -> T T_1 | F
+           // F -> ( E ) | NUM | ID
+           // E_1 -> + T | - T
+           // T_1 -> * F | / F
+            0 => prod!(nt 0, nt 3; nt 1),
+            1 => prod!(nt 1, nt 4; nt 2),
+            2 => prod!(t 4, nt 0, t 5; t 6; t 7),
+            3 => prod!(t 0, nt 1; t 1, nt 1),
+            4 => prod!(t 2, nt 2; t 3, nt 2),
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -506,6 +558,18 @@ fn prs_ll1_from() {
             2 => prod!(t 5; t 6),
             3 => prod!(e; t 4),
             4 => prod!(t 1, t 2, nt 1; t 2, t 6; t 3, t 4, nt 2),
+        ]),
+        (4, btreemap![
+           // E -> T E_1
+           // T -> F T_1
+           // F -> ( E ) | NUM | ID
+           // E_1 -> + T E_1 | - T E_1 | ε
+           // T_1 -> * F T_1 | / F T_1 | ε
+            0 => prod!(nt 1, nt 3),
+            1 => prod!(nt 2, nt 4),
+            2 => prod!(t 4, nt 0, t 5; t 6; t 7),
+            3 => prod!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
+            4 => prod!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
         ]),
     ];
     const VERBOSE: bool = false;

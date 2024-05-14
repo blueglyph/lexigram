@@ -57,8 +57,16 @@ impl SymbolTable {
         }
     }
 
+    pub fn get_terminals(&self) -> &[(String, Option<String>)] {
+        &self.t
+    }
+
     pub fn extend_terminals<I: IntoIterator<Item=(String, Option<String>)>>(&mut self, iter: I) {
         self.t.extend(iter);
+    }
+
+    pub fn get_non_terminals(&self) -> &[String] {
+        &self.nt
     }
 
     pub fn extend_non_terminals<I: IntoIterator<Item=String>>(&mut self, iter: I) {
