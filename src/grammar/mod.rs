@@ -546,9 +546,12 @@ pub fn prod_to_string(prod: &ProdRule, symbol_table: Option<&SymbolTable>) -> St
     prod.iter().map(|factor| factor_to_string(factor, symbol_table)).join(" | ")
 }
 
+#[derive(Clone)]
 struct LR;
+#[derive(Clone)]
 struct LL1;
 
+#[derive(Clone)]
 struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
     symbol_table: Option<SymbolTable>,

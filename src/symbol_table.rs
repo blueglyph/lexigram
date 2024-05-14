@@ -40,6 +40,7 @@ use crate::grammar::{Symbol, VarId};
 /// nt[2] = "expr_0";
 /// ```
 ///
+#[derive(Clone)]
 pub struct SymbolTable {
     // todo: find more efficient storage for terminals
     t: Vec<(String, Option<String>)>,
