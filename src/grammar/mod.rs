@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset};
 use crate::vectree::VecTree;
 use crate::symbol_table::SymbolTable;
 
@@ -593,9 +593,64 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub fn calc_first(&self) -> HashMap<Symbol, HashSet<Symbol>> {
-        let first = HashMap::<Symbol, HashSet<Symbol>>::new();
-
-
+        const VERBOSE: bool = false;
+        assert!(self.start.is_some(), "start NT symbol not defined");
+        let mut first = HashMap::<Symbol, HashSet<Symbol>>::new();
+        let mut symbols = HashSet::<Symbol>::from([Symbol::NT(self.start.unwrap())]);
+        while let Some(sym) = symbols.iter().find(|s| !first.contains_key(s)).cloned() {
+            match &sym {
+                Symbol::T(_) | Symbol::Empty | Symbol::End => {
+                    first.insert(sym.clone(), hashset![sym.clone()]);
+                }
+                Symbol::NT(s) => {
+                    // takes all the symbols in the new production rule
+                    first.insert(sym, HashSet::new());
+                    symbols.extend(self.prods[*s as usize].iter().flatten());
+                }
+            }
+            if VERBOSE { println!("- sym {} -> {}", sym.to_str(self.symbol_table.as_ref()),
+                                  symbols.iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", ")); }
+        }
+        first.remove(&Symbol::End);
+        let mut change = true;
+        let num_prods = self.prods.len() as VarId;
+        let rules = (0..num_prods).filter(|var| first.contains_key(&Symbol::NT(*var))).to_vec();
+        if VERBOSE { println!("rules: {}", rules.iter().map(|v| Symbol::NT(*v).to_str(self.symbol_table.as_ref())).join(", ")); }
+        while change {
+            change = false;
+            for i in &rules {
+                let prod = &self.prods[*i as usize];
+                let var = *i as VarId;
+                let symbol = Symbol::NT(var);
+                if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prod_to_string(prod, self.symbol_table.as_ref())); }
+                let num_items = first[&symbol].len();
+                for factor in prod {
+                    if VERBOSE { println!("  - {}", factor_to_string(factor, self.symbol_table.as_ref())); }
+                    let mut new = HashSet::<Symbol>::new();
+                    assert!(factor.len() > 0, "empty factor for {}: {}",
+                            symbol.to_str(self.symbol_table.as_ref()), factor_to_string(factor, self.symbol_table.as_ref()));
+                    if VERBOSE {
+                        print!("    [0] = {}", factor[0].to_str(self.symbol_table.as_ref()));
+                        println!(", first = {}", first[&factor[0]].iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", "));
+                    }
+                    new.extend(first[&factor[0]].iter().filter(|s| *s != &Symbol::Empty));
+                    let mut trail = true;
+                    for (i, sym_i) in factor.iter().enumerate().rev().skip(1) {
+                        if first[sym_i].contains(&Symbol::Empty) {
+                            new.extend(first[&factor[i + 1]].iter().filter(|s| *s != &Symbol::Empty));
+                        } else {
+                            trail = false;
+                            break;
+                        }
+                    }
+                    if trail && first[factor.last().unwrap()].contains(&Symbol::Empty) {
+                        new.insert(Symbol::Empty);
+                    }
+                    first.get_mut(&symbol).unwrap().extend(new);
+                }
+                change |= first[&symbol].len() > num_items;
+            }
+        }
         first
     }
 }
