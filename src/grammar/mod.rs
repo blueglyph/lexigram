@@ -19,7 +19,8 @@ pub type VarId = u16;
 pub enum Symbol {
     #[default] Empty,
     T(TokenId),
-    NT(VarId)
+    NT(VarId),
+    End
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -38,6 +39,7 @@ impl Display for Symbol {
             Symbol::Empty => write!(f, "ε"),
             Symbol::T(id) => write!(f, ":{id}"),
             Symbol::NT(id) => write!(f, "{id}"),
+            Symbol::End => write!(f, "$"),
         }
     }
 }
@@ -852,6 +854,7 @@ pub mod macros {
     /// assert_eq!(gnode!(t 2), GrNode::Symbol(Symbol::T(2 as TokenId)));
     /// assert_eq!(gnode!(nt 3), GrNode::Symbol(Symbol::NT(3 as VarId)));
     /// assert_eq!(gnode!(e), GrNode::Symbol(Symbol::Empty));
+    /// assert_eq!(gnode!(end), GrNode::Symbol(Symbol::End));
     /// assert_eq!(gnode!(&), GrNode::Concat);
     /// assert_eq!(gnode!(|), GrNode::Or);
     /// assert_eq!(gnode!(?), GrNode::Maybe);
@@ -864,6 +867,7 @@ pub mod macros {
         (t $id:expr) => { GrNode::Symbol(Symbol::T($id as TokenId)) };
         (nt $id:expr) => { GrNode::Symbol(Symbol::NT($id as VarId)) };
         (e) => { GrNode::Symbol(Symbol::Empty) };
+        (end) => { GrNode::Symbol(Symbol::End) };
         //
         (&) => { GrNode::Concat };
         (|) => { GrNode::Or };
@@ -882,11 +886,13 @@ pub mod macros {
     /// assert_eq!(sym!(t 2), Symbol::T(2 as TokenId));
     /// assert_eq!(sym!(nt 3), Symbol::NT(3 as VarId));
     /// assert_eq!(sym!(e), Symbol::Empty);
+    /// assert_eq!(sym!(end), Symbol::End);
     #[macro_export(local_inner_macros)]
     macro_rules! sym {
         (t $id:expr) => { Symbol::T($id as TokenId) };
         (nt $id:expr) => { Symbol::NT($id as VarId) };
         (e) => { Symbol::Empty };
+        (end) => { Symbol::End };
     }
 
     /// Generates a production rule factor. A factor is made up of symbols separated by a comma.

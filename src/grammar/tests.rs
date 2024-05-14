@@ -328,7 +328,8 @@ fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
             match s {
                 Symbol::Empty => "e".to_string(),
                 Symbol::T(x) => format!("t {x}"),
-                Symbol::NT(x) => format!("nt {x}")
+                Symbol::NT(x) => format!("nt {x}"),
+                Symbol::End => "end".to_string(),
             }).join(", ")).join("; "))).join("\n            "))
 }
 

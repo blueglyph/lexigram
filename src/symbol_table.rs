@@ -83,7 +83,7 @@ impl SymbolTable {
 
     pub fn get_name(&self, symbol: &Symbol) -> String {
         match symbol {
-            Symbol::Empty => symbol.to_string(),
+            Symbol::Empty | Symbol::End => symbol.to_string(),
             Symbol::T(token) => {
                 // if *token as usize >= self.t.len() { return format!("??T({token})") }
                 let name = &self.t[*token as usize];
