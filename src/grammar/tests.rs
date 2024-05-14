@@ -347,8 +347,8 @@ fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
     match id {
         0 => {
             prods.extend([
-                // A -> A b | A c | d | e
-                prod!(nt 0, t 1; nt 0, t 2; t 3; t 4),
+                // A -> A b | A c | d | d e
+                prod!(nt 0, t 1; nt 0, t 2; t 3; t 3, t 4),
                 // B -> A f | g | h
                 prod!(nt 0, t 5; t 6; t 7),
             ]);
@@ -368,6 +368,16 @@ fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
                 )
             ]);
         }
+        2 => { // tests empty prod
+            prods.extend([]);
+        }
+        3 => { // tests contiue / break consistency
+            prods.extend([
+                prod!(t 0),
+                prod!(t 2, t 0; t 2),
+                prod!(t 2; t 1),
+                prod!(t 3)]);
+        }
         _ => {}
     };
     // finds the highest NT and populates the symbol table:
@@ -386,10 +396,14 @@ fn build_prodrules(id: u32) -> ProdRuleSet<LR> {
 fn test_remove_left_recursion() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
-            0 => prod!(t 3, nt 2; t 4, nt 2),
+           // A -> d A_1 | d e A_1
+           // B -> A f | g | h
+           // A_1 -> b A_1 | c A_1 | ε
+            0 => prod!(t 3, nt 2; t 3, t 4, nt 2),
             1 => prod!(nt 0, t 5; t 6; t 7),
             2 => prod!(t 1, nt 2; t 2, nt 2; e),
-        ])
+        ]),
+        (2, btreemap![]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -412,6 +426,16 @@ fn test_remove_left_recursion() {
 #[test]
 fn test_left_factorize() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
+        (0, btreemap![
+           // A -> d A_1 | A A_2
+           // B -> A f | g | h
+           // A_1 -> ε | e
+           // A_2 -> b | c
+            0 => prod!(t 3, nt 2; nt 0, nt 3),
+            1 => prod!(nt 0, t 5; t 6; t 7),
+            2 => prod!(e; t 4),
+            3 => prod!(t 1; t 2),
+        ]),
         (1, btreemap![
             // A -> b A_4 | c b | d c A_3
             // A_1 -> ε | d
@@ -423,7 +447,15 @@ fn test_left_factorize() {
             2 => prod!(t 5; t 6),
             3 => prod!(e; t 4),
             4 => prod!(t 1, t 2, nt 1; t 2, t 6; t 3, t 4, nt 2),
-        ])
+        ]),
+        (2, btreemap![]),
+        (3, btreemap![
+            0 => prod!(t 0),
+            1 => prod!(t 2, nt 4),
+            2 => prod!(t 2; t 1),
+            3 => prod!(t 3),
+            4 => prod!(e; t 0),
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -447,11 +479,21 @@ fn test_left_factorize() {
 fn ll1_from() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
-            0 => prod!(t 3, nt 2; t 4, nt 2),
+           // A -> d A_2
+           // B -> A f | g | h
+           // A_1 -> b A_1 | c A_1 | ε
+           // A_2 -> e A_1 | A_1
+            0 => prod!(t 3, nt 3),
             1 => prod!(nt 0, t 5; t 6; t 7),
             2 => prod!(t 1, nt 2; t 2, nt 2; e),
+            3 => prod!(t 4, nt 2; nt 2),
         ]),
         (1, btreemap![
+           // A -> b A_4 | c b | d c A_3
+           // A_1 -> ε | d
+           // A_2 -> f | g
+           // A_3 -> ε | e
+           // A_4 -> b c A_1 | c g | d e A_2
             0 => prod!(t 1, nt 4; t 2, t 1; t 3, t 2, nt 3),
             1 => prod!(e; t 3),
             2 => prod!(t 5; t 6),
