@@ -1,19 +1,28 @@
 #![cfg(test)]
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 use super::*;
 use crate::dfa::TokenId;
-use crate::{btreemap, gnode, prod, prodf, sym};
+use crate::{btreemap, gnode, hashmap, hashset, prod, prodf, sym};
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
 fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
-    println!("   {}", prods.get_prods_iter().map(|(var, p)|
+    println!("    {}", prods.get_prods_iter().map(|(var, p)|
         format!("{} -> {}",
                 Symbol::NT(var).to_str(prods.get_symbol_table()),
                 prod_to_string(p, prods.get_symbol_table()))
-    ).join("\n   "));
+    ).join("\n    "));
+}
+
+fn symbol_to_code(s: &Symbol) -> String {
+    match s {
+        Symbol::Empty => "e".to_string(),
+        Symbol::T(x) => format!("t {x}"),
+        Symbol::NT(x) => format!("nt {x}"),
+        Symbol::End => "end".to_string(),
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -324,13 +333,8 @@ fn rts_prodrule_from() {
 
 fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
     println!("\n            {}", result.iter().map(|(i, p)|
-        format!("{i} => prod!({}),", p.iter().map(|f| f.iter().map(|s|
-            match s {
-                Symbol::Empty => "e".to_string(),
-                Symbol::T(x) => format!("t {x}"),
-                Symbol::NT(x) => format!("nt {x}"),
-                Symbol::End => "end".to_string(),
-            }).join(", ")).join("; "))).join("\n            "))
+        format!("{i} => prod!({}),", p.iter().map(|f| f.iter().map(|s| symbol_to_code(s))
+            .join(", ")).join("; "))).join("\n            "))
 }
 
 fn def_arith_symbols(symbol_table: &mut SymbolTable) {
@@ -425,20 +429,20 @@ fn build_prs(id: u32) -> ProdRuleSet<LR> {
 fn prs_remove_left_recursion() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
-           // A -> d A_1 | d e A_1
-           // B -> A f | g | h
-           // A_1 -> b A_1 | c A_1 | ε
+            // A -> d A_1 | d e A_1
+            // B -> A f | g | h
+            // A_1 -> b A_1 | c A_1 | ε
             0 => prod!(t 3, nt 2; t 3, t 4, nt 2),
             1 => prod!(nt 0, t 5; t 6; t 7),
             2 => prod!(t 1, nt 2; t 2, nt 2; e),
         ]),
         (2, btreemap![]),
         (4, btreemap![
-           // E -> T E_1
-           // T -> F T_1
-           // F -> ( E ) | NUM | ID
-           // E_1 -> + T E_1 | - T E_1 | ε
-           // T_1 -> * F T_1 | / F T_1 | ε
+            // E -> T E_1
+            // T -> F T_1
+            // F -> ( E ) | NUM | ID
+            // E_1 -> + T E_1 | - T E_1 | ε
+            // T_1 -> * F T_1 | / F T_1 | ε
             0 => prod!(nt 1, nt 3),
             1 => prod!(nt 2, nt 4),
             2 => prod!(t 4, nt 0, t 5; t 6; t 7),
@@ -471,10 +475,10 @@ fn prs_remove_left_recursion() {
 fn prs_left_factorize() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
-           // A -> d A_1 | A A_2
-           // B -> A f | g | h
-           // A_1 -> ε | e
-           // A_2 -> b | c
+            // A -> d A_1 | A A_2
+            // B -> A f | g | h
+            // A_1 -> ε | e
+            // A_2 -> b | c
             0 => prod!(t 3, nt 2; nt 0, nt 3),
             1 => prod!(nt 0, t 5; t 6; t 7),
             2 => prod!(e; t 4),
@@ -501,11 +505,11 @@ fn prs_left_factorize() {
             4 => prod!(e; t 0),
         ]),
         (4, btreemap![
-           // E -> E E_1 | T
-           // T -> T T_1 | F
-           // F -> ( E ) | NUM | ID
-           // E_1 -> + T | - T
-           // T_1 -> * F | / F
+            // E -> E E_1 | T
+            // T -> T T_1 | F
+            // F -> ( E ) | NUM | ID
+            // E_1 -> + T | - T
+            // T_1 -> * F | / F
             0 => prod!(nt 0, nt 3; nt 1),
             1 => prod!(nt 1, nt 4; nt 2),
             2 => prod!(t 4, nt 0, t 5; t 6; t 7),
@@ -538,21 +542,21 @@ fn prs_left_factorize() {
 fn prs_ll1_from() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
-           // A -> d A_2
-           // B -> A f | g | h
-           // A_1 -> b A_1 | c A_1 | ε
-           // A_2 -> e A_1 | A_1
+            // A -> d A_2
+            // B -> A f | g | h
+            // A_1 -> b A_1 | c A_1 | ε
+            // A_2 -> e A_1 | A_1
             0 => prod!(t 3, nt 3),
             1 => prod!(nt 0, t 5; t 6; t 7),
             2 => prod!(t 1, nt 2; t 2, nt 2; e),
             3 => prod!(t 4, nt 2; nt 2),
         ]),
         (1, btreemap![
-           // A -> b A_4 | c b | d c A_3
-           // A_1 -> ε | d
-           // A_2 -> f | g
-           // A_3 -> ε | e
-           // A_4 -> b c A_1 | c g | d e A_2
+            // A -> b A_4 | c b | d c A_3
+            // A_1 -> ε | d
+            // A_2 -> f | g
+            // A_3 -> ε | e
+            // A_4 -> b c A_1 | c g | d e A_2
             0 => prod!(t 1, nt 4; t 2, t 1; t 3, t 2, nt 3),
             1 => prod!(e; t 3),
             2 => prod!(t 5; t 6),
@@ -560,11 +564,11 @@ fn prs_ll1_from() {
             4 => prod!(t 1, t 2, nt 1; t 2, t 6; t 3, t 4, nt 2),
         ]),
         (4, btreemap![
-           // E -> T E_1
-           // T -> F T_1
-           // F -> ( E ) | NUM | ID
-           // E_1 -> + T E_1 | - T E_1 | ε
-           // T_1 -> * F T_1 | / F T_1 | ε
+            // E -> T E_1
+            // T -> F T_1
+            // F -> ( E ) | NUM | ID
+            // E_1 -> + T E_1 | - T E_1 | ε
+            // T_1 -> * F T_1 | / F T_1 | ε
             0 => prod!(nt 1, nt 3),
             1 => prod!(nt 2, nt 4),
             2 => prod!(t 4, nt 0, t 5; t 6; t 7),
@@ -590,5 +594,53 @@ fn prs_ll1_from() {
         let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&rules_ll1);
         assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
+   }
+}
+
+#[test]
+fn prs_calc_first() {
+    let tests: Vec<(u32, HashMap<Symbol, HashSet<Symbol>>)> = vec![
+        (4, hashmap![
+            // E -> T E_1
+            // T -> F T_1
+            // F -> ( E ) | NUM | ID
+            // E_1 -> + T E_1 | - T E_1 | ε
+            // T_1 -> * F T_1 | / F T_1 | ε
+
+            // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
+            // NT: 0:E, 1:T, 2:F, 3:E_1, 4:T_1
+
+            sym!(t 0) => hashset![sym!(t 0)],
+            sym!(t 1) => hashset![sym!(t 1)],
+            sym!(t 2) => hashset![sym!(t 2)],
+            sym!(t 3) => hashset![sym!(t 3)],
+            sym!(t 4) => hashset![sym!(t 4)],
+            sym!(t 5) => hashset![sym!(t 5)],
+            sym!(t 6) => hashset![sym!(t 6)],
+            sym!(t 7) => hashset![sym!(t 7)],
+            sym!(nt 0) => hashset![sym!(t 4), sym!(t 6), sym!(t 7)],
+            sym!(nt 1) => hashset![sym!(t 4), sym!(t 6), sym!(t 7)],
+            sym!(nt 2) => hashset![sym!(t 4), sym!(t 6), sym!(t 7)],
+            sym!(nt 3) => hashset![sym!(t 0), sym!(t 1), sym!(e)],
+            sym!(nt 4) => hashset![sym!(t 2), sym!(t 3), sym!(e)],
+        ]),
+    ];
+    const VERBOSE: bool = true;
+    for (test_id, expected) in tests {
+        let rules_lr = build_prs(test_id);
+        if VERBOSE {
+            println!("test {test_id}:");
+        }
+        let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let first = rules_ll1.calc_first();
+        if VERBOSE {
+            print_production_rules(&rules_ll1);
+            let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
+            for (sym, set) in b {
+                println!("            {} => hashset![{}],", symbol_to_code(sym),
+                    set.iter().map(|s| symbol_to_code(s)).join(", "));
+            }
+        }
+        assert_eq!(first, expected, "test {test_id} failed");
    }
 }

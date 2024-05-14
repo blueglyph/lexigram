@@ -15,7 +15,7 @@ use crate::symbol_table::SymbolTable;
 
 pub type VarId = u16;
 
-#[derive(Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Debug)]
+#[derive(Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 pub enum Symbol {
     #[default] Empty,
     T(TokenId),
@@ -590,6 +590,13 @@ impl<T> ProdRuleSet<T> {
 
     pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
         self.symbol_table.as_ref()
+    }
+
+    pub fn calc_first(&self) -> HashMap<Symbol, HashSet<Symbol>> {
+        let first = HashMap::<Symbol, HashSet<Symbol>>::new();
+
+
+        first
     }
 }
 
