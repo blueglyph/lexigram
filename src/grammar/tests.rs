@@ -311,7 +311,7 @@ fn rts_prodrule_from() {
         (11, btreemap![
             0 => prod!(nt 1, nt 10),
             10 => prod!(nt 2, nt 10; e)]),
-        // [0 => "&(1, 10)", 10 => "|(&(2, 3, 10), ε)"],
+        // 0 => "&(1, 10)", 10 => "|(&(2, 3, 10), ε)"
         (12, btreemap![
             0 => prod!(nt 1, nt 10),
             10 => prod!(nt 2, nt 3, nt 10; e)]),
@@ -404,6 +404,20 @@ fn build_prs(id: u32) -> ProdRuleSet<LR> {
                 prod!(nt 0, t 0, nt 1; nt 0, t 1, nt 1; nt 1),  // E -> E + T | E - T | T
                 prod!(nt 1, t 2, nt 2; nt 1, t 3, nt 2; nt 2),  // T -> T * F | T / F | F
                 prod!(t 4, nt 0, t 5; t 6; t 7),                // F -> ( E ) | NUM | ID
+            ]);
+        }
+        5 => {
+            // ε in first propagation
+            symbol_table.extend_terminals([
+                ("SUB".to_string(), Some("-".to_string())),
+                ("ADD".to_string(), Some("+".to_string())),
+                ("SEMI".to_string(), Some(";".to_string()))
+            ]);
+            symbol_table.extend_non_terminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
+            prods.extend([
+                prod!(nt 1, nt 2, t 2),
+                prod!(t 0, nt 1; e),
+                prod!(t 1, nt 2; e),
             ]);
         }
         _ => {}
@@ -624,6 +638,15 @@ fn prs_calc_first() {
             sym!(nt 3) => hashset![sym!(t 0), sym!(t 1), sym!(e)],
             sym!(nt 4) => hashset![sym!(t 2), sym!(t 3), sym!(e)],
         ]),
+        (5, 0, hashmap![
+            sym!(e) => hashset![sym!(e)],
+            sym!(t 0) => hashset![sym!(t 0)],
+            sym!(t 1) => hashset![sym!(t 1)],
+            sym!(t 2) => hashset![sym!(t 2)],
+            sym!(nt 0) => hashset![sym!(t 0), sym!(t 1), sym!(t 2)],
+            sym!(nt 1) => hashset![sym!(t 0), sym!(e)],
+            sym!(nt 2) => hashset![sym!(t 1), sym!(e)]
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, start, expected) in tests {
@@ -638,11 +661,11 @@ fn prs_calc_first() {
             print_production_rules(&rules_ll1);
             let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
             for (sym, set) in &b {
-                println!("// {} => {},", sym.to_str(rules_ll1.get_symbol_table()), set.iter().map(|s| s.to_str(rules_ll1.get_symbol_table())).join(", "));
+                println!("// {} => {}", sym.to_str(rules_ll1.get_symbol_table()), set.iter().map(|s| s.to_str(rules_ll1.get_symbol_table())).join(" "));
             }
             for (sym, set) in &b {
-                println!("            {} => hashset![{}],", symbol_to_code(sym),
-                    set.iter().map(|s| symbol_to_code(s)).join(", "));
+                println!("            sym!({}) => hashset![{}],", symbol_to_code(sym),
+                    set.iter().map(|s| format!("sym!({})", symbol_to_code(s))).join(", "));
             }
         }
         assert_eq!(first, expected, "test {test_id} failed");
@@ -667,6 +690,12 @@ fn prs_calc_follow() {
             sym!(nt 3) => hashset![sym!(t 5), sym!(end)],
             sym!(nt 4) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(end)],
         ]),
+        (5, 0, hashmap![
+            sym!(nt 0) => hashset![sym!(end)],
+            sym!(nt 1) => hashset![sym!(t 1), sym!(t 2)],
+            sym!(nt 2) => hashset![sym!(t 2)],
+        ]),
+
     ];
     const VERBOSE: bool = false;
     for (test_id, start, expected) in tests {
@@ -682,11 +711,11 @@ fn prs_calc_follow() {
             print_production_rules(&rules_ll1);
             let b = follow.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
             for (sym, set) in &b {
-                println!("// {} => {},", sym.to_str(rules_ll1.get_symbol_table()), set.iter().map(|s| s.to_str(rules_ll1.get_symbol_table())).join(", "));
+                println!("// {} => {}", sym.to_str(rules_ll1.get_symbol_table()), set.iter().map(|s| s.to_str(rules_ll1.get_symbol_table())).join(" "));
             }
             for (sym, set) in &b {
-                println!("            {} => hashset![{}],", symbol_to_code(sym),
-                    set.iter().map(|s| symbol_to_code(s)).join(", "));
+                println!("            sym!({}) => hashset![{}],", symbol_to_code(sym),
+                    set.iter().map(|s| format!("sym!({})", symbol_to_code(s))).join(", "));
             }
         }
         assert_eq!(follow, expected, "test {test_id} failed");

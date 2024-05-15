@@ -629,13 +629,18 @@ impl<T> ProdRuleSet<T> {
                     assert!(factor.len() > 0, "empty factor for {}: {}",
                             symbol.to_str(self.symbol_table.as_ref()), factor_to_string(factor, self.symbol_table.as_ref()));
                     if VERBOSE {
-                        print!("    [0] = {}", factor[0].to_str(self.symbol_table.as_ref()));
+                        print!("    [0] {}", factor[0].to_str(self.symbol_table.as_ref()));
                         println!(", first = {}", first[&factor[0]].iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", "));
                     }
                     new.extend(first[&factor[0]].iter().filter(|s| *s != &Symbol::Empty));
                     let mut trail = true;
-                    for (i, sym_i) in factor.iter().enumerate().rev().skip(1) {
+                    // for (i, sym_i) in factor.iter().enumerate().skip(1) {
+                    for i in 0..factor.len() - 1 {
+                        let sym_i = &factor[i];
                         if first[sym_i].contains(&Symbol::Empty) {
+                            if VERBOSE { println!("    [{}] {} first += {}", i + 1, factor[i].to_str(self.get_symbol_table()),
+                                                  first[&factor[i + 1]].iter().filter(|s| *s != &Symbol::Empty).map(|s|
+                                                      s.to_str(self.get_symbol_table())).join(", ")); }
                             new.extend(first[&factor[i + 1]].iter().filter(|s| *s != &Symbol::Empty));
                         } else {
                             trail = false;
@@ -656,6 +661,7 @@ impl<T> ProdRuleSet<T> {
                 }
                 change |= first[&symbol].len() > num_items;
             }
+            if VERBOSE && change { println!("---------------------------- again"); }
         }
         first
     }
@@ -702,6 +708,7 @@ impl<T> ProdRuleSet<T> {
                     }
                 }
             }
+            if VERBOSE && change { println!("---------------------------- again"); }
         }
         follow
     }
