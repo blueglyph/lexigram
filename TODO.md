@@ -27,12 +27,12 @@
 # RParser
 
 - parser lib
-  - ~~RuleTreeSet to store the parsed production rules (as `VecTree<GrNode>`)~~
+  - RuleTreeSet to store the parsed production rules (as `VecTree<GrNode>`)
     - [x] ~~normalize~~
     - [x] ~~transforms to | of &s~~ 
     - [x] ~~translate *, +, ? -> tree~~
     - [x] ~~transform normalized tree rules -> production rules~~
-  - ~~RuleProdSet to store the normalized production rules (as `Vec<Vec<Symbol>>`)~~
+  - RuleProdSet to store the normalized production rules (as `Vec<Vec<Symbol>>`)
     - [x] ~~remove left recursion -> rules~~
     - [x] ~~left factoring -> rules~~
     - [x] ~~manage symbol table~~
@@ -40,7 +40,8 @@
     - [x] ~~calc first~~
     - [x] ~~calc follow~~
     - [x] ~~check if LL(1)~~
-    - [ ] build parsing table
+    - [x] ~~build parsing table~~
+    - [ ] warning/error log system (for parsing table, lexer, ...)
     - [ ] predictive parsing algorithm
     - [ ] hooks: how to link back to original RuleTree?
     - [ ] generate code

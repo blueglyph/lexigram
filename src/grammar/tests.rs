@@ -337,6 +337,28 @@ fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
             .join(", ")).join("; "))).join("\n            "))
 }
 
+fn print_ll1_table(symbol_table: Option<&SymbolTable>, num_nt: usize, num_t: usize, factors: &Vec<(VarId, ProdFactor)>, table: &Vec<VarId>) {
+    let error = factors.len() as VarId;
+    let str_nt = (0..num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
+    let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
+    let str_t = (0..num_t).map(|j| if j + 1 < num_t { Symbol::T(j as VarId).to_str(symbol_table) } else { "$".to_string() }).to_vec();
+    let max_t_len = str_t.iter().map(|s| s.len()).max().unwrap().max(3);
+    println!("// {:<w$} | {}", "", (0..num_t).map(|j| format!("{:>1$}", str_t[j], max_t_len)).join(" "), w = max_nt_len);
+    println!("// {:-<w$}-+-{:-<t$}", "", "", w = max_nt_len, t = num_t * (max_t_len + 1));
+    for i in 0..num_nt {
+        print!("// {:>w$} |", str_nt[i], w = max_nt_len);
+        for j in 0..num_t {
+            let value = table[i * num_t + j];
+            if value < error {
+                print!(" {:3}", value);
+            } else {
+                print!("   .");
+            }
+        }
+        println!();
+    }
+}
+
 fn def_arith_symbols(symbol_table: &mut SymbolTable) {
     symbol_table.extend_terminals([
         ("PLUS".to_string(), Some("+".to_string())),
@@ -352,6 +374,7 @@ fn def_arith_symbols(symbol_table: &mut SymbolTable) {
         "E".to_string(), "T".to_string(), "F".to_string()
     ]);
 }
+
 impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
     fn from(rules: &ProdRuleSet<T>) -> Self {
         rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
@@ -719,5 +742,107 @@ fn prs_calc_follow() {
             }
         }
         assert_eq!(follow, expected, "test {test_id} failed");
+   }
+}
+
+#[test]
+fn prs_calc_table() {
+    let tests: Vec<(u32, VarId, Vec<(VarId, ProdFactor)>, Vec<VarId>)> = vec![
+        (4, 0, vec![
+            // - 0: E -> T E_1
+            // - 1: T -> F T_1
+            // - 2: F -> ( E )
+            // - 3: F -> NUM
+            // - 4: F -> ID
+            // - 5: E_1 -> + T E_1
+            // - 6: E_1 -> - T E_1
+            // - 7: E_1 -> ε
+            // - 8: T_1 -> * F T_1
+            // - 9: T_1 -> / F T_1
+            // - 10: T_1 -> ε
+            (0, prodf!(nt 1, nt 3)),
+            (1, prodf!(nt 2, nt 4)),
+            (2, prodf!(t 4, nt 0, t 5)),
+            (2, prodf!(t 6)),
+            (2, prodf!(t 7)),
+            (3, prodf!(t 0, nt 1, nt 3)),
+            (3, prodf!(t 1, nt 1, nt 3)),
+            (3, prodf!(e)),
+            (4, prodf!(t 2, nt 2, nt 4)),
+            (4, prodf!(t 3, nt 2, nt 4)),
+            (4, prodf!(e)),
+        ], vec![
+            //     |   +   -   *   /   (   ) NUM  ID   $
+            // ----+-------------------------------------
+            //   E |   .   .   .   .   0   .   0   0   .
+            //   T |   .   .   .   .   1   .   1   1   .
+            //   F |   .   .   .   .   2   .   3   4   .
+            // E_1 |   5   6   .   .   .   7   .   .   .
+            // T_1 |  10  10   8   9   .  10   .   .   .
+             11,  11,  11,  11,   0,  11,   0,   0,  11,
+             11,  11,  11,  11,   1,  11,   1,   1,  11,
+             11,  11,  11,  11,   2,  11,   3,   4,  11,
+              5,   6,  11,  11,  11,   7,  11,  11,  11,
+             10,  10,   8,   9,  11,  10,  11,  11,  11,
+        ]),
+
+        (5, 0, vec![
+            // - 0: A -> A1 A2 ;
+            // - 1: A1 -> - A1
+            // - 2: A1 -> ε
+            // - 3: A2 -> + A2
+            // - 4: A2 -> ε
+            (0, prodf!(nt 1, nt 2, t 2)),
+            (1, prodf!(t 0, nt 1)),
+            (1, prodf!(e)),
+            (2, prodf!(t 1, nt 2)),
+            (2, prodf!(e)),
+        ], vec![
+            //    |   -   +   ;   $
+            // ---+-----------------
+            //  A |   0   0   0   .
+            // A1 |   1   2   2   .
+            // A2 |   .   3   4   .
+            0, 0, 0, 5,
+            1, 2, 2, 5,
+            5, 3, 4, 5,
+        ]),
+    ];
+    const VERBOSE: bool = true;
+    for (test_id, start, expected_factors, expected_table) in tests {
+        let rules_lr = build_prs(test_id);
+        if VERBOSE {
+            println!("test {test_id}:");
+        }
+        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        ll1.set_start(Some(start));
+        let first = ll1.calc_first();
+        let follow = ll1.calc_follow(&first);
+        let (num_nt, num_t, factors, table) = ll1.calc_table(&first, &follow);
+        assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}");
+        if VERBOSE {
+            println!("num_nt = {num_nt}, num_t = {num_t}");
+            let error = factors.len() as VarId;
+            print_production_rules(&ll1);
+            println!("factors:\n{}",
+                     factors.iter().enumerate().map(|(id, (v, f))|
+                         format!("            // - {id}: {} -> {}", Symbol::NT(*v).to_str(ll1.get_symbol_table()),
+                                 f.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "))
+            ).join("\n"));
+            println!("{}",
+                     factors.iter().enumerate().map(|(id, (v, f))|
+                         format!("            ({v}, prodf!({})),", f.iter().map(|s| symbol_to_code(s)).join(", "))
+            ).join("\n"));
+            println!("table:");
+            print_ll1_table(ll1.get_symbol_table(), num_nt, num_t, &factors, &table);
+            if table.len() < 30 {
+                println!("vec![{}]", table.iter().map(|x| x.to_string()).join(", "));
+            }
+            for i in 0..num_nt {
+                println!("            {},", (0..num_t).map(|j| format!("{:3}", table[i * num_t + j])).join(", "));
+            }
+        }
+        assert_eq!(factors, expected_factors, "test {test_id} failed");
+        assert_eq!(table, expected_table, "test {test_id} failed");
    }
 }
