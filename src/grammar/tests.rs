@@ -383,10 +383,11 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
     }
 }
 
-fn build_prs(id: u32) -> ProdRuleSet<LR> {
+pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
     let prods = &mut rules.prods;
+    let start = Some(0);
     match id {
         0 => {
             prods.extend([
@@ -460,6 +461,7 @@ fn build_prs(id: u32) -> ProdRuleSet<LR> {
         symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
     }
     rules.set_symbol_table(symbol_table);
+    rules.set_start(start);
     rules
 }
 

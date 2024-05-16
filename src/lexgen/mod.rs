@@ -161,14 +161,14 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
     };
 
     // Create source code:
+    writeln!(out, "// -------------------------------------------------------------------------")?;
+    writeln!(out, "// Automatically generated\n")?;
     writeln!(out, "use std::collections::HashMap;")?;
     writeln!(out, "use std::io::Read;")?;
     writeln!(out, "use crate::dfa::{{StateId, Terminal, Token}};")?;
     writeln!(out, "use crate::lexer::Lexer;")?;
     writeln!(out, "use crate::lexgen::GroupId;")?;
     writeln!(out, "use crate::segments::{{Seg, SegMap}};\n")?;
-    writeln!(out, "// -------------------------------------------------------------------------")?;
-    writeln!(out, "// Copied from a print_source_code(&lexgen)\n")?;
     writeln!(out, "const NBR_GROUPS: u32 = {};", lexgen.nbr_groups)?;
     writeln!(out, "const INITIAL_STATE: StateId = {};", lexgen.initial_state)?;
     writeln!(out, "const FIRST_END_STATE: StateId = {};", lexgen.first_end_state)?;

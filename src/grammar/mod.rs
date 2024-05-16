@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 #![allow(unused)]
 
-mod tests;
+pub(crate) mod tests;
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -575,12 +575,12 @@ pub struct LLParsingTable {
     pub table: Vec<VarId>
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LR;
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct LL1;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
     symbol_table: Option<SymbolTable>,
@@ -897,7 +897,7 @@ impl ProdRuleSet<LL1> {
             }
             table[pos] = f_id;
         }
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let factors = self.prods.iter().enumerate().flat_map(|(v, x)| x.iter().map(move |f| (v as VarId, f.clone() as ProdFactor))).to_vec();
         let error = factors.len() as VarId; // table entry for syntactic error
         let num_nt = first.keys().filter(|s| matches!(s, Symbol::NT(_))).count();

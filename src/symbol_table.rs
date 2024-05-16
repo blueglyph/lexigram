@@ -73,6 +73,10 @@ impl SymbolTable {
         self.nt.extend(iter);
     }
 
+    pub fn get_names(&self) -> impl Iterator<Item=(&String, &VarId)> {
+        self.names.iter()
+    }
+
     pub fn extend_names<I: IntoIterator<Item=(String, VarId)>>(&mut self, iter: I) {
         self.names.extend(iter);
     }
