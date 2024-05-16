@@ -467,12 +467,12 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
                 ("ADD".to_string(), Some("+".to_string())),
                 ("SEMI".to_string(), Some(";".to_string()))
             ]);
-            symbol_table.extend_non_terminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
+            symbol_table.extend_non_terminals(["A1".to_string(), "X".to_string(), "A".to_string(), "A2".to_string()]);
             prods.extend([
-                prod!(nt 2, nt 3, t 2), // A -> C D ;       <-- start II
-                prod!(nt 0),            // B -> A           <-- start I
-                prod!(t 0, nt 2; e),    // C -> - C | ε
-                prod!(t 1, nt 3; e),    // D -> + D | ε
+                prod!(t 0, nt 0; e),    // A1 -> - A1 | ε
+                prod!(nt 2),            // X -> A           <-- start I
+                prod!(nt 0, nt 3, t 2), // A -> A1 A2 ;     <-- start II
+                prod!(t 1, nt 3; e),    // A2 -> + A2 | ε
             ]);
             start = Some(1);
         }
@@ -820,7 +820,6 @@ fn prs_calc_table() {
               5,   6,  11,  11,  11,   7,  11,  11,  11,
              10,  10,   8,   9,  11,  10,  11,  11,  11,
         ]),
-*/
         (5, 0, vec![
             // - 0: A -> A1 A2 ;
             // - 1: A1 -> - A1
@@ -862,6 +861,57 @@ fn prs_calc_table() {
               0,   1,   1,   5,
               2,   2,   2,   5,
               5,   3,   4,   5,
+        ]),
+        (7, 1, vec![
+            // - 0: A1 -> - A1
+            // - 1: A1 -> ε
+            // - 2: X -> A
+            // - 3: A -> A1 A2 ;
+            // - 4: A2 -> + A2
+            // - 5: A2 -> ε
+            (0, prodf!(t 0, nt 0)),
+            (0, prodf!(e)),
+            (1, prodf!(nt 2)),
+            (2, prodf!(nt 0, nt 3, t 2)),
+            (3, prodf!(t 1, nt 3)),
+            (3, prodf!(e)),
+        ], vec![
+            //    |   -   +   ;   $
+            // ---+-----------------
+            // A1 |   0   1   1   .
+            //  X |   2   2   2   .
+            //  A |   3   3   3   .
+            // A2 |   .   4   5   .
+              0,   1,   1,   6,
+              2,   2,   2,   6,
+              3,   3,   3,   6,
+              6,   4,   5,   6,
+        ]),
+*/
+        (7, 2, vec![
+            // - 0: A1 -> - A1
+            // - 1: A1 -> ε
+            // - 2: X -> A
+            // - 3: A -> A1 A2 ;
+            // - 4: A2 -> + A2
+            // - 5: A2 -> ε
+            (0, prodf!(t 0, nt 0)),
+            (0, prodf!(e)),
+            (1, prodf!(nt 2)),
+            (2, prodf!(nt 0, nt 3, t 2)),
+            (3, prodf!(t 1, nt 3)),
+            (3, prodf!(e)),
+        ], vec![
+            //    |   -   +   ;   $
+            // ---+-----------------
+            // A1 |   0   1   1   .
+            //  X |   2   2   2   .
+            //  A |   3   3   3   .
+            // A2 |   .   4   5   .
+              0,   1,   1,   6,
+              2,   2,   2,   6,
+              3,   3,   3,   6,
+              6,   4,   5,   6,
         ]),
     ];
     const VERBOSE: bool = true;

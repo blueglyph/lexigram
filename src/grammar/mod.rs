@@ -898,7 +898,9 @@ impl ProdRuleSet<LL1> {
             table[pos] = f_id;
         }
         const VERBOSE: bool = false;
-        let factors = self.prods.iter().enumerate().flat_map(|(v, x)| x.iter().map(move |f| (v as VarId, f.clone() as ProdFactor))).to_vec();
+        const DISABLE_FILTER: bool = true;
+        let factors = self.prods.iter().enumerate().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v as VarId)))
+            .flat_map(|(v, x)| x.iter().map(move |f| (v as VarId, f.clone() as ProdFactor))).to_vec();
         let error = factors.len() as VarId; // table entry for syntactic error
         let num_nt = first.keys().filter(|s| matches!(s, Symbol::NT(_))).count();
         let num_t = first.keys().filter(|s| matches!(s, Symbol::T(_))).count() + 1; // includes the end symbol
