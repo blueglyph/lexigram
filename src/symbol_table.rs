@@ -40,7 +40,7 @@ use crate::grammar::{Symbol, VarId};
 /// nt[2] = "expr_0";
 /// ```
 ///
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct SymbolTable {
     // todo: find more efficient storage for terminals
     t: Vec<(String, Option<String>)>,
@@ -71,6 +71,10 @@ impl SymbolTable {
 
     pub fn extend_non_terminals<I: IntoIterator<Item=String>>(&mut self, iter: I) {
         self.nt.extend(iter);
+    }
+
+    pub fn extend_names<I: IntoIterator<Item=(String, VarId)>>(&mut self, iter: I) {
+        self.names.extend(iter);
     }
 
     /// Adds a new variable `var_prime` derived from another `var`. Use the name

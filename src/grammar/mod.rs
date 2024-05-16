@@ -514,12 +514,12 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     }
 }
 
-impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
-    /// Transforms a `Normalized` ruleset to a `General` ruleset
-    fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
-        RuleTreeSet::<General> { trees: rules.trees, next_var: rules.next_var, _phantom: PhantomData }
-    }
-}
+// impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
+//     /// Transforms a `Normalized` ruleset to a `General` ruleset
+//     fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
+//         RuleTreeSet::<General> { trees: rules.trees, next_var: rules.next_var, _phantom: PhantomData }
+//     }
+// }
 
 // ---------------------------------------------------------------------------------------------
 
@@ -534,8 +534,8 @@ impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
 /// `[[gnode!(nt 1), gnode!(nt 2)],[gnode!(nt 3)],[gnode!(e)]]`
 ///
 /// (where the representation of vectors has been simplified to square brackets).
-type ProdRule = Vec<Vec<Symbol>>;
-type ProdFactor = Vec<Symbol>;
+pub type ProdRule = Vec<Vec<Symbol>>;
+pub type ProdFactor = Vec<Symbol>;
 
 pub fn factor_to_string(factor: &ProdFactor, symbol_table: Option<&SymbolTable>) -> String {
     factor.iter().map(|symbol|
@@ -567,13 +567,21 @@ fn factor_first(factor: &ProdFactor, first: &HashMap<Symbol, HashSet<Symbol>>) -
     new
 }
 
-#[derive(Clone)]
-struct LR;
-#[derive(Clone)]
-struct LL1;
+#[derive(Debug)]
+pub struct LLParsingTable {
+    pub num_nt: usize,
+    pub num_t: usize,
+    pub factors: Vec<(VarId, ProdFactor)>,
+    pub table: Vec<VarId>
+}
 
 #[derive(Clone)]
-struct ProdRuleSet<T> {
+pub struct LR;
+#[derive(Clone)]
+pub struct LL1;
+
+#[derive(Clone)]
+pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
     symbol_table: Option<SymbolTable>,
     start: Option<VarId>,
@@ -613,8 +621,8 @@ impl<T> ProdRuleSet<T> {
         self.symbol_table.as_ref()
     }
 
-    pub fn get_symbol_table_mut(&mut self) -> Option<&mut SymbolTable> {
-        self.symbol_table.as_mut()
+    pub fn symbol_table(self) -> Option<SymbolTable> {
+        self.symbol_table
     }
 
     pub fn calc_first(&self) -> HashMap<Symbol, HashSet<Symbol>> {
@@ -657,26 +665,6 @@ impl<T> ProdRuleSet<T> {
                         println!(", first = {}", first[&factor[0]].iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", "));
                     }
                     let new = factor_first(&factor, &first);
-                    /*
-                    let mut new = HashSet::<Symbol>::new();
-                    new.extend(first[&factor[0]].iter().filter(|s| *s != &Symbol::Empty));
-                    let mut trail = true;
-                    for i in 0..factor.len() - 1 {
-                        let sym_i = &factor[i];
-                        if first[sym_i].contains(&Symbol::Empty) {
-                            if VERBOSE { println!("    [{}] {} first += {}", i + 1, factor[i].to_str(self.get_symbol_table()),
-                                                  first[&factor[i + 1]].iter().filter(|s| *s != &Symbol::Empty).map(|s|
-                                                      s.to_str(self.get_symbol_table())).join(", ")); }
-                            new.extend(first[&factor[i + 1]].iter().filter(|s| *s != &Symbol::Empty));
-                        } else {
-                            trail = false;
-                            break;
-                        }
-                    }
-                    if trail && first[factor.last().unwrap()].contains(&Symbol::Empty) {
-                        new.insert(Symbol::Empty);
-                    }
-                    */
                     let _n = first.get(&symbol).unwrap().len();
                     first.get_mut(&symbol).unwrap().extend(new);
                     if VERBOSE {
@@ -901,7 +889,7 @@ impl ProdRuleSet<LL1> {
     /// - `factors`, the production factors: (VarId, ProdFactor) where the first value is the non-terminal index and the second one of its factors
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production factor for
     /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `factors.len()` stands for a syntactic error.
-    pub fn calc_table(&self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>) -> (usize, usize, Vec<(VarId, ProdFactor)>, Vec<VarId>) {
+    pub fn calc_table(&self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>) -> LLParsingTable {
         fn add_table(table: &mut Vec<VarId>, error: VarId, num_t: usize, nt_id: VarId, t_id: VarId, f_id: VarId) {
             let pos = nt_id as usize * num_t + t_id as usize;
             if table[pos] != error && table[pos] != f_id {
@@ -946,7 +934,13 @@ impl ProdRuleSet<LL1> {
                 add_table(&mut table, error, num_t, *nt_id, end as VarId, end as VarId);
             }
         }
-        (num_nt, num_t, factors, table)
+        LLParsingTable { num_nt, num_t, factors, table }
+    }
+
+    pub fn create_parsing_table(&self) -> LLParsingTable {
+        let first = self.calc_first();
+        let follow = self.calc_follow(&first);
+        self.calc_table(&first, &follow)
     }
 }
 
@@ -1004,46 +998,6 @@ impl From<ProdRuleSet<LR>> for ProdRuleSet<LL1> {
             symbol_table: rules.symbol_table,
             start: rules.start,
             _phantom: PhantomData,
-        }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
-
-#[allow(unused)]
-mod for_later {
-    use super::*;
-    pub struct GrammarBuilder {
-        rules: ProdRuleSet<LR>,
-        symbol_table: Option<SymbolTable>,
-    }
-
-    impl GrammarBuilder {
-        pub fn new() -> Self {
-            GrammarBuilder {
-                rules: ProdRuleSet::new(),
-                symbol_table: None,
-            }
-        }
-
-        fn build(&mut self) {
-            todo!()
-        }
-    }
-
-    impl From<RuleTreeSet<Normalized>> for GrammarBuilder {
-        fn from(rules: RuleTreeSet<Normalized>) -> Self {
-            GrammarBuilder {
-                rules: ProdRuleSet::from(rules),
-                symbol_table: None,
-            }
-        }
-    }
-
-    impl From<RuleTreeSet<General>> for GrammarBuilder {
-        fn from(rules: RuleTreeSet<General>) -> Self {
-            let normalized = RuleTreeSet::<Normalized>::from(rules);
-            Self::from(normalized)
         }
     }
 }
