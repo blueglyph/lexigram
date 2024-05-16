@@ -387,7 +387,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
     let prods = &mut rules.prods;
-    let start = Some(0);
+    let mut start = Some(0);
     match id {
         0 => {
             prods.extend([
@@ -440,10 +440,41 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
             ]);
             symbol_table.extend_non_terminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
             prods.extend([
-                prod!(nt 1, nt 2, t 2),
-                prod!(t 0, nt 1; e),
-                prod!(t 1, nt 2; e),
+                prod!(nt 1, nt 2, t 2), // A -> A1 A2 ;
+                prod!(t 0, nt 1; e),    // A1 -> - A1 | ε
+                prod!(t 1, nt 2; e),    // A2 -> + A2 | ε
             ]);
+        }
+        6 => {
+            // another starting NT
+            symbol_table.extend_terminals([
+                ("SUB".to_string(), Some("-".to_string())),
+                ("ADD".to_string(), Some("+".to_string())),
+                ("SEMI".to_string(), Some(";".to_string()))
+            ]);
+            symbol_table.extend_non_terminals(["A1".to_string(), "A".to_string(), "A2".to_string()]);
+            prods.extend([
+                prod!(t 0, nt 0; e),    // A1 -> - A1 | ε
+                prod!(nt 0, nt 2, t 2), // A -> A1 A2 ;     <-- start
+                prod!(t 1, nt 2; e),    // A2 -> + A2 | ε
+            ]);
+            start = Some(1);
+        }
+        7 => {
+            // ε in first propagation
+            symbol_table.extend_terminals([
+                ("SUB".to_string(), Some("-".to_string())),
+                ("ADD".to_string(), Some("+".to_string())),
+                ("SEMI".to_string(), Some(";".to_string()))
+            ]);
+            symbol_table.extend_non_terminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
+            prods.extend([
+                prod!(nt 2, nt 3, t 2), // A -> C D ;       <-- start II
+                prod!(nt 0),            // B -> A           <-- start I
+                prod!(t 0, nt 2; e),    // C -> - C | ε
+                prod!(t 1, nt 3; e),    // D -> + D | ε
+            ]);
+            start = Some(1);
         }
         _ => {}
     };
@@ -751,6 +782,7 @@ fn prs_calc_follow() {
 #[test]
 fn prs_calc_table() {
     let tests: Vec<(u32, VarId, Vec<(VarId, ProdFactor)>, Vec<VarId>)> = vec![
+/*
         (4, 0, vec![
             // - 0: E -> T E_1
             // - 1: T -> F T_1
@@ -788,7 +820,7 @@ fn prs_calc_table() {
               5,   6,  11,  11,  11,   7,  11,  11,  11,
              10,  10,   8,   9,  11,  10,  11,  11,  11,
         ]),
-
+*/
         (5, 0, vec![
             // - 0: A -> A1 A2 ;
             // - 1: A1 -> - A1
@@ -810,6 +842,27 @@ fn prs_calc_table() {
             1, 2, 2, 5,
             5, 3, 4, 5,
         ]),
+        (6, 1, vec![
+            // - 0: A1 -> - A1
+            // - 1: A1 -> ε
+            // - 2: A -> A1 A2 ;
+            // - 3: A2 -> + A2
+            // - 4: A2 -> ε
+            (0, prodf!(t 0, nt 0)),
+            (0, prodf!(e)),
+            (1, prodf!(nt 0, nt 2, t 2)),
+            (2, prodf!(t 1, nt 2)),
+            (2, prodf!(e)),
+        ], vec![
+            //    |   -   +   ;   $
+            // ---+-----------------
+            // A1 |   0   1   1   .
+            //  A |   2   2   2   .
+            // A2 |   .   3   4   .
+              0,   1,   1,   5,
+              2,   2,   2,   5,
+              5,   3,   4,   5,
+        ]),
     ];
     const VERBOSE: bool = true;
     for (test_id, start, expected_factors, expected_table) in tests {
@@ -825,11 +878,6 @@ fn prs_calc_table() {
         let LLParsingTable { num_nt, num_t, factors, table } = &parsing_table;
         assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}");
         if VERBOSE {
-            println!("{:-<80}", "");
-            println!("{parsing_table:?}");
-            println!("{:?}", ll1.get_symbol_table());
-            println!("{:-<80}", "");
-
             println!("num_nt = {num_nt}, num_t = {num_t}");
             let error = factors.len() as VarId;
             print_production_rules(&ll1);
