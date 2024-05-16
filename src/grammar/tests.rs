@@ -8,7 +8,7 @@ use crate::{btreemap, gnode, hashmap, hashset, prod, prodf, sym};
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
+pub(super) fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
     println!("    {}", prods.get_prods_iter().map(|(var, p)|
         format!("{} -> {}",
                 Symbol::NT(var).to_str(prods.get_symbol_table()),
@@ -463,33 +463,37 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
         7 => {
             // ε in first propagation
             symbol_table.extend_terminals([
+                ("START".to_string(), Some(">".to_string())),
                 ("SUB".to_string(), Some("-".to_string())),
                 ("ADD".to_string(), Some("+".to_string())),
                 ("SEMI".to_string(), Some(";".to_string()))
             ]);
             symbol_table.extend_non_terminals(["A1".to_string(), "X".to_string(), "A".to_string(), "A2".to_string()]);
             prods.extend([
-                prod!(t 0, nt 0; e),    // A1 -> - A1 | ε
-                prod!(nt 2),            // X -> A           <-- start I
-                prod!(nt 0, nt 3, t 2), // A -> A1 A2 ;     <-- start II
-                prod!(t 1, nt 3; e),    // A2 -> + A2 | ε
+                prod!(t 1, nt 0; e),    // A1 -> - A1 | ε
+                prod!(t 0, nt 2),       // X -> > A         <-- start I
+                prod!(nt 0, nt 3, t 3), // A -> A1 A2 ;     <-- start II
+                prod!(t 2, nt 3; e),    // A2 -> + A2 | ε
             ]);
             start = Some(1);
         }
         _ => {}
     };
+    rules.calc_num_symbols();
     if symbol_table.get_terminals().is_empty() {
-        symbol_table.extend_terminals((0..26).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
+        symbol_table.extend_terminals((0..rules.num_t).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
     }
     if symbol_table.get_non_terminals().is_empty() {
         // finds the highest NT and populates the symbol table:
+/*
         let num_nt = prods.len().max(prods.iter().map(|p|
             p.iter().map(|f|
                 f.iter().filter_map(|s|
                     if let Symbol::NT(v) = s { Some(*v) } else { None }).max().unwrap_or(0)).max().unwrap_or(0)
         ).max().unwrap_or(0) as usize + 1);
-        assert!(num_nt <= 26);
-        symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
+*/
+        assert!(rules.num_nt <= 26);
+        symbol_table.extend_non_terminals((0..rules.num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
     }
     rules.set_symbol_table(symbol_table);
     rules.set_start(start);
@@ -782,7 +786,6 @@ fn prs_calc_follow() {
 #[test]
 fn prs_calc_table() {
     let tests: Vec<(u32, VarId, Vec<(VarId, ProdFactor)>, Vec<VarId>)> = vec![
-/*
         (4, 0, vec![
             // - 0: E -> T E_1
             // - 1: T -> F T_1
@@ -869,64 +872,71 @@ fn prs_calc_table() {
             // - 3: A -> A1 A2 ;
             // - 4: A2 -> + A2
             // - 5: A2 -> ε
-            (0, prodf!(t 0, nt 0)),
+            (0, prodf!(t 1, nt 0)),
             (0, prodf!(e)),
-            (1, prodf!(nt 2)),
-            (2, prodf!(nt 0, nt 3, t 2)),
-            (3, prodf!(t 1, nt 3)),
+            (1, prodf!(t 0, nt 2)),
+            (2, prodf!(nt 0, nt 3, t 3)),
+            (3, prodf!(t 2, nt 3)),
             (3, prodf!(e)),
         ], vec![
-            //    |   -   +   ;   $
-            // ---+-----------------
-            // A1 |   0   1   1   .
-            //  X |   2   2   2   .
-            //  A |   3   3   3   .
-            // A2 |   .   4   5   .
-              0,   1,   1,   6,
-              2,   2,   2,   6,
-              3,   3,   3,   6,
-              6,   4,   5,   6,
+            //    |   >   -   +   ;   $
+            // ---+---------------------
+            // A1 |   .   0   1   1   .
+            //  X |   2   .   .   .   .
+            //  A |   .   3   3   3   .
+            // A2 |   .   .   4   5   .
+              6,   0,   1,   1,   6,
+              2,   6,   6,   6,   6,
+              6,   3,   3,   3,   6,
+              6,   6,   4,   5,   6,
         ]),
-*/
         (7, 2, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
-            // - 2: X -> A
-            // - 3: A -> A1 A2 ;
-            // - 4: A2 -> + A2
-            // - 5: A2 -> ε
-            (0, prodf!(t 0, nt 0)),
+            // - 2: A -> A1 A2 ;
+            // - 3: A2 -> + A2
+            // - 4: A2 -> ε
+            (0, prodf!(t 1, nt 0)),
             (0, prodf!(e)),
-            (1, prodf!(nt 2)),
-            (2, prodf!(nt 0, nt 3, t 2)),
-            (3, prodf!(t 1, nt 3)),
-            (3, prodf!(e)),
+            (1, prodf!(nt 0, nt 2, t 3)),
+            (2, prodf!(t 2, nt 2)),
+            (2, prodf!(e)),
         ], vec![
-            //    |   -   +   ;   $
-            // ---+-----------------
-            // A1 |   0   1   1   .
-            //  X |   2   2   2   .
-            //  A |   3   3   3   .
-            // A2 |   .   4   5   .
-              0,   1,   1,   6,
-              2,   2,   2,   6,
-              3,   3,   3,   6,
-              6,   4,   5,   6,
+            //    |   >   -   +   ;   $
+            // ---+---------------------
+            // A1 |   .   0   1   1   .
+            //  A |   .   2   2   2   .
+            // A2 |   .   .   3   4   .
+              5,   0,   1,   1,   5,
+              5,   2,   2,   2,   5,
+              5,   5,   3,   4,   5,
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, start, expected_factors, expected_table) in tests {
         let rules_lr = build_prs(test_id);
         if VERBOSE {
-            println!("test {test_id}:");
+            println!("test {test_id}/{start}:");
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         ll1.set_start(Some(start));
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
+        if VERBOSE {
+            println!("first: ");
+            let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
+            for (sym, set) in &b {
+                println!("// {} => {}", sym.to_str(ll1.get_symbol_table()), set.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "));
+            }
+            println!("follow:");
+            let b = follow.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
+            for (sym, set) in &b {
+                println!("// {} => {}", sym.to_str(ll1.get_symbol_table()), set.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "));
+            }
+}
         let parsing_table = ll1.calc_table(&first, &follow);
         let LLParsingTable { num_nt, num_t, factors, table } = &parsing_table;
-        assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}");
+        assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
             let error = factors.len() as VarId;
@@ -942,14 +952,14 @@ fn prs_calc_table() {
             ).join("\n"));
             println!("table:");
             print_ll1_table(ll1.get_symbol_table(), &parsing_table);
-            if table.len() < 30 {
-                println!("vec![{}]", table.iter().map(|x| x.to_string()).join(", "));
-            }
             for i in 0..*num_nt {
                 println!("            {},", (0..*num_t).map(|j| format!("{:3}", table[i * num_t + j])).join(", "));
             }
+            if table.len() < 30 {
+                println!("vec![{}]", table.iter().map(|x| x.to_string()).join(", "));
+            }
         }
-        assert_eq!(*factors, expected_factors, "test {test_id} failed");
-        assert_eq!(*table, expected_table, "test {test_id} failed");
+        assert_eq!(*factors, expected_factors, "test {test_id}/{start} failed");
+        assert_eq!(*table, expected_table, "test {test_id}/{start} failed");
    }
 }

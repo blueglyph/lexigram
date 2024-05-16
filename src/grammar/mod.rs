@@ -583,8 +583,11 @@ pub struct LL1;
 #[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
+    num_nt: usize,
+    num_t: usize,
     symbol_table: Option<SymbolTable>,
     start: Option<VarId>,
+    nt_conversion: Option<HashMap<Symbol, Symbol>>,
     _phantom: PhantomData<T>
 }
 
@@ -625,10 +628,99 @@ impl<T> ProdRuleSet<T> {
         self.symbol_table
     }
 
-    pub fn calc_first(&self) -> HashMap<Symbol, HashSet<Symbol>> {
+    /// Calculates num_t and num_nt (done right after importing rules)
+    fn calc_num_symbols(&mut self) {
+        self.num_nt = self.prods.len();
+        self.num_t = self.prods.iter().map(|p|
+            p.iter().map(|f|
+                f.iter().filter_map(|s|
+                    if let Symbol::T(v) = s { Some(*v + 1) } else { None }
+                ).max().unwrap_or(0)
+            ).max().unwrap_or(0)
+        ).max().unwrap_or(0) as usize;
+    }
+
+    /// Removes the unused non-terminals and renumbers everything accordingly.
+    /// Note that we don't remove unused T symbols because it would create a coherency problem with the lexer.
+    ///
+    /// Returns the conversion `HashMap[old symbol => new symbol]` for non-terminals.
+    fn cleanup_symbols(&mut self, keep: &mut HashSet<Symbol>) {
+        const VERBOSE: bool = false;
+        assert!(self.nt_conversion.is_none(), "cleanup of symbols but there's already an NT conversion table");
+        if VERBOSE {
+            println!("Removing unused non-terminals:");
+            let mut all_h = self.prods.iter().flat_map(|p| p.iter().flatten()).cloned().collect::<HashSet<_>>();
+            all_h.extend((0..self.prods.len()).map(|i| Symbol::NT(i as VarId)));
+            let mut all = all_h.into_iter().collect::<Vec<_>>();
+            all.sort();
+            println!("- current NT symbols: {}", all.iter().filter_map(|s|
+                if let Symbol::NT(v) = s { Some(format!("{}", s.to_str(self.get_symbol_table()))) } else { None }).join(", "));
+            println!("- current  T symbols: {}", all.iter().filter_map(|s|
+                if let Symbol::T(_) = s { Some(s.to_str(self.get_symbol_table())) } else { None }).join(" "));
+            let mut used = keep.iter().collect::<Vec<_>>();
+            used.sort();
+            println!("- used NT symbols:    {}", used.iter().filter_map(|s| if let Symbol::NT(v) = s { Some((v, s)) } else { None })
+                .enumerate().map(|(new_id, (id, s))| format!("{}({id} -> {new_id})", s.to_str(self.get_symbol_table()))).join(", "));
+            println!("- used  T symbols:    {}", used.iter().filter_map(|s|
+                if let Symbol::T(_) = s { Some(s.to_str(self.get_symbol_table())) } else { None }).join(" "));
+        }
+        let new_num_nt = keep.iter().filter(|s| matches!(s, Symbol::NT(_))).count() as VarId;
+        let mut new_v = new_num_nt;
+        let mut conv = HashMap::<Symbol, Symbol>::new();
+        for i in (0..self.num_nt).rev() {
+            let v = i as VarId;
+            let symbol = Symbol::NT(v);
+            if !keep.contains(&symbol) {
+                if VERBOSE { println!("- deleting {}", symbol.to_str(self.get_symbol_table())); }
+                self.prods.remove(i);
+                self.start = self.start.map(|s| if s >= v { s - 1 } else { s });
+                self.symbol_table.as_mut().map(|t| t.remove_non_terminal(v));
+            } else {
+                new_v -= 1;
+                conv.insert(symbol, Symbol::NT(new_v));
+                if VERBOSE { println!("  {symbol:?} -> {:?}", Symbol::NT(new_v)); }
+            }
+        }
+        for p in &mut self.prods {
+            for f in p {
+                for s in f {
+                    if let Some(new) = conv.get(s) {
+                        *s = *new;
+                    }
+                }
+            }
+        }
+        keep.retain(|s| !matches!(s, Symbol::NT(_)));
+        keep.extend((0..new_num_nt as VarId).map(|v| Symbol::NT(v)));
+        self.num_nt = new_num_nt as usize;
+        self.nt_conversion = Some(conv);
+    }
+
+    pub fn calc_first(&mut self) -> HashMap<Symbol, HashSet<Symbol>> {
         const VERBOSE: bool = false;
         assert!(self.start.is_some(), "start NT symbol not defined");
-        let mut first = HashMap::<Symbol, HashSet<Symbol>>::new();
+        let mut symbols = HashSet::<Symbol>::new();
+        let mut stack = vec![Symbol::NT(self.start.unwrap())];
+        while let Some(sym) = stack.pop() {
+            if !symbols.contains(&sym) {
+                symbols.insert(sym);
+                if let Symbol::NT(v) = sym {
+                    stack.extend(self.prods[v as usize].iter().flatten());
+                }
+            }
+        }
+        if symbols.iter().filter(|s| matches!(s, Symbol::NT(_))).count() != self.prods.len() {
+            self.cleanup_symbols(&mut symbols);
+        }
+        let mut first = symbols.into_iter().map(|sym| {
+            match &sym {
+                Symbol::T(_) | Symbol::Empty => (sym, hashset![sym]),
+                Symbol::NT(_) => (sym, HashSet::new()),
+                Symbol::End => panic!("found reserved symbol 'end' in production rules"),
+            }
+        }).collect::<HashMap<_, _>>();
+
+/*
         let mut symbols = HashSet::<Symbol>::from([Symbol::NT(self.start.unwrap())]);
         while let Some(sym) = symbols.iter().find(|s| !first.contains_key(s)).cloned() {
             match &sym {
@@ -646,8 +738,10 @@ impl<T> ProdRuleSet<T> {
             if VERBOSE { println!("- sym {} -> {}", sym.to_str(self.symbol_table.as_ref()),
                                   symbols.iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", ")); }
         }
+*/
+
         let mut change = true;
-        let rules = (0..self.prods.len() as VarId).filter(|var| first.contains_key(&Symbol::NT(*var))).to_vec();
+        let rules = (0..self.num_nt as VarId).filter(|var| first.contains_key(&Symbol::NT(*var))).to_vec();
         if VERBOSE { println!("rules: {}", rules.iter().map(|v| Symbol::NT(*v).to_str(self.symbol_table.as_ref())).join(", ")); }
         while change {
             change = false;
@@ -688,7 +782,7 @@ impl<T> ProdRuleSet<T> {
             .filter_map(|(s, _)| if matches!(s, Symbol::NT(_)) { Some((*s, HashSet::<Symbol>::new())) } else { None })
             .collect::<HashMap<_, _>>();
         follow.get_mut(&Symbol::NT(self.start.unwrap())).unwrap().insert(Symbol::End);
-        let rules = (0..self.prods.len() as VarId).filter(|var| follow.contains_key(&Symbol::NT(*var))).to_vec();
+        let rules = (0..self.num_nt as VarId).filter(|var| follow.contains_key(&Symbol::NT(*var))).to_vec();
         let mut change = true;
         while change {
             change = false;
@@ -731,11 +825,11 @@ impl<T> ProdRuleSet<T> {
 
 impl ProdRuleSet<LR> {
     pub fn new() -> Self {
-        Self { prods: Vec::new(), symbol_table: None, start: None, _phantom: PhantomData }
+        Self { prods: Vec::new(), num_nt: 0, num_t: 0, symbol_table: None, start: None, nt_conversion: None, _phantom: PhantomData }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { prods: Vec::with_capacity(capacity), symbol_table: None, start: None, _phantom: PhantomData }
+        Self { prods: Vec::with_capacity(capacity), num_nt: 0, num_t: 0, symbol_table: None, start: None, nt_conversion: None, _phantom: PhantomData }
     }
 
     /// Eliminates left recursion from production rules, and updates the symbol table if provided.
@@ -786,6 +880,7 @@ impl ProdRuleSet<LR> {
             }
         }
         self.prods.extend(extra);
+        self.num_nt = self.prods.len();
         self.symbol_table = symbol_table;
     }
 
@@ -876,6 +971,7 @@ impl ProdRuleSet<LR> {
             }
             self.prods.extend(extra);
         }
+        self.num_nt = self.prods.len();
         self.symbol_table = symbol_table;
     }
 }
@@ -902,8 +998,13 @@ impl ProdRuleSet<LL1> {
         let factors = self.prods.iter().enumerate().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v as VarId)))
             .flat_map(|(v, x)| x.iter().map(move |f| (v as VarId, f.clone() as ProdFactor))).to_vec();
         let error = factors.len() as VarId; // table entry for syntactic error
-        let num_nt = first.keys().filter(|s| matches!(s, Symbol::NT(_))).count();
-        let num_t = first.keys().filter(|s| matches!(s, Symbol::T(_))).count() + 1; // includes the end symbol
+
+//todo: remove
+assert_eq!(self.num_nt, self.prods.len());
+assert_eq!(self.num_nt, first.keys().filter(|s| matches!(s, Symbol::NT(_))).count());
+
+        let num_nt = self.num_nt;
+        let num_t = self.num_t + 1;
         let end = num_t - 1; // index of end symbol
         let mut table: Vec<VarId> = vec![error; num_nt * num_t];
         for (f_id, (nt_id, factor)) in factors.iter().enumerate() {
@@ -939,7 +1040,7 @@ impl ProdRuleSet<LL1> {
         LLParsingTable { num_nt, num_t, factors, table }
     }
 
-    pub fn create_parsing_table(&self) -> LLParsingTable {
+    pub fn create_parsing_table(&mut self) -> LLParsingTable {
         let first = self.calc_first();
         let follow = self.calc_follow(&first);
         self.calc_table(&first, &follow)
@@ -981,6 +1082,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<LR> {
                 prules.prods.push(ProdRule::new()); // empty
             }
         }
+        prules.calc_num_symbols();
         prules
     }
 }
@@ -997,8 +1099,11 @@ impl From<ProdRuleSet<LR>> for ProdRuleSet<LL1> {
         rules.left_factorize();
         ProdRuleSet::<LL1> {
             prods: rules.prods,
+            num_nt: rules.num_nt,
+            num_t: rules.num_t,
             symbol_table: rules.symbol_table,
             start: rules.start,
+            nt_conversion: rules.nt_conversion,
             _phantom: PhantomData,
         }
     }

@@ -73,6 +73,13 @@ impl SymbolTable {
         self.nt.extend(iter);
     }
 
+    pub fn remove_non_terminal(&mut self, v: VarId) {
+        self.nt.remove(v as usize);
+        for old_v in self.names.values_mut() {
+            if *old_v >= v { *old_v -= 1; }
+        }
+    }
+
     pub fn get_names(&self) -> impl Iterator<Item=(&String, &VarId)> {
         self.names.iter()
     }

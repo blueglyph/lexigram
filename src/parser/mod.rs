@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 use crate::grammar::{LLParsingTable, Symbol, VarId};
 use crate::symbol_table::SymbolTable;
 

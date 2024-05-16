@@ -24,7 +24,7 @@ impl ParserBuilder {
     }
 
     pub fn from_rules<T>(rules: ProdRuleSet<T>) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
-        let ll1_rules = ProdRuleSet::<LL1>::from(rules);
+        let mut ll1_rules = ProdRuleSet::<LL1>::from(rules);
         let start = ll1_rules.get_start().unwrap();
         let parsing_table = ll1_rules.create_parsing_table();
         let symbol_table = ll1_rules.symbol_table().expect(stringify!("symbol table is requires to create a {}", std::any::type_name::<Self>()));
