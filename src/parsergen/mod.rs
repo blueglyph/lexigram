@@ -1,6 +1,6 @@
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use crate::grammar::{LL1, LLParsingTable, ProdRuleSet, RuleTreeSet, Symbol};
+use crate::grammar::{LL1, LLParsingTable, ProdRuleSet, RuleTreeSet, Symbol, VarId};
 use crate::{CollectJoin, General, Normalized};
 use crate::parser::Parser;
 use crate::symbol_table::SymbolTable;
@@ -13,6 +13,7 @@ mod tests;
 pub struct ParserBuilder {
     parsing_table: LLParsingTable,
     symbol_table: SymbolTable,
+    start: VarId
 }
 
 impl ParserBuilder {
@@ -24,16 +25,18 @@ impl ParserBuilder {
 
     pub fn from_rules<T>(rules: ProdRuleSet<T>) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
         let ll1_rules = ProdRuleSet::<LL1>::from(rules);
+        let start = ll1_rules.get_start().unwrap();
         let parsing_table = ll1_rules.create_parsing_table();
         let symbol_table = ll1_rules.symbol_table().expect(stringify!("symbol table is requires to create a {}", std::any::type_name::<Self>()));
         ParserBuilder {
             parsing_table,
-            symbol_table
+            symbol_table,
+            start
         }
     }
 
     pub fn make_parser(self) -> Parser {
-        Parser::new(self.parsing_table, self.symbol_table)
+        Parser::new(self.parsing_table, self.symbol_table, self.start)
     }
 
     fn symbol_to_code(s: &Symbol) -> String {
@@ -46,7 +49,7 @@ impl ParserBuilder {
     }
 
     pub fn write_source_code(self, file: Option<File>) -> Result<(), std::io::Error> {
-        let mut out: BufWriter<Box<dyn std::io::Write>> = match file {
+        let mut out: BufWriter<Box<dyn Write>> = match file {
             Some(file) => BufWriter::new(Box::new(file)),
             None => BufWriter::new(Box::new(std::io::stdout().lock()))
         };
@@ -71,9 +74,10 @@ impl ParserBuilder {
         writeln!(out, "const PARSING_FACTORS: [(VarId, &[Symbol]); {}] = [{}];",
                  self.parsing_table.factors.len(),
                  self.parsing_table.factors.iter().map(|(v, f)| format!("({v}, &[{}])", f.iter().map(|s| Self::symbol_to_code(s)).join(", "))).join(", "))?;
-        writeln!(out, "const PARSING_TABLE: [VarId; {}] = [{}];\n",
+        writeln!(out, "const PARSING_TABLE: [VarId; {}] = [{}];",
                  self.parsing_table.table.len(),
                  self.parsing_table.table.iter().map(|v| format!("{v}")).join(", "))?;
+        writeln!(out, "const START_SYMBOL: VarId = {};\n", self.start)?;
 
         writeln!(out, "pub(super) fn build_parser() -> Parser {{")?;
         writeln!(out, "    let mut symbol_table = SymbolTable::new();")?;
@@ -88,7 +92,7 @@ impl ParserBuilder {
         writeln!(out, "        factors,")?;
         writeln!(out, "        table")?;
         writeln!(out, "    }};")?;
-        writeln!(out, "    Parser::new(parsing_table, symbol_table)")?;
+        writeln!(out, "    Parser::new(parsing_table, symbol_table, START_SYMBOL)")?;
         writeln!(out, "}}")?;
 
         Ok(())

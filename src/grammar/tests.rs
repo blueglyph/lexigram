@@ -851,7 +851,6 @@ fn prs_calc_table() {
                 println!("            {},", (0..*num_t).map(|j| format!("{:3}", table[i * num_t + j])).join(", "));
             }
         }
-        return;
         assert_eq!(*factors, expected_factors, "test {test_id} failed");
         assert_eq!(*table, expected_table, "test {test_id} failed");
    }
