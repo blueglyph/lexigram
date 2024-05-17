@@ -9,6 +9,16 @@ mod tests;
 
 // ---------------------------------------------------------------------------------------------
 
+pub(crate) fn symbol_to_code(s: &Symbol) -> String {
+    match s {
+        Symbol::Empty => "Symbol::Empty".to_string(),
+        Symbol::T(t) => format!("Symbol::T({t})"),
+        Symbol::NT(nt) => format!("Symbol::NT({nt})"),
+        Symbol::End => "Symbol::End".to_string(),
+    }
+}
+
+
 #[allow(unused)]
 pub struct ParserBuilder {
     parsing_table: LLParsingTable,
@@ -39,15 +49,6 @@ impl ParserBuilder {
         Parser::new(self.parsing_table, self.symbol_table, self.start)
     }
 
-    fn symbol_to_code(s: &Symbol) -> String {
-        match s {
-            Symbol::Empty => "Symbol::Empty".to_string(),
-            Symbol::T(t) => format!("Symbol::T({t})"),
-            Symbol::NT(nt) => format!("Symbol::T({nt})"),
-            Symbol::End => "Symbol::End".to_string(),
-        }
-    }
-
     pub fn write_source_code(self, file: Option<File>) -> Result<(), std::io::Error> {
         let mut out: BufWriter<Box<dyn Write>> = match file {
             Some(file) => BufWriter::new(Box::new(file)),
@@ -73,7 +74,7 @@ impl ParserBuilder {
                  self.symbol_table.get_names().map(|(s, v)| format!("(\"{s}\", {v})")).join(", "))?;
         writeln!(out, "const PARSING_FACTORS: [(VarId, &[Symbol]); {}] = [{}];",
                  self.parsing_table.factors.len(),
-                 self.parsing_table.factors.iter().map(|(v, f)| format!("({v}, &[{}])", f.iter().map(|s| Self::symbol_to_code(s)).join(", "))).join(", "))?;
+                 self.parsing_table.factors.iter().map(|(v, f)| format!("({v}, &[{}])", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", "))?;
         writeln!(out, "const PARSING_TABLE: [VarId; {}] = [{}];",
                  self.parsing_table.table.len(),
                  self.parsing_table.table.iter().map(|v| format!("{v}")).join(", "))?;

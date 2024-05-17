@@ -16,7 +16,7 @@ pub(super) fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
     ).join("\n    "));
 }
 
-fn symbol_to_code(s: &Symbol) -> String {
+pub(crate) fn symbol_to_macro(s: &Symbol) -> String {
     match s {
         Symbol::Empty => "e".to_string(),
         Symbol::T(x) => format!("t {x}"),
@@ -333,7 +333,7 @@ fn rts_prodrule_from() {
 
 fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
     println!("\n            {}", result.iter().map(|(i, p)|
-        format!("{i} => prod!({}),", p.iter().map(|f| f.iter().map(|s| symbol_to_code(s))
+        format!("{i} => prod!({}),", p.iter().map(|f| f.iter().map(|s| symbol_to_macro(s))
             .join(", ")).join("; "))).join("\n            "))
 }
 
@@ -742,8 +742,8 @@ fn prs_calc_first() {
             print_production_rules(&ll1);
             let b = map_and_print_first(&first, ll1.get_symbol_table());
             for (sym, set) in &b {
-                println!("            sym!({}) => hashset![{}],", symbol_to_code(sym),
-                    set.iter().map(|s| format!("sym!({})", symbol_to_code(s))).join(", "));
+                println!("            sym!({}) => hashset![{}],", symbol_to_macro(sym),
+                         set.iter().map(|s| format!("sym!({})", symbol_to_macro(s))).join(", "));
             }
         }
         assert_eq!(first, expected, "test {test_id} failed");
@@ -789,8 +789,8 @@ fn prs_calc_follow() {
             print_production_rules(&ll1);
             let b = map_and_print_follow(&follow, ll1.get_symbol_table());
             for (sym, set) in &b {
-                println!("            sym!({}) => hashset![{}],", symbol_to_code(sym),
-                    set.iter().map(|s| format!("sym!({})", symbol_to_code(s))).join(", "));
+                println!("            sym!({}) => hashset![{}],", symbol_to_macro(sym),
+                         set.iter().map(|s| format!("sym!({})", symbol_to_macro(s))).join(", "));
             }
         }
         assert_eq!(follow, expected, "test {test_id} failed");
@@ -954,7 +954,7 @@ fn prs_calc_table() {
             ).join("\n"));
             println!("{}",
                      factors.iter().enumerate().map(|(id, (v, f))|
-                         format!("            ({v}, prodf!({})),", f.iter().map(|s| symbol_to_code(s)).join(", "))
+                         format!("            ({v}, prodf!({})),", f.iter().map(|s| symbol_to_macro(s)).join(", "))
             ).join("\n"));
             println!("table:");
             print_ll1_table(ll1.get_symbol_table(), &parsing_table);

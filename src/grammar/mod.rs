@@ -24,6 +24,24 @@ pub enum Symbol {
     End
 }
 
+impl Symbol {
+    pub fn is_end(&self) -> bool {
+        matches!(self, Symbol::End)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        matches!(self, Symbol::Empty)
+    }
+
+    pub fn is_t(&self) -> bool {
+        matches!(self, Symbol::T(_))
+    }
+
+    pub fn is_nt(&self) -> bool {
+        matches!(self, Symbol::NT(_))
+    }
+}
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum GrNode {
     Symbol(Symbol),
@@ -626,6 +644,14 @@ impl<T> ProdRuleSet<T> {
 
     pub fn symbol_table(self) -> Option<SymbolTable> {
         self.symbol_table
+    }
+
+    pub fn get_num_non_terminals(&self) -> usize {
+        self.num_nt
+    }
+
+    pub fn get_num_terminals(&self) -> usize {
+        self.num_t
     }
 
     /// Calculates num_t and num_nt (done right after importing rules)

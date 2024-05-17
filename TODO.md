@@ -42,7 +42,7 @@
     - [x] ~~check if LL(1)~~
     - [x] ~~build parsing table~~
     - [ ] warning/error log system (for parsing table, lexer, ...)
-    - [ ] predictive parsing algorithm
+    - [x] ~~predictive parsing algorithm~~
     - [ ] hooks: how to link back to original RuleTree?
     - [ ] generate code
 - basic rparser
