@@ -604,7 +604,7 @@ impl<T> ProdRuleSet<T> {
 
     /// Returns a variable ID that doesn't exist yet.
     pub fn get_next_available_var(&self) -> VarId {
-        self.prods.len() as VarId
+        self.prods.len() as VarId   // we don't use self.num_nt for safety reason
     }
 
     /// Returns all the non-empty prods
@@ -650,7 +650,7 @@ impl<T> ProdRuleSet<T> {
         if VERBOSE {
             println!("Removing unused non-terminals:");
             let mut all_h = self.prods.iter().flat_map(|p| p.iter().flatten()).cloned().collect::<HashSet<_>>();
-            all_h.extend((0..self.prods.len()).map(|i| Symbol::NT(i as VarId)));
+            all_h.extend((0..self.num_nt).map(|i| Symbol::NT(i as VarId)));
             let mut all = all_h.into_iter().collect::<Vec<_>>();
             all.sort();
             println!("- current NT symbols: {}", all.iter().filter_map(|s|
@@ -709,7 +709,7 @@ impl<T> ProdRuleSet<T> {
                 }
             }
         }
-        if symbols.iter().filter(|s| matches!(s, Symbol::NT(_))).count() != self.prods.len() {
+        if symbols.iter().filter(|s| matches!(s, Symbol::NT(_))).count() != self.num_nt {
             self.cleanup_symbols(&mut symbols);
         }
         let mut first = symbols.into_iter().map(|sym| {
@@ -719,27 +719,6 @@ impl<T> ProdRuleSet<T> {
                 Symbol::End => panic!("found reserved symbol 'end' in production rules"),
             }
         }).collect::<HashMap<_, _>>();
-
-/*
-        let mut symbols = HashSet::<Symbol>::from([Symbol::NT(self.start.unwrap())]);
-        while let Some(sym) = symbols.iter().find(|s| !first.contains_key(s)).cloned() {
-            match &sym {
-                Symbol::T(_) | Symbol::Empty => {
-                    first.insert(sym.clone(), hashset![sym.clone()]);
-                }
-                Symbol::NT(s) => {
-                    // takes all the symbols in the new production rule
-                    first.insert(sym, HashSet::new());
-                    symbols.extend(self.prods[*s as usize].iter().flatten());
-                }
-                Symbol::End =>
-                    panic!("found reserved symbol 'end' in production rules"),
-            }
-            if VERBOSE { println!("- sym {} -> {}", sym.to_str(self.symbol_table.as_ref()),
-                                  symbols.iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", ")); }
-        }
-*/
-
         let mut change = true;
         let rules = (0..self.num_nt as VarId).filter(|var| first.contains_key(&Symbol::NT(*var))).to_vec();
         if VERBOSE { println!("rules: {}", rules.iter().map(|v| Symbol::NT(*v).to_str(self.symbol_table.as_ref())).join(", ")); }
@@ -907,7 +886,7 @@ impl ProdRuleSet<LR> {
         let mut symbol_table = self.symbol_table.take();
         let mut new_var = self.get_next_available_var();
         let mut start = Some(0);
-        let last = self.prods.len();
+        let last = self.num_nt;
         while let Some(first) = start {
             let range = first..last;
             start = None;
@@ -998,11 +977,6 @@ impl ProdRuleSet<LL1> {
         let factors = self.prods.iter().enumerate().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v as VarId)))
             .flat_map(|(v, x)| x.iter().map(move |f| (v as VarId, f.clone() as ProdFactor))).to_vec();
         let error = factors.len() as VarId; // table entry for syntactic error
-
-//todo: remove
-assert_eq!(self.num_nt, self.prods.len());
-assert_eq!(self.num_nt, first.keys().filter(|s| matches!(s, Symbol::NT(_))).count());
-
         let num_nt = self.num_nt;
         let num_t = self.num_t + 1;
         let end = num_t - 1; // index of end symbol
