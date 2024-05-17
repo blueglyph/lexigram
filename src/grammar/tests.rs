@@ -360,6 +360,24 @@ fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsing
     }
 }
 
+fn map_and_print_first<'a>(first: &'a HashMap<Symbol, HashSet<Symbol>>, symbol_table: Option<&'a SymbolTable>) -> BTreeMap<&'a Symbol, BTreeSet<&'a Symbol>> {
+    println!("first: ");
+    let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
+    for (sym, set) in &b {
+        println!("// {} => {}", sym.to_str(symbol_table), set.iter().map(|s| s.to_str(symbol_table)).join(" "));
+    }
+    b
+}
+
+fn map_and_print_follow<'a>(follow: &'a HashMap<Symbol, HashSet<Symbol>>, symbol_table: Option<&'a SymbolTable>) -> BTreeMap<&'a Symbol, BTreeSet<&'a Symbol>> {
+    println!("follow:");
+    let b = follow.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
+    for (sym, set) in &b {
+        println!("// {} => {}", sym.to_str(symbol_table), set.iter().map(|s| s.to_str(symbol_table)).join(" "));
+    }
+    b
+}
+
 fn def_arith_symbols(symbol_table: &mut SymbolTable) {
     symbol_table.extend_terminals([
         ("PLUS".to_string(), Some("+".to_string())),
@@ -658,11 +676,11 @@ fn prs_ll1_from() {
             println!("test {test_id}:");
             print_production_rules(&rules_lr);
         }
-        let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
-        let result = BTreeMap::<_, _>::from(&rules_ll1);
+        let ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let result = BTreeMap::<_, _>::from(&ll1);
         if VERBOSE {
             println!("=>");
-            print_production_rules(&rules_ll1);
+            print_production_rules(&ll1);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -715,15 +733,12 @@ fn prs_calc_first() {
         if VERBOSE {
             println!("test {test_id}:");
         }
-        let mut rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
-        rules_ll1.set_start(Some(start));
-        let first = rules_ll1.calc_first();
+        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        ll1.set_start(Some(start));
+        let first = ll1.calc_first();
         if VERBOSE {
-            print_production_rules(&rules_ll1);
-            let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
-            for (sym, set) in &b {
-                println!("// {} => {}", sym.to_str(rules_ll1.get_symbol_table()), set.iter().map(|s| s.to_str(rules_ll1.get_symbol_table())).join(" "));
-            }
+            print_production_rules(&ll1);
+            let b = map_and_print_first(&first, ll1.get_symbol_table());
             for (sym, set) in &b {
                 println!("            sym!({}) => hashset![{}],", symbol_to_code(sym),
                     set.iter().map(|s| format!("sym!({})", symbol_to_code(s))).join(", "));
@@ -764,16 +779,13 @@ fn prs_calc_follow() {
         if VERBOSE {
             println!("test {test_id}:");
         }
-        let mut rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
-        rules_ll1.set_start(Some(start));
-        let first = rules_ll1.calc_first();
-        let follow = rules_ll1.calc_follow(&first);
+        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        ll1.set_start(Some(start));
+        let first = ll1.calc_first();
+        let follow = ll1.calc_follow(&first);
         if VERBOSE {
-            print_production_rules(&rules_ll1);
-            let b = follow.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
-            for (sym, set) in &b {
-                println!("// {} => {}", sym.to_str(rules_ll1.get_symbol_table()), set.iter().map(|s| s.to_str(rules_ll1.get_symbol_table())).join(" "));
-            }
+            print_production_rules(&ll1);
+            let b = map_and_print_follow(&follow, ll1.get_symbol_table());
             for (sym, set) in &b {
                 println!("            sym!({}) => hashset![{}],", symbol_to_code(sym),
                     set.iter().map(|s| format!("sym!({})", symbol_to_code(s))).join(", "));
@@ -923,17 +935,9 @@ fn prs_calc_table() {
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         if VERBOSE {
-            println!("first: ");
-            let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
-            for (sym, set) in &b {
-                println!("// {} => {}", sym.to_str(ll1.get_symbol_table()), set.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "));
-            }
-            println!("follow:");
-            let b = follow.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
-            for (sym, set) in &b {
-                println!("// {} => {}", sym.to_str(ll1.get_symbol_table()), set.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "));
-            }
-}
+            map_and_print_first(&first, ll1.get_symbol_table());
+            map_and_print_follow(&follow, ll1.get_symbol_table());
+        }
         let parsing_table = ll1.calc_table(&first, &follow);
         let LLParsingTable { num_nt, num_t, factors, table } = &parsing_table;
         assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{start}");
