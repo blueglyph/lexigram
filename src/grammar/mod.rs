@@ -598,8 +598,8 @@ impl<T> ProdRuleSet<T> {
     }
 
     /// Sets the starting production rule.
-    pub fn set_start(&mut self, start: Option<VarId>) {
-        self.start = start;
+    pub fn set_start(&mut self, start: VarId) {
+        self.start = Some(start);
     }
 
     /// Returns a variable ID that doesn't exist yet.

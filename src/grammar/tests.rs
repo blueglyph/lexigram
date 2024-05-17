@@ -514,7 +514,9 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
         symbol_table.extend_non_terminals((0..rules.num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
     }
     rules.set_symbol_table(symbol_table);
-    rules.set_start(start);
+    if let Some(start) = start {
+        rules.set_start(start);
+    }
     rules
 }
 
@@ -734,7 +736,7 @@ fn prs_calc_first() {
             println!("test {test_id}:");
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
-        ll1.set_start(Some(start));
+        ll1.set_start(start);
         let first = ll1.calc_first();
         if VERBOSE {
             print_production_rules(&ll1);
@@ -780,7 +782,7 @@ fn prs_calc_follow() {
             println!("test {test_id}:");
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
-        ll1.set_start(Some(start));
+        ll1.set_start(start);
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         if VERBOSE {
@@ -931,7 +933,7 @@ fn prs_calc_table() {
             println!("test {test_id}/{start}:");
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
-        ll1.set_start(Some(start));
+        ll1.set_start(start);
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         if VERBOSE {
