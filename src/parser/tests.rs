@@ -9,14 +9,15 @@ use crate::parsergen::ParserBuilder;
 fn parser_parse_stream() {
     let tests = vec![
         (5, 0, vec![
-            ("++;", true),
-            ("--+;", true),
-            ("+-;", false),
+            ("++;;", true),
+            ("--+;;", true),
+            ("+-;;", false),
+            ("++;;-", false),
             ("++;-", false),
             ("-", false),
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
         let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
@@ -34,7 +35,7 @@ fn parser_parse_stream() {
                 } else {
                     let c_str = c.to_string();
                     if let Some(s) = symbols.get(&c_str) {
-                        println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
+                        // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
                         Some((*s, c_str))
                     } else {
                         panic!("unrecognized test input '{c}' in test {test_id}/{ll_id}/{start}, input {input}");

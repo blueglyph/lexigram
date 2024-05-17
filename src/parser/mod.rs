@@ -42,28 +42,10 @@ impl Parser {
                          stack.iter().map(|s| s.to_str(sym_table)).join(" "), stack_sym.to_str(sym_table));
             }
             match (stack_sym, stream_sym) {
-                (Symbol::End, Symbol::End) => {
-                    if VERBOSE { println!("stream successfully parsed"); }
-                    break;
-                }
-                (Symbol::End, _)  => {
-                    return Err(format!("extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
-                } (_, Symbol::End) => {
-                    return Err(format!("end of stream while expecting a '{}'", stack_sym.to_str(sym_table)));
-                }
-                (Symbol::T(sk), Symbol::T(sr)) => {
-                    if sk != sr {
-                        return Err(format!("unexpected character: '{}' instead of '{}'",
-                                             stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)));
-                    }
-                    if VERBOSE { println!("MATCH {}", stream_sym.to_str(sym_table)); }
-                    stack_sym = stack.pop().unwrap();
-                    stream_sym = stream.next().map(|(s, _)| s).unwrap_or(Symbol::End);
-                }
                 (Symbol::NT(var), Symbol::T(sr)) => {
                     let factor_id = self.table[var as usize * self.num_t + sr as usize];
                     if VERBOSE {
-                        println!("table[{var}, {sr}] = {factor_id}: {}",
+                        println!("- table[{var}, {sr}] = {factor_id}: {}",
                                  if factor_id >= error {
                                      "ERROR".to_string()
                                  } else {
@@ -76,18 +58,34 @@ impl Parser {
                         ))
                     }
                     if VERBOSE {
-                        println!("PUSH {}", self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev()
+                        println!("- PUSH {}", self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev()
                             .map(|s| s.to_str(sym_table)).join(" "));
                     }
                     stack.extend(self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned());
                     stack_sym = stack.pop().unwrap();
+                }
+                (Symbol::T(sk), Symbol::T(sr)) => {
+                    if sk != sr {
+                        return Err(format!("unexpected character: '{}' instead of '{}'",
+                                             stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)));
+                    }
+                    if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
+                    stack_sym = stack.pop().unwrap();
+                    stream_sym = stream.next().map(|(s, _)| s).unwrap_or(Symbol::End);
+                }
+                (Symbol::End, Symbol::End) => {
+                    break;
+                }
+                (Symbol::End, _)  => {
+                    return Err(format!("extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
+                } (_, Symbol::End) => {
+                    return Err(format!("end of stream while expecting a '{}'", stack_sym.to_str(sym_table)));
                 }
                 (_, _) => {
                     return Err(format!("unexpected situation: input '{}' while expecting '{}'",
                                        stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)));
                 }
             }
-
         }
         Ok(())
     }

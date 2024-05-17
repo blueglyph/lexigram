@@ -458,7 +458,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
             ]);
             symbol_table.extend_non_terminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
             prods.extend([
-                prod!(nt 1, nt 2, t 2), // A -> A1 A2 ;
+                prod!(nt 1, nt 2, t 2, t 2), // A -> A1 A2 ; ;
                 prod!(t 0, nt 1; e),    // A1 -> - A1 | ε
                 prod!(t 1, nt 2; e),    // A2 -> + A2 | ε
             ]);
@@ -838,12 +838,12 @@ fn prs_calc_table() {
              10,  10,   8,   9,  11,  10,  11,  11,  11,
         ]),
         (5, 0, vec![
-            // - 0: A -> A1 A2 ;
+            // - 0: A -> A1 A2 ; ;
             // - 1: A1 -> - A1
             // - 2: A1 -> ε
             // - 3: A2 -> + A2
             // - 4: A2 -> ε
-            (0, prodf!(nt 1, nt 2, t 2)),
+            (0, prodf!(nt 1, nt 2, t 2, t 2)),
             (1, prodf!(t 0, nt 1)),
             (1, prodf!(e)),
             (2, prodf!(t 1, nt 2)),
@@ -926,7 +926,7 @@ fn prs_calc_table() {
               5,   5,   3,   4,   5,
         ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, start, expected_factors, expected_table) in tests {
         let rules_lr = build_prs(test_id);
         if VERBOSE {
