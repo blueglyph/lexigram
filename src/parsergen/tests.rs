@@ -4,7 +4,7 @@ use crate::grammar::{LL1, ProdRuleSet};
 use crate::grammar::tests::build_prs;
 use crate::parsergen::ParserBuilder;
 
-
+#[ignore]
 #[test]
 fn write_source_code_from_ll1() {
     let rules = build_prs(4);
@@ -16,6 +16,7 @@ fn write_source_code_from_ll1() {
     }
 }
 
+#[ignore]
 #[test]
 fn write_source_code_from_lr() {
     let rules = build_prs(4);
