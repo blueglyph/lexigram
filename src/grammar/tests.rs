@@ -829,13 +829,13 @@ fn prs_calc_table() {
             //   E |   .   .   .   .   0   .   0   0   .
             //   T |   .   .   .   .   1   .   1   1   .
             //   F |   .   .   .   .   2   .   3   4   .
-            // E_1 |   5   6   .   .   .   7   .   .   .
-            // T_1 |  10  10   8   9   .  10   .   .   .
+            // E_1 |   5   6   .   .   .   7   .   .   7
+            // T_1 |  10  10   8   9   .  10   .   .  10
              11,  11,  11,  11,   0,  11,   0,   0,  11,
              11,  11,  11,  11,   1,  11,   1,   1,  11,
              11,  11,  11,  11,   2,  11,   3,   4,  11,
-              5,   6,  11,  11,  11,   7,  11,  11,  11,
-             10,  10,   8,   9,  11,  10,  11,  11,  11,
+              5,   6,  11,  11,  11,   7,  11,  11,   7,
+             10,  10,   8,   9,  11,  10,  11,  11,  10,
         ]),
         (5, 0, vec![
             // - 0: A -> A1 A2 ; ;
@@ -926,11 +926,11 @@ fn prs_calc_table() {
               5,   5,   3,   4,   5,
         ]),
     ];
-    const VERBOSE: bool = true;
-    for (test_id, start, expected_factors, expected_table) in tests {
-        let rules_lr = build_prs(test_id);
+    const VERBOSE: bool = false;
+    for (test_id, (ll_id, start, expected_factors, expected_table)) in tests.into_iter().enumerate() {
+        let rules_lr = build_prs(ll_id);
         if VERBOSE {
-            println!("test {test_id}/{start}:");
+            println!("test {ll_id}/{start}:");
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         ll1.set_start(start);
@@ -942,7 +942,7 @@ fn prs_calc_table() {
         }
         let parsing_table = ll1.calc_table(&first, &follow);
         let LLParsingTable { num_nt, num_t, factors, table } = &parsing_table;
-        assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{start}");
+        assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{ll_id}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
             let error = factors.len() as VarId;
@@ -965,7 +965,7 @@ fn prs_calc_table() {
                 println!("vec![{}]", table.iter().map(|x| x.to_string()).join(", "));
             }
         }
-        assert_eq!(*factors, expected_factors, "test {test_id}/{start} failed");
-        assert_eq!(*table, expected_table, "test {test_id}/{start} failed");
+        assert_eq!(*factors, expected_factors, "test {test_id}/{ll_id}/{start} failed");
+        assert_eq!(*table, expected_table, "test {test_id}/{ll_id}/{start} failed");
    }
 }

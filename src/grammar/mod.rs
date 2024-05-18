@@ -1005,7 +1005,7 @@ impl ProdRuleSet<LL1> {
         let error = factors.len() as VarId; // table entry for syntactic error
         let num_nt = self.num_nt;
         let num_t = self.num_t + 1;
-        let end = num_t - 1; // index of end symbol
+        let end = (num_t - 1) as VarId; // index of end symbol
         let mut table: Vec<VarId> = vec![error; num_nt * num_t];
         for (f_id, (nt_id, factor)) in factors.iter().enumerate() {
             let f_id = f_id as VarId;
@@ -1019,8 +1019,10 @@ impl ProdRuleSet<LL1> {
                     Symbol::Empty => {
                         has_empty = true;
                         for s in &follow[&Symbol::NT(*nt_id)] {
-                            if let Symbol::T(t_id) = s {
-                                add_table(&mut table, error, num_t, *nt_id, *t_id, f_id);
+                            match s {
+                                Symbol::T(t_id) => add_table(&mut table, error, num_t, *nt_id, *t_id, f_id),
+                                Symbol::End     => add_table(&mut table, error, num_t, *nt_id, end, f_id),
+                                _ => {}
                             }
                         }
                     }
@@ -1034,7 +1036,7 @@ impl ProdRuleSet<LL1> {
                 }
             }
             if has_empty && has_end {
-                add_table(&mut table, error, num_t, *nt_id, end as VarId, end as VarId);
+                add_table(&mut table, error, num_t, *nt_id, end, end);
             }
         }
         LLParsingTable { num_nt, num_t, factors, table }
