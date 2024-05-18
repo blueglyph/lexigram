@@ -45,6 +45,7 @@
     - [x] ~~predictive parsing algorithm~~
     - [ ] hooks: how to link back to original RuleTree?
     - [ ] generate code
+    - [ ] error recovery
 - basic rparser
   - parser text -> RuleTree
     - [ ] generate lexer tree with basic rlexer (lexicon file)
