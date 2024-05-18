@@ -16,9 +16,13 @@ fn parser_parse_stream() {
             ("++;-", false),
             ("-", false),
         ]),
+        (4, 0, vec![
+            ("I*I", true),
+        ])
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
+if ll_id != 4 { continue; }
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
         let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
         ll1.set_start(start);

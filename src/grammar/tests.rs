@@ -386,8 +386,8 @@ fn def_arith_symbols(symbol_table: &mut SymbolTable) {
         ("DIV".to_string(), Some("/".to_string())),
         ("LPAREN".to_string(), Some("(".to_string())),
         ("RPAREN".to_string(), Some(")".to_string())),
-        ("NUM".to_string(), None),
-        ("ID".to_string(), None)
+        ("N".to_string(), None),
+        ("I".to_string(), None)
     ]);
     symbol_table.extend_non_terminals([
         "E".to_string(), "T".to_string(), "F".to_string()

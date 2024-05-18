@@ -31,6 +31,7 @@ impl Parser {
         let sym_table = Some(&self.symbol_table);
         let mut stack = Vec::<Symbol>::new();
         let error = self.factors.len() as VarId;
+        let end = (self.num_t - 1) as VarId;
         stack.push(Symbol::End);
         stack.push(Symbol::NT(self.start));
         let mut stack_sym = stack.pop().unwrap();
@@ -42,7 +43,8 @@ impl Parser {
                          stack.iter().map(|s| s.to_str(sym_table)).join(" "), stack_sym.to_str(sym_table));
             }
             match (stack_sym, stream_sym) {
-                (Symbol::NT(var), Symbol::T(sr)) => {
+                (Symbol::NT(var), _) => {
+                    let sr = if let Symbol::T(sr) = stream_sym { sr } else { end };
                     let factor_id = self.table[var as usize * self.num_t + sr as usize];
                     if VERBOSE {
                         println!("- table[{var}, {sr}] = {factor_id}: {}",
