@@ -502,14 +502,6 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
         symbol_table.extend_terminals((0..rules.num_t).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
     }
     if symbol_table.get_non_terminals().is_empty() {
-        // finds the highest NT and populates the symbol table:
-/*
-        let num_nt = prods.len().max(prods.iter().map(|p|
-            p.iter().map(|f|
-                f.iter().filter_map(|s|
-                    if let Symbol::NT(v) = s { Some(*v) } else { None }).max().unwrap_or(0)).max().unwrap_or(0)
-        ).max().unwrap_or(0) as usize + 1);
-*/
         assert!(rules.num_nt <= 26);
         symbol_table.extend_non_terminals((0..rules.num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
     }
