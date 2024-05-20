@@ -21,6 +21,7 @@ pub enum Symbol {
     #[default] Empty,
     T(TokenId),
     NT(VarId),
+    Exit(VarId),
     End
 }
 
@@ -58,6 +59,7 @@ impl Display for Symbol {
             Symbol::Empty => write!(f, "ε"),
             Symbol::T(id) => write!(f, ":{id}"),
             Symbol::NT(id) => write!(f, "{id}"),
+            Symbol::Exit(x) => write!(f, "←{x}"),
             Symbol::End => write!(f, "$"),
         }
     }
@@ -742,7 +744,7 @@ impl<T> ProdRuleSet<T> {
             match &sym {
                 Symbol::T(_) | Symbol::Empty => (sym, hashset![sym]),
                 Symbol::NT(_) => (sym, HashSet::new()),
-                Symbol::End => panic!("found reserved symbol 'end' in production rules"),
+                Symbol::End | Symbol::Exit(_) => panic!("found reserved symbol {sym:?} in production rules"),
             }
         }).collect::<HashMap<_, _>>();
         let mut change = true;
@@ -1030,6 +1032,7 @@ impl ProdRuleSet<LL1> {
                         add_table(&mut table, error, num_t, *nt_id, t_id, f_id);
                     }
                     Symbol::NT(_) => {}
+                    Symbol::Exit(_) => panic!("found reserved symbol {s:?} in production rules"),
                     Symbol::End => {
                         has_end = true;
                     }

@@ -100,20 +100,11 @@ impl Parser {
         where I: Iterator<Item=(Symbol, String)>,
               L: Listener,
     {
-        fn sym_to_str(s: &Symbol, exit_nt: VarId, sym_table: Option<&SymbolTable>) -> String {
-             if let Symbol::NT(nt) = s {
-                 if *nt < exit_nt { s.to_str(sym_table) } else { format!("|{}|", Symbol::NT(*nt - exit_nt).to_str(sym_table)) }
-             } else {
-                 s.to_str(sym_table)
-             }
-        }
-
         const VERBOSE: bool = true;
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<Symbol>::new();
         let error = self.factors.len() as VarId;
         let end = (self.num_t - 1) as VarId;
-        let exit_nt = self.num_nt as VarId;
         stack.push(Symbol::End);
         stack.push(Symbol::NT(self.start));
         let mut stack_sym = stack.pop().unwrap();
@@ -122,39 +113,37 @@ impl Parser {
             if VERBOSE {
                 println!("{:-<40}", "");
                 println!("input: {}  stack: {}  current: {}", stream_sym.to_str(sym_table),
-                         stack.iter().map(|s| sym_to_str(s, exit_nt, sym_table)).join(" "), sym_to_str(&stack_sym, exit_nt, sym_table));
+                         stack.iter().map(|s| s.to_str(sym_table)).join(" "), stack_sym.to_str(sym_table));
             }
             match (stack_sym, stream_sym) {
                 (Symbol::NT(var), _) => {
-                    if var < exit_nt {
-                        let sr = if let Symbol::T(sr) = stream_sym { sr } else { end };
-                        let factor_id = self.table[var as usize * self.num_t + sr as usize];
-                        if VERBOSE {
-                            println!("- table[{var}, {sr}] = {factor_id}: {}",
-                                     if factor_id >= error {
-                                         "ERROR".to_string()
-                                     } else {
-                                         factor_to_string(&self.factors[factor_id as usize].1, sym_table)
-                                     });
-                        }
-                        if factor_id >= error {
-                            return Err(format!("syntax error on input '{}' while parsing '{}'",
-                                               stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)
-                            ));
-                        }
-                        if VERBOSE {
-                            println!("- PUSH {}", self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev()
-                                .map(|s| s.to_str(sym_table)).join(" "));
-                        }
-                        stack.push(Symbol::NT(exit_nt + var)); // will be popped when this NT is completed
-                        stack.extend(self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned());
-                        stack_sym = stack.pop().unwrap();
-                    } else {
-                        if VERBOSE { println!("- EXIT {}", sym_to_str(&stack_sym, exit_nt, sym_table)); }
-                        let nt = var - exit_nt;
-                        listener.switch(nt);
-                        stack_sym = stack.pop().unwrap();
+                    let sr = if let Symbol::T(sr) = stream_sym { sr } else { end };
+                    let factor_id = self.table[var as usize * self.num_t + sr as usize];
+                    if VERBOSE {
+                        println!("- table[{var}, {sr}] = {factor_id}: {}",
+                                 if factor_id >= error {
+                                     "ERROR".to_string()
+                                 } else {
+                                     factor_to_string(&self.factors[factor_id as usize].1, sym_table)
+                                 });
                     }
+                    if factor_id >= error {
+                        return Err(format!("syntax error on input '{}' while parsing '{}'",
+                                           stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)
+                        ));
+                    }
+                    if VERBOSE {
+                        println!("- PUSH {}", self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev()
+                            .map(|s| s.to_str(sym_table)).join(" "));
+                    }
+                    stack.push(Symbol::Exit(var)); // will be popped when this NT is completed
+                    stack.extend(self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned());
+                    stack_sym = stack.pop().unwrap();
+                }
+                (Symbol::Exit(var), _) => {
+                    if VERBOSE { println!("- EXIT {}", stream_sym.to_str(sym_table)); }
+                    listener.switch(var);
+                    stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::T(sk), Symbol::T(sr)) => {
                     if sk != sr {

@@ -15,6 +15,7 @@ pub(crate) fn symbol_to_code(s: &Symbol) -> String {
         Symbol::T(t) => format!("Symbol::T({t})"),
         Symbol::NT(nt) => format!("Symbol::NT({nt})"),
         Symbol::End => "Symbol::End".to_string(),
+        Symbol::Exit(_) => panic!("unexpected symbol {s:?}"),
     }
 }
 
