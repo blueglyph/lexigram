@@ -145,7 +145,7 @@ mod listener {
 
             let listener = TestListener::new(VERBOSE);
             let mut wrapper = ListenerWrapper::new(listener);
-            let success = match parser.parse_stream_hook(&mut wrapper, stream) {
+            let success = match parser.parse_stream(&mut wrapper, stream) {
                 Ok(_) => {
                     if VERBOSE { println!("parsing completed successfully"); }
                     true

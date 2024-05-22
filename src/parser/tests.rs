@@ -5,10 +5,15 @@ use crate::CollectJoin;
 use crate::dfa::TokenId;
 use crate::grammar::{LL1, ProdRuleSet, Symbol};
 use crate::grammar::tests::build_prs;
+use crate::parser::Listener;
 use crate::parsergen::ParserBuilder;
 
 #[test]
 fn parser_parse_stream() {
+
+    struct Stub();
+    impl Listener for Stub {}
+
     let tests = vec![
         (5, 0, vec![
             ("++;;", true),
@@ -47,7 +52,7 @@ fn parser_parse_stream() {
                     }
                 }
             });
-            let success = match parser.parse_stream(stream) {
+            let success = match parser.parse_stream(&mut Stub(), stream) {
                 Ok(_) => {
                     if VERBOSE { println!("parsing completed successfully"); }
                     true
@@ -180,7 +185,7 @@ mod listener {
 
                 let listener = TestListener::new(VERBOSE);
                 let mut wrapper = ListenerWrapper::new(listener);
-                let success = match parser.parse_stream_hook(&mut wrapper, stream) {
+                let success = match parser.parse_stream(&mut wrapper, stream) {
                     Ok(_) => {
                         if VERBOSE { println!("parsing completed successfully"); }
                         true
