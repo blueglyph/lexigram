@@ -76,34 +76,35 @@ mod listener {
 
     struct TestListener {
         result: Vec<String>,
+        verbose: bool
     }
 
     impl TestListener {
-        pub fn new() -> Self {
-            Self { result: Vec::new() }
+        pub fn new(verbose: bool) -> Self {
+            Self { result: Vec::new(), verbose }
         }
     }
 
     impl ExprListenerTrait for TestListener {
         fn visit_e(&mut self) {
-            println!("E");
+            if self.verbose { println!("E"); }
             self.result.push("E".to_string());
         }
 
         fn visit_t(&mut self) {
-            println!("T");
+            if self.verbose { println!("T"); }
             self.result.push("T".to_string());
         }
 
         fn visit_f(&mut self) {
-            println!("F");
+            if self.verbose { println!("F"); }
             self.result.push("F".to_string());
         }
 
         // we're not interested in visit_e_1
 
         fn visit_t_1(&mut self) {
-            println!("T_1");
+            if self.verbose { println!("T_1"); }
             self.result.push("T_1".to_string());
         }
     }
@@ -114,7 +115,7 @@ mod listener {
             ("I+N*I", true, vec!["F", "T_1", "T", "F", "F", "T_1", "T_1", "T", "E"]),
             ("I*(N+N)", true, vec!["F", "F", "T_1", "T", "F", "T_1", "T", "E", "F", "T_1", "T_1", "T", "E"]),
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let mut parser = build_parser();
 
         // The lexer provides the required stream, so this isn't necessary in a real case:
@@ -142,7 +143,7 @@ mod listener {
 
             // User code under test ------------------------------
 
-            let listener = TestListener::new();
+            let listener = TestListener::new(VERBOSE);
             let mut wrapper = ListenerWrapper::new(listener);
             let success = match parser.parse_stream_hook(&mut wrapper, stream) {
                 Ok(_) => {

@@ -110,34 +110,35 @@ mod listener {
 
     struct TestListener {
         result: Vec<String>,
+        verbose: bool
     }
 
     impl TestListener {
-        pub fn new() -> Self {
-            Self { result: Vec::new() }
+        pub fn new(verbose: bool) -> Self {
+            Self { result: Vec::new(), verbose }
         }
     }
 
     impl ExprListenerTrait for TestListener {
         fn visit_e(&mut self) {
-            println!("E");
+            if self.verbose { println!("E"); }
             self.result.push("E".to_string());
         }
 
         fn visit_t(&mut self) {
-            println!("T");
+            if self.verbose { println!("T"); }
             self.result.push("T".to_string());
         }
 
         fn visit_f(&mut self) {
-            println!("F");
+            if self.verbose { println!("F"); }
             self.result.push("F".to_string());
         }
 
         // we're not interested in visit_e_1
 
         fn visit_t_1(&mut self) {
-            println!("T_1");
+            if self.verbose { println!("T_1"); }
             self.result.push("T_1".to_string());
         }
     }
@@ -149,7 +150,7 @@ mod listener {
                 ("I+N*I", true),
             ])
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
             let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
@@ -177,7 +178,7 @@ mod listener {
 
                 // User code -----------------------------------------
 
-                let listener = TestListener::new();
+                let listener = TestListener::new(VERBOSE);
                 let mut wrapper = ListenerWrapper::new(listener);
                 let success = match parser.parse_stream_hook(&mut wrapper, stream) {
                     Ok(_) => {
