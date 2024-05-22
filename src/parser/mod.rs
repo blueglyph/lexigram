@@ -6,8 +6,10 @@ use crate::symbol_table::SymbolTable;
 
 mod tests;
 
+pub enum Call { Enter, Exit }
+
 pub trait Listener {
-    fn switch(&mut self, nt: VarId) {}
+    fn switch(&mut self, nt: VarId, call: Call) {}
 }
 
 pub struct Parser {
@@ -70,13 +72,14 @@ impl Parser {
                         println!("- PUSH {}", self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev()
                             .map(|s| s.to_str(sym_table)).join(" "));
                     }
+                    listener.switch(var, Call::Enter);
                     stack.push(Symbol::Exit(var)); // will be popped when this NT is completed
                     stack.extend(self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned());
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::Exit(var), _) => {
                     if VERBOSE { println!("- EXIT {}", stream_sym.to_str(sym_table)); }
-                    listener.switch(var);
+                    listener.switch(var, Call::Exit);
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::T(sk), Symbol::T(sr)) => {
