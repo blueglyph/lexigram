@@ -39,13 +39,21 @@
   - top-down
     - [x] ~~calc first~~
     - [x] ~~calc follow~~
-    - [x] ~~check if LL(1)~~
+    - [ ] check if LL(1)
+      - [ ] check indirect left recursion
     - [x] ~~build parsing table~~
     - [ ] warning/error log system (for parsing table, lexer, ...)
     - [x] ~~predictive parsing algorithm~~
-    - [ ] hooks: how to link back to original RuleTree?
+    - [ ] semantic analysis: how to link back to original RuleTree after removing left recursion/left factoring?
+    - proper adapter link to lexer
+      - [ ] adapter for tokens
+      - [ ] SymbolTable
+    - [ ]
     - [ ] generate code
     - [ ] error recovery
+  - bottom-up
+    - [ ] decide algorithm (LALR?)
+    - [ ] LR/CELR-attributed grammar
 - basic rparser
   - parser text -> RuleTree
     - [ ] generate lexer tree with basic rlexer (lexicon file)
