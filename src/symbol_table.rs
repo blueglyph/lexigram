@@ -117,8 +117,8 @@ impl SymbolTable {
                 // if *var as usize >= self.nt.len() { return format!("??NT({var})") }
                 self.nt[*var as usize].clone()
             }
-            Symbol::Exit(var) => {
-                format!("←{}", self.nt[*var as usize])
+            Symbol::Exit(factor_id) => {
+                format!("←{factor_id}")
             }
         }
     }

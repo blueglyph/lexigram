@@ -9,7 +9,7 @@ mod tests;
 pub enum Call { Enter, Exit }
 
 pub trait Listener {
-    fn switch(&mut self, nt: VarId, call: Call) {}
+    fn switch(&mut self, nt: VarId, call: Call, factor_id: VarId, t_str: Vec<String>) {}
 }
 
 pub struct Parser {
@@ -37,14 +37,16 @@ impl Parser {
               L: Listener,
     {
         const VERBOSE: bool = false;
+        let num_t_str = self.factors.iter().map(|(v, f)| (*v, f.iter().filter(|s| s.is_t()).count())).to_vec();
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<Symbol>::new();
+        let mut stack_t = Vec::<String>::new();
         let error = self.factors.len() as VarId;
         let end = (self.num_t - 1) as VarId;
         stack.push(Symbol::End);
         stack.push(Symbol::NT(self.start));
         let mut stack_sym = stack.pop().unwrap();
-        let mut stream_sym = stream.next().map(|(s, _)| s).unwrap_or(Symbol::End);
+        let (mut stream_sym, mut stream_str) = stream.next().unwrap_or((Symbol::End, "".to_string()));
         loop {
             if VERBOSE {
                 println!("{:-<40}", "");
@@ -72,14 +74,16 @@ impl Parser {
                         println!("- PUSH {}", self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev()
                             .map(|s| s.to_str(sym_table)).join(" "));
                     }
-                    listener.switch(var, Call::Enter);
-                    stack.push(Symbol::Exit(var)); // will be popped when this NT is completed
+                    listener.switch(var, Call::Enter, 0, vec![]);
+                    stack.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
                     stack.extend(self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned());
                     stack_sym = stack.pop().unwrap();
                 }
-                (Symbol::Exit(var), _) => {
-                    if VERBOSE { println!("- EXIT {}", stream_sym.to_str(sym_table)); }
-                    listener.switch(var, Call::Exit);
+                (Symbol::Exit(factor_id), _) => {
+                    let (var, n) = num_t_str[factor_id as usize];
+                    let t_str = stack_t.drain(stack_t.len() - n..).to_vec();
+                    if VERBOSE { println!("- EXIT {} syn: {}", Symbol::NT(var).to_str(sym_table), t_str.iter().join(" ")); }
+                    listener.switch(var, Call::Exit, factor_id, t_str);
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::T(sk), Symbol::T(sr)) => {
@@ -88,8 +92,9 @@ impl Parser {
                                              stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)));
                     }
                     if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
+                    stack_t.push(stream_str);
                     stack_sym = stack.pop().unwrap();
-                    stream_sym = stream.next().map(|(s, _)| s).unwrap_or(Symbol::End);
+                    (stream_sym, stream_str) = stream.next().unwrap_or((Symbol::End, "".to_string()))
                 }
                 (Symbol::End, Symbol::End) => {
                     break;

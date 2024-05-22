@@ -381,8 +381,8 @@ fn map_and_print_follow<'a>(follow: &'a HashMap<Symbol, HashSet<Symbol>>, symbol
 
 fn def_arith_symbols(symbol_table: &mut SymbolTable) {
     symbol_table.extend_terminals([
-        ("PLUS".to_string(), Some("+".to_string())),
-        ("MINUS".to_string(), Some("-".to_string())),
+        ("ADD".to_string(), Some("+".to_string())),
+        ("SUB".to_string(), Some("-".to_string())),
         ("MUL".to_string(), Some("*".to_string())),
         ("DIV".to_string(), Some("/".to_string())),
         ("LPAREN".to_string(), Some("(".to_string())),

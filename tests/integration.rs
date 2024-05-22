@@ -65,7 +65,7 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, nt: VarId, call: Call) {
+        fn switch(&mut self, nt: VarId, call: Call, _factor_id: VarId, _x: Vec<String>) {
             match nt {
                 0 => if let Call::Enter = call { self.0.enter_e() }   else { self.0.exit_e() }
                 1 => if let Call::Enter = call { self.0.enter_t() }   else { self.0.exit_t() }
