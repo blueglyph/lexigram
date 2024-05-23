@@ -57,6 +57,14 @@ impl SymbolTable {
         }
     }
 
+    pub fn is_terminal_variable(&self, s: &Symbol) -> bool {
+        if let Symbol::T(var) = s {
+            self.t[*var as usize].1.is_none()
+        } else {
+            false
+        }
+    }
+
     pub fn get_terminals(&self) -> &[(String, Option<String>)] {
         &self.t
     }

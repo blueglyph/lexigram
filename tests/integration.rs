@@ -36,6 +36,21 @@ mod listener {
         Parser::new(parsing_table, symbol_table, START_SYMBOL)
     }
 
+    // - 0: E -> T E_1
+    // - 1: T -> F T_1
+    // - 2: F -> ( E )
+    // - 3: F -> NUM
+    // - 4: F -> ID
+    // - 5: E_1 -> + T E_1
+    // - 6: E_1 -> - T E_1
+    // - 7: E_1 -> ε
+    // - 8: T_1 -> * F T_1
+    // - 9: T_1 -> / F T_1
+    // - 10: T_1 -> ε
+    pub enum CtxF { LpRp, Num(String), Id(String) }
+    pub enum CtxE1 { Add, Sub, Empty }
+    pub enum CtxT1 { Mul, Div, Empty }
+
     pub trait ExprListenerTrait {
         fn enter_e(&mut self) {}
         fn enter_t(&mut self) {}
@@ -44,9 +59,9 @@ mod listener {
         fn enter_t_1(&mut self) {}
         fn exit_e(&mut self) {}
         fn exit_t(&mut self) {}
-        fn exit_f(&mut self) {}
-        fn exit_e_1(&mut self) {}
-        fn exit_t_1(&mut self) {}
+        fn exit_f(&mut self, _ctx: CtxF) {}
+        fn exit_e_1(&mut self, _ctx: CtxE1) {}
+        fn exit_t_1(&mut self, _ctx: CtxT1) {}
     }
 
     struct ListenerWrapper<T>(T);
@@ -65,14 +80,31 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, nt: VarId, call: Call, _factor_id: VarId, _x: Vec<String>) {
-            match nt {
-                0 => if let Call::Enter = call { self.0.enter_e() }   else { self.0.exit_e() }
-                1 => if let Call::Enter = call { self.0.enter_t() }   else { self.0.exit_t() }
-                2 => if let Call::Enter = call { self.0.enter_f() }   else { self.0.exit_f() }
-                3 => if let Call::Enter = call { self.0.enter_e_1() } else { self.0.exit_e_1() }
-                4 => if let Call::Enter = call { self.0.enter_t_1() } else { self.0.exit_t_1() }
-                _ => panic!("unexpected nt exit value: {nt}")
+        fn switch(&mut self, nt: VarId, call: Call, factor_id: VarId, mut t_str: Vec<String>) {
+            if let Call::Enter = call {
+                match nt {
+                    0 => self.0.enter_e(),
+                    1 => self.0.enter_t(),
+                    2 => self.0.enter_f(),
+                    3 => self.0.enter_e_1(),
+                    4 => self.0.enter_t_1(),
+                    _ => panic!("unexpected nt exit value: {nt}")
+                }
+            } else {
+                match factor_id {
+                    0 => self.0.exit_e(),
+                    1 => self.0.exit_t(),
+                    2 => self.0.exit_f(CtxF::LpRp),
+                    3 => self.0.exit_f(CtxF::Num(t_str.pop().unwrap())),
+                    4 => self.0.exit_f(CtxF::Id(t_str.pop().unwrap())),
+                    5 => self.0.exit_e_1(CtxE1::Add),
+                    6 => self.0.exit_e_1(CtxE1::Sub),
+                    7 => self.0.exit_e_1(CtxE1::Empty),
+                    8 => self.0.exit_t_1(CtxT1::Mul),
+                    9 => self.0.exit_t_1(CtxT1::Div),
+                    10 => self.0.exit_t_1(CtxT1::Empty),
+                    _ => panic!("unexpected nt exit factor id: {nt}")
+                }
             }
         }
     }
@@ -130,15 +162,20 @@ mod listener {
             self.result.push("T)".to_string());
         }
 
-        fn exit_f(&mut self) {
+        fn exit_f(&mut self, ctx: CtxF) {
             self.level -= 1;
-            if self.verbose { println!("{: <1$} F)", "", self.level * 4); }
-            self.result.push("F)".to_string());
+            let output = match ctx {
+                CtxF::LpRp => format!("F)"),
+                CtxF::Num(n) => format!("F)=#{n}"),
+                CtxF::Id(i) => format!("F)='{i}'"),
+            };
+            if self.verbose { println!("{: <1$} {output}", "", self.level * 4); }
+            self.result.push(output);
         }
 
         // we're not interested in exit_e_1
 
-        fn exit_t_1(&mut self) {
+        fn exit_t_1(&mut self, _ctx: CtxT1) {
             self.level -= 1;
             if self.verbose { println!("{: <1$} T_1)", "", self.level * 4); }
             self.result.push("T_1)".to_string());
@@ -153,12 +190,12 @@ mod listener {
             // F -> ( E ) | NUM | ID
             // E_1 -> + T E_1 | - T E_1 | ε
             // T_1 -> * F T_1 | / F T_1 | ε
-            ("I+N*I", true, vec![
-                "(E", "(T", "(F", "F)", "(T_1", "T_1)", "T)", "(T", "(F", "F)",
-                "(T_1", "(F", "F)", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
-            ("I*(N+N)", true, vec![
-                "(E", "(T", "(F", "F)", "(T_1", "(F", "(E", "(T", "(F", "F)", "(T_1", "T_1)", "T)", "(T",
-                "(F", "F)", "(T_1", "T_1)", "T)", "E)", "F)", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
+            ("a+2*b", true, vec![
+                "(E", "(T", "(F", "F)='a'", "(T_1", "T_1)", "T)", "(T", "(F", "F)=#2",
+                "(T_1", "(F", "F)='b'", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
+            ("a*(4+5)", true, vec![
+                "(E", "(T", "(F", "F)='a'", "(T_1", "(F", "(E", "(T", "(F", "F)=#4", "(T_1", "T_1)", "T)", "(T",
+                "(F", "F)=#5", "(T_1", "T_1)", "T)", "E)", "F)", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
         ];
         const VERBOSE: bool = false;
         let mut parser = build_parser();
@@ -177,12 +214,18 @@ mod listener {
                     None
                 } else {
                     let c_str = c.to_string();
-                    if let Some(s) = symbols.get(&c_str) {
-                        // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                        Some((*s, c_str))
-                    } else {
-                        panic!("unrecognized test input '{c}' in test {test_id}, input {input}");
-                    }
+                    Some(match c {
+                        '0'..='9' => (Symbol::T(6), c_str),
+                        'a'..='z' => (Symbol::T(7), c_str),
+                        _ => {
+                            if let Some(s) = symbols.get(&c_str) {
+                                // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
+                                (*s, c_str)
+                            } else {
+                                panic!("unrecognized test input '{c}' in test {test_id}, input {input}");
+                            }
+                        }
+                    })
                 }
             });
 

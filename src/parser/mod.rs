@@ -37,7 +37,9 @@ impl Parser {
               L: Listener,
     {
         const VERBOSE: bool = false;
-        let num_t_str = self.factors.iter().map(|(v, f)| (*v, f.iter().filter(|s| s.is_t()).count())).to_vec();
+        let num_t_str = self.factors.iter().map(|(v, f)|
+            (*v, f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count())
+        ).to_vec();
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<Symbol>::new();
         let mut stack_t = Vec::<String>::new();
@@ -92,7 +94,9 @@ impl Parser {
                                              stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)));
                     }
                     if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
-                    stack_t.push(stream_str);
+                    if self.symbol_table.is_terminal_variable(&stack_sym) {
+                        stack_t.push(stream_str);
+                    }
                     stack_sym = stack.pop().unwrap();
                     (stream_sym, stream_str) = stream.next().unwrap_or((Symbol::End, "".to_string()))
                 }
