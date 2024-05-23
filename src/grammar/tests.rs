@@ -206,6 +206,12 @@ fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 2), gnode!(nt 3)]);
             tree.add(Some(or), gnode!(nt 4));
         }
+        14 => { // 1?(2|3)?
+            let cc = tree.add_root(gnode!(&));
+            tree.addc(Some(cc), gnode!(?), gnode!(nt 1));
+            let m = tree.add(Some(cc), gnode!(?));
+            tree.addc_iter(Some(m), gnode!(|), [gnode!(nt 2), gnode!(nt 3)]);
+        }
 
         _ => {}
     }
@@ -320,10 +326,14 @@ fn rts_prodrule_from() {
         (13, btreemap![
             0 => prod!(nt 1, nt 10),
             10 => prod!(nt 2, nt 3, nt 10; nt 4, nt 10; e)]),
+        (14, btreemap![ // 1?(2|3)?
+            0 => prod!(nt 1, nt 2; nt 1, nt 3; nt 1; nt 2; nt 3; e)
+        ])
     ];
     for (test_id, expected) in tests {
         let trees = build_rts(test_id);
-        let rules = ProdRuleSet::from(trees);
+        let mut rules = ProdRuleSet::from(trees);
+        rules.simplify();
         let result = rules.get_prods_iter().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");
     }

@@ -668,6 +668,35 @@ impl<T> ProdRuleSet<T> {
         ).max().unwrap_or(0) as usize;
     }
 
+    /// Simplifies the productions by removing unnecessary empty symbols.
+    pub fn simplify(&mut self) {
+        for p in &mut self.prods {
+            let mut has_empty = false;
+            let mut i = 0;
+            while i < p.len() {
+                let f = p.get_mut(i).unwrap();
+                let mut j = 0;
+                while j < f.len() {
+                    if f[j].is_empty() && (j > 0 || j + 1 < f.len()) {
+                        f.remove(j);
+                    } else {
+                        j += 1;
+                    }
+                }
+                if f.len() == 1 && f[0].is_empty() {
+                    if has_empty {
+                        p.remove(i);
+                    } else {
+                        has_empty = true;
+                        i += 1;
+                    }
+                } else {
+                    i += 1;
+                }
+            }
+        }
+    }
+
     /// Removes the unused non-terminals and renumbers everything accordingly.
     /// Note that we don't remove unused T symbols because it would create a coherency problem with the lexer.
     ///
@@ -1094,7 +1123,9 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<LR> {
 
 impl From<RuleTreeSet<General>> for ProdRuleSet<LR> {
     fn from(rules: RuleTreeSet<General>) -> Self {
-        ProdRuleSet::from(RuleTreeSet::<Normalized>::from(rules))
+        let mut prods = ProdRuleSet::from(RuleTreeSet::<Normalized>::from(rules));
+        prods.simplify();
+        prods
     }
 }
 
