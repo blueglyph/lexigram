@@ -9,7 +9,7 @@ mod tests;
 pub enum Call { Enter, Exit }
 
 pub trait Listener {
-    fn switch(&mut self, nt: VarId, call: Call, factor_id: VarId, t_str: Vec<String>) {}
+    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_str: Vec<String>) {}
 }
 
 pub struct Parser {
@@ -76,7 +76,7 @@ impl Parser {
                         println!("- PUSH {}", self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev()
                             .map(|s| s.to_str(sym_table)).join(" "));
                     }
-                    listener.switch(var, Call::Enter, 0, vec![]);
+                    listener.switch(Call::Enter, var, factor_id, vec![]);
                     stack.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
                     stack.extend(self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned());
                     stack_sym = stack.pop().unwrap();
@@ -85,7 +85,7 @@ impl Parser {
                     let (var, n) = num_t_str[factor_id as usize];
                     let t_str = stack_t.drain(stack_t.len() - n..).to_vec();
                     if VERBOSE { println!("- EXIT {} syn: {}", Symbol::NT(var).to_str(sym_table), t_str.iter().join(" ")); }
-                    listener.switch(var, Call::Exit, factor_id, t_str);
+                    listener.switch(Call::Exit, var, factor_id, t_str);
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::T(sk), Symbol::T(sr)) => {
