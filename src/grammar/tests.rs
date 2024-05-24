@@ -975,7 +975,7 @@ fn prs_calc_table() {
               1,   3,   2,
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {

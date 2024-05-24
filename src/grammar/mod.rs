@@ -3,7 +3,7 @@
 
 pub(crate) mod tests;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::Deref;
@@ -1022,23 +1022,19 @@ impl ProdRuleSet<LL1> {
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production factor for
     /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `factors.len()` stands for a syntactic error.
     pub fn calc_table(&self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>) -> LLParsingTable {
-        fn add_table(table: &mut Vec<VarId>, error: VarId, num_t: usize, nt_id: VarId, t_id: VarId, f_id: VarId) {
+        fn add_table(table: &mut Vec<Vec<VarId>>, error: VarId, num_t: usize, nt_id: VarId, t_id: VarId, f_id: VarId) {
             let pos = nt_id as usize * num_t + t_id as usize;
-            if table[pos] != error && table[pos] != f_id {
-                println!("## ambiguity for NT {nt_id}, T {t_id}: {} and {}", table[pos], f_id);
-            }
-            table[pos] = f_id;
+            table[pos].push(f_id);
         }
         const VERBOSE: bool = false;
-        const DISABLE_FILTER: bool = true;
+        const DISABLE_FILTER: bool = false;
         let factors = self.prods.iter().enumerate().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v as VarId)))
             .flat_map(|(v, x)| x.iter().map(move |f| (v as VarId, f.clone() as ProdFactor))).to_vec();
         let error = factors.len() as VarId; // table entry for syntactic error
         let num_nt = self.num_nt;
         let num_t = self.num_t + 1;
         let end = (num_t - 1) as VarId; // index of end symbol
-        let mut ambiguities = HashMap::<VarId, Vec<VarId>>::new();
-        let mut table: Vec<VarId> = vec![error; num_nt * num_t];
+        let mut table: Vec<Vec<VarId>> = vec![vec![]; num_nt * num_t];
         for (f_id, (nt_id, factor)) in factors.iter().enumerate() {
             let f_id = f_id as VarId;
             if VERBOSE { println!("- {f_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
@@ -1072,7 +1068,29 @@ impl ProdRuleSet<LL1> {
                 add_table(&mut table, error, num_t, *nt_id, end, end);
             }
         }
-        LLParsingTable { num_nt, num_t, factors, table }
+        // creates the table and removes ambiguities
+        let mut final_table = Vec::<VarId>::new();
+        for nt_id in 0..num_nt {
+            for t_id in 0..num_t {
+                let pos = nt_id * num_t + t_id;
+                final_table.push(match table[pos].len() {
+                    0 => error,
+                    1 => table[pos].pop().unwrap(),
+                    _ => {
+                        // TODO: move to warning log
+                        println!("## ambiguity for NT {nt_id}, T {t_id}: {}",
+                                 table[pos].iter().map(|f_id|
+                                     format!("<{}>", factor_to_string(&factors[*f_id as usize].1, self.get_symbol_table()))).join(" or "));
+                        // we take the first item which isn't already in another position on the same NT row
+                        let row = (0..num_t).filter(|j| *j != t_id).flat_map(|j| &table[nt_id*num_t + j]).collect::<HashSet<_>>();
+                        let chosen = *table[pos].iter().find(|f| !row.contains(f)).unwrap_or(&table[pos][0]);
+                        table[pos] = vec![chosen];
+                        chosen
+                    }
+                });
+            }
+        }
+        LLParsingTable { num_nt, num_t, factors, table: final_table }
     }
 
     pub fn create_parsing_table(&mut self) -> LLParsingTable {

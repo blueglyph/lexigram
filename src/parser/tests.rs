@@ -26,11 +26,12 @@ fn parser_parse_stream() {
         (4, 0, vec![
             ("I*I", true),
         ]),
-        (8, 0, vec![
+        (8, 0, vec![ // ambiguous grammar but that should work
             ("b a b a b", true),
+            ("b", true),
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
         let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
