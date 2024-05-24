@@ -506,6 +506,12 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
             ]);
             start = Some(1);
         }
+        8 => {
+            // ambiguous
+            prods.extend([
+                prod!(nt 0, t 0, nt 0; t 1),    // A -> A a A | b
+            ]);
+        }
         _ => {}
     };
     rules.calc_num_symbols();
@@ -547,6 +553,12 @@ fn prs_remove_left_recursion() {
             3 => prod!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
             4 => prod!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
         ]),
+        (8, btreemap![
+            // A -> b A_1
+            // A_1 -> a A A_1 | ε
+            0 => prod!(t 1, nt 1),
+            1 => prod!(t 0, nt 0, nt 1; e),
+        ])
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -673,6 +685,12 @@ fn prs_ll1_from() {
             3 => prod!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
             4 => prod!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
         ]),
+        (8, btreemap![
+            // A -> b A_1
+            // A_1 -> a A A_1 | ε
+            0 => prod!(t 1, nt 1),
+            1 => prod!(t 0, nt 0, nt 1; e),
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -731,6 +749,13 @@ fn prs_calc_first() {
             sym!(nt 1) => hashset![sym!(t 0), sym!(e)],
             sym!(nt 2) => hashset![sym!(t 1), sym!(e)]
         ]),
+        (8, 0, hashmap![
+            sym!(e) => hashset![sym!(e)],
+            sym!(t 0) => hashset![sym!(t 0)],
+            sym!(t 1) => hashset![sym!(t 1)],
+            sym!(nt 0) => hashset![sym!(t 1)],
+            sym!(nt 1) => hashset![sym!(e), sym!(t 0)],
+        ])
     ];
     const VERBOSE: bool = false;
     for (test_id, start, expected) in tests {
@@ -776,7 +801,10 @@ fn prs_calc_follow() {
             sym!(nt 1) => hashset![sym!(t 1), sym!(t 2)],
             sym!(nt 2) => hashset![sym!(t 2)],
         ]),
-
+        (8, 0, hashmap![
+            sym!(nt 0) => hashset![sym!(t 0), sym!(end)],
+            sym!(nt 1) => hashset![sym!(t 0), sym!(end)],
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, start, expected) in tests {
@@ -928,8 +956,26 @@ fn prs_calc_table() {
               5,   2,   2,   2,   5,
               5,   5,   3,   4,   5,
         ]),
+        // TODO: needs warning log
+        (8, 0, vec![
+            // A -> A a A | b
+            // - 0: A -> b A_1
+            // - 1: A_1 -> a A A_1
+            // - 2: A_1 -> ε
+            (0, prodf!(t 1, nt 1)),
+            (1, prodf!(t 0, nt 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            // ## ambiguity for NT 1, T 0: 1 and 2
+            //     |   a   b   $
+            // ----+-------------
+            //   A |   .   0   .
+            // A_1 |   1   .   2
+              3,   0,   3,
+              1,   3,   2,
+        ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {

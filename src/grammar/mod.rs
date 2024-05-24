@@ -1037,6 +1037,7 @@ impl ProdRuleSet<LL1> {
         let num_nt = self.num_nt;
         let num_t = self.num_t + 1;
         let end = (num_t - 1) as VarId; // index of end symbol
+        let mut ambiguities = HashMap::<VarId, Vec<VarId>>::new();
         let mut table: Vec<VarId> = vec![error; num_nt * num_t];
         for (f_id, (nt_id, factor)) in factors.iter().enumerate() {
             let f_id = f_id as VarId;
