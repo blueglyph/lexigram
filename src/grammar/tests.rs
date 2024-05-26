@@ -3,7 +3,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use super::*;
 use crate::dfa::TokenId;
-use crate::{btreemap, gnode, hashmap, hashset, prod, prodf, sym};
+use crate::{btreemap, gnode, hashmap, hashset, LL1, LR, prod, prodf, sym};
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
@@ -412,7 +412,7 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
     }
 }
 
-pub(crate) fn build_prs(id: u32) -> ProdRuleSet<LR> {
+pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
     let prods = &mut rules.prods;
@@ -711,6 +711,22 @@ fn prs_ll1_from() {
         let result = BTreeMap::<_, _>::from(&rules_ll1);
         assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
    }
+}
+
+#[test]
+#[should_panic]
+/// We test that the code compiles, but it must also panic because the `remove_ambiguity()`
+/// method isn't implemented yet for LR grammars.
+fn prs_lr_from() {
+    let mut test_id = 0;
+    loop {
+        let rules = build_prs(test_id);
+        if rules.prods.is_empty() {
+            break;
+        }
+        let lr = ProdRuleSet::<LR>::from(rules);
+        test_id += 1;
+    }
 }
 
 #[test]

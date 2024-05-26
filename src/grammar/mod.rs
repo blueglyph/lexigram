@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR};
 use crate::vectree::VecTree;
 use crate::symbol_table::SymbolTable;
 use crate::take_until::TakeUntilIterator;
@@ -596,11 +596,6 @@ pub struct LLParsingTable {
 }
 
 #[derive(Clone, Debug)]
-pub struct LR;
-#[derive(Clone, Debug)]
-pub struct LL1;
-
-#[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
     num_nt: usize,
@@ -1008,6 +1003,10 @@ impl<T> ProdRuleSet<T> {
         self.num_nt = self.prods.len();
         self.symbol_table = symbol_table;
     }
+
+    pub(crate) fn remove_ambiguity(&self) {
+        todo!()
+    }
 }
 
 impl ProdRuleSet<LL1> {
@@ -1098,7 +1097,7 @@ impl ProdRuleSet<LL1> {
     }
 }
 
-impl From<RuleTreeSet<Normalized>> for ProdRuleSet<LR> {
+impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
         fn children_to_vec(tree: &GrTree, parent_id: usize) -> Vec<Symbol> {
             tree.children(parent_id).iter().map(|id| {
@@ -1138,7 +1137,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<LR> {
     }
 }
 
-impl From<RuleTreeSet<General>> for ProdRuleSet<LR> {
+impl From<RuleTreeSet<General>> for ProdRuleSet<General> {
     fn from(rules: RuleTreeSet<General>) -> Self {
         let mut prods = ProdRuleSet::from(RuleTreeSet::<Normalized>::from(rules));
         prods.simplify();
@@ -1146,11 +1145,26 @@ impl From<RuleTreeSet<General>> for ProdRuleSet<LR> {
     }
 }
 
-impl From<ProdRuleSet<LR>> for ProdRuleSet<LL1> {
-    fn from(mut rules: ProdRuleSet<LR>) -> Self {
+impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
+    fn from(mut rules: ProdRuleSet<General>) -> Self {
         rules.remove_left_recursion();
         rules.left_factorize();
         ProdRuleSet::<LL1> {
+            prods: rules.prods,
+            num_nt: rules.num_nt,
+            num_t: rules.num_t,
+            symbol_table: rules.symbol_table,
+            start: rules.start,
+            nt_conversion: rules.nt_conversion,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
+    fn from(mut rules: ProdRuleSet<General>) -> Self {
+        rules.remove_ambiguity();
+        ProdRuleSet::<LR> {
             prods: rules.prods,
             num_nt: rules.num_nt,
             num_t: rules.num_t,

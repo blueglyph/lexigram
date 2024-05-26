@@ -41,7 +41,17 @@ pub mod parser;
 ///
 /// - `Dfa<General>` may have accepting states with IDs smaller than non-accepting states' IDs, or non-incremntal IDs.
 /// - `RuleTreeSet<General>` may include any operators like `*`, `+`, and `?`, and doesn't have a restriction on depth.
+/// - `ProdRuleSet<General>` may be ambiguous, left-recursive, and/or need left factorization, depending on the target.
+#[derive(Clone, Debug)]
 pub struct General;
+
+/// - `ProdRuleSet<LR>` have no ambiguity.
+#[derive(Clone, Debug)]
+pub struct LR;
+
+/// - `ProdRuleSet<LL>` aren't left-recursive and are left-factorized.
+#[derive(Clone, Debug)]
+pub struct LL1;
 
 /// Unit type used as generic parameter to indicate normalized form.
 ///

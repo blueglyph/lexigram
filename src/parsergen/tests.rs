@@ -1,7 +1,8 @@
 #![cfg(test)]
 
-use crate::grammar::{LL1, ProdRuleSet};
+use crate::grammar::ProdRuleSet;
 use crate::grammar::tests::build_prs;
+use crate::LL1;
 use crate::parsergen::ParserBuilder;
 
 #[ignore]

@@ -1,9 +1,9 @@
 #![cfg(test)]
 
 use std::collections::HashMap;
-use crate::CollectJoin;
+use crate::{CollectJoin, LL1};
 use crate::dfa::TokenId;
-use crate::grammar::{LL1, ProdRuleSet, Symbol};
+use crate::grammar::{ProdRuleSet, Symbol};
 use crate::grammar::tests::build_prs;
 use crate::parser::Listener;
 use crate::parsergen::ParserBuilder;

@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use crate::grammar::{LL1, LLParsingTable, ProdRuleSet, RuleTreeSet, Symbol, VarId};
-use crate::{CollectJoin, General, Normalized};
+use crate::grammar::{LLParsingTable, ProdRuleSet, RuleTreeSet, Symbol, VarId};
+use crate::{CollectJoin, General, LL1, Normalized};
 use crate::parser::Parser;
 use crate::symbol_table::SymbolTable;
 
