@@ -857,9 +857,7 @@ impl<T> ProdRuleSet<T> {
         }
         follow
     }
-}
 
-impl ProdRuleSet<LR> {
     pub fn new() -> Self {
         Self { prods: Vec::new(), num_nt: 0, num_t: 0, symbol_table: None, start: None, nt_conversion: None, _phantom: PhantomData }
     }
