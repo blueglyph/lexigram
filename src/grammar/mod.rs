@@ -879,12 +879,6 @@ impl<T> ProdRuleSet<T> {
     /// A   -> β1 A_0 | β2 A_0
     /// A_0 -> α1 β1 A_0 | α2 β1 A_0 | α1 β2 A_0 | α2 β2 A_0 | ε
     /// ```
-    /// or
-    /// ```eq
-    /// A   -> β1 A_0 | β2 A_0
-    /// A_0 -> α1 β1 A_0 | α2 β1 A_0 | α1 A_1 | α2 A_1 | ε
-    /// A_1 -> β1 A_0 | β2 A_0
-    /// ```
     /// It also requires left-/right-associative reconstruction during parsing.
     pub fn remove_left_recursion(&mut self) {
         const VERBOSE: bool = false;
