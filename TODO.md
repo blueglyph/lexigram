@@ -40,7 +40,7 @@
     - [x] ~~calc first~~
     - [x] ~~calc follow~~
     - [ ] remove ambiguity: `A -> A β A | δ`
-      - special case of left recursivity. Don't translate to `A -> δ A_1; A1 -> β A A1 | ε`, but `A -> δ A_1; A1 -> β A1 | ε` + tag left-/right-associativity
+      - special case of left recursivity. Don't translate to `A -> δ A1; A1 -> β A A1 | ε`, but `A -> δ A1; A1 -> β A1 | ε` + tag left-/right-associativity
     - [ ] reconstruct semantic synthesis attributes during parsing
       - [ ] tags when transforming grammar (remove_left_recursion, left_factorize)
       - [ ] stack-based reconstruction (+ left/right)

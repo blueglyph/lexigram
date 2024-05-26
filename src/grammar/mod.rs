@@ -862,13 +862,30 @@ impl<T> ProdRuleSet<T> {
     }
 
     /// Eliminates left recursion from production rules, and updates the symbol table if provided.
-    ///
-    /// A -> A α1 | ... | A αm | β1 | ... | βn;
-    ///
+    /// ```eq
+    /// A -> A α1 | ... | A αm | β1 | ... | βn
+    /// ```
     /// becomes
-    ///
-    /// A   -> β1 A_0 | ... | βn A_0;
-    /// A_0 -> α1 A_0 | ... | αm A_0 | ε;
+    /// ```eq
+    /// A   -> β1 A_0 | ... | βn A_0
+    /// A_0 -> α1 A_0 | ... | αm A_0 | ε
+    /// ```
+    /// The special case of ambiguity
+    /// ```eq
+    /// A -> A α1 A | A α2 A | β1 | β2
+    /// ```
+    /// becomes (instead of `A -> β1 A_0 | β2 A_0; A_0 -> α1 A A_0 | α2 A A_0 | ε`)
+    /// ```eq
+    /// A   -> β1 A_0 | β2 A_0
+    /// A_0 -> α1 β1 A_0 | α2 β1 A_0 | α1 β2 A_0 | α2 β2 A_0 | ε
+    /// ```
+    /// or
+    /// ```eq
+    /// A   -> β1 A_0 | β2 A_0
+    /// A_0 -> α1 β1 A_0 | α2 β1 A_0 | α1 A_1 | α2 A_1 | ε
+    /// A_1 -> β1 A_0 | β2 A_0
+    /// ```
+    /// It also requires left-/right-associative reconstruction during parsing.
     pub fn remove_left_recursion(&mut self) {
         const VERBOSE: bool = false;
         // we must remove either prods or the symbol table from self for the borrow checker
@@ -917,14 +934,14 @@ impl<T> ProdRuleSet<T> {
     /// to a new non-terminal.Updates the symbol table if provided.
     ///
     /// Finds the longest prefix α common to two or more factors:
-    ///
+    /// ```eq
     /// A -> α β1 | ... | α βm | γ1 | ... | γn;
-    ///
+    /// ```
     /// Puts the different parts into a new production rule:
-    ///
+    /// ```eq
     /// A   -> α A_0 | γ1 | ... | γn ;
     /// A_0 -> β1 | ... | βm;
-    ///
+    /// ```
     /// Reiterates until all factors start with different symbols in every production rule.
     pub fn left_factorize(&mut self) {
         fn similarity(a: &ProdFactor, b: &ProdFactor) -> usize {
