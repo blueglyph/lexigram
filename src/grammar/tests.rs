@@ -512,6 +512,31 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0, nt 0; t 1),    // A -> A a A | b
             ]);
         }
+        9 => {
+            // A -> A a A | A b A | c
+            prods.extend([
+                prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2),
+            ])
+        }
+        10 => {
+            // A -> A a A | A b A | c | d
+            prods.extend([
+                prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2; t 3),
+            ])
+        }
+        11 => {
+            // A -> A a | A b | A c d A | A e f A | g | h i
+            prods.extend([
+                prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, t 3, nt 0; nt 0, t 4, t 5, nt 0; t 6; t 7, t 8),
+            ])
+        }
+        12 => {
+            // A -> A a | A b | A c d A | A e f A | g
+            prods.extend([
+                prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, t 3, nt 0; nt 0, t 4, t 5, nt 0; t 6),
+            ])
+        }
+        // TODO: create function with failing grammars, like A -> A A / A -> A a A A / ...
         _ => {}
     };
     rules.calc_num_symbols();
@@ -555,10 +580,38 @@ fn prs_remove_left_recursion() {
         ]),
         (8, btreemap![
             // A -> b A_1
-            // A_1 -> a A A_1 | ε
+            // A_1 -> a b A_1 | ε
             0 => prod!(t 1, nt 1),
-            1 => prod!(t 0, nt 0, nt 1; e),
-        ])
+            1 => prod!(t 0, t 1, nt 1; e),
+        ]),
+        (9, btreemap![ // A -> A a A | A b A | c
+            // A -> c A_1
+            // A_1 -> a c A_1 | b c A_1 | ε
+            0 => prod!(t 2, nt 1),
+            1 => prod!(t 0, t 2, nt 1; t 1, t 2, nt 1; e)
+        ]),
+        (10, btreemap![ // A -> A a A | A b A | c | d
+            // A -> c A_2 | d A_2
+            // A_1 -> c | d
+            // A_2 -> a A_1 A_2 | b A_1 A_2 | ε
+            0 => prod!(t 2, nt 2; t 3, nt 2),
+            1 => prod!(t 2; t 3),
+            2 => prod!(t 0, nt 1, nt 2; t 1, nt 1, nt 2; e)
+        ]),
+        (11, btreemap![ // A -> A a | A b | A c d A | A e f A | g | h i
+            // A -> g A_2 | h i A_2
+            // A_1 -> g | h i
+            // A_2 -> a A_2 | b A_2 | c d A_1 A_2 | e f A_1 A_2 | ε
+            0 => prod!(t 6, nt 2; t 7, t 8, nt 2),
+            1 => prod!(t 6; t 7, t 8),
+            2 => prod!(t 0, nt 2; t 1, nt 2; t 2, t 3, nt 1, nt 2; t 4, t 5, nt 1, nt 2; e)
+        ]),
+        (12, btreemap![ // A -> A a | A b | A c d A | A e f A | g
+            // A -> g A_1
+            // A_1 -> a A_1 | b A_1 | c d g A_1 | e f g A_1 | ε
+            0 => prod!(t 6, nt 1),
+            1 => prod!(t 0, nt 1; t 1, nt 1; t 2, t 3, t 6, nt 1; t 4, t 5, t 6, nt 1; e)
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -687,9 +740,9 @@ fn prs_ll1_from() {
         ]),
         (8, btreemap![
             // A -> b A_1
-            // A_1 -> a A A_1 | ε
+            // A_1 -> a b A_1 | ε
             0 => prod!(t 1, nt 1),
-            1 => prod!(t 0, nt 0, nt 1; e),
+            1 => prod!(t 0, t 1, nt 1; e),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -818,8 +871,8 @@ fn prs_calc_follow() {
             sym!(nt 2) => hashset![sym!(t 2)],
         ]),
         (8, 0, hashmap![
-            sym!(nt 0) => hashset![sym!(t 0), sym!(end)],
-            sym!(nt 1) => hashset![sym!(t 0), sym!(end)],
+            sym!(nt 0) => hashset![sym!(end)],
+            sym!(nt 1) => hashset![sym!(end)],
         ]),
     ];
     const VERBOSE: bool = false;
@@ -972,17 +1025,15 @@ fn prs_calc_table() {
               5,   2,   2,   2,   5,
               5,   5,   3,   4,   5,
         ]),
-        // TODO: needs warning log
         (8, 0, vec![
             // A -> A a A | b
             // - 0: A -> b A_1
-            // - 1: A_1 -> a A A_1
+            // - 1: A_1 -> a b A_1
             // - 2: A_1 -> ε
             (0, prodf!(t 1, nt 1)),
-            (1, prodf!(t 0, nt 0, nt 1)),
+            (1, prodf!(t 0, t 1, nt 1)),
             (1, prodf!(e)),
         ], vec![
-            // ## ambiguity for NT 1, T 0: 1 and 2
             //     |   a   b   $
             // ----+-------------
             //   A |   .   0   .

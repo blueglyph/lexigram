@@ -861,25 +861,26 @@ impl<T> ProdRuleSet<T> {
         Self { prods: Vec::with_capacity(capacity), num_nt: 0, num_t: 0, symbol_table: None, start: None, nt_conversion: None, _phantom: PhantomData }
     }
 
-    /// Eliminates left recursion from production rules, and updates the symbol table if provided.
+    /// Eliminates left recursion from production rules, removes potential ambiguity, and updates the symbol table if provided.
     /// ```eq
-    /// A -> A α1 | ... | A αm | β1 | ... | βn
+    /// A -> A α1 | ... | A αm | A β1 A | ... | A βn A | γ1 | ... | γk
+    ///      ^^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^
+    ///       left recursion           ambiguity
     /// ```
     /// becomes
     /// ```eq
-    /// A   -> β1 A_0 | ... | βn A_0
-    /// A_0 -> α1 A_0 | ... | αm A_0 | ε
+    /// A   -> γ1 A_1 | ... | γk A_1
+    /// A_0 -> γ1 | ... | γk
+    /// A_1 -> α1 A_1 | ... | αm A_1 | β1 A_0 A_1 | ... | βn A_0 A_1 | ε
     /// ```
-    /// The special case of ambiguity
-    /// ```eq
-    /// A -> A α1 A | A α2 A | β1 | β2
-    /// ```
-    /// becomes (instead of `A -> β1 A_0 | β2 A_0; A_0 -> α1 A A_0 | α2 A A_0 | ε`)
-    /// ```eq
-    /// A   -> β1 A_0 | β2 A_0
-    /// A_0 -> α1 β1 A_0 | α2 β1 A_0 | α1 β2 A_0 | α2 β2 A_0 | ε
-    /// ```
-    /// It also requires left-/right-associative reconstruction during parsing.
+    /// (if `k` = 1, `A_0` is unnecessary)
+    ///
+    /// It requires left-/right-associative reconstruction during parsing, since it transforms the
+    /// productions into right-associative ones.
+    ///
+    /// Note that it could reduce the number of steps in the parsing if we also took into account
+    /// other instances of `A` in the middle, like `A β1 A δ1`, but it's not strictly necessary
+    /// for an LL(1) grammar so we don't do it.
     pub fn remove_left_recursion(&mut self) {
         const VERBOSE: bool = false;
         // we must remove either prods or the symbol table from self for the borrow checker
@@ -895,28 +896,81 @@ impl<T> ProdRuleSet<T> {
                         Symbol::NT(var).to_str(symbol_table.as_ref()),
                         prod_to_string(prod, symbol_table.as_ref())));
                 }
-                let (mut left, mut fine) : (Vec<_>, Vec<_>) = prod.iter().cloned()
+                let (mut recursive, mut fine) : (Vec<_>, Vec<_>) = prod.iter().cloned()
                     .partition(|factor| *factor.first().unwrap() == symbol);
+                let (mut ambiguous, mut left) : (Vec<_>, Vec<_>) = recursive.into_iter()
+                    .partition(|factor| *factor.last().unwrap() == symbol);
+                if fine.is_empty() || left.iter().any(|f| f.len() < 2) || ambiguous.iter().any(|f| f.len() < 3) {
+                    // TODO: move to error log
+                    println!("## ERROR: recursive production: {}", prod_to_string(prod, symbol_table.as_ref()));
+                    if fine.is_empty() { println!("- requires factors not starting with {}", symbol.to_str(symbol_table.as_ref())); }
+                    if let Some(x) = left.iter().find(|f| f.len() < 2) { println!("- {}", factor_to_string(x, symbol_table.as_ref())); }
+                    if let Some(x) = ambiguous.iter().find(|f| f.len() < 3) { println!("- ambiguous {}", factor_to_string(x, symbol_table.as_ref())); }
+                    continue;
+                }
                 // apply the transformation
+                let var_ambig = if !ambiguous.is_empty() && fine.len() > 1 {
+                    let var_ambig = new_var;
+                    if let Some(table) = &mut symbol_table {
+                        table.add_var_prime_name(var, new_var);
+                    }
+                    new_var += 1;
+                    extra.push(fine.clone());
+                    Some(var_ambig)
+                } else {
+                    None
+                };
                 let var_prime = new_var;
+                new_var += 1;
                 if let Some(table) = &mut symbol_table {
                     table.add_var_prime_name(var, var_prime);
                 }
                 let symbol_prime = Symbol::NT(var_prime);
-                if VERBOSE { println!("- adding non-terminal {var_prime} ({}), deriving from {var} ({})",
-                    symbol_prime.to_str(symbol_table.as_ref()), symbol.to_str((symbol_table.as_ref())));
+                if VERBOSE {
+                    print!("- adding non-terminal {var_prime} ({})", symbol_prime.to_str(symbol_table.as_ref()));
+                    if let Some(v) = var_ambig {
+                        print!(" and non-terminal {v} ({})", Symbol::NT(v).to_str(symbol_table.as_ref()));
+                    }
+                    print!(", deriving from {var} ({})", symbol.to_str((symbol_table.as_ref())));
+                }
+                for factor in &mut ambiguous {
+                    factor.pop();
+                    factor.remove(0);
+                    if *factor.last().unwrap() == symbol {
+                        // TODO: move to error log
+                        println!("## ERROR: cannot remove recursivity from {}", prod_to_string(prod, symbol_table.as_ref()));
+                        continue;
+                    }
+                    if let Some(v) = var_ambig {
+                        // orig if k > 1:   A   -> A β1 A | ... | A βn A | γ1 | ... | γk | (non-recursive part)
+                        // => new:          A_0 -> γ1 | ... | γk
+                        // => add to prime: A_p -> β1 A_0 A_p | ... | βn A_0 A_p
+                        factor.push(Symbol::NT(v));
+                    } else {
+                        // orig if k = 1:   A   -> A β1 A | ... | A βn A | γ | (non-recursive part)
+                        // => add to prime: A_p -> β1 γ A_p | ... | βn γ A_p
+                        factor.extend(fine[0].clone());
+                    }
+                    factor.push(symbol_prime);
                 }
                 for factor in &mut fine {
+                    // change A -> γ1 A_p | ... | γk A_p
                     factor.push(symbol_prime.clone());
                 }
                 for factor in &mut left {
+                    // add to prime: A_p -> α1 A_p | ... | αm A_p
                     factor.remove(0);
+                    if *factor.first().unwrap() == symbol {
+                        // TODO: move to error log
+                        println!("## ERROR: cannot remove recursivity from {}", prod_to_string(prod, symbol_table.as_ref()));
+                        continue;
+                    }
                     factor.push(symbol_prime.clone());
                 }
+                left.extend(ambiguous);
                 left.push(vec![Symbol::Empty]);
                 *prod = fine;
                 extra.push(left);
-                new_var += 1;
             }
         }
         self.prods.extend(extra);
