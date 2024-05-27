@@ -389,7 +389,7 @@ fn map_and_print_follow<'a>(follow: &'a HashMap<Symbol, HashSet<Symbol>>, symbol
     b
 }
 
-fn def_arith_symbols(symbol_table: &mut SymbolTable) {
+fn def_arith_symbols(symbol_table: &mut SymbolTable, has_term: bool) {
     symbol_table.extend_terminals([
         ("ADD".to_string(), Some("+".to_string())),
         ("SUB".to_string(), Some("-".to_string())),
@@ -400,9 +400,11 @@ fn def_arith_symbols(symbol_table: &mut SymbolTable) {
         ("N".to_string(), None),
         ("I".to_string(), None)
     ]);
-    symbol_table.extend_non_terminals([
-        "E".to_string(), "T".to_string(), "F".to_string()
-    ]);
+    symbol_table.extend_non_terminals(["E".to_string()]);
+    if has_term {
+        symbol_table.extend_non_terminals(["T".to_string()]);
+    }
+    symbol_table.extend_non_terminals(["F".to_string()]);
 }
 
 impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
@@ -453,7 +455,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             // classical arithmetic grammar
             // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
             // NT: 0:E, 1:T, 2:F
-            def_arith_symbols(&mut symbol_table);
+            def_arith_symbols(&mut symbol_table, true);
             prods.extend([
                 prod!(nt 0, t 0, nt 1; nt 0, t 1, nt 1; nt 1),  // E -> E + T | E - T | T
                 prod!(nt 1, t 2, nt 2; nt 1, t 3, nt 2; nt 2),  // T -> T * F | T / F | F
@@ -536,6 +538,16 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, t 3, nt 0; nt 0, t 4, t 5, nt 0; t 6),
             ])
         }
+        13 => {
+            // classical arithmetic grammar
+            // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
+            // NT: 0:E, 1:F
+            def_arith_symbols(&mut symbol_table, false);
+            prods.extend([
+                prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 1),  // E -> E * E | E / E | E + E | E - E | F
+                prod!(t 4, nt 0, t 5; t 6; t 7),                // F -> ( E ) | NUM | ID
+            ]);
+        }
         // TODO: create function with failing grammars, like A -> A A / A -> A a A A / ...
         _ => {}
     };
@@ -611,6 +623,14 @@ fn prs_remove_left_recursion() {
             // A_1 -> a A_1 | b A_1 | c d g A_1 | e f g A_1 | ε
             0 => prod!(t 6, nt 1),
             1 => prod!(t 0, nt 1; t 1, nt 1; t 2, t 3, t 6, nt 1; t 4, t 5, t 6, nt 1; e)
+        ]),
+        (13, btreemap![
+            // E -> F E_1
+            // F -> ( E ) | N | I
+            // E_1 -> * F E_1 | / F E_1 | + F E_1 | - F E_1 | ε
+            0 => prod!(nt 1, nt 2),
+            1 => prod!(t 4, nt 0, t 5; t 6; t 7),
+            2 => prod!(t 2, nt 1, nt 2; t 3, nt 1, nt 2; t 0, nt 1, nt 2; t 1, nt 1, nt 2; e),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -1040,6 +1060,38 @@ fn prs_calc_table() {
             // A_1 |   1   .   2
               3,   0,   3,
               1,   3,   2,
+        ]),
+        (13, 0, vec![
+            // E -> F E_1
+            // F -> ( E ) | N | I
+            // E_1 -> * F E_1 | / F E_1 | + F E_1 | - F E_1 | ε
+            // - 0: E -> F E_1
+            // - 1: F -> ( E )
+            // - 2: F -> N
+            // - 3: F -> I
+            // - 4: E_1 -> * F E_1
+            // - 5: E_1 -> / F E_1
+            // - 6: E_1 -> + F E_1
+            // - 7: E_1 -> - F E_1
+            // - 8: E_1 -> ε
+            (0, prodf!(nt 1, nt 2)),
+            (1, prodf!(t 4, nt 0, t 5)),
+            (1, prodf!(t 6)),
+            (1, prodf!(t 7)),
+            (2, prodf!(t 2, nt 1, nt 2)),
+            (2, prodf!(t 3, nt 1, nt 2)),
+            (2, prodf!(t 0, nt 1, nt 2)),
+            (2, prodf!(t 1, nt 1, nt 2)),
+            (2, prodf!(e)),
+        ], vec![
+            //     |   +   -   *   /   (   )   N   I   $
+            // ----+-------------------------------------
+            //   E |   .   .   .   .   0   .   0   0   .
+            //   F |   .   .   .   .   1   .   2   3   .
+            // E_1 |   6   7   4   5   .   8   .   .   8
+              9,   9,   9,   9,   0,   9,   0,   0,   9,
+              9,   9,   9,   9,   1,   9,   2,   3,   9,
+              6,   7,   4,   5,   9,   8,   9,   9,   8,
         ]),
     ];
     const VERBOSE: bool = false;
