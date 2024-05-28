@@ -900,12 +900,11 @@ impl<T> ProdRuleSet<T> {
                     .partition(|factor| *factor.first().unwrap() == symbol);
                 let (mut ambiguous, mut left) : (Vec<_>, Vec<_>) = recursive.into_iter()
                     .partition(|factor| *factor.last().unwrap() == symbol);
-                if fine.is_empty() || left.iter().any(|f| f.len() < 2) || ambiguous.iter().any(|f| f.len() < 3) {
+                if fine.is_empty() || left.iter().any(|f| f.len() < 2) {
                     // TODO: move to error log
                     println!("## ERROR: recursive production: {}", prod_to_string(prod, symbol_table.as_ref()));
                     if fine.is_empty() { println!("- requires factors not starting with {}", symbol.to_str(symbol_table.as_ref())); }
                     if let Some(x) = left.iter().find(|f| f.len() < 2) { println!("- {}", factor_to_string(x, symbol_table.as_ref())); }
-                    if let Some(x) = ambiguous.iter().find(|f| f.len() < 3) { println!("- ambiguous {}", factor_to_string(x, symbol_table.as_ref())); }
                     continue;
                 }
                 // apply the transformation
@@ -936,7 +935,7 @@ impl<T> ProdRuleSet<T> {
                 for factor in &mut ambiguous {
                     factor.pop();
                     factor.remove(0);
-                    if *factor.last().unwrap() == symbol {
+                    if factor.last().map(|s| *s == symbol).unwrap_or(false) {
                         // TODO: move to error log
                         println!("## ERROR: cannot remove recursivity from {}", prod_to_string(prod, symbol_table.as_ref()));
                         continue;
