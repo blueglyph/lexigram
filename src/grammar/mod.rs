@@ -764,6 +764,9 @@ impl<T> ProdRuleSet<T> {
             }
         }
         if symbols.iter().filter(|s| matches!(s, Symbol::NT(_))).count() != self.num_nt {
+            self.log.add_warning(format!("calc_first: unused non-terminals: {}",
+                                 (0..self.num_nt).map(|v| Symbol::NT(v as VarId)).filter_map(|s|
+                                     if symbols.contains(&s) { None } else { Some(s.to_str(self.get_symbol_table())) }).join(", ")));
             self.cleanup_symbols(&mut symbols);
         }
         let mut first = symbols.into_iter().map(|sym| {

@@ -961,8 +961,8 @@ fn prs_calc_follow() {
 
 #[test]
 fn prs_calc_table() {
-    let tests: Vec<(u32, VarId, Vec<(VarId, ProdFactor)>, Vec<VarId>)> = vec![
-        (4, 0, vec![
+    let tests: Vec<(u32, VarId, usize, Vec<(VarId, ProdFactor)>, Vec<VarId>)> = vec![
+        (4, 0, 0, vec![
             // - 0: E -> T E_1
             // - 1: T -> F T_1
             // - 2: F -> ( E )
@@ -999,7 +999,7 @@ fn prs_calc_table() {
               5,   6,  11,  11,  11,   7,  11,  11,   7,
              10,  10,   8,   9,  11,  10,  11,  11,  10,
         ]),
-        (5, 0, vec![
+        (5, 0, 0, vec![
             // - 0: A -> A1 A2 ; ;
             // - 1: A1 -> - A1
             // - 2: A1 -> ε
@@ -1020,7 +1020,7 @@ fn prs_calc_table() {
             1, 2, 2, 5,
             5, 3, 4, 5,
         ]),
-        (6, 1, vec![
+        (6, 1, 0, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: A -> A1 A2 ;
@@ -1041,7 +1041,7 @@ fn prs_calc_table() {
               2,   2,   2,   5,
               5,   3,   4,   5,
         ]),
-        (7, 1, vec![
+        (7, 1, 0, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: X -> A
@@ -1066,7 +1066,7 @@ fn prs_calc_table() {
               6,   3,   3,   3,   6,
               6,   6,   4,   5,   6,
         ]),
-        (7, 2, vec![
+        (7, 2, 1, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: A -> A1 A2 ;
@@ -1087,7 +1087,7 @@ fn prs_calc_table() {
               5,   2,   2,   2,   5,
               5,   5,   3,   4,   5,
         ]),
-        (8, 0, vec![
+        (8, 0, 0, vec![
             // A -> A a A | b
             // - 0: A -> b A_1
             // - 1: A_1 -> a b A_1
@@ -1103,7 +1103,7 @@ fn prs_calc_table() {
               3,   0,   3,
               1,   3,   2,
         ]),
-        (13, 0, vec![
+        (13, 0, 0, vec![
             // E -> F E_1
             // F -> ( E ) | N | I
             // E_1 -> * F E_1 | / F E_1 | + F E_1 | - F E_1 | ε
@@ -1135,7 +1135,7 @@ fn prs_calc_table() {
               9,   9,   9,   9,   1,   9,   2,   3,   9,
               6,   7,   4,   5,   9,   8,   9,   9,   8,
         ]),
-        (14, 0, vec![
+        (14, 0, 0, vec![
             // - 0: A -> a A_1
             // - 1: A_1 -> a A_1
             // - 2: A_1 -> ε
@@ -1152,7 +1152,7 @@ fn prs_calc_table() {
         ]),
     ];
     const VERBOSE: bool = false;
-    for (test_id, (ll_id, start, expected_factors, expected_table)) in tests.into_iter().enumerate() {
+    for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
@@ -1193,8 +1193,8 @@ fn prs_calc_table() {
         }
         assert_eq!(*factors, expected_factors, "test {test_id}/{ll_id}/{start} failed");
         assert_eq!(*table, expected_table, "test {test_id}/{ll_id}/{start} failed");
-        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id}/{ll_id}/{start} failed");
-        assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id}/{ll_id}/{start} failed");
+        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id}/{ll_id}/{start} failed on # errors");
+        assert_eq!(ll1.log.num_warnings(), expected_warnings, "test {test_id}/{ll_id}/{start} failed, warnings: {}", ll1.log.get_warnings().join("\n"));
    }
 }
 
