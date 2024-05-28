@@ -14,6 +14,7 @@ pub mod grammar;
 pub mod symbol_table;
 pub mod parsergen;
 pub mod parser;
+pub mod log;
 
 // Regular expressions / DFA, See:
 // - https://blog.burntsushi.net/regex-internals/

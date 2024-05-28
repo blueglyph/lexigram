@@ -10,6 +10,7 @@ use std::ops::Deref;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR};
+use crate::log::Logger;
 use crate::vectree::VecTree;
 use crate::symbol_table::SymbolTable;
 use crate::take_until::TakeUntilIterator;
@@ -603,6 +604,7 @@ pub struct ProdRuleSet<T> {
     symbol_table: Option<SymbolTable>,
     start: Option<VarId>,
     nt_conversion: Option<HashMap<Symbol, Symbol>>,
+    log: Logger,
     _phantom: PhantomData<T>
 }
 
@@ -854,11 +856,20 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub fn new() -> Self {
-        Self { prods: Vec::new(), num_nt: 0, num_t: 0, symbol_table: None, start: None, nt_conversion: None, _phantom: PhantomData }
+        Self { prods: Vec::new(), num_nt: 0, num_t: 0, symbol_table: None, start: None, nt_conversion: None, log: Logger::new(), _phantom: PhantomData }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
-        Self { prods: Vec::with_capacity(capacity), num_nt: 0, num_t: 0, symbol_table: None, start: None, nt_conversion: None, _phantom: PhantomData }
+        Self {
+            prods: Vec::with_capacity(capacity),
+            num_nt: 0,
+            num_t: 0,
+            symbol_table: None,
+            start: None,
+            nt_conversion: None,
+            log: Logger::new(),
+            _phantom: PhantomData
+        }
     }
 
     /// Eliminates left recursion from production rules, removes potential ambiguity, and updates the symbol table if provided.
@@ -960,8 +971,7 @@ impl<T> ProdRuleSet<T> {
                     // add to prime: A_p -> α1 A_p | ... | αm A_p
                     factor.remove(0);
                     if *factor.first().unwrap() == symbol {
-                        // TODO: move to error log
-                        println!("## ERROR: cannot remove recursivity from {}", prod_to_string(prod, symbol_table.as_ref()));
+                        self.log.add_error(format!("remove_left_recursion: cannot remove recursion from {}", prod_to_string(prod, symbol_table.as_ref())));
                         continue;
                     }
                     factor.push(symbol_prime.clone());
@@ -1082,7 +1092,7 @@ impl ProdRuleSet<LL1> {
     /// - `factors`, the production factors: (VarId, ProdFactor) where the first value is the non-terminal index and the second one of its factors
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production factor for
     /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `factors.len()` stands for a syntactic error.
-    pub fn calc_table(&self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>) -> LLParsingTable {
+    pub fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>) -> LLParsingTable {
         fn add_table(table: &mut Vec<Vec<VarId>>, error: VarId, num_t: usize, nt_id: VarId, t_id: VarId, f_id: VarId) {
             let pos = nt_id as usize * num_t + t_id as usize;
             table[pos].push(f_id);
@@ -1138,10 +1148,9 @@ impl ProdRuleSet<LL1> {
                     0 => error,
                     1 => table[pos].pop().unwrap(),
                     _ => {
-                        // TODO: move to warning log
-                        println!("## ambiguity for NT {nt_id}, T {t_id}: {}",
+                        self.log.add_warning(format!("calc_table: ambiguity for NT {nt_id}, T {t_id}: {}",
                                  table[pos].iter().map(|f_id|
-                                     format!("<{}>", factor_to_string(&factors[*f_id as usize].1, self.get_symbol_table()))).join(" or "));
+                                     format!("<{}>", factor_to_string(&factors[*f_id as usize].1, self.get_symbol_table()))).join(" or ")));
                         // we take the first item which isn't already in another position on the same NT row
                         let row = (0..num_t).filter(|j| *j != t_id).flat_map(|j| &table[nt_id*num_t + j]).collect::<HashSet<_>>();
                         let chosen = *table[pos].iter().find(|f| !row.contains(f)).unwrap_or(&table[pos][0]);
@@ -1220,6 +1229,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             symbol_table: rules.symbol_table,
             start: rules.start,
             nt_conversion: rules.nt_conversion,
+            log: rules.log,
             _phantom: PhantomData,
         }
     }
@@ -1235,6 +1245,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
             symbol_table: rules.symbol_table,
             start: rules.start,
             nt_conversion: rules.nt_conversion,
+            log: rules.log,
             _phantom: PhantomData,
         }
     }

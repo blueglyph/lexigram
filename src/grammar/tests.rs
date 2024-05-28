@@ -371,6 +371,19 @@ fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsing
     }
 }
 
+fn print_logs<T>(rules: &ProdRuleSet<T>) {
+    let mut msg = Vec::<String>::new();
+    msg.push(format!("Errors: {}", rules.log.num_errors()));
+    msg.extend(rules.log.get_errors().cloned());
+    msg.push("".to_string());
+    msg.push(format!("Warnings: {}", rules.log.num_warnings()));
+    msg.extend(rules.log.get_warnings().cloned());
+    msg.push("".to_string());
+    msg.push(format!("Notes: {}", rules.log.num_notes()));
+    msg.extend(rules.log.get_notes().cloned());
+    println!("{}\n", msg.join("\n"));
+}
+
 fn map_and_print_first<'a>(first: &'a HashMap<Symbol, HashSet<Symbol>>, symbol_table: Option<&'a SymbolTable>) -> BTreeMap<&'a Symbol, BTreeSet<&'a Symbol>> {
     println!("first: ");
     let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
@@ -539,16 +552,35 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             ])
         }
         13 => {
-            // classical arithmetic grammar
+            // classical ambiguous arithmetic grammar
+            // E -> E * E | E / E | E + E | E - E | F
+            // F -> ( E ) | NUM | ID
             // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
             // NT: 0:E, 1:F
             def_arith_symbols(&mut symbol_table, false);
             prods.extend([
-                prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 1),  // E -> E * E | E / E | E + E | E - E | F
-                prod!(t 4, nt 0, t 5; t 6; t 7),                // F -> ( E ) | NUM | ID
+                prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 1),
+                prod!(t 4, nt 0, t 5; t 6; t 7),
             ]);
         }
-        // TODO: create function with failing grammars, like A -> A A / A -> A a A A / ...
+        14 => {
+            // A -> A A | a
+            prods.extend([
+                prod!(nt 0, nt 0; t 0)
+            ]);
+        }
+
+        // TODO: create more failing grammars, like A -> A A / A -> A a A A / ...
+        1000 => { // A -> A a  (missing non-recursive factor)
+            prods.extend([
+                prod!(nt 0, t 0)
+            ]);
+        },
+        1001 => { // A -> A a A A | b
+            prods.extend([
+                prod!(nt 0, t 0, nt 0, nt 0; t 1)
+            ]);
+        },
         _ => {}
     };
     rules.calc_num_symbols();
@@ -648,6 +680,8 @@ fn prs_remove_left_recursion() {
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
+        assert_eq!(rules.log.get_errors().join("\n"), "", "test {test_id} failed");
+        assert_eq!(rules.log.get_warnings().join("\n"), "", "test {test_id} failed");
         rules.remove_left_recursion();
         let result = <BTreeMap<_, _>>::from(&rules);
         assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
@@ -715,6 +749,8 @@ fn prs_left_factorize() {
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
+        assert_eq!(rules.log.get_errors().join("\n"), "", "test {test_id} failed");
+        assert_eq!(rules.log.get_warnings().join("\n"), "", "test {test_id} failed");
         rules.left_factorize();
         let result = BTreeMap::<_, _>::from(&rules);
         assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
@@ -780,6 +816,8 @@ fn prs_ll1_from() {
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
+        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id} failed");
+        assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id} failed");
         let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&rules_ll1);
         assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
@@ -864,6 +902,8 @@ fn prs_calc_first() {
             }
         }
         assert_eq!(first, expected, "test {test_id} failed");
+        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id} failed");
+        assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id} failed");
    }
 }
 
@@ -914,6 +954,8 @@ fn prs_calc_follow() {
             }
         }
         assert_eq!(follow, expected, "test {test_id} failed");
+        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id} failed");
+        assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id} failed");
    }
 }
 
@@ -1093,12 +1135,27 @@ fn prs_calc_table() {
               9,   9,   9,   9,   1,   9,   2,   3,   9,
               6,   7,   4,   5,   9,   8,   9,   9,   8,
         ]),
+        (14, 0, vec![
+            // - 0: A -> a A_1
+            // - 1: A_1 -> a A_1
+            // - 2: A_1 -> ε
+            (0, prodf!(t 0, nt 1)),
+            (1, prodf!(t 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //     |   a   $
+            // ----+---------
+            //   A |   0   .
+            // A_1 |   1   2
+              0,   3,
+              1,   2,
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
-            println!("test {ll_id}/{start}:");
+            println!("test {test_id} with {ll_id}/{start}:");
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         ll1.set_start(start);
@@ -1132,8 +1189,40 @@ fn prs_calc_table() {
             if table.len() < 30 {
                 println!("vec![{}]", table.iter().map(|x| x.to_string()).join(", "));
             }
+            print_logs(&ll1);
         }
         assert_eq!(*factors, expected_factors, "test {test_id}/{ll_id}/{start} failed");
         assert_eq!(*table, expected_table, "test {test_id}/{ll_id}/{start} failed");
+        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id}/{ll_id}/{start} failed");
+        assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id}/{ll_id}/{start} failed");
+   }
+}
+
+#[test]
+fn prs_grammar_error() {
+    let tests: Vec<(u32, VarId, usize, usize)> = vec![
+        (1000, 0, 0, 1),
+        (1001, 0, 0, 1),
+    ];
+    const VERBOSE: bool = true;
+    for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
+        let rules_lr = build_prs(ll_id);
+        if VERBOSE {
+            println!("test {test_id} with {ll_id}/{start}:");
+        }
+        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        ll1.set_start(start);
+        let first = ll1.calc_first();
+        if ll1.log.num_errors() == 0 {
+            let follow = ll1.calc_follow(&first);
+            if ll1.log.num_errors() == 0 {
+                let parsing_table = ll1.calc_table(&first, &follow);
+            }
+        }
+        if VERBOSE {
+            print_logs(&ll1);
+        }
+        assert_eq!(ll1.log.num_errors(), expected_errors, "test {test_id}/{ll_id}/{start} failed on # errors");
+        assert_eq!(ll1.log.num_warnings(), expected_warnings, "test {test_id}/{ll_id}/{start} failed on # warnings");
    }
 }
