@@ -559,7 +559,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             // NT: 0:E, 1:F
             def_arith_symbols(&mut symbol_table, false);
             prods.extend([
-                prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 1),
+                prod!(nt 0, t 2, nt 0; nt 0, t 0, nt 0; nt 1),
                 prod!(t 4, nt 0, t 5; t 6; t 7),
             ]);
         }
@@ -659,10 +659,10 @@ fn prs_remove_left_recursion() {
         (13, btreemap![
             // E -> F E_1
             // F -> ( E ) | N | I
-            // E_1 -> * F E_1 | / F E_1 | + F E_1 | - F E_1 | ε
+            // E_1 -> * F E_1 | + F E_1 | ε
             0 => prod!(nt 1, nt 2),
             1 => prod!(t 4, nt 0, t 5; t 6; t 7),
-            2 => prod!(t 2, nt 1, nt 2; t 3, nt 1, nt 2; t 0, nt 1, nt 2; t 1, nt 1, nt 2; e),
+            2 => prod!(t 2, nt 1, nt 2; t 0, nt 1, nt 2; e),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -1106,34 +1106,30 @@ fn prs_calc_table() {
         (13, 0, 0, vec![
             // E -> F E_1
             // F -> ( E ) | N | I
-            // E_1 -> * F E_1 | / F E_1 | + F E_1 | - F E_1 | ε
+            // E_1 -> * F E_1 | + F E_1 | ε
             // - 0: E -> F E_1
             // - 1: F -> ( E )
             // - 2: F -> N
             // - 3: F -> I
             // - 4: E_1 -> * F E_1
-            // - 5: E_1 -> / F E_1
-            // - 6: E_1 -> + F E_1
-            // - 7: E_1 -> - F E_1
-            // - 8: E_1 -> ε
+            // - 5: E_1 -> + F E_1
+            // - 6: E_1 -> ε
             (0, prodf!(nt 1, nt 2)),
             (1, prodf!(t 4, nt 0, t 5)),
             (1, prodf!(t 6)),
             (1, prodf!(t 7)),
             (2, prodf!(t 2, nt 1, nt 2)),
-            (2, prodf!(t 3, nt 1, nt 2)),
             (2, prodf!(t 0, nt 1, nt 2)),
-            (2, prodf!(t 1, nt 1, nt 2)),
             (2, prodf!(e)),
         ], vec![
             //     |   +   -   *   /   (   )   N   I   $
             // ----+-------------------------------------
             //   E |   .   .   .   .   0   .   0   0   .
             //   F |   .   .   .   .   1   .   2   3   .
-            // E_1 |   6   7   4   5   .   8   .   .   8
-              9,   9,   9,   9,   0,   9,   0,   0,   9,
-              9,   9,   9,   9,   1,   9,   2,   3,   9,
-              6,   7,   4,   5,   9,   8,   9,   9,   8,
+            // E_1 |   5   .   4   .   .   6   .   .   6
+              7,   7,   7,   7,   0,   7,   0,   0,   7,
+              7,   7,   7,   7,   1,   7,   2,   3,   7,
+              5,   7,   4,   7,   7,   6,   7,   7,   6,
         ]),
         (14, 0, 0, vec![
             // - 0: A -> a A_1

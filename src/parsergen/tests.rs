@@ -8,7 +8,7 @@ use crate::parsergen::ParserBuilder;
 #[ignore]
 #[test]
 fn write_source_code_from_ll1() {
-    let rules = build_prs(4);
+    let rules = build_prs(13);
     let ll1 = ProdRuleSet::<LL1>::from(rules);
     let builder = ParserBuilder::from_rules(ll1);
     match builder.write_source_code(None) {
