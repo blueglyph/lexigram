@@ -39,8 +39,8 @@
   - top-down
     - [x] ~~calc first~~
     - [x] ~~calc follow~~
-    - [ ] remove ambiguity: `A -> A β A | δ`
-      - special case of left recursivity. Don't translate to `A -> δ A1; A1 -> β A A1 | ε`, but `A -> δ A1; A1 -> β A1 | ε` + tag left-/right-associativity
+    - [x] ~~remove ambiguity: `A -> A β A | δ`~~
+      - ~~special case of left recursivity. Don't translate to `A -> δ A1; A1 -> β A A1 | ε`, but `A -> δ A1; A1 -> β A1 | ε` + tag left-/right-associativity~~
     - [ ] reconstruct semantic synthesis attributes during parsing
       - [ ] tags when transforming grammar (remove_left_recursion, left_factorize)
       - [ ] stack-based reconstruction (+ left/right)
@@ -49,7 +49,7 @@
     - [x] ~~build parsing table~~
     - [ ] warning/error log system (for parsing table, lexer, ...)
     - [x] ~~predictive parsing algorithm~~
-    - [ ] semantic analysis: how to link back to original RuleTree after removing left recursion/left factoring?
+    - [x] ~~semantic analysis: how to link back to original RuleTree after removing left recursion/left factoring?~~
     - proper adapter link to lexer
       - [ ] adapter for tokens
       - [ ] SymbolTable
@@ -68,6 +68,8 @@
     - [ ] adapt rlexer's top-down parser (manually)
     - [ ] transform AST to top-down (or LR?) data
   - [ ] make binary application
+- dynamic parser
+  - [ ] create a universal Listener implementation to simulate / test grammar 
 
 ## Structure
 
