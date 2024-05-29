@@ -1333,7 +1333,7 @@ pub mod macros {
         ($($a:ident $($b:expr)?),*) => { std::vec![$(sym!($a $($b)?)),*]};
     }
 
-    /// Generates a production rule. It is made up of factors separated by a semi-colon.
+    /// Generates a production rule. It is made up of factors separated by a semicolon.
     ///
     /// Example
     /// ```
