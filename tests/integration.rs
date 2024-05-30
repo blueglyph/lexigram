@@ -254,6 +254,8 @@ mod listener {
     }
 }
 
+#[allow(non_camel_case_types)]
+#[allow(unused)]
 mod listener2 {
     use std::collections::HashMap;
     use std::str::FromStr;
@@ -323,9 +325,24 @@ mod listener2 {
         }
     }
 
-    enum RecE_1 { Mul(SynE), Div(SynE), Empty }
+    #[derive(Debug)]
     enum RecE_1 { Mul(SynE), Add(SynE), Empty }
-    enum RecItem { E_1(u32, RecE_1) } // (priority, item)
+    #[derive(Debug)]
+    enum RecItem { E_1(RecE_1) }
+
+    // #[derive(Debug)]
+    // enum RecItem { E_1(Option<SynE>) } // None for ε (but we can still check it's an E_1)
+
+    impl RecItem {
+        fn e_1(self) -> RecE_1 {
+            let RecItem::E_1(s) = self;
+            s
+        }
+    }
+
+    const PRIORITY_EMPTY: u32 = 3;
+    const PRIORITY_MUL: u32 = 2;
+    const PRIORITY_ADD: u32 = 1;
 
     pub trait ExprListenerTrait {
         fn enter_e(&mut self) {}
@@ -340,7 +357,7 @@ mod listener2 {
     struct ListenerWrapper<T> {
         listener: T,
         stack: Vec<SynValue>,
-        rec_stack: Vec<RecItem>
+        rec_stack: Vec<(u32, RecItem)> // priority, item
     }
 
     impl<T: ExprListenerTrait> ListenerWrapper<T> {
@@ -356,36 +373,56 @@ mod listener2 {
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
             if let Call::Enter = call {
+                println!("enter {nt}");
                 match nt {
                     0 => self.listener.enter_e(),
-                    1 => self.listener.enter_f(),
-                    2 => self.listener.enter_f(),
-                    3 => self.listener.enter_f(),
+                    1 => { self.listener.enter_e(); self.listener.enter_f(); }
+                    2 => { self.listener.enter_e(); self.listener.enter_f(); }
+                    3 => { self.listener.enter_e(); self.listener.enter_f(); }
                     4 | 5 | 6 => { }
                     _ => panic!("unexpected nt exit value: {nt}")
                 }
             } else {
+                println!("exit {nt}");
                 match factor_id {
                     0 => self.rec_e(),
-                    1 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::E { e: self.stack.pop().unwrap().e() }))); }
+                    1 => {
+                        let e = self.stack.pop().unwrap().e();
+                        self.stack.push(SynValue::F(self.listener.exit_f(CtxF::E { e })));
+                    }
                     2 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Num(t_str.pop().unwrap())))); }
                     3 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Id(t_str.pop().unwrap())))); }
-                    4 => self.rec_e_1(factor_id, 2, true), // *
-                    5 => self.rec_e_1(factor_id, 1, true), // +
-                    6 => self.rec_e_1(factor_id, 3, true), // ε
+                    4 => self.rec_e_1(factor_id, PRIORITY_MUL, true),
+                    5 => self.rec_e_1(factor_id, PRIORITY_ADD, true),
+                    6 => self.rec_e_1(factor_id, PRIORITY_EMPTY, true),
                     _ => panic!("unexpected nt exit factor id: {nt}")
                 };
             }
         }
     }
 
-// ----------------------------------------------------------------------------------------- ADAPT CODE BELOW
-
     impl<T: ExprListenerTrait> ListenerWrapper<T> {
+        fn unfold_e_1(&mut self, priority: u32, mut new_e: SynE) -> SynE {
+            while self.rec_stack.last().map(|(p, _)| *p > priority).unwrap_or(false) {
+                // top of stack has higher priority => merging
+                new_e = match self.rec_stack.pop().unwrap().1 {
+                    RecItem::E_1(RecE_1::Mul(s)) => self.listener.exit_e(CtxE::Mul { e: [new_e, s] }),
+                    RecItem::E_1(RecE_1::Add(s)) => self.listener.exit_e(CtxE::Add { e: [new_e, s] }),
+                    RecItem::E_1(RecE_1::Empty) => new_e,
+                    // _ => panic!() // <-- no need because no other RecItem alternatives
+                }
+            }
+            new_e
+        }
+
         // rec_parent, ambig_parent, E -> E * E | E + E | F
         // - 0: E -> F E_1
         fn rec_e(&mut self) {
-
+            let new_f = self.stack.pop().unwrap().f();
+            // ambig_child, so promoting the value:
+            let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
+            new_e = self.unfold_e_1(0, new_e);
+            self.stack.push(SynValue::E(new_e));
         }
 
         // rec_child, ambig_child
@@ -393,7 +430,20 @@ mod listener2 {
         // - 5: E_1 -> + F E_1
         // - 6: E_1 -> ε
         fn rec_e_1(&mut self, factor_id: VarId, priority: u32, left_assoc: bool) {
-
+            if factor_id == 6 {
+                self.rec_stack.push((priority, RecItem::E_1(RecE_1::Empty)));
+                return;
+            }
+            let new_f = self.stack.pop().unwrap().f();
+            // ambig_child, so promoting the value:
+            let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
+            new_e = self.unfold_e_1(priority, new_e);
+            let r = match factor_id {
+                4 => RecE_1::Mul(new_e),
+                5 => RecE_1::Add(new_e),
+                _ => panic!()
+            };
+            self.rec_stack.push((priority, RecItem::E_1(r)));
         }
     }
 
@@ -451,6 +501,7 @@ mod listener2 {
                 };
                 println!("{: <1$} {output}", "", self.level * 4);
             }
+            self.result = value;
             value
         }
 
@@ -463,7 +514,7 @@ mod listener2 {
             self.level -= 1;
             if self.verbose {
                 let output = match ctx {
-                    CtxF::E { e } => format!("F=E={value:?})"),
+                    CtxF::E { .. } => format!("F=E={value:?})"),
                     CtxF::Num(n) => format!("F=NUM #{n}={value:?})"),
                     CtxF::Id(i) => format!("F=ID '{i}'={value:?})"),
                 };
@@ -479,7 +530,7 @@ mod listener2 {
             ("a+2*b", true, Some(50)),
             ("a*(4+5)", true, Some(90)),
         ];
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         let mut parser = build_parser();
 
         // The lexer provides the required stream, so this isn't necessary in a real case:
