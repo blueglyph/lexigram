@@ -256,6 +256,7 @@ mod listener {
 
 mod listener2 {
     use std::collections::HashMap;
+    use std::str::FromStr;
     use rlexer::dfa::TokenId;
     use rlexer::grammar::{Symbol, VarId};
     use rlexer::parser::{Call, Listener, Parser};
@@ -286,9 +287,93 @@ mod listener2 {
         Parser::new(parsing_table, symbol_table, START_SYMBOL)
     }
 
+// ----------------------------------------------------------------------------------------- ADAPT CODE BELOW
+
+    type SynE = Option<i64>;
+    type SynF = Option<i64>;
+    pub enum CtxE { Mul { e: [SynE; 2] }, Add  { e: [SynE; 2] }, F { f: SynE } }
+    pub enum CtxF { E { e: SynE }, Num(String), Id(String) }
+    // internal
+    enum CtxE_1 { Mul { f: SynE, e_1: SynE }, Add { f: SynE, e_1: SynE }, Empty }
+
+    enum SynValue { F(SynE), E_1(SynE), E(SynE) }
+
+    impl SynValue {
+        fn e(self) -> SynE {
+            if let SynValue::E(e) = self { e } else { panic!() }
+        }
+        fn e_1(self) -> SynE {
+            if let SynValue::E_1(e_1) = self { e_1 } else { panic!() }
+        }
+        fn f(self) -> SynE {
+            if let SynValue::F(f) = self { f } else { panic!() }
+        }
+    }
+
+    enum RecE_1 { Mul(SynE), Div(SynE), Empty }
+    enum RecItem { E_1(u32, RecE_1) } // (priority, item)
+
+    pub trait ExprListenerTrait {
+        fn enter_e(&mut self) {}
+        fn enter_f(&mut self) {}
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE { None }
+        fn exit_f(&mut self, _ctx: CtxF) -> SynE { None }
+    }
+
+    // `Parser::parse_stream_hook` requires a type implementing `Listener`, but we can only implement
+    // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
+    // so we must have the `ListenerWrapper` wrapper type above.
+    struct ListenerWrapper<T> {
+        listener: T,
+        stack: Vec<SynValue>,
+        rec_stack: Vec<RecItem>
+    }
+
+    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+        pub fn new(listener: T) -> Self {
+            ListenerWrapper { listener, stack: Vec::new(), rec_stack: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
+            if let Call::Enter = call {
+                match nt {
+                    0 => todo!(),
+                    1 => self.listener.enter_f(),
+                    2 => self.listener.enter_f(),
+                    3 => self.listener.enter_f(),
+                    4 => todo!(),
+                    5 => todo!(),
+                    6 => todo!(),
+                    _ => panic!("unexpected nt exit value: {nt}")
+                }
+            } else {
+                let syn_value: SynValue = match factor_id {
+                    0 => todo!(),
+                    1 => SynValue::F(self.listener.exit_f(CtxF::E { e: self.stack.pop().unwrap().e() })),
+                    2 => SynValue::F(self.listener.exit_f(CtxF::Num(t_str.pop().unwrap()))),
+                    3 => SynValue::F(self.listener.exit_f(CtxF::Id(t_str.pop().unwrap()))),
+                    4 => todo!(),
+                    5 => todo!(),
+                    6 => todo!(),
+                    _ => panic!("unexpected nt exit factor id: {nt}")
+                };
+            }
+        }
+    }
+
+    // E -> E * E | E + E | F
+    // F -> ( E ) | NUM | ID
+    //
     // E -> F E_1
     // F -> ( E ) | N | I
     // E_1 -> * F E_1 | + F E_1 | ε
+    //
     // - 0: E -> F E_1
     // - 1: F -> ( E )
     // - 2: F -> N
@@ -297,152 +382,87 @@ mod listener2 {
     // - 5: E_1 -> + F E_1
     // - 6: E_1 -> ε
 
-// ----------------------------------------------------------------------------------------- ADAPT CODE BELOW
-
-    pub enum CtxF { LpRp, Num(String), Id(String) }
-    pub enum CtxE1 { Add, Mul, Empty }
-
-    pub trait ExprListenerTrait {
-        fn enter_e(&mut self) {}
-        fn enter_f(&mut self) {}
-        fn enter_e_1(&mut self) {}
-        fn exit_e(&mut self) {}
-        fn exit_f(&mut self, _ctx: CtxF) {}
-        fn exit_e_1(&mut self, _ctx: CtxE1) {}
-    }
-
-    struct ListenerWrapper<T>(T);
-
-    impl<T: ExprListenerTrait> ListenerWrapper<T> {
-        pub fn new(listener: T) -> Self {
-            Self(listener)
-        }
-
-        pub fn listener(self) -> T {
-            self.0
-        }
-    }
-
-    // `Parser::parse_stream_hook` requires a type implementing `Listener`, but we can only implement
-    // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
-    // so we must have the `ListenerWrapper` wrapper type above.
-    impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
-            if let Call::Enter = call {
-                match nt {
-                    0 => self.0.enter_e(),
-                    1 => self.0.enter_t(),
-                    2 => self.0.enter_f(),
-                    3 => self.0.enter_e_1(),
-                    4 => self.0.enter_t_1(),
-                    _ => panic!("unexpected nt exit value: {nt}")
-                }
-            } else {
-                match factor_id {
-                    0 => self.0.exit_e(),
-                    1 => self.0.exit_t(),
-                    2 => self.0.exit_f(CtxF::LpRp),
-                    3 => self.0.exit_f(CtxF::Num(t_str.pop().unwrap())),
-                    4 => self.0.exit_f(CtxF::Id(t_str.pop().unwrap())),
-                    5 => self.0.exit_e_1(CtxE1::Add),
-                    6 => self.0.exit_e_1(CtxE1::Sub),
-                    7 => self.0.exit_e_1(CtxE1::Empty),
-                    8 => self.0.exit_t_1(CtxT1::Mul),
-                    9 => self.0.exit_t_1(CtxT1::Div),
-                    10 => self.0.exit_t_1(CtxT1::Empty),
-                    _ => panic!("unexpected nt exit factor id: {nt}")
-                }
-            }
-        }
-    }
-
     // User code -----------------------------------------------------
 
     struct TestListener {
-        result: Vec<String>,
+        vars: HashMap<String, i64>,
+        result: Option<i64>,
         level: usize,
         verbose: bool
     }
 
     impl TestListener {
         pub fn new(verbose: bool) -> Self {
-            Self { result: Vec::new(), level: 0, verbose }
+            Self { vars: HashMap::new(), result: None, level: 0, verbose }
         }
     }
 
     impl ExprListenerTrait for TestListener {
         fn enter_e(&mut self) {
             if self.verbose { println!("{: <1$}(E", "", self.level * 4); }
-            self.result.push("(E".to_string());
-            self.level += 1;
-        }
-
-        fn enter_t(&mut self) {
-            if self.verbose { println!("{: <1$}(T", "", self.level * 4); }
-            self.result.push("(T".to_string());
+            self.result = None;
             self.level += 1;
         }
 
         fn enter_f(&mut self) {
             if self.verbose { println!("{: <1$}(F", "", self.level * 4); }
-            self.result.push("(F".to_string());
             self.level += 1;
         }
 
-        // we're not interested in enter_e_1
-
-        fn enter_t_1(&mut self) {
-            if self.verbose { println!("{: <1$}(T_1", "", self.level * 4); }
-            self.result.push("(T_1".to_string());
-            self.level += 1;
-        }
-
-        fn exit_e(&mut self) {
-            self.level -= 1;
-            if self.verbose { println!("{: <1$} E)", "", self.level * 4); }
-            self.result.push("E)".to_string());
-        }
-
-        fn exit_t(&mut self) {
-            self.level -= 1;
-            if self.verbose { println!("{: <1$} T)", "", self.level * 4); }
-            self.result.push("T)".to_string());
-        }
-
-        fn exit_f(&mut self, ctx: CtxF) {
-            self.level -= 1;
-            let output = match ctx {
-                CtxF::LpRp => format!("F)"),
-                CtxF::Num(n) => format!("F)=#{n}"),
-                CtxF::Id(i) => format!("F)='{i}'"),
+        fn exit_e(&mut self, ctx: CtxE) -> SynE {
+            let value = match &ctx {
+                CtxE::Mul { e } => {
+                    if let [Some(e0), Some(e1)] = e {
+                        Some(e0 * e1)
+                    } else {
+                        None
+                    }
+                }
+                CtxE::Add { e } => {
+                    if let [Some(e0), Some(e1)] = e {
+                        Some(e0 + e1)
+                    } else {
+                        None
+                    }
+                }
+                CtxE::F { f } => *f,
             };
-            if self.verbose { println!("{: <1$} {output}", "", self.level * 4); }
-            self.result.push(output);
+            self.level -= 1;
+            if self.verbose {
+                let output = match ctx {
+                    CtxE::Mul { e } => format!("E={:?} * {:?}={value:?})", e[0], e[1]),
+                    CtxE::Add { e } => format!("E={:?} + {:?}={value:?})", e[0], e[1]),
+                    CtxE::F { f } => format!("E=F={value:?})"),
+                };
+                println!("{: <1$} {output}", "", self.level * 4);
+            }
+            value
         }
 
-        // we're not interested in exit_e_1
-
-        fn exit_t_1(&mut self, _ctx: CtxT1) {
+        fn exit_f(&mut self, ctx: CtxF) -> SynE {
+            let value = match &ctx {
+                CtxF::E { e } => *e,
+                CtxF::Num(s) => i64::from_str(s).ok(),
+                CtxF::Id(s) => self.vars.get(s).cloned(),
+            };
             self.level -= 1;
-            if self.verbose { println!("{: <1$} T_1)", "", self.level * 4); }
-            self.result.push("T_1)".to_string());
+            if self.verbose {
+                let output = match ctx {
+                    CtxF::E { e } => format!("F=E={value:?})"),
+                    CtxF::Num(n) => format!("F=NUM #{n}={value:?})"),
+                    CtxF::Id(i) => format!("F=ID '{i}'={value:?})"),
+                };
+                println!("{: <1$} {output}", "", self.level * 4);
+            }
+            value
         }
     }
 
     #[test]
     fn parser_parse_stream() {
         let tests = vec![
-            // E -> T E_1
-            // T -> F T_1
-            // F -> ( E ) | NUM | ID
-            // E_1 -> + T E_1 | - T E_1 | ε
-            // T_1 -> * F T_1 | / F T_1 | ε
-            ("a+2*b", true, vec![
-                "(E", "(T", "(F", "F)='a'", "(T_1", "T_1)", "T)", "(T", "(F", "F)=#2",
-                "(T_1", "(F", "F)='b'", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
-            ("a*(4+5)", true, vec![
-                "(E", "(T", "(F", "F)='a'", "(T_1", "(F", "(E", "(T", "(F", "F)=#4", "(T_1", "T_1)", "T)", "(T",
-                "(F", "F)=#5", "(T_1", "T_1)", "T)", "E)", "F)", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
+            ("a+2*b", true, Some(50)),
+            ("a*(4+5)", true, Some(90)),
         ];
         const VERBOSE: bool = false;
         let mut parser = build_parser();
@@ -478,7 +498,12 @@ mod listener2 {
 
             // User code under test ------------------------------
 
-            let listener = TestListener::new(VERBOSE);
+            let mut listener = TestListener::new(VERBOSE);
+            listener.vars.extend([
+                ("a".to_string(), 10),
+                ("b".to_string(), 20),
+                ("c".to_string(), 30),
+            ]);
             let mut wrapper = ListenerWrapper::new(listener);
             let success = match parser.parse_stream(&mut wrapper, stream) {
                 Ok(_) => {
@@ -495,7 +520,7 @@ mod listener2 {
             // ---------------------------------------------------
 
             assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
-            if VERBOSE { println!("listener data: {}", listener.result.join(" -> ")); }
+            if VERBOSE { println!("listener data: {:?}", listener.result); }
             assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
         }
     }

@@ -553,7 +553,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
         }
         13 => {
             // classical ambiguous arithmetic grammar
-            // E -> E * E | E / E | E + E | E - E | F
+            // E -> E * E | E + E | F
             // F -> ( E ) | NUM | ID
             // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
             // NT: 0:E, 1:F
