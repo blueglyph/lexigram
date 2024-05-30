@@ -373,17 +373,13 @@ mod listener2 {
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
             if let Call::Enter = call {
-                println!("enter {nt}");
                 match nt {
                     0 => self.listener.enter_e(),
                     1 => { self.listener.enter_e(); self.listener.enter_f(); }
-                    2 => { self.listener.enter_e(); self.listener.enter_f(); }
-                    3 => { self.listener.enter_e(); self.listener.enter_f(); }
-                    4 | 5 | 6 => { }
+                    2 => { }
                     _ => panic!("unexpected nt exit value: {nt}")
                 }
             } else {
-                println!("exit {nt}");
                 match factor_id {
                     0 => self.rec_e(),
                     1 => {
