@@ -287,7 +287,20 @@ mod listener2 {
         Parser::new(parsing_table, symbol_table, START_SYMBOL)
     }
 
-// ----------------------------------------------------------------------------------------- ADAPT CODE BELOW
+    // E -> E * E | E + E | F
+    // F -> ( E ) | NUM | ID
+    //
+    // E -> F E_1
+    // F -> ( E ) | N | I
+    // E_1 -> * F E_1 | + F E_1 | ε
+    //
+    // - 0: E -> F E_1
+    // - 1: F -> ( E )
+    // - 2: F -> N
+    // - 3: F -> I
+    // - 4: E_1 -> * F E_1
+    // - 5: E_1 -> + F E_1
+    // - 6: E_1 -> ε
 
     type SynE = Option<i64>;
     type SynF = Option<i64>;
@@ -311,6 +324,7 @@ mod listener2 {
     }
 
     enum RecE_1 { Mul(SynE), Div(SynE), Empty }
+    enum RecE_1 { Mul(SynE), Add(SynE), Empty }
     enum RecItem { E_1(u32, RecE_1) } // (priority, item)
 
     pub trait ExprListenerTrait {
@@ -343,44 +357,45 @@ mod listener2 {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
             if let Call::Enter = call {
                 match nt {
-                    0 => todo!(),
+                    0 => self.listener.enter_e(),
                     1 => self.listener.enter_f(),
                     2 => self.listener.enter_f(),
                     3 => self.listener.enter_f(),
-                    4 => todo!(),
-                    5 => todo!(),
-                    6 => todo!(),
+                    4 | 5 | 6 => { }
                     _ => panic!("unexpected nt exit value: {nt}")
                 }
             } else {
-                let syn_value: SynValue = match factor_id {
-                    0 => todo!(),
-                    1 => SynValue::F(self.listener.exit_f(CtxF::E { e: self.stack.pop().unwrap().e() })),
-                    2 => SynValue::F(self.listener.exit_f(CtxF::Num(t_str.pop().unwrap()))),
-                    3 => SynValue::F(self.listener.exit_f(CtxF::Id(t_str.pop().unwrap()))),
-                    4 => todo!(),
-                    5 => todo!(),
-                    6 => todo!(),
+                match factor_id {
+                    0 => self.rec_e(),
+                    1 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::E { e: self.stack.pop().unwrap().e() }))); }
+                    2 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Num(t_str.pop().unwrap())))); }
+                    3 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Id(t_str.pop().unwrap())))); }
+                    4 => self.rec_e_1(factor_id, 2, true), // *
+                    5 => self.rec_e_1(factor_id, 1, true), // +
+                    6 => self.rec_e_1(factor_id, 3, true), // ε
                     _ => panic!("unexpected nt exit factor id: {nt}")
                 };
             }
         }
     }
 
-    // E -> E * E | E + E | F
-    // F -> ( E ) | NUM | ID
-    //
-    // E -> F E_1
-    // F -> ( E ) | N | I
-    // E_1 -> * F E_1 | + F E_1 | ε
-    //
-    // - 0: E -> F E_1
-    // - 1: F -> ( E )
-    // - 2: F -> N
-    // - 3: F -> I
-    // - 4: E_1 -> * F E_1
-    // - 5: E_1 -> + F E_1
-    // - 6: E_1 -> ε
+// ----------------------------------------------------------------------------------------- ADAPT CODE BELOW
+
+    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+        // rec_parent, ambig_parent, E -> E * E | E + E | F
+        // - 0: E -> F E_1
+        fn rec_e(&mut self) {
+
+        }
+
+        // rec_child, ambig_child
+        // - 4: E_1 -> * F E_1
+        // - 5: E_1 -> + F E_1
+        // - 6: E_1 -> ε
+        fn rec_e_1(&mut self, factor_id: VarId, priority: u32, left_assoc: bool) {
+
+        }
+    }
 
     // User code -----------------------------------------------------
 
