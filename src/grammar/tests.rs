@@ -404,10 +404,10 @@ fn map_and_print_follow<'a>(follow: &'a HashMap<Symbol, HashSet<Symbol>>, symbol
 
 fn def_arith_symbols(symbol_table: &mut SymbolTable, has_term: bool) {
     symbol_table.extend_terminals([
-        ("ADD".to_string(), Some("+".to_string())),
         ("SUB".to_string(), Some("-".to_string())),
-        ("MUL".to_string(), Some("*".to_string())),
+        ("ADD".to_string(), Some("+".to_string())),
         ("DIV".to_string(), Some("/".to_string())),
+        ("MUL".to_string(), Some("*".to_string())),
         ("LPAREN".to_string(), Some("(".to_string())),
         ("RPAREN".to_string(), Some(")".to_string())),
         ("N".to_string(), None),
@@ -466,7 +466,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
         }
         4 => {
             // classical arithmetic grammar
-            // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
+            // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID,
             // NT: 0:E, 1:T, 2:F
             def_arith_symbols(&mut symbol_table, true);
             prods.extend([
@@ -555,11 +555,11 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             // classical ambiguous arithmetic grammar
             // E -> E * E | E + E | F
             // F -> ( E ) | NUM | ID
-            // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
+            // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID,
             // NT: 0:E, 1:F
             def_arith_symbols(&mut symbol_table, false);
             prods.extend([
-                prod!(nt 0, t 2, nt 0; nt 0, t 0, nt 0; nt 1),
+                prod!(nt 0, t 3, nt 0; nt 0, t 1, nt 0; nt 1),
                 prod!(t 4, nt 0, t 5; t 6; t 7),
             ]);
         }
@@ -662,7 +662,7 @@ fn prs_remove_left_recursion() {
             // E_1 -> * F E_1 | + F E_1 | ε
             0 => prod!(nt 1, nt 2),
             1 => prod!(t 4, nt 0, t 5; t 6; t 7),
-            2 => prod!(t 2, nt 1, nt 2; t 0, nt 1, nt 2; e),
+            2 => prod!(t 3, nt 1, nt 2; t 1, nt 1, nt 2; e),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -986,7 +986,7 @@ fn prs_calc_table() {
             (4, prodf!(t 3, nt 2, nt 4)),
             (4, prodf!(e)),
         ], vec![
-            //     |   +   -   *   /   (   ) NUM  ID   $
+            //     |   -   +   /   *   (   )   N   I   $
             // ----+-------------------------------------
             //   E |   .   .   .   .   0   .   0   0   .
             //   T |   .   .   .   .   1   .   1   1   .
@@ -1118,18 +1118,18 @@ fn prs_calc_table() {
             (1, prodf!(t 4, nt 0, t 5)),
             (1, prodf!(t 6)),
             (1, prodf!(t 7)),
-            (2, prodf!(t 2, nt 1, nt 2)),
-            (2, prodf!(t 0, nt 1, nt 2)),
+            (2, prodf!(t 3, nt 1, nt 2)),
+            (2, prodf!(t 1, nt 1, nt 2)),
             (2, prodf!(e)),
         ], vec![
-            //     |   +   -   *   /   (   )   N   I   $
+            //     |   -   +   /   *   (   )   N   I   $
             // ----+-------------------------------------
             //   E |   .   .   .   .   0   .   0   0   .
             //   F |   .   .   .   .   1   .   2   3   .
-            // E_1 |   5   .   4   .   .   6   .   .   6
+            // E_1 |   .   5   .   4   .   6   .   .   6
               7,   7,   7,   7,   0,   7,   0,   0,   7,
               7,   7,   7,   7,   1,   7,   2,   3,   7,
-              5,   7,   4,   7,   7,   6,   7,   7,   6,
+              7,   5,   7,   4,   7,   6,   7,   7,   6,
         ]),
         (14, 0, 0, vec![
             // - 0: A -> a A_1
@@ -1200,7 +1200,7 @@ fn prs_grammar_error() {
         (1000, 0, 0, 1),
         (1001, 0, 0, 1),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
