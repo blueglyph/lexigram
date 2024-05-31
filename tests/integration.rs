@@ -345,8 +345,8 @@ mod listener2 {
     const PRIORITY_ADD: u32 = 1;
 
     pub trait ExprListenerTrait {
-        fn enter_e(&mut self) {}
-        fn enter_f(&mut self) {}
+        fn init_e(&mut self) {}
+        fn init_f(&mut self, _factor_id: VarId) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE { None }
         fn exit_f(&mut self, _ctx: CtxF) -> SynE { None }
     }
@@ -357,12 +357,14 @@ mod listener2 {
     struct ListenerWrapper<T> {
         listener: T,
         stack: Vec<SynValue>,
-        rec_stack: Vec<(u32, RecItem)> // priority, item
+        rec_stack: Vec<(u32, RecItem)>, // priority, item
+        max_stack: usize,
+        max_rec_stack: usize,
     }
 
     impl<T: ExprListenerTrait> ListenerWrapper<T> {
         pub fn new(listener: T) -> Self {
-            ListenerWrapper { listener, stack: Vec::new(), rec_stack: Vec::new() }
+            ListenerWrapper { listener, stack: Vec::new(), rec_stack: Vec::new(), max_stack: 0, max_rec_stack: 0 }
         }
 
         pub fn listener(self) -> T {
@@ -374,8 +376,8 @@ mod listener2 {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
             if let Call::Enter = call {
                 match nt {
-                    0 => self.listener.enter_e(),
-                    1 => { self.listener.enter_e(); self.listener.enter_f(); }
+                    0 => self.listener.init_e(),
+                    1 => self.listener.init_f(factor_id),
                     2 => { }
                     _ => panic!("unexpected nt exit value: {nt}")
                 }
@@ -394,11 +396,14 @@ mod listener2 {
                     _ => panic!("unexpected nt exit factor id: {nt}")
                 };
             }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            self.max_rec_stack = std::cmp::max(self.max_rec_stack, self.rec_stack.len());
         }
     }
 
     impl<T: ExprListenerTrait> ListenerWrapper<T> {
         fn unfold_e_1(&mut self, priority: u32, mut new_e: SynE) -> SynE {
+            // left-associative only
             while self.rec_stack.last().map(|(p, _)| *p > priority).unwrap_or(false) {
                 // top of stack has higher priority => merging
                 new_e = match self.rec_stack.pop().unwrap().1 {
@@ -448,26 +453,39 @@ mod listener2 {
     struct TestListener {
         vars: HashMap<String, i64>,
         result: Option<i64>,
-        level: usize,
         verbose: bool
     }
 
     impl TestListener {
         pub fn new(verbose: bool) -> Self {
-            Self { vars: HashMap::new(), result: None, level: 0, verbose }
+            Self { vars: HashMap::new(), result: None, verbose }
         }
     }
 
+    fn factor_str(factor_id: VarId, nt: bool) -> String {
+        match factor_id {
+            0 => if nt { "E -> F E_1"     } else { "F E_1"   },
+            1 => if nt { "F -> ( E )"     } else { "( E )"   },
+            2 => if nt { "F -> N"         } else { "N"       },
+            3 => if nt { "F -> I"         } else { "I"       },
+            4 => if nt { "E_1 -> * F E_1" } else { "* F E_1" },
+            5 => if nt { "E_1 -> + F E_1" } else { "+ F E_1" },
+            6 => if nt { "E_1 -> ε"       } else { "ε"       },
+            _ => panic!()
+        }.to_string()
+    }
+
     impl ExprListenerTrait for TestListener {
-        fn enter_e(&mut self) {
-            if self.verbose { println!("{: <1$}(E", "", self.level * 4); }
+
+        fn init_e(&mut self) {
+            if self.verbose {
+                println!("(E");
+            }
             self.result = None;
-            self.level += 1;
         }
 
-        fn enter_f(&mut self) {
-            if self.verbose { println!("{: <1$}(F", "", self.level * 4); }
-            self.level += 1;
+        fn init_f(&mut self, factor_id: VarId) {
+            if self.verbose { println!("(F -> {}", factor_str(factor_id, false)); }
         }
 
         fn exit_e(&mut self, ctx: CtxE) -> SynE {
@@ -488,14 +506,13 @@ mod listener2 {
                 }
                 CtxE::F { f } => *f,
             };
-            self.level -= 1;
             if self.verbose {
                 let output = match ctx {
-                    CtxE::Mul { e } => format!("E={:?} * {:?}={value:?})", e[0], e[1]),
-                    CtxE::Add { e } => format!("E={:?} + {:?}={value:?})", e[0], e[1]),
-                    CtxE::F { f } => format!("E=F={value:?})"),
+                    CtxE::Mul { e } => format!(")E={:?} * {:?}={value:?}", e[0], e[1]),
+                    CtxE::Add { e } => format!(")E={:?} + {:?}={value:?}", e[0], e[1]),
+                    CtxE::F { f } => format!(")E=F={value:?}"),
                 };
-                println!("{: <1$} {output}", "", self.level * 4);
+                println!("{output}");
             }
             self.result = value;
             value
@@ -507,14 +524,13 @@ mod listener2 {
                 CtxF::Num(s) => i64::from_str(s).ok(),
                 CtxF::Id(s) => self.vars.get(s).cloned(),
             };
-            self.level -= 1;
             if self.verbose {
                 let output = match ctx {
-                    CtxF::E { .. } => format!("F=E={value:?})"),
-                    CtxF::Num(n) => format!("F=NUM #{n}={value:?})"),
-                    CtxF::Id(i) => format!("F=ID '{i}'={value:?})"),
+                    CtxF::E { .. } => format!(")F=E={value:?}"),
+                    CtxF::Num(n) => format!(")F=NUM #{n}={value:?}"),
+                    CtxF::Id(i) => format!(")F=ID '{i}'={value:?}"),
                 };
-                println!("{: <1$} {output}", "", self.level * 4);
+                println!("{output}");
             }
             value
         }
@@ -525,8 +541,17 @@ mod listener2 {
         let tests = vec![
             ("a+2*b", true, Some(50)),
             ("a*(4+5)", true, Some(90)),
+            ("1*2*3*4", true, Some(24)),
+            ("1+2+3+4", true, Some(10)),
+            ("z", true, None),
+            ("5*z+y", true, None),
+
+            ("a*(4+5", false, None),
+            ("a b", false, None),
+            ("a++", false, None),
         ];
         const VERBOSE: bool = true;
+        const VERBOSE_LISTENER: bool = false;
         let mut parser = build_parser();
 
         // The lexer provides the required stream, so this isn't necessary in a real case:
@@ -560,7 +585,7 @@ mod listener2 {
 
             // User code under test ------------------------------
 
-            let mut listener = TestListener::new(VERBOSE);
+            let mut listener = TestListener::new(VERBOSE_LISTENER);
             listener.vars.extend([
                 ("a".to_string(), 10),
                 ("b".to_string(), 20),
@@ -577,13 +602,16 @@ mod listener2 {
                     false
                 }
             };
+            if VERBOSE { println!("max stack: {}\nmax rec stack: {}", wrapper.max_stack, wrapper.max_rec_stack); }
             let listener = wrapper.listener();
 
             // ---------------------------------------------------
 
             assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
             if VERBOSE { println!("listener data: {:?}", listener.result); }
-            assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+            if success {
+                assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+            }
         }
     }
 }
