@@ -348,17 +348,17 @@ fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
             .join(", ")).join("; "))).join("\n            "))
 }
 
-fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsingTable) {
+fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsingTable, indent: usize) {
     let LLParsingTable { num_nt, num_t, factors, table } = parsing_table;
     let error = factors.len() as VarId;
     let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
     let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
     let str_t = (0..*num_t).map(|j| if j + 1 < *num_t { Symbol::T(j as VarId).to_str(symbol_table) } else { "$".to_string() }).to_vec();
     let max_t_len = str_t.iter().map(|s| s.len()).max().unwrap().max(3);
-    println!("// {:<w$} | {}", "", (0..*num_t).map(|j| format!("{:>1$}", str_t[j], max_t_len)).join(" "), w = max_nt_len);
-    println!("// {:-<w$}-+-{:-<t$}", "", "", w = max_nt_len, t = *num_t * (max_t_len + 1));
+    println!("{:<i$}// {:<w$} | {}", "", "", (0..*num_t).map(|j| format!("{:>1$}", str_t[j], max_t_len)).join(" "), w = max_nt_len, i = indent);
+    println!("{:<i$}// {:-<w$}-+-{:-<t$}", "", "", "", w = max_nt_len, t = *num_t * (max_t_len + 1), i = indent);
     for i in 0..*num_nt {
-        print!("// {:>w$} |", str_nt[i], w = max_nt_len);
+        print!("{:<i$}// {:>w$} |", "", str_nt[i], w = max_nt_len, i = indent);
         for j in 0..*num_t {
             let value = table[i * num_t + j];
             if value < error {
@@ -553,13 +553,17 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
         }
         13 => {
             // classical ambiguous arithmetic grammar
-            // E -> E * E | E + E | F
+            // E -> E : E | E ^ E | E / E | E * E | E - E | E + E | F
             // F -> ( E ) | NUM | ID
-            // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID,
+            // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID, 8:^, 9::
             // NT: 0:E, 1:F
             def_arith_symbols(&mut symbol_table, false);
+            symbol_table.extend_terminals([
+                ("EXP".to_string(), Some("^".to_string())),  // exponent, right-associative
+                ("DUM".to_string(), Some(":".to_string())),  // dummy high-priority left-associative; a:b = max(a,b)
+            ]);
             prods.extend([
-                prod!(nt 0, t 3, nt 0; nt 0, t 1, nt 0; nt 1),
+                prod!(nt 0, t 9, nt 0; nt 0, t 8, nt 0; nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 1),
                 prod!(t 4, nt 0, t 5; t 6; t 7),
             ]);
         }
@@ -659,10 +663,10 @@ fn prs_remove_left_recursion() {
         (13, btreemap![
             // E -> F E_1
             // F -> ( E ) | N | I
-            // E_1 -> * F E_1 | + F E_1 | ε
+            // E_1 -> : F E_1 | ^ F E_1 | / F E_1 | * F E_1 | - F E_1 | + F E_1 | ε
             0 => prod!(nt 1, nt 2),
             1 => prod!(t 4, nt 0, t 5; t 6; t 7),
-            2 => prod!(t 3, nt 1, nt 2; t 1, nt 1, nt 2; e),
+            2 => prod!(t 9, nt 1, nt 2; t 8, nt 1, nt 2; t 2, nt 1, nt 2; t 3, nt 1, nt 2; t 0, nt 1, nt 2; t 1, nt 1, nt 2; e),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -1104,32 +1108,37 @@ fn prs_calc_table() {
               1,   3,   2,
         ]),
         (13, 0, 0, vec![
-            // E -> F E_1
-            // F -> ( E ) | N | I
-            // E_1 -> * F E_1 | + F E_1 | ε
             // - 0: E -> F E_1
             // - 1: F -> ( E )
             // - 2: F -> N
             // - 3: F -> I
-            // - 4: E_1 -> * F E_1
-            // - 5: E_1 -> + F E_1
-            // - 6: E_1 -> ε
+            // - 4: E_1 -> : F E_1
+            // - 5: E_1 -> ^ F E_1
+            // - 6: E_1 -> / F E_1
+            // - 7: E_1 -> * F E_1
+            // - 8: E_1 -> - F E_1
+            // - 9: E_1 -> + F E_1
+            // - 10: E_1 -> ε
             (0, prodf!(nt 1, nt 2)),
             (1, prodf!(t 4, nt 0, t 5)),
             (1, prodf!(t 6)),
             (1, prodf!(t 7)),
+            (2, prodf!(t 9, nt 1, nt 2)),
+            (2, prodf!(t 8, nt 1, nt 2)),
+            (2, prodf!(t 2, nt 1, nt 2)),
             (2, prodf!(t 3, nt 1, nt 2)),
+            (2, prodf!(t 0, nt 1, nt 2)),
             (2, prodf!(t 1, nt 1, nt 2)),
             (2, prodf!(e)),
         ], vec![
-            //     |   -   +   /   *   (   )   N   I   $
-            // ----+-------------------------------------
-            //   E |   .   .   .   .   0   .   0   0   .
-            //   F |   .   .   .   .   1   .   2   3   .
-            // E_1 |   .   5   .   4   .   6   .   .   6
-              7,   7,   7,   7,   0,   7,   0,   0,   7,
-              7,   7,   7,   7,   1,   7,   2,   3,   7,
-              7,   5,   7,   4,   7,   6,   7,   7,   6,
+            //     |   -   +   /   *   (   )   N   I   ^   :   $
+            // ----+---------------------------------------------
+            //   E |   .   .   .   .   0   .   0   0   .   .   .
+            //   F |   .   .   .   .   1   .   2   3   .   .   .
+            // E_1 |   8   9   6   7   .  10   .   .   5   4  10
+             11,  11,  11,  11,   0,  11,   0,   0,  11,  11,  11,
+             11,  11,  11,  11,   1,  11,   2,   3,  11,  11,  11,
+              8,   9,   6,   7,  11,  10,  11,  11,   5,   4,  10,
         ]),
         (14, 0, 0, vec![
             // - 0: A -> a A_1
@@ -1178,7 +1187,7 @@ fn prs_calc_table() {
                          format!("            ({v}, prodf!({})),", f.iter().map(|s| symbol_to_macro(s)).join(", "))
             ).join("\n"));
             println!("table:");
-            print_ll1_table(ll1.get_symbol_table(), &parsing_table);
+            print_ll1_table(ll1.get_symbol_table(), &parsing_table, 12);
             for i in 0..*num_nt {
                 println!("            {},", (0..*num_t).map(|j| format!("{:3}", table[i * num_t + j])).join(", "));
             }
