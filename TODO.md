@@ -43,7 +43,8 @@
       - ~~special case of left recursivity. Don't translate to `A -> δ A1; A1 -> β A A1 | ε`, but `A -> δ A1; A1 -> β A1 | ε` + tag left-/right-associativity~~
     - [ ] reconstruct semantic synthesis attributes during parsing
       - [ ] tags when transforming grammar (remove_left_recursion, left_factorize)
-      - [ ] stack-based reconstruction (+ left/right)
+      - [x] stack-based reconstruction
+      - [ ] left/right-associativity
     - [ ] check if LL(1)
       - [ ] check indirect left recursion
     - [x] ~~build parsing table~~
@@ -71,8 +72,14 @@
 - dynamic parser
   - [ ] create a universal Listener implementation to simulate / test grammar 
 
-## Structure
+## Potential Features
 
+- [ ] Put alternative token in lexer to allow parser use fallback (ex: language keyword -> ID)
+  - see when accepting state has conflicts between end symbols
+
+## Project Structure
+
+- [ ] build.rs to compile generated code?
 - [ ] extract vectree into another lib
 - [x] ~~move macros~~
 
