@@ -80,32 +80,37 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
-            if let Call::Enter = call {
-                match nt {
-                    0 => self.0.enter_e(),
-                    1 => self.0.enter_t(),
-                    2 => self.0.enter_f(),
-                    3 => self.0.enter_e_1(),
-                    4 => self.0.enter_t_1(),
-                    _ => panic!("unexpected nt exit value: {nt}")
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.0.enter_e(),
+                        1 => self.0.enter_t(),
+                        2 => self.0.enter_f(),
+                        3 => self.0.enter_e_1(),
+                        4 => self.0.enter_t_1(),
+                        _ => panic!("unexpected nt exit value: {nt}")
+                    }
                 }
-            } else {
-                match factor_id {
-                    0 => self.0.exit_e(),
-                    1 => self.0.exit_t(),
-                    2 => self.0.exit_f(CtxF::LpRp),
-                    3 => self.0.exit_f(CtxF::Num(t_str.pop().unwrap())),
-                    4 => self.0.exit_f(CtxF::Id(t_str.pop().unwrap())),
-                    5 => self.0.exit_e_1(CtxE1::Add),
-                    6 => self.0.exit_e_1(CtxE1::Sub),
-                    7 => self.0.exit_e_1(CtxE1::Empty),
-                    8 => self.0.exit_t_1(CtxT1::Mul),
-                    9 => self.0.exit_t_1(CtxT1::Div),
-                    10 => self.0.exit_t_1(CtxT1::Empty),
-                    _ => panic!("unexpected nt exit factor id: {nt}")
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.0.exit_e(),
+                        1 => self.0.exit_t(),
+                        2 => self.0.exit_f(CtxF::LpRp),
+                        3 => self.0.exit_f(CtxF::Num(t_str.pop().unwrap())),
+                        4 => self.0.exit_f(CtxF::Id(t_str.pop().unwrap())),
+                        5 => self.0.exit_e_1(CtxE1::Add),
+                        6 => self.0.exit_e_1(CtxE1::Sub),
+                        7 => self.0.exit_e_1(CtxE1::Empty),
+                        8 => self.0.exit_t_1(CtxT1::Mul),
+                        9 => self.0.exit_t_1(CtxT1::Div),
+                        10 => self.0.exit_t_1(CtxT1::Empty),
+                        _ => panic!("unexpected nt exit factor id: {nt}")
+                    }
                 }
+                Call::Rec => panic!("unexpected Call::Rec in this test"),
             }
+            false
         }
     }
 
@@ -192,10 +197,10 @@ mod listener {
             // T_1 -> * F T_1 | / F T_1 | ε
             ("a+2*b", true, vec![
                 "(E", "(T", "(F", "F)='a'", "(T_1", "T_1)", "T)", "(T", "(F", "F)=#2",
-                "(T_1", "(F", "F)='b'", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
+                "(T_1", "(F", "F)='b'", "T_1)", "(T_1", "T_1)", "T)", "E)"]),
             ("a*(4+5)", true, vec![
-                "(E", "(T", "(F", "F)='a'", "(T_1", "(F", "(E", "(T", "(F", "F)=#4", "(T_1", "T_1)", "T)", "(T",
-                "(F", "F)=#5", "(T_1", "T_1)", "T)", "E)", "F)", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
+                "(E", "(T", "(F", "F)='a'", "(T_1", "(F", "(E", "(T", "(F", "F)=#4", "(T_1", "T_1)", "T)",
+                "(T", "(F", "F)=#5", "(T_1", "T_1)", "T)", "E)", "F)", "T_1)", "(T_1", "T_1)", "T)", "E)"]),
         ];
         const VERBOSE: bool = false;
         let mut parser = build_parser();
@@ -254,20 +259,48 @@ mod listener {
     }
 }
 
+// ---------------------------------------------------------------------------------------------
+// General helper traits
+
+#[allow(unused)]
+pub(crate) trait CollectJoin {
+    fn join(&mut self, separator: &str) -> String
+        where Self: Iterator,
+              <Self as Iterator>::Item: ToString
+    {
+        self.map(|x| x.to_string()).collect::<Vec<_>>().join(separator)
+    }
+
+    fn to_vec(self) -> Vec<<Self as Iterator>::Item>
+        where Self: Iterator + Sized
+    {
+        self.collect::<Vec<_>>()
+    }
+}
+
+impl<I: Iterator> CollectJoin for I {}
+
+// ---------------------------------------------------------------------------------------------
+
 #[allow(non_camel_case_types)]
 #[allow(unused)]
 mod listener2 {
     use std::collections::HashMap;
     use std::str::FromStr;
     use rlexer::dfa::TokenId;
-    use rlexer::grammar::{Symbol, VarId};
-    use rlexer::parser::{Call, Listener, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::parser::{Call, Listener};
 
     // Code generated by rparser -------------------------------------
 
-    const SYMBOLS_T: [(&str, Option<&str>); 10] = [("SUB", Some("-")), ("ADD", Some("+")), ("DIV", Some("/")), ("MUL", Some("*")), ("LPAREN", Some("(")), ("RPAREN", Some(")")), ("N", None), ("I", None), ("EXP", Some("^")), ("DUM", Some(":"))];
-    const SYMBOLS_NT: [&str; 3] = ["E", "F", "E_1"];
+    use rlexer::grammar::{Symbol, VarId};
+    use rlexer::parser::Parser;
+    use rlexer::symbol_table::SymbolTable;
+    use crate::CollectJoin;
+
+    const PARSER_NUM_T: usize = 10;
+    const PARSER_NUM_NT: usize = 3;
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("SUB", Some("-")), ("ADD", Some("+")), ("DIV", Some("/")), ("MUL", Some("*")), ("LPAREN", Some("(")), ("RPAREN", Some(")")), ("N", None), ("I", None), ("EXP", Some("^")), ("DUM", Some(":"))];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "F", "E_1"];
     const SYMBOLS_NAMES: [(&str, VarId); 1] = [("E_1", 2)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 11] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(4), Symbol::NT(0), Symbol::T(5)]), (1, &[Symbol::T(6)]), (1, &[Symbol::T(7)]), (2, &[Symbol::T(9), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(8), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(2), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(3), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(0), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(1), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::Empty])];
     const PARSING_TABLE: [VarId; 33] = [11, 11, 11, 11, 0, 11, 0, 0, 11, 11, 11, 11, 11, 11, 11, 1, 11, 2, 3, 11, 11, 11, 8, 9, 6, 7, 11, 10, 11, 11, 5, 4, 10];
@@ -281,8 +314,8 @@ mod listener2 {
         let factors: Vec<(VarId, Vec<Symbol>)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, s.to_vec())).collect();
         let table: Vec<VarId> = PARSING_TABLE.into();
         let parsing_table = rlexer::grammar::LLParsingTable {
-            num_nt: 5,
-            num_t: 9,
+            num_nt: PARSER_NUM_NT,
+            num_t: PARSER_NUM_T + 1,
             factors,
             table
         };
@@ -324,6 +357,24 @@ mod listener2 {
 
     enum SynValue { F(SynE), E_1(SynE), E(SynE) }
 
+    fn syn_e_str(e: &SynE) -> String {
+        if let Some(v) = e {
+            v.to_string()
+        } else {
+            "?".to_string()
+        }
+    }
+
+    impl std::fmt::Debug for SynValue {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                SynValue::F(e) => write!(f, "E({})", syn_e_str(e)),
+                SynValue::E_1(e) => write!(f, "E_1({})", syn_e_str(e)),
+                SynValue::E(e) => write!(f, "E({})", syn_e_str(e)),
+            }
+        }
+    }
+
     impl SynValue {
         fn e(self) -> SynE {
             if let SynValue::E(e) = self { e } else { panic!() }
@@ -336,41 +387,61 @@ mod listener2 {
         }
     }
 
-    #[derive(Debug)]
-    enum RecE_1 { Dum(SynE), Exp(SynE), Div(SynE), Mul(SynE), Sub(SynE), Add(SynE), Empty }
-    #[derive(Debug)]
-    enum RecItem { E_1(RecE_1) }
+    #[derive(Debug, PartialEq)]
+    enum RecE { E, E_1_Dum, E_1_Exp, E_1_Div, E_1_Mul, E_1_Sub, E_1_Add, E_1_Empty }
 
-    // #[derive(Debug)]
-    // enum RecItem { E_1(Option<SynE>) } // None for ε (but we can still check it's an E_1)
+    struct RecItem {
+        val: SynE,
+        ty: RecE,
+    }
 
-    impl RecItem {
-        fn e_1(self) -> RecE_1 {
-            let RecItem::E_1(s) = self;
-            s
+    impl std::fmt::Debug for RecItem {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            let e = &self.val;
+            match self.ty {
+                RecE::E => write!(f, "E({})", syn_e_str(e)),
+                RecE::E_1_Dum => write!(f, "E_1(: {})", syn_e_str(e)),
+                RecE::E_1_Exp => write!(f, "E_1(^ {})", syn_e_str(e)),
+                RecE::E_1_Div => write!(f, "E_1(/ {})", syn_e_str(e)),
+                RecE::E_1_Mul => write!(f, "E_1(* {})", syn_e_str(e)),
+                RecE::E_1_Sub => write!(f, "E_1(- {})", syn_e_str(e)),
+                RecE::E_1_Add => write!(f, "E_1(+ {})", syn_e_str(e)),
+                RecE::E_1_Empty => write!(f, "E_1(ε)")
+            }
         }
     }
 
-    const ASSOC_RIGHT: [bool; 10] = [
-        false, // -
-        false, // +
-        false, // /
-        false, // *
-        false, // (
-        false, // )
-        false, // NUM
-        false, // ID
-        true,  // ^
-        false, // :
-    ];
+    const LEFT_ASSOC_DUM: bool = true;
+    const LEFT_ASSOC_EXP: bool = false;
+    const LEFT_ASSOC_DIV: bool = true;
+    const LEFT_ASSOC_MUL: bool = true;
+    const LEFT_ASSOC_SUB: bool = true;
+    const LEFT_ASSOC_ADD: bool = true;
+    const LEFT_ASSOC_EMPTY: bool = true; // don't care as long as its priority is high enough to fold
 
-    const PRIORITY_ADD: u32 = 1;
-    const PRIORITY_SUB: u32 = 2;
-    const PRIORITY_MUL: u32 = 3;
-    const PRIORITY_DIV: u32 = 4;
-    const PRIORITY_EXP: u32 = 5;
-    const PRIORITY_DUM: u32 = 6;
-    const PRIORITY_EMPTY: u32 = u32::MAX;
+    impl RecE {
+        fn is_left_assoc(&self) -> bool {
+            match self {
+                RecE::E         => false,
+                RecE::E_1_Dum   => LEFT_ASSOC_DUM,
+                RecE::E_1_Exp   => LEFT_ASSOC_EXP,
+                RecE::E_1_Div   => LEFT_ASSOC_DIV,
+                RecE::E_1_Mul   => LEFT_ASSOC_MUL,
+                RecE::E_1_Sub   => LEFT_ASSOC_SUB,
+                RecE::E_1_Add   => LEFT_ASSOC_ADD,
+                RecE::E_1_Empty => LEFT_ASSOC_EMPTY,
+            }
+        }
+    }
+
+    const PRIORITY_MIN: u16 = 0;
+    const PRIORITY_ADD: u16 = 1;
+    const PRIORITY_SUB: u16 = 2;
+    const PRIORITY_MUL: u16 = 3;
+    const PRIORITY_DIV: u16 = 4;
+    const PRIORITY_EXP: u16 = 5;
+    const PRIORITY_DUM: u16 = 6;
+    const PRIORITY_MAX: u16 = u16::MAX;
 
     pub trait ExprListenerTrait {
         fn init_e(&mut self) {}
@@ -383,16 +454,17 @@ mod listener2 {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     struct ListenerWrapper<T> {
+        verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
-        rec_stack: Vec<(u32, RecItem)>, // priority, item
+        rec_stack: Vec<(RecItem, u16, bool)>, // item, priority, is_left_assoc
         max_stack: usize,
         max_rec_stack: usize,
     }
 
     impl<T: ExprListenerTrait> ListenerWrapper<T> {
-        pub fn new(listener: T) -> Self {
-            ListenerWrapper { listener, stack: Vec::new(), rec_stack: Vec::new(), max_stack: 0, max_rec_stack: 0 }
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), rec_stack: Vec::new(), max_stack: 0, max_rec_stack: 0 }
         }
 
         pub fn listener(self) -> T {
@@ -401,89 +473,136 @@ mod listener2 {
     }
 
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
-            if let Call::Enter = call {
-                match nt {
-                    0 => self.listener.init_e(),
-                    1 => self.listener.init_f(factor_id),
-                    2 => { }
-                    _ => panic!("unexpected nt exit value: {nt}")
-                }
-            } else {
-                match factor_id {
-                    0 => self.rec_e(),
-                    1 => {
-                        let e = self.stack.pop().unwrap().e();
-                        self.stack.push(SynValue::F(self.listener.exit_f(CtxF::E { e })));
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
+            let mut rec_required = false;
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => {
+                            self.listener.init_e();
+                            self.init_e();
+                            rec_required = true;
+                        },
+                        1 => self.listener.init_f(factor_id),
+                        2 => if self.verbose { println!("► {}", factor_str(factor_id, true)); }
+                        _ => panic!("unexpected exit nt: {nt}")
                     }
-                    2 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Num(t_str.pop().unwrap())))); }
-                    3 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Id(t_str.pop().unwrap())))); }
-                    4 => self.rec_e_1(factor_id, PRIORITY_DUM),
-                    5 => self.rec_e_1(factor_id, PRIORITY_EXP),
-                    6 => self.rec_e_1(factor_id, PRIORITY_DIV),
-                    7 => self.rec_e_1(factor_id, PRIORITY_MUL),
-                    8 => self.rec_e_1(factor_id, PRIORITY_SUB),
-                    9 => self.rec_e_1(factor_id, PRIORITY_ADD),
-                    10 => self.rec_e_1(factor_id, PRIORITY_EMPTY),
-                    _ => panic!("unexpected nt exit factor id: {nt}")
-                };
+                }
+                Call::Exit => {
+                    if self.verbose && nt == 2 {
+                        println!("◄ {}", factor_str(factor_id, true));
+                    }
+                    match factor_id {
+                        0 => self.rec_e(),
+                        1 => {
+                            let e = self.stack.pop().unwrap().e();
+                            self.stack.push(SynValue::F(self.listener.exit_f(CtxF::E { e })));
+                        }
+                        2 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Num(t_str.pop().unwrap())))); }
+                        3 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Id(t_str.pop().unwrap())))); }
+                        4 => self.rec_e_1(factor_id, PRIORITY_DUM, LEFT_ASSOC_DUM),
+                        5 => self.rec_e_1(factor_id, PRIORITY_EXP, LEFT_ASSOC_EXP),
+                        6 => self.rec_e_1(factor_id, PRIORITY_DIV, LEFT_ASSOC_DIV),
+                        7 => self.rec_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL),
+                        8 => self.rec_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB),
+                        9 => self.rec_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD),
+                        10 => self.rec_e_1(factor_id, PRIORITY_MAX, LEFT_ASSOC_EMPTY),
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::Rec => {
+                    match factor_id {
+                        0 => self.inh_e(),
+                        _ => panic!("unexpected rec factor id: {factor_id}")
+                    }
+                }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
             self.max_rec_stack = std::cmp::max(self.max_rec_stack, self.rec_stack.len());
+            if self.verbose {
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+                println!("> rec stack: {}", self.rec_stack.iter().map(|(it, p, l)| format!("{it:?}/{p}/{}", if *l { "L" } else { "R" })).join(", "));
+            }
+            rec_required
         }
     }
 
     impl<T: ExprListenerTrait> ListenerWrapper<T> {
-        fn unfold_e_1(&mut self, priority: u32, mut new_e: SynE, right_assoc: bool) -> SynE {
-            // left-associative only
-            todo!("manage left-/right-associativity");
-            while self.rec_stack.last().map(|(p, _)| *p > priority).unwrap_or(false) {
-                // top of stack has higher priority => merging
-                new_e = match self.rec_stack.pop().unwrap().1 {
-                    RecItem::E_1(RecE_1::Dum(s)) => self.listener.exit_e(CtxE::Dum { e: [new_e, s] }),
-                    RecItem::E_1(RecE_1::Exp(s)) => self.listener.exit_e(CtxE::Exp { e: [new_e, s] }),
-                    RecItem::E_1(RecE_1::Div(s)) => self.listener.exit_e(CtxE::Div { e: [new_e, s] }),
-                    RecItem::E_1(RecE_1::Mul(s)) => self.listener.exit_e(CtxE::Mul { e: [new_e, s] }),
-                    RecItem::E_1(RecE_1::Sub(s)) => self.listener.exit_e(CtxE::Sub { e: [new_e, s] }),
-                    RecItem::E_1(RecE_1::Add(s)) => self.listener.exit_e(CtxE::Add { e: [new_e, s] }),
-                    RecItem::E_1(RecE_1::Empty) => new_e,
-                    // _ => panic!() // <-- no need because no other RecItem alternatives
+        fn fold_e_1(&mut self, priority: u16, mut is_left_assoc: bool) {
+            // Folding the top two items while the priority of the top item is higher than the argument.
+            // If left-associative, we allow folding items of the same priority, so we are sure that
+            // the priority is always increasing towards the top of the stack. This allows us to fold
+            // right- and left-associative items the same way (which we couldn't if two or more left-associative
+            // items had the same priority).
+            while self.rec_stack.len() > 1 && self.rec_stack.last().map(|(e, p, left)| e.ty != RecE::E && (*p > priority || (*p == priority && is_left_assoc))).unwrap() {
+                let (new, _, _) = self.rec_stack.pop().unwrap();
+                let (top, _, _) = self.rec_stack.last_mut().unwrap();
+                if self.verbose {
+                    println!("- fold with priority {priority}/{}: {top:?} and {new:?}", if is_left_assoc { "L" } else { "R" });
                 }
+                match new.ty {
+                    RecE::E_1_Dum   => { top.val = self.listener.exit_e(CtxE::Dum { e: [top.val, new.val] }); }
+                    RecE::E_1_Exp   => { top.val = self.listener.exit_e(CtxE::Exp { e: [top.val, new.val] }); }
+                    RecE::E_1_Div   => { top.val = self.listener.exit_e(CtxE::Div { e: [top.val, new.val] }); }
+                    RecE::E_1_Mul   => { top.val = self.listener.exit_e(CtxE::Mul { e: [top.val, new.val] }); }
+                    RecE::E_1_Sub   => { top.val = self.listener.exit_e(CtxE::Sub { e: [top.val, new.val] }); }
+                    RecE::E_1_Add   => { top.val = self.listener.exit_e(CtxE::Add { e: [top.val, new.val] }); }
+                    RecE::E_1_Empty => { },
+                    // we must never pop RecE::E here, so we must ignore its case
+                    _ => panic!()
+                }
+                if self.verbose {
+                    println!("-> {top:?}");
+                }
+                is_left_assoc = top.ty.is_left_assoc();
             }
-            new_e
+        }
+
+        fn init_e(&mut self) {
+            // stopper for this expression (PRIORITY_MIN and right-associativity means it will never be merged)
+            self.rec_stack.push((RecItem { val: None, ty: RecE::E}, PRIORITY_MIN, false));
+        }
+
+        fn inh_e(&mut self) {
+            // F of E -> F E_1 is now on the stack => attach it
+            let new_f = self.stack.pop().unwrap().f();
+            // rec_child, so promoting the value:
+            let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
+            let top = &mut self.rec_stack.last_mut().unwrap().0;
+            assert_eq!(top.ty, RecE::E);
+            assert_eq!(top.val, None);
+            top.val = new_e;
         }
 
         // rec_parent, ambig_parent, E : E | E ^ E | E / E | E * E | E - E | E + E | F
         // - 0: E -> F E_1
         fn rec_e(&mut self) {
-            let new_f = self.stack.pop().unwrap().f();
-            // ambig_child, so promoting the value:
-            let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
-            new_e = self.unfold_e_1(0, new_e, todo!("associativity of top item"));
-            self.stack.push(SynValue::E(new_e));
+            self.fold_e_1(PRIORITY_MIN, false);
+            let (e, _, _) = self.rec_stack.pop().expect("E should be on top of the stack");
+            assert_eq!(e.ty, RecE::E, "the top of the stack should be E instead of {e:?}");
+            self.stack.push(SynValue::E(e.val));
         }
 
         // rec_child, ambig_child
-        fn rec_e_1(&mut self, factor_id: VarId, priority: u32) {
+        fn rec_e_1(&mut self, factor_id: VarId, priority: u16, is_left_assoc: bool) {
             if factor_id == 10 {
-                self.rec_stack.push((priority, RecItem::E_1(RecE_1::Empty)));
+                self.rec_stack.push((RecItem { val: None, ty: RecE::E_1_Empty }, PRIORITY_MAX, true));
                 return;
             }
-            let new_f = self.stack.pop().unwrap().f();
+            self.fold_e_1(priority, is_left_assoc);
             // ambig_child, so promoting the value:
+            let new_f = self.stack.pop().unwrap().f();
             let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
-            let right_assoc = ASSOC_RIGHT[factor_id as usize];
-            new_e = self.unfold_e_1(priority, new_e, right_assoc);
             let r = match factor_id {
-                4 => RecE_1::Dum(new_e),
-                5 => RecE_1::Exp(new_e),
-                6 => RecE_1::Div(new_e),
-                7 => RecE_1::Mul(new_e),
-                8 => RecE_1::Sub(new_e),
-                9 => RecE_1::Add(new_e),
+                4 => RecItem { val: new_e, ty: RecE::E_1_Dum },
+                5 => RecItem { val: new_e, ty: RecE::E_1_Exp },
+                6 => RecItem { val: new_e, ty: RecE::E_1_Div },
+                7 => RecItem { val: new_e, ty: RecE::E_1_Mul },
+                8 => RecItem { val: new_e, ty: RecE::E_1_Sub },
+                9 => RecItem { val: new_e, ty: RecE::E_1_Add },
                 _ => panic!()
             };
-            self.rec_stack.push((priority, RecItem::E_1(r)));
+            self.rec_stack.push((r, priority, is_left_assoc));
         }
     }
 
@@ -500,19 +619,6 @@ mod listener2 {
             Self { vars: HashMap::new(), result: None, verbose }
         }
     }
-
-// - 0: E -> F E_1
-// - 1: F -> ( E )
-// - 2: F -> N
-// - 3: F -> I
-// - 4: E_1 -> : F E_1
-// - 5: E_1 -> ^ F E_1
-// - 6: E_1 -> / F E_1
-// - 7: E_1 -> * F E_1
-// - 8: E_1 -> - F E_1
-// - 9: E_1 -> + F E_1
-// - 10: E_1 -> ε
-// ######### update below ################################################################
 
     fn factor_str(factor_id: VarId, nt: bool) -> String {
         match factor_id {
@@ -535,13 +641,13 @@ mod listener2 {
 
         fn init_e(&mut self) {
             if self.verbose {
-                println!("(E");
+                println!("► E");
             }
             self.result = None;
         }
 
         fn init_f(&mut self, factor_id: VarId) {
-            if self.verbose { println!("(F -> {}", factor_str(factor_id, false)); }
+            if self.verbose { println!("► F -> {}", factor_str(factor_id, false)); }
         }
 
         fn exit_e(&mut self, ctx: CtxE) -> SynE {
@@ -556,10 +662,13 @@ mod listener2 {
                 CtxE::Exp { e } => {
                     if let [Some(e0), Some(e1)] = e {
                         if *e1 <= u32::MAX as i64 {
-                            return e0.checked_pow(*e1 as u32)
+                            e0.checked_pow(*e1 as u32)
+                        } else {
+                            None
                         }
+                    } else {
+                        None
                     }
-                    None
                 }
                 CtxE::Div { e } => {
                     if let [Some(e0), Some(e1)] = e {
@@ -593,13 +702,13 @@ mod listener2 {
             };
             if self.verbose {
                 let output = match ctx {
-                    CtxE::Dum { e } => format!(")E={:?} : {:?}={value:?}", e[0], e[1]),
-                    CtxE::Exp { e } => format!(")E={:?} ^ {:?}={value:?}", e[0], e[1]),
-                    CtxE::Div { e } => format!(")E={:?} / {:?}={value:?}", e[0], e[1]),
-                    CtxE::Mul { e } => format!(")E={:?} * {:?}={value:?}", e[0], e[1]),
-                    CtxE::Sub { e } => format!(")E={:?} - {:?}={value:?}", e[0], e[1]),
-                    CtxE::Add { e } => format!(")E={:?} + {:?}={value:?}", e[0], e[1]),
-                    CtxE::F { f } => format!(")E=F={value:?}"),
+                    CtxE::Dum { e } => format!("◄ E={:?} : {:?}={value:?}", e[0], e[1]),
+                    CtxE::Exp { e } => format!("◄ E={:?} ^ {:?}={value:?}", e[0], e[1]),
+                    CtxE::Div { e } => format!("◄ E={:?} / {:?}={value:?}", e[0], e[1]),
+                    CtxE::Mul { e } => format!("◄ E={:?} * {:?}={value:?}", e[0], e[1]),
+                    CtxE::Sub { e } => format!("◄ E={:?} - {:?}={value:?}", e[0], e[1]),
+                    CtxE::Add { e } => format!("◄ E={:?} + {:?}={value:?}", e[0], e[1]),
+                    CtxE::F { f } => format!("◄ E=F={value:?}"),
                 };
                 println!("{output}");
             }
@@ -615,9 +724,9 @@ mod listener2 {
             };
             if self.verbose {
                 let output = match ctx {
-                    CtxF::E { .. } => format!(")F=E={value:?}"),
-                    CtxF::Num(n) => format!(")F=NUM #{n}={value:?}"),
-                    CtxF::Id(i) => format!(")F=ID '{i}'={value:?}"),
+                    CtxF::E { .. } => format!("◄ F=E={value:?}"),
+                    CtxF::Num(n) => format!("◄ F=NUM #{n}={value:?}"),
+                    CtxF::Id(i) => format!("◄ F=ID '{i}'={value:?}"),
                 };
                 println!("{output}");
             }
@@ -628,18 +737,28 @@ mod listener2 {
     #[test]
     fn parser_parse_stream() {
         let tests = vec![
+            // left
+            ("2+3*4*5", true, Some(62)),    // priority high-low-high (reconstruction)
+            ("1+2+3+4+5+6+7+8+9", true, Some(45)),  // parser stack accumulation
+            ("2*3+4*5", true, Some(26)),    // priority high-low-high (reconstruction)
+            ("2+3*4+5", true, Some(19)),    // priority low-high-low (reconstruction)
             ("a+2*b", true, Some(50)),
             ("a*(4+5)", true, Some(90)),
             ("1*2*3*4", true, Some(24)),
             ("1+2+3+4", true, Some(10)),
+            // right
+            ("2^3", true, Some(8)),
+            ("4^3^2", true, Some(262144)),
+            // undef
             ("z", true, None),
             ("5*z+y", true, None),
 
             ("a*(4+5", false, None),
             ("a b", false, None),
             ("a++", false, None),
+
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const VERBOSE_LISTENER: bool = false;
         let mut parser = build_parser();
 
@@ -680,7 +799,7 @@ mod listener2 {
                 ("b".to_string(), 20),
                 ("c".to_string(), 30),
             ]);
-            let mut wrapper = ListenerWrapper::new(listener);
+            let mut wrapper = ListenerWrapper::new(listener, VERBOSE_LISTENER);
             let success = match parser.parse_stream(&mut wrapper, stream) {
                 Ok(_) => {
                     if VERBOSE { println!("parsing completed successfully"); }
@@ -691,9 +810,12 @@ mod listener2 {
                     false
                 }
             };
-            if VERBOSE { println!("max stack: {}\nmax rec stack: {}", wrapper.max_stack, wrapper.max_rec_stack); }
+            if VERBOSE {
+                println!("max stack: {}\nmax rec stack: {}", wrapper.max_stack, wrapper.max_rec_stack);
+                println!("listener stack: {:?}", wrapper.stack);
+                println!("listener rec stack: {:?}", wrapper.rec_stack);
+            }
             let listener = wrapper.listener();
-
             // ---------------------------------------------------
 
             assert_eq!(success, expected_success, "test {test_id} failed for input {input}");

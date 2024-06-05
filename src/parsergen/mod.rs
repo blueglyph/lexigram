@@ -15,7 +15,7 @@ pub(crate) fn symbol_to_code(s: &Symbol) -> String {
         Symbol::T(t) => format!("Symbol::T({t})"),
         Symbol::NT(nt) => format!("Symbol::NT({nt})"),
         Symbol::End => "Symbol::End".to_string(),
-        Symbol::Exit(_) => panic!("unexpected symbol {s:?}"),
+        Symbol::Rec(_) | Symbol::Exit(_) => panic!("unexpected symbol {s:?}"),
     }
 }
 
@@ -55,7 +55,8 @@ impl ParserBuilder {
             Some(file) => BufWriter::new(Box::new(file)),
             None => BufWriter::new(Box::new(std::io::stdout().lock()))
         };
-
+        let num_nt = self.symbol_table.get_non_terminals().len();
+        let num_t = self.symbol_table.get_terminals().len();
         // Create source code:
         writeln!(out, "// -------------------------------------------------------------------------")?;
         writeln!(out, "// Automatically generated\n")?;
@@ -63,12 +64,12 @@ impl ParserBuilder {
         writeln!(out, "use crate::parser::Parser;")?;
         writeln!(out, "use crate::symbol_table::SymbolTable;\n")?;
 
-        writeln!(out, "const SYMBOLS_T: [(&str, Option<&str>); {}] = [{}];",
-                 self.symbol_table.get_terminals().len(),
+        writeln!(out, "const PARSER_NUM_T: usize = {num_t};")?;
+        writeln!(out, "const PARSER_NUM_NT: usize = {num_nt};")?;
+        writeln!(out, "const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [{}];",
                  self.symbol_table.get_terminals().iter().map(|(s, os)|
                      format!("(\"{s}\", {})", os.as_ref().map(|s| format!("Some(\"{s}\")")).unwrap_or("None".to_string()))).join(", "))?;
-        writeln!(out, "const SYMBOLS_NT: [&str; {}] = [{}];",
-                 self.symbol_table.get_non_terminals().len(),
+        writeln!(out, "const SYMBOLS_NT: [&str; PARSER_NUM_NT] = [{}];",
                  self.symbol_table.get_non_terminals().iter().map(|s| format!("\"{s}\"")).join(", "))?;
         writeln!(out, "const SYMBOLS_NAMES: [(&str, VarId); {}] = [{}];",
                  self.symbol_table.get_names().count(),
@@ -88,9 +89,9 @@ impl ParserBuilder {
         writeln!(out, "    symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));")?;
         writeln!(out, "    let factors: Vec<(VarId, Vec<Symbol>)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, s.to_vec())).collect();")?;
         writeln!(out, "    let table: Vec<VarId> = PARSING_TABLE.into();")?;
-        writeln!(out, "    let parsing_table = crate::grammar::LLParsingTable {{")?;
-        writeln!(out, "        num_nt: 5,")?;
-        writeln!(out, "        num_t: 9,")?;
+        writeln!(out, "    let parsing_table = rlexer::grammar::LLParsingTable {{")?;
+        writeln!(out, "        num_nt: PARSER_NUM_NT,")?;
+        writeln!(out, "        num_t: PARSER_NUM_T + 1,")?;
         writeln!(out, "        factors,")?;
         writeln!(out, "        table")?;
         writeln!(out, "    }};")?;

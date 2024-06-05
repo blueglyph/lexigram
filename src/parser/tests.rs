@@ -123,32 +123,37 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
-            if let Call::Enter = call {
-                match nt {
-                    0 => self.0.enter_e(),
-                    1 => self.0.enter_t(),
-                    2 => self.0.enter_f(),
-                    3 => self.0.enter_e_1(),
-                    4 => self.0.enter_t_1(),
-                    _ => panic!("unexpected nt exit value: {nt}")
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.0.enter_e(),
+                        1 => self.0.enter_t(),
+                        2 => self.0.enter_f(),
+                        3 => self.0.enter_e_1(),
+                        4 => self.0.enter_t_1(),
+                        _ => panic!("unexpected nt exit value: {nt}")
+                    }
                 }
-            } else {
-                match factor_id {
-                    0 => self.0.exit_e(),
-                    1 => self.0.exit_t(),
-                    2 => self.0.exit_f(CtxF::LpRp),
-                    3 => self.0.exit_f(CtxF::Num(t_str.pop().unwrap())),
-                    4 => self.0.exit_f(CtxF::Id(t_str.pop().unwrap())),
-                    5 => self.0.exit_e_1(CtxE1::Add),
-                    6 => self.0.exit_e_1(CtxE1::Sub),
-                    7 => self.0.exit_e_1(CtxE1::Empty),
-                    8 => self.0.exit_t_1(CtxT1::Mul),
-                    9 => self.0.exit_t_1(CtxT1::Div),
-                    10 => self.0.exit_t_1(CtxT1::Empty),
-                    _ => panic!("unexpected nt exit factor id: {nt}")
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.0.exit_e(),
+                        1 => self.0.exit_t(),
+                        2 => self.0.exit_f(CtxF::LpRp),
+                        3 => self.0.exit_f(CtxF::Num(t_str.pop().unwrap())),
+                        4 => self.0.exit_f(CtxF::Id(t_str.pop().unwrap())),
+                        5 => self.0.exit_e_1(CtxE1::Add),
+                        6 => self.0.exit_e_1(CtxE1::Sub),
+                        7 => self.0.exit_e_1(CtxE1::Empty),
+                        8 => self.0.exit_t_1(CtxT1::Mul),
+                        9 => self.0.exit_t_1(CtxT1::Div),
+                        10 => self.0.exit_t_1(CtxT1::Empty),
+                        _ => panic!("unexpected nt exit factor id: {nt}")
+                    }
                 }
+                Call::Rec => panic!("unexepected Call::Rec in this test"),
             }
+            false
         }
     }
 
@@ -235,11 +240,10 @@ mod listener {
                 // E_1 -> + T E_1 | - T E_1 | ε
                 // T_1 -> * F T_1 | / F T_1 | ε
                 ("a+2*b", true, vec![
-                    "(E", "(T", "(F", "F)='a'", "(T_1", "T_1)", "T)", "(T", "(F", "F)=#2",
-                    "(T_1", "(F", "F)='b'", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
+                    "(E", "(T", "(F", "F)='a'", "(T_1", "T_1)", "T)", "(T", "(F", "F)=#2", "(T_1", "(F", "F)='b'", "T_1)", "(T_1", "T_1)", "T)", "E)"]),
                 ("a*(4+5)", true, vec![
-                    "(E", "(T", "(F", "F)='a'", "(T_1", "(F", "(E", "(T", "(F", "F)=#4", "(T_1", "T_1)", "T)", "(T",
-                    "(F", "F)=#5", "(T_1", "T_1)", "T)", "E)", "F)", "(T_1", "T_1)", "T_1)", "T)", "E)"]),
+                    "(E", "(T", "(F", "F)='a'", "(T_1", "(F", "(E", "(T", "(F", "F)=#4", "(T_1", "T_1)", "T)",
+                    "(T", "(F", "F)=#5", "(T_1", "T_1)", "T)", "E)", "F)", "T_1)", "(T_1", "T_1)", "T)", "E)"]),
             ])
         ];
         const VERBOSE: bool = false;

@@ -45,6 +45,7 @@
       - [ ] tags when transforming grammar (remove_left_recursion, left_factorize)
       - [x] stack-based reconstruction
       - [ ] left/right-associativity
+      - [ ] put parser symbols Rec/Exit in productions when they're created (that's where the knowledge is)
     - [ ] check if LL(1)
       - [ ] check indirect left recursion
     - [x] ~~build parsing table~~

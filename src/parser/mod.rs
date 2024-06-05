@@ -6,10 +6,15 @@ use crate::symbol_table::SymbolTable;
 
 mod tests;
 
-pub enum Call { Enter, Exit }
+pub enum Call { Enter, Rec, Exit }
 
 pub trait Listener {
-    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_str: Vec<String>) {}
+    /// Calls the listener to execute synthesis or inheritance actions.
+    ///
+    /// The function returns true when `Rec(factor_id)` has to be pushed on the parser stack,
+    /// typically to attach parameters to an object being reconstructed by the listener
+    /// (intermediate inheritance).
+    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_str: Vec<String>) -> bool { false }
 }
 
 pub struct Parser {
@@ -76,9 +81,36 @@ impl Parser {
                         println!("- PUSH {}", self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev()
                             .map(|s| s.to_str(sym_table)).join(" "));
                     }
-                    listener.switch(Call::Enter, var, factor_id, vec![]);
-                    stack.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
-                    stack.extend(self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned());
+                    // TODO: put Rec(f) and Exit(f) directly into the factors
+                    let rec_required = listener.switch(Call::Enter, var, factor_id, vec![]);
+                    let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
+                    if new.get(0) == Some(&stack_sym) {
+                        stack.push(new[0]);
+                        stack.push(Symbol::Exit(factor_id));
+                        if rec_required {
+                            stack.extend(&new[1..new.len() - 1]);
+                            stack.push(Symbol::Rec(factor_id));
+                            stack.push(new[new.len() - 1]);
+                        } else {
+                            stack.extend(new.into_iter().skip(1));
+                        }
+                    } else {
+                        stack.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
+                        if rec_required {
+                            stack.extend(&new[0..new.len() - 1]);
+                            stack.push(Symbol::Rec(factor_id));
+                            stack.push(new[new.len() - 1]);
+                        } else {
+                            stack.extend(new);
+                        }
+                    }
+                    stack_sym = stack.pop().unwrap();
+                }
+                (Symbol::Rec(factor_id), _) => {
+                    let (var, n) = num_t_str[factor_id as usize];
+                    let t_str = stack_t.drain(stack_t.len() - n..).to_vec();
+                    if VERBOSE { println!("- REC {} syn: {}", Symbol::NT(var).to_str(sym_table), t_str.iter().join(" ")); }
+                    listener.switch(Call::Rec, var, factor_id, t_str);
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::Exit(factor_id), _) => {

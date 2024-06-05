@@ -19,11 +19,12 @@ pub type VarId = u16;
 
 #[derive(Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 pub enum Symbol {
-    #[default] Empty,
-    T(TokenId),
-    NT(VarId),
-    Exit(VarId),
-    End
+    #[default] Empty,   // empty symbol
+    T(TokenId),         // terminal
+    NT(VarId),          // non-terminal
+    Rec(VarId),         // partial reconstruction of modified production
+    Exit(VarId),        // exit (synthesis) production
+    End                 // end of stream
 }
 
 impl Symbol {
@@ -60,7 +61,8 @@ impl Display for Symbol {
             Symbol::Empty => write!(f, "ε"),
             Symbol::T(id) => write!(f, ":{id}"),
             Symbol::NT(id) => write!(f, "{id}"),
-            Symbol::Exit(x) => write!(f, "←{x}"),
+            Symbol::Rec(id) => write!(f, "•{id}"),
+            Symbol::Exit(x) => write!(f, "◄{x}"),
             Symbol::End => write!(f, "$"),
         }
     }
@@ -773,7 +775,7 @@ impl<T> ProdRuleSet<T> {
             match &sym {
                 Symbol::T(_) | Symbol::Empty => (sym, hashset![sym]),
                 Symbol::NT(_) => (sym, HashSet::new()),
-                Symbol::End | Symbol::Exit(_) => panic!("found reserved symbol {sym:?} in production rules"),
+                Symbol::End | Symbol::Rec(_) | Symbol::Exit(_) => panic!("found reserved symbol {sym:?} in production rules"),
             }
         }).collect::<HashMap<_, _>>();
         let mut change = true;
@@ -1135,10 +1137,10 @@ impl ProdRuleSet<LL1> {
                         add_table(&mut table, error, num_t, *nt_id, t_id, f_id);
                     }
                     Symbol::NT(_) => {}
-                    Symbol::Exit(_) => panic!("found reserved symbol {s:?} in production rules"),
                     Symbol::End => {
                         has_end = true;
                     }
+                    Symbol::Rec(_) | Symbol::Exit(_) => panic!("found reserved symbol {s:?} in production rules"),
                 }
             }
             if has_empty && has_end {
@@ -1311,6 +1313,8 @@ pub mod macros {
         (nt $id:expr) => { Symbol::NT($id as VarId) };
         (e) => { Symbol::Empty };
         (end) => { Symbol::End };
+        (exit $id:expr) => { Symbol::Exit($id as VarId) };
+        (rec $id:expr) => { Symbol::Rec($id as VarId) };
     }
 
     /// Generates a production rule factor. A factor is made up of symbols separated by a comma.
