@@ -16,6 +16,14 @@ pub(super) fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
     ).join("\n    "));
 }
 
+pub(super) fn print_factors<T>(ll1: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor)>) {
+    println!("factors:\n{}",
+             factors.iter().enumerate().map(|(id, (v, f))|
+                 format!("            // - {id}: {} -> {}", Symbol::NT(*v).to_str(ll1.get_symbol_table()),
+                         f.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "))
+    ).join("\n"));
+}
+
 pub(crate) fn symbol_to_macro(s: &Symbol) -> String {
     match s {
         Symbol::Empty => "e".to_string(),
@@ -575,7 +583,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             ]);
         }
 
-        // TODO: create more failing grammars, like A -> A A / A -> A a A A / ...
+        // warnings and errors
         1000 => { // A -> A a  (missing non-recursive factor)
             prods.extend([
                 prod!(nt 0, t 0)
@@ -584,6 +592,25 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
         1001 => { // A -> A a A A | b
             prods.extend([
                 prod!(nt 0, t 0, nt 0, nt 0; t 1)
+            ]);
+        },
+        1002 => { // A -> A a A b A | c
+            prods.extend([
+                prod!(nt 0, t 0, nt 0, t 0, nt 0; t 1)
+            ]);
+        },
+        1003 => { // no terminal
+            prods.extend([
+                prod!(nt 1),
+                prod!(nt 2),
+                prod!(nt 0),
+            ]);
+        },
+        1004 => { // no terminal used in table
+            prods.extend([
+                prod!(nt 1),
+                prod!(nt 2, t 0),
+                prod!(nt 0),
             ]);
         },
         _ => {}
@@ -1071,7 +1098,7 @@ fn prs_calc_table() {
               6,   3,   3,   3,   6,
               6,   6,   4,   5,   6,
         ]),
-        (7, 2, 1, vec![
+        (7, 2, 2, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: A -> A1 A2 ;
@@ -1178,11 +1205,7 @@ fn prs_calc_table() {
             println!("num_nt = {num_nt}, num_t = {num_t}");
             let error = factors.len() as VarId;
             print_production_rules(&ll1);
-            println!("factors:\n{}",
-                     factors.iter().enumerate().map(|(id, (v, f))|
-                         format!("            // - {id}: {} -> {}", Symbol::NT(*v).to_str(ll1.get_symbol_table()),
-                                 f.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "))
-            ).join("\n"));
+            print_factors(&ll1, &factors);
             println!("{}",
                      factors.iter().enumerate().map(|(id, (v, f))|
                          format!("            ({v}, prodf!({})),", f.iter().map(|s| symbol_to_macro(s)).join(", "))
@@ -1205,10 +1228,13 @@ fn prs_calc_table() {
 }
 
 #[test]
-fn prs_grammar_error() {
+fn prs_grammar_notes() {
     let tests: Vec<(u32, VarId, usize, usize)> = vec![
         (1000, 0, 0, 1),
         (1001, 0, 0, 1),
+        (1002, 0, 1, 0),
+        (1003, 0, 0, 1),
+        (1004, 0, 0, 1),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
@@ -1216,16 +1242,27 @@ fn prs_grammar_error() {
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
         }
+        if VERBOSE {
+            print_production_rules(&rules_lr);
+        }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         ll1.set_start(start);
+        let mut parsing_table = None;
         let first = ll1.calc_first();
         if ll1.log.num_errors() == 0 {
             let follow = ll1.calc_follow(&first);
             if ll1.log.num_errors() == 0 {
-                let parsing_table = ll1.calc_table(&first, &follow);
+                parsing_table = Some(ll1.calc_table(&first, &follow));
             }
         }
         if VERBOSE {
+            println!("=>");
+            print_production_rules(&ll1);
+            if let Some(table) = &parsing_table {
+                print_factors(&ll1, &table.factors);
+                println!("table:");
+                print_ll1_table(ll1.get_symbol_table(), &table, 12);
+            }
             print_logs(&ll1);
         }
         assert_eq!(ll1.log.num_errors(), expected_errors, "test {test_id}/{ll_id}/{start} failed on # errors");

@@ -768,7 +768,7 @@ impl<T> ProdRuleSet<T> {
         if symbols.iter().filter(|s| matches!(s, Symbol::NT(_))).count() != self.num_nt {
             self.log.add_warning(format!("calc_first: unused non-terminals: {}",
                                  (0..self.num_nt).map(|v| Symbol::NT(v as VarId)).filter_map(|s|
-                                     if symbols.contains(&s) { None } else { Some(s.to_str(self.get_symbol_table())) }).join(", ")));
+                                     if symbols.contains(&s) { None } else { Some(format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))) }).join(", ")));
             self.cleanup_symbols(&mut symbols);
         }
         let mut first = symbols.into_iter().map(|sym| {
@@ -809,6 +809,12 @@ impl<T> ProdRuleSet<T> {
                 change |= first[&symbol].len() > num_items;
             }
             if VERBOSE && change { println!("---------------------------- again"); }
+        }
+        if self.num_nt == 0 {
+            self.log.add_error(format!("No non-terminal in grammar"));
+        }
+        if self.num_t == 0 {
+            self.log.add_error(format!("No terminal in grammar"));
         }
         first
     }
@@ -1156,16 +1162,30 @@ impl ProdRuleSet<LL1> {
                     0 => error,
                     1 => table[pos].pop().unwrap(),
                     _ => {
-                        self.log.add_warning(format!("calc_table: ambiguity for NT {nt_id}, T {t_id}: {}",
-                                 table[pos].iter().map(|f_id|
-                                     format!("<{}>", factor_to_string(&factors[*f_id as usize].1, self.get_symbol_table()))).join(" or ")));
                         // we take the first item which isn't already in another position on the same NT row
                         let row = (0..num_t).filter(|j| *j != t_id).flat_map(|j| &table[nt_id*num_t + j]).collect::<HashSet<_>>();
                         let chosen = *table[pos].iter().find(|f| !row.contains(f)).unwrap_or(&table[pos][0]);
+                        self.log.add_warning(
+                            format!("calc_table: ambiguity for NT '{}', T '{}': {} => <{}> has been chosen",
+                                    Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
+                                    Symbol::T(t_id as VarId).to_str(self.get_symbol_table()),
+                                    table[pos].iter().map(|f_id|
+                                        format!("<{}>", factor_to_string(&factors[*f_id as usize].1, self.get_symbol_table()))).join(" or "),
+                                    factor_to_string(&factors[chosen as usize].1, self.get_symbol_table())
+                            ));
                         table[pos] = vec![chosen];
                         chosen
                     }
                 });
+            }
+        }
+        let unused_t = (0..num_t - 1).map(|t_id| (t_id, (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] != error)))
+            .filter_map(|(t_id, ok)| if !ok { Some(Symbol::T(t_id as VarId).to_str(self.get_symbol_table())) } else { None }).to_vec();
+        if !unused_t.is_empty() {
+            if unused_t.len() == num_t - 1 {
+                self.log.add_error("calc_table: no terminal used".to_string())
+            } else {
+                self.log.add_warning(format!("calc_table: some terminals are not used: {}", unused_t.join(", ")))
             }
         }
         LLParsingTable { num_nt, num_t, factors, table: final_table }
