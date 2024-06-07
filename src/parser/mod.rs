@@ -84,11 +84,12 @@ impl Parser {
         stack.push(Symbol::End);
         stack.push(Symbol::NT(self.start));
         let mut stack_sym = stack.pop().unwrap();
+        let mut stream_n = 1;
         let (mut stream_sym, mut stream_str) = stream.next().unwrap_or((Symbol::End, "".to_string()));
         loop {
             if VERBOSE {
                 println!("{:-<40}", "");
-                println!("input: {}  stack: {}  current: {}", stream_sym.to_str(sym_table),
+                println!("input ({stream_n}): {}  stack: {}  current: {}", stream_sym.to_str(sym_table),
                          stack.iter().map(|s| s.to_str(sym_table)).join(" "), stack_sym.to_str(sym_table));
             }
             match (stack_sym, stream_sym) {
@@ -109,8 +110,10 @@ impl Parser {
                         ));
                     }
                     if VERBOSE {
-                        println!("- PUSH {}", self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev()
+                        let f = &self.factors[factor_id as usize];
+                        println!("- PUSH {}", f.1.iter().filter(|s| !s.is_empty()).rev()
                             .map(|s| s.to_str(sym_table)).join(" "));
+                        println!("- ENTER {} -> {}", Symbol::NT(f.0).to_str(sym_table), factor_to_string(&f.1, sym_table));
                     }
                     // TODO: put Rec(f) and Exit(f) directly into the factors
                     let rec_required = listener.switch(Call::Enter, var, factor_id, vec![]);
@@ -161,6 +164,7 @@ impl Parser {
                         stack_t.push(stream_str);
                     }
                     stack_sym = stack.pop().unwrap();
+                    stream_n += 1;
                     (stream_sym, stream_str) = stream.next().unwrap_or((Symbol::End, "".to_string()))
                 }
                 (Symbol::End, Symbol::End) => {

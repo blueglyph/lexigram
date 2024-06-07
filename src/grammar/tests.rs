@@ -582,6 +582,27 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(nt 0, nt 0; t 0)
             ]);
         }
+        15 => {
+            // classical ambiguous arithmetic grammar
+            // E -> E / E | E * E | E - E | E + E | S T
+            // T -> T : T | T ^ T | F
+            // F -> N | I | ( E )
+            // S -> - | ε
+            // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID, 8:^, 9::
+            // NT: 0:E, 1:T, 2:F, 3:S
+            def_arith_symbols(&mut symbol_table, true);
+            symbol_table.extend_terminals([
+                ("EXP".to_string(), Some("^".to_string())),  // exponent, right-associative
+                ("DUM".to_string(), Some(":".to_string())),  // dummy high-priority left-associative; a:b = max(a,b)
+            ]);
+            // symbol_table.extend_non_terminals(["S".to_string()]);
+            prods.extend([
+                prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 0, nt 1; nt 1),
+                prod!(nt 1, t 9, nt 1; nt 1, t 8, nt 1; nt 2),
+                prod!(t 6; t 7; t 4, nt 0, t 5),
+                // prod!(t 0; e)
+            ]);
+        }
 
         // warnings and errors
         1000 => { // A -> A a  (missing non-recursive factor)
@@ -1183,12 +1204,62 @@ fn prs_calc_table() {
               0,   3,
               1,   2,
         ]),
+        (15, 0, 0, vec![
+            // - 0: E -> - T E_2
+            // - 1: E -> T E_2
+            // - 2: T -> F T_1
+            // - 3: F -> N
+            // - 4: F -> I
+            // - 5: F -> ( E )
+            // - 6: E_1 -> - T
+            // - 7: E_1 -> T
+            // - 8: E_2 -> / E_1 E_2
+            // - 9: E_2 -> * E_1 E_2
+            // - 10: E_2 -> - E_1 E_2
+            // - 11: E_2 -> + E_1 E_2
+            // - 12: E_2 -> ε
+            // - 13: T_1 -> : F T_1
+            // - 14: T_1 -> ^ F T_1
+            // - 15: T_1 -> ε
+            (0, prodf!(t 0, nt 1, nt 4)),
+            (0, prodf!(nt 1, nt 4)),
+            (1, prodf!(nt 2, nt 5)),
+            (2, prodf!(t 6)),
+            (2, prodf!(t 7)),
+            (2, prodf!(t 4, nt 0, t 5)),
+            (3, prodf!(t 0, nt 1)),
+            (3, prodf!(nt 1)),
+            (4, prodf!(t 2, nt 3, nt 4)),
+            (4, prodf!(t 3, nt 3, nt 4)),
+            (4, prodf!(t 0, nt 3, nt 4)),
+            (4, prodf!(t 1, nt 3, nt 4)),
+            (4, prodf!(e)),
+            (5, prodf!(t 9, nt 2, nt 5)),
+            (5, prodf!(t 8, nt 2, nt 5)),
+            (5, prodf!(e)),
+        ], vec![
+            //     |   -   +   /   *   (   )   N   I   ^   :   $
+            // ----+---------------------------------------------
+            //   E |   0   .   .   .   1   .   1   1   .   .   .
+            //   T |   .   .   .   .   2   .   2   2   .   .   .
+            //   F |   .   .   .   .   5   .   3   4   .   .   .
+            // E_1 |   6   .   .   .   7   .   7   7   .   .   .
+            // E_2 |  10  11   8   9   .  12   .   .   .   .  12
+            // T_1 |  15  15  15  15   .  15   .   .  14  13  15
+              0,  16,  16,  16,   1,  16,   1,   1,  16,  16,  16,
+             16,  16,  16,  16,   2,  16,   2,   2,  16,  16,  16,
+             16,  16,  16,  16,   5,  16,   3,   4,  16,  16,  16,
+              6,  16,  16,  16,   7,  16,   7,   7,  16,  16,  16,
+             10,  11,   8,   9,  16,  12,  16,  16,  16,  16,  12,
+             15,  15,  15,  15,  16,  15,  16,  16,  14,  13,  15,
+        ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
+            print_production_rules(&rules_lr);
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         ll1.set_start(start);
