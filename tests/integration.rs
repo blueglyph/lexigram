@@ -746,17 +746,22 @@ mod listener2 {
             ("a*(4+5)", true, Some(90)),
             ("1*2*3*4", true, Some(24)),
             ("1+2+3+4", true, Some(10)),
+            ("(1)", true, Some(1)),
+            ("((5))", true, Some(5)),
             // right
             ("2^3", true, Some(8)),
             ("4^3^2", true, Some(262144)),
+            // both left and right
+            ("5+3*2^8-3-2+1", true, Some(769)),
+            ("5:3:2^2", true, Some(25)),
+            ("5:(2^4-3*(3))", true, Some(7)),
             // undef
             ("z", true, None),
             ("5*z+y", true, None),
-
+            // errors
             ("a*(4+5", false, None),
             ("a b", false, None),
             ("a++", false, None),
-
         ];
         const VERBOSE: bool = false;
         const VERBOSE_LISTENER: bool = false;

@@ -25,6 +25,8 @@ fn parser_parse_stream() {
         ]),
         (4, 0, vec![
             ("I*I", true),
+            ("(N)", true),
+            ("((N))", true),
         ]),
         (8, 0, vec![ // ambiguous grammar but that should work
             ("b a b a b", true),
