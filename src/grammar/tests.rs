@@ -584,23 +584,20 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
         }
         15 => {
             // classical ambiguous arithmetic grammar
-            // E -> E / E | E * E | E - E | E + E | S T
+            // E -> E / E | E * E | E - E | E + E | - T | T
             // T -> T : T | T ^ T | F
             // F -> N | I | ( E )
-            // S -> - | ε
             // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID, 8:^, 9::
-            // NT: 0:E, 1:T, 2:F, 3:S
+            // NT: 0:E, 1:T, 2:F
             def_arith_symbols(&mut symbol_table, true);
             symbol_table.extend_terminals([
                 ("EXP".to_string(), Some("^".to_string())),  // exponent, right-associative
                 ("DUM".to_string(), Some(":".to_string())),  // dummy high-priority left-associative; a:b = max(a,b)
             ]);
-            // symbol_table.extend_non_terminals(["S".to_string()]);
             prods.extend([
                 prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 0, nt 1; nt 1),
                 prod!(nt 1, t 9, nt 1; nt 1, t 8, nt 1; nt 2),
                 prod!(t 6; t 7; t 4, nt 0, t 5),
-                // prod!(t 0; e)
             ]);
         }
 
