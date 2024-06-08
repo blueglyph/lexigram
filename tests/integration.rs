@@ -442,6 +442,7 @@ mod listener2 {
     const PRIORITY_EXP: u16 = 5;
     const PRIORITY_DUM: u16 = 6;
     const PRIORITY_MAX: u16 = u16::MAX;
+    const PRIORITY_EMPTY: u16 = PRIORITY_MIN;
 
     pub trait ExprListenerTrait {
         fn init_e(&mut self) {}
@@ -506,7 +507,7 @@ mod listener2 {
                         7 => self.rec_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL),
                         8 => self.rec_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB),
                         9 => self.rec_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD),
-                        10 => self.rec_e_1(factor_id, PRIORITY_MAX, LEFT_ASSOC_EMPTY),
+                        10 => {} //self.rec_e_1(factor_id, PRIORITY_EMPTY, LEFT_ASSOC_EMPTY),
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -585,10 +586,10 @@ mod listener2 {
 
         // rec_child, ambig_child
         fn rec_e_1(&mut self, factor_id: VarId, priority: u16, is_left_assoc: bool) {
-            if factor_id == 10 {
-                self.rec_stack.push((RecItem { val: None, ty: RecE::E_1_Empty }, PRIORITY_MAX, true));
-                return;
-            }
+            // if factor_id == 10 {
+            //     self.rec_stack.push((RecItem { val: None, ty: RecE::E_1_Empty }, PRIORITY_MAX, true));
+            //     return;
+            // }
             self.fold_e_1(priority, is_left_assoc);
             // ambig_child, so promoting the value:
             let new_f = self.stack.pop().unwrap().f();
