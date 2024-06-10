@@ -600,6 +600,41 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(t 6; t 7; t 4, nt 0, t 5),
             ]);
         }
+        16 => {
+            // A -> B A | b
+            // B -> a
+            prods.extend([
+                prod!(nt 1, nt 0; t 1),
+                prod!(t 0)
+            ]);
+        }
+        17 => { // circular dependency (works as long as there's a non-terminal in the loop and an accepting alternative)
+            // A -> B | a
+            // B -> C ')'
+            // C -> '(' A
+            symbol_table.extend_terminals([
+                ("a".to_string(), Some("a".to_string())),
+                ("(".to_string(), Some("(".to_string())),
+                (")".to_string(), Some(")".to_string())),
+            ]);
+            prods.extend([
+                prod!(nt 1; t 0),
+                prod!(nt 2, t 2),
+                prod!(t 1, nt 0),
+            ]);
+        }
+        18 => {
+            // A -> a
+            prods.extend([
+                prod!(t 0),
+            ]);
+        }
+        19 => {
+            // A -> a | ε
+            prods.extend([
+                prod!(t 0; e),
+            ]);
+        }
 
         // warnings and errors
         1000 => { // A -> A a  (missing non-recursive factor)
@@ -617,7 +652,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0, nt 0, t 0, nt 0; t 1)
             ]);
         },
-        1003 => { // no terminal
+        1003 => { // no terminal in grammar
             prods.extend([
                 prod!(nt 1),
                 prod!(nt 2),
@@ -631,6 +666,14 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(nt 0),
             ]);
         },
+        1005 => {
+            symbol_table.extend_terminals([("a".to_string(), None), ("b".to_string(), None)]);
+            symbol_table.extend_non_terminals(["A".to_string(), "B".to_string()]);
+            prods.extend([
+                prod!(t 1),
+                prod!(t 1),
+            ]);
+        }
         _ => {}
     };
     rules.calc_num_symbols();
@@ -1250,8 +1293,46 @@ fn prs_calc_table() {
              10,  11,   8,   9,  16,  12,  16,  16,  16,  16,  12,
              15,  15,  15,  15,  16,  15,  16,  16,  14,  13,  15,
         ]),
+        (17, 0, 0, vec![
+            // - 0: A -> B
+            // - 1: A -> a
+            // - 2: B -> C )
+            // - 3: C -> ( A
+            (0, prodf!(nt 1)),
+            (0, prodf!(t 0)),
+            (1, prodf!(nt 2, t 2)),
+            (2, prodf!(t 1, nt 0)),
+        ], vec![
+            //   |   a   (   )   $
+            // --+-----------------
+            // A |   1   0   .   .
+            // B |   .   2   .   .
+            // C |   .   3   .   .
+              1,   0,   4,   4,
+              4,   2,   4,   4,
+              4,   3,   4,   4,
+        ]),
+        (18, 0, 0, vec![
+            // - 0: A -> a
+            (0, prodf!(t 0)),
+        ], vec![
+            //   |   a   $
+            // --+---------
+            // A |   0   .
+              0,   1,
+        ]),
+        (19, 0, 0, vec![
+            // - 0: A -> a
+            (0, prodf!(t 0)),
+            (0, prodf!(e)),
+        ], vec![
+            //   |   a   $
+            // --+---------
+            // A |   0   1
+              0,   1,
+        ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
@@ -1297,12 +1378,16 @@ fn prs_calc_table() {
 
 #[test]
 fn prs_grammar_notes() {
-    let tests: Vec<(u32, VarId, usize, usize)> = vec![
-        (1000, 0, 0, 1),
-        (1001, 0, 0, 1),
-        (1002, 0, 1, 0),
-        (1003, 0, 0, 1),
-        (1004, 0, 0, 1),
+    let tests: Vec<(u32, VarId, &[&str], &[&str])> = vec![
+        //        warnings                                  errors
+        //        -------------------------------------     -------------------------------------
+        (1000, 0, &[],                                      &["requires factors not starting with"]),
+        (1001, 0, &[],                                      &["cannot remove recursion from"]),
+        (1002, 0, &["ambiguity for NT"],                    &[]),
+        (1003, 0, &[],                                      &["no terminal in grammar"]),
+        (1004, 0, &[],                                      &["no terminal used in the table"]),
+        (1005, 0, &["unused non-terminals",
+                    "unused terminals"],                    &[]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
@@ -1333,7 +1418,15 @@ fn prs_grammar_notes() {
             }
             print_logs(&ll1);
         }
-        assert_eq!(ll1.log.num_errors(), expected_errors, "test {test_id}/{ll_id}/{start} failed on # errors");
-        assert_eq!(ll1.log.num_warnings(), expected_warnings, "test {test_id}/{ll_id}/{start} failed on # warnings");
+        assert_eq!(ll1.log.num_errors(), expected_errors.len(), "test {test_id}/{ll_id}/{start} failed on # errors");
+        assert_eq!(ll1.log.num_warnings(), expected_warnings.len(), "test {test_id}/{ll_id}/{start} failed on # warnings");
+        let err_discr = ll1.log.get_errors().zip(expected_errors).filter_map(|(e, ee)|
+            if !e.contains(ee) { Some(format!("- \"{e}\" doesn't contain \"{ee}\"")) } else { None }
+        ).to_vec();
+        assert!(err_discr.is_empty(), "test {test_id}/{ll_id}/{start} has discrepancies in the expected error messages:\n{}", err_discr.join("\n"));
+        let warn_discr = ll1.log.get_warnings().zip(expected_warnings).filter_map(|(w, ew)|
+            if !w.contains(ew) { Some(format!("- \"{w}\" doesn't contain \"{ew}\"")) } else { None }
+        ).to_vec();
+        assert!(warn_discr.is_empty(), "test {test_id}/{ll_id}/{start} has discrepancies in the expected warning messages:\n{}", warn_discr.join("\n"));
    }
 }

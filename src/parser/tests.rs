@@ -32,6 +32,24 @@ fn parser_parse_stream() {
             ("b a b a b", true),
             ("b", true),
         ]),
+        (16, 0, vec![ // A -> B A | b ; B -> a
+            ("aaab", true),
+        ]),
+        (17, 0, vec![
+            ("(((a)))", true),
+            ("((a)", false),
+            ("((a)))", false),
+        ]),
+        (18, 0, vec![
+            ("a", true),
+            ("", false),
+            ("aa", false),
+        ]),
+        (19, 0, vec![
+            ("a", true),
+            ("", true),
+            ("aa", false),
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {

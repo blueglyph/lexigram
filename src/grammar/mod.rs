@@ -655,7 +655,12 @@ impl<T> ProdRuleSet<T> {
         self.num_t
     }
 
-    /// Calculates num_t and num_nt (done right after importing rules)
+    /// Calculates `num_t` and `num_nt` (done right after importing rules).
+    /// - `num_t` is calculated on the basis of the higher symbol found in the production rules,
+    /// so we can drop any unused symbol that is higher and keep the table width down. We can't
+    /// compact the table by removing lower unused symbols, if any, because they are defined by
+    /// the lexer.
+    /// - `num_nt` is simply the number of production rules.
     fn calc_num_symbols(&mut self) {
         self.num_nt = self.prods.len();
         self.num_t = self.prods.iter().map(|p|
@@ -771,6 +776,16 @@ impl<T> ProdRuleSet<T> {
                                      if symbols.contains(&s) { None } else { Some(format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))) }).join(", ")));
             self.cleanup_symbols(&mut symbols);
         }
+
+        let unused_t = (0..self.num_t)
+            .filter_map(|t_id| {
+                let s = Symbol::T(t_id as VarId);
+                if !symbols.contains(&s) { Some(format!("T({t_id}) = {}", s.to_str(self.get_symbol_table()))) } else { None }
+            }).to_vec();
+        if unused_t.len() > 0 {
+            self.log.add_warning(format!("calc_first: unused terminals: {}", unused_t.join(", ")))
+        }
+
         let mut first = symbols.into_iter().map(|sym| {
             match &sym {
                 Symbol::T(_) | Symbol::Empty => (sym, hashset![sym]),
@@ -811,10 +826,10 @@ impl<T> ProdRuleSet<T> {
             if VERBOSE && change { println!("---------------------------- again"); }
         }
         if self.num_nt == 0 {
-            self.log.add_error(format!("No non-terminal in grammar"));
+            self.log.add_error("calc_first: no non-terminal in grammar".to_string());
         }
         if self.num_t == 0 {
-            self.log.add_error(format!("No terminal in grammar"));
+            self.log.add_error("calc_first: no terminal in grammar".to_string());
         }
         first
     }
@@ -1119,8 +1134,10 @@ impl ProdRuleSet<LL1> {
         let num_nt = self.num_nt;
         let num_t = self.num_t + 1;
         let end = (num_t - 1) as VarId; // index of end symbol
+        let mut used_t = HashSet::<Symbol>::new();
         let mut table: Vec<Vec<VarId>> = vec![vec![]; num_nt * num_t];
         for (f_id, (nt_id, factor)) in factors.iter().enumerate() {
+            used_t.extend(factor.iter().filter(|s| s.is_t()));
             let f_id = f_id as VarId;
             if VERBOSE { println!("- {f_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
                                   factor_to_string(factor, self.get_symbol_table()),
@@ -1179,14 +1196,8 @@ impl ProdRuleSet<LL1> {
                 });
             }
         }
-        let unused_t = (0..num_t - 1).map(|t_id| (t_id, (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] != error)))
-            .filter_map(|(t_id, ok)| if !ok { Some(Symbol::T(t_id as VarId).to_str(self.get_symbol_table())) } else { None }).to_vec();
-        if !unused_t.is_empty() {
-            if unused_t.len() == num_t - 1 {
-                self.log.add_error("calc_table: no terminal used".to_string())
-            } else {
-                self.log.add_warning(format!("calc_table: some terminals are not used: {}", unused_t.join(", ")))
-            }
+        if !(0..num_t - 1).any(|t_id| (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] != error)) {
+            self.log.add_error("calc_table: no terminal used in the table".to_string());
         }
         LLParsingTable { num_nt, num_t, factors, table: final_table }
     }
