@@ -91,6 +91,7 @@ impl Parser {
                 println!("{:-<40}", "");
                 println!("input ({stream_n}): {}  stack: {}  current: {}", stream_sym.to_str(sym_table),
                          stack.iter().map(|s| s.to_str(sym_table)).join(" "), stack_sym.to_str(sym_table));
+                // println!("stack_t: {}", stack_t.join(", "));
             }
             match (stack_sym, stream_sym) {
                 (Symbol::NT(var), _) => {
@@ -172,7 +173,8 @@ impl Parser {
                 }
                 (Symbol::End, _)  => {
                     return Err(format!("extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
-                } (_, Symbol::End) => {
+                }
+                (_, Symbol::End) => {
                     return Err(format!("end of stream while expecting a '{}'", stack_sym.to_str(sym_table)));
                 }
                 (_, _) => {
@@ -181,6 +183,8 @@ impl Parser {
                 }
             }
         }
+        assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));
+        assert!(stack.is_empty(), "stack: {}", stack.iter().map(|s| s.to_str(sym_table)).join(", "));
         Ok(())
     }
 }
