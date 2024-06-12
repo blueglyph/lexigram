@@ -833,13 +833,15 @@ mod listener2 {
     }
 }
 
-#[cfg(disabled)]
 mod listener3 {
 
     // -------------------------------------------------------------------------
     // Automatically generated
 
+    use std::collections::HashMap;
+    use rlexer::dfa::TokenId;
     use rlexer::grammar::{Symbol, VarId};
+    use rlexer::hashmap;
     use rlexer::parser::{Call, Listener, Parser};
     use rlexer::symbol_table::SymbolTable;
     use crate::CollectJoin;
@@ -893,7 +895,7 @@ mod listener3 {
         max_rec_stack: usize,
     }
 
-    pub trait ExprListenerTrait {
+    pub trait StructListenerTrait {
         fn init_decl(&mut self) {}
         fn exit_decl(&mut self) {}
         fn init_vars(&mut self) {}
@@ -901,7 +903,7 @@ mod listener3 {
         fn exit_vars(&mut self) {}
     }
 
-    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+    impl<T: StructListenerTrait> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), rec_stack: Vec::new(), max_stack: 0, max_rec_stack: 0 }
         }
@@ -911,7 +913,7 @@ mod listener3 {
         }
     }
 
-    impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
+    impl<T: StructListenerTrait> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
             let mut rec_required = false;
             match call {
@@ -946,20 +948,33 @@ mod listener3 {
         }
     }
 
-    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+    impl<T: StructListenerTrait> ListenerWrapper<T> {
         /* TODO */
     }
 
     // User code -----------------------------------------------------
 
     struct TestListener {
-        verbose: bool
+        result: HashMap<String, HashMap<String, String>>,
+        verbose: bool,
     }
+
+    impl TestListener {
+        pub fn new(verbose: bool) -> Self {
+            Self { result: HashMap::new(), verbose }
+        }
+    }
+
+    impl StructListenerTrait for TestListener {}
 
     #[test]
     fn parser_parse_stream() {
         let tests = vec![
-            ("2+3*4*5", true, Some(62)), // TODO: change
+            (
+                "struct test1 { a : int ; b : string ; c : bool ; }",
+                true,
+                Some(hashmap!["a" => "int", "b" => "string", "c" => "bool"])
+            ),
         ];
         const VERBOSE: bool = true;
         const VERBOSE_LISTENER: bool = true;
@@ -974,30 +989,13 @@ mod listener3 {
             .collect::<HashMap<_, _>>();
         for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-            let stream = input.chars().into_iter().filter_map(|c| {
-                if c.is_ascii_whitespace() {
-                    None
-                } else {
-                    // TODO: change
-                    let c_str = c.to_string();
-                    Some(match c {
-                        '0'..='9' => (Symbol::T(6), c_str),
-                        'a'..='z' => (Symbol::T(7), c_str),
-                        _ => {
-                            if let Some(s) = symbols.get(&c_str) {
-                                // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                                (*s, c_str)
-                            } else {
-                                panic!("unrecognized test input '{c}' in test {test_id}, input {input}");
-                            }
-                        }
-                    })
-                }
+            let stream = input.split_ascii_whitespace().map(|w| {
+                if let Some(s) = symbols.get(w) { (*s, w.to_string() ) } else { (Symbol::T(5), w.to_string()) }
             });
 
             // User code under test ------------------------------
 
-            let mut listener = TestListener::new(VERBOSE_LISTENER);
+            let listener = TestListener::new(VERBOSE_LISTENER);
             let mut wrapper = ListenerWrapper::new(listener, VERBOSE_LISTENER);
             let success = match parser.parse_stream(&mut wrapper, stream) {
                 Ok(_) => {
@@ -1020,7 +1018,9 @@ mod listener3 {
             assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
             if VERBOSE { println!("listener data: {:?}", listener.result); }
             if success {
-                assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+                let result = listener.result.get("test1");
+                let expected_result = expected_result.map(|m| m.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).collect::<HashMap<String, String>>());
+                assert_eq!(result, expected_result.as_ref(), "test {test_id} failed for input {input}");
             }
         }
     }
