@@ -37,37 +37,6 @@ impl Parser {
             symbol_table, start }
     }
 
-    #[cfg(test)]
-    pub fn print_table(&self) {
-        let st = Some(&self.symbol_table);
-        println!("factors:\n{}",
-                 self.factors.iter().enumerate().map(|(id, (v, f))|
-                     format!("// - {id}: {} -> {}", Symbol::NT(*v).to_str(st),
-                             f.iter().map(|s| s.to_str(st)).join(" "))
-        ).join("\n"));
-        println!("table:");
-        let indent = 0;
-        let error = self.factors.len() as VarId;
-        let str_nt = (0..self.num_nt).map(|i| Symbol::NT(i as VarId).to_str(st)).to_vec();
-        let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
-        let str_t = (0..self.num_t).map(|j| if j + 1 < self.num_t { Symbol::T(j as VarId).to_str(st) } else { "$".to_string() }).to_vec();
-        let max_t_len = str_t.iter().map(|s| s.len()).max().unwrap().max(3);
-        println!("{:<i$}// {:<w$} | {}", "", "", (0..self.num_t).map(|j| format!("{:>1$}", str_t[j], max_t_len)).join(" "), w = max_nt_len, i = indent);
-        println!("{:<i$}// {:-<w$}-+-{:-<t$}", "", "", "", w = max_nt_len, t = self.num_t * (max_t_len + 1), i = indent);
-        for i in 0..self.num_nt {
-            print!("{:<i$}// {:>w$} |", "", str_nt[i], w = max_nt_len, i = indent);
-            for j in 0..self.num_t {
-                let value = self.table[i * self.num_t + j];
-                if value < error {
-                    print!(" {:3}", value);
-                } else {
-                    print!("   .");
-                }
-            }
-            println!();
-        }
-    }
-
     pub fn parse_stream<I, L>(&mut self, listener: &mut L, mut stream: I) -> Result<(), String>
         where I: Iterator<Item=(Symbol, String)>,
               L: Listener,
