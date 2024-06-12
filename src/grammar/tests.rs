@@ -363,17 +363,18 @@ fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsing
     let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
     let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
     let str_t = (0..*num_t).map(|j| if j + 1 < *num_t { Symbol::T(j as VarId).to_str(symbol_table) } else { "$".to_string() }).to_vec();
-    let max_t_len = str_t.iter().map(|s| s.len()).max().unwrap().max(3);
-    println!("{:<i$}// {:<w$} | {}", "", "", (0..*num_t).map(|j| format!("{:>1$}", str_t[j], max_t_len)).join(" "), w = max_nt_len, i = indent);
-    println!("{:<i$}// {:-<w$}-+-{:-<t$}", "", "", "", w = max_nt_len, t = *num_t * (max_t_len + 1), i = indent);
+    let max_t_len = str_t.iter().map(|s| s.len()).max().unwrap().max(2);
+    let t_len = str_t.iter().map(|s| s.len().max(2)).to_vec();
+    println!("{:<i$}// {:<w$} | {}", "", "", (0..*num_t).map(|j| format!("{:^w$}", str_t[j], w = t_len[j])).join(" "), w = max_nt_len, i = indent);
+    println!("{:<i$}// {:-<w$}-+-{:-<t$}", "", "", "", w = max_nt_len, t = *num_t + t_len.iter().sum::<usize>(), i = indent);
     for i in 0..*num_nt {
-        print!("{:<i$}// {:>w$} |", "", str_nt[i], w = max_nt_len, i = indent);
+        print!("{:<i$}// {:<w$} |", "", str_nt[i], w = max_nt_len, i = indent);
         for j in 0..*num_t {
             let value = table[i * num_t + j];
             if value < error {
-                print!(" {:3}", value);
+                print!(" {:^w$}", value, w = t_len[j]);
             } else {
-                print!("   .");
+                print!(" {:^w$}", ".", w = t_len[j]);
             }
         }
         println!();
@@ -634,6 +635,26 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(t 0; e),
             ]);
+        }
+        20 => {
+            // STRUCT -> 'struct' id '{' LIST
+            // LIST -> id ':' id ';' LIST | '}'
+            symbol_table.extend_terminals([
+                /* 0 */ ("struct".to_string(), Some("struct".to_string())),
+                /* 1 */ ("{".to_string(), Some("{".to_string())),
+                /* 2 */ ("}".to_string(), Some("}".to_string())),
+                /* 3 */ (":".to_string(), Some(":".to_string())),
+                /* 4 */ (";".to_string(), Some(";".to_string())),
+                /* 5 */ ("id".to_string(), None),
+            ]);
+            symbol_table.extend_non_terminals([
+                /* 0 */ "STRUCT".to_string(),
+                /* 1 */ "LIST".to_string(),
+            ]);
+            prods.extend([
+                prod!(t 0, t 5, t 1, nt 1),
+                prod!(t 5, t 3, t 5, t 4, nt 1; t 2),
+            ])
         }
 
         // warnings and errors
@@ -1330,6 +1351,21 @@ fn prs_calc_table() {
             // --+---------
             // A |   0   1
               0,   1,
+        ]),
+        (20, 0, 0, vec![
+            // - 0: STRUCT -> struct id { LIST
+            // - 1: LIST -> id : id ; LIST
+            // - 2: LIST -> }
+            (0, prodf!(t 0, t 5, t 1, nt 1)),
+            (1, prodf!(t 5, t 3, t 5, t 4, nt 1)),
+            (1, prodf!(t 2)),
+        ], vec![
+            //        | struct {  }  :  ;  id $
+            // -------+--------------------------
+            // STRUCT |   0    .  .  .  .  .  .
+            // LIST   |   .    .  2  .  .  1  .
+              0,   3,   3,   3,   3,   3,   3,
+              3,   3,   2,   3,   3,   1,   3,
         ]),
     ];
     const VERBOSE: bool = false;

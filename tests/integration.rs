@@ -832,3 +832,197 @@ mod listener2 {
         }
     }
 }
+
+#[cfg(disabled)]
+mod listener3 {
+
+    // -------------------------------------------------------------------------
+    // Automatically generated
+
+    use rlexer::grammar::{Symbol, VarId};
+    use rlexer::parser::{Call, Listener, Parser};
+    use rlexer::symbol_table::SymbolTable;
+    use crate::CollectJoin;
+
+    const PARSER_NUM_T: usize = 6;
+    const PARSER_NUM_NT: usize = 2;
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("struct", Some("struct")), ("{", Some("{")), ("}", Some("}")), (":", Some(":")), (";", Some(";")), ("id", None)];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["STRUCT", "LIST"];
+    const SYMBOLS_NAMES: [(&str, VarId); 0] = [];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 3] = [(0, &[Symbol::T(0), Symbol::T(5), Symbol::T(1), Symbol::NT(1)]), (1, &[Symbol::T(5), Symbol::T(3), Symbol::T(5), Symbol::T(4), Symbol::NT(1)]), (1, &[Symbol::T(2)])];
+    const PARSING_TABLE: [VarId; 14] = [0, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 1, 3];
+    const START_SYMBOL: VarId = 0;
+
+    pub(super) fn build_parser() -> Parser {
+        let mut symbol_table = SymbolTable::new();
+        symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
+        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));
+        let factors: Vec<(VarId, Vec<Symbol>)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, s.to_vec())).collect();
+        let table: Vec<VarId> = PARSING_TABLE.into();
+        let parsing_table = rlexer::grammar::LLParsingTable {
+            num_nt: PARSER_NUM_NT,
+            num_t: PARSER_NUM_T + 1,
+            factors,
+            table
+        };
+        Parser::new(parsing_table, symbol_table, START_SYMBOL)
+    }
+
+    // -------------------------------------------------------------------------
+
+    // - 0: STRUCT -> struct id { LIST
+    // - 1: LIST -> id : id ; LIST
+    // - 2: LIST -> }
+
+    type SynStruct = usize;
+    type SynList = Vec<(String, String)>;
+
+    #[derive(Debug)]
+    enum SynValue { Struct, List }
+
+    #[derive(Debug)]
+    struct RecItem { }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        rec_stack: Vec<(RecItem, u16, bool)>, // item, priority, is_left_assoc
+        max_stack: usize,
+        max_rec_stack: usize,
+    }
+
+    pub trait ExprListenerTrait {
+        fn init_decl(&mut self) {}
+        fn exit_decl(&mut self) {}
+        fn init_vars(&mut self) {}
+        fn iter_vars(&mut self) {}
+        fn exit_vars(&mut self) {}
+    }
+
+    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), rec_stack: Vec::new(), max_stack: 0, max_rec_stack: 0 }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
+            let mut rec_required = false;
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => { /* TODO */ },   // STRUCT
+                        1 => { /* TODO */ },   // LIST
+                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                    }
+                }
+                Call::Exit => {
+                    match factor_id {
+                        0 => { /* TODO */ },   // - 0: STRUCT -> struct id { LIST
+                        1 => { /* TODO */ },   // - 1: LIST -> id : id ; LIST
+                        2 => { /* TODO */ },   // - 2: LIST -> }
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::Rec => {
+                    match factor_id {
+                        _ => panic!("unexpected rec factor id: {factor_id}")
+                    }
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            self.max_rec_stack = std::cmp::max(self.max_rec_stack, self.rec_stack.len());
+            if self.verbose {
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+                println!("> rec stack: {}", self.rec_stack.iter().map(|(it, p, l)| format!("{it:?}/{p}/{}", if *l { "L" } else { "R" })).join(", "));
+            }
+            rec_required
+        }
+    }
+
+    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+        /* TODO */
+    }
+
+    // User code -----------------------------------------------------
+
+    struct TestListener {
+        verbose: bool
+    }
+
+    #[test]
+    fn parser_parse_stream() {
+        let tests = vec![
+            ("2+3*4*5", true, Some(62)), // TODO: change
+        ];
+        const VERBOSE: bool = true;
+        const VERBOSE_LISTENER: bool = true;
+        let mut parser = build_parser();
+
+        // The lexer provides the required stream, so this isn't necessary in a real case:
+        let mut symb_table = SymbolTable::new();
+        symb_table.extend_terminals(SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
+        let symbols = (0..SYMBOLS_T.len() as TokenId)
+            .map(|t| Symbol::T(t))
+            .map(|s| (s.to_str(Some(&symb_table)), s))
+            .collect::<HashMap<_, _>>();
+        for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
+            if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
+            let stream = input.chars().into_iter().filter_map(|c| {
+                if c.is_ascii_whitespace() {
+                    None
+                } else {
+                    // TODO: change
+                    let c_str = c.to_string();
+                    Some(match c {
+                        '0'..='9' => (Symbol::T(6), c_str),
+                        'a'..='z' => (Symbol::T(7), c_str),
+                        _ => {
+                            if let Some(s) = symbols.get(&c_str) {
+                                // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
+                                (*s, c_str)
+                            } else {
+                                panic!("unrecognized test input '{c}' in test {test_id}, input {input}");
+                            }
+                        }
+                    })
+                }
+            });
+
+            // User code under test ------------------------------
+
+            let mut listener = TestListener::new(VERBOSE_LISTENER);
+            let mut wrapper = ListenerWrapper::new(listener, VERBOSE_LISTENER);
+            let success = match parser.parse_stream(&mut wrapper, stream) {
+                Ok(_) => {
+                    if VERBOSE { println!("parsing completed successfully"); }
+                    true
+                }
+                Err(e) => {
+                    if VERBOSE { println!("parsing failed: {e}"); }
+                    false
+                }
+            };
+            if VERBOSE {
+                println!("max stack: {}\nmax rec stack: {}", wrapper.max_stack, wrapper.max_rec_stack);
+                println!("listener stack: {:?}", wrapper.stack);
+                println!("listener rec stack: {:?}", wrapper.rec_stack);
+            }
+            let listener = wrapper.listener();
+            // ---------------------------------------------------
+
+            assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
+            if VERBOSE { println!("listener data: {:?}", listener.result); }
+            if success {
+                assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+            }
+        }
+    }
+
+}
