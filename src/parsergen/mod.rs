@@ -60,9 +60,9 @@ impl ParserBuilder {
         // Create source code:
         writeln!(out, "// -------------------------------------------------------------------------")?;
         writeln!(out, "// Automatically generated\n")?;
-        writeln!(out, "use crate::grammar::{{Symbol, VarId}};")?;
-        writeln!(out, "use crate::parser::Parser;")?;
-        writeln!(out, "use crate::symbol_table::SymbolTable;\n")?;
+        writeln!(out, "use rlexer::grammar::{{Symbol, VarId}};")?;
+        writeln!(out, "use rlexer::parser::Parser;")?;
+        writeln!(out, "use rlexer::symbol_table::SymbolTable;\n")?;
 
         writeln!(out, "const PARSER_NUM_T: usize = {num_t};")?;
         writeln!(out, "const PARSER_NUM_NT: usize = {num_nt};")?;
