@@ -12,7 +12,7 @@ use crate::segments::Seg;
 pub(crate) fn term_to_string(t: &Terminal) -> String {
     let mut str = Vec::<String>::new();
     if let Some(token) = &t.token {
-        str.push(format!("term!(={})", token.0));
+        str.push(format!("term!(={})", token));
     }
     if t.channel != 0 {
         str.push(format!("term!(#{})", t.channel));

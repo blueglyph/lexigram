@@ -165,7 +165,7 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
     writeln!(out, "// Automatically generated\n")?;
     writeln!(out, "use std::collections::HashMap;")?;
     writeln!(out, "use std::io::Read;")?;
-    writeln!(out, "use crate::dfa::{{StateId, Terminal, Token}};")?;
+    writeln!(out, "use crate::dfa::{{StateId, Terminal}};")?;
     writeln!(out, "use crate::lexer::Lexer;")?;
     writeln!(out, "use crate::lexgen::GroupId;")?;
     writeln!(out, "use crate::segments::{{Seg, SegMap}};\n")?;

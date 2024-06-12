@@ -13,10 +13,10 @@ use super::*;
 
 #[test]
 fn lexer_simple() {
-    fn eval(result: &Result<(Token, ChannelId, String), &LexerError>, verbose: bool) -> Option<(Token, ChannelId, String)> {
+    fn eval(result: &Result<(TokenId, ChannelId, String), &LexerError>, verbose: bool) -> Option<(TokenId, ChannelId, String)> {
         match result {
             Ok(token_ch) => {
-                if verbose { println!("=> OK {}, #{}", token_ch.0.0, token_ch.1); }
+                if verbose { println!("=> OK {}, #{}", token_ch.0, token_ch.1); }
                 Some(token_ch.clone())
             }
             Err(e) => {
@@ -72,7 +72,7 @@ fn lexer_simple() {
                 lexer.attach_stream(stream);
                 let result = lexer.get_token();
                 let token = eval(&result, VERBOSE);
-                assert_eq!(token, Some((Token(exp_token), 0, output.to_string())), "test {} failed for input '{}'", test_id, escape_string(input));
+                assert_eq!(token, Some((exp_token, 0, output.to_string())), "test {} failed for input '{}'", test_id, escape_string(input));
                 lexer.detach_stream();
             }
         }
@@ -98,8 +98,8 @@ fn lexer_simple() {
                 let token = &lexer.get_token();
                 let t = eval(token, false);
                 if let Some(token_ch) = t {
-                    if VERBOSE { print!(" {}, #{}", token_ch.0.0, token_ch.1); }
-                    result.push(token_ch.0.0);
+                    if VERBOSE { print!(" {}, #{}", token_ch.0, token_ch.1); }
+                    result.push(token_ch.0);
                     assert_eq!(token_ch.1, 0, "test {} failed for input {}", test_id, escape_string(input));
                 } else {
                     assert_eq!(t, None);
@@ -116,7 +116,7 @@ fn lexer_simple() {
             lexer.attach_stream(stream);
             let result = lexer.tokens().map(|t| {
                 assert_eq!(t.1, 0, "test {} failed for input {}", test_id, escape_string(input));
-                t.0.0
+                t.0
             }).to_vec();
             assert_eq!(result, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
             assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for input '{}'",
@@ -247,7 +247,7 @@ fn lexer_modes() {
             lexer.attach_stream(stream);
             let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text)| {
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
-                (tok.0, text)
+                (tok, text)
             }).unzip();
             assert_eq!(tokens, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
             assert_eq!(texts, expected_texts, "test {} failed for input '{}'", test_id, escape_string(input));
@@ -268,7 +268,7 @@ mod lexer_source1 {
     use crate::io::CharReader;
     use crate::lexgen::GroupId;
     use crate::segments::{Seg, SegMap};
-    use crate::lexer::{Lexer, Token};
+    use crate::lexer::Lexer;
 
     // -------------------------------------------------------------------------
     // Copied from a print_source_code(&lexgen)
@@ -301,7 +301,7 @@ mod lexer_source1 {
     //     (Seg(119190, 1114111), 6),];
     const TERMINAL_TABLE: [Terminal;5] = [
         Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
-        Terminal { token: Some(Token(0)), channel: 0, push_mode: None, push_state: None, pop: false },
+        Terminal { token: Some(0), channel: 0, push_mode: None, push_state: None, pop: false },
         Terminal { token: None, channel: 0, push_mode: Some(1), push_state: Some(2), pop: false },
         Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
         Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true }];
@@ -355,7 +355,7 @@ mod lexer_source1 {
                 lexer.attach_stream(stream);
                 let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text)| {
                     assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
-                    (tok.0, text)
+                    (tok, text)
                 }).unzip();
                 assert_eq!(tokens, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
                 assert_eq!(texts, expected_texts, "test {} failed for input '{}'", test_id, escape_string(input));

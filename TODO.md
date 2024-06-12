@@ -2,6 +2,7 @@
 
 - basic rlexer
   - [x] ~~create regex for rlexer's lexicon (manually)~~
+  - [x] ~~replace struct Token(pub TokenId) by just a TokenId~~
   - [ ] create simple top-down parser for rlexer's grammar (manually)
   - [ ] transform regex AST to vectree
   - [ ] make binary application (lexicon file -> AST -> vectree -> dfa -> lexgen -> sources)

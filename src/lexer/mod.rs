@@ -3,7 +3,7 @@ pub(crate) mod tests;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::io::Read;
-use crate::dfa::{ChannelId, StateId, Terminal, Token};
+use crate::dfa::{ChannelId, StateId, Terminal, TokenId};
 use crate::escape_char;
 use crate::segments::SegMap;
 use crate::io::{CharReader};
@@ -17,7 +17,7 @@ pub struct LexerError {
     pub pos: u64,
     pub curr_char: Option<char>,
     pub group: Option<GroupId>,
-    pub token_ch: Option<(Token, ChannelId)>,
+    pub token_ch: Option<(TokenId, ChannelId)>,
     pub state: StateId,
     pub is_eos: bool,
     pub text: String,
@@ -30,7 +30,7 @@ impl Display for LexerError {
                self.pos,
                if let Some(c) = self.curr_char { format!(" on '{}'", escape_char(c)) } else { "".to_string() },
                if let Some(g) = self.group { format!(", group {g}") } else { "".to_string() },
-               if let Some(t) = self.token_ch.as_ref() { format!(", token {}, channel {}", t.0.0, t.1) } else { "".to_string() },
+               if let Some(t) = self.token_ch.as_ref() { format!(", token {}, channel {}", t.0, t.1) } else { "".to_string() },
                self.state,
                self.msg,
                if self.is_eos { "<END OF STREAM>" } else { "" }
@@ -153,7 +153,7 @@ impl<R: Read> Lexer<R> {
     //              state = next_state
     //              pos++
     //
-    pub fn get_token(&mut self) -> Result<(Token, ChannelId, String), &LexerError> {
+    pub fn get_token(&mut self) -> Result<(TokenId, ChannelId, String), &LexerError> {
         const VERBOSE: bool = false;
         self.error = None;
         let mut text = String::new();
@@ -212,7 +212,7 @@ impl<R: Read> Lexer<R> {
                             if VERBOSE { print!(", push({})", goto_state); }
                         }
                         if let Some(token) = &terminal.token {
-                            if VERBOSE { println!(" => OK: token {}", token.0); }
+                            if VERBOSE { println!(" => OK: token {}", token); }
                             return Ok((token.clone(), terminal.channel, text));
                         }
                         if !is_eos { // we can't skip if <EOF> or we'll loop indefinitely
@@ -270,13 +270,13 @@ pub struct LexInterpretIter<'a, R> {
 }
 
 impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
-    type Item = (Token, ChannelId, String);
+    type Item = (TokenId, ChannelId, String);
 
     fn next(&mut self) -> Option<Self::Item> {
         let t = self.lexer.get_token();
         match t {
             Ok((token, channel, str)) => Some((token, channel, str)),
-            Err(&LexerError { token_ch: Some((ref token, channel)), ref text, .. }) => Some((token.clone(), channel, text.clone())),
+            Err(&LexerError { token_ch: Some((ref token, channel)), ref text, .. }) => Some((*token, channel, text.clone())),
             _ => None
         }
     }

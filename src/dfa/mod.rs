@@ -13,12 +13,9 @@ pub type TokenId = u16;
 pub type ModeId = u16;
 pub type ChannelId = u16;
 
-#[derive(Clone, Debug, PartialOrd, PartialEq, Eq, Ord)]
-pub struct Token(pub TokenId);
-
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub struct Terminal {
-    pub token: Option<Token>,
+    pub token: Option<TokenId>,
     pub channel: ChannelId,
     pub push_mode: Option<ModeId>,
     pub push_state: Option<StateId>,
@@ -39,7 +36,7 @@ impl Terminal {
 
 impl Display for Terminal {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if let Some(tok) = &self.token { write!(f, "<end:{}", tok.0)?; } else { write!(f, "<skip")?; }
+        if let Some(tok) = &self.token { write!(f, "<end:{}", tok)?; } else { write!(f, "<skip")?; }
         if self.channel != 0 { write!(f, ",ch {}", self.channel)?; }
         if self.push_mode.is_some() || self.push_state.is_some() {
             write!(f, ",push(")?;
@@ -956,7 +953,7 @@ pub mod macros {
     /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))))));
     /// assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))))));
     /// assert_eq!(node!(str "new"), ReNode::new(ReType::String(Box::new("new".to_string()))));
-    /// assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token(5)), channel: 0, push_mode: None, push_state: None, pop: false }))));
+    /// assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }))));
     /// assert_eq!(node!(&), ReNode::new(ReType::Concat));
     /// assert_eq!(node!(|), ReNode::new(ReType::Or));
     /// assert_eq!(node!(*), ReNode::new(ReType::Star));
@@ -978,7 +975,7 @@ pub mod macros {
         (e) => { ReNode::new(ReType::Empty) };
         (??) => { ReNode::new(ReType::Lazy) };
         // actions:
-        (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
+        (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some($id), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
         ($id:expr) => { ReNode::new(ReType::End(Box::new($id))) };
         //
         ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
@@ -987,7 +984,7 @@ pub mod macros {
 
     #[macro_export(local_inner_macros)]
     macro_rules! term {
-        (= $id:expr ) =>   { Terminal { token: Some(Token($id)), channel: 0, push_mode: None, push_state: None, pop: false } };
+        (= $id:expr ) =>   { Terminal { token: Some($id), channel: 0, push_mode: None, push_state: None, pop: false } };
         (skip) =>          { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false } };
         (push $id:expr) => { Terminal { token: None, channel: 0, push_mode: Some($id), push_state: None, pop: false } };
         (pushst $id:expr) => { Terminal { token: None, channel: 0, push_mode: None, push_state: Some($id), pop: false } };
@@ -1018,7 +1015,7 @@ pub mod macros {
         assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))))));
         assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))))));
         assert_eq!(node!(str "new"), ReNode::new(ReType::String(Box::new("new".to_string()))));
-        assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(Token(5)), channel: 0, push_mode: None, push_state: None, pop: false }))));
+        assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }))));
         assert_eq!(node!(&), ReNode::new(ReType::Concat));
         assert_eq!(node!(|), ReNode::new(ReType::Or));
         assert_eq!(node!(*), ReNode::new(ReType::Star));

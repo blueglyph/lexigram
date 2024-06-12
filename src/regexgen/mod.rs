@@ -1,7 +1,7 @@
 mod tests;
 mod gen;
 
-use crate::dfa::{ReNode, ReType, Token, TokenId, Terminal};
+use crate::dfa::{ReNode, ReType, TokenId, Terminal};
 use crate::segments::{Segments, Seg};
 use crate::{node, term};
 use crate::vectree::VecTree;
