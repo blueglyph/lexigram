@@ -91,6 +91,80 @@ fn parser_parse_stream() {
     }
 }
 
+#[test]
+fn parser_parse_stream_id() {
+
+    struct Stub();
+    impl Listener for Stub {}
+
+    let tests = vec![
+        (20, 0, 5, 999, vec![
+            ("struct test1 { a : int ; b : string ; c : bool ; }", true),
+            ("struct test2 { a : int ; b : string ; c : bool }", false),
+        ]),
+        (22, 0, 3, 4, vec![
+            // - 0: E -> id E_1
+            // - 1: E_1 -> ε
+            // - 2: E_1 -> * id E_1
+            // - 3: E_1 -> + id E_1
+            // - 4: E_1 -> & E_2
+            // - 5: E_2 -> * id E_1
+            // - 6: E_2 -> + id E_1
+            ("a + b * c", true),
+            ("a + b & * c * d", true),
+        ]),
+        (23, 0, 3, 4, vec![
+            // - 0: E -> F E_1
+            // - 1: F -> id
+            // - 2: F -> num
+            // - 3: E_1 -> ε
+            // - 4: E_1 -> * F E_1
+            // - 5: E_1 -> + F E_1
+            // - 6: E_1 -> & E_2
+            // - 7: E_2 -> * F E_1
+            // - 8: E_2 -> + F E_1
+            ("1 + 2 * 3", true),
+            ("a + 1 & * b * 2", true),
+        ]),
+    ];
+    const VERBOSE: bool = false;
+    for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
+        if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
+        let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
+        ll1.set_start(start);
+        let symbols = (0..ll1.get_num_terminals() as TokenId)
+            .map(|t| Symbol::T(t))
+            .map(|s| (s.to_str(ll1.get_symbol_table()), s))
+            .collect::<HashMap<_, _>>();
+        let mut parser = ParserBuilder::from_rules(ll1).make_parser();
+        for (input, expected_success) in sequences {
+            if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
+            let stream = input.split_ascii_whitespace().map(|w| {
+                if let Some(s) = symbols.get(w) {
+                    (*s, w.to_string() )
+                } else {
+                    if w.chars().next().unwrap().is_ascii_digit() {
+                        (Symbol::T(num_id), w.to_string())
+                    } else {
+                        (Symbol::T(id_id), w.to_string())
+                    }
+                }
+            });
+            let success = match parser.parse_stream(&mut Stub(), stream) {
+                Ok(_) => {
+                    if VERBOSE { println!("parsing completed successfully"); }
+                    true
+                }
+                Err(e) => {
+                    if VERBOSE { println!("parsing failed: {e}"); }
+                    false
+                }
+            };
+            assert_eq!(success, expected_success, "test {test_id}/{ll_id}/{start} failed for input {input}");
+        }
+    }
+}
+
 mod listener {
     use crate::grammar::tests::build_prs;
     use crate::grammar::VarId;

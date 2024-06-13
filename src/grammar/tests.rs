@@ -656,6 +656,64 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(t 5, t 3, t 5, t 4, nt 1; t 2),
             ])
         }
+        21 => {
+            //  A -> A a1 | A a2 | A b1 A | A b2 A | c1 | c2 [ | d1 A | d2 A ]
+            //       ^^^^^^^^^^^   ^^^^^^^^^^^^^^^               ^^^^^^^^^^^
+            symbol_table.extend_terminals([
+                ("a1".to_string(), Some("a1".to_string())), // 0
+                ("a2".to_string(), Some("a2".to_string())), // 1
+                ("b1".to_string(), Some("b1".to_string())), // 2
+                ("b2".to_string(), Some("b2".to_string())), // 3
+                ("c1".to_string(), Some("c1".to_string())), // 4
+                ("c2".to_string(), Some("c2".to_string())), // 5
+                ("d1".to_string(), Some("d1".to_string())), // 6
+                ("d2".to_string(), Some("d2".to_string())), // 7
+            ]);
+            if false {
+                // TODO: needs a new grammar change (polymorphic recursive rule)
+                prods.extend([
+                    prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4; t 5; t 6, nt 0; t 7, nt 0),
+                ]);
+            } else {
+                prods.extend([
+                    prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4; t 5),
+                ]);
+                //      A -> A a1 | A a2 | A b1 A | A b2 A | c1 | c2
+                // =>
+                //      A -> c1 A_2 | c2 A_2
+                //      A_1 -> c1 | c2
+                //      A_2 -> a1 A_2 | a2 A_2 | b1 A_1 A_2 | b2 A_1 A_2 | ε
+            }
+        }
+        22 => {
+            // E -> E * E | E '&' '*' E | E + E | E '&' '+' E | id
+            symbol_table.extend_terminals([
+                ("*".to_string(), Some("*".to_string())),
+                ("+".to_string(), Some("+".to_string())),
+                ("&".to_string(), Some("&".to_string())),
+                ("id".to_string(), None),
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string()]);
+            prods.extend([
+                prod!(nt 0, t 0, nt 0; nt 0, t 2, t 0, nt 0; nt 0, t 1, nt 0; nt 0, t 2, t 1, nt 0; t 3),
+            ]);
+        }
+        23 => {
+            // E -> E * E | E '&' '*' E | E + E | E '&' '+' E | F
+            // F -> id | num
+            symbol_table.extend_terminals([
+                ("*".to_string(), Some("*".to_string())),
+                ("+".to_string(), Some("+".to_string())),
+                ("&".to_string(), Some("&".to_string())),
+                ("id".to_string(), None),
+                ("num".to_string(), None),
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string(), "F".to_string()]);
+            prods.extend([
+                prod!(nt 0, t 0, nt 0; nt 0, t 2, t 0, nt 0; nt 0, t 1, nt 0; nt 0, t 2, t 1, nt 0; nt 1),
+                prod!(t 3; t 4),
+            ]);
+        }
 
         // warnings and errors
         1000 => { // A -> A a  (missing non-recursive factor)
@@ -1367,8 +1425,64 @@ fn prs_calc_table() {
               0,   3,   3,   3,   3,   3,   3,
               3,   3,   2,   3,   3,   1,   3,
         ]),
+        (22, 0, 0, vec![
+            // - 0: E -> id E_1
+            // - 1: E_1 -> ε
+            // - 2: E_1 -> * id E_1
+            // - 3: E_1 -> + id E_1
+            // - 4: E_1 -> & E_2
+            // - 5: E_2 -> * id E_1
+            // - 6: E_2 -> + id E_1
+            (0, prodf!(t 3, nt 1)),
+            (1, prodf!(e)),
+            (1, prodf!(t 0, t 3, nt 1)),
+            (1, prodf!(t 1, t 3, nt 1)),
+            (1, prodf!(t 2, nt 2)),
+            (2, prodf!(t 0, t 3, nt 1)),
+            (2, prodf!(t 1, t 3, nt 1)),
+        ], vec![
+            //     | *  +  &  id $
+            // ----+----------------
+            // E   | .  .  .  0  .
+            // E_1 | 2  3  4  .  1
+            // E_2 | 5  6  .  .  .
+              7,   7,   7,   0,   7,
+              2,   3,   4,   7,   1,
+              5,   6,   7,   7,   7,
+        ]),
+        (23, 0, 0, vec![
+            // - 0: E -> F E_1
+            // - 1: F -> id
+            // - 2: F -> num
+            // - 3: E_1 -> ε
+            // - 4: E_1 -> * F E_1
+            // - 5: E_1 -> + F E_1
+            // - 6: E_1 -> & E_2
+            // - 7: E_2 -> * F E_1
+            // - 8: E_2 -> + F E_1
+            (0, prodf!(nt 1, nt 2)),
+            (1, prodf!(t 3)),
+            (1, prodf!(t 4)),
+            (2, prodf!(e)),
+            (2, prodf!(t 0, nt 1, nt 2)),
+            (2, prodf!(t 1, nt 1, nt 2)),
+            (2, prodf!(t 2, nt 3)),
+            (3, prodf!(t 0, nt 1, nt 2)),
+            (3, prodf!(t 1, nt 1, nt 2)),
+        ], vec![
+            //     | *  +  &  id num $
+            // ----+--------------------
+            // E   | .  .  .  0   0  .
+            // F   | .  .  .  1   2  .
+            // E_1 | 4  5  6  .   .  3
+            // E_2 | 7  8  .  .   .  .
+              9,   9,   9,   0,   0,   9,
+              9,   9,   9,   1,   2,   9,
+              4,   5,   6,   9,   9,   3,
+              7,   8,   9,   9,   9,   9,
+        ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
