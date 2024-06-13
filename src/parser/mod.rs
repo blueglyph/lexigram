@@ -58,7 +58,7 @@ impl Parser {
         loop {
             if VERBOSE {
                 println!("{:-<40}", "");
-                println!("input ({stream_n}): {}  stack: {}  current: {}", stream_sym.to_str(sym_table),
+                println!("input ({stream_n}): {}  stack: {}  current: {}", stream_sym.to_str_ext(sym_table, &stream_str),
                          stack.iter().map(|s| s.to_str(sym_table)).join(" "), stack_sym.to_str(sym_table));
                 // println!("stack_t: {}", stack_t.join(", "));
             }
@@ -113,14 +113,14 @@ impl Parser {
                 (Symbol::Rec(factor_id), _) => {
                     let (var, n) = num_t_str[factor_id as usize];
                     let t_str = stack_t.drain(stack_t.len() - n..).to_vec();
-                    if VERBOSE { println!("- REC {} syn: {}", Symbol::NT(var).to_str(sym_table), t_str.iter().join(" ")); }
+                    if VERBOSE { println!("- REC {} syn ({}): {}", Symbol::NT(var).to_str(sym_table), t_str.len(), t_str.iter().join(" ")); }
                     listener.switch(Call::Rec, var, factor_id, t_str);
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::Exit(factor_id), _) => {
                     let (var, n) = num_t_str[factor_id as usize];
                     let t_str = stack_t.drain(stack_t.len() - n..).to_vec();
-                    if VERBOSE { println!("- EXIT {} syn: {}", Symbol::NT(var).to_str(sym_table), t_str.iter().join(" ")); }
+                    if VERBOSE { println!("- EXIT {} syn ({}): {}", Symbol::NT(var).to_str(sym_table), t_str.len(), t_str.iter().join(" ")); }
                     listener.switch(Call::Exit, var, factor_id, t_str);
                     stack_sym = stack.pop().unwrap();
                 }

@@ -85,6 +85,16 @@ impl Symbol {
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
         symbol_table.map(|t| t.get_name(self)).unwrap_or(self.to_string())
     }
+
+    pub fn to_str_ext(&self, symbol_table: Option<&SymbolTable>, ext: &String) -> String {
+        let mut result = self.to_str(symbol_table);
+        if let Some(t) = symbol_table {
+            if t.is_terminal_variable(self) {
+                result.push_str(&format!("({ext})"));
+            }
+        }
+        result
+    }
 }
 
 impl GrNode {
