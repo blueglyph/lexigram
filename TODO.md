@@ -60,6 +60,9 @@
       - [ ] check indirect left recursion
     - [x] ~~build parsing table~~
     - [ ] warning/error log system (for parsing table, lexer, ...)
+      - [x] ~~add log~~
+      - [ ] check log and error issued in the whole chain (RTS -> PRS)
+      - [ ] check if log reports errors correctly for each error type
     - [x] ~~predictive parsing algorithm~~
     - [x] ~~semantic analysis: how to link back to original RuleTree after removing left recursion/left factoring?~~
     - proper adapter link to lexer

@@ -170,6 +170,17 @@ impl GrTree {
             }
         }
     }
+
+    pub fn to_str(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
+        let tfmt = GrTreeFmt {
+            tree: &self,
+            show_ids: false,
+            show_depth: false,
+            symbol_table,
+            start_node,
+        };
+        tfmt.to_string()
+    }
 }
 
 impl Default for GrTree {
@@ -180,41 +191,75 @@ impl Default for GrTree {
 
 impl Display for GrTree {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        fn snode(show_ids: bool, show_depth: bool, node: &GrNode, node_id: usize, depth: u32) -> String {
-            let mut result = String::new();
-            if show_depth {
-                result.push_str(&depth.to_string());
-                result.push('>');
-            }
-            if show_ids {
-                result.push_str(&node_id.to_string());
-                result.push(':');
-            }
-            result.push_str(&node.to_string());
-            result
+        let tree_fmt = GrTreeFmt {
+            tree: &self,
+            show_ids: f.alternate(),
+            show_depth: f.sign_plus(),
+            symbol_table: None,
+            start_node: None,
+        };
+        tree_fmt.fmt(f)
+    }
+}
+
+struct GrTreeFmt<'a> {
+    tree: &'a GrTree,
+    show_ids: bool,
+    show_depth: bool,
+    symbol_table: Option<&'a SymbolTable>,
+    start_node: Option<usize>
+}
+
+impl<'a> GrTreeFmt<'a> {
+    fn snode(&self, node: &GrNode, node_id: usize, depth: u32) -> String {
+        let show_ids = self.show_ids;
+        let show_depth = self.show_depth;
+        let mut result = String::new();
+        if show_depth {
+            result.push_str(&depth.to_string());
+            result.push('>');
         }
-        let show_ids = f.alternate();
-        let show_depth = f.sign_plus();
+        if show_ids {
+            result.push_str(&node_id.to_string());
+            result.push(':');
+        }
+        let name = if let GrNode::Symbol(sym) = node {
+            sym.to_str(self.symbol_table)
+        } else {
+            node.to_string()
+        };
+        result.push_str(name.as_str());
+        result
+    }
+}
+
+impl Display for GrTreeFmt<'_> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let start_node = self.start_node.unwrap_or(self.tree.get_root().expect("the tree must have a defined root"));
         let mut stack = Vec::<String>::new();
-        for node in self.iter_depth() {
+        for node in self.tree.iter_depth_at(start_node) {
             let n = node.num_children();
             if n > 0 {
                 let children = stack.drain(stack.len() - n..).join(", ");
-                stack.push(format!("{}({children})", snode(show_ids, show_depth, &node, node.index, node.depth)));
+                stack.push(format!("{}({children})", self.snode(&node, node.index, node.depth)));
             } else {
-                stack.push(snode(show_ids, show_depth, &node, node.index, node.depth));
+                stack.push(self.snode(&node, node.index, node.depth));
             }
         }
         write!(f, "{}", stack.pop().unwrap_or("empty".to_string()))
     }
 }
 
+
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
 pub struct RuleTreeSet<T> {
     trees: Vec<GrTree>,
+    start: Option<VarId>,
     next_var: Option<VarId>,
+    symbol_table: Option<SymbolTable>,
+    log: Logger,
     _phantom: PhantomData<T>
 }
 
@@ -239,12 +284,41 @@ impl<T> RuleTreeSet<T> {
     pub fn get_next_available_var(&self) -> VarId {
         self.trees.len() as VarId
     }
+
+    /// Returns a set of all the terminals used in the ruleset.
+    pub fn get_terminals(&self) -> HashSet<TokenId> {
+        let mut tset = self.trees.iter()
+            .flat_map(|t| t.iter_depth_simple())
+            .filter_map(|x| if let GrNode::Symbol(Symbol::T(t)) = x.deref() { Some(*t) } else { None })
+            .collect::<HashSet<_>>();
+        tset
+    }
+
+    pub fn set_symbol_table(&mut self, symbol_table: SymbolTable) {
+        self.symbol_table = Some(symbol_table);
+    }
+
+    pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
+        self.symbol_table.as_ref()
+    }
+
+    /// Sets the starting production rule.
+    pub fn set_start(&mut self, start: VarId) {
+        self.start = Some(start);
+    }
 }
 
 // Mutable methods for the General form.
 impl RuleTreeSet<General> {
     pub fn new() -> Self {
-        RuleTreeSet { trees: Vec::new(), next_var: None, _phantom: PhantomData }
+        RuleTreeSet {
+            trees: Vec::new(),
+            start: None,
+            next_var: None,
+            symbol_table: None,
+            log: Logger::new(),
+            _phantom: PhantomData,
+        }
     }
 
     /// Gets the tree corresponding to `var`. Creates it if it doesn't exist yet.
@@ -303,7 +377,6 @@ impl RuleTreeSet<General> {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
         let mut new_var = self.next_var.unwrap_or(self.get_next_available_var());
-        // let orig = self.trees.remove(&var).unwrap();
         let orig = std::mem::take(&mut self.trees[var as usize]);
         let mut new = VecTree::<GrNode>::new();
         let mut stack = Vec::<usize>::new();    // indices in new
@@ -409,53 +482,68 @@ impl RuleTreeSet<General> {
                         stack.push(new_id);
                     }
                     GrNode::Maybe => {
-                        assert_eq!(n, 1);
-                        // self              new
-                        // -------------------------------
-                        // ?(A)           -> |(A,ε)
-                        // ?(&(A,B))      -> |(&(A,B),ε)
-                        // ?(|(&(A,B),C)) -> |(&(A,B),C,ε)
-                        if VERBOSE { print!("  ?: "); }
-                        let child = stack.pop().unwrap();
-                        let empty = new.add(None, gnode!(e));
-                        let id = match new.get(child) {
-                            GrNode::Or => {
-                                new.add(Some(child), gnode!(e));
-                                child
-                            }
-                            _ => new.addci_iter(None, gnode!(|), [child, empty])
-                        };
-                        stack.push(id);
+                        if n != 1 {
+                            self.log.add_error(format!("normalize_var({}): ? should only have one child; found {n}: {}",
+                                                       Symbol::NT(var).to_str(self.get_symbol_table()),
+                                                       orig.to_str(Some(sym.index), self.get_symbol_table())));
+                        } else {
+                            // self              new
+                            // -------------------------------
+                            // ?(A)           -> |(A,ε)
+                            // ?(&(A,B))      -> |(&(A,B),ε)
+                            // ?(|(&(A,B),C)) -> |(&(A,B),C,ε)
+                            if VERBOSE { print!("  ?: "); }
+                            let child = stack.pop().unwrap();
+                            let empty = new.add(None, gnode!(e));
+                            let id = match new.get(child) {
+                                GrNode::Or => {
+                                    new.add(Some(child), gnode!(e));
+                                    child
+                                }
+                                _ => new.addci_iter(None, gnode!(|), [child, empty])
+                            };
+                            stack.push(id);
+                        }
                     }
                     GrNode::Plus => {
-                        assert_eq!(n, 1);
-                        // create new production rule:
-                        // P -> αβ+γ becomes P -> αQγ
-                        //                   Q -> βQ | β
-                        //
-                        // self              new  new(Q=next_var_id)               simpler format
-                        // --------------------------------------------------------------------------------------------------
-                        // +(A)           -> Q    |(&(A,Q), A')                    AQ|A
-                        // +(&(A,B))      -> Q    |(&(A,B,Q),&(A',B'))             ABQ|AB
-                        // +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
-                        if VERBOSE { print!("  +"); }
-                        let id = self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, true);
-                        stack.push(id);
+                        if n != 1 {
+                            self.log.add_error(format!("normalize_var({}): + should only have one child; found {n}: {}",
+                                                       Symbol::NT(var).to_str(self.get_symbol_table()),
+                                                       orig.to_str(Some(sym.index), self.get_symbol_table())));
+                        } else {
+                            // create new production rule:
+                            // P -> αβ+γ becomes P -> αQγ
+                            //                   Q -> βQ | β
+                            //
+                            // self              new  new(Q=next_var_id)               simpler format
+                            // --------------------------------------------------------------------------------------------------
+                            // +(A)           -> Q    |(&(A,Q), A')                    AQ|A
+                            // +(&(A,B))      -> Q    |(&(A,B,Q),&(A',B'))             ABQ|AB
+                            // +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
+                            if VERBOSE { print!("  +"); }
+                            self.symbol_table.as_mut().unwrap().add_var_prime_name(var, new_var);
+                            self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, true);
+                        }
                     }
                     GrNode::Star => {
-                        assert_eq!(n, 1);
-                        // create new production rule:
-                        // P -> αβ*γ becomes P -> αQγ
-                        //                   Q -> βQ | ε
-                        //
-                        // self              new  new(Q=next_var_id)     simpler format
-                        // -----------------------------------------------------------------------
-                        // *(A)           -> Q    |(&(A,Q), ε)           AQ|ε
-                        // *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
-                        // *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
-                        if VERBOSE { print!("  *"); }
-                        let id = self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, false);
-                        stack.push(id);
+                        if n != 1 {
+                            self.log.add_error(format!("normalize_var({}): * should only have one child; found {n}: {}",
+                                                       Symbol::NT(var).to_str(self.get_symbol_table()),
+                                                       orig.to_str(Some(sym.index), self.get_symbol_table())));
+                        } else {
+                            // create new production rule:
+                            // P -> αβ*γ becomes P -> αQγ
+                            //                   Q -> βQ | ε
+                            //
+                            // self              new  new(Q=next_var_id)     simpler format
+                            // -----------------------------------------------------------------------
+                            // *(A)           -> Q    |(&(A,Q), ε)           AQ|ε
+                            // *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
+                            // *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
+                            if VERBOSE { print!("  *"); }
+                            self.symbol_table.as_mut().unwrap().add_var_prime_name(var, new_var);
+                            self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, false);
+                        }
                     }
                     _ => panic!("Unexpected {}", sym.deref())
                 }
@@ -469,14 +557,18 @@ impl RuleTreeSet<General> {
                 );
             }
         }
-        assert_eq!(stack.len(), 1);
+        if stack.len() != 1 {
+            self.log.add_error(format!("normalize_var({}): error while normalizing the rules, {} remaining nodes instead of 1",
+                                       Symbol::NT(var).to_str(self.get_symbol_table()), stack.len()));
+            return;
+        }
         if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
         new.set_root(stack.pop().unwrap());
         self.set_tree(var, new);
         self.next_var = Some(new_var);
     }
 
-    fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, new_var: &mut VarId, is_plus: bool) -> usize {
+    fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, new_var: &mut VarId, is_plus: bool) {
         const VERBOSE: bool = false;
         let mut qtree = VecTree::<GrNode>::new();
         let child = stack.pop().unwrap();
@@ -522,20 +614,20 @@ impl RuleTreeSet<General> {
                                 qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child));
                             }
                         }
-                        x => panic!("unexpected node type under | node: {x}"),
+                        x => panic!("unexpected node type under a | node: {x}"),
                     }
                 }
                 if !is_plus {
                     qtree.add(Some(or), gnode!(e));
                 }
             }
-            _ => panic!("Unexpected {} under + node", new.get(child))
+            _ => panic!("Unexpected node type under a + node: {}", new.get(child))
         }
         let id = new.add(None, gnode!(nt *new_var));
         assert!(*new_var as usize >= self.trees.len() || self.trees[*new_var as usize].is_empty(), "overwriting tree {new_var}");
         self.set_tree(*new_var, qtree);
         *new_var += 1;
-        id
+        stack.push(id);
     }
 }
 
@@ -543,7 +635,14 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     /// Transforms a `General` ruleset to a `Normalized` ruleset
     fn from(mut rules: RuleTreeSet<General>) -> Self {
         rules.normalize();
-        RuleTreeSet::<Normalized> { trees: rules.trees, next_var: rules.next_var, _phantom: PhantomData }
+        RuleTreeSet::<Normalized> {
+            trees: rules.trees,
+            start: rules.start,
+            next_var: rules.next_var,
+            symbol_table: rules.symbol_table,
+            log: rules.log,
+            _phantom: PhantomData
+        }
     }
 }
 
@@ -893,7 +992,16 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub fn new() -> Self {
-        Self { prods: Vec::new(), num_nt: 0, num_t: 0, symbol_table: None, start: None, nt_conversion: None, log: Logger::new(), _phantom: PhantomData }
+        Self {
+            prods: Vec::new(),
+            num_nt: 0,
+            num_t: 0,
+            symbol_table: None,
+            start: None,
+            nt_conversion: None,
+            log: Logger::new(),
+            _phantom: PhantomData
+        }
     }
 
     pub fn with_capacity(capacity: usize) -> Self {
@@ -1231,6 +1339,9 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             }).to_vec()
         }
         let mut prules = Self::with_capacity(rules.trees.len());
+        prules.start = rules.start;
+        prules.symbol_table = rules.symbol_table;
+        prules.log = rules.log;
         for (var, tree) in rules.trees.iter().enumerate() {
             if !tree.is_empty() {
                 let root = tree.get_root().expect("tree {var} has no root");

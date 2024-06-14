@@ -1650,6 +1650,8 @@ fn prs_grammar_notes() {
 // tests the chain from rts to LL1 grammar
 fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
     let mut rts = RuleTreeSet::new();
+    let mut symbol_table = SymbolTable::new();
+    let mut start = Some(0);
     let mut tree = vec![GrTree::new()];
     match id {
         100 => {
@@ -1668,14 +1670,28 @@ fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
             let p = tree[0].add(Some(cc), gnode!(+));
             let or = tree[0].add(Some(p), gnode!(|));
             tree[0].addc_iter(Some(or), gnode!(&), [gnode!(t 1), gnode!(nt 1)]);
-            tree[0].add(Some(or), gnode!(t 3));
+            tree[0].add(Some(or), gnode!(t 2));
             tree[1].add_root(gnode!(t 0));
         }
         _ => {}
     }
+    let num_nt = tree.len();
     for (i, t) in tree.into_iter().enumerate() {
         rts.set_tree(i as VarId, t);
     }
+    let num_t = rts.get_terminals().iter().max().map(|n| *n + 1).unwrap_or(0);
+    if symbol_table.get_terminals().is_empty() {
+        symbol_table.extend_terminals((0..num_t).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
+    }
+    if symbol_table.get_non_terminals().is_empty() {
+        assert!(num_nt <= 26);
+        symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
+    }
+    rts.set_symbol_table(symbol_table);
+    if let Some(start) = start {
+        rts.set_start(start);
+    }
+
     let rules = ProdRuleSet::<General>::from(rts);
     ProdRuleSet::<LL1>::from(rules)
 }
@@ -1683,6 +1699,7 @@ fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
 #[test]
 fn rts_prs() {
     let tests = vec![
+
         (100, 0, vec![
             (0, prodf!(t 0, t 1)),
             (0, prodf!(t 2)),
@@ -1696,7 +1713,7 @@ fn rts_prs() {
             (0, prodf!(t 0, nt 2)),
             (1, prodf!(t 0)),
             (2, prodf!(t 1, nt 1, nt 3)),
-            (2, prodf!(t 3, nt 4)),
+            (2, prodf!(t 2, nt 4)),
             // TODO: simplifiable:
             (3, prodf!(e)),
             (3, prodf!(nt 2)),
