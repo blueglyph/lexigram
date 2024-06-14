@@ -221,7 +221,6 @@ fn build_rts(id: u32) -> RuleTreeSet<General> {
             let m = tree.add(Some(cc), gnode!(?));
             tree.addc_iter(Some(m), gnode!(|), [gnode!(nt 2), gnode!(nt 3)]);
         }
-
         _ => {}
     }
     rules
@@ -1549,7 +1548,6 @@ fn prs_calc_table() {
     ];
     const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
-if ll_id < 100 { continue; }
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
@@ -1645,4 +1643,82 @@ fn prs_grammar_notes() {
         ).to_vec();
         assert!(warn_discr.is_empty(), "test {test_id}/{ll_id}/{start} has discrepancies in the expected warning messages:\n{}", warn_discr.join("\n"));
    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
+// tests the chain from rts to LL1 grammar
+fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
+    let mut rts = RuleTreeSet::new();
+    let mut tree = vec![GrTree::new()];
+    match id {
+        100 => {
+            // A -> a b | c
+            let or = tree[0].add_root(gnode!(|));
+            let cc = tree[0].add(Some(or), gnode!(&));
+            tree[0].add_iter(Some(cc), [gnode!(t 0), gnode!(t 1)]);
+            tree[0].add(Some(or), gnode!(t 2));
+        }
+        102 => {
+            // A -> a (b B | c)+
+            // B -> a
+            tree.push(GrTree::new());
+            let cc = tree[0].add_root(gnode!(&));
+            tree[0].add(Some(cc), gnode!(t 0));
+            let p = tree[0].add(Some(cc), gnode!(+));
+            let or = tree[0].add(Some(p), gnode!(|));
+            tree[0].addc_iter(Some(or), gnode!(&), [gnode!(t 1), gnode!(nt 1)]);
+            tree[0].add(Some(or), gnode!(t 3));
+            tree[1].add_root(gnode!(t 0));
+        }
+        _ => {}
+    }
+    for (i, t) in tree.into_iter().enumerate() {
+        rts.set_tree(i as VarId, t);
+    }
+    let rules = ProdRuleSet::<General>::from(rts);
+    ProdRuleSet::<LL1>::from(rules)
+}
+
+#[test]
+fn rts_prs() {
+    let tests = vec![
+        (100, 0, vec![
+            (0, prodf!(t 0, t 1)),
+            (0, prodf!(t 2)),
+        ]),
+        (102, 0, vec![
+            // A -> a A_1
+            // B -> a
+            // A_1 -> b B A_2 | c A_3
+            // A_2 -> A_1 | ε
+            // A_3 -> A_1 | ε
+            (0, prodf!(t 0, nt 2)),
+            (1, prodf!(t 0)),
+            (2, prodf!(t 1, nt 1, nt 3)),
+            (2, prodf!(t 3, nt 4)),
+            // TODO: simplifiable:
+            (3, prodf!(e)),
+            (3, prodf!(nt 2)),
+            (4, prodf!(e)),
+            (4, prodf!(nt 2)),
+        ])
+    ];
+    const VERBOSE: bool = true;
+    for (ll_id, start, expected_factors) in tests {
+        let mut ll1 = build_ll1_from_rts(ll_id);
+        ll1.set_start(start);
+        let first = ll1.calc_first();
+        let follow = ll1.calc_follow(&first);
+        let parsing_table = ll1.calc_table(&first, &follow);
+        let LLParsingTable { num_nt, num_t, factors, table } = &parsing_table;
+        if VERBOSE {
+            print_factors(&ll1, &factors);
+            println!("{}",
+                     factors.iter().enumerate().map(|(id, (v, f))|
+                         format!("            ({v}, prodf!({})),", f.iter().map(|s| symbol_to_macro(s)).join(", "))
+                     ).join("\n"));
+        }
+        assert_eq!(*factors, expected_factors, "test {ll_id}/{start} failed");
+    }
 }
