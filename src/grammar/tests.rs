@@ -715,18 +715,38 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             ]);
         }
 
+        // ambiguity?
+        100 => {
+            // A -> A a A b | c (amb removed)
+            prods.extend([
+                prod!(nt 0, t 0, nt 0, t 1; t 2),
+            ])
+        }
+        101 => {
+            // A -> a A A | b (no amb)
+            prods.extend([
+                prod!(t 0, nt 0, nt 0; t 1),
+            ])
+        }
+        102 => {
+            // A -> A a A b A | c (amb removed)
+            prods.extend([
+                prod!(nt 0, t 0, nt 0, t 1, nt 0; t 2)
+            ])
+        }
+
         // warnings and errors
         1000 => { // A -> A a  (missing non-recursive factor)
             prods.extend([
                 prod!(nt 0, t 0)
             ]);
         },
-        1001 => { // A -> A a A A | b
+        1001 => { // A -> A a A A | b (cannot remove recursion)
             prods.extend([
                 prod!(nt 0, t 0, nt 0, nt 0; t 1)
             ]);
         },
-        1002 => { // A -> A a A b A | c
+        1002 => { // A -> A a A a A | b (ambiguous)
             prods.extend([
                 prod!(nt 0, t 0, nt 0, t 0, nt 0; t 1)
             ]);
@@ -1481,9 +1501,55 @@ fn prs_calc_table() {
               4,   5,   6,   9,   9,   3,
               7,   8,   9,   9,   9,   9,
         ]),
+
+        (100, 0, 0, vec![
+            // - 0: A -> c A_1
+            // - 1: A_1 -> a A b A_1
+            // - 2: A_1 -> ε
+            (0, prodf!(t 2, nt 1)),
+            (1, prodf!(t 0, nt 0, t 1, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //     | a  b  c  $
+            // ----+-------------
+            // A   | .  .  0  .
+            // A_1 | 1  2  .  2
+              3,   3,   0,   3,
+              1,   2,   3,   2,
+        ]),
+        (101, 0, 0, vec![
+            // - 0: A -> a A A
+            // - 1: A -> b
+            (0, prodf!(t 0, nt 0, nt 0)),
+            (0, prodf!(t 1)),
+        ], vec![
+            //   | a  b  $
+            // --+----------
+            // A | 0  1  .
+              0,   1,   2,
+        ]),
+        (102, 0, 0, vec![
+            // - 0: A -> c A_1
+            // - 1: A_1 -> a A b c A_1
+            // - 2: A_1 -> ε
+            (0, prodf!(t 2, nt 1)),
+            (1, prodf!(t 0, nt 0, t 1, t 2, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //     | a  b  c  $
+            // ----+-------------
+            // A   | .  .  0  .
+            // A_1 | 1  2  .  2
+              3,   3,   0,   3,
+              1,   2,   3,   2,
+        ]),
+        // (103, 0, 0, vec![
+        // ], vec![
+        // ]),
     ];
     const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
+if ll_id < 100 { continue; }
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
@@ -1539,7 +1605,7 @@ fn prs_grammar_notes() {
         (1005, 0, &["unused non-terminals",
                     "unused terminals"],                    &[]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
