@@ -770,6 +770,7 @@ impl<T> ProdRuleSet<T> {
     pub fn calc_first(&mut self) -> HashMap<Symbol, HashSet<Symbol>> {
         const VERBOSE: bool = false;
         assert!(self.start.is_some(), "start NT symbol not defined");
+        assert!(!self.prods.is_empty(), "no rules");
         let mut symbols = HashSet::<Symbol>::new();
         let mut stack = vec![Symbol::NT(self.start.unwrap())];
         while let Some(sym) = stack.pop() {
