@@ -261,6 +261,9 @@ fn rts_normalize() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
+        if VERBOSE {
+            println!("test {test_id}:");
+        }
         let mut rules = build_rts(test_id);
         let vars = rules.get_vars().to_vec();
         rules.normalize();
@@ -1646,8 +1649,8 @@ fn prs_grammar_notes() {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Tests the chain from RTS to LL1 grammar
 
-// tests the chain from rts to LL1 grammar
 fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
     let mut rts = RuleTreeSet::new();
     let mut symbol_table = SymbolTable::new();

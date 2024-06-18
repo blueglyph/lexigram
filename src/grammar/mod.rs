@@ -521,7 +521,7 @@ impl RuleTreeSet<General> {
                             // +(&(A,B))      -> Q    |(&(A,B,Q),&(A',B'))             ABQ|AB
                             // +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
                             if VERBOSE { print!("  +"); }
-                            self.symbol_table.as_mut().unwrap().add_var_prime_name(var, new_var);
+                            self.symbol_table.as_mut().map(|st| st.add_var_prime_name(var, new_var));
                             self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, true);
                         }
                     }
@@ -541,7 +541,7 @@ impl RuleTreeSet<General> {
                             // *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
                             // *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
                             if VERBOSE { print!("  *"); }
-                            self.symbol_table.as_mut().unwrap().add_var_prime_name(var, new_var);
+                            self.symbol_table.as_mut().map(|st| st.add_var_prime_name(var, new_var));
                             self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, false);
                         }
                     }
