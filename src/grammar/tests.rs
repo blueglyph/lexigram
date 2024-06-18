@@ -580,7 +580,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             ]);
         }
         14 => {
-            // A -> A A | a
+            // A -> A A | a (rec + amb removed)
             prods.extend([
                 prod!(nt 0, nt 0; t 0)
             ]);
@@ -738,36 +738,36 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
         }
 
         // warnings and errors
-        1000 => { // A -> A a  (missing non-recursive factor)
+        1000 => { // A -> A a  (error: missing non-recursive factor)
             prods.extend([
                 prod!(nt 0, t 0)
             ]);
         },
-        1001 => { // A -> A a A A | b (cannot remove recursion)
+        1001 => { // A -> A a A A | b (error: cannot remove recursion)
             prods.extend([
                 prod!(nt 0, t 0, nt 0, nt 0; t 1)
             ]);
         },
-        1002 => { // A -> A a A a A | b (ambiguous)
+        1002 => { // A -> A a A a A | b (warning: ambiguous)
             prods.extend([
                 prod!(nt 0, t 0, nt 0, t 0, nt 0; t 1)
             ]);
         },
-        1003 => { // no terminal in grammar
+        1003 => { // (error: no terminal in grammar)
             prods.extend([
                 prod!(nt 1),
                 prod!(nt 2),
                 prod!(nt 0),
             ]);
         },
-        1004 => { // no terminal used in table
+        1004 => { // (error: no terminal used in table)
             prods.extend([
                 prod!(nt 1),
                 prod!(nt 2, t 0),
                 prod!(nt 0),
             ]);
         },
-        1005 => {
+        1005 => { // (warnings: unused terminals, unused non-terminals)
             symbol_table.extend_terminals([("a".to_string(), None), ("b".to_string(), None)]);
             symbol_table.extend_non_terminals(["A".to_string(), "B".to_string()]);
             prods.extend([
