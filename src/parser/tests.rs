@@ -245,7 +245,7 @@ mod listener {
                         _ => panic!("unexpected nt exit factor id: {nt}")
                     }
                 }
-                Call::Rec => panic!("unexepected Call::Rec in this test"),
+                Call::Asm => panic!("unexepected Call::Asm in this test"),
             }
             false
         }

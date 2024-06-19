@@ -108,7 +108,7 @@ mod listener {
                         _ => panic!("unexpected nt exit factor id: {nt}")
                     }
                 }
-                Call::Rec => panic!("unexpected Call::Rec in this test"),
+                Call::Asm => panic!("unexpected Call::Asm in this test"),
             }
             false
         }
@@ -388,25 +388,25 @@ mod listener2 {
     }
 
     #[derive(Debug, PartialEq)]
-    enum RecE { E, E_1_Dum, E_1_Exp, E_1_Div, E_1_Mul, E_1_Sub, E_1_Add, E_1_Empty }
+    enum AsmE { E, E_1_Dum, E_1_Exp, E_1_Div, E_1_Mul, E_1_Sub, E_1_Add, E_1_Empty }
 
-    struct RecItem {
+    struct AsmItem {
         val: SynE,
-        ty: RecE,
+        ty: AsmE,
     }
 
-    impl std::fmt::Debug for RecItem {
+    impl std::fmt::Debug for AsmItem {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             let e = &self.val;
             match self.ty {
-                RecE::E => write!(f, "E({})", syn_e_str(e)),
-                RecE::E_1_Dum => write!(f, "E_1(: {})", syn_e_str(e)),
-                RecE::E_1_Exp => write!(f, "E_1(^ {})", syn_e_str(e)),
-                RecE::E_1_Div => write!(f, "E_1(/ {})", syn_e_str(e)),
-                RecE::E_1_Mul => write!(f, "E_1(* {})", syn_e_str(e)),
-                RecE::E_1_Sub => write!(f, "E_1(- {})", syn_e_str(e)),
-                RecE::E_1_Add => write!(f, "E_1(+ {})", syn_e_str(e)),
-                RecE::E_1_Empty => write!(f, "E_1(ε)")
+                AsmE::E => write!(f, "E({})", syn_e_str(e)),
+                AsmE::E_1_Dum => write!(f, "E_1(: {})", syn_e_str(e)),
+                AsmE::E_1_Exp => write!(f, "E_1(^ {})", syn_e_str(e)),
+                AsmE::E_1_Div => write!(f, "E_1(/ {})", syn_e_str(e)),
+                AsmE::E_1_Mul => write!(f, "E_1(* {})", syn_e_str(e)),
+                AsmE::E_1_Sub => write!(f, "E_1(- {})", syn_e_str(e)),
+                AsmE::E_1_Add => write!(f, "E_1(+ {})", syn_e_str(e)),
+                AsmE::E_1_Empty => write!(f, "E_1(ε)")
             }
         }
     }
@@ -419,17 +419,17 @@ mod listener2 {
     const LEFT_ASSOC_ADD: bool = true;
     const LEFT_ASSOC_EMPTY: bool = true; // don't care as long as its priority is high enough to fold
 
-    impl RecE {
+    impl AsmE {
         fn is_left_assoc(&self) -> bool {
             match self {
-                RecE::E         => false,
-                RecE::E_1_Dum   => LEFT_ASSOC_DUM,
-                RecE::E_1_Exp   => LEFT_ASSOC_EXP,
-                RecE::E_1_Div   => LEFT_ASSOC_DIV,
-                RecE::E_1_Mul   => LEFT_ASSOC_MUL,
-                RecE::E_1_Sub   => LEFT_ASSOC_SUB,
-                RecE::E_1_Add   => LEFT_ASSOC_ADD,
-                RecE::E_1_Empty => LEFT_ASSOC_EMPTY,
+                AsmE::E         => false,
+                AsmE::E_1_Dum   => LEFT_ASSOC_DUM,
+                AsmE::E_1_Exp   => LEFT_ASSOC_EXP,
+                AsmE::E_1_Div   => LEFT_ASSOC_DIV,
+                AsmE::E_1_Mul   => LEFT_ASSOC_MUL,
+                AsmE::E_1_Sub   => LEFT_ASSOC_SUB,
+                AsmE::E_1_Add   => LEFT_ASSOC_ADD,
+                AsmE::E_1_Empty => LEFT_ASSOC_EMPTY,
             }
         }
     }
@@ -458,14 +458,14 @@ mod listener2 {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
-        rec_stack: Vec<(RecItem, u16, bool)>, // item, priority, is_left_assoc
+        asm_stack: Vec<(AsmItem, u16, bool)>, // item, priority, is_left_assoc
         max_stack: usize,
-        max_rec_stack: usize,
+        max_asm_stack: usize,
     }
 
     impl<T: ExprListenerTrait> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), rec_stack: Vec::new(), max_stack: 0, max_rec_stack: 0 }
+            ListenerWrapper { verbose, listener, stack: Vec::new(), asm_stack: Vec::new(), max_stack: 0, max_asm_stack: 0 }
         }
 
         pub fn listener(self) -> T {
@@ -475,14 +475,14 @@ mod listener2 {
 
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
-            let mut rec_required = false;
+            let mut asm_required = false;
             match call {
                 Call::Enter => {
                     match nt {
                         0 => {
                             self.listener.init_e();
                             self.init_e();
-                            rec_required = true;
+                            asm_required = true;
                         },
                         1 => self.listener.init_f(factor_id),
                         2 => if self.verbose { println!("► {}", factor_str(factor_id, true)); }
@@ -494,37 +494,37 @@ mod listener2 {
                         println!("◄ {}", factor_str(factor_id, true));
                     }
                     match factor_id {
-                        0 => self.rec_e(),
+                        0 => self.asm_e(),
                         1 => {
                             let e = self.stack.pop().unwrap().e();
                             self.stack.push(SynValue::F(self.listener.exit_f(CtxF::E { e })));
                         }
                         2 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Num(t_str.pop().unwrap())))); }
                         3 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Id(t_str.pop().unwrap())))); }
-                        4 => self.rec_e_1(factor_id, PRIORITY_DUM, LEFT_ASSOC_DUM),
-                        5 => self.rec_e_1(factor_id, PRIORITY_EXP, LEFT_ASSOC_EXP),
-                        6 => self.rec_e_1(factor_id, PRIORITY_DIV, LEFT_ASSOC_DIV),
-                        7 => self.rec_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL),
-                        8 => self.rec_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB),
-                        9 => self.rec_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD),
-                        10 => {} //self.rec_e_1(factor_id, PRIORITY_EMPTY, LEFT_ASSOC_EMPTY),
+                        4 => self.asm_e_1(factor_id, PRIORITY_DUM, LEFT_ASSOC_DUM),
+                        5 => self.asm_e_1(factor_id, PRIORITY_EXP, LEFT_ASSOC_EXP),
+                        6 => self.asm_e_1(factor_id, PRIORITY_DIV, LEFT_ASSOC_DIV),
+                        7 => self.asm_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL),
+                        8 => self.asm_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB),
+                        9 => self.asm_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD),
+                        10 => {} //self.asm_e_1(factor_id, PRIORITY_EMPTY, LEFT_ASSOC_EMPTY),
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
-                Call::Rec => {
+                Call::Asm => {
                     match factor_id {
                         0 => self.inh_e(),
-                        _ => panic!("unexpected rec factor id: {factor_id}")
+                        _ => panic!("unexpected asm factor id: {factor_id}")
                     }
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            self.max_rec_stack = std::cmp::max(self.max_rec_stack, self.rec_stack.len());
+            self.max_asm_stack = std::cmp::max(self.max_asm_stack, self.asm_stack.len());
             if self.verbose {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-                println!("> rec stack: {}", self.rec_stack.iter().map(|(it, p, l)| format!("{it:?}/{p}/{}", if *l { "L" } else { "R" })).join(", "));
+                println!("> asm_stack: {}", self.asm_stack.iter().map(|(it, p, l)| format!("{it:?}/{p}/{}", if *l { "L" } else { "R" })).join(", "));
             }
-            rec_required
+            asm_required
         }
     }
 
@@ -535,21 +535,21 @@ mod listener2 {
             // the priority is always increasing towards the top of the stack. This allows us to fold
             // right- and left-associative items the same way (which we couldn't if two or more left-associative
             // items had the same priority).
-            while self.rec_stack.len() > 1 && self.rec_stack.last().map(|(e, p, left)| e.ty != RecE::E && (*p > priority || (*p == priority && is_left_assoc))).unwrap() {
-                let (new, _, _) = self.rec_stack.pop().unwrap();
-                let (top, _, _) = self.rec_stack.last_mut().unwrap();
+            while self.asm_stack.len() > 1 && self.asm_stack.last().map(|(e, p, left)| e.ty != AsmE::E && (*p > priority || (*p == priority && is_left_assoc))).unwrap() {
+                let (new, _, _) = self.asm_stack.pop().unwrap();
+                let (top, _, _) = self.asm_stack.last_mut().unwrap();
                 if self.verbose {
                     println!("- fold with priority {priority}/{}: {top:?} and {new:?}", if is_left_assoc { "L" } else { "R" });
                 }
                 match new.ty {
-                    RecE::E_1_Dum   => { top.val = self.listener.exit_e(CtxE::Dum { e: [top.val, new.val] }); }
-                    RecE::E_1_Exp   => { top.val = self.listener.exit_e(CtxE::Exp { e: [top.val, new.val] }); }
-                    RecE::E_1_Div   => { top.val = self.listener.exit_e(CtxE::Div { e: [top.val, new.val] }); }
-                    RecE::E_1_Mul   => { top.val = self.listener.exit_e(CtxE::Mul { e: [top.val, new.val] }); }
-                    RecE::E_1_Sub   => { top.val = self.listener.exit_e(CtxE::Sub { e: [top.val, new.val] }); }
-                    RecE::E_1_Add   => { top.val = self.listener.exit_e(CtxE::Add { e: [top.val, new.val] }); }
-                    RecE::E_1_Empty => { },
-                    // we must never pop RecE::E here, so we must ignore its case
+                    AsmE::E_1_Dum   => { top.val = self.listener.exit_e(CtxE::Dum { e: [top.val, new.val] }); }
+                    AsmE::E_1_Exp   => { top.val = self.listener.exit_e(CtxE::Exp { e: [top.val, new.val] }); }
+                    AsmE::E_1_Div   => { top.val = self.listener.exit_e(CtxE::Div { e: [top.val, new.val] }); }
+                    AsmE::E_1_Mul   => { top.val = self.listener.exit_e(CtxE::Mul { e: [top.val, new.val] }); }
+                    AsmE::E_1_Sub   => { top.val = self.listener.exit_e(CtxE::Sub { e: [top.val, new.val] }); }
+                    AsmE::E_1_Add   => { top.val = self.listener.exit_e(CtxE::Add { e: [top.val, new.val] }); }
+                    AsmE::E_1_Empty => { },
+                    // we must never pop AsmE::E here, so we must ignore its case
                     _ => panic!()
                 }
                 if self.verbose {
@@ -561,7 +561,7 @@ mod listener2 {
 
         fn init_e(&mut self) {
             // stopper for this expression (PRIORITY_MIN and right-associativity means it will never be merged)
-            self.rec_stack.push((RecItem { val: None, ty: RecE::E}, PRIORITY_MIN, false));
+            self.asm_stack.push((AsmItem { val: None, ty: AsmE::E}, PRIORITY_MIN, false));
         }
 
         fn inh_e(&mut self) {
@@ -569,25 +569,25 @@ mod listener2 {
             let new_f = self.stack.pop().unwrap().f();
             // rec_child, so promoting the value:
             let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
-            let top = &mut self.rec_stack.last_mut().unwrap().0;
-            assert_eq!(top.ty, RecE::E);
+            let top = &mut self.asm_stack.last_mut().unwrap().0;
+            assert_eq!(top.ty, AsmE::E);
             assert_eq!(top.val, None);
             top.val = new_e;
         }
 
         // rec_parent, ambig_parent, E : E | E ^ E | E / E | E * E | E - E | E + E | F
         // - 0: E -> F E_1
-        fn rec_e(&mut self) {
+        fn asm_e(&mut self) {
             self.fold_e_1(PRIORITY_MIN, false);
-            let (e, _, _) = self.rec_stack.pop().expect("E should be on top of the stack");
-            assert_eq!(e.ty, RecE::E, "the top of the stack should be E instead of {e:?}");
+            let (e, _, _) = self.asm_stack.pop().expect("E should be on top of the stack");
+            assert_eq!(e.ty, AsmE::E, "the top of the stack should be E instead of {e:?}");
             self.stack.push(SynValue::E(e.val));
         }
 
         // rec_child, ambig_child
-        fn rec_e_1(&mut self, factor_id: VarId, priority: u16, is_left_assoc: bool) {
+        fn asm_e_1(&mut self, factor_id: VarId, priority: u16, is_left_assoc: bool) {
             // if factor_id == 10 {
-            //     self.rec_stack.push((RecItem { val: None, ty: RecE::E_1_Empty }, PRIORITY_MAX, true));
+            //     self.asm_stack.push((AsmItem { val: None, ty: AsmE::E_1_Empty }, PRIORITY_MAX, true));
             //     return;
             // }
             self.fold_e_1(priority, is_left_assoc);
@@ -595,15 +595,15 @@ mod listener2 {
             let new_f = self.stack.pop().unwrap().f();
             let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
             let r = match factor_id {
-                4 => RecItem { val: new_e, ty: RecE::E_1_Dum },
-                5 => RecItem { val: new_e, ty: RecE::E_1_Exp },
-                6 => RecItem { val: new_e, ty: RecE::E_1_Div },
-                7 => RecItem { val: new_e, ty: RecE::E_1_Mul },
-                8 => RecItem { val: new_e, ty: RecE::E_1_Sub },
-                9 => RecItem { val: new_e, ty: RecE::E_1_Add },
+                4 => AsmItem { val: new_e, ty: AsmE::E_1_Dum },
+                5 => AsmItem { val: new_e, ty: AsmE::E_1_Exp },
+                6 => AsmItem { val: new_e, ty: AsmE::E_1_Div },
+                7 => AsmItem { val: new_e, ty: AsmE::E_1_Mul },
+                8 => AsmItem { val: new_e, ty: AsmE::E_1_Sub },
+                9 => AsmItem { val: new_e, ty: AsmE::E_1_Add },
                 _ => panic!()
             };
-            self.rec_stack.push((r, priority, is_left_assoc));
+            self.asm_stack.push((r, priority, is_left_assoc));
         }
     }
 
@@ -739,10 +739,10 @@ mod listener2 {
     fn parser_parse_stream() {
         let tests = vec![
             // left
-            ("2+3*4*5", true, Some(62)),    // priority high-low-high (reconstruction)
+            ("2+3*4*5", true, Some(62)),    // priority high-low-high (assembly)
             ("1+2+3+4+5+6+7+8+9", true, Some(45)),  // parser stack accumulation
-            ("2*3+4*5", true, Some(26)),    // priority high-low-high (reconstruction)
-            ("2+3*4+5", true, Some(19)),    // priority low-high-low (reconstruction)
+            ("2*3+4*5", true, Some(26)),    // priority high-low-high (assembly)
+            ("2+3*4+5", true, Some(19)),    // priority low-high-low (assembly)
             ("a+2*b", true, Some(50)),
             ("a*(4+5)", true, Some(90)),
             ("1*2*3*4", true, Some(24)),
@@ -817,9 +817,9 @@ mod listener2 {
                 }
             };
             if VERBOSE {
-                println!("max stack: {}\nmax rec stack: {}", wrapper.max_stack, wrapper.max_rec_stack);
+                println!("max stack: {}\nmax asm_stack: {}", wrapper.max_stack, wrapper.max_asm_stack);
                 println!("listener stack: {:?}", wrapper.stack);
-                println!("listener rec stack: {:?}", wrapper.rec_stack);
+                println!("listener asm_stack: {:?}", wrapper.asm_stack);
             }
             let listener = wrapper.listener();
             // ---------------------------------------------------
@@ -884,15 +884,15 @@ mod listener3 {
     enum SynValue { Struct, List }
 
     #[derive(Debug)]
-    struct RecItem { }
+    struct AsmItem { }
 
     struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
-        rec_stack: Vec<(RecItem, u16, bool)>, // item, priority, is_left_assoc
+        asm_stack: Vec<(AsmItem, u16, bool)>, // item, priority, is_left_assoc
         max_stack: usize,
-        max_rec_stack: usize,
+        max_asm_stack: usize,
     }
 
     pub trait StructListenerTrait {
@@ -905,7 +905,7 @@ mod listener3 {
 
     impl<T: StructListenerTrait> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), rec_stack: Vec::new(), max_stack: 0, max_rec_stack: 0 }
+            ListenerWrapper { verbose, listener, stack: Vec::new(), asm_stack: Vec::new(), max_stack: 0, max_asm_stack: 0 }
         }
 
         pub fn listener(self) -> T {
@@ -915,7 +915,7 @@ mod listener3 {
 
     impl<T: StructListenerTrait> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
-            let mut rec_required = false;
+            let mut asm_required = false;
             match call {
                 Call::Enter => {
                     match nt {
@@ -932,19 +932,19 @@ mod listener3 {
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
-                Call::Rec => {
+                Call::Asm => {
                     match factor_id {
-                        _ => panic!("unexpected rec factor id: {factor_id}")
+                        _ => panic!("unexpected asm factor id: {factor_id}")
                     }
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            self.max_rec_stack = std::cmp::max(self.max_rec_stack, self.rec_stack.len());
+            self.max_asm_stack = std::cmp::max(self.max_asm_stack, self.asm_stack.len());
             if self.verbose {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-                println!("> rec stack: {}", self.rec_stack.iter().map(|(it, p, l)| format!("{it:?}/{p}/{}", if *l { "L" } else { "R" })).join(", "));
+                println!("> asm_stack: {}", self.asm_stack.iter().map(|(it, p, l)| format!("{it:?}/{p}/{}", if *l { "L" } else { "R" })).join(", "));
             }
-            rec_required
+            asm_required
         }
     }
 
@@ -1008,9 +1008,9 @@ mod listener3 {
                 }
             };
             if VERBOSE {
-                println!("max stack: {}\nmax rec stack: {}", wrapper.max_stack, wrapper.max_rec_stack);
+                println!("max stack: {}\nmax asm_stack: {}", wrapper.max_stack, wrapper.max_asm_stack);
                 println!("listener stack: {:?}", wrapper.stack);
-                println!("listener rec stack: {:?}", wrapper.rec_stack);
+                println!("listener asm_stack: {:?}", wrapper.asm_stack);
             }
             let listener = wrapper.listener();
             // ---------------------------------------------------

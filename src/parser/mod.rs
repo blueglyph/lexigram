@@ -6,13 +6,13 @@ use crate::symbol_table::SymbolTable;
 
 mod tests;
 
-pub enum Call { Enter, Rec, Exit }
+pub enum Call { Enter, Asm, Exit }
 
 pub trait Listener {
     /// Calls the listener to execute synthesis or inheritance actions.
     ///
-    /// The function returns true when `Rec(factor_id)` has to be pushed on the parser stack,
-    /// typically to attach parameters to an object being reconstructed by the listener
+    /// The function returns true when `Asm(factor_id)` has to be pushed on the parser stack,
+    /// typically to attach parameters to an object being assembled by the listener
     /// (intermediate inheritance).
     fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_str: Vec<String>) -> bool { false }
 }
@@ -41,7 +41,7 @@ impl Parser {
         where I: Iterator<Item=(Symbol, String)>,
               L: Listener,
     {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         let num_t_str = self.factors.iter().map(|(v, f)|
             (*v, f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count())
         ).to_vec();
@@ -85,24 +85,24 @@ impl Parser {
                             .map(|s| s.to_str(sym_table)).join(" "));
                         println!("- ENTER {} -> {}", Symbol::NT(f.0).to_str(sym_table), factor_to_string(&f.1, sym_table));
                     }
-                    // TODO: put Rec(f) and Exit(f) directly into the factors
-                    let rec_required = listener.switch(Call::Enter, var, factor_id, vec![]);
+                    // TODO: put Asm(f) and Exit(f) directly into the factors
+                    let asm_required = listener.switch(Call::Enter, var, factor_id, vec![]);
                     let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                     if new.get(0) == Some(&stack_sym) {
                         stack.push(new[0]);
                         stack.push(Symbol::Exit(factor_id));
-                        if rec_required {
+                        if asm_required {
                             stack.extend(&new[1..new.len() - 1]);
-                            stack.push(Symbol::Rec(factor_id));
+                            stack.push(Symbol::Asm(factor_id));
                             stack.push(new[new.len() - 1]);
                         } else {
                             stack.extend(new.into_iter().skip(1));
                         }
                     } else {
                         stack.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
-                        if rec_required {
+                        if asm_required {
                             stack.extend(&new[0..new.len() - 1]);
-                            stack.push(Symbol::Rec(factor_id));
+                            stack.push(Symbol::Asm(factor_id));
                             stack.push(new[new.len() - 1]);
                         } else {
                             stack.extend(new);
@@ -110,11 +110,11 @@ impl Parser {
                     }
                     stack_sym = stack.pop().unwrap();
                 }
-                (Symbol::Rec(factor_id), _) => {
+                (Symbol::Asm(factor_id), _) => {
                     let (var, n) = num_t_str[factor_id as usize];
                     let t_str = stack_t.drain(stack_t.len() - n..).to_vec();
-                    if VERBOSE { println!("- REC {} syn ({}): {}", Symbol::NT(var).to_str(sym_table), t_str.len(), t_str.iter().join(" ")); }
-                    listener.switch(Call::Rec, var, factor_id, t_str);
+                    if VERBOSE { println!("- ASM {} syn ({}): {}", Symbol::NT(var).to_str(sym_table), t_str.len(), t_str.iter().join(" ")); }
+                    listener.switch(Call::Asm, var, factor_id, t_str);
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::Exit(factor_id), _) => {
