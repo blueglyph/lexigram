@@ -21,6 +21,7 @@ pub struct Parser {
     num_nt: usize,
     num_t: usize,
     factors: Vec<(VarId, ProdFactor)>,
+    opcodes: Vec<Vec<Symbol>>,
     table: Vec<VarId>,
     symbol_table: SymbolTable,
     start: VarId
@@ -29,12 +30,49 @@ pub struct Parser {
 impl Parser {
     pub fn new(parsing_table: LLParsingTable, symbol_table: SymbolTable, start: VarId) -> Self {
         assert!(parsing_table.num_nt > start as usize);
-        Parser {
+        let mut parser = Parser {
             num_nt: parsing_table.num_nt,
             num_t: parsing_table.num_t,
             factors: parsing_table.factors,
+            opcodes: Vec::new(),
             table: parsing_table.table,
-            symbol_table, start }
+            symbol_table, start };
+        parser.build_opcodes();
+        parser
+    }
+
+    fn build_opcodes(&mut self) {}
+
+    #[cfg(disabled)]
+    fn build_opcodes(&mut self) {
+        for (factor_id, (var_id, factor)) in self.factors.iter().enumerate() {
+            let factor_id = factor_id as VarId;
+
+            let stack_sym = Symbol::NT(*var_id);
+            let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
+            let mut opcode = Vec::<Symbol>::new();
+            if new.get(0) == Some(&stack_sym) {
+                opcode.push(new[0]);
+                opcode.push(Symbol::Exit(factor_id));
+                if asm_required {
+                    opcode.extend(&new[1..new.len() - 1]);
+                    opcode.push(Symbol::Asm(factor_id));
+                    opcode.push(new[new.len() - 1]);
+                } else {
+                    opcode.extend(new.into_iter().skip(1));
+                }
+            } else {
+                opcode.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
+                if asm_required {
+                    opcode.extend(&new[0..new.len() - 1]);
+                    opcode.push(Symbol::Asm(factor_id));
+                    opcode.push(new[new.len() - 1]);
+                } else {
+                    opcode.extend(new);
+                }
+            }
+
+        }
     }
 
     pub fn parse_stream<I, L>(&mut self, listener: &mut L, mut stream: I) -> Result<(), String>
@@ -109,6 +147,8 @@ impl Parser {
                         println!("- to stack: {}", opcode.iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(", "));
                         println!("- ENTER {} -> {}", Symbol::NT(f.0).to_str(sym_table), factor_to_string(&f.1, sym_table));
                     }
+                    #[cfg(disabled)]
+                    assert_eq!(opcode, self.opcodes[factor_id]);
                     stack.extend(opcode);
                     stack_sym = stack.pop().unwrap();
                 }
