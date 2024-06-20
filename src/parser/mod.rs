@@ -79,35 +79,37 @@ impl Parser {
                                            stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)
                         ));
                     }
-                    if VERBOSE {
-                        let f = &self.factors[factor_id as usize];
-                        println!("- PUSH {}", f.1.iter().filter(|s| !s.is_empty()).rev()
-                            .map(|s| s.to_str(sym_table)).join(" "));
-                        println!("- ENTER {} -> {}", Symbol::NT(f.0).to_str(sym_table), factor_to_string(&f.1, sym_table));
-                    }
-                    // TODO: put Asm(f) and Exit(f) directly into the factors
                     let asm_required = listener.switch(Call::Enter, var, factor_id, vec![]);
                     let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
+                    let mut opcode = Vec::<Symbol>::new();
                     if new.get(0) == Some(&stack_sym) {
-                        stack.push(new[0]);
-                        stack.push(Symbol::Exit(factor_id));
+                        opcode.push(new[0]);
+                        opcode.push(Symbol::Exit(factor_id));
                         if asm_required {
-                            stack.extend(&new[1..new.len() - 1]);
-                            stack.push(Symbol::Asm(factor_id));
-                            stack.push(new[new.len() - 1]);
+                            opcode.extend(&new[1..new.len() - 1]);
+                            opcode.push(Symbol::Asm(factor_id));
+                            opcode.push(new[new.len() - 1]);
                         } else {
-                            stack.extend(new.into_iter().skip(1));
+                            opcode.extend(new.into_iter().skip(1));
                         }
                     } else {
-                        stack.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
+                        opcode.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
                         if asm_required {
-                            stack.extend(&new[0..new.len() - 1]);
-                            stack.push(Symbol::Asm(factor_id));
-                            stack.push(new[new.len() - 1]);
+                            opcode.extend(&new[0..new.len() - 1]);
+                            opcode.push(Symbol::Asm(factor_id));
+                            opcode.push(new[new.len() - 1]);
                         } else {
-                            stack.extend(new);
+                            opcode.extend(new);
                         }
                     }
+                    if VERBOSE {
+                        let f = &self.factors[factor_id as usize];
+                        // println!("- PUSH {}", f.1.iter().filter(|s| !s.is_empty()).rev()
+                        //     .map(|s| s.to_str(sym_table)).join(" "));
+                        println!("- to stack: {}", opcode.iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(", "));
+                        println!("- ENTER {} -> {}", Symbol::NT(f.0).to_str(sym_table), factor_to_string(&f.1, sym_table));
+                    }
+                    stack.extend(opcode);
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::Asm(factor_id), _) => {
