@@ -126,9 +126,14 @@ fn parser_parse_stream_id() {
             ("1 + 2 * 3", true),
             ("a + 1 & * b * 2", true),
         ]),
+        (100, 0, 999, 999, vec![
+            ("c a c a c b b", true),
+            ("c a c b a c b", true),
+        ])
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
+if ll_id != 100 { continue }
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
         let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
         ll1.set_start(start);
