@@ -80,9 +80,9 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
             match call {
-                Call::Enter => {
+                Call::Enter | Call::Loop => {
                     match nt {
                         0 => self.0.enter_e(),
                         1 => self.0.enter_t(),
@@ -110,7 +110,6 @@ mod listener {
                 }
                 Call::Asm => panic!("unexpected Call::Asm in this test"),
             }
-            false
         }
     }
 
@@ -474,18 +473,21 @@ mod listener2 {
     }
 
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
-            let mut asm_required = false;
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
             match call {
-                Call::Enter => {
+                Call::Enter | Call::Loop => {
                     match nt {
                         0 => {
                             self.listener.init_e();
                             self.init_e();
-                            asm_required = true;
                         },
                         1 => self.listener.init_f(factor_id),
-                        2 => if self.verbose { println!("► {}", factor_str(factor_id, true)); }
+                        2 => {
+                            if call == Call::Enter {
+                                self.inh_e();
+                            }
+                            if self.verbose { println!("{} {}", if call == Call::Enter { "►" } else { "●" }, factor_str(factor_id, true)); }
+                        }
                         _ => panic!("unexpected exit nt: {nt}")
                     }
                 }
@@ -507,11 +509,12 @@ mod listener2 {
                         7 => self.asm_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL),
                         8 => self.asm_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB),
                         9 => self.asm_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD),
-                        10 => {} //self.asm_e_1(factor_id, PRIORITY_EMPTY, LEFT_ASSOC_EMPTY),
+                        10 => {}
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
                 Call::Asm => {
+                    panic!("unexpected asm factor id: {factor_id}");
                     match factor_id {
                         0 => self.inh_e(),
                         _ => panic!("unexpected asm factor id: {factor_id}")
@@ -524,7 +527,6 @@ mod listener2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
                 println!("> asm_stack: {}", self.asm_stack.iter().map(|(it, p, l)| format!("{it:?}/{p}/{}", if *l { "L" } else { "R" })).join(", "));
             }
-            asm_required
         }
     }
 
@@ -572,6 +574,7 @@ mod listener2 {
             let top = &mut self.asm_stack.last_mut().unwrap().0;
             assert_eq!(top.ty, AsmE::E);
             assert_eq!(top.val, None);
+            if self.verbose { println!("- attach {} to E", syn_e_str(&new_e)); }
             top.val = new_e;
         }
 
@@ -586,10 +589,6 @@ mod listener2 {
 
         // rec_child, ambig_child
         fn asm_e_1(&mut self, factor_id: VarId, priority: u16, is_left_assoc: bool) {
-            // if factor_id == 10 {
-            //     self.asm_stack.push((AsmItem { val: None, ty: AsmE::E_1_Empty }, PRIORITY_MAX, true));
-            //     return;
-            // }
             self.fold_e_1(priority, is_left_assoc);
             // ambig_child, so promoting the value:
             let new_f = self.stack.pop().unwrap().f();
@@ -764,8 +763,8 @@ mod listener2 {
             ("a b", false, None),
             ("a++", false, None),
         ];
-        const VERBOSE: bool = false;
-        const VERBOSE_LISTENER: bool = false;
+        const VERBOSE: bool = true;
+        const VERBOSE_LISTENER: bool = true;
         let mut parser = build_parser();
 
         // The lexer provides the required stream, so this isn't necessary in a real case:
@@ -833,6 +832,7 @@ mod listener2 {
     }
 }
 
+#[allow(unused)]
 mod listener3 {
 
     // -------------------------------------------------------------------------
@@ -914,10 +914,9 @@ mod listener3 {
     }
 
     impl<T: StructListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) -> bool {
-            let mut asm_required = false;
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
             match call {
-                Call::Enter => {
+                Call::Enter | Call::Loop => {
                     match nt {
                         0 => { /* TODO */ },   // STRUCT
                         1 => { /* TODO */ },   // LIST
@@ -944,7 +943,6 @@ mod listener3 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
                 println!("> asm_stack: {}", self.asm_stack.iter().map(|(it, p, l)| format!("{it:?}/{p}/{}", if *l { "L" } else { "R" })).join(", "));
             }
-            asm_required
         }
     }
 

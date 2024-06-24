@@ -22,7 +22,7 @@ pub enum Symbol {
     #[default] Empty,   // empty symbol
     T(TokenId),         // terminal
     NT(VarId),          // non-terminal
-    Asm(VarId),         // partial assembly of modified production
+    Loop(VarId),        // loop to same non-terminal (reserved for Parser)
     Exit(VarId),        // exit (synthesis) production
     End                 // end of stream
 }
@@ -43,6 +43,10 @@ impl Symbol {
     pub fn is_nt(&self) -> bool {
         matches!(self, Symbol::NT(_))
     }
+
+    pub fn is_loop(&self) -> bool {
+        matches!(self, Symbol::Loop(_))
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -61,7 +65,7 @@ impl Display for Symbol {
             Symbol::Empty => write!(f, "ε"),
             Symbol::T(id) => write!(f, ":{id}"),
             Symbol::NT(id) => write!(f, "{id}"),
-            Symbol::Asm(id) => write!(f, "•{id}"),
+            Symbol::Loop(id) => write!(f, "●{id}"),
             Symbol::Exit(x) => write!(f, "◄{x}"),
             Symbol::End => write!(f, "$"),
         }
@@ -900,7 +904,7 @@ impl<T> ProdRuleSet<T> {
             match &sym {
                 Symbol::T(_) | Symbol::Empty => (sym, hashset![sym]),
                 Symbol::NT(_) => (sym, HashSet::new()),
-                Symbol::End | Symbol::Asm(_) | Symbol::Exit(_) => panic!("found reserved symbol {sym:?} in production rules"),
+                Symbol::End | Symbol::Loop(_) | Symbol::Exit(_) => panic!("found reserved symbol {sym:?} in production rules"),
             }
         }).collect::<HashMap<_, _>>();
         let mut change = true;
@@ -1282,7 +1286,7 @@ impl ProdRuleSet<LL1> {
                     Symbol::End => {
                         has_end = true;
                     }
-                    Symbol::Asm(_) | Symbol::Exit(_) => panic!("found reserved symbol {s:?} in production rules"),
+                    Symbol::Loop(_) | Symbol::Exit(_) => panic!("found reserved symbol {s:?} in production rules"),
                 }
             }
             if has_empty && has_end {
@@ -1461,7 +1465,7 @@ pub mod macros {
     /// assert_eq!(sym!(e), Symbol::Empty);
     /// assert_eq!(sym!(end), Symbol::End);
     /// assert_eq!(sym!(exit 1), Symbol::Exit(1));
-    /// assert_eq!(sym!(asm 2), Symbol::Asm(2));
+    /// assert_eq!(sym!(loop 2), Symbol::Loop(2));
     #[macro_export(local_inner_macros)]
     macro_rules! sym {
         (t $id:expr) => { Symbol::T($id as TokenId) };
@@ -1469,7 +1473,7 @@ pub mod macros {
         (e) => { Symbol::Empty };
         (end) => { Symbol::End };
         (exit $id:expr) => { Symbol::Exit($id as VarId) };
-        (asm $id:expr) => { Symbol::Asm($id as VarId) };
+        (loop $id:expr) => { Symbol::Loop($id as VarId) };
     }
 
     /// Generates a production rule factor. A factor is made up of symbols separated by a comma.

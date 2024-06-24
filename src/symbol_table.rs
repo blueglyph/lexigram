@@ -135,7 +135,10 @@ impl SymbolTable {
                 // if *var as usize >= self.nt.len() { return format!("??NT({var})") }
                 self.nt[*var as usize].clone()
             }
-            Symbol::Asm(_) | Symbol::Exit(_) => {
+            Symbol::Loop(var) => {
+                format!("●{}", self.nt[*var as usize])
+            }
+            Symbol::Exit(_) => {
                 format!("{symbol}")
             }
         }

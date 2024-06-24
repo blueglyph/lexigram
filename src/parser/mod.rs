@@ -6,7 +6,8 @@ use crate::symbol_table::SymbolTable;
 
 mod tests;
 
-pub enum Call { Enter, Asm, Exit }
+#[derive(PartialEq)]
+pub enum Call { Enter, Loop, Asm, Exit }
 
 pub trait Listener {
     /// Calls the listener to execute synthesis or inheritance actions.
@@ -14,7 +15,7 @@ pub trait Listener {
     /// The function returns true when `Asm(factor_id)` has to be pushed on the parser stack,
     /// typically to attach parameters to an object being assembled by the listener
     /// (intermediate inheritance).
-    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_str: Vec<String>) -> bool { false }
+    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_str: Vec<String>) { /*false*/ }
 }
 
 pub struct Parser {
@@ -54,24 +55,19 @@ impl Parser {
             if new.get(0) == Some(&stack_sym) {
                 opcode.push(new[0]);
                 opcode.push(Symbol::Exit(factor_id));
-                if asm_required {
-                    opcode.extend(&new[1..new.len() - 1]);
-                    opcode.push(Symbol::Asm(factor_id));
-                    opcode.push(new[new.len() - 1]);
-                } else {
-                    opcode.extend(new.into_iter().skip(1));
-                }
+                opcode.extend(new.into_iter().skip(1));
             } else {
                 opcode.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
-                if asm_required {
-                    opcode.extend(&new[0..new.len() - 1]);
-                    opcode.push(Symbol::Asm(factor_id));
-                    opcode.push(new[new.len() - 1]);
-                } else {
-                    opcode.extend(new);
-                }
+                opcode.extend(new);
             }
-
+            opcode.iter_mut().for_each(|o| {
+                if let Symbol::NT(v) = o {
+                    if v == var_id {
+                        *o = Symbol::Loop(*v)
+                    }
+                }
+            });
+            self.opcodes.push(opcode);
         }
     }
 
@@ -101,7 +97,7 @@ impl Parser {
                 // println!("stack_t: {}", stack_t.join(", "));
             }
             match (stack_sym, stream_sym) {
-                (Symbol::NT(var), _) => {
+                (Symbol::NT(var), _) | (Symbol::Loop(var), _) => {
                     let sr = if let Symbol::T(sr) = stream_sym { sr } else { end };
                     let factor_id = self.table[var as usize * self.num_t + sr as usize];
                     if VERBOSE {
@@ -117,46 +113,36 @@ impl Parser {
                                            stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)
                         ));
                     }
-                    let asm_required = listener.switch(Call::Enter, var, factor_id, vec![]);
+                    let call = if stack_sym.is_loop() { Call::Loop } else { Call::Enter };
+                    listener.switch(call, var, factor_id, vec![]);
                     let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                     let mut opcode = Vec::<Symbol>::new();
-                    if new.get(0) == Some(&stack_sym) {
+                    if new.get(0) == Some(&Symbol::NT(var)) {
                         opcode.push(new[0]);
                         opcode.push(Symbol::Exit(factor_id));
-                        if asm_required {
-                            opcode.extend(&new[1..new.len() - 1]);
-                            opcode.push(Symbol::Asm(factor_id));
-                            opcode.push(new[new.len() - 1]);
-                        } else {
-                            opcode.extend(new.into_iter().skip(1));
-                        }
+                        opcode.extend(new.into_iter().skip(1));
                     } else {
                         opcode.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
-                        if asm_required {
-                            opcode.extend(&new[0..new.len() - 1]);
-                            opcode.push(Symbol::Asm(factor_id));
-                            opcode.push(new[new.len() - 1]);
-                        } else {
-                            opcode.extend(new);
-                        }
+                        opcode.extend(new);
                     }
+                    opcode.iter_mut().for_each(|o| {
+                        if let Symbol::NT(v) = o {
+                            if *v == var {
+                                *o = Symbol::Loop(*v)
+                            }
+                        }
+                    });
                     if VERBOSE {
                         let f = &self.factors[factor_id as usize];
                         // println!("- PUSH {}", f.1.iter().filter(|s| !s.is_empty()).rev()
                         //     .map(|s| s.to_str(sym_table)).join(" "));
                         println!("- to stack: {}", opcode.iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(", "));
-                        println!("- ENTER {} -> {}", Symbol::NT(f.0).to_str(sym_table), factor_to_string(&f.1, sym_table));
+                        println!("- {} {} -> {} ", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
+                                 Symbol::NT(f.0).to_str(sym_table), factor_to_string(&f.1, sym_table));
                     }
                     #[cfg(disabled)]
-                    assert_eq!(opcode, self.opcodes[factor_id]);
+                    assert_eq!(opcode, self.opcodes[factor_id as usize]);
                     stack.extend(opcode);
-                    stack_sym = stack.pop().unwrap();
-                }
-                (Symbol::Asm(factor_id), _) => {
-                    let (var, n) = num_t_str[factor_id as usize];
-                    let t_str = stack_t.drain(stack_t.len() - n..).to_vec();
-                    if VERBOSE { println!("- ASM {} syn ({}): {}", Symbol::NT(var).to_str(sym_table), t_str.len(), t_str.iter().join(" ")); }
-                    listener.switch(Call::Asm, var, factor_id, t_str);
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::Exit(factor_id), _) => {
