@@ -42,9 +42,6 @@ impl Parser {
         parser
     }
 
-    fn build_opcodes(&mut self) {}
-
-    #[cfg(disabled)]
     fn build_opcodes(&mut self) {
         for (factor_id, (var_id, factor)) in self.factors.iter().enumerate() {
             let factor_id = factor_id as VarId;
@@ -116,6 +113,7 @@ impl Parser {
                     let call = if stack_sym.is_loop() { Call::Loop } else { Call::Enter };
                     listener.switch(call, var, factor_id, vec![]);
                     let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
+
                     let mut opcode = Vec::<Symbol>::new();
                     if new.get(0) == Some(&Symbol::NT(var)) {
                         opcode.push(new[0]);
@@ -134,15 +132,13 @@ impl Parser {
                     });
                     if VERBOSE {
                         let f = &self.factors[factor_id as usize];
-                        // println!("- PUSH {}", f.1.iter().filter(|s| !s.is_empty()).rev()
-                        //     .map(|s| s.to_str(sym_table)).join(" "));
-                        println!("- to stack: {}", opcode.iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(", "));
+                        println!("- to stack: {}", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(", "));
                         println!("- {} {} -> {} ", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
                                  Symbol::NT(f.0).to_str(sym_table), factor_to_string(&f.1, sym_table));
                     }
-                    #[cfg(disabled)]
                     assert_eq!(opcode, self.opcodes[factor_id as usize]);
-                    stack.extend(opcode);
+
+                    stack.extend(self.opcodes[factor_id as usize].clone());
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::Exit(factor_id), _) => {
