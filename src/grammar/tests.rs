@@ -716,6 +716,16 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(t 3; t 4),
             ]);
         }
+        24 => {
+            // A -> a (b c)+ d | e
+            // =>
+            // A -> a B d | e
+            // B -> b c B | b c
+            prods.extend([
+                prod!(t 0, nt 1, t 3; t 4),
+                prod!(t 1, t 2, nt 1; t 1, t 2),
+            ])
+        }
 
         // ambiguity?
         100 => {
@@ -1542,6 +1552,27 @@ fn prs_calc_table() {
               9,   9,   9,   1,   2,   9,
               4,   5,   6,   9,   9,   3,
               7,   8,   9,   9,   9,   9,
+        ]),
+        (24, 0, 0, vec![
+            // - 0: A -> a B d
+            // - 1: A -> e
+            // - 2: B -> b c B_1
+            // - 3: B_1 -> ε
+            // - 4: B_1 -> B
+            (0, prodf!(t 0, nt 1, t 3)),
+            (0, prodf!(t 4)),
+            (1, prodf!(t 1, t 2, nt 2)),
+            (2, prodf!(e)),
+            (2, prodf!(nt 1)),
+        ], vec![
+            //     | a  b  c  d  e  $
+            // ----+-------------------
+            // A   | 0  .  .  .  1  .
+            // B   | .  2  .  .  .  .
+            // B_1 | .  4  .  3  .  .
+              0,   5,   5,   5,   1,   5,
+              5,   2,   5,   5,   5,   5,
+              5,   4,   5,   3,   5,   5,
         ]),
 
         (100, 0, 0, vec![
