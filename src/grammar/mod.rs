@@ -1300,7 +1300,7 @@ impl ProdRuleSet<LL1> {
                 let pos = nt_id * num_t + t_id;
                 final_table.push(match table[pos].len() {
                     0 => error,
-                    1 => table[pos].pop().unwrap(),
+                    1 => *table[pos].first().unwrap(),
                     _ => {
                         // we take the first item which isn't already in another position on the same NT row
                         let row = (0..num_t).filter(|j| *j != t_id).flat_map(|j| &table[nt_id*num_t + j]).collect::<HashSet<_>>();

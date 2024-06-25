@@ -736,6 +736,46 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0, nt 0, t 1, nt 0; t 2)
             ])
         }
+        103 => {
+            // A -> a (A b A)* c | d (no amb)
+            // =>
+            // A -> a B c | d
+            // B -> A b A B | ε
+            prods.extend([
+                prod!(t 0, nt 1, t 2; t 3),
+                prod!(nt 0, t 1, nt 0, nt 1; e),
+            ])
+        }
+        104 => {
+            // A -> (A b A)* c | a (amb A:a, B:c)
+            // =>
+            // A -> B c | a
+            // B -> A b A B | ε
+            prods.extend([
+                prod!(nt 1, t 2; t 0),
+                prod!(nt 0, t 1, nt 0, nt 1; e),
+            ])
+        }
+        105 => {
+            // A -> a (A b A)* | c (amb)
+            // =>
+            // A -> a B | c
+            // B -> A b A B | ε
+            prods.extend([
+                prod!(t 0, nt 1; t 2),
+                prod!(nt 0, t 1, nt 0, nt 1; e),
+            ])
+        }
+        106 => {
+            // A -> (A b A)* | a (very amb)
+            // =>
+            // A -> A1 | a
+            // A1 -> A b A A1 | ε
+            prods.extend([
+                prod!(nt 1; t 0),
+                prod!(nt 0, t 1, nt 0, nt 1; e),
+            ])
+        }
 
         // warnings and errors
         1000 => { // A -> A a  (error: missing non-recursive factor)
@@ -1545,11 +1585,84 @@ fn prs_calc_table() {
               3,   3,   0,   3,
               1,   2,   3,   2,
         ]),
-        // (103, 0, 0, vec![
-        // ], vec![
-        // ]),
+        (103, 0, 0, vec![
+            // - 0: A -> a B c
+            // - 1: A -> d
+            // - 2: B -> A b A B
+            // - 3: B -> ε
+            (0, prodf!(t 0, nt 1, t 2)),
+            (0, prodf!(t 3)),
+            (1, prodf!(nt 0, t 1, nt 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //   | a  b  c  d  $
+            // --+----------------
+            // A | 0  .  .  1  .
+            // B | 2  .  3  2  .
+              0,   4,   4,   1,   4,
+              2,   4,   3,   2,   4,
+        ]),
+        (104, 0, 2, vec![
+            // - 0: A -> B c
+            // - 1: A -> a
+            // - 2: B -> A b A B
+            // - 3: B -> ε
+            (0, prodf!(nt 1, t 2)),
+            (0, prodf!(t 0)),
+            (1, prodf!(nt 0, t 1, nt 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //   | a  b  c  $
+            // --+-------------
+            // A | 1  .  0  .
+            // B | 2  .  2  .
+              1,   4,   0,   4,
+              2,   4,   3,   4,
+            // calc_table: ambiguity for NT 'A', T 'a': <B c> or <a> => <a> has been chosen
+            // calc_table: ambiguity for NT 'B', T 'c': <A b A B> or <ε> => <ε> has been chosen
+        ]),
+        (105, 0, 2, vec![
+            // - 0: A -> a B
+            // - 1: A -> c
+            // - 2: B -> A b A B
+            // - 3: B -> ε
+            (0, prodf!(t 0, nt 1)),
+            (0, prodf!(t 2)),
+            (1, prodf!(nt 0, t 1, nt 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //   | a  b  c  $
+            // --+-------------
+            // A | 0  .  1  .
+            // B | 2  3  2  3
+              0,   4,   1,   4,
+              2,   3,   2,   3,
+            // calc_table: ambiguity for NT 'B', T 'a': <A b A B> or <ε> => <A b A B> has been chosen
+            // calc_table: ambiguity for NT 'B', T 'c': <A b A B> or <ε> => <A b A B> has been chosen
+        ]),
+        (106, 0, 4, vec![
+            // - 0: A -> B
+            // - 1: A -> a
+            // - 2: B -> A b A B
+            // - 3: B -> ε
+            (0, prodf!(nt 1)),
+            (0, prodf!(t 0)),
+            (1, prodf!(nt 0, t 1, nt 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //   | a  b  $
+            // --+----------
+            // A | 1  0  0
+            // B | 2  2  3
+              1,   0,   0,
+              2,   2,   3,
+            // calc_table: ambiguity for NT 'A', T 'a': <B> or <B> or <a> => <a> has been chosen
+            // calc_table: ambiguity for NT 'A', T 'b': <B> or <B> => <B> has been chosen
+            // calc_table: ambiguity for NT 'B', T 'a': <A b A B> or <ε> => <A b A B> has been chosen
+            // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
+        ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
