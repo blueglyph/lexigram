@@ -57,6 +57,8 @@ pub enum GrNode {
     Maybe,
     Plus,
     Star,
+    LForm,  // applied to NT
+    RAssoc  // applied to factor
 }
 
 impl Display for Symbol {
@@ -81,6 +83,8 @@ impl Display for GrNode {
             GrNode::Maybe => write!(f, "?"),
             GrNode::Plus => write!(f, "+"),
             GrNode::Star => write!(f, "*"),
+            GrNode::LForm => write!(f, "<L>"),
+            GrNode::RAssoc => write!(f, "<R>")
         }
     }
 }
@@ -257,12 +261,34 @@ impl Display for GrTreeFmt<'_> {
 
 // ---------------------------------------------------------------------------------------------
 
+// easier to use than an enum
+pub mod ruleflag {
+    /// Star or Plus repeat factor
+    pub const CHILD_REPEAT: u32 = 1;
+    /// Right-recursive factor
+    pub const CHILD_R_RECURSION: u32 = 2;
+    /// Left-recursive factor
+    pub const CHILD_L_RECURSION: u32 = 4;
+    /// Left-recursive, ambiguous factor
+    pub const CHILD_AMBIGUITY: u32 = 8;
+    /// Left factorization
+    pub const PARENT_L_FACTOR: u32 = 16;
+    pub const CHILD_L_FACTOR: u32 = 32;
+    /// Low-latency non-terminal
+    pub const L_FORM: u32 = 128;
+    /// Right-associative factor
+    pub const R_ASSOC: u32 = 256;
+}
+
 #[derive(Clone, Debug)]
 pub struct RuleTreeSet<T> {
     trees: Vec<GrTree>,
     start: Option<VarId>,
     next_var: Option<VarId>,
     symbol_table: Option<SymbolTable>,
+    flags: Vec<u32>,            // NT -> flags (+ or * normalization)
+    parent: Vec<VarId>,         // NT -> parent NT
+    // priority: Vec<Vec<u16>>, // factor -> priority
     log: Logger,
     _phantom: PhantomData<T>
 }
@@ -320,6 +346,8 @@ impl RuleTreeSet<General> {
             start: None,
             next_var: None,
             symbol_table: None,
+            flags: Vec::new(),
+            parent: Vec::new(),
             log: Logger::new(),
             _phantom: PhantomData,
         }
@@ -369,6 +397,8 @@ impl RuleTreeSet<General> {
         for var in vars {
             self.normalize_var(var);
         }
+        self.flags.resize(self.trees.len(), 0);
+        self.parent.resize(self.trees.len(), 0);
     }
 
     /// Transforms the production rule tree into a list of rules in normalized format:
@@ -526,7 +556,7 @@ impl RuleTreeSet<General> {
                             // +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
                             if VERBOSE { print!("  +"); }
                             self.symbol_table.as_mut().map(|st| st.add_var_prime_name(var, new_var));
-                            self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, true);
+                            self.normalize_plus_or_star(&mut stack, &mut new, var, &mut new_var, true);
                         }
                     }
                     GrNode::Star => {
@@ -546,7 +576,7 @@ impl RuleTreeSet<General> {
                             // *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
                             if VERBOSE { print!("  *"); }
                             self.symbol_table.as_mut().map(|st| st.add_var_prime_name(var, new_var));
-                            self.normalize_plus_or_star(&mut stack, &mut new, &mut new_var, false);
+                            self.normalize_plus_or_star(&mut stack, &mut new, var, &mut new_var, false);
                         }
                     }
                     _ => panic!("Unexpected {}", sym.deref())
@@ -572,7 +602,7 @@ impl RuleTreeSet<General> {
         self.next_var = Some(new_var);
     }
 
-    fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, new_var: &mut VarId, is_plus: bool) {
+    fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, var: VarId, new_var: &mut VarId, is_plus: bool) {
         const VERBOSE: bool = false;
         let mut qtree = VecTree::<GrNode>::new();
         let child = stack.pop().unwrap();
@@ -630,6 +660,10 @@ impl RuleTreeSet<General> {
         let id = new.add(None, gnode!(nt *new_var));
         assert!(*new_var as usize >= self.trees.len() || self.trees[*new_var as usize].is_empty(), "overwriting tree {new_var}");
         self.set_tree(*new_var, qtree);
+        self.flags.resize(*new_var as usize + 1, 0);
+        self.parent.resize(*new_var as usize + 1, 0);
+        self.flags[*new_var as usize] = ruleflag::CHILD_REPEAT;
+        self.parent[*new_var as usize] = var;
         *new_var += 1;
         stack.push(id);
     }
@@ -644,6 +678,8 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
             start: rules.start,
             next_var: rules.next_var,
             symbol_table: rules.symbol_table,
+            flags: rules.flags,
+            parent: rules.parent,
             log: rules.log,
             _phantom: PhantomData
         }
@@ -1437,6 +1473,8 @@ pub mod macros {
     /// assert_eq!(gnode!(?), GrNode::Maybe);
     /// assert_eq!(gnode!(+), GrNode::Plus);
     /// assert_eq!(gnode!(*), GrNode::Star);
+    /// assert_eq!(gnode!(L), GrNode::LForm);
+    /// assert_eq!(gnode!(R), GrNode::RAssoc);
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! gnode {
@@ -1451,6 +1489,8 @@ pub mod macros {
         (?) => { GrNode::Maybe };
         (+) => { GrNode::Plus };
         (*) => { GrNode::Star };
+        (L) => { GrNode::LForm };
+        (R) => { GrNode::RAssoc };
     }
 
     /// Generates a `Symbol` instance.
