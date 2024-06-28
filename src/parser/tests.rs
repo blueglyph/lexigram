@@ -131,7 +131,7 @@ fn parser_parse_stream_id() {
             ("c a c b a c b", true),
         ])
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
 if ll_id != 100 { continue }
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }

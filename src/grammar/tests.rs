@@ -1785,7 +1785,7 @@ fn prs_grammar_notes() {
         (1005, 0, &["unused non-terminals",
                     "unused terminals"],                    &[]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id);
         if VERBOSE {
@@ -1903,7 +1903,7 @@ fn rts_prs() {
             (4, prodf!(nt 2)),
         ])
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (ll_id, start, expected_factors) in tests {
         let mut ll1 = build_ll1_from_rts(ll_id);
         ll1.set_start(start);

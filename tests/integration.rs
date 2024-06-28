@@ -763,8 +763,8 @@ mod listener2 {
             ("a b", false, None),
             ("a++", false, None),
         ];
-        const VERBOSE: bool = true;
-        const VERBOSE_LISTENER: bool = true;
+        const VERBOSE: bool = false;
+        const VERBOSE_LISTENER: bool = false;
         let mut parser = build_parser();
 
         // The lexer provides the required stream, so this isn't necessary in a real case:
@@ -974,8 +974,8 @@ mod listener3 {
                 Some(hashmap!["a" => "int", "b" => "string", "c" => "bool"])
             ),
         ];
-        const VERBOSE: bool = true;
-        const VERBOSE_LISTENER: bool = true;
+        const VERBOSE: bool = false;
+        const VERBOSE_LISTENER: bool = false;
         let mut parser = build_parser();
 
         // The lexer provides the required stream, so this isn't necessary in a real case:

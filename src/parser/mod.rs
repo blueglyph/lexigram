@@ -72,7 +72,7 @@ impl Parser {
         where I: Iterator<Item=(Symbol, String)>,
               L: Listener,
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let num_t_str = self.factors.iter().map(|(v, f)|
             (*v, f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count())
         ).to_vec();
