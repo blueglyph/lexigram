@@ -286,7 +286,7 @@ pub struct RuleTreeSet<T> {
     start: Option<VarId>,
     symbol_table: Option<SymbolTable>,
     flags: Vec<u32>,            // NT -> flags (+ or * normalization)
-    parent: Vec<VarId>,         // NT -> parent NT
+    parent: Vec<Option<VarId>>, // NT -> parent NT
     // priority: Vec<Vec<u16>>, // factor -> priority
     log: Logger,
     _phantom: PhantomData<T>
@@ -385,7 +385,7 @@ impl RuleTreeSet<General> {
             self.normalize_var(var);
         }
         self.flags.resize(self.trees.len(), 0);
-        self.parent.resize(self.trees.len(), 0);
+        self.parent.resize(self.trees.len(), None);
     }
 
     /// Transforms the production rule tree into a list of rules in normalized format:
@@ -647,9 +647,9 @@ impl RuleTreeSet<General> {
         assert!(*new_var as usize >= self.trees.len() || self.trees[*new_var as usize].is_empty(), "overwriting tree {new_var}");
         self.set_tree(*new_var, qtree);
         self.flags.resize(*new_var as usize + 1, 0);
-        self.parent.resize(*new_var as usize + 1, 0);
+        self.parent.resize(*new_var as usize + 1, None);
         self.flags[*new_var as usize] = ruleflag::CHILD_REPEAT;
-        self.parent[*new_var as usize] = var;
+        self.parent[*new_var as usize] = Some(var);
         *new_var += 1;
         stack.push(id);
     }
@@ -738,6 +738,8 @@ pub struct ProdRuleSet<T> {
     num_nt: usize,
     num_t: usize,
     symbol_table: Option<SymbolTable>,
+    flags: Vec<u32>,
+    parent: Vec<Option<VarId>>,
     start: Option<VarId>,
     nt_conversion: Option<HashMap<Symbol, Symbol>>,
     log: Logger,
@@ -804,6 +806,8 @@ impl<T> ProdRuleSet<T> {
                 ).max().unwrap_or(0)
             ).max().unwrap_or(0)
         ).max().unwrap_or(0) as usize;
+        self.flags.resize(self.num_nt, 0);
+        self.parent.resize(self.num_nt, None);
     }
 
     /// Simplifies the productions by removing unnecessary empty symbols.
@@ -1022,6 +1026,8 @@ impl<T> ProdRuleSet<T> {
             num_nt: 0,
             num_t: 0,
             symbol_table: None,
+            flags: Vec::new(),
+            parent: Vec::new(),
             start: None,
             nt_conversion: None,
             log: Logger::new(),
@@ -1035,6 +1041,8 @@ impl<T> ProdRuleSet<T> {
             num_nt: 0,
             num_t: 0,
             symbol_table: None,
+            flags: Vec::with_capacity(capacity),
+            parent: Vec::with_capacity(capacity),
             start: None,
             nt_conversion: None,
             log: Logger::new(),
@@ -1366,6 +1374,8 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
         let mut prules = Self::with_capacity(rules.trees.len());
         prules.start = rules.start;
         prules.symbol_table = rules.symbol_table;
+        prules.flags = rules.flags;
+        prules.parent = rules.parent;
         prules.log = rules.log;
         for (var, tree) in rules.trees.iter().enumerate() {
             if !tree.is_empty() {
@@ -1413,6 +1423,8 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             num_nt: rules.num_nt,
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,
+            flags: rules.flags,
+            parent: rules.parent,
             start: rules.start,
             nt_conversion: rules.nt_conversion,
             log: rules.log,
@@ -1429,6 +1441,8 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
             num_nt: rules.num_nt,
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,
+            flags: rules.flags,
+            parent: rules.parent,
             start: rules.start,
             nt_conversion: rules.nt_conversion,
             log: rules.log,

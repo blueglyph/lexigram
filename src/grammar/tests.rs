@@ -176,18 +176,18 @@ fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
             tree.add(Some(or), gnode!(nt 3));
         }
-        8 => { // 12+
+        8 => { // :1:2+
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             tree.addc(Some(cc), gnode!(+), gnode!(t 2));
         }
-        9 => { // 1(23)+
+        9 => { // :1(:2:3)+
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(+));
             tree.addc_iter(Some(p), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
         }
-        10 => { // 1(23|4)+
+        10 => { // :1(:2:3|:4)+
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(+));
@@ -195,18 +195,18 @@ fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
             tree.add(Some(or), gnode!(t 4));
         }
-        11 => { // 12*
+        11 => { // :1:2*
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             tree.addc(Some(cc), gnode!(*), gnode!(t 2));
         }
-        12 => { // 1(23)*
+        12 => { // :1(:2:3)*
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(*));
             tree.addc_iter(Some(p), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
         }
-        13 => { // 1(23|4)*
+        13 => { // :1(:2:3|:4)*
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(*));
@@ -214,11 +214,22 @@ fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
             tree.add(Some(or), gnode!(t 4));
         }
-        14 => { // 1?(2|3)?
+        14 => { // :1?(:2|:3)?
             let cc = tree.add_root(gnode!(&));
             tree.addc(Some(cc), gnode!(?), gnode!(t 1));
             let m = tree.add(Some(cc), gnode!(?));
             tree.addc_iter(Some(m), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
+        }
+        15 => { // 0(:1|:2R|:3)0|:4
+            let or = tree.add_root(gnode!(|));
+            let cc = tree.add(Some(or), gnode!(&));
+            tree.add(Some(cc), gnode!(nt 0));
+            let or2 = tree.add(Some(cc), gnode!(|));
+            tree.add(Some(or2), gnode!(t 1));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 2), gnode!(R)]);
+            tree.add(Some(or2), gnode!(t 3));
+            tree.add(Some(cc), gnode!(nt 0));
+            tree.add(Some(or), gnode!(t 4));
         }
         _ => {}
     }
@@ -229,34 +240,21 @@ fn build_rts(id: u32) -> RuleTreeSet<General> {
 #[test]
 fn rts_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
-        // |([1], [2], 3) (depth 1)
         (0, btreemap![0 => "|(:1, :2, 3)"]),
-        // |(&(1, 2), |(:3, :4), &(5, 6), |(:7, :8, &(9, 10))) (depth 3)
         (1, btreemap![0 => "|(&(1, 2), :3, :4, &(5, 6), :7, :8, &(9, 10))"]),
-        // &(&(1, 2), |(3, 4), &(5, 6), |(7, 8)) (depth 2)
         (2, btreemap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))"]),
-        // &(&(1, 2), |(3, 4), 5, |(&(6, 7), 8)) (depth 3)
         (3, btreemap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))"]),
-        // &(&(&(0, 1), 2), |(3, 4), 5, |(&(6, 7), 8)) (depth 3)
         (4, btreemap![0 => "|(&(0, 1, 2, 3, 5, 6, 7), &(0, 1, 2, 3, 5, 8), &(0, 1, 2, 4, 5, 6, 7), &(0, 1, 2, 4, 5, 8))"]),
-        // ?(1)
         (5, btreemap![0 => "|(1, ε)"]),
-        // ?(&(1, 2))
         (6, btreemap![0 => "|(&(1, 2), ε)"]),
-        // ?(|(&(1, 2), 3))
         (7, btreemap![0 => "|(&(1, 2), 3, ε)"]),
-        // &(:1, +(:2))
         (8, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, 1), :2)"]),
-        // &(:1, +(&(:2, :3))) (depth 3)
         (9, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:2, :3))"]),
-        // &(:1, +(|(&(:2, :3), :4))) (depth 4)
         (10, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:2, :3), &(:4, 1), :4)"]),
-        // &(:1, *(:2))
         (11, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, 1), ε)"]),
-        // &(:1, *(&(:2, :3))) (depth 3)
         (12, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), ε)"]),
-        // &(:1, *(|(&(:2, :3), :4))) (depth 4)
         (13, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:4, 1), ε)"]),
+        (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, 0), :4)"]),        
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -271,6 +269,8 @@ fn rts_normalize() {
         }
         let result = BTreeMap::from_iter(rules.get_trees_iter().map(|(id, t)| (id, format!("{t}"))));
         if VERBOSE {
+            println!("flags:  {:?}", rules.flags);
+            println!("parent: {:?}", rules.parent);
             println!("{}", rules.get_trees_iter().map(|(id, t)| format!("- {id} => {t:#} (depth {})", t.depth().unwrap_or(0))).join("\n"));
             println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
@@ -281,71 +281,66 @@ fn rts_normalize() {
 
 #[test]
 fn rts_prodrule_from() {
-    let tests: Vec<(u32, BTreeMap<VarId, Vec<Vec<Symbol>>>)> = vec![
-        (0, btreemap![0 => prod!(t 1; t 2; nt 3)]),
-        // |(&(1, 2), [3], [4], &(5, 6), [7], [8], &(9, 10))
-        (1, btreemap![0 => prod!(nt 1, nt 2; t 3; t 4; nt 5, nt 6;t 7; t 8; nt 9, nt 10)]),
-        // |(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))
+    let tests: Vec<(u32, BTreeMap<VarId, Vec<Vec<Symbol>>>, Vec<u32>, Vec<Option<VarId>>)> = vec![
+        (0, btreemap![0 => prod!(t 1; t 2; nt 3)], vec![0], vec![None]),
+        (1, btreemap![0 => prod!(nt 1, nt 2; t 3; t 4; nt 5, nt 6;t 7; t 8; nt 9, nt 10)], vec![0], vec![None]),
         (2, btreemap![0 => prod!(
             nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
             nt 1, nt 2, nt 3, nt 5, nt 6, nt 8;
             nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
             nt 1, nt 2, nt 4, nt 5, nt 6, nt 8;
-        )]),
-        // |(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))
+        )], vec![0], vec![None]),
         (3, btreemap![0 => prod!(
             nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
             nt 1, nt 2, nt 3, nt 5, nt 8;
             nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
             nt 1, nt 2, nt 4, nt 5, nt 8;
-        )]),
-        // |(&(0, 1, 2, 3, 5, 6, 7), &(0, 1, 2, 3, 5, 8), &(0, 1, 2, 4, 5, 6, 7), &(0, 1, 2, 4, 5, 8))
+        )], vec![0], vec![None]),
         (4, btreemap![0 => prod!(
             nt 0, nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
             nt 0, nt 1, nt 2, nt 3, nt 5, nt 8;
             nt 0, nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
             nt 0, nt 1, nt 2, nt 4, nt 5, nt 8;
-        )]),
-        // |(1, ε)
-        (5, btreemap![0 => prod!(nt 1; e)]),
-        // |(&(1, 2), ε)
-        (6, btreemap![0 => prod!(nt 1, nt 2; e)]),
-        // |(&(1, 2), 3, ε)
-        (7, btreemap![0 => prod!(nt 1, nt 2; nt 3; e)]),
-        // 0 => &(1, 10), 10 => |(&(2, 10), 2)
+        )], vec![0], vec![None]),
+        (5, btreemap![0 => prod!(nt 1; e)], vec![0], vec![None]),
+        (6, btreemap![0 => prod!(nt 1, nt 2; e)], vec![0], vec![None]),
+        (7, btreemap![0 => prod!(nt 1, nt 2; nt 3; e)], vec![0], vec![None]),
         (8, btreemap![
             0 => prod!(t 1, nt 1),
-            1 => prod!(t 2, nt 1; t 2)]),
-        // 0 => &(1, 10), 1 => |(&(2, 3, 10), &(2, 3))
+            1 =>  prod!(t 2, nt 1; t 2)
+        ], vec![0, 1], vec![None, Some(0)]),
         (9, btreemap![
             0 => prod!(t 1, nt 1),
-            1 => prod!(t 2, t 3, nt 1; t 2, t 3)]),
-        // 0 => &(1, 10), 1 => |(&(2, 3, 10), &(2, 3), &(4, 10), 4)
+            1 =>  prod!(t 2, t 3, nt 1; t 2, t 3)
+        ], vec![0, 1], vec![None, Some(0)]),
         (10, btreemap![
             0 => prod!(t 1, nt 1),
-            1 => prod!(t 2, t 3, nt 1; t 2, t 3; t 4, nt 1; t 4)]),
-        // 0 => "&(1, 10)", 1 => "|(&(2, 10), ε)"
+            1 =>  prod!(t 2, t 3, nt 1; t 2, t 3; t 4, nt 1; t 4)
+        ], vec![0, 1], vec![None, Some(0)]),
         (11, btreemap![
             0 => prod!(t 1, nt 1),
-            1 => prod!(t 2, nt 1; e)]),
-        // 0 => "&(1, 10)", 1 => "|(&(2, 3, 10), ε)"
+            1 =>  prod!(t 2, nt 1; e)
+        ], vec![0, 1], vec![None, Some(0)]),
         (12, btreemap![
             0 => prod!(t 1, nt 1),
-            1 => prod!(t 2, t 3, nt 1; e)]),
-        // 0 => "&(1, 10)", 1 => "|(&(2, 3, 10), &(4, 10), ε)"
+            1 =>  prod!(t 2, t 3, nt 1; e)
+        ], vec![0, 1], vec![None, Some(0)]),
         (13, btreemap![
             0 => prod!(t 1, nt 1),
-            1 => prod!(t 2, t 3, nt 1; t 4, nt 1; e)]),
-        (14, btreemap![ // 1?(2|3)?
+            1 =>  prod!(t 2, t 3, nt 1; t 4, nt 1; e)
+        ], vec![0, 1], vec![None, Some(0)]),
+        (14, btreemap![
             0 => prod!(t 1, t 2; t 1, t 3; t 1; t 2; t 3; e)
-        ])
+        ], vec![0], vec![None])
     ];
-    for (test_id, expected) in tests {
+    for (test_id, expected, expected_flags, expected_parent) in tests {
         let trees = build_rts(test_id);
         let mut rules = ProdRuleSet::from(trees);
         rules.simplify();
         let result = rules.get_prods_iter().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
         assert_eq!(result, expected, "test {test_id} failed");
+        assert_eq!(rules.flags, expected_flags, "test {test_id} failed (flags)");
+        assert_eq!(rules.parent, expected_parent, "test {test_id} failed (parent)");
     }
 }
 
