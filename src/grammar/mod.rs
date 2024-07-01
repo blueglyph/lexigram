@@ -739,6 +739,7 @@ pub struct ProdRuleSet<T> {
     num_t: usize,
     symbol_table: Option<SymbolTable>,
     flags: Vec<u32>,
+    factor_flags: Vec<Vec<u32>>,
     parent: Vec<Option<VarId>>,
     start: Option<VarId>,
     nt_conversion: Option<HashMap<Symbol, Symbol>>,
@@ -1027,6 +1028,7 @@ impl<T> ProdRuleSet<T> {
             num_t: 0,
             symbol_table: None,
             flags: Vec::new(),
+            factor_flags: Vec::new(),
             parent: Vec::new(),
             start: None,
             nt_conversion: None,
@@ -1042,6 +1044,7 @@ impl<T> ProdRuleSet<T> {
             num_t: 0,
             symbol_table: None,
             flags: Vec::with_capacity(capacity),
+            factor_flags: Vec::with_capacity(capacity),
             parent: Vec::with_capacity(capacity),
             start: None,
             nt_conversion: None,
@@ -1363,18 +1366,31 @@ impl ProdRuleSet<LL1> {
 
 impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
-        fn children_to_vec(tree: &GrTree, parent_id: usize) -> Vec<Symbol> {
-            tree.children(parent_id).iter().map(|id| {
-                match tree.get(*id) {
+        fn children_to_vec(tree: &GrTree, parent_id: usize) -> (Vec<Symbol>, u32) {
+            let mut flags: u32 = 0;
+            let factor = tree.children(parent_id).iter()
+                .map(|id| tree.get(*id))
+                .filter(|node| {
+                    if **node == GrNode::RAssoc {
+                        flags |= ruleflag::R_ASSOC;
+                        false
+                    } else {
+                        true
+                    }
+                })
+                .map(|node| {
+                match node {
                     GrNode::Symbol(s) => s.clone(),
                     x => panic!("unexpected symbol {x} under &")
                 }
-            }).to_vec()
+            }).to_vec();
+            (factor, flags)
         }
         let mut prules = Self::with_capacity(rules.trees.len());
         prules.start = rules.start;
         prules.symbol_table = rules.symbol_table;
         prules.flags = rules.flags;
+        prules.factor_flags.resize(rules.trees.len(), vec![]);
         prules.parent = rules.parent;
         prules.log = rules.log;
         for (var, tree) in rules.trees.iter().enumerate() {
@@ -1382,19 +1398,29 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                 let root = tree.get_root().expect("tree {var} has no root");
                 let root_sym = tree.get(root);
                 let prod = match root_sym {
-                    GrNode::Symbol(s) => vec![vec![s.clone()]],
-                    GrNode::Concat => vec![children_to_vec(tree, root)],
+                    GrNode::Symbol(s) => {
+                        prules.factor_flags[var].push(0);
+                        vec![vec![s.clone()]]
+                    },
+                    GrNode::Concat => {
+                        let (factor, flags) = children_to_vec(tree, root);
+                        prules.factor_flags[var].push(flags);
+                        vec![factor]
+                    },
                     GrNode::Or => tree.children(root).iter()
                         .map(|id| {
                             let child = tree.get(*id);
                             if let GrNode::Symbol(s) = child {
+                                prules.factor_flags[var].push(0);
                                 vec![s.clone()]
                             } else {
                                 assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
-                                children_to_vec(tree, *id)
+                                let (factor, flags) = children_to_vec(tree, *id);
+                                prules.factor_flags[var].push(flags);
+                                factor
                             }
                         }).to_vec(),
-                    s => panic!("unexpected symbol {s} as root of normalized GrTree")
+                    s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var as VarId).to_str(prules.get_symbol_table()))
                 };
                 prules.prods.push(prod);
             } else {
@@ -1424,6 +1450,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,
             flags: rules.flags,
+            factor_flags: rules.factor_flags,
             parent: rules.parent,
             start: rules.start,
             nt_conversion: rules.nt_conversion,
@@ -1442,6 +1469,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,
             flags: rules.flags,
+            factor_flags: rules.factor_flags,
             parent: rules.parent,
             start: rules.start,
             nt_conversion: rules.nt_conversion,

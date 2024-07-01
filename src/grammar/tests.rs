@@ -331,7 +331,10 @@ fn rts_prodrule_from() {
         ], vec![0, 1], vec![None, Some(0)]),
         (14, btreemap![
             0 => prod!(t 1, t 2; t 1, t 3; t 1; t 2; t 3; e)
-        ], vec![0], vec![None])
+        ], vec![0], vec![None]),
+        (15, btreemap![
+            0 => prod!(nt 0, t 1, nt 0; nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4)
+        ], vec![0], vec![None]),
     ];
     for (test_id, expected, expected_flags, expected_parent) in tests {
         let trees = build_rts(test_id);
@@ -344,6 +347,44 @@ fn rts_prodrule_from() {
     }
 }
 
+#[test]
+fn rts_prs_flags() {
+    let tests = vec![
+        (15)
+    ];
+    const VERBOSE: bool = true;
+    for (test_id) in tests {
+        if VERBOSE { println!("Test {test_id}:"); }
+        let mut rts = build_rts(test_id);
+        let mut rules = ProdRuleSet::from(rts);
+        rules.calc_num_symbols();
+        let mut symbol_table = SymbolTable::new();
+        complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt);
+        rules.set_symbol_table(symbol_table);
+        assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed:\n- {}", rules.log.get_errors().join("\n- "));
+        if VERBOSE {
+            println!("General rules:");
+            let result = BTreeMap::<_, _>::from(&rules);
+            print_expected_code(&result);
+            let factors = rules.prods.iter().enumerate().flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f.clone()))).collect::<Vec<_>>();
+            print_factors(&rules, &factors);
+            println!("- NT flags: {}", rules.flags.iter().join(", "));
+            println!("- factor flags: {:?}", rules.factor_flags);
+        }
+        let ll1 = ProdRuleSet::<LL1>::from(rules);
+        assert_eq!(ll1.log.num_errors(), 0, "test {test_id} failed:\n- {}", ll1.log.get_errors().join("\n- "));
+        if VERBOSE {
+            println!("LL1 rules:");
+            let result = BTreeMap::<_, _>::from(&ll1);
+            print_expected_code(&result);
+            let factors = ll1.prods.iter().enumerate().flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f.clone()))).collect::<Vec<_>>();
+            print_factors(&ll1, &factors);
+            println!("- NT flags: {}", ll1.flags.iter().join(", "));
+            println!("- factor flags: {:?}", ll1.factor_flags);
+        }
+
+    }
+}
 // ---------------------------------------------------------------------------------------------
 // ProdRuleSet
 
@@ -431,6 +472,18 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
         rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
 
     }
+}
+
+fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize, num_nt: usize) {
+    if symbol_table.get_terminals().is_empty() {
+        assert!(num_t <= 26);
+        symbol_table.extend_terminals((0..num_t).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
+    }
+    if symbol_table.get_non_terminals().is_empty() {
+        assert!(num_nt <= 26);
+        symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
+    }
+
 }
 
 pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
@@ -828,13 +881,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
         _ => {}
     };
     rules.calc_num_symbols();
-    if symbol_table.get_terminals().is_empty() {
-        symbol_table.extend_terminals((0..rules.num_t).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
-    }
-    if symbol_table.get_non_terminals().is_empty() {
-        assert!(rules.num_nt <= 26);
-        symbol_table.extend_non_terminals((0..rules.num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
-    }
+    complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt);
     rules.set_symbol_table(symbol_table);
     if let Some(start) = start {
         rules.set_start(start);
