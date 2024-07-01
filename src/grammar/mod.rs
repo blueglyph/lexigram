@@ -284,7 +284,6 @@ pub mod ruleflag {
 pub struct RuleTreeSet<T> {
     trees: Vec<GrTree>,
     start: Option<VarId>,
-    next_var: Option<VarId>,
     symbol_table: Option<SymbolTable>,
     flags: Vec<u32>,            // NT -> flags (+ or * normalization)
     parent: Vec<VarId>,         // NT -> parent NT
@@ -344,7 +343,6 @@ impl RuleTreeSet<General> {
         RuleTreeSet {
             trees: Vec::new(),
             start: None,
-            next_var: None,
             symbol_table: None,
             flags: Vec::new(),
             parent: Vec::new(),
@@ -380,17 +378,6 @@ impl RuleTreeSet<General> {
         }
     }
 
-    /// Forces the next variable ID to be used when a new rule must be created
-    /// by the normalization if `var` is `Some(id)`. If `var` is `None`, lets
-    /// the normalization determine the next ID.
-    pub fn set_next_var(&mut self, var: Option<VarId>) {
-        if let Some(v) = var {
-            let min = self.trees.len();
-            assert!(v as usize >= min, "the minimum value for next_var is {min}");
-        }
-        self.next_var = var;
-    }
-
     /// Normalizes all the production rules.
     pub fn normalize(&mut self) {
         let vars = self.get_vars().to_vec();
@@ -410,7 +397,7 @@ impl RuleTreeSet<General> {
     pub fn normalize_var(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
-        let mut new_var = self.next_var.unwrap_or(self.get_next_available_var());
+        let mut new_var = self.get_next_available_var();
         let orig = std::mem::take(&mut self.trees[var as usize]);
         let mut new = VecTree::<GrNode>::new();
         let mut stack = Vec::<usize>::new();    // indices in new
@@ -599,7 +586,6 @@ impl RuleTreeSet<General> {
         if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
         new.set_root(stack.pop().unwrap());
         self.set_tree(var, new);
-        self.next_var = Some(new_var);
     }
 
     fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, var: VarId, new_var: &mut VarId, is_plus: bool) {
@@ -676,7 +662,6 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
         RuleTreeSet::<Normalized> {
             trees: rules.trees,
             start: rules.start,
-            next_var: rules.next_var,
             symbol_table: rules.symbol_table,
             flags: rules.flags,
             parent: rules.parent,
