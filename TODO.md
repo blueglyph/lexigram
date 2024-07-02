@@ -106,6 +106,8 @@
 ## Tests
 
 - [ ] code coverage
+  - [ ] check everything is fine when deleting NT in grammar (in prods, flags, factor_flags, symbol_table, start)
+  - [ ] check everything is fine when inserting NT in grammar (in prods, flags, factor_flags, symbol_table, start)
   - [ ] [Tarpaulin](https://github.com/xd009642/tarpaulin) (automate?)
   - [ ] check for missing corner cases ([Kani](https://github.com/model-checking/kani)?)
 - [ ] profile on big inputs

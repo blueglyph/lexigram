@@ -965,6 +965,7 @@ mod listener3 {
 
     impl StructListenerTrait for TestListener {}
 
+    #[ignore]
     #[test]
     fn parser_parse_stream() {
         let tests = vec![

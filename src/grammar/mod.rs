@@ -263,20 +263,28 @@ impl Display for GrTreeFmt<'_> {
 
 // easier to use than an enum
 pub mod ruleflag {
-    /// Star or Plus repeat factor
+    /// Star or Plus repeat factor.
+    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
     pub const CHILD_REPEAT: u32 = 1;
-    /// Right-recursive factor
-    pub const CHILD_R_RECURSION: u32 = 2;
-    /// Left-recursive factor
+    /// Right-recursive NT.
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`
+    pub const R_RECURSION: u32 = 2;
+    /// Left-recursive NT.
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`
     pub const CHILD_L_RECURSION: u32 = 4;
-    /// Left-recursive, ambiguous factor
+    /// Left-recursive, ambiguous NT.
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`
     pub const CHILD_AMBIGUITY: u32 = 8;
+    /// NT created to regroup the independent factors when transforming an ambiguous, recursive rule.
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`
+    pub const CHILD_INDEPENDENT_AMBIGUITY: u32 = 16;
     /// Left factorization
-    pub const PARENT_L_FACTOR: u32 = 16;
-    pub const CHILD_L_FACTOR: u32 = 32;
+    pub const PARENT_L_FACTOR: u32 = 32;
+    pub const CHILD_L_FACTOR: u32 = 64;
     /// Low-latency non-terminal
     pub const L_FORM: u32 = 128;
-    /// Right-associative factor
+    /// Right-associative factor.
+    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in `factor_flags`.
     pub const R_ASSOC: u32 = 256;
 }
 
@@ -792,6 +800,30 @@ impl<T> ProdRuleSet<T> {
         self.num_t
     }
 
+    /// Adds new flags to `flags[nt]` by or'ing them.
+    /// If necessary, extends the `flags` array first.
+    fn or_flags(&mut self, nt: VarId, new_flags: u32) {
+        let nt = nt as usize;
+        self.flags.resize(nt + 1, 0);
+        self.flags[nt] |= new_flags;
+    }
+
+    /// Adds new flags to `factor_flags[nt][factor]` by or'ing them.
+    /// If necessary, extends the `factor_flags` array first.
+    fn or_factor_flags(&mut self, nt: VarId, factor: VarId, new_flags: u32) {
+        let nt = nt as usize;
+        let factor = factor as usize;
+        self.factor_flags.resize(nt + 1, vec![]);
+        self.factor_flags[nt].resize(factor + 1, 0);
+        self.factor_flags[nt][factor] |= new_flags;
+    }
+
+    fn set_parent(&mut self, child: VarId, parent: VarId) {
+        let child = child as usize;
+        self.parent.resize(child + 1, None);
+        self.parent[child] = Some(parent);
+    }
+
     /// Calculates `num_t` and `num_nt` (done right after importing rules).
     /// - `num_t` is calculated on the basis of the higher symbol found in the production rules,
     /// so we can drop any unused symbol that is higher and keep the table width down. We can't
@@ -812,7 +844,7 @@ impl<T> ProdRuleSet<T> {
     }
 
     /// Simplifies the productions by removing unnecessary empty symbols.
-    pub fn simplify(&mut self) {
+    fn simplify(&mut self) {
         for p in &mut self.prods {
             let mut has_empty = false;
             let mut i = 0;
@@ -866,7 +898,7 @@ impl<T> ProdRuleSet<T> {
         }
         let new_num_nt = keep.iter().filter(|s| matches!(s, Symbol::NT(_))).count() as VarId;
         let mut new_v = new_num_nt;
-        let mut conv = HashMap::<Symbol, Symbol>::new();
+        let mut conv = HashMap::<VarId, VarId>::new();
         for i in (0..self.num_nt).rev() {
             let v = i as VarId;
             let symbol = Symbol::NT(v);
@@ -875,25 +907,43 @@ impl<T> ProdRuleSet<T> {
                 self.prods.remove(i);
                 self.start = self.start.map(|s| if s >= v { s - 1 } else { s });
                 self.symbol_table.as_mut().map(|t| t.remove_non_terminal(v));
+                if i < self.flags.len() {
+                    self.flags.remove(i);
+                }
+                if i < self.factor_flags.len() {
+                    self.factor_flags.remove(i);
+                }
+                if i < self.parent.len() {
+                    self.parent.remove(i);
+                }
             } else {
                 new_v -= 1;
-                conv.insert(symbol, Symbol::NT(new_v));
+                conv.insert(v, new_v);
                 if VERBOSE { println!("  {symbol:?} -> {:?}", Symbol::NT(new_v)); }
             }
         }
         for p in &mut self.prods {
             for f in p {
                 for s in f {
-                    if let Some(new) = conv.get(s) {
-                        *s = *new;
+                    if let Symbol::NT(s_var) = s {
+                        if let Some(new) = conv.get(s_var) {
+                            *s = Symbol::NT(*new);
+                        }
                     }
+                }
+            }
+        }
+        for p in &mut self.parent {
+            if let Some(parent) = p {
+                if let Some(new) = conv.get(parent) {
+                    *p = Some(*new);
                 }
             }
         }
         keep.retain(|s| !matches!(s, Symbol::NT(_)));
         keep.extend((0..new_num_nt as VarId).map(|v| Symbol::NT(v)));
         self.num_nt = new_num_nt as usize;
-        self.nt_conversion = Some(conv);
+        self.nt_conversion = Some(conv.into_iter().map(|(k, v)| (Symbol::NT(k), Symbol::NT(v))).collect::<HashMap<_, _>>());
     }
 
     pub fn calc_first(&mut self) -> HashMap<Symbol, HashSet<Symbol>> {
@@ -1105,10 +1155,13 @@ impl<T> ProdRuleSet<T> {
                 }
                 // apply the transformation
                 let var_ambig = if !ambiguous.is_empty() && fine.len() > 1 {
+                    // if more than one independent factor, moves them in a new NT to simplify the resulting rules
                     let var_ambig = new_var;
                     if let Some(table) = &mut symbol_table {
                         table.add_var_prime_name(var, new_var);
                     }
+                    self.or_flags(var_ambig, ruleflag::CHILD_INDEPENDENT_AMBIGUITY);
+                    self.set_parent(var_ambig, var);
                     new_var += 1;
                     extra.push(fine.clone());
                     Some(var_ambig)
@@ -1117,6 +1170,8 @@ impl<T> ProdRuleSet<T> {
                 };
                 let var_prime = new_var;
                 new_var += 1;
+                self.or_flags(var_prime, ruleflag::CHILD_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::CHILD_AMBIGUITY });
+                self.set_parent(var_prime, var);
                 if let Some(table) = &mut symbol_table {
                     table.add_var_prime_name(var, var_prime);
                 }
@@ -1126,7 +1181,7 @@ impl<T> ProdRuleSet<T> {
                     if let Some(v) = var_ambig {
                         print!(" and non-terminal {v} ({})", Symbol::NT(v).to_str(symbol_table.as_ref()));
                     }
-                    print!(", deriving from {var} ({})", symbol.to_str((symbol_table.as_ref())));
+                    println!(", deriving from {var} ({})", symbol.to_str((symbol_table.as_ref())));
                 }
                 for factor in &mut ambiguous {
                     factor.pop();
@@ -1164,7 +1219,11 @@ impl<T> ProdRuleSet<T> {
                 left.push(vec![Symbol::Empty]);
                 *prod = fine;
                 extra.push(left);
+            } else if prod.iter().any(|p| *p.last().unwrap() == symbol) {
+                // only right-recursive: nothing to change, but applies flags
+                self.or_flags(var, ruleflag::R_RECURSION);
             }
+
         }
         self.prods.extend(extra);
         self.num_nt = self.prods.len();
@@ -1232,6 +1291,9 @@ impl<T> ProdRuleSet<T> {
                     }
                     let var_prime = new_var;
                     new_var += 1;
+                    self.or_flags(var, ruleflag::PARENT_L_FACTOR);
+                    self.or_flags(var_prime, ruleflag::CHILD_L_FACTOR);
+                    self.set_parent(var_prime, var);
                     if let Some(table) = &mut symbol_table {
                         table.add_var_prime_name(var, var_prime);
                     }
