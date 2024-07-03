@@ -702,11 +702,14 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
 pub type ProdRule = Vec<ProdFactor>;
 
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
-pub struct ProdFactor(Vec<Symbol>);
+pub struct ProdFactor {
+    v: Vec<Symbol>,
+    flags: u32
+}
 
 impl ProdFactor {
     pub fn new(f: Vec<Symbol>) -> Self {
-        ProdFactor(f)
+        ProdFactor { v: f, flags: 0 }
     }
 }
 
@@ -714,13 +717,13 @@ impl Deref for ProdFactor {
     type Target = Vec<Symbol>;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        &self.v
     }
 }
 
 impl std::ops::DerefMut for ProdFactor {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        &mut self.v
     }
 }
 
@@ -875,7 +878,7 @@ impl<T> ProdRuleSet<T> {
                 let mut j = 0;
                 while j < f.len() {
                     if f[j].is_empty() && (j > 0 || j + 1 < f.len()) {
-                        f.0.remove(j);
+                        f.v.remove(j);
                     } else {
                         j += 1;
                     }
@@ -903,7 +906,7 @@ impl<T> ProdRuleSet<T> {
         assert!(self.nt_conversion.is_none(), "cleanup of symbols but there's already an NT conversion table");
         if VERBOSE {
             println!("Removing unused non-terminals:");
-            let mut all_h = self.prods.iter().flat_map(|p| p.iter().map(|x| &x.0).flatten()).cloned().collect::<HashSet<_>>();
+            let mut all_h = self.prods.iter().flat_map(|p| p.iter().map(|x| &x.v).flatten()).cloned().collect::<HashSet<_>>();
             all_h.extend((0..self.num_nt).map(|i| Symbol::NT(i as VarId)));
             let mut all = all_h.into_iter().collect::<Vec<_>>();
             all.sort();
@@ -946,7 +949,7 @@ impl<T> ProdRuleSet<T> {
         }
         for p in &mut self.prods {
             for f in p {
-                for s in &mut f.0 {
+                for s in &mut f.v {
                     if let Symbol::NT(s_var) = s {
                         if let Some(new) = conv.get(s_var) {
                             *s = Symbol::NT(*new);
@@ -978,7 +981,7 @@ impl<T> ProdRuleSet<T> {
             if !symbols.contains(&sym) {
                 symbols.insert(sym);
                 if let Symbol::NT(v) = sym {
-                    stack.extend(self.prods[v as usize].iter().map(|x| &x.0).flatten());
+                    stack.extend(self.prods[v as usize].iter().map(|x| &x.v).flatten());
                 }
             }
         }
@@ -1220,7 +1223,7 @@ impl<T> ProdRuleSet<T> {
                     } else {
                         // orig if k = 1:   A   -> A β1 A | ... | A βn A | γ | (non-recursive part)
                         // => add to prime: A_p -> β1 γ A_p | ... | βn γ A_p
-                        factor.0.extend(fine[0].0.clone());
+                        factor.v.extend(fine[0].v.clone());
                     }
                     factor.push(symbol_prime);
                 }
@@ -1238,7 +1241,7 @@ impl<T> ProdRuleSet<T> {
                     factor.push(symbol_prime.clone());
                 }
                 left.extend(ambiguous);
-                left.push(ProdFactor(vec![Symbol::Empty]));
+                left.push(ProdFactor::new(vec![Symbol::Empty]));
                 *prod = fine;
                 extra.push(left);
             } else if prod.iter().any(|p| *p.last().unwrap() == symbol) {
@@ -1326,7 +1329,7 @@ impl<T> ProdRuleSet<T> {
                     }
                     let mut new_prod = ProdRule::new();
                     for j in 0..max_len {
-                        new_prod.push(if factors[max.0 + j].len() > max.1 { ProdFactor(factors[max.0 + j][max.1..].to_vec()) } else { prodf!(e) })
+                        new_prod.push(if factors[max.0 + j].len() > max.1 { ProdFactor::new(factors[max.0 + j][max.1..].to_vec()) } else { prodf!(e) })
                     }
                     if VERBOSE { println!("   new {var_prime}: {} -> {}", symbol_prime.to_str(self.get_symbol_table()), prod_to_string(&new_prod, self.get_symbol_table())); }
                     extra.push(new_prod);
@@ -1506,7 +1509,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                         }).to_vec(),
                     s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var as VarId).to_str(prules.get_symbol_table()))
                 };
-                prules.prods.push(prod.into_iter().map(|f| ProdFactor(f)).collect());
+                prules.prods.push(prod.into_iter().map(|f| ProdFactor::new(f)).collect());
             } else {
                 prules.prods.push(ProdRule::new()); // empty
             }
@@ -1638,13 +1641,13 @@ pub mod macros {
     /// # use rlexer::dfa::TokenId;
     /// # use rlexer::grammar::{ProdFactor, Symbol, VarId};
     /// # use rlexer::{prodf, sym};
-    /// assert_eq!(prodf!(nt 1, t 2, e), ProdFactor(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
+    /// assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! prodf {
         () => { std::vec![] };
         ($($a:ident $($b:expr)?,)+) => { prodf![$($a $($b)?),+] };
-        ($($a:ident $($b:expr)?),*) => { ProdFactor(std::vec![$(sym!($a $($b)?)),*]) };
+        ($($a:ident $($b:expr)?),*) => { ProdFactor::new(std::vec![$(sym!($a $($b)?)),*]) };
     }
 
     /// Generates a production rule. It is made up of factors separated by a semicolon.
@@ -1655,9 +1658,9 @@ pub mod macros {
     /// # use rlexer::grammar::{ProdFactor, Symbol, VarId};
     /// # use rlexer::{prod, prodf, sym};
     /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e),
-    ///            vec![ProdFactor(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-    ///                 ProdFactor(vec![sym!(nt  2)]),
-    ///                 ProdFactor(vec![sym!(e)])]);
+    ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+    ///                 ProdFactor::new(vec![sym!(nt  2)]),
+    ///                 ProdFactor::new(vec![sym!(e)])]);
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! prod {
