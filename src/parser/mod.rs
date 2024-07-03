@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use crate::CollectJoin;
-use crate::grammar::{factor_to_string, LLParsingTable, ProdFactor, Symbol, VarId};
+use crate::grammar::{LLParsingTable, ProdFactor, Symbol, VarId};
 use crate::symbol_table::SymbolTable;
 
 mod tests;
@@ -102,7 +102,7 @@ impl Parser {
                                  if factor_id >= error {
                                      "ERROR".to_string()
                                  } else {
-                                     factor_to_string(&self.factors[factor_id as usize].1, sym_table)
+                                     self.factors[factor_id as usize].1.to_str(sym_table)
                                  });
                     }
                     if factor_id >= error {
@@ -134,7 +134,7 @@ impl Parser {
                         let f = &self.factors[factor_id as usize];
                         println!("- to stack: {}", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(", "));
                         println!("- {} {} -> {} ", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
-                                 Symbol::NT(f.0).to_str(sym_table), factor_to_string(&f.1, sym_table));
+                                 Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table));
                     }
                     assert_eq!(opcode, self.opcodes[factor_id as usize]);
 

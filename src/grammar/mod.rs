@@ -6,7 +6,7 @@ pub(crate) mod tests;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR};
@@ -701,6 +701,9 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
 /// (where the representation of vectors has been simplified to square brackets).
 pub type ProdRule = Vec<ProdFactor>;
 
+/// Stores a factor of a normalized production rule, along with accompanying flags.
+/// The `ProdFactor` type behaves like a `Vec<Symbol>` (`Deref` / `DerefMut`), but must be
+/// created with `ProdFactor::new(f: Vec<Symbol)`.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct ProdFactor {
     v: Vec<Symbol>,
@@ -710,6 +713,32 @@ pub struct ProdFactor {
 impl ProdFactor {
     pub fn new(f: Vec<Symbol>) -> Self {
         ProdFactor { v: f, flags: 0 }
+    }
+
+    pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
+        self.v.iter()
+            .map(|symbol| symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string()))
+            .join(" ")
+    }
+
+    fn factor_first(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashSet<Symbol> {
+        // factor.iter().map(|s| first.get(s).unwrap().clone()).take_until(|h| !h.contains(&Symbol::Empty)).flatten().collect()
+        let mut new = HashSet::<Symbol>::new();
+        new.extend(first[&self.v[0]].iter().filter(|s| *s != &Symbol::Empty));
+        let mut trail = true;
+        for i in 0..self.v.len() - 1 {
+            let sym_i = &self.v[i];
+            if first[sym_i].contains(&Symbol::Empty) {
+                new.extend(first[&self.v[i + 1]].iter().filter(|s| *s != &Symbol::Empty));
+            } else {
+                trail = false;
+                break;
+            }
+        }
+        if trail && first[self.last().unwrap()].contains(&Symbol::Empty) {
+            new.insert(Symbol::Empty);
+        }
+        new
     }
 }
 
@@ -721,40 +750,14 @@ impl Deref for ProdFactor {
     }
 }
 
-impl std::ops::DerefMut for ProdFactor {
+impl DerefMut for ProdFactor {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.v
     }
 }
 
-pub fn factor_to_string(factor: &ProdFactor, symbol_table: Option<&SymbolTable>) -> String {
-    factor.iter().map(|symbol|
-            symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
-        ).join(" ")
-}
-
 pub fn prod_to_string(prod: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
-    prod.iter().map(|factor| factor_to_string(factor, symbol_table)).join(" | ")
-}
-
-fn factor_first(factor: &ProdFactor, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashSet<Symbol> {
-    // factor.iter().map(|s| first.get(s).unwrap().clone()).take_until(|h| !h.contains(&Symbol::Empty)).flatten().collect()
-    let mut new = HashSet::<Symbol>::new();
-    new.extend(first[&factor[0]].iter().filter(|s| *s != &Symbol::Empty));
-    let mut trail = true;
-    for i in 0..factor.len() - 1 {
-        let sym_i = &factor[i];
-        if first[sym_i].contains(&Symbol::Empty) {
-            new.extend(first[&factor[i + 1]].iter().filter(|s| *s != &Symbol::Empty));
-        } else {
-            trail = false;
-            break;
-        }
-    }
-    if trail && first[factor.last().unwrap()].contains(&Symbol::Empty) {
-        new.insert(Symbol::Empty);
-    }
-    new
+    prod.iter().map(|factor| factor.to_str(symbol_table)).join(" | ")
 }
 
 #[derive(Debug)]
@@ -1019,14 +1022,14 @@ impl<T> ProdRuleSet<T> {
                 if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prod_to_string(prod, self.symbol_table.as_ref())); }
                 let num_items = first[&symbol].len();
                 for factor in prod {
-                    if VERBOSE { println!("  - {}", factor_to_string(factor, self.symbol_table.as_ref())); }
+                    if VERBOSE { println!("  - {}", factor.to_str(self.symbol_table.as_ref())); }
                     assert!(factor.len() > 0, "empty factor for {}: {}",
-                            symbol.to_str(self.symbol_table.as_ref()), factor_to_string(factor, self.symbol_table.as_ref()));
+                            symbol.to_str(self.symbol_table.as_ref()), factor.to_str(self.symbol_table.as_ref()));
                     if VERBOSE {
                         print!("    [0] {}", factor[0].to_str(self.symbol_table.as_ref()));
                         println!(", first = {}", first[&factor[0]].iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", "));
                     }
-                    let new = factor_first(&factor, &first);
+                    let new = factor.factor_first(&first);
                     let _n = first.get(&symbol).unwrap().len();
                     first.get_mut(&symbol).unwrap().extend(new);
                     if VERBOSE {
@@ -1065,7 +1068,7 @@ impl<T> ProdRuleSet<T> {
                 let symbol = Symbol::NT(*i as VarId);
                 if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prod_to_string(prod, self.symbol_table.as_ref())); }
                 for factor in prod {
-                    if VERBOSE { println!("  - {}", factor_to_string(factor, self.symbol_table.as_ref())); }
+                    if VERBOSE { println!("  - {}", factor.to_str(self.symbol_table.as_ref())); }
                     let mut trail = follow.get(&symbol).unwrap().clone();
                     for (i, sym_i) in factor.iter().enumerate().rev() {
                         if let Symbol::NT(v) = sym_i {
@@ -1173,7 +1176,7 @@ impl<T> ProdRuleSet<T> {
                         msg.push_str(&format!("\n- requires factors not starting with {}", symbol.to_str(self.get_symbol_table())));
                     }
                     if let Some(x) = left.iter().find(|f| f.len() < 2) {
-                        msg.push_str(&format!("\n- {}", factor_to_string(x, self.get_symbol_table())));
+                        msg.push_str(&format!("\n- {}", x.to_str(self.get_symbol_table())));
                     }
                     self.log.add_error(msg);
                     continue;
@@ -1311,8 +1314,8 @@ impl<T> ProdRuleSet<T> {
                     }
                     if VERBOSE {
                         let t = self.get_symbol_table();
-                        println!(" - sorted: {} => {}", &factors.iter().map(|f| factor_to_string(f, t)).join(" | "), simi.iter().join(", "));
-                        println!("   max: {} for {}", max.1, (0..max_len).map(|j| factor_to_string(&factors[max.0 + j], t)).join(", "));
+                        println!(" - sorted: {} => {}", &factors.iter().map(|f| f.to_str(t)).join(" | "), simi.iter().join(", "));
+                        println!("   max: {} for {}", max.1, (0..max_len).map(|j| factors[max.0 + j].to_str(t)).join(", "));
                     }
                     let var_prime = new_var;
                     new_var += 1;
@@ -1382,11 +1385,11 @@ impl ProdRuleSet<LL1> {
             used_t.extend(factor.iter().filter(|s| s.is_t()));
             let f_id = f_id as VarId;
             if VERBOSE { println!("- {f_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
-                                  factor_to_string(factor, self.get_symbol_table()),
-                                  factor_first(factor, first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+                                  factor.to_str(self.get_symbol_table()),
+                                  factor.factor_first(first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut has_end = false;
             let mut has_empty = false;
-            for s in factor_first(factor, first) {
+            for s in factor.factor_first(first) {
                 match s {
                     Symbol::Empty => {
                         has_empty = true;
@@ -1429,8 +1432,8 @@ impl ProdRuleSet<LL1> {
                                     Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
                                     Symbol::T(t_id as VarId).to_str(self.get_symbol_table()),
                                     table[pos].iter().map(|f_id|
-                                        format!("<{}>", factor_to_string(&factors[*f_id as usize].1, self.get_symbol_table()))).join(" or "),
-                                    factor_to_string(&factors[chosen as usize].1, self.get_symbol_table())
+                                        format!("<{}>", factors[*f_id as usize].1.to_str(self.get_symbol_table()))).join(" or "),
+                                    factors[chosen as usize].1.to_str(self.get_symbol_table())
                             ));
                         table[pos] = vec![chosen];
                         chosen
