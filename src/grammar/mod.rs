@@ -1125,30 +1125,30 @@ impl<T> ProdRuleSet<T> {
     /// for an LL(1) grammar so we don't do it.
     pub fn remove_left_recursion(&mut self) {
         const VERBOSE: bool = false;
-        // we must remove either prods or the symbol table from self for the borrow checker
-        let mut symbol_table = self.symbol_table.take();
-        let mut new_var = self.get_next_available_var();
         let mut extra = Vec::<ProdRule>::new();
-        for (i, prod) in self.prods.iter_mut().enumerate() {
+        let mut new_var = self.get_next_available_var();
+        // we must take prods out because of the borrow checker and other &mut borrows we need later...
+        let mut prods = std::mem::take(&mut self.prods);
+        for (i, prod) in prods.iter_mut().enumerate() {
             let var = i as VarId;
             let symbol = Symbol::NT(var);
             if prod.iter().any(|p| *p.first().unwrap() == symbol) {
                 if VERBOSE {
                     println!("- left recursion: {}", format!("{} -> {}",
-                        Symbol::NT(var).to_str(symbol_table.as_ref()),
-                        prod_to_string(prod, symbol_table.as_ref())));
+                        Symbol::NT(var).to_str(self.get_symbol_table()),
+                        prod_to_string(prod, self.get_symbol_table())));
                 }
                 let (mut recursive, mut fine) : (Vec<_>, Vec<_>) = prod.iter().cloned()
                     .partition(|factor| *factor.first().unwrap() == symbol);
                 let (mut ambiguous, mut left) : (Vec<_>, Vec<_>) = recursive.into_iter()
                     .partition(|factor| *factor.last().unwrap() == symbol);
                 if fine.is_empty() || left.iter().any(|f| f.len() < 2) {
-                    let mut msg = format!("remove_left_recursion: recursive production: {}", prod_to_string(prod, symbol_table.as_ref()));
+                    let mut msg = format!("remove_left_recursion: recursive production: {}", prod_to_string(prod, self.get_symbol_table()));
                     if fine.is_empty() {
-                        msg.push_str(&format!("\n- requires factors not starting with {}", symbol.to_str(symbol_table.as_ref())));
+                        msg.push_str(&format!("\n- requires factors not starting with {}", symbol.to_str(self.get_symbol_table())));
                     }
                     if let Some(x) = left.iter().find(|f| f.len() < 2) {
-                        msg.push_str(&format!("\n- {}", factor_to_string(x, symbol_table.as_ref())));
+                        msg.push_str(&format!("\n- {}", factor_to_string(x, self.get_symbol_table())));
                     }
                     self.log.add_error(msg);
                     continue;
@@ -1157,7 +1157,7 @@ impl<T> ProdRuleSet<T> {
                 let var_ambig = if !ambiguous.is_empty() && fine.len() > 1 {
                     // if more than one independent factor, moves them in a new NT to simplify the resulting rules
                     let var_ambig = new_var;
-                    if let Some(table) = &mut symbol_table {
+                    if let Some(table) = &mut self.symbol_table {
                         table.add_var_prime_name(var, new_var);
                     }
                     self.or_flags(var_ambig, ruleflag::CHILD_INDEPENDENT_AMBIGUITY);
@@ -1172,22 +1172,22 @@ impl<T> ProdRuleSet<T> {
                 new_var += 1;
                 self.or_flags(var_prime, ruleflag::CHILD_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::CHILD_AMBIGUITY });
                 self.set_parent(var_prime, var);
-                if let Some(table) = &mut symbol_table {
+                if let Some(table) = &mut self.symbol_table {
                     table.add_var_prime_name(var, var_prime);
                 }
                 let symbol_prime = Symbol::NT(var_prime);
                 if VERBOSE {
-                    print!("- adding non-terminal {var_prime} ({})", symbol_prime.to_str(symbol_table.as_ref()));
+                    print!("- adding non-terminal {var_prime} ({})", symbol_prime.to_str(self.get_symbol_table()));
                     if let Some(v) = var_ambig {
-                        print!(" and non-terminal {v} ({})", Symbol::NT(v).to_str(symbol_table.as_ref()));
+                        print!(" and non-terminal {v} ({})", Symbol::NT(v).to_str(self.get_symbol_table()));
                     }
-                    println!(", deriving from {var} ({})", symbol.to_str((symbol_table.as_ref())));
+                    println!(", deriving from {var} ({})", symbol.to_str((self.get_symbol_table())));
                 }
                 for factor in &mut ambiguous {
                     factor.pop();
                     factor.remove(0);
                     if factor.last().map(|s| *s == symbol).unwrap_or(false) {
-                        self.log.add_error(format!("remove_left_recursion: cannot remove recursion from {}", prod_to_string(prod, symbol_table.as_ref())));
+                        self.log.add_error(format!("remove_left_recursion: cannot remove recursion from {}", prod_to_string(prod, self.get_symbol_table())));
                         continue;
                     }
                     if let Some(v) = var_ambig {
@@ -1210,7 +1210,7 @@ impl<T> ProdRuleSet<T> {
                     // add to prime: A_p -> α1 A_p | ... | αm A_p
                     factor.remove(0);
                     if *factor.first().unwrap() == symbol {
-                        self.log.add_error(format!("remove_left_recursion: cannot remove recursion from {}", prod_to_string(prod, symbol_table.as_ref())));
+                        self.log.add_error(format!("remove_left_recursion: cannot remove recursion from {}", prod_to_string(prod, self.get_symbol_table())));
                         continue;
                     }
                     factor.push(symbol_prime.clone());
@@ -1225,9 +1225,9 @@ impl<T> ProdRuleSet<T> {
             }
 
         }
+        self.prods = prods;
         self.prods.extend(extra);
         self.num_nt = self.prods.len();
-        self.symbol_table = symbol_table;
     }
 
     /// Factorizes all the left symbols that are common to several factors by rejecting the non-common part
@@ -1249,9 +1249,9 @@ impl<T> ProdRuleSet<T> {
         }
 
         const VERBOSE: bool = false;
-        // we must remove either prods or the symbol table from self for the borrow checker
-        let mut symbol_table = self.symbol_table.take();
         let mut new_var = self.get_next_available_var();
+        // we must take prods out because of the borrow checker and other &mut borrows we need later...
+        let mut prods = std::mem::take(&mut self.prods);
         let mut start = Some(0);
         let last = self.num_nt;
         while let Some(first) = start {
@@ -1259,14 +1259,14 @@ impl<T> ProdRuleSet<T> {
             start = None;
             let mut extra = Vec::<ProdRule>::new();
             for i in range {
-                let mut prod = &mut self.prods[i];
+                let mut prod = &mut prods[i];
                 if prod.len() < 2 {
                     continue
                 }
                 let var = i as VarId;
                 let mut factors = prod.clone();
                 factors.sort();
-                if VERBOSE { println!("{i}: {} -> {}", Symbol::NT(var).to_str(symbol_table.as_ref()), prod_to_string(prod, symbol_table.as_ref())); }
+                if VERBOSE { println!("{i}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), prod_to_string(prod, self.get_symbol_table())); }
                 while factors.len() > 1 {
                     let mut max = (0, 0);
                     let mut max_len = 0;
@@ -1285,7 +1285,7 @@ impl<T> ProdRuleSet<T> {
                         break;
                     }
                     if VERBOSE {
-                        let t = symbol_table.as_ref();
+                        let t = self.get_symbol_table();
                         println!(" - sorted: {} => {}", &factors.iter().map(|f| factor_to_string(f, t)).join(" | "), simi.iter().join(", "));
                         println!("   max: {} for {}", max.1, (0..max_len).map(|j| factor_to_string(&factors[max.0 + j], t)).join(", "));
                     }
@@ -1294,19 +1294,19 @@ impl<T> ProdRuleSet<T> {
                     self.or_flags(var, ruleflag::PARENT_L_FACTOR);
                     self.or_flags(var_prime, ruleflag::CHILD_L_FACTOR);
                     self.set_parent(var_prime, var);
-                    if let Some(table) = &mut symbol_table {
+                    if let Some(table) = &mut self.symbol_table {
                         table.add_var_prime_name(var, var_prime);
                     }
                     let symbol_prime = Symbol::NT(var_prime);
                     if VERBOSE {
                         println!("   adding non-terminal {var_prime} ({}), deriving from {var} ({})",
-                                 symbol_prime.to_str(symbol_table.as_ref()), Symbol::NT(var).to_str((symbol_table.as_ref())));
+                                 symbol_prime.to_str(self.get_symbol_table()), Symbol::NT(var).to_str((self.get_symbol_table())));
                     }
                     let mut new_prod = ProdRule::new();
                     for j in 0..max_len {
                         new_prod.push(if factors[max.0 + j].len() > max.1 { factors[max.0 + j][max.1..].to_vec() } else { prodf!(e) })
                     }
-                    if VERBOSE { println!("   new {var_prime}: {} -> {}", symbol_prime.to_str(symbol_table.as_ref()), prod_to_string(&new_prod, symbol_table.as_ref())); }
+                    if VERBOSE { println!("   new {var_prime}: {} -> {}", symbol_prime.to_str(self.get_symbol_table()), prod_to_string(&new_prod, self.get_symbol_table())); }
                     extra.push(new_prod);
                     for j in 1..max_len {
                         factors.remove(max.0);
@@ -1314,14 +1314,14 @@ impl<T> ProdRuleSet<T> {
                     factors[max.0].truncate(max.1);
                     factors[max.0].push(symbol_prime);
                     *prod = factors.clone();
-                    if VERBOSE { println!("   mod {var}: {} -> {}", Symbol::NT(var).to_str(symbol_table.as_ref()), prod_to_string(&prod, symbol_table.as_ref())); }
+                    if VERBOSE { println!("   mod {var}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), prod_to_string(&prod, self.get_symbol_table())); }
                     if start.is_none() { start = Some(i + 1); }
                 }
             }
-            self.prods.extend(extra);
+            prods.extend(extra);
         }
+        self.prods = prods;
         self.num_nt = self.prods.len();
-        self.symbol_table = symbol_table;
     }
 
     pub(crate) fn remove_ambiguity(&self) {
