@@ -955,6 +955,16 @@ fn prs_remove_left_recursion() {
             1 => prod!(t 4, nt 0, t 5; t 6; t 7),
             2 => prod!(t 9, nt 1, nt 2; t 8, nt 1, nt 2; t 2, nt 1, nt 2; t 3, nt 1, nt 2; t 0, nt 1, nt 2; t 1, nt 1, nt 2; e),
         ]),
+        (21, btreemap![
+            // A -> A a1 | A a2 | A b1 A | A b2 A | c1 | c2
+            // =>
+            // A -> c1 A_2 | c2 A_2
+            // A_1 -> c1 | c2
+            // A_2 -> a1 A_2 | a2 A_2 | b1 A_1 A_2 | b2 A_1 A_2 | ε
+            0 => prod!(t 4, nt 2; t 5, nt 2),
+            1 => prod!(t 4; t 5),
+            2 => prod!(t 0, nt 2; t 1, nt 2; t 2, nt 1, nt 2; t 3, nt 1, nt 2; e),
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
