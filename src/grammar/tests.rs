@@ -281,7 +281,7 @@ fn rts_normalize() {
 
 #[test]
 fn rts_prodrule_from() {
-    let tests: Vec<(u32, BTreeMap<VarId, Vec<Vec<Symbol>>>, Vec<u32>, Vec<Option<VarId>>)> = vec![
+    let tests: Vec<(u32, BTreeMap<VarId, ProdRule>, Vec<u32>, Vec<Option<VarId>>)> = vec![
         (0, btreemap![0 => prod!(t 1; t 2; nt 3)], vec![0], vec![None]),
         (1, btreemap![0 => prod!(nt 1, nt 2; t 3; t 4; nt 5, nt 6;t 7; t 8; nt 9, nt 10)], vec![0], vec![None]),
         (2, btreemap![0 => prod!(
