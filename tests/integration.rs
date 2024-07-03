@@ -4,6 +4,48 @@
 
 #![cfg(test)]
 
+mod parser_gen {
+    #[test]
+    fn test_source_code_manual() {
+        let _parser = source_code_manual::build_parser();
+    }
+
+    /// This is copied from `rlexer::parsergen::write_source_code_from_ll1`
+    mod source_code_manual {
+        // -------------------------------------------------------------------------
+        // Automatically generated
+
+        use rlexer::grammar::{ProdFactor, Symbol, VarId};
+        use rlexer::parser::Parser;
+        use rlexer::symbol_table::SymbolTable;
+
+        const PARSER_NUM_T: usize = 10;
+        const PARSER_NUM_NT: usize = 3;
+        const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("SUB", Some("-")), ("ADD", Some("+")), ("DIV", Some("/")), ("MUL", Some("*")), ("LPAREN", Some("(")), ("RPAREN", Some(")")), ("N", None), ("I", None), ("EXP", Some("^")), ("DUM", Some(":"))];
+        const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "F", "E_1"];
+        const SYMBOLS_NAMES: [(&str, VarId); 1] = [("E_1", 2)];
+        const PARSING_FACTORS: [(VarId, &[Symbol]); 11] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(4), Symbol::NT(0), Symbol::T(5)]), (1, &[Symbol::T(6)]), (1, &[Symbol::T(7)]), (2, &[Symbol::T(9), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(8), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(2), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(3), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(0), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(1), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::Empty])];
+        const PARSING_TABLE: [VarId; 33] = [11, 11, 11, 11, 0, 11, 0, 0, 11, 11, 11, 11, 11, 11, 11, 1, 11, 2, 3, 11, 11, 11, 8, 9, 6, 7, 11, 10, 11, 11, 5, 4, 10];
+        const START_SYMBOL: VarId = 0;
+
+        pub(super) fn build_parser() -> Parser {
+            let mut symbol_table = SymbolTable::new();
+            symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
+            symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+            symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));
+            let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
+            let table: Vec<VarId> = PARSING_TABLE.into();
+            let parsing_table = rlexer::grammar::LLParsingTable {
+                num_nt: PARSER_NUM_NT,
+                num_t: PARSER_NUM_T + 1,
+                factors,
+                table
+            };
+            Parser::new(parsing_table, symbol_table, START_SYMBOL)
+        }
+    }
+}
+
 mod listener {
     use std::collections::HashMap;
     use rlexer::dfa::TokenId;

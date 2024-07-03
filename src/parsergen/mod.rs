@@ -60,7 +60,7 @@ impl ParserBuilder {
         // Create source code:
         writeln!(out, "// -------------------------------------------------------------------------")?;
         writeln!(out, "// Automatically generated\n")?;
-        writeln!(out, "use rlexer::grammar::{{Symbol, VarId}};")?;
+        writeln!(out, "use rlexer::grammar::{{ProdFactor, Symbol, VarId}};")?;
         writeln!(out, "use rlexer::parser::Parser;")?;
         writeln!(out, "use rlexer::symbol_table::SymbolTable;\n")?;
 
@@ -87,7 +87,7 @@ impl ParserBuilder {
         writeln!(out, "    symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));")?;
         writeln!(out, "    symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));")?;
         writeln!(out, "    symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));")?;
-        writeln!(out, "    let factors: Vec<(VarId, Vec<Symbol>)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, s.to_vec())).collect();")?;
+        writeln!(out, "    let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();")?;
         writeln!(out, "    let table: Vec<VarId> = PARSING_TABLE.into();")?;
         writeln!(out, "    let parsing_table = rlexer::grammar::LLParsingTable {{")?;
         writeln!(out, "        num_nt: PARSER_NUM_NT,")?;
