@@ -381,6 +381,7 @@ fn rts_prs_flags() {
             print_factors(&ll1, &factors);
             println!("- NT flags: {}", ll1.flags.iter().join(", "));
             println!("- factor flags: {:?}", ll1.factor_flags);
+            println!("- parents: {}", ll1.parent.iter().enumerate().filter_map(|(c, p)| if let Some(parent) = p { Some(format!("{c} -> {parent}")) } else { None } ).join(", "));
         }
 
     }
