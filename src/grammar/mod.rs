@@ -263,6 +263,8 @@ impl Display for GrTreeFmt<'_> {
 
 // easier to use than an enum
 pub mod ruleflag {
+    use crate::btreemap;
+
     /// Star or Plus repeat factor.
     /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
     pub const CHILD_REPEAT: u32 = 1;
@@ -284,8 +286,23 @@ pub mod ruleflag {
     /// Low-latency non-terminal
     pub const L_FORM: u32 = 128;
     /// Right-associative factor.
-    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in `factor_flags`.
+    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in factors.
     pub const R_ASSOC: u32 = 256;
+
+    pub fn to_string(flags: u32) -> Vec<String> {
+        let names = btreemap![
+            CHILD_REPEAT                => "child_+_or_*".to_string(),
+            R_RECURSION                 => "right_rec".to_string(),
+            CHILD_L_RECURSION           => "child_left_rec".to_string(),
+            CHILD_AMBIGUITY             => "child_amb".to_string(),
+            CHILD_INDEPENDENT_AMBIGUITY => "child_ind_amb".to_string(),
+            PARENT_L_FACTOR             => "parent_left_fact".to_string(),
+            CHILD_L_FACTOR              => "child_left_fact".to_string(),
+            L_FORM                      => "L-form".to_string(),
+            R_ASSOC                     => "R-assoc".to_string(),
+        ];
+        names.into_iter().filter_map(|(f, t)| if flags & f != 0 { Some(t) } else { None } ).collect::<_>()
+    }
 }
 
 #[derive(Clone, Debug)]
@@ -711,8 +728,12 @@ pub struct ProdFactor {
 }
 
 impl ProdFactor {
-    pub fn new(f: Vec<Symbol>) -> Self {
-        ProdFactor { v: f, flags: 0 }
+    pub fn new(v: Vec<Symbol>) -> Self {
+        ProdFactor { v, flags: 0 }
+    }
+
+    pub fn with_flags(v: Vec<Symbol>, flags: u32) -> Self {
+        ProdFactor { v, flags }
     }
 
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
@@ -775,7 +796,6 @@ pub struct ProdRuleSet<T> {
     num_t: usize,
     symbol_table: Option<SymbolTable>,
     flags: Vec<u32>,
-    factor_flags: Vec<Vec<u32>>,
     parent: Vec<Option<VarId>>,
     start: Option<VarId>,
     nt_conversion: Option<HashMap<Symbol, Symbol>>,
@@ -834,16 +854,6 @@ impl<T> ProdRuleSet<T> {
         let nt = nt as usize;
         self.flags.resize(nt + 1, 0);
         self.flags[nt] |= new_flags;
-    }
-
-    /// Adds new flags to `factor_flags[nt][factor]` by or'ing them.
-    /// If necessary, extends the `factor_flags` array first.
-    fn or_factor_flags(&mut self, nt: VarId, factor: VarId, new_flags: u32) {
-        let nt = nt as usize;
-        let factor = factor as usize;
-        self.factor_flags.resize(nt + 1, vec![]);
-        self.factor_flags[nt].resize(factor + 1, 0);
-        self.factor_flags[nt][factor] |= new_flags;
     }
 
     fn set_parent(&mut self, child: VarId, parent: VarId) {
@@ -937,9 +947,6 @@ impl<T> ProdRuleSet<T> {
                 self.symbol_table.as_mut().map(|t| t.remove_non_terminal(v));
                 if i < self.flags.len() {
                     self.flags.remove(i);
-                }
-                if i < self.factor_flags.len() {
-                    self.factor_flags.remove(i);
                 }
                 if i < self.parent.len() {
                     self.parent.remove(i);
@@ -1106,7 +1113,6 @@ impl<T> ProdRuleSet<T> {
             num_t: 0,
             symbol_table: None,
             flags: Vec::new(),
-            factor_flags: Vec::new(),
             parent: Vec::new(),
             start: None,
             nt_conversion: None,
@@ -1122,7 +1128,6 @@ impl<T> ProdRuleSet<T> {
             num_t: 0,
             symbol_table: None,
             flags: Vec::with_capacity(capacity),
-            factor_flags: Vec::with_capacity(capacity),
             parent: Vec::with_capacity(capacity),
             start: None,
             nt_conversion: None,
@@ -1456,7 +1461,7 @@ impl ProdRuleSet<LL1> {
 
 impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
-        fn children_to_vec(tree: &GrTree, parent_id: usize) -> (Vec<Symbol>, u32) {
+        fn children_to_vec(tree: &GrTree, parent_id: usize) -> ProdFactor {
             let mut flags: u32 = 0;
             let factor = tree.children(parent_id).iter()
                 .map(|id| tree.get(*id))
@@ -1474,13 +1479,12 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     x => panic!("unexpected symbol {x} under &")
                 }
             }).to_vec();
-            (factor, flags)
+            ProdFactor::with_flags(factor, flags)
         }
         let mut prules = Self::with_capacity(rules.trees.len());
         prules.start = rules.start;
         prules.symbol_table = rules.symbol_table;
         prules.flags = rules.flags;
-        prules.factor_flags.resize(rules.trees.len(), vec![]);
         prules.parent = rules.parent;
         prules.log = rules.log;
         for (var, tree) in rules.trees.iter().enumerate() {
@@ -1489,30 +1493,24 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                 let root_sym = tree.get(root);
                 let prod = match root_sym {
                     GrNode::Symbol(s) => {
-                        prules.factor_flags[var].push(0);
-                        vec![vec![s.clone()]]
+                        vec![ProdFactor::new(vec![s.clone()])]
                     },
                     GrNode::Concat => {
-                        let (factor, flags) = children_to_vec(tree, root);
-                        prules.factor_flags[var].push(flags);
-                        vec![factor]
+                        vec![children_to_vec(tree, root)]
                     },
                     GrNode::Or => tree.children(root).iter()
                         .map(|id| {
                             let child = tree.get(*id);
                             if let GrNode::Symbol(s) = child {
-                                prules.factor_flags[var].push(0);
-                                vec![s.clone()]
+                                ProdFactor::new(vec![s.clone()])
                             } else {
                                 assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
-                                let (factor, flags) = children_to_vec(tree, *id);
-                                prules.factor_flags[var].push(flags);
-                                factor
+                                children_to_vec(tree, *id)
                             }
                         }).to_vec(),
                     s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var as VarId).to_str(prules.get_symbol_table()))
                 };
-                prules.prods.push(prod.into_iter().map(|f| ProdFactor::new(f)).collect());
+                prules.prods.push(prod);
             } else {
                 prules.prods.push(ProdRule::new()); // empty
             }
@@ -1540,7 +1538,6 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,
             flags: rules.flags,
-            factor_flags: rules.factor_flags,
             parent: rules.parent,
             start: rules.start,
             nt_conversion: rules.nt_conversion,
@@ -1559,7 +1556,6 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,
             flags: rules.flags,
-            factor_flags: rules.factor_flags,
             parent: rules.parent,
             start: rules.start,
             nt_conversion: rules.nt_conversion,

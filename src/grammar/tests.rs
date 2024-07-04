@@ -19,8 +19,11 @@ pub(super) fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
 pub(super) fn print_factors<T>(ll1: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor)>) {
     println!("factors:\n{}",
              factors.iter().enumerate().map(|(id, (v, f))|
-                 format!("            // - {id}: {} -> {}", Symbol::NT(*v).to_str(ll1.get_symbol_table()),
-                         f.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "))
+                 format!("            // - {id}: {} -> {}{}",
+                         Symbol::NT(*v).to_str(ll1.get_symbol_table()),
+                         f.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "),
+                         if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
+                 )
     ).join("\n"));
 }
 
@@ -349,11 +352,24 @@ fn rts_prodrule_from() {
 
 #[test]
 fn rts_prs_flags() {
+    fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
+        let factors = rules.prods.iter().enumerate().flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f.clone()))).collect::<Vec<_>>();
+        print_factors(&rules, &factors);
+        let nt_flags = rules.flags.iter().enumerate().filter_map(|(nt, &f)|
+            if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt as VarId).to_str(rules.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
+        ).join("\n");
+        let parents = rules.parent.iter().enumerate().filter_map(|(c, &par)|
+            if let Some(p) = par { Some(format!("  - {} -> {}", Symbol::NT(c as VarId).to_str(rules.get_symbol_table()), Symbol::NT(p).to_str(rules.get_symbol_table()))) } else { None }
+        ).join("\n");
+        println!("- NT flags:\n{}", if nt_flags.is_empty() { "  - (nothing)".to_string() } else { nt_flags });
+        println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
+    }
     let tests = vec![
-        (15)
+        (15, btreemap![1 => 12],
+         btreemap![2 => 256]),
     ];
     const VERBOSE: bool = true;
-    for (test_id) in tests {
+    for (test_id, expected_flags, expected_fflags) in tests {
         if VERBOSE { println!("Test {test_id}:"); }
         let mut rts = build_rts(test_id);
         let mut rules = ProdRuleSet::from(rts);
@@ -363,34 +379,29 @@ fn rts_prs_flags() {
         rules.set_symbol_table(symbol_table);
         assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed:\n- {}", rules.log.get_errors().join("\n- "));
         if VERBOSE {
-            println!("General rules:");
-            let result = BTreeMap::<_, _>::from(&rules);
-            print_expected_code(&result);
-            let factors = rules.prods.iter().enumerate().flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f.clone()))).collect::<Vec<_>>();
-            print_factors(&rules, &factors);
-            println!("- NT flags: {}", rules.flags.iter().join(", "));
-            println!("- factor flags: {:?}", rules.factor_flags);
+            print!("General rules\n- ");
+            print_prs_summary(&rules);
         }
         let ll1 = ProdRuleSet::<LL1>::from(rules);
         assert_eq!(ll1.log.num_errors(), 0, "test {test_id} failed:\n- {}", ll1.log.get_errors().join("\n- "));
+        let result_flags = ll1.flags.iter().enumerate().filter_map(|(v, &f)| if f != 0 { Some((v as VarId, f)) } else { None }).collect::<BTreeMap<_, _>>();
+        let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
         if VERBOSE {
-            println!("LL1 rules:");
-            let result = BTreeMap::<_, _>::from(&ll1);
-            print_expected_code(&result);
-            let factors = ll1.prods.iter().enumerate().flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f.clone()))).collect::<Vec<_>>();
-            print_factors(&ll1, &factors);
-            println!("- NT flags: {}", ll1.flags.iter().join(", "));
-            println!("- factor flags: {:?}", ll1.factor_flags);
-            println!("- parents: {}", ll1.parent.iter().enumerate().filter_map(|(c, p)| if let Some(parent) = p { Some(format!("{c} -> {parent}")) } else { None } ).join(", "));
+            print!("LL1 rules\n- ");
+            print_prs_summary(&ll1);
+            println!("=>");
+            println!("        ({test_id}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+            println!("         btreemap![{}]),", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
         }
-
+        assert_eq!(result_flags, expected_flags, "test {test_id} failed");
+        assert_eq!(result_fflags, expected_fflags, "test {test_id} failed");
     }
 }
 // ---------------------------------------------------------------------------------------------
 // ProdRuleSet
 
 fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
-    println!("\n            {}", result.iter().map(|(i, p)|
+    println!("            {}", result.iter().map(|(i, p)|
         format!("{i} => prod!({}),", p.iter().map(|f| f.iter().map(|s| symbol_to_macro(s))
             .join(", ")).join("; "))).join("\n            "))
 }
@@ -979,6 +990,7 @@ fn prs_remove_left_recursion() {
         if VERBOSE {
             println!("=>");
             print_production_rules(&rules);
+            println!();
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1048,6 +1060,7 @@ fn prs_left_factorize() {
         if VERBOSE {
             println!("=>");
             print_production_rules(&rules);
+            println!();
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1103,7 +1116,7 @@ fn prs_ll1_from() {
             1 => prod!(t 0, t 1, nt 1; e),
         ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, expected) in tests {
         let rules_lr = build_prs(test_id);
         if VERBOSE {
@@ -1115,6 +1128,7 @@ fn prs_ll1_from() {
         if VERBOSE {
             println!("=>");
             print_production_rules(&ll1);
+            println!();
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
