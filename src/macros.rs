@@ -39,10 +39,10 @@ macro_rules! hashmap {
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! btreemap {
-    () => { BTreeMap::new() };
+    () => { std::collections::BTreeMap::new() };
     ($($key:expr => $value:expr,)+) => { btreemap!($($key => $value),+) };
     ($($key:expr => $value:expr),*) => {
-        BTreeMap::from([ $(($key, $value),)* ])
+        std::collections::BTreeMap::from([ $(($key, $value),)* ])
     };
 }
 

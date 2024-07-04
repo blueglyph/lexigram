@@ -1,6 +1,5 @@
 #![cfg(test)]
 
-use std::collections::BTreeMap;
 use std::io::Cursor;
 use crate::{btreemap, CollectJoin, escape_string, node, term};
 use crate::dfa::*;
