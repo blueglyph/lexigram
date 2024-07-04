@@ -350,63 +350,6 @@ fn rts_prodrule_from() {
     }
 }
 
-#[test]
-fn rts_prs_flags() {
-    fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
-        let factors = rules.prods.iter().enumerate().flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f.clone()))).collect::<Vec<_>>();
-        print_factors(&rules, &factors);
-        let nt_flags = rules.flags.iter().enumerate().filter_map(|(nt, &f)|
-            if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt as VarId).to_str(rules.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
-        ).join("\n");
-        let parents = rules.parent.iter().enumerate().filter_map(|(c, &par)|
-            if let Some(p) = par { Some(format!("  - {} -> {}", Symbol::NT(c as VarId).to_str(rules.get_symbol_table()), Symbol::NT(p).to_str(rules.get_symbol_table()))) } else { None }
-        ).join("\n");
-        println!("- NT flags:\n{}", if nt_flags.is_empty() { "  - (nothing)".to_string() } else { nt_flags });
-        println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
-    }
-    let tests = vec![
-        (9, btreemap![1 => 35, 2 => 64],
-         btreemap![],
-         btreemap![1 => 0, 2 => 1]),
-        (11, btreemap![1 => 3],
-         btreemap![],
-         btreemap![1 => 0]),
-        (15, btreemap![1 => 12],
-         btreemap![2 => 256],
-         btreemap![1 => 0]),
-    ];
-    const VERBOSE: bool = true;
-    for (test_id, expected_flags, expected_fflags, expected_parent) in tests {
-        if VERBOSE { println!("\nTest {test_id}:"); }
-        let mut rts = build_rts(test_id);
-        let mut rules = ProdRuleSet::from(rts);
-        rules.calc_num_symbols();
-        let mut symbol_table = SymbolTable::new();
-        complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt);
-        rules.set_symbol_table(symbol_table);
-        assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed:\n- {}", rules.log.get_errors().join("\n- "));
-        if VERBOSE {
-            print!("General rules\n- ");
-            print_prs_summary(&rules);
-        }
-        let ll1 = ProdRuleSet::<LL1>::from(rules);
-        assert_eq!(ll1.log.num_errors(), 0, "test {test_id} failed:\n- {}", ll1.log.get_errors().join("\n- "));
-        let result_flags = ll1.flags.iter().enumerate().filter_map(|(v, &f)| if f != 0 { Some((v as VarId, f)) } else { None }).collect::<BTreeMap<_, _>>();
-        let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
-        let result_parent = ll1.parent.iter().enumerate().filter_map(|(v, &par)| if let Some(p) = par { Some((v as VarId, p)) } else { None }).collect::<BTreeMap<_, _>>();
-        if VERBOSE {
-            print!("LL1 rules\n- ");
-            print_prs_summary(&ll1);
-            println!("=>");
-            println!("        ({test_id}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
-            println!("         btreemap![{}],", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
-            println!("         btreemap![{}]),", result_parent.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
-        }
-        assert_eq!(result_flags, expected_flags, "test {test_id} failed");
-        assert_eq!(result_fflags, expected_fflags, "test {test_id} failed");
-        assert_eq!(result_parent, expected_parent, "test {test_id} failed");
-    }
-}
 // ---------------------------------------------------------------------------------------------
 // ProdRuleSet
 
@@ -909,6 +852,85 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
         rules.set_start(start);
     }
     rules
+}
+
+#[test]
+fn rts_prs_flags() {
+    fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
+        let factors = rules.prods.iter().enumerate().flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f.clone()))).collect::<Vec<_>>();
+        print_factors(&rules, &factors);
+        let nt_flags = rules.flags.iter().enumerate().filter_map(|(nt, &f)|
+            if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt as VarId).to_str(rules.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
+        ).join("\n");
+        let parents = rules.parent.iter().enumerate().filter_map(|(c, &par)|
+            if let Some(p) = par { Some(format!("  - {} -> {}", Symbol::NT(c as VarId).to_str(rules.get_symbol_table()), Symbol::NT(p).to_str(rules.get_symbol_table()))) } else { None }
+        ).join("\n");
+        println!("- NT flags:\n{}", if nt_flags.is_empty() { "  - (nothing)".to_string() } else { nt_flags });
+        println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
+    }
+    #[derive(Debug)]
+    enum T { RTS(u32), PRS(u32) }
+    let tests = vec![
+        (T::RTS(9), btreemap![1 => 35, 2 => 64],
+         btreemap![],
+         btreemap![1 => 0, 2 => 1]),
+        (T::RTS(11), btreemap![1 => 3],
+         btreemap![],
+         btreemap![1 => 0]),
+        (T::RTS(15), btreemap![1 => 12],
+         btreemap![2 => 256],
+         btreemap![1 => 0]),
+        (T::PRS(0), btreemap![0 => 32, 2 => 64],
+         btreemap![],
+         btreemap![1 => 0, 2 => 0]),
+        //(T::PRS(), btreemap![], btreemap![], btreemap![]),
+    ];
+    const VERBOSE: bool = true;
+    for (test_id, expected_flags, expected_fflags, expected_parent) in tests {
+        if VERBOSE { println!("\nTest {test_id:?}:"); }
+        let mut ll1 = match test_id {
+            T::RTS(id) => {
+                let mut rts = build_rts(id);
+                let mut rules = ProdRuleSet::from(rts);
+                rules.calc_num_symbols();
+                let mut symbol_table = SymbolTable::new();
+                complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt);
+                rules.set_symbol_table(symbol_table);
+                assert_eq!(rules.log.num_errors(), 0, "test {test_id:?} failed:\n- {}", rules.log.get_errors().join("\n- "));
+                // if VERBOSE {
+                //     print!("General rules\n- ");
+                //     print_prs_summary(&rules);
+                // }
+                ProdRuleSet::<LL1>::from(rules)
+            }
+            T::PRS(id) => {
+                let general = build_prs(id);
+                assert_eq!(general.log.num_errors(), 0, "test {test_id:?} failed:\n- {}", general.log.get_errors().join("\n- "));
+                ProdRuleSet::<LL1>::from(general.clone())
+            }
+        };
+        assert_eq!(ll1.log.num_errors(), 0, "test {test_id:?} failed:\n- {}", ll1.log.get_errors().join("\n- "));
+        ll1.set_start(0);
+        let start = ll1.get_start().unwrap();
+        let parsing_table = ll1.create_parsing_table();
+        if VERBOSE && (ll1.log.num_warnings() > 0) || (ll1.log.num_notes() > 0) {
+            print_logs(&ll1);
+        }
+        let result_flags = ll1.flags.iter().enumerate().filter_map(|(v, &f)| if f != 0 { Some((v as VarId, f)) } else { None }).collect::<BTreeMap<_, _>>();
+        let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
+        let result_parent = ll1.parent.iter().enumerate().filter_map(|(v, &par)| if let Some(p) = par { Some((v as VarId, p)) } else { None }).collect::<BTreeMap<_, _>>();
+        if VERBOSE {
+            print!("- ");
+            print_prs_summary(&ll1);
+            println!("=>");
+            println!("        (T::{test_id:?}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+            println!("         btreemap![{}],", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+            println!("         btreemap![{}]),", result_parent.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+        }
+        assert_eq!(result_flags, expected_flags, "test {test_id:?} failed");
+        assert_eq!(result_fflags, expected_fflags, "test {test_id:?} failed");
+        assert_eq!(result_parent, expected_parent, "test {test_id:?} failed");
+    }
 }
 
 #[test]
