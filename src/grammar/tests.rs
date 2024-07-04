@@ -365,12 +365,19 @@ fn rts_prs_flags() {
         println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
     }
     let tests = vec![
+        (9, btreemap![1 => 35, 2 => 64],
+         btreemap![],
+         btreemap![1 => 0, 2 => 1]),
+        (11, btreemap![1 => 3],
+         btreemap![],
+         btreemap![1 => 0]),
         (15, btreemap![1 => 12],
-         btreemap![2 => 256]),
+         btreemap![2 => 256],
+         btreemap![1 => 0]),
     ];
     const VERBOSE: bool = true;
-    for (test_id, expected_flags, expected_fflags) in tests {
-        if VERBOSE { println!("Test {test_id}:"); }
+    for (test_id, expected_flags, expected_fflags, expected_parent) in tests {
+        if VERBOSE { println!("\nTest {test_id}:"); }
         let mut rts = build_rts(test_id);
         let mut rules = ProdRuleSet::from(rts);
         rules.calc_num_symbols();
@@ -386,15 +393,18 @@ fn rts_prs_flags() {
         assert_eq!(ll1.log.num_errors(), 0, "test {test_id} failed:\n- {}", ll1.log.get_errors().join("\n- "));
         let result_flags = ll1.flags.iter().enumerate().filter_map(|(v, &f)| if f != 0 { Some((v as VarId, f)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
+        let result_parent = ll1.parent.iter().enumerate().filter_map(|(v, &par)| if let Some(p) = par { Some((v as VarId, p)) } else { None }).collect::<BTreeMap<_, _>>();
         if VERBOSE {
             print!("LL1 rules\n- ");
             print_prs_summary(&ll1);
             println!("=>");
             println!("        ({test_id}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
-            println!("         btreemap![{}]),", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+            println!("         btreemap![{}],", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+            println!("         btreemap![{}]),", result_parent.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
         }
         assert_eq!(result_flags, expected_flags, "test {test_id} failed");
         assert_eq!(result_fflags, expected_fflags, "test {test_id} failed");
+        assert_eq!(result_parent, expected_parent, "test {test_id} failed");
     }
 }
 // ---------------------------------------------------------------------------------------------
