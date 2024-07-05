@@ -269,21 +269,23 @@ pub mod ruleflag {
     /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
     pub const CHILD_REPEAT: u32 = 1;
     /// Right-recursive NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const R_RECURSION: u32 = 2;
     /// Left-recursive NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const CHILD_L_RECURSION: u32 = 4;
     /// Left-recursive, ambiguous NT.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const CHILD_AMBIGUITY: u32 = 8;
     /// NT created to regroup the independent factors when transforming an ambiguous, recursive rule.
-    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const CHILD_INDEPENDENT_AMBIGUITY: u32 = 16;
-    /// Left factorization
+    /// Left factorization.
+    /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
     pub const PARENT_L_FACTOR: u32 = 32;
     pub const CHILD_L_FACTOR: u32 = 64;
     /// Low-latency non-terminal
+    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in factors.
     pub const L_FORM: u32 = 128;
     /// Right-associative factor.
     /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in factors.
@@ -1466,11 +1468,16 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             let factor = tree.children(parent_id).iter()
                 .map(|id| tree.get(*id))
                 .filter(|node| {
-                    if **node == GrNode::RAssoc {
-                        flags |= ruleflag::R_ASSOC;
-                        false
-                    } else {
-                        true
+                    match **node {
+                        GrNode::RAssoc => {
+                            flags |= ruleflag::R_ASSOC;
+                            false
+                        }
+                        GrNode::LForm => {
+                            flags |= ruleflag::L_FORM;
+                            false
+                        }
+                        _ => true,
                     }
                 })
                 .map(|node| {

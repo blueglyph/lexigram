@@ -223,14 +223,14 @@ fn build_rts(id: u32) -> RuleTreeSet<General> {
             let m = tree.add(Some(cc), gnode!(?));
             tree.addc_iter(Some(m), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
         }
-        15 => { // 0(:1|:2R|:3)0|:4
+        15 => { // 0(:1|:2R|:3L)0|:4
             let or = tree.add_root(gnode!(|));
             let cc = tree.add(Some(or), gnode!(&));
             tree.add(Some(cc), gnode!(nt 0));
             let or2 = tree.add(Some(cc), gnode!(|));
             tree.add(Some(or2), gnode!(t 1));
             tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 2), gnode!(R)]);
-            tree.add(Some(or2), gnode!(t 3));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(L)]);
             tree.add(Some(cc), gnode!(nt 0));
             tree.add(Some(or), gnode!(t 4));
         }
@@ -257,7 +257,7 @@ fn rts_normalize() {
         (11, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, 1), ε)"]),
         (12, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), ε)"]),
         (13, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:4, 1), ε)"]),
-        (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, 0), :4)"]),        
+        (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, <L>, 0), :4)"]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -886,7 +886,7 @@ fn rts_prs_flags() {
          btreemap![],
          btreemap![1 => 0]),
         (T::RTS(15), 0, btreemap![1 => 12],
-         btreemap![2 => 256],
+         btreemap![2 => 256, 3 => 128],
          btreemap![1 => 0]),
         (T::PRS(0), 0, btreemap![0 => 32, 2 => 64],
          btreemap![],
