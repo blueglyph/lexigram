@@ -41,7 +41,7 @@ pub(crate) fn symbol_to_macro(s: &Symbol) -> String {
 // ---------------------------------------------------------------------------------------------
 
 #[test]
-fn gnode() {
+fn gnode_macro() {
     assert_eq!(gnode!([1]), GrNode::Symbol(Symbol::T(1 as TokenId)));
     assert_eq!(gnode!(t 2), GrNode::Symbol(Symbol::T(2 as TokenId)));
     assert_eq!(gnode!(nt 3), GrNode::Symbol(Symbol::NT(3 as VarId)));
@@ -51,6 +51,33 @@ fn gnode() {
     assert_eq!(gnode!(?), GrNode::Maybe);
     assert_eq!(gnode!(+), GrNode::Plus);
     assert_eq!(gnode!(*), GrNode::Star);
+}
+
+#[test]
+fn prod_macros() {
+    assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
+    assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
+    // with extra comma:
+    assert_eq!(prodf!(nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
+    assert_eq!(prodf!(#128, nt 1, t 2, e,), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
+
+    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e),
+               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    ProdFactor::new(vec![sym!(nt  2)]),
+                     ProdFactor::new(vec![sym!(e)])]);
+    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
+               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+                    ProdFactor::new(vec![sym!(e)])]);
+    // with extra semicolon:
+    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e;),
+               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    ProdFactor::new(vec![sym!(nt  2)]),
+                     ProdFactor::new(vec![sym!(e)])]);
+    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #128, nt 2; e;),
+               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+                    ProdFactor::new(vec![sym!(e)])]);
 }
 
 #[test]
@@ -336,7 +363,7 @@ fn rts_prodrule_from() {
             0 => prod!(t 1, t 2; t 1, t 3; t 1; t 2; t 3; e)
         ], vec![0], vec![None]),
         (15, btreemap![
-            0 => prod!(nt 0, t 1, nt 0; nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4)
+            0 => prod!(nt 0, t 1, nt 0; #256, nt 0, t 2, nt 0; #128, nt 0, t 3, nt 0; t 4)
         ], vec![0], vec![None]),
     ];
     for (test_id, expected, expected_flags, expected_parent) in tests {
@@ -899,7 +926,7 @@ fn rts_prs_flags() {
          btreemap![1 => 0]),
         //(T::PRS(), 0, btreemap![], btreemap![], btreemap![]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
     for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
@@ -1171,7 +1198,7 @@ fn prs_ll1_from() {
             1 => prod!(t 0, t 1, nt 1; e),
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, expected) in tests {
         let rules_lr = build_prs(test_id);
         if VERBOSE {

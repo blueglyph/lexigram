@@ -1642,18 +1642,25 @@ pub mod macros {
     /// - a terminal: `t` {integer}
     /// - the empty symbol: `e`
     ///
+    /// Preceding a factor with `# {integer}` sets a flag value on that factor. The values are:
+    /// - 128: L-form (low-latency parsing of that factor)
+    /// - 256: R-assoc (right-associative - by default, ambiguous factors like 'E * E' are left-associative)
+    ///
     /// # Example
     /// ```
     /// # use rlexer::dfa::TokenId;
     /// # use rlexer::grammar::{ProdFactor, Symbol, VarId};
     /// # use rlexer::{prodf, sym};
     /// assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
+    /// assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! prodf {
         () => { std::vec![] };
         ($($a:ident $($b:expr)?,)+) => { prodf![$($a $($b)?),+] };
         ($($a:ident $($b:expr)?),*) => { ProdFactor::new(std::vec![$(sym!($a $($b)?)),*]) };
+        (#$f:expr, $($a:ident $($b:expr)?,)+) => { prodf![#$f, $($a $($b)?),+] };
+        (#$f:expr, $($a:ident $($b:expr)?),*) => { ProdFactor::with_flags(std::vec![$(sym!($a $($b)?)),*], $f) };
     }
 
     /// Generates a production rule. It is made up of factors separated by a semicolon.
@@ -1667,11 +1674,15 @@ pub mod macros {
     ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
     ///                 ProdFactor::new(vec![sym!(nt  2)]),
     ///                 ProdFactor::new(vec![sym!(e)])]);
+    /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
+    ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+    ///                 ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+    ///                 ProdFactor::new(vec![sym!(e)])]);
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! prod {
         () => { std::vec![] };
-        ($($($a:ident $($b:expr)?),*;)+) => { prod![$($($a $($b)?),+);+] };
-        ($($($a:ident $($b:expr)?),*);*) => { std::vec![$(prodf![$($a $($b)?),+]),*]};
+        ($($(#$f:expr,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
+        ($($(#$f:expr,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$(prodf![$(#$f,)? $($a $($b)?),+]),*]};
     }
 }
