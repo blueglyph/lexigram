@@ -16,12 +16,12 @@ pub(super) fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
     ).join("\n    "));
 }
 
-pub(super) fn print_factors<T>(ll1: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor)>) {
+pub(super) fn print_factors<T>(rules: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor)>) {
     println!("factors:\n{}",
              factors.iter().enumerate().map(|(id, (v, f))|
                  format!("            // - {id}: {} -> {}{}",
-                         Symbol::NT(*v).to_str(ll1.get_symbol_table()),
-                         f.iter().map(|s| s.to_str(ll1.get_symbol_table())).join(" "),
+                         Symbol::NT(*v).to_str(rules.get_symbol_table()),
+                         f.iter().map(|s| s.to_str(rules.get_symbol_table())).join(" "),
                          if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
                  )
     ).join("\n"));
@@ -146,7 +146,7 @@ fn check_rts_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> 
     }
 }
 
-fn build_rts(id: u32) -> RuleTreeSet<General> {
+pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();
     // reserve a few variables just so the NT indices are not confusing:
     // we want new variables to begin at 10.
@@ -410,7 +410,7 @@ fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsing
     }
 }
 
-fn print_logs<T>(rules: &ProdRuleSet<T>) {
+pub(crate) fn print_logs<T>(rules: &ProdRuleSet<T>) {
     let mut msg = Vec::<String>::new();
     msg.push(format!("Errors: {}", rules.log.num_errors()));
     msg.extend(rules.log.get_errors().cloned());
@@ -466,7 +466,7 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
     }
 }
 
-fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize, num_nt: usize) {
+pub(crate) fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize, num_nt: usize) {
     if symbol_table.get_terminals().is_empty() {
         assert!(num_t <= 26);
         symbol_table.extend_terminals((0..num_t).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
@@ -1979,8 +1979,8 @@ fn rts_prs() {
 // ---------------------------------------------------------------------------------------------
 // Pre-parser
 
-fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
-    let factors = rules.prods.iter().enumerate().flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f.clone()))).collect::<Vec<_>>();
+pub(crate) fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
+    let factors = rules.get_factors().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
     print_factors(&rules, &factors);
     let nt_flags = rules.flags.iter().enumerate().filter_map(|(nt, &f)|
         if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt as VarId).to_str(rules.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
@@ -2024,7 +2024,7 @@ fn rts_prs_flags() {
             T::RTS(id) => {
                 let mut rts = build_rts(id);
                 let mut rules = ProdRuleSet::from(rts);
-                rules.calc_num_symbols();
+                // rules.calc_num_symbols();
                 let mut symbol_table = SymbolTable::new();
                 complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt);
                 rules.set_symbol_table(symbol_table);

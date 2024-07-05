@@ -830,6 +830,11 @@ impl<T> ProdRuleSet<T> {
         self.prods.iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
     }
 
+    pub fn get_factors(&self) -> impl Iterator<Item=(VarId, &ProdFactor)> {
+        self.prods.iter().enumerate()
+            .flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f)))
+    }
+
     pub fn set_symbol_table(&mut self, symbol_table: SymbolTable) {
         self.symbol_table = Some(symbol_table);
     }
@@ -842,12 +847,16 @@ impl<T> ProdRuleSet<T> {
         self.symbol_table
     }
 
-    pub fn get_num_non_terminals(&self) -> usize {
+    pub fn get_num_nt(&self) -> usize {
         self.num_nt
     }
 
-    pub fn get_num_terminals(&self) -> usize {
+    pub fn get_num_t(&self) -> usize {
         self.num_t
+    }
+
+    pub fn get_log(&self) -> &Logger {
+        &self.log
     }
 
     /// Adds new flags to `flags[nt]` by or'ing them.

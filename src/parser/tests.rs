@@ -56,7 +56,7 @@ fn parser_parse_stream() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
         let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
         ll1.set_start(start);
-        let symbols = (0..ll1.get_num_terminals() as TokenId)
+        let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| Symbol::T(t))
             .map(|s| (s.to_str(ll1.get_symbol_table()), s))
             .collect::<HashMap<_, _>>();
@@ -133,11 +133,10 @@ fn parser_parse_stream_id() {
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
-if ll_id != 100 { continue }
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
         let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
         ll1.set_start(start);
-        let symbols = (0..ll1.get_num_terminals() as TokenId)
+        let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| Symbol::T(t))
             .map(|s| (s.to_str(ll1.get_symbol_table()), s))
             .collect::<HashMap<_, _>>();
@@ -166,6 +165,100 @@ if ll_id != 100 { continue }
                 }
             };
             assert_eq!(success, expected_success, "test {test_id}/{ll_id}/{start} failed for input {input}");
+        }
+    }
+}
+
+// #[cfg(disabled)]
+mod opcodes {
+    use crate::grammar::{ProdRuleSet, Symbol, VarId};
+    use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, print_logs, print_prs_summary};
+    use crate::{CollectJoin, LL1};
+    use crate::parser::Parser;
+    use crate::parsergen::ParserBuilder;
+    use crate::symbol_table::SymbolTable;
+
+    fn get_factors_str(parser: &Parser) -> Vec<String> {
+        parser.factors.iter().enumerate().map(|(id, (v, f))|
+            format!("{id:2}: {} -> {}", Symbol::NT(*v).to_str(Some(&parser.symbol_table)), f.iter().map(|s| s.to_str(Some(&parser.symbol_table))).join(" "))
+        ).collect()
+    }
+
+    fn print_opcodes(parser: &Parser) {
+        let factors = get_factors_str(&parser);
+        let width = factors.iter().map(|f| f.len()).max().unwrap();
+        let opcodes = factors.into_iter().zip(&parser.opcodes).map(|(s, ops)|
+            format!("- {s:width$} - {}", ops.into_iter().map(|s| s.to_str(Some(&parser.symbol_table))).join(" "), width=width)
+        ).join("\n");
+        println!("{}", opcodes)
+    }
+
+    #[test]
+    fn rts_prs_flags() {
+        #[derive(Debug)]
+        enum T { RTS(u32), PRS(u32) }
+        let tests = vec![
+            // A -> b (c d)+
+            // =>
+            // A -> b B
+            // B -> c d B | c d
+            // =>
+            // A -> b B
+            // B -> c d B_1
+            // B_1 -> B
+            // B_1 -> ε
+            (T::RTS(9), 0),
+            // A -> b (c d)*
+            // =>
+            // A -> b B
+            // B -> c d B
+            // B -> ε
+            (T::RTS(12), 0),
+            (T::PRS(26), 1),
+        ];
+        const VERBOSE: bool = true;
+        const VERBOSE_DETAILS: bool = false;
+        for (test_id, (rule_id, start_nt)) in tests.into_iter().enumerate() {
+            if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
+            let mut ll1 = match rule_id {
+                T::RTS(id) => {
+                    let mut rts = build_rts(id);
+                    let mut rules = ProdRuleSet::from(rts);
+                    let mut symbol_table = SymbolTable::new();
+                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt());
+                    rules.set_symbol_table(symbol_table);
+                    assert_eq!(rules.get_log().num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
+                    ProdRuleSet::<LL1>::from(rules)
+                }
+                T::PRS(id) => {
+                    let general = build_prs(id);
+                    assert_eq!(general.get_log().num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", general.get_log().get_errors().join("\n- "));
+                    ProdRuleSet::<LL1>::from(general.clone())
+                }
+            };
+            assert_eq!(ll1.get_log().num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", ll1.get_log().get_errors().join("\n- "));
+            ll1.set_start(start_nt);
+            // let start = ll1.get_start().unwrap();
+            // let parsing_table = ll1.create_parsing_table();
+            // if VERBOSE && (ll1.get_log().num_warnings() > 0) || (ll1.get_log().num_notes() > 0) {
+            //     print_logs(&ll1);
+            // }
+            // let result_flags = ll1.flags.iter().enumerate().filter_map(|(v, &f)| if f != 0 { Some((v as VarId, f)) } else { None }).collect::<BTreeMap<_, _>>();
+            // let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
+            // let result_parent = ll1.parent.iter().enumerate().filter_map(|(v, &par)| if let Some(p) = par { Some((v as VarId, p)) } else { None }).collect::<BTreeMap<_, _>>();
+            if VERBOSE {
+                print!("- ");
+                print_prs_summary(&ll1);
+                // println!("=>");
+                // println!("        (T::{rule_id:?}, {start_nt}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+                // println!("         btreemap![{}],", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+                // println!("         btreemap![{}]),", result_parent.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+            }
+            let mut parser = ParserBuilder::from_rules(ll1).make_parser();
+            if VERBOSE {
+                println!("Opcodes:");
+                print_opcodes(&parser);
+            }
         }
     }
 }
@@ -350,7 +443,7 @@ mod listener {
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
             let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
             ll1.set_start(start);
-            let symbols = (0..ll1.get_num_terminals() as TokenId)
+            let symbols = (0..ll1.get_num_t() as TokenId)
                 .map(|t| Symbol::T(t))
                 .map(|s| (s.to_str(ll1.get_symbol_table()), s))
                 .collect::<HashMap<_, _>>();
