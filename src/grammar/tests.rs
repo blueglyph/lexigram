@@ -744,6 +744,14 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0, t 1, t 2; nt 0, t 0, t 1, t 3; nt 0, t 0, t 4; t 5)
             ])
         }
+        26 => {
+            // A -> A a | b
+            // B -> B a B | b
+            prods.extend([
+                prod!(nt 0, t 0; t 1),
+                prod!(nt 1, t 0, nt 1; t 1),
+            ])
+        }
 
         // ambiguity?
         100 => {
@@ -871,24 +879,31 @@ fn rts_prs_flags() {
     #[derive(Debug)]
     enum T { RTS(u32), PRS(u32) }
     let tests = vec![
-        (T::RTS(9), btreemap![1 => 35, 2 => 64],
+        (T::RTS(9), 0, btreemap![1 => 35, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 1]),
-        (T::RTS(11), btreemap![1 => 3],
+        (T::RTS(11), 0, btreemap![1 => 3],
          btreemap![],
          btreemap![1 => 0]),
-        (T::RTS(15), btreemap![1 => 12],
+        (T::RTS(15), 0, btreemap![1 => 12],
          btreemap![2 => 256],
          btreemap![1 => 0]),
-        (T::PRS(0), btreemap![0 => 32, 2 => 64],
+        (T::PRS(0), 0, btreemap![0 => 32, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
-        //(T::PRS(), btreemap![], btreemap![], btreemap![]),
+        (T::PRS(26), 0, btreemap![1 => 4],
+         btreemap![],
+         btreemap![1 => 0]),
+        (T::PRS(26), 1, btreemap![1 => 12],
+         btreemap![],
+         btreemap![1 => 0]),
+        //(T::PRS(), 0, btreemap![], btreemap![], btreemap![]),
     ];
     const VERBOSE: bool = true;
-    for (test_id, expected_flags, expected_fflags, expected_parent) in tests {
-        if VERBOSE { println!("\nTest {test_id:?}:"); }
-        let mut ll1 = match test_id {
+    const VERBOSE_DETAILS: bool = false;
+    for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent)) in tests.into_iter().enumerate() {
+        if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
+        let mut ll1 = match rule_id {
             T::RTS(id) => {
                 let mut rts = build_rts(id);
                 let mut rules = ProdRuleSet::from(rts);
@@ -896,21 +911,29 @@ fn rts_prs_flags() {
                 let mut symbol_table = SymbolTable::new();
                 complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt);
                 rules.set_symbol_table(symbol_table);
-                assert_eq!(rules.log.num_errors(), 0, "test {test_id:?} failed:\n- {}", rules.log.get_errors().join("\n- "));
-                // if VERBOSE {
-                //     print!("General rules\n- ");
-                //     print_prs_summary(&rules);
-                // }
+                assert_eq!(rules.log.num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", rules.log.get_errors().join("\n- "));
+                if VERBOSE && VERBOSE_DETAILS {
+                    print!("General rules\n- ");
+                    print_prs_summary(&rules);
+                }
                 ProdRuleSet::<LL1>::from(rules)
             }
             T::PRS(id) => {
                 let general = build_prs(id);
-                assert_eq!(general.log.num_errors(), 0, "test {test_id:?} failed:\n- {}", general.log.get_errors().join("\n- "));
+                if VERBOSE && VERBOSE_DETAILS {
+                    print!("General rules\n- ");
+                    print_prs_summary(&general);
+                }
+                assert_eq!(general.log.num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", general.log.get_errors().join("\n- "));
                 ProdRuleSet::<LL1>::from(general.clone())
             }
         };
-        assert_eq!(ll1.log.num_errors(), 0, "test {test_id:?} failed:\n- {}", ll1.log.get_errors().join("\n- "));
-        ll1.set_start(0);
+        assert_eq!(ll1.log.num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", ll1.log.get_errors().join("\n- "));
+        if VERBOSE && VERBOSE_DETAILS {
+            print!("Before table creation:\n- ");
+            print_prs_summary(&ll1);
+        }
+        ll1.set_start(start_nt);
         let start = ll1.get_start().unwrap();
         let parsing_table = ll1.create_parsing_table();
         if VERBOSE && (ll1.log.num_warnings() > 0) || (ll1.log.num_notes() > 0) {
@@ -923,13 +946,13 @@ fn rts_prs_flags() {
             print!("- ");
             print_prs_summary(&ll1);
             println!("=>");
-            println!("        (T::{test_id:?}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+            println!("        (T::{rule_id:?}, {start_nt}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
             println!("         btreemap![{}],", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
             println!("         btreemap![{}]),", result_parent.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
         }
-        assert_eq!(result_flags, expected_flags, "test {test_id:?} failed");
-        assert_eq!(result_fflags, expected_fflags, "test {test_id:?} failed");
-        assert_eq!(result_parent, expected_parent, "test {test_id:?} failed");
+        assert_eq!(result_flags, expected_flags, "test {test_id}/{rule_id:?}/{start_nt} failed");
+        assert_eq!(result_fflags, expected_fflags, "test {test_id}/{rule_id:?}/{start_nt} failed");
+        assert_eq!(result_parent, expected_parent, "test {test_id}/{rule_id:?}/{start_nt} failed");
     }
 }
 
