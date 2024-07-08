@@ -261,6 +261,13 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(nt 0));
             tree.add(Some(or), gnode!(t 4));
         }
+        16 => { // 0 (:0)+ :1 | :2
+            let or = tree.add_root(gnode!(|));
+            let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
+            let p2 = tree.addc(Some(cc1), gnode!(+), gnode!(t 0));
+            tree.add(Some(cc1), gnode!(t 1));
+            tree.add(Some(or), gnode!(t 2));
+        }
         _ => {}
     }
     rules
@@ -2006,6 +2013,9 @@ fn rts_prs_flags() {
         (T::RTS(15), 0, btreemap![1 => 12],
          btreemap![2 => 256, 3 => 128],
          btreemap![1 => 0]),
+        (T::RTS(16), 0, btreemap![1 => 33, 2 => 4, 3 => 64],
+         btreemap![],
+         btreemap![1 => 0, 2 => 0, 3 => 1]),
         (T::PRS(0), 0, btreemap![0 => 32, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
