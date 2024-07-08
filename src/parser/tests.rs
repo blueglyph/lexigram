@@ -214,6 +214,7 @@ mod opcodes {
             // B -> c d B
             // B -> ε
             (T::RTS(12), 0),
+            (T::RTS(16), 0),
             (T::PRS(26), 1),
         ];
         const VERBOSE: bool = true;

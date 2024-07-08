@@ -863,7 +863,9 @@ impl<T> ProdRuleSet<T> {
     /// If necessary, extends the `flags` array first.
     fn set_flags(&mut self, nt: VarId, new_flags: u32) {
         let nt = nt as usize;
-        self.flags.resize(nt + 1, 0);
+        if nt >= self.flags.len() {
+            self.flags.resize(nt + 1, 0);
+        }
         self.flags[nt] |= new_flags;
     }
 
@@ -878,7 +880,9 @@ impl<T> ProdRuleSet<T> {
 
     fn set_parent(&mut self, child: VarId, parent: VarId) {
         let child = child as usize;
-        self.parent.resize(child + 1, None);
+        if child >= self.parent.len() {
+            self.parent.resize(child + 1, None);
+        }
         self.parent[child] = Some(parent);
     }
 
@@ -1351,6 +1355,7 @@ impl<T> ProdRuleSet<T> {
                     if let Some(table) = &mut self.symbol_table {
                         table.add_var_prime_name(var, var_prime);
                     }
+                    self.set_parent(var_prime, var);
                     let symbol_prime = Symbol::NT(var_prime);
                     if VERBOSE {
                         println!("   adding non-terminal {var_prime} ({}), deriving from {var} ({})",

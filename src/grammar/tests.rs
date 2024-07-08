@@ -1997,16 +1997,16 @@ fn rts_prs_flags() {
     #[derive(Debug)]
     enum T { RTS(u32), PRS(u32) }
     let tests = vec![
-        (T::RTS(9), 0, btreemap![1 => 35, 2 => 64],
+        (T::RTS(9), 0, btreemap![1 => 33, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 1]),
-        (T::RTS(11), 0, btreemap![1 => 3],
+        (T::RTS(11), 0, btreemap![1 => 1],
          btreemap![],
          btreemap![1 => 0]),
         (T::RTS(15), 0, btreemap![1 => 12],
          btreemap![2 => 256, 3 => 128],
          btreemap![1 => 0]),
-        (T::PRS(0), 0, btreemap![0 => 32, 2 => 64],
+        (T::PRS(0), 0, btreemap![0 => 32, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
         (T::PRS(26), 0, btreemap![1 => 4],
