@@ -23,6 +23,8 @@ pub struct Parser {
     num_t: usize,
     factors: Vec<(VarId, ProdFactor)>,
     opcodes: Vec<Vec<Symbol>>,
+    flags: Vec<u32>,            // NT -> flags (+ or * normalization)
+    parent: Vec<Option<VarId>>, // NT -> parent NT
     table: Vec<VarId>,
     symbol_table: SymbolTable,
     start: VarId
@@ -36,6 +38,8 @@ impl Parser {
             num_t: parsing_table.num_t,
             factors: parsing_table.factors,
             opcodes: Vec::new(),
+            flags: parsing_table.flags,
+            parent: parsing_table.parent,
             table: parsing_table.table,
             symbol_table, start };
         parser.build_opcodes();

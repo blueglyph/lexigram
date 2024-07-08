@@ -394,7 +394,7 @@ fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
 }
 
 fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsingTable, indent: usize) {
-    let LLParsingTable { num_nt, num_t, factors, table } = parsing_table;
+    let LLParsingTable { num_nt, num_t, factors, table, flags, parent } = parsing_table;
     let error = factors.len() as VarId;
     let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
     let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
@@ -1805,7 +1805,7 @@ fn prs_calc_table() {
             map_and_print_follow(&follow, ll1.get_symbol_table());
         }
         let parsing_table = ll1.calc_table(&first, &follow);
-        let LLParsingTable { num_nt, num_t, factors, table } = &parsing_table;
+        let LLParsingTable { num_nt, num_t, factors, table, flags, parent } = &parsing_table;
         assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{ll_id}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
@@ -1971,7 +1971,7 @@ fn rts_prs() {
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         let parsing_table = ll1.calc_table(&first, &follow);
-        let LLParsingTable { num_nt, num_t, factors, table } = &parsing_table;
+        let LLParsingTable { num_nt, num_t, factors, .. } = &parsing_table;
         if VERBOSE {
             print_factors(&ll1, &factors);
             println!("{}",

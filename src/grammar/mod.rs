@@ -788,7 +788,9 @@ pub struct LLParsingTable {
     pub num_nt: usize,
     pub num_t: usize,
     pub factors: Vec<(VarId, ProdFactor)>,
-    pub table: Vec<VarId>
+    pub table: Vec<VarId>,
+    pub flags: Vec<u32>,            // NT -> flags (+ or * normalization)
+    pub parent: Vec<Option<VarId>>, // NT -> parent NT
 }
 
 #[derive(Clone, Debug)]
@@ -1475,7 +1477,7 @@ impl ProdRuleSet<LL1> {
         if !(0..num_t - 1).any(|t_id| (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] != error)) {
             self.log.add_error("calc_table: no terminal used in the table".to_string());
         }
-        LLParsingTable { num_nt, num_t, factors, table: final_table }
+        LLParsingTable { num_nt, num_t, factors, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() }
     }
 
     pub fn create_parsing_table(&mut self) -> LLParsingTable {

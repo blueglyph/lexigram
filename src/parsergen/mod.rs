@@ -80,6 +80,10 @@ impl ParserBuilder {
         writeln!(out, "const PARSING_TABLE: [VarId; {}] = [{}];",
                  self.parsing_table.table.len(),
                  self.parsing_table.table.iter().map(|v| format!("{v}")).join(", "))?;
+        writeln!(out, "const FLAGS: [u32; {}] = [{}];",
+                 self.parsing_table.flags.len(), self.parsing_table.flags.iter().join(", "))?;
+        writeln!(out, "const PARENT: [Option<VarId>; {}] = [{}];",
+                 self.parsing_table.parent.len(), self.parsing_table.parent.iter().map(|p| if let Some(par) = p { format!("Some({par})") } else { format!("None") }).join(", "))?;
         writeln!(out, "const START_SYMBOL: VarId = {};\n", self.start)?;
 
         writeln!(out, "pub(super) fn build_parser() -> Parser {{")?;
