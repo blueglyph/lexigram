@@ -194,7 +194,7 @@ mod opcodes {
     }
 
     #[test]
-    fn rts_prs_flags() {
+    fn parser_opcodes() {
         #[derive(Debug)]
         enum T { RTS(u32), PRS(u32) }
         let tests = vec![
@@ -256,7 +256,7 @@ mod opcodes {
             }
             let mut parser = ParserBuilder::from_rules(ll1).make_parser();
             if VERBOSE {
-                println!("Opcodes:");
+                println!("Final factors and opcodes:");
                 print_opcodes(&parser);
             }
         }
