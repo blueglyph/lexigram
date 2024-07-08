@@ -861,10 +861,19 @@ impl<T> ProdRuleSet<T> {
 
     /// Adds new flags to `flags[nt]` by or'ing them.
     /// If necessary, extends the `flags` array first.
-    fn or_flags(&mut self, nt: VarId, new_flags: u32) {
+    fn set_flags(&mut self, nt: VarId, new_flags: u32) {
         let nt = nt as usize;
         self.flags.resize(nt + 1, 0);
         self.flags[nt] |= new_flags;
+    }
+
+    fn get_flags(&self, nt: VarId) -> u32 {
+        let nt = nt as usize;
+        if nt < self.flags.len() {
+            self.flags[nt]
+        } else {
+            0
+        }
     }
 
     fn set_parent(&mut self, child: VarId, parent: VarId) {
@@ -1204,7 +1213,7 @@ impl<T> ProdRuleSet<T> {
                     if let Some(table) = &mut self.symbol_table {
                         table.add_var_prime_name(var, new_var);
                     }
-                    self.or_flags(var_ambig, ruleflag::CHILD_INDEPENDENT_AMBIGUITY);
+                    self.set_flags(var_ambig, ruleflag::CHILD_INDEPENDENT_AMBIGUITY);
                     self.set_parent(var_ambig, var);
                     new_var += 1;
                     extra.push(fine.clone());
@@ -1214,7 +1223,7 @@ impl<T> ProdRuleSet<T> {
                 };
                 let var_prime = new_var;
                 new_var += 1;
-                self.or_flags(var_prime, ruleflag::CHILD_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::CHILD_AMBIGUITY });
+                self.set_flags(var_prime, ruleflag::CHILD_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::CHILD_AMBIGUITY });
                 self.set_parent(var_prime, var);
                 if let Some(table) = &mut self.symbol_table {
                     table.add_var_prime_name(var, var_prime);
@@ -1265,7 +1274,9 @@ impl<T> ProdRuleSet<T> {
                 extra.push(left);
             } else if prod.iter().any(|p| *p.last().unwrap() == symbol) {
                 // only right-recursive: nothing to change, but applies flags
-                self.or_flags(var, ruleflag::R_RECURSION);
+                if self.get_flags(var) & ruleflag::CHILD_REPEAT == 0 {
+                    self.set_flags(var, ruleflag::R_RECURSION);
+                }
             }
 
         }
@@ -1335,9 +1346,8 @@ impl<T> ProdRuleSet<T> {
                     }
                     let var_prime = new_var;
                     new_var += 1;
-                    self.or_flags(var, ruleflag::PARENT_L_FACTOR);
-                    self.or_flags(var_prime, ruleflag::CHILD_L_FACTOR);
-                    self.set_parent(var_prime, var);
+                    self.set_flags(var, ruleflag::PARENT_L_FACTOR);
+                    self.set_flags(var_prime, ruleflag::CHILD_L_FACTOR);
                     if let Some(table) = &mut self.symbol_table {
                         table.add_var_prime_name(var, var_prime);
                     }
