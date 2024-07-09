@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use crate::CollectJoin;
-use crate::grammar::{LLParsingTable, ProdFactor, Symbol, VarId};
+use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId};
 use crate::symbol_table::SymbolTable;
 
 mod tests;
@@ -49,16 +49,26 @@ impl Parser {
     fn build_opcodes(&mut self) {
         for (factor_id, (var_id, factor)) in self.factors.iter().enumerate() {
             let factor_id = factor_id as VarId;
-
+            let flags = self.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);
             let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
             let mut opcode = Vec::<Symbol>::new();
             if new.get(0) == Some(&stack_sym) {
                 opcode.push(new[0]);
-                opcode.push(Symbol::Exit(factor_id));
+                if flags & ruleflag::PARENT_L_FACTOR == 0 {
+                    opcode.push(Symbol::Exit(factor_id));
+                }
                 opcode.extend(new.into_iter().skip(1));
             } else {
-                opcode.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
+                if flags & ruleflag::CHILD_L_FACTOR != 0 {
+                    let parent = self.parent[*var_id as usize].unwrap();
+                    if matches!(new.last(), Some(Symbol::NT(parent))) {
+                        opcode.push(Symbol::Loop(parent));
+                    }
+                }
+                if flags & ruleflag::PARENT_L_FACTOR == 0 {
+                    opcode.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
+                }
                 opcode.extend(new);
             }
             opcode.iter_mut().for_each(|o| {
