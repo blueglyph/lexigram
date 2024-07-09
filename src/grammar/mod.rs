@@ -424,6 +424,7 @@ impl RuleTreeSet<General> {
     pub fn normalize_var(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
+        if VERBOSE { println!("normalize_var({})", Symbol::NT(var).to_str(self.get_symbol_table())); }
         let mut new_var = self.get_next_available_var();
         let orig = std::mem::take(&mut self.trees[var as usize]);
         let mut new = VecTree::<GrNode>::new();

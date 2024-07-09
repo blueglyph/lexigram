@@ -148,8 +148,6 @@ fn check_rts_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> 
 
 pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();
-    // reserve a few variables just so the NT indices are not confusing:
-    // we want new variables to begin at 10.
     let tree = rules.get_tree_mut(0);
 
     match id {
@@ -268,6 +266,15 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc1), gnode!(t 1));
             tree.add(Some(or), gnode!(t 2));
         }
+        17 => { // :0 ( (:1)+ :2)+ :3
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            tree.addc(Some(cc2), gnode!(+), gnode!(t 1));
+            tree.add(Some(cc2), gnode!(t 2));
+            tree.add(Some(cc), gnode!(t 3));
+        }
         _ => {}
     }
     rules
@@ -292,6 +299,7 @@ fn rts_normalize() {
         (12, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), ε)"]),
         (13, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:4, 1), ε)"]),
         (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, <L>, 0), :4)"]),
+        (17, btreemap![0 => "&(:0, 2, :3)", 1 => "|(&(:1, 1), :1)", 2 => "|(&(1, :2, 2), &(1, :2))"]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -301,6 +309,7 @@ fn rts_normalize() {
         let mut rules = build_rts(test_id);
         let vars = rules.get_vars().to_vec();
         rules.normalize();
+        assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize: {}", log_to_str(&rules.log));
         if let Some(err) = check_rts_sanity(&rules, VERBOSE) {
             panic!("test {test_id} failed:\n{}", err);
         }
@@ -372,12 +381,28 @@ fn rts_prodrule_from() {
         (15, btreemap![
             0 => prod!(nt 0, t 1, nt 0; #256, nt 0, t 2, nt 0; #128, nt 0, t 3, nt 0; t 4)
         ], vec![0], vec![None]),
+        (17, btreemap![
+            0 => prod!(t 0, nt 2, t 3),
+            1 => prod!(t 1, nt 1; t 1),
+            2 => prod!(nt 1, t 2, nt 2; nt 1, t 2),
+        ], vec![0, 1, 1], vec![None, Some(0), Some(0)]),
     ];
+    const VERBOSE: bool = false;
     for (test_id, expected, expected_flags, expected_parent) in tests {
+        if VERBOSE {
+            println!("test {test_id}:");
+        }
         let trees = build_rts(test_id);
         let mut rules = ProdRuleSet::from(trees);
+        assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to create production rules: {}", log_to_str(&rules.log));
         rules.simplify();
         let result = rules.get_prods_iter().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
+        if VERBOSE {
+            println!("=>");
+            print_production_rules(&rules);
+            println!();
+            print_expected_code(&result);
+        }
         assert_eq!(result, expected, "test {test_id} failed");
         assert_eq!(rules.flags, expected_flags, "test {test_id} failed (flags)");
         assert_eq!(rules.parent, expected_parent, "test {test_id} failed (parent)");
@@ -417,17 +442,21 @@ fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsing
     }
 }
 
-pub(crate) fn print_logs<T>(rules: &ProdRuleSet<T>) {
+pub(crate) fn log_to_str(log: &Logger) -> String {
     let mut msg = Vec::<String>::new();
-    msg.push(format!("Errors: {}", rules.log.num_errors()));
-    msg.extend(rules.log.get_errors().cloned());
+    msg.push(format!("Errors: {}", log.num_errors()));
+    msg.extend(log.get_errors().cloned());
     msg.push("".to_string());
-    msg.push(format!("Warnings: {}", rules.log.num_warnings()));
-    msg.extend(rules.log.get_warnings().cloned());
+    msg.push(format!("Warnings: {}", log.num_warnings()));
+    msg.extend(log.get_warnings().cloned());
     msg.push("".to_string());
-    msg.push(format!("Notes: {}", rules.log.num_notes()));
-    msg.extend(rules.log.get_notes().cloned());
-    println!("{}\n", msg.join("\n"));
+    msg.push(format!("Notes: {}", log.num_notes()));
+    msg.extend(log.get_notes().cloned());
+    msg.join("\n")
+}
+
+pub(crate) fn print_logs<T>(rules: &ProdRuleSet<T>) {
+    println!("{}\n", log_to_str(&rules.log));
 }
 
 fn map_and_print_first<'a>(first: &'a HashMap<Symbol, HashSet<Symbol>>, symbol_table: Option<&'a SymbolTable>) -> BTreeMap<&'a Symbol, BTreeSet<&'a Symbol>> {
