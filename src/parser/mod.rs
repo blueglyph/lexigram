@@ -127,31 +127,12 @@ impl Parser {
                     let call = if stack_sym.is_loop() { Call::Loop } else { Call::Enter };
                     listener.switch(call, var, factor_id, vec![]);
                     let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
-
-                    let mut opcode = Vec::<Symbol>::new();
-                    if new.get(0) == Some(&Symbol::NT(var)) {
-                        opcode.push(new[0]);
-                        opcode.push(Symbol::Exit(factor_id));
-                        opcode.extend(new.into_iter().skip(1));
-                    } else {
-                        opcode.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
-                        opcode.extend(new);
-                    }
-                    opcode.iter_mut().for_each(|o| {
-                        if let Symbol::NT(v) = o {
-                            if *v == var {
-                                *o = Symbol::Loop(*v)
-                            }
-                        }
-                    });
                     if VERBOSE {
                         let f = &self.factors[factor_id as usize];
                         println!("- to stack: {}", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(", "));
                         println!("- {} {} -> {} ", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
                                  Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table));
                     }
-                    assert_eq!(opcode, self.opcodes[factor_id as usize]);
-
                     stack.extend(self.opcodes[factor_id as usize].clone());
                     stack_sym = stack.pop().unwrap();
                 }
