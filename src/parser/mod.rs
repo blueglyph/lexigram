@@ -51,7 +51,7 @@ impl Parser {
             let factor_id = factor_id as VarId;
             let flags = self.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);
-            let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
+            let mut new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
             let mut opcode = Vec::<Symbol>::new();
             if new.get(0) == Some(&stack_sym) {
                 opcode.push(new[0]);
@@ -64,6 +64,7 @@ impl Parser {
                     let parent = self.parent[*var_id as usize].unwrap();
                     if matches!(new.last(), Some(Symbol::NT(parent))) {
                         opcode.push(Symbol::Loop(parent));
+                        new.pop();
                     }
                 }
                 if flags & ruleflag::PARENT_L_FACTOR == 0 {
