@@ -131,8 +131,9 @@ fn parser_parse_stream_id() {
             ("c a c b a c b", true),
         ])
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
+if ll_id != 22 { continue; }
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
         let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
         ll1.set_start(start);
@@ -215,10 +216,19 @@ mod opcodes {
             // B -> ε
             (T::RTS(12), 0),
             (T::RTS(16), 0),
+            // E -> E * E | E '&' '*' E | E + E | E '&' '+' E | id
+            // -  0: E -> id E_1     - ◄0 E_1 id
+            // -  1: E_1 -> ε        -
+            // -  2: E_1 -> * id E_1 - ●E_1 id *
+            // -  3: E_1 -> + id E_1 - ●E_1 id +
+            // -  4: E_1 -> & E_2    - E_2 &
+            // -  5: E_2 -> * id E_1 - ◄5 E_1 id *
+            // -  6: E_2 -> + id E_1 - ◄6 E_1 id +
+            (T::PRS(22), 0),
             (T::PRS(26), 1),
         ];
         const VERBOSE: bool = true;
-        const VERBOSE_DETAILS: bool = false;
+        const VERBOSE_DETAILS: bool = true;
         for (test_id, (rule_id, start_nt)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let mut ll1 = match rule_id {
