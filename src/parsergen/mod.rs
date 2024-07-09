@@ -97,7 +97,9 @@ impl ParserBuilder {
         writeln!(out, "        num_nt: PARSER_NUM_NT,")?;
         writeln!(out, "        num_t: PARSER_NUM_T + 1,")?;
         writeln!(out, "        factors,")?;
-        writeln!(out, "        table")?;
+        writeln!(out, "        table,")?;
+        writeln!(out, "        flags: FLAGS.into(),")?;
+        writeln!(out, "        parent: PARENT.into(),")?;
         writeln!(out, "    }};")?;
         writeln!(out, "    Parser::new(parsing_table, symbol_table, START_SYMBOL)")?;
         writeln!(out, "}}")?;

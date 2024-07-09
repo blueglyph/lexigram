@@ -20,6 +20,19 @@ fn write_source_code_from_ll1() {
 
 #[ignore]
 #[test]
+fn write_source_code_for_integration_listener() {
+    // Copy the output into tests/integration.rs, module parser_gen:
+    let rules = build_prs(4);
+    let ll1 = ProdRuleSet::<LL1>::from(rules);
+    let builder = ParserBuilder::from_rules(ll1);
+    match builder.write_source_code(None) {
+        Ok(_) => {}
+        Err(e) => { println!("Error: {e}"); }
+    }
+}
+
+#[ignore]
+#[test]
 fn write_source_code_from_lr() {
     let rules = build_prs(4);
     let builder = ParserBuilder::from_rules(rules);
