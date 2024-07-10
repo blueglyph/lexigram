@@ -1,5 +1,6 @@
 #![allow(unused)]
 
+use std::collections::HashMap;
 use crate::CollectJoin;
 use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId};
 use crate::symbol_table::SymbolTable;
@@ -61,12 +62,18 @@ impl Parser {
             assert!(n < 256);
             n as u8
         }
-        ).to_vec(); // TODO: needs to be corrected for left factorization children
+        ).to_vec();
+        let mut var_factors = HashMap::<VarId, (VarId, VarId)>::new();
         for (factor_id, (var_id, factor)) in self.factors.iter().enumerate() {
             if VERBOSE {
                 println!("{} -> {}",
                          Symbol::NT(*var_id).to_str(self.get_symbol_table()),
                          factor.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "));
+            }
+            if let Some((a, b)) = var_factors.get_mut(var_id) {
+                *b = factor_id as VarId;
+            } else {
+                var_factors.insert(*var_id, (factor_id as VarId, factor_id as VarId));
             }
             let factor_id = factor_id as VarId;
             let flags = self.flags[*var_id as usize];
@@ -74,22 +81,51 @@ impl Parser {
             let mut new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
             if VERBOSE { println!("- {}", new.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut opcode = Vec::<Symbol>::new();
+            let mut num_stack = num_t_str[factor_id as usize];
+            let mut fl = flags;
+            let mut child_var = *var_id;
+            while fl & ruleflag::CHILD_L_FACTOR != 0 {
+                let par_var = self.parent[child_var as usize].unwrap();
+                fl = self.flags[par_var as usize];
+                let factors = var_factors[&par_var];
+                if VERBOSE {
+                    println!("  // child var {}: parent var {} has factors {} to {}",
+                             Symbol::NT(child_var).to_str(self.get_symbol_table()),
+                             Symbol::NT(par_var).to_str(self.get_symbol_table()), factors.0, factors.1);
+                }
+                let calling_factor = (factors.0 ..= factors.1).find(|f| {
+                    let ok = self.factors[*f as usize].1.iter().any(|s| s == &Symbol::NT(child_var));
+                    if VERBOSE {
+                        println!("  // is factor {f} calling {}? {ok}: {}", Symbol::NT(child_var).to_str(self.get_symbol_table()),
+                            self.factors[*f as usize].1.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")
+                        )
+                    }
+                    ok
+                }).unwrap();
+                if VERBOSE {
+                    println!("  - var {} ({child_var}) is called by factor {calling_factor} -> num_stack = {num_stack} + {}",
+                             Symbol::NT(par_var).to_str(self.get_symbol_table()),
+                             num_t_str[calling_factor as usize]);
+                }
+                num_stack += num_t_str[calling_factor as usize];
+                child_var = par_var;
+            }
             if new.get(0) == Some(&stack_sym) {
                 opcode.push(new[0]);
                 if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
-                    opcode.push(Symbol::Exit(factor_id, num_t_str[factor_id as usize]));
+                    opcode.push(Symbol::Exit(factor_id, num_stack));
                 }
                 opcode.extend(new.into_iter().skip(1));
             } else {
                 if flags & ruleflag::CHILD_L_FACTOR != 0 {
                     let parent = self.parent[*var_id as usize].unwrap();
-                    if matches!(new.get(0), Some(Symbol::NT(parent))) {
+                    if new.get(0) == Some(&Symbol::NT(parent)) {
                         opcode.push(Symbol::Loop(parent));
                         new.remove(0);
                     }
                 }
                 if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
-                    opcode.push(Symbol::Exit(factor_id, num_t_str[factor_id as usize])); // will be popped when this NT is completed
+                    opcode.push(Symbol::Exit(factor_id, num_stack)); // will be popped when this NT is completed
                 }
                 opcode.extend(new);
             }

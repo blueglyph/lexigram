@@ -137,7 +137,6 @@ fn parser_parse_stream_id() {
     ];
     const VERBOSE: bool = true;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
-if ll_id != T::RTS(9) { continue }
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
         let mut ll1 = ll_id.get_prs(test_id, start);
         let symbols = (0..ll1.get_num_t() as TokenId)
