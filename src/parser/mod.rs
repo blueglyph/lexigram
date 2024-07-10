@@ -46,28 +46,43 @@ impl Parser {
         parser
     }
 
+    pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
+        Some(&self.symbol_table)
+    }
+
+    fn has_flags(&self, var: VarId, flags: u32) -> bool {
+        self.flags[var as usize] & flags == flags
+    }
+
     fn build_opcodes(&mut self) {
+        const VERBOSE: bool = false;
         for (factor_id, (var_id, factor)) in self.factors.iter().enumerate() {
+            if VERBOSE {
+                println!("{} -> {}",
+                         Symbol::NT(*var_id).to_str(self.get_symbol_table()),
+                         factor.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "));
+            }
             let factor_id = factor_id as VarId;
             let flags = self.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);
             let mut new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
+            if VERBOSE { println!("- {}", new.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut opcode = Vec::<Symbol>::new();
             if new.get(0) == Some(&stack_sym) {
                 opcode.push(new[0]);
-                if flags & ruleflag::PARENT_L_FACTOR == 0 {
+                if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
                     opcode.push(Symbol::Exit(factor_id));
                 }
                 opcode.extend(new.into_iter().skip(1));
             } else {
                 if flags & ruleflag::CHILD_L_FACTOR != 0 {
                     let parent = self.parent[*var_id as usize].unwrap();
-                    if matches!(new.last(), Some(Symbol::NT(parent))) {
+                    if matches!(new.get(0), Some(Symbol::NT(parent))) {
                         opcode.push(Symbol::Loop(parent));
-                        new.pop();
+                        new.remove(0);
                     }
                 }
-                if flags & ruleflag::PARENT_L_FACTOR == 0 {
+                if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
                     opcode.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
                 }
                 opcode.extend(new);
@@ -79,6 +94,7 @@ impl Parser {
                     }
                 }
             });
+            if VERBOSE { println!("- {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             self.opcodes.push(opcode);
         }
     }
