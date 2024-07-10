@@ -56,6 +56,12 @@ impl Parser {
 
     fn build_opcodes(&mut self) {
         const VERBOSE: bool = false;
+        let num_t_str = self.factors.iter().map(|(v, f)| {
+            let n = f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count();
+            assert!(n < 256);
+            n as u8
+        }
+        ).to_vec(); // TODO: needs to be corrected for left factorization children
         for (factor_id, (var_id, factor)) in self.factors.iter().enumerate() {
             if VERBOSE {
                 println!("{} -> {}",
@@ -71,7 +77,7 @@ impl Parser {
             if new.get(0) == Some(&stack_sym) {
                 opcode.push(new[0]);
                 if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
-                    opcode.push(Symbol::Exit(factor_id));
+                    opcode.push(Symbol::Exit(factor_id, num_t_str[factor_id as usize]));
                 }
                 opcode.extend(new.into_iter().skip(1));
             } else {
@@ -83,7 +89,7 @@ impl Parser {
                     }
                 }
                 if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
-                    opcode.push(Symbol::Exit(factor_id)); // will be popped when this NT is completed
+                    opcode.push(Symbol::Exit(factor_id, num_t_str[factor_id as usize])); // will be popped when this NT is completed
                 }
                 opcode.extend(new);
             }
@@ -104,9 +110,9 @@ impl Parser {
               L: Listener,
     {
         const VERBOSE: bool = true;
-        let num_t_str = self.factors.iter().map(|(v, f)|
-            (*v, f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count())
-        ).to_vec();
+        // let num_t_str = self.factors.iter().map(|(v, f)|
+        //     (*v, f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count())
+        // ).to_vec();
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<Symbol>::new();
         let mut stack_t = Vec::<String>::new();
@@ -156,8 +162,10 @@ impl Parser {
                     stack.extend(self.opcodes[factor_id as usize].clone());
                     stack_sym = stack.pop().unwrap();
                 }
-                (Symbol::Exit(factor_id), _) => {
-                    let (var, n) = num_t_str[factor_id as usize];
+                (Symbol::Exit(factor_id, n), _) => {
+                    // let (var, n) = num_t_str[factor_id as usize];
+                    let var = self.factors[factor_id as usize].0;
+                    let n = n as usize;
                     let t_str = stack_t.drain(stack_t.len() - n..).to_vec();
                     if VERBOSE { println!("- EXIT {} syn ({}): {}", Symbol::NT(var).to_str(sym_table), t_str.len(), t_str.iter().join(" ")); }
                     listener.switch(Call::Exit, var, factor_id, t_str);

@@ -138,7 +138,7 @@ impl SymbolTable {
             Symbol::Loop(var) => {
                 format!("●{}", self.nt[*var as usize])
             }
-            Symbol::Exit(_) => {
+            Symbol::Exit(_, _) => {
                 format!("{symbol}")
             }
         }
