@@ -3,10 +3,11 @@
 use std::collections::HashMap;
 use crate::{CollectJoin, LL1};
 use crate::dfa::TokenId;
-use crate::grammar::{ProdRuleSet, Symbol};
-use crate::grammar::tests::build_prs;
+use crate::grammar::{ProdRuleSet, Symbol, VarId};
+use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, T};
 use crate::parser::Listener;
 use crate::parsergen::ParserBuilder;
+use crate::symbol_table::SymbolTable;
 
 #[test]
 fn parser_parse_stream() {
@@ -98,11 +99,14 @@ fn parser_parse_stream_id() {
     impl Listener for Stub {}
 
     let tests = vec![
-        (20, 0, 5, 999, vec![
+        (T::RTS(9), 0, 2, 999, vec![
+            ("var a , b ,", true),
+        ]),
+        (T::PRS(20), 0, 5, 999, vec![
             ("struct test1 { a : int ; b : string ; c : bool ; }", true),
             ("struct test2 { a : int ; b : string ; c : bool }", false),
         ]),
-        (22, 0, 3, 4, vec![
+        (T::PRS(22), 0, 3, 4, vec![
             // - 0: E -> id E_1
             // - 1: E_1 -> ε
             // - 2: E_1 -> * id E_1
@@ -113,7 +117,7 @@ fn parser_parse_stream_id() {
             ("a + b * c", true),
             ("a + b & * c * d", true),
         ]),
-        (23, 0, 3, 4, vec![
+        (T::PRS(23), 0, 3, 4, vec![
             // - 0: E -> F E_1
             // - 1: F -> id
             // - 2: F -> num
@@ -126,16 +130,16 @@ fn parser_parse_stream_id() {
             ("1 + 2 * 3", true),
             ("a + 1 & * b * 2", true),
         ]),
-        (100, 0, 999, 999, vec![
+        (T::PRS(100), 0, 999, 999, vec![
             ("c a c a c b b", true),
             ("c a c b a c b", true),
         ])
     ];
     const VERBOSE: bool = true;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
-        if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
-        let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
-        ll1.set_start(start);
+if ll_id != T::RTS(9) { continue }
+        if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
+        let mut ll1 = ll_id.get_prs(test_id, start);
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| Symbol::T(t))
             .map(|s| (s.to_str(ll1.get_symbol_table()), s))
@@ -164,7 +168,7 @@ fn parser_parse_stream_id() {
                     false
                 }
             };
-            assert_eq!(success, expected_success, "test {test_id}/{ll_id}/{start} failed for input {input}");
+            assert_eq!(success, expected_success, "test {test_id}/{ll_id:?}/{start} failed for input {input}");
         }
     }
 }
@@ -172,7 +176,7 @@ fn parser_parse_stream_id() {
 // #[cfg(disabled)]
 mod opcodes {
     use crate::grammar::{ProdRuleSet, Symbol, VarId};
-    use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, print_logs, print_prs_summary};
+    use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, print_logs, print_prs_summary, T};
     use crate::{CollectJoin, LL1};
     use crate::parser::Parser;
     use crate::parsergen::ParserBuilder;
@@ -195,8 +199,6 @@ mod opcodes {
 
     #[test]
     fn parser_opcodes() {
-        #[derive(Debug)]
-        enum T { RTS(u32), PRS(u32) }
         let tests = vec![
             // A -> b (c d)+
             // =>
@@ -230,25 +232,7 @@ mod opcodes {
         const VERBOSE_DETAILS: bool = true;
         for (test_id, (rule_id, start_nt)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
-            let mut ll1 = match rule_id {
-                T::RTS(id) => {
-                    let mut rts = build_rts(id);
-                    let mut rules = ProdRuleSet::from(rts);
-                    let mut symbol_table = SymbolTable::new();
-                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt());
-                    rules.set_symbol_table(symbol_table);
-                    assert_eq!(rules.get_log().num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
-                    ProdRuleSet::<LL1>::from(rules)
-                }
-                T::PRS(id) => {
-                    let general = build_prs(id);
-                    assert_eq!(general.get_log().num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", general.get_log().get_errors().join("\n- "));
-                    ProdRuleSet::<LL1>::from(general.clone())
-                }
-            };
-            assert_eq!(ll1.get_log().num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", ll1.get_log().get_errors().join("\n- "));
-            ll1.set_start(start_nt);
-            // let start = ll1.get_start().unwrap();
+            let mut ll1 = rule_id.get_prs(test_id, start_nt);
             // let parsing_table = ll1.create_parsing_table();
             // if VERBOSE && (ll1.get_log().num_warnings() > 0) || (ll1.get_log().num_notes() > 0) {
             //     print_logs(&ll1);

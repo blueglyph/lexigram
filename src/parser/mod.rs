@@ -120,8 +120,11 @@ impl Parser {
         loop {
             if VERBOSE {
                 println!("{:-<40}", "");
-                println!("input ({stream_n}): {}  stack: {}  current: {}", stream_sym.to_str_ext(sym_table, &stream_str),
-                         stack.iter().map(|s| s.to_str(sym_table)).join(" "), stack_sym.to_str(sym_table));
+                println!("input ({stream_n}): {}   stack_t: [{}]   stack: [{}]   current: {}",
+                         stream_sym.to_str_ext(sym_table, &stream_str),
+                         stack_t.join(", "),
+                         stack.iter().map(|s| s.to_str(sym_table)).join(" "),
+                         stack_sym.to_str(sym_table));
                 // println!("stack_t: {}", stack_t.join(", "));
             }
             match (stack_sym, stream_sym) {

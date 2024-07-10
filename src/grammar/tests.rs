@@ -214,6 +214,15 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(+));
             tree.addc_iter(Some(p), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
+            let mut table = SymbolTable::new();
+            table.extend_non_terminals(["A".to_string()]);
+            table.extend_terminals([
+                ("-".to_string(), None), // not used
+                ("var".to_string(), Some("var".to_string())),
+                ("id".to_string(), None),
+                (",".to_string(), Some(",".to_string())),
+            ]);
+            rules.symbol_table = Some(table);
         }
         10 => { // :1(:2:3|:4)+
             let cc = tree.add_root(gnode!(&));
@@ -2028,10 +2037,46 @@ pub(crate) fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
     println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
 }
 
+#[derive(Debug, PartialEq)]
+pub(crate) enum T { RTS(u32), PRS(u32) }
+
+impl T {
+    pub(crate) fn get_prs(&self, test_id: usize, start_nt: VarId) -> ProdRuleSet<LL1> {
+        const VERBOSE: bool = false;
+        let mut ll1 = match self {
+            T::RTS(id) => {
+                let mut rts = build_rts(*id);
+                let mut rules = ProdRuleSet::from(rts);
+                if rules.get_symbol_table().is_none() {
+                    let mut symbol_table = SymbolTable::new();
+                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt());
+                    rules.set_symbol_table(symbol_table);
+                }
+                assert_eq!(rules.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
+                if VERBOSE {
+                    print!("General rules\n- ");
+                    print_prs_summary(&rules);
+                }
+                ProdRuleSet::<LL1>::from(rules)
+            }
+            T::PRS(id) => {
+                let general = build_prs(*id);
+                assert_eq!(general.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", general.get_log().get_errors().join("\n- "));
+                if VERBOSE {
+                    print!("General rules\n- ");
+                    print_prs_summary(&general);
+                }
+                ProdRuleSet::<LL1>::from(general.clone())
+            }
+        };
+        assert_eq!(ll1.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", ll1.get_log().get_errors().join("\n- "));
+        ll1.set_start(start_nt);
+        ll1
+    }
+}
+
 #[test]
 fn rts_prs_flags() {
-    #[derive(Debug)]
-    enum T { RTS(u32), PRS(u32) }
     let tests = vec![
         (T::RTS(9), 0, btreemap![1 => 33, 2 => 64],
          btreemap![],
@@ -2059,37 +2104,12 @@ fn rts_prs_flags() {
     const VERBOSE_DETAILS: bool = false;
     for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
-        let mut ll1 = match rule_id {
-            T::RTS(id) => {
-                let mut rts = build_rts(id);
-                let mut rules = ProdRuleSet::from(rts);
-                // rules.calc_num_symbols();
-                let mut symbol_table = SymbolTable::new();
-                complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt);
-                rules.set_symbol_table(symbol_table);
-                assert_eq!(rules.log.num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", rules.log.get_errors().join("\n- "));
-                if VERBOSE && VERBOSE_DETAILS {
-                    print!("General rules\n- ");
-                    print_prs_summary(&rules);
-                }
-                ProdRuleSet::<LL1>::from(rules)
-            }
-            T::PRS(id) => {
-                let general = build_prs(id);
-                if VERBOSE && VERBOSE_DETAILS {
-                    print!("General rules\n- ");
-                    print_prs_summary(&general);
-                }
-                assert_eq!(general.log.num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", general.log.get_errors().join("\n- "));
-                ProdRuleSet::<LL1>::from(general.clone())
-            }
-        };
-        assert_eq!(ll1.log.num_errors(), 0, "test {test_id}/{rule_id:?}/{start_nt} failed:\n- {}", ll1.log.get_errors().join("\n- "));
+        let mut ll1 = rule_id.get_prs(test_id, start_nt);
         if VERBOSE && VERBOSE_DETAILS {
             print!("Before table creation:\n- ");
             print_prs_summary(&ll1);
         }
-        ll1.set_start(start_nt);
+        // ll1.set_start(start_nt);
         let start = ll1.get_start().unwrap();
         let parsing_table = ll1.create_parsing_table();
         if VERBOSE && (ll1.log.num_warnings() > 0) || (ll1.log.num_notes() > 0) {
