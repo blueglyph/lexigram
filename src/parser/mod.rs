@@ -110,25 +110,24 @@ impl Parser {
                 num_stack += num_t_str[calling_factor as usize];
                 child_var = par_var;
             }
-            if new.get(0) == Some(&stack_sym) {
-                opcode.push(new[0]);
-                if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
-                    opcode.push(Symbol::Exit(factor_id, num_stack));
+
+            if flags & ruleflag::CHILD_L_FACTOR != 0 {
+                let parent = self.parent[*var_id as usize].unwrap();
+                if new.get(0) == Some(&Symbol::NT(parent)) {
+                    opcode.push(Symbol::Loop(parent));
+                    new.remove(0);
                 }
-                opcode.extend(new.into_iter().skip(1));
-            } else {
-                if flags & ruleflag::CHILD_L_FACTOR != 0 {
-                    let parent = self.parent[*var_id as usize].unwrap();
-                    if new.get(0) == Some(&Symbol::NT(parent)) {
-                        opcode.push(Symbol::Loop(parent));
-                        new.remove(0);
-                    }
-                }
-                if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
-                    opcode.push(Symbol::Exit(factor_id, num_stack)); // will be popped when this NT is completed
-                }
-                opcode.extend(new);
             }
+            if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
+                opcode.push(Symbol::Exit(factor_id, num_stack)); // will be popped when this NT is completed
+            }
+            opcode.extend(new);
+            if opcode.get(1) == Some(&stack_sym)
+                // || matches!(opcode.get(1), Some(Symbol::NT(child)) if self.has_flags(*child, ruleflag::CHILD_L_RECURSION) && !self.has_flags(*child, ruleflag::CHILD_AMBIGUITY))
+            {
+                opcode.swap(0, 1);
+            }
+
             opcode.iter_mut().for_each(|o| {
                 if let Symbol::NT(v) = o {
                     if v == var_id {
