@@ -206,38 +206,38 @@ mod opcodes {
     #[test]
     fn parser_opcodes() {
         let tests: Vec<(T, VarId, Vec<ProdFactor>)> = vec![
-            (T::RTS(9), 0, vec![
-                prodf![exit 0:0, nt 1, t 1],
-                prodf![nt 2, t 3, t 2],
-                prodf![exit 2:1],
-                prodf![loop 1, exit 3:1],
+            (T::RTS(9), 0, vec![                        // A -> var (id ,)+
+                prodf![exit 0:0, nt 1, t 1],            // 0: A -> var A_1    - ◄0:0 A_1 var
+                prodf![nt 2, t 3, t 2],                 // 1: A_1 -> id , A_2 - A_2 , id
+                prodf![exit 2:1],                       // 2: A_2 -> ε        - ◄2:1
+                prodf![loop 1, exit 3:1],               // 3: A_2 -> A_1      - ●A_1 ◄3:1
             ]),
-            (T::RTS(12), 0, vec![
-                prodf![exit 0:1, nt 1, t 1],
-                prodf![loop 1, exit 1:2, t 3, t 2],
-                prodf![exit 2:0],
+            (T::RTS(12), 0, vec![                       // A -> b (c d)*
+                prodf![exit 0:1, nt 1, t 1],            // 0: A -> b B   - ◄0:1 B b
+                prodf![loop 1, exit 1:2, t 3, t 2],     // 1: B -> c d B - ●B ◄1:2 d c
+                prodf![exit 2:0],                       // 2: B -> ε     - ◄2:0
             ]),
-            (T::RTS(16), 0, vec![
-                prodf![exit 0:1, nt 2, t 2],
-                prodf![nt 3, t 0],
-                prodf![loop 2, exit 2:1, t 1, nt 1],
-                prodf![exit 3:0],
-                prodf![exit 4:1],
-                prodf![loop 1, exit 5:1],
+            (T::RTS(16), 0, vec![                       // A -> A a+ b | c
+                prodf![exit 0:1, nt 2, t 2],            // 0: A -> c A_1     - ◄0:1 A_1 c
+                prodf![nt 3, t 0],                      // 1: B -> a B_1     - B_1 a
+                prodf![loop 2, exit 2:1, t 1, nt 1],    // 2: A_1 -> B b A_1 - ●A_1 ◄2:1 b B
+                prodf![exit 3:0],                       // 3: A_1 -> ε       - ◄3:0
+                prodf![exit 4:1],                       // 4: B_1 -> ε       - ◄4:1
+                prodf![loop 1, exit 5:1],               // 5: B_1 -> B       - ●B ◄5:1
             ]),
-            (T::PRS(22), 0, vec![
-                prodf![exit 0:1, nt 1, t 3],
-                prodf![exit 1:0],
-                prodf![loop 1, exit 2:1, t 3, t 0],
-                prodf![loop 1, exit 3:1, t 3, t 1],
-                prodf![nt 2, t 2],
-                prodf![loop 1, exit 5:1, t 3, t 0],
-                prodf![loop 1, exit 6:1, t 3, t 1],
+            (T::PRS(22), 0, vec![                       // E -> E * E | E & * E | E + E | E & + E | id
+                prodf![exit 0:1, nt 1, t 3],            // 0: E -> id E_1     - ◄0:1 E_1 id
+                prodf![exit 1:0],                       // 1: E_1 -> ε        - ◄1:0
+                prodf![loop 1, exit 2:1, t 3, t 0],     // 2: E_1 -> * id E_1 - ●E_1 ◄2:1 id *
+                prodf![loop 1, exit 3:1, t 3, t 1],     // 3: E_1 -> + id E_1 - ●E_1 ◄3:1 id +
+                prodf![nt 2, t 2],                      // 4: E_1 -> & E_2    - E_2 &
+                prodf![loop 1, exit 5:1, t 3, t 0],     // 5: E_2 -> * id E_1 - ●E_1 ◄5:1 id *
+                prodf![loop 1, exit 6:1, t 3, t 1],     // 6: E_2 -> + id E_1 - ●E_1 ◄6:1 id +
             ]),
-            (T::PRS(26), 1, vec![
-                prodf![exit 0:1, nt 1, t 1],
-                prodf![loop 1, exit 1:2, t 1, t 0],
-                prodf![exit 2:0],
+            (T::PRS(26), 1, vec![                       // B -> B a B | b
+                prodf![exit 0:1, nt 1, t 1],            // 0: B -> b B_1     - ◄0:1 B_1 b
+                prodf![loop 1, exit 1:2, t 1, t 0],     // 1: B_1 -> a b B_1 - ●B_1 ◄1:2 b a
+                prodf![exit 2:0],                       // 2: B_1 -> ε       - ◄2:0
             ]),
         ];
         const VERBOSE: bool = false;
