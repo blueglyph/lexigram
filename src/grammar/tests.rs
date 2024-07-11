@@ -33,7 +33,7 @@ pub(crate) fn symbol_to_macro(s: &Symbol) -> String {
         Symbol::T(x) => format!("t {x}"),
         Symbol::NT(x) => format!("nt {x}"),
         Symbol::Loop(x) => format!("loop {x}"),
-        Symbol::Exit(x, n) => format!("exit {x}, {n}"),
+        Symbol::Exit(x, n) => format!("exit {x}:{n}"),
         Symbol::End => "end".to_string(),
     }
 }

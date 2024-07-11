@@ -1651,16 +1651,16 @@ pub mod macros {
     /// assert_eq!(sym!(nt 3), Symbol::NT(3 as VarId));
     /// assert_eq!(sym!(e), Symbol::Empty);
     /// assert_eq!(sym!(end), Symbol::End);
-    /// assert_eq!(sym!(exit 1, 3), Symbol::Exit(1, 3));
+    /// assert_eq!(sym!(exit 1:3), Symbol::Exit(1, 3));
     /// assert_eq!(sym!(loop 2), Symbol::Loop(2));
     #[macro_export(local_inner_macros)]
     macro_rules! sym {
-        (t $id:expr) => { Symbol::T($id as TokenId) };
-        (nt $id:expr) => { Symbol::NT($id as VarId) };
+        (t $id:literal) => { Symbol::T($id as TokenId) };
+        (nt $id:literal) => { Symbol::NT($id as VarId) };
         (e) => { Symbol::Empty };
         (end) => { Symbol::End };
-        (exit $id:expr, $num:expr) => { Symbol::Exit($id as VarId, $num as u8) };
-        (loop $id:expr) => { Symbol::Loop($id as VarId) };
+        (exit $id:literal : $num:expr) => { Symbol::Exit($id as VarId, $num as u8) };
+        (loop $id:literal) => { Symbol::Loop($id as VarId) };
     }
 
     /// Generates a production rule factor. A factor is made up of symbols separated by a comma.
@@ -1684,10 +1684,10 @@ pub mod macros {
     #[macro_export(local_inner_macros)]
     macro_rules! prodf {
         () => { std::vec![] };
-        ($($a:ident $($b:expr)?,)+) => { prodf![$($a $($b)?),+] };
-        ($($a:ident $($b:expr)?),*) => { ProdFactor::new(std::vec![$(sym!($a $($b)?)),*]) };
-        (#$f:expr, $($a:ident $($b:expr)?,)+) => { prodf![#$f, $($a $($b)?),+] };
-        (#$f:expr, $($a:ident $($b:expr)?),*) => { ProdFactor::with_flags(std::vec![$(sym!($a $($b)?)),*], $f) };
+        ($($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![$($a $($b $(: $num)?)?),+] };
+        ($($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::new(std::vec![$(sym!($a $($b $(: $num)?)?)),*]) };
+        (#$f:expr, $($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![#$f, $($a $($b $(: $num)?)?),+] };
+        (#$f:expr, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], $f) };
     }
 
     /// Generates a production rule. It is made up of factors separated by a semicolon.
