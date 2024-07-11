@@ -627,25 +627,25 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             // A -> A a A | A b A | c
             prods.extend([
                 prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2),
-            ])
+            ]);
         }
         10 => {
             // A -> A a A | A b A | c | d
             prods.extend([
                 prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2; t 3),
-            ])
+            ]);
         }
         11 => {
             // A -> A a | A b | A c d A | A e f A | g | h i
             prods.extend([
                 prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, t 3, nt 0; nt 0, t 4, t 5, nt 0; t 6; t 7, t 8),
-            ])
+            ]);
         }
         12 => {
             // A -> A a | A b | A c d A | A e f A | g
             prods.extend([
                 prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, t 3, nt 0; nt 0, t 4, t 5, nt 0; t 6),
-            ])
+            ]);
         }
         13 => {
             // classical ambiguous arithmetic grammar
@@ -740,7 +740,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(t 0, t 5, t 1, nt 1),
                 prod!(t 5, t 3, t 5, t 4, nt 1; t 2),
-            ])
+            ]);
         }
         21 => {
             //  A -> A a1 | A a2 | A b1 A | A b2 A | c1 | c2 [ | d1 A | d2 A ]
@@ -808,13 +808,13 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(t 0, nt 1, t 3; t 4),
                 prod!(t 1, t 2, nt 1; t 1, t 2),
-            ])
+            ]);
         }
         25 => {
             // A -> A a b c | A a b d | A a e | f
             prods.extend([
                 prod!(nt 0, t 0, t 1, t 2; nt 0, t 0, t 1, t 3; nt 0, t 0, t 4; t 5)
-            ])
+            ]);
         }
         26 => {
             // A -> A a | b
@@ -822,7 +822,13 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(nt 0, t 0; t 1),
                 prod!(nt 1, t 0, nt 1; t 1),
-            ])
+            ]);
+        }
+        27 => {
+            // A -> A a | A b | c | d
+            prods.extend([
+                prod!(nt 0, t 0; nt 0, t 1; t 2; t 3),
+            ]);
         }
 
         // ambiguity?
@@ -830,19 +836,19 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             // A -> A a A b | c (amb removed)
             prods.extend([
                 prod!(nt 0, t 0, nt 0, t 1; t 2),
-            ])
+            ]);
         }
         101 => {
             // A -> a A A | b (no amb)
             prods.extend([
                 prod!(t 0, nt 0, nt 0; t 1),
-            ])
+            ]);
         }
         102 => {
             // A -> A a A b A | c (amb removed)
             prods.extend([
                 prod!(nt 0, t 0, nt 0, t 1, nt 0; t 2)
-            ])
+            ]);
         }
         103 => {
             // A -> a (A b A)* c | d (no amb)
@@ -852,7 +858,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(t 0, nt 1, t 2; t 3),
                 prod!(nt 0, t 1, nt 0, nt 1; e),
-            ])
+            ]);
         }
         104 => {
             // A -> (A b A)* c | a (amb A:a, B:c)
@@ -862,7 +868,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(nt 1, t 2; t 0),
                 prod!(nt 0, t 1, nt 0, nt 1; e),
-            ])
+            ]);
         }
         105 => {
             // A -> a (A b A)* | c (amb)
@@ -872,7 +878,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(t 0, nt 1; t 2),
                 prod!(nt 0, t 1, nt 0, nt 1; e),
-            ])
+            ]);
         }
         106 => {
             // A -> (A b A)* | a (very amb)
@@ -882,7 +888,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(nt 1; t 0),
                 prod!(nt 0, t 1, nt 0, nt 1; e),
-            ])
+            ]);
         }
 
         // warnings and errors
@@ -1707,6 +1713,25 @@ fn prs_calc_table() {
               2,   7,   7,   7,   7,   7,   1,
               7,   7,   3,   4,   7,   7,   7,
               7,   5,   7,   7,   6,   7,   7,
+        ]),
+        (27, 0, 0, vec![
+            // - 0: A -> c A_1
+            // - 1: A -> d A_1
+            // - 2: A_1 -> a A_1
+            // - 3: A_1 -> b A_1
+            // - 4: A_1 -> ε
+            (0, prodf!(t 2, nt 1)),
+            (0, prodf!(t 3, nt 1)),
+            (1, prodf!(t 0, nt 1)),
+            (1, prodf!(t 1, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //     | a  b  c  d  $
+            // ----+----------------
+            // A   | .  .  0  1  .
+            // A_1 | 2  3  .  .  4
+              5,   5,   0,   1,   5,
+              2,   3,   5,   5,   4,
         ]),
 
         (100, 0, 0, vec![
