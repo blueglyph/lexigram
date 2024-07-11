@@ -135,7 +135,7 @@ fn parser_parse_stream_id() {
             ("c a c b a c b", true),
         ])
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
         let mut ll1 = ll_id.get_prs(test_id, start);
@@ -174,12 +174,13 @@ fn parser_parse_stream_id() {
 
 // #[cfg(disabled)]
 mod opcodes {
-    use crate::grammar::{ProdRuleSet, Symbol, VarId};
-    use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, print_logs, print_prs_summary, T};
-    use crate::{CollectJoin, LL1};
+    use crate::grammar::{ProdFactor, ProdRuleSet, Symbol, VarId};
+    use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, print_logs, print_prs_summary, symbol_to_macro, T};
+    use crate::{CollectJoin, LL1, prodf};
     use crate::parser::Parser;
     use crate::parsergen::ParserBuilder;
     use crate::symbol_table::SymbolTable;
+    use crate::dfa::TokenId;
 
     fn get_factors_str(parser: &Parser) -> Vec<String> {
         parser.factors.iter().enumerate().map(|(id, (v, f))|
@@ -196,62 +197,66 @@ mod opcodes {
         println!("{}", opcodes)
     }
 
+    fn print_expected_opcodes(opcodes: &Vec<Vec<Symbol>>) {
+        for (i, f) in opcodes.iter().enumerate() {
+            println!("                prodf![{}],", f.iter().map(|s| symbol_to_macro(s)).join(", "));
+        }
+    }
+
     #[test]
     fn parser_opcodes() {
-        let tests = vec![
-            // A -> b (c d)+
-            // =>
-            // A -> b B
-            // B -> c d B | c d
-            // =>
-            // A -> b B
-            // B -> c d B_1
-            // B_1 -> B
-            // B_1 -> ε
-            (T::RTS(9), 0),
-            // A -> b (c d)*
-            // =>
-            // A -> b B
-            // B -> c d B
-            // B -> ε
-            (T::RTS(12), 0),
-            (T::RTS(16), 0),
-            // E -> E * E | E '&' '*' E | E + E | E '&' '+' E | id
-            // -  0: E -> id E_1     - ◄0 E_1 id
-            // -  1: E_1 -> ε        -
-            // -  2: E_1 -> * id E_1 - ●E_1 id *
-            // -  3: E_1 -> + id E_1 - ●E_1 id +
-            // -  4: E_1 -> & E_2    - E_2 &
-            // -  5: E_2 -> * id E_1 - ◄5 E_1 id *
-            // -  6: E_2 -> + id E_1 - ◄6 E_1 id +
-            (T::PRS(22), 0),
-            (T::PRS(26), 1),
+        let tests: Vec<(T, VarId, Vec<ProdFactor>)> = vec![
+            (T::RTS(9), 0, vec![
+                prodf![exit 0:0, nt 1, t 1],
+                prodf![nt 2, t 3, t 2],
+                prodf![exit 2:1],
+                prodf![loop 1, exit 3:1],
+            ]),
+            (T::RTS(12), 0, vec![
+                prodf![exit 0:1, nt 1, t 1],
+                prodf![loop 1, exit 1:2, t 3, t 2],
+                prodf![exit 2:0],
+            ]),
+            (T::RTS(16), 0, vec![
+                prodf![exit 0:1, nt 2, t 2],
+                prodf![nt 3, t 0],
+                prodf![loop 2, exit 2:1, t 1, nt 1],
+                prodf![exit 3:0],
+                prodf![exit 4:1],
+                prodf![loop 1, exit 5:1],
+            ]),
+            (T::PRS(22), 0, vec![
+                prodf![exit 0:1, nt 1, t 3],
+                prodf![exit 1:0],
+                prodf![loop 1, exit 2:1, t 3, t 0],
+                prodf![loop 1, exit 3:1, t 3, t 1],
+                prodf![nt 2, t 2],
+                prodf![loop 1, exit 5:1, t 3, t 0],
+                prodf![loop 1, exit 6:1, t 3, t 1],
+            ]),
+            (T::PRS(26), 1, vec![
+                prodf![exit 0:1, nt 1, t 1],
+                prodf![loop 1, exit 1:2, t 1, t 0],
+                prodf![exit 2:0],
+            ]),
         ];
-        const VERBOSE: bool = true;
-        const VERBOSE_DETAILS: bool = true;
-        for (test_id, (rule_id, start_nt)) in tests.into_iter().enumerate() {
+        const VERBOSE: bool = false;
+        for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let mut ll1 = rule_id.get_prs(test_id, start_nt);
-            // let parsing_table = ll1.create_parsing_table();
-            // if VERBOSE && (ll1.get_log().num_warnings() > 0) || (ll1.get_log().num_notes() > 0) {
-            //     print_logs(&ll1);
-            // }
-            // let result_flags = ll1.flags.iter().enumerate().filter_map(|(v, &f)| if f != 0 { Some((v as VarId, f)) } else { None }).collect::<BTreeMap<_, _>>();
-            // let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
-            // let result_parent = ll1.parent.iter().enumerate().filter_map(|(v, &par)| if let Some(p) = par { Some((v as VarId, p)) } else { None }).collect::<BTreeMap<_, _>>();
             if VERBOSE {
                 print!("- ");
                 print_prs_summary(&ll1);
-                // println!("=>");
-                // println!("        (T::{rule_id:?}, {start_nt}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
-                // println!("         btreemap![{}],", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
-                // println!("         btreemap![{}]),", result_parent.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
             }
             let mut parser = ParserBuilder::from_rules(ll1).make_parser();
             if VERBOSE {
                 println!("Final factors and opcodes:");
                 print_opcodes(&parser);
+                println!("code:");
+                print_expected_opcodes(&parser.opcodes);
             }
+            let expected_opcodes = expected_opcodes.into_iter().map(|f| f.symbols()).to_vec();
+            assert_eq!(parser.opcodes, expected_opcodes, "test {test_id} {rule_id:?}/{start_nt} failed");
         }
     }
 }

@@ -739,6 +739,10 @@ impl ProdFactor {
         ProdFactor { v, flags }
     }
 
+    pub fn symbols(self) -> Vec<Symbol> {
+        self.v
+    }
+
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
         self.v.iter()
             .map(|symbol| symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string()))
