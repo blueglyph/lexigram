@@ -146,9 +146,6 @@ impl Parser {
               L: Listener,
     {
         const VERBOSE: bool = true;
-        // let num_t_str = self.factors.iter().map(|(v, f)|
-        //     (*v, f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count())
-        // ).to_vec();
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<Symbol>::new();
         let mut stack_t = Vec::<String>::new();
@@ -167,14 +164,14 @@ impl Parser {
                          stack_t.join(", "),
                          stack.iter().map(|s| s.to_str(sym_table)).join(" "),
                          stack_sym.to_str(sym_table));
-                // println!("stack_t: {}", stack_t.join(", "));
             }
             match (stack_sym, stream_sym) {
                 (Symbol::NT(var), _) | (Symbol::Loop(var), _) => {
                     let sr = if let Symbol::T(sr) = stream_sym { sr } else { end };
                     let factor_id = self.table[var as usize * self.num_t + sr as usize];
                     if VERBOSE {
-                        println!("- table[{var}, {sr}] = {factor_id}: {}",
+                        println!("- table[{var}, {sr}] = {factor_id}: {} -> {}",
+                                 Symbol::NT(var).to_str(self.get_symbol_table()),
                                  if factor_id >= error {
                                      "ERROR".to_string()
                                  } else {
@@ -191,7 +188,7 @@ impl Parser {
                     let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                     if VERBOSE {
                         let f = &self.factors[factor_id as usize];
-                        println!("- to stack: {}", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(", "));
+                        println!("- to stack: [{}]", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(" "));
                         println!("- {} {} -> {} ", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
                                  Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table));
                     }
@@ -199,7 +196,6 @@ impl Parser {
                     stack_sym = stack.pop().unwrap();
                 }
                 (Symbol::Exit(factor_id, n), _) => {
-                    // let (var, n) = num_t_str[factor_id as usize];
                     let var = self.factors[factor_id as usize].0;
                     let n = n as usize;
                     let t_str = stack_t.drain(stack_t.len() - n..).to_vec();
