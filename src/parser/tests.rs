@@ -218,7 +218,7 @@ mod opcodes {
                 prodf![exit 2:0],                       // 2: B -> ε     - ◄2:0
             ]),
             (T::RTS(16), 0, vec![                       // A -> A a+ b | c
-                prodf![exit 0:1, nt 2, t 2],            // 0: A -> c A_1     - ◄0:1 A_1 c
+                prodf![nt 2, exit 0:1, t 2],            // 0: A -> c A_1     - A_1 ◄0:1 c
                 prodf![nt 3, t 0],                      // 1: B -> a B_1     - B_1 a
                 prodf![loop 2, exit 2:1, t 1, nt 1],    // 2: A_1 -> B b A_1 - ●A_1 ◄2:1 b B
                 prodf![exit 3:0],                       // 3: A_1 -> ε       - ◄3:0
@@ -234,13 +234,18 @@ mod opcodes {
                 prodf![loop 1, exit 5:1, t 3, t 0],     // 5: E_2 -> * id E_1 - ●E_1 ◄5:1 id *
                 prodf![loop 1, exit 6:1, t 3, t 1],     // 6: E_2 -> + id E_1 - ●E_1 ◄6:1 id +
             ]),
+            (T::PRS(26), 0, vec![                       // A -> A a | b
+                prodf![nt 1, exit 0:1, t 1],            // 0: A -> b A_1
+                prodf![loop 1, exit 1:1, t 0],          // 1: A_1 -> a A_1
+                prodf![exit 2:0],                       // 2: A_1 -> ε
+            ]),
             (T::PRS(26), 1, vec![                       // B -> B a B | b
                 prodf![exit 0:1, nt 1, t 1],            // 0: B -> b B_1     - ◄0:1 B_1 b
                 prodf![loop 1, exit 1:2, t 1, t 0],     // 1: B_1 -> a b B_1 - ●B_1 ◄1:2 b a
                 prodf![exit 2:0],                       // 2: B_1 -> ε       - ◄2:0
             ]),
         ];
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let mut ll1 = rule_id.get_prs(test_id, start_nt);
