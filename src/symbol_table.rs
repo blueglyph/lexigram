@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use crate::dfa::TokenId;
 use crate::grammar::{Symbol, VarId};
 
 /// Stores the names of the terminal and non-terminal symbols.
@@ -123,24 +124,24 @@ impl SymbolTable {
         assert_eq!(self.nt.len(), var_prime as usize + 1, "couldn't find an associated name for '{name}'");
     }
 
+    pub fn get_t_name(&self, token: TokenId) -> String {
+        // if *token as usize >= self.t.len() { return format!("??T({token})") }
+        let name = &self.t[token as usize];
+        name.1.as_ref().unwrap_or(&name.0).clone()
+    }
+
+    pub fn get_nt_name(&self, var: VarId) -> String {
+        // if *var as usize >= self.nt.len() { return format!("??NT({var})") }
+        self.nt[var as usize].clone()
+    }
+
     pub fn get_name(&self, symbol: &Symbol) -> String {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),
-            Symbol::T(token) => {
-                // if *token as usize >= self.t.len() { return format!("??T({token})") }
-                let name = &self.t[*token as usize];
-                name.1.as_ref().unwrap_or(&name.0).clone()
-            }
-            Symbol::NT(var) => {
-                // if *var as usize >= self.nt.len() { return format!("??NT({var})") }
-                self.nt[*var as usize].clone()
-            }
-            Symbol::Loop(var) => {
-                format!("●{}", self.nt[*var as usize])
-            }
-            Symbol::Exit(_, _) => {
-                format!("{symbol}")
-            }
+            Symbol::T(token) => self.get_t_name(*token),
+            Symbol::NT(var) => self.get_nt_name(*var),
+            Symbol::Loop(var) => format!("●{}", self.nt[*var as usize]),
+            Symbol::Exit(_, _) => format!("{symbol}"),
         }
     }
 }

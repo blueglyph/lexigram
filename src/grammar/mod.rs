@@ -43,10 +43,6 @@ impl Symbol {
     pub fn is_nt(&self) -> bool {
         matches!(self, Symbol::NT(_))
     }
-
-    pub fn is_loop(&self) -> bool {
-        matches!(self, Symbol::Loop(_))
-    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
