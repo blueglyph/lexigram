@@ -140,8 +140,8 @@ impl SymbolTable {
             Symbol::Empty | Symbol::End => symbol.to_string(),
             Symbol::T(token) => self.get_t_name(*token),
             Symbol::NT(var) => self.get_nt_name(*var),
-            Symbol::Loop(var) => format!("●{}", self.nt[*var as usize]),
-            Symbol::Exit(_, _) => format!("{symbol}"),
+            // Symbol::Loop(var) => format!("●{}", self.nt[*var as usize]),
+            // Symbol::Exit(_, _) => format!("{symbol}"),
         }
     }
 }

@@ -22,8 +22,6 @@ pub enum Symbol {
     #[default] Empty,   // empty symbol
     T(TokenId),         // terminal
     NT(VarId),          // non-terminal
-    Loop(VarId),        // loop to same non-terminal (reserved for Parser)
-    Exit(VarId, u8),    // exit (synthesis) production and expected number of lexer strings
     End                 // end of stream
 }
 
@@ -63,8 +61,6 @@ impl Display for Symbol {
             Symbol::Empty => write!(f, "ε"),
             Symbol::T(id) => write!(f, ":{id}"),
             Symbol::NT(id) => write!(f, "{id}"),
-            Symbol::Loop(id) => write!(f, "●{id}"),
-            Symbol::Exit(x, n) => write!(f, "◄{x}:{n}"),
             Symbol::End => write!(f, "$"),
         }
     }
@@ -1042,7 +1038,7 @@ impl<T> ProdRuleSet<T> {
             match &sym {
                 Symbol::T(_) | Symbol::Empty => (sym, hashset![sym]),
                 Symbol::NT(_) => (sym, HashSet::new()),
-                Symbol::End | Symbol::Loop(_) | Symbol::Exit(_, _) => panic!("found reserved symbol {sym:?} in production rules"),
+                Symbol::End => panic!("found reserved symbol {sym:?} in production rules"),
             }
         }).collect::<HashMap<_, _>>();
         let mut change = true;
@@ -1442,7 +1438,6 @@ impl ProdRuleSet<LL1> {
                     Symbol::End => {
                         has_end = true;
                     }
-                    Symbol::Loop(_) | Symbol::Exit(_, _) => panic!("found reserved symbol {s:?} in production rules"),
                 }
             }
             if has_empty && has_end {
