@@ -56,7 +56,7 @@ impl OpCode {
         if let Some(t) = symbol_table {
             match self {
                 OpCode::Empty => "ε".to_string(),
-                OpCode::T(v) => format!("{}", t.get_t_name(*v)),
+                OpCode::T(v) => format!("{}{}", t.get_t_name(*v), if t.is_terminal_variable(&Symbol::T(*v)) { "!" } else { "" }),
                 OpCode::NT(v, n) => if *n > 0 { format!("►{}/{n}", t.get_nt_name(*v)) } else { format!("►{}", t.get_nt_name(*v)) },
                 OpCode::Loop(f, n) => if *n > 0 { format!("●{f}/{n}") } else { format!("●{f}") },
                 OpCode::Exit(f, n) => if *n > 0 { format!("◄{f}/{n}") } else { format!("◄{f}") },
@@ -138,7 +138,7 @@ impl Parser {
     }
 
     fn build_opcodes(&mut self) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let num_t_str = self.factors.iter().map(|(v, f)| {
             let n = f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count();
             assert!(n < 256);
