@@ -78,6 +78,17 @@ impl OpCode {
     }
 }
 
+impl From<Symbol> for OpCode {
+    fn from(value: Symbol) -> Self {
+        match value {
+            Symbol::Empty => OpCode::Empty,
+            Symbol::T(t) => OpCode::T(t),
+            Symbol::NT(v) => OpCode::NT(v, 0),
+            Symbol::End => OpCode::End,
+        }
+    }
+}
+
 #[derive(PartialEq)]
 pub enum Call { Enter, Loop, Asm, Exit }
 
@@ -127,7 +138,7 @@ impl Parser {
     }
 
     fn build_opcodes(&mut self) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         let num_t_str = self.factors.iter().map(|(v, f)| {
             let n = f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count();
             assert!(n < 256);
@@ -185,17 +196,14 @@ impl Parser {
             if flags & ruleflag::CHILD_L_FACTOR != 0 {
                 let parent = self.parent[*var_id as usize].unwrap();
                 if new.get(0) == Some(&Symbol::NT(parent)) {
-                    opcode.push(OpCode::Loop(parent, num_stack));
+                    opcode.push(OpCode::Loop(parent, 0));
                     new.remove(0);
                 }
             }
             if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
                 opcode.push(OpCode::Exit(factor_id, num_stack)); // will be popped when this NT is completed
             }
-
-            todo!();
-            // opcode.extend(new);
-
+            opcode.extend(new.into_iter().map(|s| OpCode::from(s)));
             if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false)
                 // || matches!(opcode.get(1), Some(Symbol::NT(child)) if self.has_flags(*child, ruleflag::CHILD_L_RECURSION) && !self.has_flags(*child, ruleflag::CHILD_AMBIGUITY))
             {

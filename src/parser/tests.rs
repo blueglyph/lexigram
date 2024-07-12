@@ -210,7 +210,7 @@ mod opcodes {
 
     fn print_expected_opcodes(opcodes: &Vec<Vec<OpCode>>) {
         for (i, f) in opcodes.iter().enumerate() {
-            println!("                prodf![{}],", f.iter().map(|s| opcode_to_macro(s)).join(", "));
+            println!("                strip![{}],", f.iter().map(|s| opcode_to_macro(s)).join(", "));
         }
     }
 
@@ -259,14 +259,14 @@ mod opcodes {
                 strip![loop 1, exit 6/1, t 3, t 1],     // 6: E_2 -> + id E_1 - ●E_1 ◄6/1 id +
             ]),
             (T::PRS(26), 0, vec![                       // A -> A a | b
-                strip![nt 1, exit 0/1, t 1],            // 0: A -> b A_1
-                strip![loop 1, exit 1/1, t 0],          // 1: A_1 -> a A_1
-                strip![exit 2/0],                       // 2: A_1 -> ε
+                strip![exit 0/1, nt 1, t 1],            // 0: A -> b A_1   - ◄0/1 ►A_1 b
+                strip![loop 1, exit 1/1, t 0],          // 1: A_1 -> a A_1 - ●1 ◄1/1 a
+                strip![exit 2],                         // 2: A_1 -> ε     - ◄2
             ]),
             (T::PRS(26), 1, vec![                       // B -> B a B | b
                 strip![exit 0/1, nt 1, t 1],            // 0: B -> b B_1     - ◄0/1 B_1 b
                 strip![loop 1, exit 1/2, t 1, t 0],     // 1: B_1 -> a b B_1 - ●B_1 ◄1/2 b a
-                strip![exit 2/0],                       // 2: B_1 -> ε       - ◄2/0
+                strip![exit 2],                         // 2: B_1 -> ε       - ◄2/0
             ]),
         ];
         const VERBOSE: bool = true;
