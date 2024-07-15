@@ -1646,16 +1646,12 @@ pub mod macros {
     /// assert_eq!(sym!(nt 3), Symbol::NT(3 as VarId));
     /// assert_eq!(sym!(e), Symbol::Empty);
     /// assert_eq!(sym!(end), Symbol::End);
-    /// assert_eq!(sym!(exit 1:3), Symbol::Exit(1, 3));
-    /// assert_eq!(sym!(loop 2), Symbol::Loop(2));
     #[macro_export(local_inner_macros)]
     macro_rules! sym {
         (t $id:literal) => { Symbol::T($id as TokenId) };
         (nt $id:literal) => { Symbol::NT($id as VarId) };
         (e) => { Symbol::Empty };
         (end) => { Symbol::End };
-        (exit $id:literal : $num:expr) => { Symbol::Exit($id as VarId, $num as u8) };
-        (loop $id:literal) => { Symbol::Loop($id as VarId) };
     }
 
     /// Generates a production rule factor. A factor is made up of symbols separated by a comma.
