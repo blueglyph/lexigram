@@ -331,15 +331,18 @@ mod listener {
         fn exit_t_1(&mut self, _ctx: CtxT1) {}
     }
 
-    struct ListenerWrapper<T>(T);
+    struct ListenerWrapper<T> {
+        listener: T,
+        stack_t: Vec<String>
+    }
 
     impl<T: ExprListenerTrait> ListenerWrapper<T> {
         pub fn new(listener: T) -> Self {
-            Self(listener)
+            Self { listener, stack_t: Vec::new() }
         }
 
         pub fn listener(self) -> T {
-            self.0
+            self.listener
         }
     }
 
@@ -347,37 +350,41 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_str: Vec<String>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId) {
             match call {
                 Call::Loop | Call::Enter => {
                     match nt {
-                        0 => self.0.enter_e(),
-                        1 => self.0.enter_t(),
-                        2 => self.0.enter_f(),
-                        3 => self.0.enter_e_1(),
-                        4 => self.0.enter_t_1(),
+                        0 => self.listener.enter_e(),
+                        1 => self.listener.enter_t(),
+                        2 => self.listener.enter_f(),
+                        3 => self.listener.enter_e_1(),
+                        4 => self.listener.enter_t_1(),
                         _ => panic!("unexpected nt exit value: {nt}")
                     }
                 }
                 Call::Exit => {
                     match factor_id {
-                        0 => self.0.exit_e(),
-                        1 => self.0.exit_t(),
-                        2 => self.0.exit_f(CtxF::LpRp),
-                        3 => self.0.exit_f(CtxF::Num(t_str.pop().unwrap())),
-                        4 => self.0.exit_f(CtxF::Id(t_str.pop().unwrap())),
-                        5 => self.0.exit_e_1(CtxE1::Add),
-                        6 => self.0.exit_e_1(CtxE1::Sub),
-                        7 => self.0.exit_e_1(CtxE1::Empty),
-                        8 => self.0.exit_t_1(CtxT1::Mul),
-                        9 => self.0.exit_t_1(CtxT1::Div),
-                        10 => self.0.exit_t_1(CtxT1::Empty),
+                        0 => self.listener.exit_e(),
+                        1 => self.listener.exit_t(),
+                        2 => self.listener.exit_f(CtxF::LpRp),
+                        3 => self.listener.exit_f(CtxF::Num(self.stack_t.pop().unwrap())),
+                        4 => self.listener.exit_f(CtxF::Id(self.stack_t.pop().unwrap())),
+                        5 => self.listener.exit_e_1(CtxE1::Add),
+                        6 => self.listener.exit_e_1(CtxE1::Sub),
+                        7 => self.listener.exit_e_1(CtxE1::Empty),
+                        8 => self.listener.exit_t_1(CtxT1::Mul),
+                        9 => self.listener.exit_t_1(CtxT1::Div),
+                        10 => self.listener.exit_t_1(CtxT1::Empty),
                         _ => panic!("unexpected nt exit factor id: {nt}")
                     }
                 }
                 Call::Asm => panic!("unexepected Call::Asm in this test"),
             }
             // false
+        }
+
+        fn t_data(&mut self, t: TokenId, data: String) {
+            self.stack_t.push(data);
         }
     }
 
