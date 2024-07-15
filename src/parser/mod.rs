@@ -355,13 +355,13 @@ pub mod macros {
     #[macro_export(local_inner_macros)]
     macro_rules! opcode {
         (e) => { OpCode::Empty };
-        (t $id:literal) => { OpCode::T($id as TokenId) };
-        (nt $id:literal) => { OpCode::NT($id as VarId) };
-        (loop $id:literal) => { OpCode::Loop($id as VarId) };
-        (exit $id:literal) => { OpCode::Exit($id as VarId) };
-        (nt $id:literal) => { OpCode::NT($id as VarId, 0) };
-        (loop $id:literal) => { OpCode::Loop($id as VarId, 0) };
-        (exit $id:literal) => { OpCode::Exit($id as VarId, 0) };
+        (t $id:expr) => { OpCode::T($id as TokenId) };
+        (nt $id:expr) => { OpCode::NT($id as VarId) };
+        (loop $id:expr) => { OpCode::Loop($id as VarId) };
+        (exit $id:expr) => { OpCode::Exit($id as VarId) };
+        (nt $id:expr) => { OpCode::NT($id as VarId, 0) };
+        (loop $id:expr) => { OpCode::Loop($id as VarId, 0) };
+        (exit $id:expr) => { OpCode::Exit($id as VarId, 0) };
         (end) => { OpCode::End };
     }
 
@@ -378,7 +378,7 @@ pub mod macros {
     #[macro_export(local_inner_macros)]
     macro_rules! strip {
         () => { std::vec![] };
-        ($($a:ident $($b:literal)?,)+) => { strip![$($a $($b)?),+] };
-        ($($a:ident $($b:literal)?),*) => { std::vec![$(opcode!($a $($b)?)),*] };
+        ($($a:ident $($b:expr)?,)+) => { strip![$($a $($b)?),+] };
+        ($($a:ident $($b:expr)?),*) => { std::vec![$(opcode!($a $($b)?)),*] };
     }
 }
