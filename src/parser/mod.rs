@@ -13,9 +13,9 @@ mod tests;
 pub enum OpCode {
     Empty,              // empty symbol
     T(TokenId),         // terminal
-    NT(VarId, u16),     // non-terminal and expected number of lexer strings
-    Loop(VarId, u16),   // loop to same non-terminal and expected number of lexer strings
-    Exit(VarId, u16),   // exit non-terminal and expected number of lexer strings
+    NT(VarId),          // non-terminal
+    Loop(VarId),        // loop to same non-terminal
+    Exit(VarId),        // exit non-terminal
     End                 // end of stream
 }
 
@@ -24,9 +24,9 @@ impl Display for OpCode {
         match self {
             OpCode::Empty => write!(f, "ε"),
             OpCode::T(t) => write!(f, ":{t}"),
-            OpCode::NT(v, n) =>   if *n > 0 { write!(f, "►{v}/{n}") } else { write!(f, "►{v}") } ,
-            OpCode::Loop(v, n) => if *n > 0 { write!(f, "●{v}/{n}") } else { write!(f, "●{v}") } ,
-            OpCode::Exit(v, n) => if *n > 0 { write!(f, "◄{v}/{n}") } else { write!(f, "◄{v}") },
+            OpCode::NT(v) =>   write!(f, "►{v}"),
+            OpCode::Loop(v) => write!(f, "●{v}"),
+            OpCode::Exit(v) => write!(f, "◄{v}"),
             OpCode::End => write!(f, "$"),
         }
     }
@@ -34,7 +34,7 @@ impl Display for OpCode {
 
 impl OpCode {
     pub fn is_loop(&self) -> bool {
-        matches!(self, OpCode::Loop(_, _))
+        matches!(self, OpCode::Loop(_))
     }
 
     pub fn is_empty(&self) -> bool {
@@ -45,10 +45,10 @@ impl OpCode {
         match self {
             OpCode::Empty => s == Symbol::Empty,
             OpCode::T(t) => s == Symbol::T(*t),
-            OpCode::NT(v, _) => s == Symbol::NT(*v),
+            OpCode::NT(v) => s == Symbol::NT(*v),
             OpCode::End => s == Symbol::End,
-            OpCode::Loop(v, _) => false,
-            OpCode::Exit(v, _) => false,
+            OpCode::Loop(v) => false,
+            OpCode::Exit(v) => false,
         }
     }
 
@@ -57,9 +57,9 @@ impl OpCode {
             match self {
                 OpCode::Empty => "ε".to_string(),
                 OpCode::T(v) => format!("{}{}", t.get_t_name(*v), if t.is_t_data(*v) { "!" } else { "" }),
-                OpCode::NT(v, n) => if *n > 0 { format!("►{}/{n}", t.get_nt_name(*v)) } else { format!("►{}", t.get_nt_name(*v)) },
-                OpCode::Loop(f, n) => if *n > 0 { format!("●{f}/{n}") } else { format!("●{f}") },
-                OpCode::Exit(f, n) => if *n > 0 { format!("◄{f}/{n}") } else { format!("◄{f}") },
+                OpCode::NT(v) => format!("►{}", t.get_nt_name(*v)),
+                OpCode::Loop(f) => format!("●{f}"),
+                OpCode::Exit(f) => format!("◄{f}"),
                 OpCode::End => "$".to_string(),
             }
         } else {
@@ -83,7 +83,7 @@ impl From<Symbol> for OpCode {
         match value {
             Symbol::Empty => OpCode::Empty,
             Symbol::T(t) => OpCode::T(t),
-            Symbol::NT(v) => OpCode::NT(v, 0),
+            Symbol::NT(v) => OpCode::NT(v),
             Symbol::End => OpCode::End,
         }
     }
@@ -196,12 +196,12 @@ impl Parser {
             if flags & ruleflag::CHILD_L_FACTOR != 0 {
                 let parent = self.parent[*var_id as usize].unwrap();
                 if new.get(0) == Some(&Symbol::NT(parent)) {
-                    opcode.push(OpCode::Loop(parent, 0));
+                    opcode.push(OpCode::Loop(parent));
                     new.remove(0);
                 }
             }
             if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
-                opcode.push(OpCode::Exit(factor_id, num_stack)); // will be popped when this NT is completed
+                opcode.push(OpCode::Exit(factor_id)); // will be popped when this NT is completed
             }
             opcode.extend(new.into_iter().map(|s| OpCode::from(s)));
             if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false)
@@ -211,9 +211,9 @@ impl Parser {
             }
 
             opcode.iter_mut().for_each(|o| {
-                if let OpCode::NT(v, n) = o {
+                if let OpCode::NT(v) = o {
                     if v == var_id {
-                        *o = OpCode::Loop(*v, *n)
+                        *o = OpCode::Loop(*v)
                     }
                 }
             });
@@ -232,7 +232,7 @@ impl Parser {
         let error = self.factors.len() as VarId;
         let end = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
-        stack.push(OpCode::NT(self.start, 0));
+        stack.push(OpCode::NT(self.start));
         let mut stack_sym = stack.pop().unwrap();
         let mut stream_n = 1;
         let (mut stream_sym, mut stream_str) = stream.next().unwrap_or((Symbol::End, "".to_string()));
@@ -245,7 +245,7 @@ impl Parser {
                          stack_sym.to_str(sym_table));
             }
             match (stack_sym, stream_sym) {
-                (OpCode::NT(var, n), _) | (OpCode::Loop(var, n), _) => {
+                (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {
                     let sr = if let Symbol::T(sr) = stream_sym { sr } else { end };
                     let factor_id = self.table[var as usize * self.num_t + sr as usize];
                     if VERBOSE {
@@ -274,7 +274,7 @@ impl Parser {
                     stack.extend(self.opcodes[factor_id as usize].clone());
                     stack_sym = stack.pop().unwrap();
                 }
-                (OpCode::Exit(factor_id, n), _) => {
+                (OpCode::Exit(factor_id), _) => {
                     let var = self.factors[factor_id as usize].0;
                     if VERBOSE { println!("- EXIT {}", Symbol::NT(var).to_str(sym_table)); }
                     listener.switch(Call::Exit, var, factor_id);
@@ -329,20 +329,20 @@ pub mod macros {
     /// # use rlexer::parser::OpCode;
     /// assert_eq!(opcode!(e), OpCode::Empty);
     /// assert_eq!(opcode!(t 2), OpCode::T(2 as TokenId));
-    /// assert_eq!(opcode!(nt 3/5), OpCode::NT(3, 5));
-    /// assert_eq!(opcode!(loop 2/4), OpCode::Loop(2, 4));
-    /// assert_eq!(opcode!(exit 1/3), OpCode::Exit(1, 3));
-    /// assert_eq!(opcode!(nt 3), OpCode::NT(3, 0));
-    /// assert_eq!(opcode!(loop 2), OpCode::Loop(2, 0));
-    /// assert_eq!(opcode!(exit 1), OpCode::Exit(1, 0));
+    /// assert_eq!(opcode!(nt 3), OpCode::NT(3));
+    /// assert_eq!(opcode!(loop 2), OpCode::Loop(2));
+    /// assert_eq!(opcode!(exit 1), OpCode::Exit(1));
+    /// assert_eq!(opcode!(nt 3), OpCode::NT(3));
+    /// assert_eq!(opcode!(loop 2), OpCode::Loop(2));
+    /// assert_eq!(opcode!(exit 1), OpCode::Exit(1));
     /// assert_eq!(opcode!(end), OpCode::End);
     #[macro_export(local_inner_macros)]
     macro_rules! opcode {
         (e) => { OpCode::Empty };
         (t $id:literal) => { OpCode::T($id as TokenId) };
-        (nt $id:literal / $num:expr) => { OpCode::NT($id as VarId, $num as u16) };
-        (loop $id:literal / $num:expr) => { OpCode::Loop($id as VarId, $num as u16) };
-        (exit $id:literal / $num:expr) => { OpCode::Exit($id as VarId, $num as u16) };
+        (nt $id:literal) => { OpCode::NT($id as VarId) };
+        (loop $id:literal) => { OpCode::Loop($id as VarId) };
+        (exit $id:literal) => { OpCode::Exit($id as VarId) };
         (nt $id:literal) => { OpCode::NT($id as VarId, 0) };
         (loop $id:literal) => { OpCode::Loop($id as VarId, 0) };
         (exit $id:literal) => { OpCode::Exit($id as VarId, 0) };
@@ -357,12 +357,12 @@ pub mod macros {
     /// # use rlexer::grammar::{ProdFactor, Symbol, VarId};
     /// # use rlexer::{strip, opcode};
     /// # use rlexer::parser::OpCode;
-    /// assert_eq!(strip!(nt 1/2, loop 5, t 3, e), vec![opcode!(nt 1/2), opcode!(loop 5/0), opcode!(t 3), opcode!(e)]);
+    /// assert_eq!(strip!(nt 1, loop 5, t 3, e), vec![opcode!(nt 1), opcode!(loop 5), opcode!(t 3), opcode!(e)]);
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! strip {
         () => { std::vec![] };
-        ($($a:ident $($b:literal $(/ $num:expr)?)?,)+) => { strip![$($a $($b $(/ $num)?)?),+] };
-        ($($a:ident $($b:literal $(/ $num:expr)?)?),*) => { std::vec![$(opcode!($a $($b $(/ $num)?)?)),*] };
+        ($($a:ident $($b:literal)?,)+) => { strip![$($a $($b)?),+] };
+        ($($a:ident $($b:literal)?),*) => { std::vec![$(opcode!($a $($b)?)),*] };
     }
 }

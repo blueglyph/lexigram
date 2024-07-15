@@ -171,7 +171,7 @@ mod listener {
             }
         }
 
-        fn t_data(&mut self, t: TokenId, data: String) {
+        fn t_data(&mut self, _t: TokenId, data: String) {
             self.stack_t.push(data);
         }
     }
@@ -598,7 +598,7 @@ mod listener2 {
             }
         }
 
-        fn t_data(&mut self, t: TokenId, data: String) {
+        fn t_data(&mut self, _t: TokenId, data: String) {
             self.stack_t.push(data);
         }
     }
@@ -1022,7 +1022,7 @@ mod listener3 {
             }
         }
 
-        fn t_data(&mut self, t: TokenId, data: String) {
+        fn t_data(&mut self, _t: TokenId, data: String) {
             self.stack_t.push(data);
         }
     }
