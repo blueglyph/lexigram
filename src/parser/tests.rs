@@ -222,7 +222,7 @@ mod opcodes {
     fn parser_opcodes() {
         // terminal:     t (static) or t! (contains a string)
         // non-terminal: ►A
-        // exit:         ◄2/1 (factor #2, takes 1 string from lexer stack)
+        // exit:         ◄2 (factor #2)
         // loop:         ●1 (factor #1)
         let tests: Vec<(T, VarId, Vec<Vec<OpCode>>)> = vec![
             (T::RTS(9), 0, vec![                        // A -> var (id ,)+
