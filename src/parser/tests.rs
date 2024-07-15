@@ -350,7 +350,8 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_data: Vec<String>) {
+            self.stack_t.append(&mut t_data);
             match call {
                 Call::Loop | Call::Enter => {
                     match nt {
@@ -381,10 +382,6 @@ mod listener {
                 Call::Asm => panic!("unexepected Call::Asm in this test"),
             }
             // false
-        }
-
-        fn t_data(&mut self, _t: TokenId, data: String) {
-            self.stack_t.push(data);
         }
     }
 

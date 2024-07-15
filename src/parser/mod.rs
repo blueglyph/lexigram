@@ -98,8 +98,7 @@ pub trait Listener {
     /// The function returns true when `Asm(factor_id)` has to be pushed on the parser stack,
     /// typically to attach parameters to an object being assembled by the listener
     /// (intermediate inheritance).
-    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId) { /*false*/ }
-    fn t_data(&mut self, t: TokenId, data: String) { }
+    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Vec<String>) { /*false*/ }
 }
 
 pub struct Parser {
@@ -245,6 +244,7 @@ impl Parser {
         const VERBOSE: bool = true;
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<OpCode>::new();
+        let mut stack_t = Vec::<String>::new();
         let error = self.factors.len() as VarId;
         let end = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
@@ -255,8 +255,9 @@ impl Parser {
         loop {
             if VERBOSE {
                 println!("{:-<40}", "");
-                println!("input ({stream_n}): {}   stack: [{}]   current: {}",
+                println!("input ({stream_n}): {}   stack_t: [{}]   stack: [{}]   current: {}",
                          stream_sym.to_str_ext(sym_table, &stream_str),
+                         stack_t.join(", "),
                          stack.iter().map(|s| s.to_str(sym_table)).join(" "),
                          stack_sym.to_str(sym_table));
             }
@@ -279,33 +280,32 @@ impl Parser {
                         ));
                     }
                     let call = if stack_sym.is_loop() { Call::Loop } else { Call::Enter };
+                    let t_data = std::mem::take(&mut stack_t);
                     if VERBOSE {
                         let f = &self.factors[factor_id as usize];
                         println!("- to stack: [{}]", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(" "));
-                        println!("- {} {} -> {}", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
-                                 Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table));
+                        println!("- {} {} -> {} ({}): [{}]", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
+                                 Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table), t_data.len(), t_data.iter().join(" "));
                     }
-                    listener.switch(call, var, factor_id);
+                    listener.switch(call, var, factor_id, t_data);
                     let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                     stack.extend(self.opcodes[factor_id as usize].clone());
                     stack_sym = stack.pop().unwrap();
                 }
                 (OpCode::Exit(factor_id), _) => {
                     let var = self.factors[factor_id as usize].0;
-                    if VERBOSE { println!("- EXIT {}", Symbol::NT(var).to_str(sym_table)); }
-                    listener.switch(Call::Exit, var, factor_id);
+                    let t_data = std::mem::take(&mut stack_t);
+                    if VERBOSE { println!("- EXIT {} syn ({}): [{}]", Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter().join(" ")); }
+                    listener.switch(Call::Exit, var, factor_id, t_data);
                     stack_sym = stack.pop().unwrap();
                 }
                 (OpCode::T(sk), Symbol::T(sr)) => {
                     if sk != sr {
                         return Err(format!("unexpected character: '{}' instead of '{}'", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)));
                     }
-                    if VERBOSE { print!("- MATCH {}", stream_sym.to_str(sym_table)); }
+                    if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
                     if self.symbol_table.is_t_data(sk) {
-                        if VERBOSE { println!(", t_data '{}'", stream_str); }
-                        listener.t_data(sk, stream_str);
-                    } else {
-                        if VERBOSE { println!(); }
+                        stack_t.push(stream_str);
                     }
                     stack_sym = stack.pop().unwrap();
                     stream_n += 1;
@@ -326,6 +326,7 @@ impl Parser {
                 }
             }
         }
+        assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));
         assert!(stack.is_empty(), "stack: {}", stack.iter().map(|s| s.to_str(sym_table)).join(", "));
         Ok(())
     }
