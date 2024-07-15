@@ -138,13 +138,20 @@ impl Parser {
         self.flags[var as usize] & flags == flags
     }
 
+    #[cfg(for_later)]
     /// Number of data terminals in factor `f`
-    fn num_t_data(&self, f: VarId) -> u16 {
-        u16::try_from(self.factors[f as usize].1.iter().filter(|s| self.symbol_table.is_symbol_t_data(s)).count()).unwrap()
+    fn num_t_data(&self, f: VarId) -> usize {
+        self.factors[f as usize].1.iter().filter(|s| self.symbol_table.is_symbol_t_data(s)).count()
     }
 
-    fn build_opcodes(&mut self) {
+    #[cfg(for_later)]
+    /// Number of data terminals for factors
+    fn get_num_stack(&self, factor_id: VarId) -> usize {
         const VERBOSE: bool = false;
+        let var_id = self.factors[factor_id as usize].0;
+        let flags = self.flags[var_id as usize];
+
+        // todo!("Normally, this should be precompiled before inspecting all the factors:")
         let mut var_factors = HashMap::<VarId, (VarId, VarId)>::new();
         for (factor_id, (var_id, factor)) in self.factors.iter().enumerate() {
             if VERBOSE {
@@ -157,42 +164,54 @@ impl Parser {
             } else {
                 var_factors.insert(*var_id, (factor_id as VarId, factor_id as VarId));
             }
+        }
+
+        let mut num_stack = self.num_t_data(factor_id);
+        let mut fl = flags;
+        let mut child_var = var_id;
+        while fl & ruleflag::CHILD_L_FACTOR != 0 {
+            let par_var = self.parent[child_var as usize].unwrap();
+            fl = self.flags[par_var as usize];
+            let factors = var_factors[&par_var];
+            if VERBOSE {
+                println!("  // child var {}: parent var {} has factors {} to {}",
+                         Symbol::NT(child_var).to_str(self.get_symbol_table()),
+                         Symbol::NT(par_var).to_str(self.get_symbol_table()), factors.0, factors.1);
+            }
+            let calling_factor = (factors.0 ..= factors.1).find(|f| {
+                let ok = self.factors[*f as usize].1.iter().any(|s| s == &Symbol::NT(child_var));
+                if VERBOSE {
+                    println!("  // is factor {f} calling {}? {ok}: {}", Symbol::NT(child_var).to_str(self.get_symbol_table()),
+                        self.factors[*f as usize].1.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")
+                    )
+                }
+                ok
+            }).unwrap();
+            if VERBOSE {
+                println!("  - var {} ({child_var}) is called by factor {calling_factor} -> num_stack = {num_stack} + {}",
+                         Symbol::NT(par_var).to_str(self.get_symbol_table()),
+                         self.num_t_data(calling_factor));
+            }
+            num_stack += self.num_t_data(calling_factor);
+            child_var = par_var;
+        }
+        num_stack
+    }
+
+    fn build_opcodes(&mut self) {
+        const VERBOSE: bool = false;
+        for (factor_id, (var_id, factor)) in self.factors.iter().enumerate() {
+            if VERBOSE {
+                println!("{} -> {}",
+                         Symbol::NT(*var_id).to_str(self.get_symbol_table()),
+                         factor.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "));
+            }
             let factor_id = factor_id as VarId;
             let flags = self.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);
             let mut new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
             if VERBOSE { println!("- {}", new.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut opcode = Vec::<OpCode>::new();
-            let mut num_stack = self.num_t_data(factor_id);
-            let mut fl = flags;
-            let mut child_var = *var_id;
-            while fl & ruleflag::CHILD_L_FACTOR != 0 {
-                let par_var = self.parent[child_var as usize].unwrap();
-                fl = self.flags[par_var as usize];
-                let factors = var_factors[&par_var];
-                if VERBOSE {
-                    println!("  // child var {}: parent var {} has factors {} to {}",
-                             Symbol::NT(child_var).to_str(self.get_symbol_table()),
-                             Symbol::NT(par_var).to_str(self.get_symbol_table()), factors.0, factors.1);
-                }
-                let calling_factor = (factors.0 ..= factors.1).find(|f| {
-                    let ok = self.factors[*f as usize].1.iter().any(|s| s == &Symbol::NT(child_var));
-                    if VERBOSE {
-                        println!("  // is factor {f} calling {}? {ok}: {}", Symbol::NT(child_var).to_str(self.get_symbol_table()),
-                            self.factors[*f as usize].1.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")
-                        )
-                    }
-                    ok
-                }).unwrap();
-                if VERBOSE {
-                    println!("  - var {} ({child_var}) is called by factor {calling_factor} -> num_stack = {num_stack} + {}",
-                             Symbol::NT(par_var).to_str(self.get_symbol_table()),
-                             self.num_t_data(calling_factor));
-                }
-                num_stack += self.num_t_data(calling_factor);
-                child_var = par_var;
-            }
-
             if flags & ruleflag::CHILD_L_FACTOR != 0 {
                 let parent = self.parent[*var_id as usize].unwrap();
                 if new.get(0) == Some(&Symbol::NT(parent)) {
@@ -204,12 +223,9 @@ impl Parser {
                 opcode.push(OpCode::Exit(factor_id)); // will be popped when this NT is completed
             }
             opcode.extend(new.into_iter().map(|s| OpCode::from(s)));
-            if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false)
-                // || matches!(opcode.get(1), Some(Symbol::NT(child)) if self.has_flags(*child, ruleflag::CHILD_L_RECURSION) && !self.has_flags(*child, ruleflag::CHILD_AMBIGUITY))
-            {
+            if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false) {
                 opcode.swap(0, 1);
             }
-
             opcode.iter_mut().for_each(|o| {
                 if let OpCode::NT(v) = o {
                     if v == var_id {
