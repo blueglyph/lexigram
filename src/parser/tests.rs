@@ -229,20 +229,20 @@ mod opcodes {
                 strip![exit 0, nt 1, t 1],              //  0: A -> var A_1    - ◄0 ►A_1 var
                 strip![nt 2, t 3, t 2],                 //  1: A_1 -> id , A_2 - ►A_2 , id!
                 strip![exit 2],                         //  2: A_2 -> ε        - ◄2
-                strip![loop 1, exit 3],                 //  3: A_2 -> A_1      - ●1 ◄3
+                strip![loop 1, exit 3],                 //  3: A_2 -> A_1      - ●A_1 ◄3
             ]),
             (T::RTS(12), 0, vec![                       // A -> b (c d)*
                 strip![exit 0, nt 1, t 1],              //  0: A -> b B   - ◄0 ►B b!
-                strip![loop 1, exit 1, t 3, t 2],       //  1: B -> c d B - ●1 ◄1 d! c!
+                strip![loop 1, exit 1, t 3, t 2],       //  1: B -> c d B - ●B ◄1 d! c!
                 strip![exit 2],                         //  2: B -> ε     - ◄2
             ]),
             (T::RTS(16), 0, vec![                       // A -> A a+ b | c
                 strip![exit 0, nt 2, t 2],              //  0: A -> c A_1     - ◄0 ►A_1 c!
                 strip![nt 3, t 0],                      //  1: B -> a B_1     - ►B_1 a!
-                strip![loop 2, exit 2, t 1, nt 1],      //  2: A_1 -> B b A_1 - ●2 ◄2 b! ►B
+                strip![loop 2, exit 2, t 1, nt 1],      //  2: A_1 -> B b A_1 - ●A_1 ◄2 b! ►B
                 strip![exit 3],                         //  3: A_1 -> ε       - ◄3
                 strip![exit 4],                         //  4: B_1 -> ε       - ◄4
-                strip![loop 1, exit 5],                 //  5: B_1 -> B       - ●1 ◄5
+                strip![loop 1, exit 5],                 //  5: B_1 -> B       - ●B ◄5
             ]),
             (T::PRS(4), 0, vec![
                 strip![exit 0, nt 3, nt 1],             //  0: E -> T E_1     - ◄0 ►E_1 ►T
@@ -250,30 +250,30 @@ mod opcodes {
                 strip![exit 2, t 5, nt 0, t 4],         //  2: F -> ( E )     - ◄2 ) ►E (
                 strip![exit 3, t 6],                    //  3: F -> N         - ◄3 N!
                 strip![exit 4, t 7],                    //  4: F -> I         - ◄4 I!
-                strip![loop 3, exit 5, nt 1, t 0],      //  5: E_1 -> - T E_1 - ●3 ◄5 ►T -
-                strip![loop 3, exit 6, nt 1, t 1],      //  6: E_1 -> + T E_1 - ●3 ◄6 ►T +
+                strip![loop 3, exit 5, nt 1, t 0],      //  5: E_1 -> - T E_1 - ●E_1 ◄5 ►T -
+                strip![loop 3, exit 6, nt 1, t 1],      //  6: E_1 -> + T E_1 - ●E_1 ◄6 ►T +
                 strip![exit 7],                         //  7: E_1 -> ε       - ◄7
-                strip![loop 4, exit 8, nt 2, t 2],      //  8: T_1 -> / F T_1 - ●4 ◄8 ►F /
-                strip![loop 4, exit 9, nt 2, t 3],      //  9: T_1 -> * F T_1 - ●4 ◄9 ►F *
+                strip![loop 4, exit 8, nt 2, t 2],      //  8: T_1 -> / F T_1 - ●T_1 ◄8 ►F /
+                strip![loop 4, exit 9, nt 2, t 3],      //  9: T_1 -> * F T_1 - ●T_1 ◄9 ►F *
                 strip![exit 10],                        // 10: T_1 -> ε       - ◄10
             ]),
             (T::PRS(22), 0, vec![                       // E -> E * E | E & * E | E + E | E & + E | id
                 strip![exit 0, nt 1, t 3],              //  0: E -> id E_1     - ◄0 ►E_1 id!
                 strip![exit 1],                         //  1: E_1 -> ε        - ◄1
-                strip![loop 1, exit 2, t 3, t 0],       //  2: E_1 -> * id E_1 - ●1 ◄2 id! *
-                strip![loop 1, exit 3, t 3, t 1],       //  3: E_1 -> + id E_1 - ●1 ◄3 id! +
+                strip![loop 1, exit 2, t 3, t 0],       //  2: E_1 -> * id E_1 - ●E_1 ◄2 id! *
+                strip![loop 1, exit 3, t 3, t 1],       //  3: E_1 -> + id E_1 - ●E_1 ◄3 id! +
                 strip![nt 2, t 2],                      //  4: E_1 -> & E_2    - ►E_2 &
-                strip![loop 1, exit 5, t 3, t 0],       //  5: E_2 -> * id E_1 - ●1 ◄5 id! *
-                strip![loop 1, exit 6, t 3, t 1],       //  6: E_2 -> + id E_1 - ●1 ◄6 id! +
+                strip![loop 1, exit 5, t 3, t 0],       //  5: E_2 -> * id E_1 - ●E_1 ◄5 id! *
+                strip![loop 1, exit 6, t 3, t 1],       //  6: E_2 -> + id E_1 - ●E_1 ◄6 id! +
             ]),
             (T::PRS(26), 0, vec![                       // A -> A a | b
                 strip![exit 0, nt 1, t 1],              //  0: A -> b A_1   - ◄0 ►A_1 b!
-                strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●1 ◄1 a!
+                strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A ◄1 a!
                 strip![exit 2],                         //  2: A_1 -> ε     - ◄2
             ]),
             (T::PRS(26), 1, vec![                       // B -> B a B | b
                 strip![exit 0, nt 1, t 1],              //  0: B -> b B_1     - ◄0 ►B_1 b!
-                strip![loop 1, exit 1, t 1, t 0],       //  1: B_1 -> a b B_1 - ●1 ◄1 b! a!
+                strip![loop 1, exit 1, t 1, t 0],       //  1: B_1 -> a b B_1 - ●B_1 ◄1 b! a!
                 strip![exit 2],                         //  2: B_1 -> ε       - ◄2
             ]),
         ];

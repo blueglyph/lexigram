@@ -24,7 +24,7 @@ impl Display for OpCode {
         match self {
             OpCode::Empty => write!(f, "ε"),
             OpCode::T(t) => write!(f, ":{t}"),
-            OpCode::NT(v) =>   write!(f, "►{v}"),
+            OpCode::NT(v) => write!(f, "►{v}"),
             OpCode::Loop(v) => write!(f, "●{v}"),
             OpCode::Exit(v) => write!(f, "◄{v}"),
             OpCode::End => write!(f, "$"),
@@ -58,7 +58,7 @@ impl OpCode {
                 OpCode::Empty => "ε".to_string(),
                 OpCode::T(v) => format!("{}{}", t.get_t_name(*v), if t.is_t_data(*v) { "!" } else { "" }),
                 OpCode::NT(v) => format!("►{}", t.get_nt_name(*v)),
-                OpCode::Loop(f) => format!("●{f}"),
+                OpCode::Loop(v) => format!("●{}", t.get_nt_name(*v)),
                 OpCode::Exit(f) => format!("◄{f}"),
                 OpCode::End => "$".to_string(),
             }
