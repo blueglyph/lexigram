@@ -140,9 +140,8 @@ impl Parser {
     fn build_opcodes(&mut self) {
         const VERBOSE: bool = false;
         let num_t_str = self.factors.iter().map(|(v, f)| {
-            let n = f.iter().filter(|s| self.symbol_table.is_terminal_variable(s)).count();
-            assert!(n < 256);
-            n as u16
+            let n = f.iter().filter(|s| self.symbol_table.is_symbol_t_data(s)).count();
+            u16::try_from(n).unwrap()
         }
         ).to_vec();
         let mut var_factors = HashMap::<VarId, (VarId, VarId)>::new();
