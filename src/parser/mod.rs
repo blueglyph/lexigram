@@ -56,7 +56,7 @@ impl OpCode {
         if let Some(t) = symbol_table {
             match self {
                 OpCode::Empty => "ε".to_string(),
-                OpCode::T(v) => format!("{}{}", t.get_t_name(*v), if t.is_terminal_variable(&Symbol::T(*v)) { "!" } else { "" }),
+                OpCode::T(v) => format!("{}{}", t.get_t_name(*v), if t.is_t_data(*v) { "!" } else { "" }),
                 OpCode::NT(v, n) => if *n > 0 { format!("►{}/{n}", t.get_nt_name(*v)) } else { format!("►{}", t.get_nt_name(*v)) },
                 OpCode::Loop(f, n) => if *n > 0 { format!("●{f}/{n}") } else { format!("●{f}") },
                 OpCode::Exit(f, n) => if *n > 0 { format!("◄{f}/{n}") } else { format!("◄{f}") },
@@ -289,7 +289,7 @@ impl Parser {
                         return Err(format!("unexpected character: '{}' instead of '{}'", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table)));
                     }
                     if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
-                    if self.symbol_table.is_terminal_variable(&Symbol::T(sk)) {
+                    if self.symbol_table.is_t_data(sk) {
                         stack_t.push(stream_str);
                     }
                     stack_sym = stack.pop().unwrap();

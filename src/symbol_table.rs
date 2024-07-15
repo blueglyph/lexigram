@@ -60,9 +60,15 @@ impl SymbolTable {
         }
     }
 
-    pub fn is_terminal_variable(&self, s: &Symbol) -> bool {
-        if let Symbol::T(var) = s {
-            self.t[*var as usize].1.is_none()
+    /// Does `Symbol::T(token)` hold lexer string data?
+    pub fn is_t_data(&self, token: TokenId) -> bool {
+        self.t[token as usize].1.is_none()
+    }
+
+    /// Is `symbol` a terminal holding lexer string data?
+    pub fn is_symbol_t_data(&self, symbol: &Symbol) -> bool {
+        if let Symbol::T(token) = symbol {
+            self.t[*token as usize].1.is_none()
         } else {
             false
         }
