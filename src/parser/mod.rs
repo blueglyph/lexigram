@@ -137,13 +137,13 @@ impl Parser {
         self.flags[var as usize] & flags == flags
     }
 
+    /// Number of data terminals in factor `f`
+    fn num_t_data(&self, f: VarId) -> u16 {
+        u16::try_from(self.factors[f as usize].1.iter().filter(|s| self.symbol_table.is_symbol_t_data(s)).count()).unwrap()
+    }
+
     fn build_opcodes(&mut self) {
         const VERBOSE: bool = false;
-        let num_t_str = self.factors.iter().map(|(v, f)| {
-            let n = f.iter().filter(|s| self.symbol_table.is_symbol_t_data(s)).count();
-            u16::try_from(n).unwrap()
-        }
-        ).to_vec();
         let mut var_factors = HashMap::<VarId, (VarId, VarId)>::new();
         for (factor_id, (var_id, factor)) in self.factors.iter().enumerate() {
             if VERBOSE {
@@ -162,7 +162,7 @@ impl Parser {
             let mut new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
             if VERBOSE { println!("- {}", new.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut opcode = Vec::<OpCode>::new();
-            let mut num_stack = num_t_str[factor_id as usize];
+            let mut num_stack = self.num_t_data(factor_id);
             let mut fl = flags;
             let mut child_var = *var_id;
             while fl & ruleflag::CHILD_L_FACTOR != 0 {
@@ -186,9 +186,9 @@ impl Parser {
                 if VERBOSE {
                     println!("  - var {} ({child_var}) is called by factor {calling_factor} -> num_stack = {num_stack} + {}",
                              Symbol::NT(par_var).to_str(self.get_symbol_table()),
-                             num_t_str[calling_factor as usize]);
+                             self.num_t_data(calling_factor));
                 }
-                num_stack += num_t_str[calling_factor as usize];
+                num_stack += self.num_t_data(calling_factor);
                 child_var = par_var;
             }
 
