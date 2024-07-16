@@ -207,7 +207,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 1));
             tree.addc(Some(cc), gnode!(+), gnode!(t 2));
         }
-        9 => { // :1(:2:3)+
+        9 => { // var (id ,)+
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(+));
@@ -266,7 +266,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(nt 0));
             tree.add(Some(or), gnode!(t 4));
         }
-        16 => { // 0 (:0)+ :1 | :2
+        16 => { // A (a)+ b | c
             let or = tree.add_root(gnode!(|));
             let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
             let p2 = tree.addc(Some(cc1), gnode!(+), gnode!(t 0));
@@ -2108,10 +2108,13 @@ impl T {
 #[test]
 fn rts_prs_flags() {
     let tests = vec![
-        (T::RTS(9), 0, btreemap![1 => 33, 2 => 64],
-         btreemap![],
-         btreemap![1 => 0, 2 => 1]),
+        (T::RTS(9), 0,btreemap![1 => 33, 2 => 64],      // NT flags
+         btreemap![],                                   // factor flags
+         btreemap![1 => 0, 2 => 1]),                    // parents
         (T::RTS(11), 0, btreemap![1 => 1],
+         btreemap![],
+         btreemap![1 => 0]),
+        (T::RTS(12), 0, btreemap![1 => 1],
          btreemap![],
          btreemap![1 => 0]),
         (T::RTS(15), 0, btreemap![1 => 12],
@@ -2120,9 +2123,15 @@ fn rts_prs_flags() {
         (T::RTS(16), 0, btreemap![1 => 33, 2 => 4, 3 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0, 3 => 1]),
+        (T::RTS(17), 0, btreemap![1 => 33, 2 => 33, 3 => 64, 4 => 64],
+         btreemap![],
+         btreemap![1 => 0, 2 => 0, 3 => 1, 4 => 2]),
         (T::PRS(0), 0, btreemap![0 => 32, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
+        (T::PRS(22), 0, btreemap![1 => 44, 2 => 64],
+         btreemap![],
+         btreemap![1 => 0, 2 => 1]),
         (T::PRS(26), 0, btreemap![1 => 4],
          btreemap![],
          btreemap![1 => 0]),
