@@ -1322,6 +1322,7 @@ impl<T> ProdRuleSet<T> {
                     continue
                 }
                 let var = i as VarId;
+                let mut maybe_child = None;
                 let mut factors = prod.clone();
                 factors.sort();
                 if VERBOSE { println!("{i}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), prod_to_string(prod, self.get_symbol_table())); }
@@ -1350,7 +1351,13 @@ impl<T> ProdRuleSet<T> {
                     let var_prime = new_var;
                     new_var += 1;
                     self.set_flags(var, ruleflag::PARENT_L_FACTOR);
-                    self.set_flags(var_prime, ruleflag::CHILD_L_FACTOR);
+                    let prime_flags = if let Some(child) = maybe_child {
+                        self.set_parent(child, var_prime);
+                        ruleflag::CHILD_L_FACTOR | ruleflag::PARENT_L_FACTOR
+                    } else {
+                        ruleflag::CHILD_L_FACTOR
+                    };
+                    self.set_flags(var_prime, prime_flags);
                     if let Some(table) = &mut self.symbol_table {
                         table.add_var_prime_name(var, var_prime);
                     }
@@ -1374,6 +1381,7 @@ impl<T> ProdRuleSet<T> {
                     *prod = factors.clone();
                     if VERBOSE { println!("   mod {var}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), prod_to_string(&prod, self.get_symbol_table())); }
                     if start.is_none() { start = Some(i + 1); }
+                    maybe_child = Some(var_prime);
                 }
             }
             prods.extend(extra);

@@ -829,6 +829,12 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0; nt 0, t 1; t 2; t 3),
             ]);
         }
+        28 => {
+            // A -> a | a b | a b c | a b d | e
+            prods.extend([
+                prod!(t 0; t 0, t 1; t 0, t 1, t 2; t 0, t 1, t 3; t 4),
+            ]);
+        }
 
         // ambiguity?
         100 => {
@@ -2123,6 +2129,12 @@ fn rts_prs_flags() {
         (T::PRS(26), 1, btreemap![1 => 12],
          btreemap![],
          btreemap![1 => 0]),
+        (T::PRS(28), 0, btreemap![0 => 32, 1 => 64, 2 => 96],
+         btreemap![],
+         btreemap![1 => 2, 2 => 0]),
+        /*
+        (T::PRS(), 0, btreemap![], btreemap![], btreemap![]),
+        */
     ];
     const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
