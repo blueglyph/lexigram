@@ -9,7 +9,7 @@ use crate::parsergen::ParserBuilder;
 #[test]
 fn write_source_code_from_ll1() {
     // Copy the output into tests/integration.rs, module parser_gen:
-    let rules = build_prs(13);
+    let rules = build_prs(13, false);
     let ll1 = ProdRuleSet::<LL1>::from(rules);
     let builder = ParserBuilder::from_rules(ll1);
     match builder.write_source_code(None) {
@@ -22,7 +22,7 @@ fn write_source_code_from_ll1() {
 #[test]
 fn write_source_code_for_integration_listener() {
     // Copy the output into tests/integration.rs, module parser_gen:
-    let rules = build_prs(4);
+    let rules = build_prs(4, false);
     let ll1 = ProdRuleSet::<LL1>::from(rules);
     let builder = ParserBuilder::from_rules(ll1);
     match builder.write_source_code(None) {
@@ -34,7 +34,7 @@ fn write_source_code_for_integration_listener() {
 #[ignore]
 #[test]
 fn write_source_code_from_lr() {
-    let rules = build_prs(4);
+    let rules = build_prs(4, false);
     let builder = ParserBuilder::from_rules(rules);
     match builder.write_source_code(None) {
         Ok(_) => {}

@@ -509,10 +509,11 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
     }
 }
 
-pub(crate) fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize, num_nt: usize) {
+pub(crate) fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize, num_nt: usize, is_t_data: bool) {
     if symbol_table.get_terminals().is_empty() {
         assert!(num_t <= 26);
-        symbol_table.extend_terminals((0..num_t).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
+        symbol_table.extend_terminals((0..num_t).map(|i| (format!("{}", char::from(i as u8 + 97)),
+                                                          if is_t_data { None } else { Some(format!("{}", char::from(i as u8 + 97))) })));
     }
     if symbol_table.get_non_terminals().is_empty() {
         assert!(num_nt <= 26);
@@ -521,7 +522,7 @@ pub(crate) fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize
 
 }
 
-pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
+pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
     let prods = &mut rules.prods;
@@ -930,7 +931,7 @@ pub(crate) fn build_prs(id: u32) -> ProdRuleSet<General> {
         _ => {}
     };
     rules.calc_num_symbols();
-    complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt);
+    complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt, is_t_data);
     rules.set_symbol_table(symbol_table);
     if let Some(start) = start {
         rules.set_start(start);
@@ -1017,7 +1018,7 @@ fn prs_remove_left_recursion() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
-        let mut rules = build_prs(test_id);
+        let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
             print_production_rules(&rules);
@@ -1087,7 +1088,7 @@ fn prs_left_factorize() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
-        let mut rules = build_prs(test_id);
+        let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
             print_production_rules(&rules);
@@ -1155,7 +1156,7 @@ fn prs_ll1_from() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
-        let rules_lr = build_prs(test_id);
+        let rules_lr = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
             print_production_rules(&rules_lr);
@@ -1184,7 +1185,7 @@ fn prs_ll1_from() {
 fn prs_lr_from() {
     let mut test_id = 0;
     loop {
-        let rules = build_prs(test_id);
+        let rules = build_prs(test_id, false);
         if rules.prods.is_empty() {
             break;
         }
@@ -1239,7 +1240,7 @@ fn prs_calc_first() {
     ];
     const VERBOSE: bool = false;
     for (test_id, start, expected) in tests {
-        let rules_lr = build_prs(test_id);
+        let rules_lr = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
         }
@@ -1290,7 +1291,7 @@ fn prs_calc_follow() {
     ];
     const VERBOSE: bool = false;
     for (test_id, start, expected) in tests {
-        let rules_lr = build_prs(test_id);
+        let rules_lr = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
         }
@@ -1852,7 +1853,7 @@ fn prs_calc_table() {
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
-        let rules_lr = build_prs(ll_id);
+        let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
             print_production_rules(&rules_lr);
@@ -1909,7 +1910,7 @@ fn prs_grammar_notes() {
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
-        let rules_lr = build_prs(ll_id);
+        let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
         }
@@ -2064,7 +2065,7 @@ pub(crate) fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
 pub(crate) enum T { RTS(u32), PRS(u32) }
 
 impl T {
-    pub(crate) fn get_prs(&self, test_id: usize, start_nt: VarId) -> ProdRuleSet<LL1> {
+    pub(crate) fn get_prs(&self, test_id: usize, start_nt: VarId, is_t_data: bool) -> ProdRuleSet<LL1> {
         const VERBOSE: bool = false;
         let mut ll1 = match self {
             T::RTS(id) => {
@@ -2072,7 +2073,7 @@ impl T {
                 let mut rules = ProdRuleSet::from(rts);
                 if rules.get_symbol_table().is_none() {
                     let mut symbol_table = SymbolTable::new();
-                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt());
+                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), is_t_data);
                     rules.set_symbol_table(symbol_table);
                 }
                 assert_eq!(rules.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
@@ -2083,7 +2084,7 @@ impl T {
                 ProdRuleSet::<LL1>::from(rules)
             }
             T::PRS(id) => {
-                let general = build_prs(*id);
+                let general = build_prs(*id, is_t_data);
                 assert_eq!(general.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", general.get_log().get_errors().join("\n- "));
                 if VERBOSE {
                     print!("General rules\n- ");
@@ -2127,7 +2128,7 @@ fn rts_prs_flags() {
     const VERBOSE_DETAILS: bool = false;
     for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
-        let mut ll1 = rule_id.get_prs(test_id, start_nt);
+        let mut ll1 = rule_id.get_prs(test_id, start_nt, true);
         if VERBOSE && VERBOSE_DETAILS {
             print!("Before table creation:\n- ");
             print_prs_summary(&ll1);

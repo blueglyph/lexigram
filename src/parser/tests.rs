@@ -55,7 +55,7 @@ fn parser_parse_stream() {
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
-        let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
+        let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id, false));
         ll1.set_start(start);
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| Symbol::T(t))
@@ -138,7 +138,7 @@ fn parser_parse_stream_id() {
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
-        let mut ll1 = ll_id.get_prs(test_id, start);
+        let mut ll1 = ll_id.get_prs(test_id, start, false);
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| Symbol::T(t))
             .map(|s| (s.to_str(ll1.get_symbol_table()), s))
@@ -232,17 +232,26 @@ mod opcodes {
                 strip![loop 1, exit 3],                 //  3: A_2 -> A_1      - ●A_1 ◄3
             ]),
             (T::RTS(12), 0, vec![                       // A -> b (c d)*
-                strip![exit 0, nt 1, t 1],              //  0: A -> b B   - ◄0 ►B b!
-                strip![loop 1, exit 1, t 3, t 2],       //  1: B -> c d B - ●B ◄1 d! c!
+                strip![exit 0, nt 1, t 1],              //  0: A -> b B   - ◄0 ►B b
+                strip![loop 1, exit 1, t 3, t 2],       //  1: B -> c d B - ●B ◄1 d c
                 strip![exit 2],                         //  2: B -> ε     - ◄2
             ]),
             (T::RTS(16), 0, vec![                       // A -> A a+ b | c
-                strip![exit 0, nt 2, t 2],              //  0: A -> c A_1     - ◄0 ►A_1 c!
-                strip![nt 3, t 0],                      //  1: B -> a B_1     - ►B_1 a!
-                strip![loop 2, exit 2, t 1, nt 1],      //  2: A_1 -> B b A_1 - ●A_1 ◄2 b! ►B
+                strip![exit 0, nt 2, t 2],              //  0: A -> c A_1     - ◄0 ►A_1 c
+                strip![nt 3, t 0],                      //  1: B -> a B_1     - ►B_1 a
+                strip![loop 2, exit 2, t 1, nt 1],      //  2: A_1 -> B b A_1 - ●A_1 ◄2 b ►B
                 strip![exit 3],                         //  3: A_1 -> ε       - ◄3
                 strip![exit 4],                         //  4: B_1 -> ε       - ◄4
                 strip![loop 1, exit 5],                 //  5: B_1 -> B       - ●B ◄5
+            ]),
+            (T::RTS(17), 0, vec![                       // A -> a ( (b)+ c)+ d
+                strip![exit 0, t 3, nt 2, t 0],         //  0: A -> a C d   - ◄0 d ►C a
+                strip![nt 3, t 1],                      //  1: B -> b B_1   - ►B_1 b
+                strip![nt 4, t 2, nt 1],                //  2: C -> B c C_1 - ►C_1 c ►B
+                strip![exit 3],                         //  3: B_1 -> ε     - ◄3
+                strip![loop 1, exit 4],                 //  4: B_1 -> B     - ●B ◄4
+                strip![exit 5],                         //  5: C_1 -> ε     - ◄5
+                strip![loop 2, exit 6],                 //  6: C_1 -> C     - ●C ◄6
             ]),
             (T::PRS(4), 0, vec![
                 strip![exit 0, nt 3, nt 1],             //  0: E -> T E_1     - ◄0 ►E_1 ►T
@@ -267,20 +276,20 @@ mod opcodes {
                 strip![loop 1, exit 6, t 3, t 1],       //  6: E_2 -> + id E_1 - ●E_1 ◄6 id! +
             ]),
             (T::PRS(26), 0, vec![                       // A -> A a | b
-                strip![exit 0, nt 1, t 1],              //  0: A -> b A_1   - ◄0 ►A_1 b!
-                strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A ◄1 a!
+                strip![exit 0, nt 1, t 1],              //  0: A -> b A_1   - ◄0 ►A_1 b
+                strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A ◄1 a
                 strip![exit 2],                         //  2: A_1 -> ε     - ◄2
             ]),
             (T::PRS(26), 1, vec![                       // B -> B a B | b
-                strip![exit 0, nt 1, t 1],              //  0: B -> b B_1     - ◄0 ►B_1 b!
-                strip![loop 1, exit 1, t 1, t 0],       //  1: B_1 -> a b B_1 - ●B_1 ◄1 b! a!
+                strip![exit 0, nt 1, t 1],              //  0: B -> b B_1     - ◄0 ►B_1 b
+                strip![loop 1, exit 1, t 1, t 0],       //  1: B_1 -> a b B_1 - ●B_1 ◄1 b a
                 strip![exit 2],                         //  2: B_1 -> ε       - ◄2
             ]),
         ];
         const VERBOSE: bool = true;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
-            let mut ll1 = rule_id.get_prs(test_id, start_nt);
+            let mut ll1 = rule_id.get_prs(test_id, start_nt, false);
             if VERBOSE {
                 print!("- ");
                 print_prs_summary(&ll1);
@@ -477,7 +486,7 @@ mod listener {
         const VERBOSE: bool = false;
         for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
-            let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id));
+            let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id, false));
             ll1.set_start(start);
             let symbols = (0..ll1.get_num_t() as TokenId)
                 .map(|t| Symbol::T(t))
