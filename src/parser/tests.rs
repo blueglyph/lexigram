@@ -210,7 +210,7 @@ mod opcodes {
                     ops.into_iter().map(|s| s.to_str(Some(&parser.symbol_table))).join(" ")
                 )
             ).to_vec();
-            let width = opcodes.iter().fold((0, 0), |acc, s| (acc.0.max(s.0.len()), acc.1.max(s.1.len())));
+            let width = opcodes.iter().fold((39, 0), |acc, s| (acc.0.max(s.0.len()), acc.1.max(s.1.len())));
             let code = opcodes.into_iter()
                 .map(|(a, b, c)| format!("{:indent$}{a:width_a$} // {b:width_b$} - {c}", "", indent=indent, width_a=width.0, width_b=width.1))
                 .join("\n");
