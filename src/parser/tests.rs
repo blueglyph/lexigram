@@ -9,6 +9,60 @@ use crate::parser::Listener;
 use crate::parsergen::ParserBuilder;
 use crate::symbol_table::SymbolTable;
 
+// ---------------------------------------------------------------------------------------------
+// Macros
+
+pub mod macros {
+    /// Generates an `OpCode` instance.
+    ///
+    /// # Examples
+    /// ```
+    /// # use rlexer::dfa::TokenId;
+    /// # use rlexer::opcode;
+    /// # use rlexer::grammar::VarId;
+    /// # use rlexer::parser::OpCode;
+    /// assert_eq!(opcode!(e), OpCode::Empty);
+    /// assert_eq!(opcode!(t 2), OpCode::T(2 as TokenId));
+    /// assert_eq!(opcode!(nt 3), OpCode::NT(3));
+    /// assert_eq!(opcode!(loop 2), OpCode::Loop(2));
+    /// assert_eq!(opcode!(exit 1), OpCode::Exit(1));
+    /// assert_eq!(opcode!(nt 3), OpCode::NT(3));
+    /// assert_eq!(opcode!(loop 2), OpCode::Loop(2));
+    /// assert_eq!(opcode!(exit 1), OpCode::Exit(1));
+    /// assert_eq!(opcode!(end), OpCode::End);
+    #[macro_export(local_inner_macros)]
+    macro_rules! opcode {
+        (e) => { OpCode::Empty };
+        (t $id:expr) => { OpCode::T($id as TokenId) };
+        (nt $id:expr) => { OpCode::NT($id as VarId) };
+        (loop $id:expr) => { OpCode::Loop($id as VarId) };
+        (exit $id:expr) => { OpCode::Exit($id as VarId) };
+        (nt $id:expr) => { OpCode::NT($id as VarId, 0) };
+        (loop $id:expr) => { OpCode::Loop($id as VarId, 0) };
+        (exit $id:expr) => { OpCode::Exit($id as VarId, 0) };
+        (end) => { OpCode::End };
+    }
+
+    /// Generates an opcode strip. A strip is made up of `OpCode` items separated by a comma.
+    ///
+    /// # Example
+    /// ```
+    /// # use rlexer::dfa::TokenId;
+    /// # use rlexer::grammar::{ProdFactor, Symbol, VarId};
+    /// # use rlexer::{strip, opcode};
+    /// # use rlexer::parser::OpCode;
+    /// assert_eq!(strip!(nt 1, loop 5, t 3, e), vec![opcode!(nt 1), opcode!(loop 5), opcode!(t 3), opcode!(e)]);
+    /// ```
+    #[macro_export(local_inner_macros)]
+    macro_rules! strip {
+        () => { std::vec![] };
+        ($($a:ident $($b:expr)?,)+) => { strip![$($a $($b)?),+] };
+        ($($a:ident $($b:expr)?),*) => { std::vec![$(opcode!($a $($b)?)),*] };
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
 #[test]
 fn parser_parse_stream() {
 
