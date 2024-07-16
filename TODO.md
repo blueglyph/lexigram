@@ -52,16 +52,16 @@
         ... (remove ambiguity and left recursion in E, E_1
         ```
     - [ ] reconstruct semantic synthesis attributes during parsing
-      - [ ] tags when transforming grammar (remove_left_recursion, left_factorize)
+      - [x] ~~tags when transforming grammar (remove_left_recursion, left_factorize)~~
       - [x] stack-based reconstruction
       - [ ] left/right-associativity
-      - [ ] put parser symbols Rec/Exit in productions when they're created (that's where the knowledge is)
+      - [x] ~~opcode builder based on flags~~
     - [ ] check if LL(1)
       - [ ] check indirect left recursion
     - [x] ~~build parsing table~~
     - [ ] warning/error log system (for parsing table, lexer, ...)
       - [x] ~~add log~~
-      - [ ] check log and error issued in the whole chain (RTS -> PRS)
+      - [x] ~~check log and error issued in the whole chain (RTS -> PRS)~~
       - [ ] check if log reports errors correctly for each error type
     - [x] ~~predictive parsing algorithm~~
     - [x] ~~semantic analysis: how to link back to original RuleTree after removing left recursion/left factoring?~~
