@@ -308,6 +308,11 @@ mod opcodes {
                 strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b
                 strip![exit 2, t 0],                    //  2: B -> a   - ◄2 a
             ]),
+            (T::PRS(20), 0, vec![
+                strip![exit 0, nt 1, t 1, t 5, t 0],        //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
+                strip![loop 1, exit 1, t 4, t 5, t 3, t 5], //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!
+                strip![exit 2, t 2],                        //  2: LIST -> }                  - ◄2 }
+            ]),
             // [C] left recursion ----------------------------------------------------------
             (T::PRS(26), 0, vec![                       /// A -> A a | b
                 strip![exit 0, nt 1, t 1],              //  0: A -> b A_1   - ◄0 ►A_1 b
@@ -344,7 +349,20 @@ mod opcodes {
                 strip![loop 1, exit 1, t 1, t 0],       //  1: B_1 -> a b B_1 - ●B_1 ◄1 b a
                 strip![exit 2],                         //  2: B_1 -> ε       - ◄2
             ]),
-            // [A + C] normalization and left recursion ------------------------------------
+            (T::PRS(13), 0, vec![
+                strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1     - ◄0 ►E_1 ►F
+                strip![exit 1, t 5, nt 0, t 4],         //  1: F -> ( E )     - ◄1 ) ►E (
+                strip![exit 2, t 6],                    //  2: F -> N         - ◄2 N!
+                strip![exit 3, t 7],                    //  3: F -> I         - ◄3 I!
+                strip![loop 2, exit 4, nt 1, t 9],      //  4: E_1 -> : F E_1 - ●E_1 ◄4 ►F :
+                strip![loop 2, exit 5, nt 1, t 8],      //  5: E_1 -> ^ F E_1 - ●E_1 ◄5 ►F ^
+                strip![loop 2, exit 6, nt 1, t 2],      //  6: E_1 -> / F E_1 - ●E_1 ◄6 ►F /
+                strip![loop 2, exit 7, nt 1, t 3],      //  7: E_1 -> * F E_1 - ●E_1 ◄7 ►F *
+                strip![loop 2, exit 8, nt 1, t 0],      //  8: E_1 -> - F E_1 - ●E_1 ◄8 ►F -
+                strip![loop 2, exit 9, nt 1, t 1],      //  9: E_1 -> + F E_1 - ●E_1 ◄9 ►F +
+                strip![exit 10],                        // 10: E_1 -> ε       - ◄10
+            ]),
+            // [A + C + D] normalization + left factorization, left recursion --------------
             (T::RTS(16), 0, vec![                       /// A -> A a+ b | c
                 strip![exit 0, nt 2, t 2],              //  0: A -> c A_1     - ◄0 ►A_1 c
                 strip![nt 3, t 0],                      //  1: B -> a B_1     - ►B_1 a

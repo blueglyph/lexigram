@@ -401,17 +401,22 @@ mod listener2 {
     // F -> ( E ) | N | I
     // E_1 -> : F E_1 | ^ F E_1 | / F E_1 | * F E_1 | - F E_1 | + F E_1 | ε
     //
-    // - 0: E -> F E_1
-    // - 1: F -> ( E )
-    // - 2: F -> N
-    // - 3: F -> I
-    // - 4: E_1 -> : F E_1
-    // - 5: E_1 -> ^ F E_1
-    // - 6: E_1 -> / F E_1
-    // - 7: E_1 -> * F E_1
-    // - 8: E_1 -> - F E_1
-    // - 9: E_1 -> + F E_1
-    // - 10: E_1 -> ε
+    //  0: E -> F E_1     - ◄0 ►E_1 ►F
+    //  1: F -> ( E )     - ◄1 ) ►E (
+    //  2: F -> N         - ◄2 N!
+    //  3: F -> I         - ◄3 I!
+    //  4: E_1 -> : F E_1 - ●E_1 ◄4 ►F :
+    //  5: E_1 -> ^ F E_1 - ●E_1 ◄5 ►F ^
+    //  6: E_1 -> / F E_1 - ●E_1 ◄6 ►F /
+    //  7: E_1 -> * F E_1 - ●E_1 ◄7 ►F *
+    //  8: E_1 -> - F E_1 - ●E_1 ◄8 ►F -
+    //  9: E_1 -> + F E_1 - ●E_1 ◄9 ►F +
+    // 10: E_1 -> ε       - ◄10
+    //
+    // - NT flags:
+    //   - E_1: child_left_rec | child_amb (12)
+    // - parents:
+    //   - E_1 -> E
 
     type SynE = Option<i64>;
     type SynF = Option<i64>;
@@ -955,9 +960,15 @@ mod listener3 {
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use crate::CollectJoin;
-        // - 0: STRUCT -> struct id { LIST
-        // - 1: LIST -> id : id ; LIST
-        // - 2: LIST -> }
+
+        //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
+        //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!
+        //  2: LIST -> }                  - ◄2 }
+        //
+        // - NT flags:
+        //   - LIST: right_rec (2)
+        // - parents:
+        //   - (nothing)
 
         type SynStruct = usize;
         type SynList = Vec<(String, String)>;
