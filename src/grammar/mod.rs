@@ -277,7 +277,7 @@ pub mod ruleflag {
     pub const PARENT_L_FACTOR: u32 = 32;
     pub const CHILD_L_FACTOR: u32 = 64;
     /// Low-latency non-terminal
-    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in factors.
+    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in `flags`.
     pub const L_FORM: u32 = 128;
     /// Right-associative factor.
     /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in factors.
@@ -883,6 +883,15 @@ impl<T> ProdRuleSet<T> {
             self.parent.resize(child + 1, None);
         }
         self.parent[child] = Some(parent);
+    }
+
+    fn get_parent(&self, child: VarId) -> Option<VarId> {
+        let child = child as usize;
+        if child >= self.parent.len() {
+            None
+        } else {
+            self.parent[child]
+        }
     }
 
     /// Calculates `num_t` and `num_nt` (done right after importing rules).
@@ -1528,7 +1537,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             if !tree.is_empty() {
                 let root = tree.get_root().expect("tree {var} has no root");
                 let root_sym = tree.get(root);
-                let prod = match root_sym {
+                let mut prod = match root_sym {
                     GrNode::Symbol(s) => {
                         vec![ProdFactor::new(vec![s.clone()])]
                     },
@@ -1547,6 +1556,28 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                         }).to_vec(),
                     s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var as VarId).to_str(prules.get_symbol_table()))
                 };
+                if prod.iter().any(|f| f.flags & ruleflag::L_FORM != 0) {
+                    let mut nt = var as VarId;
+
+                    // We keep the L flag on the child of +* normalization if it's intended only for that normalization.
+                    // For example:
+                    // - A -> A (b <L>)+ | c
+                    //   - doesn't have an l-form left recursion
+                    //   - has an l-form repetition of b
+                    // - A -> A <L> (b)+ | c
+                    //   - has an l-form left recursion
+                    //   - doesn't have an l-form repetition of b
+                    //
+                    // while let Some(parent) = prules.get_parent(nt) {
+                    //     nt = parent;
+                    // }
+
+                    prules.set_flags(nt as VarId, ruleflag::L_FORM);
+                    // not really necessary, but cleaner:
+                    for f in prod.iter_mut() {
+                        f.flags &= !ruleflag::L_FORM;
+                    }
+                }
                 prules.prods.push(prod);
             } else {
                 prules.prods.push(ProdRule::new()); // empty

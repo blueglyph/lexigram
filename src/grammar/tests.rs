@@ -282,6 +282,37 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc2), gnode!(t 2));
             tree.add(Some(cc), gnode!(t 3));
         }
+        18 => { // a | b L | c
+            let or = tree.add_root(gnode!(|));
+            tree.add(Some(or), gnode!(t 0));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 1), gnode!(L)]);
+            tree.add(Some(or), gnode!(t 2));
+        }
+        // 19 => { // a (b <L>)+ c
+        //     let cc = tree.add_root(gnode!(&));
+        //     tree.add(Some(cc), gnode!(t 0));
+        //     let p1 = tree.add(Some(cc), gnode!(+));
+        //     tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L)]);
+        //     tree.add(Some(cc), gnode!(t 2));
+        // }
+        19 => { // A (b <L>)* c | d
+            let or = tree.add_root(gnode!(|));
+            let cc = tree.add(Some(or), gnode!(&));
+            tree.add(Some(cc), gnode!(nt 0));
+            let s1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(s1), gnode!(&), [gnode!(t 1), gnode!(L)]);
+            tree.add(Some(cc), gnode!(t 2));
+            tree.add(Some(or), gnode!(t 3));
+        }
+        20 => { // A <L> (b)* c | d
+            let or = tree.add_root(gnode!(|));
+            let cc = tree.add(Some(or), gnode!(&));
+            tree.add(Some(cc), gnode!(nt 0));
+            tree.add(Some(cc), gnode!(L));
+            let s1 = tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            tree.add(Some(or), gnode!(t 3));
+        }
         _ => {}
     }
     rules
@@ -386,8 +417,8 @@ fn rts_prodrule_from() {
             0 => prod!(t 1, t 2; t 1, t 3; t 1; t 2; t 3; e)
         ], vec![0], vec![None]),
         (15, btreemap![
-            0 => prod!(nt 0, t 1, nt 0; #256, nt 0, t 2, nt 0; #128, nt 0, t 3, nt 0; t 4)
-        ], vec![0], vec![None]),
+            0 => prod!(nt 0, t 1, nt 0; #256, nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4)
+        ], vec![128], vec![None]),
         (17, btreemap![
             0 => prod!(t 0, nt 2, t 3),
             1 => prod!(t 1, nt 1; t 1),
@@ -2117,8 +2148,8 @@ fn rts_prs_flags() {
         (T::RTS(12), 0, btreemap![1 => 1],
          btreemap![],
          btreemap![1 => 0]),
-        (T::RTS(15), 0, btreemap![1 => 12],
-         btreemap![2 => 256, 3 => 128],
+        (T::RTS(15), 0, btreemap![0 => 128, 1 => 12],
+         btreemap![2 => 256],
          btreemap![1 => 0]),
         (T::RTS(16), 0, btreemap![1 => 33, 2 => 4, 3 => 64],
          btreemap![],
@@ -2126,6 +2157,13 @@ fn rts_prs_flags() {
         (T::RTS(17), 0, btreemap![1 => 33, 2 => 33, 3 => 64, 4 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0, 3 => 1, 4 => 2]),
+        (T::RTS(18), 0, btreemap![0 => 128], btreemap![], btreemap![]),
+        (T::RTS(19), 0, btreemap![1 => 129, 2 => 4],
+         btreemap![],
+         btreemap![1 => 0, 2 => 0]),
+        (T::RTS(20), 0, btreemap![0 => 128, 1 => 1, 2 => 4],
+         btreemap![],
+         btreemap![1 => 0, 2 => 0]),
         (T::PRS(0), 0, btreemap![0 => 32, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
