@@ -108,7 +108,7 @@ pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, item: I) -> usize
 // ---------------------------------------------------------------------------------------------
 // General helper traits
 
-pub(crate) trait CollectJoin {
+pub trait CollectJoin {
     fn join(&mut self, separator: &str) -> String
         where Self: Iterator,
               <Self as Iterator>::Item: ToString
