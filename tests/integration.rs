@@ -112,7 +112,7 @@ mod listener {
     pub enum CtxE1 { Add, Sub, Empty }
     pub enum CtxT1 { Mul, Div, Empty }
 
-    pub trait ExprListenerTrait {
+    pub trait ExprListener {
         fn enter_e(&mut self) {}
         fn enter_t(&mut self) {}
         fn enter_f(&mut self) {}
@@ -130,7 +130,7 @@ mod listener {
         stack_t: Vec<String>
     }
 
-    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+    impl<T: ExprListener> ListenerWrapper<T> {
         pub fn new(listener: T) -> Self {
             Self { listener, stack_t: Vec::new() }
         }
@@ -143,7 +143,7 @@ mod listener {
     // `Parser::parse_stream_hook` requires a type implementing `Listener`, but we can only implement
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
-    impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
+    impl<T: ExprListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_data: Vec<String>) {
             self.stack_t.append(&mut t_data);
             match call {
@@ -192,7 +192,7 @@ mod listener {
         }
     }
 
-    impl ExprListenerTrait for TestListener {
+    impl ExprListener for TestListener {
         fn enter_e(&mut self) {
             if self.verbose { println!("{: <1$}(E", "", self.level * 4); }
             self.result.push("(E".to_string());
@@ -409,8 +409,6 @@ mod listener2 {
         Add  { e: [SynE; 2] },
         F { f: SynE } }
     pub enum CtxF { E { e: SynE }, Num(String), Id(String) }
-    // internal
-    // enum CtxE_1 { Mul { f: SynE, e_1: SynE }, Add { f: SynE, e_1: SynE }, Empty }
 
     enum SynValue { F(SynE), E_1(SynE), E(SynE) }
 
@@ -501,7 +499,7 @@ mod listener2 {
     const PRIORITY_MAX: u16 = u16::MAX;
     const PRIORITY_EMPTY: u16 = PRIORITY_MIN;
 
-    pub trait ExprListenerTrait {
+    pub trait ExprListener {
         fn init_e(&mut self) {}
         fn init_f(&mut self, _factor_id: VarId) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE { None }
@@ -521,7 +519,7 @@ mod listener2 {
         stack_t: Vec<String>
     }
 
-    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+    impl<T: ExprListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), asm_stack: Vec::new(), max_stack: 0, max_asm_stack: 0, stack_t: Vec::new() }
         }
@@ -531,7 +529,7 @@ mod listener2 {
         }
     }
 
-    impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
+    impl<T: ExprListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_data: Vec<String>) {
             self.stack_t.append(&mut t_data);
             match call {
@@ -590,7 +588,7 @@ mod listener2 {
         }
     }
 
-    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+    impl<T: ExprListener> ListenerWrapper<T> {
         fn fold_e_1(&mut self, priority: u16, mut is_left_assoc: bool) {
             // Folding the top two items while the priority of the top item is higher than the argument.
             // If left-associative, we allow folding items of the same priority, so we are sure that
@@ -697,7 +695,7 @@ mod listener2 {
         }.to_string()
     }
 
-    impl ExprListenerTrait for TestListener {
+    impl ExprListener for TestListener {
 
         fn init_e(&mut self) {
             if self.verbose {
@@ -969,7 +967,7 @@ mod listener3 {
             stack_t: Vec<String>,
         }
 
-        pub trait StructListenerTrait {
+        pub trait StructListener {
             fn init_decl(&mut self) {}
             fn exit_decl(&mut self) {}
             fn init_vars(&mut self) {}
@@ -977,7 +975,7 @@ mod listener3 {
             fn exit_vars(&mut self) {}
         }
 
-        impl<T: StructListenerTrait> ListenerWrapper<T> {
+        impl<T: StructListener> ListenerWrapper<T> {
             pub fn new(listener: T, verbose: bool) -> Self {
                 ListenerWrapper { verbose, listener, stack: Vec::new(), asm_stack: Vec::new(), max_stack: 0, max_asm_stack: 0, stack_t: Vec::new() }
             }
@@ -987,7 +985,7 @@ mod listener3 {
             }
         }
 
-        impl<T: StructListenerTrait> Listener for ListenerWrapper<T> {
+        impl<T: StructListener> Listener for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_data: Vec<String>) {
                 self.stack_t.append(&mut t_data);
                 match call {
@@ -1021,7 +1019,7 @@ mod listener3 {
             }
         }
 
-        impl<T: StructListenerTrait> ListenerWrapper<T> {
+        impl<T: StructListener> ListenerWrapper<T> {
             /* TODO */
         }
 
@@ -1038,7 +1036,7 @@ mod listener3 {
             }
         }
 
-        impl StructListenerTrait for TestListener {}
+        impl StructListener for TestListener {}
 
         #[ignore]
         #[test]
