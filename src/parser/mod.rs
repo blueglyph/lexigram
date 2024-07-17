@@ -22,7 +22,7 @@ pub enum OpCode {
 }
 
 #[derive(PartialEq)]
-pub enum Call { Enter, Loop, Asm, Exit }
+pub enum Call { Enter, Loop, Exit }
 
 pub trait Listener {
     /// Calls the listener to execute synthesis or inheritance actions.

@@ -173,7 +173,6 @@ mod listener {
                         _ => panic!("unexpected nt exit factor id: {nt}")
                     }
                 }
-                Call::Asm => panic!("unexpected Call::Asm in this test"),
             }
         }
     }
@@ -569,13 +568,6 @@ mod listener2 {
                         9 => self.asm_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD),
                         10 => {}
                         _ => panic!("unexpected exit factor id: {factor_id}")
-                    }
-                }
-                Call::Asm => {
-                    panic!("unexpected asm factor id: {factor_id}");
-                    match factor_id {
-                        0 => self.inh_e(),
-                        _ => panic!("unexpected asm factor id: {factor_id}")
                     }
                 }
             }
@@ -1002,11 +994,6 @@ mod listener3 {
                             1 => { /* TODO */ },   // - 1: LIST -> id : id ; LIST
                             2 => { /* TODO */ },   // - 2: LIST -> }
                             _ => panic!("unexpected exit factor id: {factor_id}")
-                        }
-                    }
-                    Call::Asm => {
-                        match factor_id {
-                            _ => panic!("unexpected asm factor id: {factor_id}")
                         }
                     }
                 }
