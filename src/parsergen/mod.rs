@@ -214,12 +214,13 @@ impl ParserBuilder {
                 opcode.push(OpCode::Exit(factor_id)); // will be popped when this NT is completed
             }
             opcode.extend(new.into_iter().map(|s| OpCode::from(s)));
-            if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false) {
+            let r_form_right_rec = flags & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
+            if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false) && !r_form_right_rec {
                 opcode.swap(0, 1);
             }
             opcode.iter_mut().for_each(|o| {
                 if let OpCode::NT(v) = o {
-                    if v == var_id {
+                    if v == var_id && !r_form_right_rec {
                         *o = OpCode::Loop(*v)
                     }
                 }

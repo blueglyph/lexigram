@@ -304,13 +304,18 @@ mod opcodes {
             ]),
             // [B] right recursion ---------------------------------------------------------
             (T::PRS(16), 0, vec![                       /// A -> B A | b     B -> a
+                strip![exit 0, nt 0, nt 1],             //  0: A -> B A - ◄0 ►A ►B
+                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b
+                strip![exit 2, t 0],                    //  2: B -> a   - ◄2 a
+            ]),
+            (T::PRS(29), 0, vec![                       /// A -> <L> B A | b     B -> a
                 strip![loop 0, exit 0, nt 1],           //  0: A -> B A - ●A ◄0 ►B
                 strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b
                 strip![exit 2, t 0],                    //  2: B -> a   - ◄2 a
             ]),
             (T::PRS(20), 0, vec![
                 strip![exit 0, nt 1, t 1, t 5, t 0],        //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
-                strip![loop 1, exit 1, t 4, t 5, t 3, t 5], //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!
+                strip![exit 1, nt 1, t 4, t 5, t 3, t 5],   //  1: LIST -> id : id ; LIST     - ◄1 ►LIST ; id! : id!
                 strip![exit 2, t 2],                        //  2: LIST -> }                  - ◄2 }
             ]),
             // [C] left recursion ----------------------------------------------------------

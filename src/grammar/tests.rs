@@ -866,6 +866,15 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 0; t 0, t 1; t 0, t 1, t 2; t 0, t 1, t 3; t 4),
             ]);
         }
+        29 => { // L-form counterpart of #16
+            // A -> <L> B A | b
+            // B -> a
+            prods.extend([
+                prod!(nt 1, nt 0; t 1),
+                prod!(t 0)
+            ]);
+            rules.set_flags(0, ruleflag::L_FORM);
+        }
 
         // ambiguity?
         100 => {
