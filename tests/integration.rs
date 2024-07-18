@@ -420,14 +420,14 @@ mod listener2 {
     }
 
     impl SynValue {
-        fn e(self) -> SynE {
-            if let SynValue::E(e) = self { e } else { panic!() }
+        fn get_e(self) -> SynE {
+            if let SynValue::E(val) = self { val } else { panic!() }
         }
-        fn e_1(self) -> SynE {
-            if let SynValue::E_1(e_1) = self { e_1 } else { panic!() }
+        fn get_e_1(self) -> SynE {
+            if let SynValue::E_1(val) = self { val } else { panic!() }
         }
-        fn f(self) -> SynE {
-            if let SynValue::F(f) = self { f } else { panic!() }
+        fn get_f(self) -> SynE {
+            if let SynValue::F(val) = self { val } else { panic!() }
         }
     }
 
@@ -545,7 +545,7 @@ mod listener2 {
                     match factor_id {
                         0 => self.asm_e(),
                         1 => {
-                            let e = self.stack.pop().unwrap().e();
+                            let e = self.stack.pop().unwrap().get_e();
                             self.stack.push(SynValue::F(self.listener.exit_f(CtxF::E { e })));
                         }
                         2 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Num(self.stack_t.pop().unwrap())))); }
@@ -608,7 +608,7 @@ mod listener2 {
 
         fn inh_e(&mut self) {
             // F of E -> F E_1 is now on the stack => attach it
-            let new_f = self.stack.pop().unwrap().f();
+            let new_f = self.stack.pop().unwrap().get_f();
             // rec_child, so promoting the value:
             let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
             let top = &mut self.asm_stack.last_mut().unwrap().0;
@@ -631,7 +631,7 @@ mod listener2 {
         fn asm_e_1(&mut self, factor_id: VarId, priority: u16, is_left_assoc: bool) {
             self.fold_e_1(priority, is_left_assoc);
             // ambig_child, so promoting the value:
-            let new_f = self.stack.pop().unwrap().f();
+            let new_f = self.stack.pop().unwrap().get_f();
             let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
             let r = match factor_id {
                 4 => AsmItem { val: new_e, ty: AsmE::E_1_Dum },
