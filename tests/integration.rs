@@ -397,8 +397,6 @@ mod listener2 {
     // - parents:
     //   - E_1 -> E
 
-    type SynE = Option<i64>;
-    type SynF = Option<i64>;
     pub enum CtxE {
         Dum { e: [SynE; 2] },
         Exp { e: [SynE; 2] },
@@ -410,14 +408,6 @@ mod listener2 {
     pub enum CtxF { E { e: SynE }, Num(String), Id(String) }
 
     enum SynValue { F(SynE), E_1(SynE), E(SynE) }
-
-    fn syn_e_str(e: &SynE) -> String {
-        if let Some(v) = e {
-            v.to_string()
-        } else {
-            "?".to_string()
-        }
-    }
 
     impl std::fmt::Debug for SynValue {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -501,8 +491,8 @@ mod listener2 {
     pub trait ExprListener {
         fn init_e(&mut self) {}
         fn init_f(&mut self, _factor_id: VarId) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE { None }
-        fn exit_f(&mut self, _ctx: CtxF) -> SynE { None }
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exit_f(&mut self, _ctx: CtxF) -> SynE;
     }
 
     // `Parser::parse_stream_hook` requires a type implementing `Listener`, but we can only implement
@@ -657,6 +647,17 @@ mod listener2 {
     }
 
     // User code -----------------------------------------------------
+
+    type SynE = Option<i64>;
+    type SynF = Option<i64>;
+
+    fn syn_e_str(e: &SynE) -> String {
+        if let Some(v) = e {
+            v.to_string()
+        } else {
+            "?".to_string()
+        }
+    }
 
     struct TestListener {
         vars: HashMap<String, i64>,
