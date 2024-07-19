@@ -933,7 +933,7 @@ mod listener3 {
         use rlexer::CollectJoin;
 
         //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
-        //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!
+        //  1: LIST -> id : id ; LIST     - ◄1 ►LIST ; id! : id!
         //  2: LIST -> }                  - ◄2 }
         //
         // - NT flags:
@@ -941,7 +941,9 @@ mod listener3 {
         // - parents:
         //   - (nothing)
 
+        #[derive(Debug)]
         pub enum CtxStruct { Struct { id: String, list: SynList } }
+        #[derive(Debug)]
         pub enum CtxList { List1 { id: [String; 2], list: SynList }, List2 }
 
         // SynStruct, SynList: defined by user below
@@ -959,9 +961,6 @@ mod listener3 {
             }
         }
 
-        // #[derive(Debug)]
-        // struct AsmItem {} // not used in R-form
-
         pub trait StructListener {
             fn init_struct(&mut self) {}
             fn init_list(&mut self) {}
@@ -973,15 +972,13 @@ mod listener3 {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
-            // asm_stack: Vec<(AsmItem, u16, bool)>, // item, priority, is_left_assoc
             max_stack: usize,
-            max_asm_stack: usize,
             stack_t: Vec<String>,
         }
 
         impl<T: StructListener> ListenerWrapper<T> {
             pub fn new(listener: T, verbose: bool) -> Self {
-                ListenerWrapper { verbose, listener, stack: Vec::new(), /*asm_stack: Vec::new(),*/ max_stack: 0, max_asm_stack: 0, stack_t: Vec::new() }
+                ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
             }
 
             pub fn listener(self) -> T {
@@ -1011,11 +1008,9 @@ mod listener3 {
                     }
                 }
                 self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-                // self.max_asm_stack = std::cmp::max(self.max_asm_stack, self.asm_stack.len());
                 if self.verbose {
                     println!("> stack_t:   {}", self.stack_t.join(", "));
                     println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-                    // println!("> asm_stack: {}", self.asm_stack.iter().map(|(it, p, l)| format!("{it:?}/{p}/{}", if *l { "L" } else { "R" })).join(", "));
                 }
             }
         }
@@ -1059,12 +1054,15 @@ mod listener3 {
 
         impl StructListener for TestListener {
             fn init_struct(&mut self) {
+                if self.verbose { println!("► struct"); }
             }
 
             fn init_list(&mut self) {
+                if self.verbose { println!("► list"); }
             }
 
             fn exit_struct(&mut self, ctx: CtxStruct) -> SynStruct {
+                if self.verbose { println!("◄ struct (ctx = {ctx:?})"); }
                 match ctx {
                     CtxStruct::Struct { id, mut list } => {
                         list.reverse();
@@ -1074,6 +1072,7 @@ mod listener3 {
             }
 
             fn exit_list(&mut self, ctx: CtxList) -> SynList {
+                if self.verbose { println!("◄ list (ctx = {ctx:?})"); }
                 match ctx {
                     CtxList::List1 { id: [a, b], mut list } => {
                         list.push((a, b));
@@ -1125,7 +1124,7 @@ mod listener3 {
                     }
                 };
                 if VERBOSE {
-                    println!("max stack: {}\nmax asm_stack: {}", wrapper.max_stack, wrapper.max_asm_stack);
+                    println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                     // println!("listener asm_stack: {:?}", wrapper.asm_stack);
                 }
@@ -1139,7 +1138,7 @@ mod listener3 {
                     } else {
                         panic!("test {test_id} failed for input {input}: synvalue = {result:?}")
                     };
-                    let listener = wrapper.listener();
+                    let _listener = wrapper.listener();
                     let expected_result = (expected_result.0.to_string(), expected_result.1.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).to_vec());
                     assert_eq!(result, expected_result, "test {test_id} failed for input {input}");
                 }
