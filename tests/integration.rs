@@ -522,34 +522,27 @@ mod listener2 {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_data: Vec<String>) {
             self.stack_t.append(&mut t_data);
             match call {
-                Call::Enter | Call::Loop => {
+                Call::Enter => {
                     match nt {
                         0 => {
                             self.listener.init_e();
                             self.init_e();
                         },
                         1 => self.listener.init_f(factor_id),
-                        2 => {
-                            if call == Call::Enter {
-                                self.inh_e();
-                            }
-                            if self.verbose { println!("{} {}", if call == Call::Enter { "►" } else { "●" }, factor_str(factor_id, true)); }
-                        }
+                        2 => self.init_e_1(factor_id),
                         _ => panic!("unexpected exit nt: {nt}")
                     }
                 }
+                Call::Loop => {}
                 Call::Exit => {
                     if self.verbose && nt == 2 {
                         println!("◄ {}", factor_str(factor_id, true));
                     }
                     match factor_id {
-                        0 => self.asm_e(),
-                        1 => {
-                            let e = self.stack.pop().unwrap().get_e();
-                            self.stack.push(SynValue::F(self.listener.exit_f(CtxF::E { e })));
-                        }
-                        2 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Num(self.stack_t.pop().unwrap())))); }
-                        3 => { self.stack.push(SynValue::F(self.listener.exit_f(CtxF::Id(self.stack_t.pop().unwrap())))); }
+                        0 => self.exit_e(),
+                        1 => self.exit_f1(),
+                        2 => self.exit_f2(),
+                        3 => self.exit_f3(),
                         4 => self.asm_e_1(factor_id, PRIORITY_DUM, LEFT_ASSOC_DUM),
                         5 => self.asm_e_1(factor_id, PRIORITY_EXP, LEFT_ASSOC_EXP),
                         6 => self.asm_e_1(factor_id, PRIORITY_DIV, LEFT_ASSOC_DIV),
@@ -606,31 +599,32 @@ mod listener2 {
             self.asm_stack.push((AsmItem { val: None, ty: AsmE::E}, PRIORITY_MIN, false));
         }
 
-        fn inh_e(&mut self) {
+        fn init_e_1(&mut self, factor_id: VarId) {
             // F of E -> F E_1 is now on the stack => attach it
             let new_f = self.stack.pop().unwrap().get_f();
-            // rec_child, so promoting the value:
+            // child_amb, so promoting the value:
             let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
             let top = &mut self.asm_stack.last_mut().unwrap().0;
             assert_eq!(top.ty, AsmE::E);
             assert_eq!(top.val, None);
-            if self.verbose { println!("- attach {} to E", syn_e_str(&new_e)); }
+            if self.verbose { println!("► {}, attach {} to E", factor_str(factor_id, true), syn_e_str(&new_e)); }
             top.val = new_e;
         }
 
-        // rec_parent, ambig_parent, E : E | E ^ E | E / E | E * E | E - E | E + E | F
+        // left_rec/ambig, E : E | E ^ E | E / E | E * E | E - E | E + E | F
         // - 0: E -> F E_1
-        fn asm_e(&mut self) {
+        fn exit_e(&mut self) {
+            // child_amb e_1:
             self.fold_e_1(PRIORITY_MIN, false);
             let (e, _, _) = self.asm_stack.pop().expect("E should be on top of the stack");
             assert_eq!(e.ty, AsmE::E, "the top of the stack should be E instead of {e:?}");
             self.stack.push(SynValue::E(e.val));
         }
 
-        // rec_child, ambig_child
+        // child_left_rec, child_amb
         fn asm_e_1(&mut self, factor_id: VarId, priority: u16, is_left_assoc: bool) {
             self.fold_e_1(priority, is_left_assoc);
-            // ambig_child, so promoting the value:
+            // child_amb, so promoting the value:
             let new_f = self.stack.pop().unwrap().get_f();
             let mut new_e = self.listener.exit_e(CtxE::F { f: new_f });
             let r = match factor_id {
@@ -643,6 +637,21 @@ mod listener2 {
                 _ => panic!()
             };
             self.asm_stack.push((r, priority, is_left_assoc));
+        }
+
+        fn exit_f1(&mut self) {
+            let ctx = CtxF::E { e: self.stack.pop().unwrap().get_e() };
+            self.stack.push(SynValue::F(self.listener.exit_f(ctx)));
+        }
+
+        fn exit_f2(&mut self) {
+            let ctx = CtxF::Num(self.stack_t.pop().unwrap());
+            self.stack.push(SynValue::F(self.listener.exit_f(ctx)));
+        }
+
+        fn exit_f3(&mut self) {
+            let ctx = CtxF::Id(self.stack_t.pop().unwrap());
+            self.stack.push(SynValue::F(self.listener.exit_f(ctx)));
         }
     }
 
