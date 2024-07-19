@@ -329,6 +329,20 @@ mod opcodes {
                 strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A_1 ◄1 a
                 strip![exit 2],                         //  2: A_1 -> ε     - ◄2
             ]),
+            (T::PRS(31), 0, vec![
+                strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
+                strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
+                strip![loop 2, exit 2, t 1, t 0],       //  2: E_1 -> . id E_1 - ●E_1 ◄2 id! .
+                strip![exit 3],                         //  3: E_1 -> ε        - ◄3
+            ]),
+            (T::PRS(32), 0, vec![
+                strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
+                strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
+                strip![exit 2],                         //  2: E_1 -> ε        - ◄2
+                strip![nt 3, t 1, t 0],                 //  3: E_1 -> . id E_2 - ►E_2 id! .
+                strip![loop 2, exit 4, t 3, t 2],       //  4: E_2 -> ( ) E_1  - ●E_1 ◄4 ) (
+                strip![loop 2, exit 5],                 //  5: E_2 -> E_1      - ●E_1 ◄5
+            ]),
             (T::PRS(4), 0, vec![                        /// E -> E + T | E - T | T
                                                         /// T -> T * F | T / F | F
                                                         /// F -> ( E ) | NUM | ID

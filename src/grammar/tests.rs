@@ -896,6 +896,34 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             rules.set_flags(1, ruleflag::L_FORM);
         }
+        31 => {
+            // E -> F | E . id
+            // F -> id
+            prods.extend([
+                prod!(nt 1; nt 0, t 0, t 1),
+                prod!(t 1),
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string(), "F".to_string()]);
+            symbol_table.extend_terminals([
+                (".".to_string(), Some(".".to_string())),
+                ("id".to_string(), None),
+            ]);
+        }
+        32 => {
+            // E -> F | E . id | E . id ( )
+            // F -> id
+            prods.extend([
+                prod!(nt 1; nt 0, t 0, t 1; nt 0, t 0, t 1, t 2, t 3),
+                prod!(t 1),
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string(), "F".to_string()]);
+            symbol_table.extend_terminals([
+                (".".to_string(), Some(".".to_string())),
+                ("id".to_string(), None),
+                ("(".to_string(), Some("(".to_string())),
+                (")".to_string(), Some(")".to_string())),
+            ]);
+        }
 
         // ambiguity?
         100 => {
@@ -2209,11 +2237,17 @@ fn rts_prs_flags() {
         (T::PRS(28), 0, btreemap![0 => 32, 1 => 64, 2 => 96],
          btreemap![],
          btreemap![1 => 2, 2 => 0]),
+        (T::PRS(31), 0, btreemap![2 => 4],
+         btreemap![],
+         btreemap![2 => 0]),
+        (T::PRS(32), 0, btreemap![2 => 36, 3 => 64],
+         btreemap![],
+         btreemap![2 => 0, 3 => 2]),
         /*
         (T::PRS(), 0, btreemap![], btreemap![], btreemap![]),
         */
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     const VERBOSE_DETAILS: bool = false;
     for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }

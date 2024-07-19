@@ -66,3 +66,27 @@ fn write_source_code_for_integration_listener4() {
         Err(e) => { println!("Error: {e}"); }
     }
 }
+
+#[ignore]
+#[test]
+fn write_source_code_for_integration_listener5() {
+    // Copy the output into tests/integration.rs, module listener3:
+    let rules = build_prs(31, false);
+    let builder = ParserBuilder::from_rules(rules);
+    match builder.write_source_code(None, 4) {
+        Ok(_) => {}
+        Err(e) => { println!("Error: {e}"); }
+    }
+}
+
+#[ignore]
+#[test]
+fn write_source_code_for_integration_listener6() {
+    // Copy the output into tests/integration.rs, module listener3:
+    let rules = build_prs(32, false);
+    let builder = ParserBuilder::from_rules(rules);
+    match builder.write_source_code(None, 4) {
+        Ok(_) => {}
+        Err(e) => { println!("Error: {e}"); }
+    }
+}
