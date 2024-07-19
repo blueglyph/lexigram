@@ -875,6 +875,27 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             rules.set_flags(0, ruleflag::L_FORM);
         }
+        30 => { // L-form counterpart of #20
+            // STRUCT -> 'struct' id '{' LIST
+            // LIST -> <L> id ':' id ';' LIST | '}'
+            symbol_table.extend_terminals([
+                /* 0 */ ("struct".to_string(), Some("struct".to_string())),
+                /* 1 */ ("{".to_string(), Some("{".to_string())),
+                /* 2 */ ("}".to_string(), Some("}".to_string())),
+                /* 3 */ (":".to_string(), Some(":".to_string())),
+                /* 4 */ (";".to_string(), Some(";".to_string())),
+                /* 5 */ ("id".to_string(), None),
+            ]);
+            symbol_table.extend_non_terminals([
+                /* 0 */ "STRUCT".to_string(),
+                /* 1 */ "LIST".to_string(),
+            ]);
+            prods.extend([
+                prod!(t 0, t 5, t 1, nt 1),
+                prod!(t 5, t 3, t 5, t 4, nt 1; t 2),
+            ]);
+            rules.set_flags(1, ruleflag::L_FORM);
+        }
 
         // ambiguity?
         100 => {

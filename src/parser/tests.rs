@@ -318,6 +318,11 @@ mod opcodes {
                 strip![exit 1, nt 1, t 4, t 5, t 3, t 5],   //  1: LIST -> id : id ; LIST     - ◄1 ►LIST ; id! : id!
                 strip![exit 2, t 2],                        //  2: LIST -> }                  - ◄2 }
             ]),
+            (T::PRS(30), 0, vec![
+                strip![exit 0, nt 1, t 1, t 5, t 0],        //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
+                strip![loop 1, exit 1, t 4, t 5, t 3, t 5], //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!
+                strip![exit 2, t 2],                        //  2: LIST -> }                  - ◄2 }
+            ]),
             // [C] left recursion ----------------------------------------------------------
             (T::PRS(26), 0, vec![                       /// A -> A a | b
                 strip![exit 0, nt 1, t 1],              //  0: A -> b A_1   - ◄0 ►A_1 b

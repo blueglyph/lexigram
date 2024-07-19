@@ -1146,3 +1146,262 @@ mod listener3 {
         }
     }
 }
+
+#[allow(unused)]
+mod listener4 {
+    // -------------------------------------------------------------------------
+    // Automatically generated
+
+    use rlexer::grammar::{ProdFactor, Symbol, VarId};
+    use rlexer::parser::{OpCode, Parser};
+    use rlexer::symbol_table::SymbolTable;
+
+    const PARSER_NUM_T: usize = 6;
+    const PARSER_NUM_NT: usize = 2;
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("struct", Some("struct")), ("{", Some("{")), ("}", Some("}")), (":", Some(":")), (";", Some(";")), ("id", None)];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["STRUCT", "LIST"];
+    const SYMBOLS_NAMES: [(&str, VarId); 0] = [];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 3] = [(0, &[Symbol::T(0), Symbol::T(5), Symbol::T(1), Symbol::NT(1)]), (1, &[Symbol::T(5), Symbol::T(3), Symbol::T(5), Symbol::T(4), Symbol::NT(1)]), (1, &[Symbol::T(2)])];
+    const PARSING_TABLE: [VarId; 14] = [0, 3, 3, 3, 3, 3, 3, 3, 3, 2, 3, 3, 1, 3];
+    const FLAGS: [u32; 2] = [0, 130];
+    const PARENT: [Option<VarId>; 2] = [None, None];
+    const OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::NT(1), OpCode::T(1), OpCode::T(5), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(4), OpCode::T(5), OpCode::T(3), OpCode::T(5)], &[OpCode::Exit(2), OpCode::T(2)]];
+    const START_SYMBOL: VarId = 0;
+
+    pub(super) fn build_parser() -> Parser {
+        let mut symbol_table = SymbolTable::new();
+        symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
+        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));
+        let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
+        let table: Vec<VarId> = PARSING_TABLE.into();
+        let parsing_table = rlexer::grammar::LLParsingTable {
+            num_nt: PARSER_NUM_NT,
+            num_t: PARSER_NUM_T + 1,
+            factors,
+            table,
+            flags: FLAGS.into(),
+            parent: PARENT.into(),
+        };
+        Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)
+    }
+    // -------------------------------------------------------------------------
+
+    mod test {
+        use std::collections::HashMap;
+        use rlexer::dfa::TokenId;
+        use rlexer::grammar::{Symbol, VarId};
+        use rlexer::hashmap;
+        use rlexer::parser::{Call, Listener};
+        use rlexer::symbol_table::SymbolTable;
+        use rlexer::CollectJoin;
+
+        //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
+        //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!    (instead of [◄1 ►LIST ; id! : id!] in listener3)
+        //  2: LIST -> }                  - ◄2 }
+        //
+        // - NT flags:
+        //   - LIST: right_rec | L-form (130)
+        // - parents:            ^^^^^^
+        //   - (nothing)
+
+        #[derive(Debug)]
+        pub enum CtxStruct { Struct { id: String } }
+        #[derive(Debug)]
+        pub enum CtxList { List1 { id: [String; 2] }, List2 }
+
+        // SynStruct, SynList: defined by user below
+
+        #[derive(Debug)]
+        enum SynValue { Struct(SynStruct), List }
+
+        impl SynValue {
+            fn get_struct(self) -> SynStruct {
+                if let SynValue::Struct(val) = self { val } else { panic!() }
+            }
+        }
+
+        pub trait StructListener {
+            fn init_struct(&mut self) {}
+            fn init_list(&mut self) {}
+            fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
+            fn iter_list(&mut self, _ctx: CtxList);
+        }
+
+        struct ListenerWrapper<T> {
+            verbose: bool,
+            listener: T,
+            stack: Vec<SynValue>,
+            max_stack: usize,
+            stack_t: Vec<String>,
+        }
+
+        impl<T: StructListener> ListenerWrapper<T> {
+            pub fn new(listener: T, verbose: bool) -> Self {
+                ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            }
+
+            pub fn listener(self) -> T {
+                self.listener
+            }
+        }
+
+        impl<T: StructListener> Listener for ListenerWrapper<T> {
+            fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_data: Vec<String>) {
+                self.stack_t.append(&mut t_data);
+                match call {
+                    Call::Enter => {
+                        match nt {
+                            0 => self.listener.init_struct(),   // STRUCT
+                            1 => self.listener.init_list(),     // LIST
+                            _ => panic!("unexpected exit non-terminal id: {nt}")
+                        }
+                    }
+                    Call::Loop => {}
+                    Call::Exit => {
+                        match factor_id {
+                            0 => self.exit_struct(),    // - 0: STRUCT -> struct id { LIST
+                            1 => self.exit_list1(),     // - 1: LIST -> id : id ; LIST
+                            2 => self.exit_list2(),     // - 2: LIST -> }
+                            _ => panic!("unexpected exit factor id: {factor_id}")
+                        }
+                    }
+                }
+                self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+                // self.max_asm_stack = std::cmp::max(self.max_asm_stack, self.asm_stack.len());
+                if self.verbose {
+                    println!("> stack_t:   {}", self.stack_t.join(", "));
+                    println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+                }
+            }
+        }
+
+        impl<T: StructListener> ListenerWrapper<T> {
+            fn exit_struct(&mut self) {
+                let val = self.listener.exit_struct(CtxStruct::Struct {
+                    id: self.stack_t.pop().unwrap(),
+                });
+                self.stack.push(SynValue::Struct(val));
+            }
+
+            fn exit_list1(&mut self) {
+                let id = self.stack_t.drain(self.stack_t.len() - 2..).to_vec();
+                self.listener.iter_list(CtxList::List1 { id: id.try_into().unwrap() });
+            }
+
+            fn exit_list2(&mut self) {
+                let val = self.listener.iter_list(CtxList::List2);
+            }
+        }
+
+        // User code -----------------------------------------------------
+
+        type SynStruct = String;
+
+        struct TestListener {
+            result: HashMap<String, Vec<(String, String)>>,
+            cur_list: Option<Vec<(String, String)>>,
+            verbose: bool,
+        }
+
+        impl TestListener {
+            pub fn new(verbose: bool) -> Self {
+                Self { result: HashMap::new(), cur_list: None, verbose }
+            }
+        }
+
+        impl StructListener for TestListener {
+            fn init_struct(&mut self) {
+                if self.verbose { println!("► struct"); }
+            }
+
+            fn init_list(&mut self) {
+                if self.verbose { println!("► list"); }
+                self.cur_list = Some(Vec::new());
+            }
+
+            fn exit_struct(&mut self, ctx: CtxStruct) -> SynStruct {
+                if self.verbose { println!("◄ struct (ctx = {ctx:?})"); }
+                match ctx {
+                    CtxStruct::Struct { id } => {
+                        let list = self.cur_list.take().unwrap();
+                        self.result.insert(id.clone(), list);
+                        id
+                    }
+                }
+            }
+
+            fn iter_list(&mut self, ctx: CtxList) {
+                if self.verbose { println!("◄ list (ctx = {ctx:?})"); }
+                match ctx {
+                    CtxList::List1 { id: [a, b] } => {
+                        self.cur_list.as_mut().unwrap().push((a, b));
+                    }
+                    CtxList::List2 => {}
+                }
+            }
+        }
+
+        #[test]
+        fn parser_parse_stream() {
+            let tests = vec![
+                (
+                    "struct test1 { a : int ; b : string ; c : bool ; }",
+                    true,
+                    ("test1", vec![("a", "int"), ("b", "string"), ("c", "bool")])
+                ),
+            ];
+            const VERBOSE: bool = true;
+            const VERBOSE_LISTENER: bool = true;
+            let mut parser = super::build_parser();
+
+            // The lexer provides the required stream, so this isn't necessary in a real case:
+            let mut symb_table = SymbolTable::new();
+            symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
+            let symbols = (0..super::SYMBOLS_T.len() as TokenId)
+                .map(|t| Symbol::T(t))
+                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .collect::<HashMap<_, _>>();
+            for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
+                if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().map(|w| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(5), w.to_string()) }
+                });
+
+                // User code under test ------------------------------
+
+                let listener = TestListener::new(VERBOSE_LISTENER);
+                let mut wrapper = ListenerWrapper::new(listener, VERBOSE_LISTENER);
+                let success = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        true
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        false
+                    }
+                };
+                if VERBOSE {
+                    println!("max stack: {}", wrapper.max_stack);
+                    println!("wrapper stack: {:?}", wrapper.stack);
+                    // println!("listener asm_stack: {:?}", wrapper.asm_stack);
+                }
+                // ---------------------------------------------------
+
+                assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
+                if success {
+                    let result = wrapper.stack.pop().expect(&format!("test {test_id} failed for input {input}: wrapper stack empty"));
+                    let result = if let SynValue::Struct(syn_struct) = result {
+                        syn_struct
+                    } else {
+                        panic!("test {test_id} failed for input {input}: synvalue = {result:?}")
+                    };
+                    let listener = wrapper.listener();
+                    let expected_result = hashmap![expected_result.0.to_string() => expected_result.1.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).to_vec()];
+                    assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+                }
+            }
+        }
+    }
+}
