@@ -3,6 +3,7 @@
 // Integration tests: tests that all the functionalities are accessible and work as expected.
 
 #![cfg(test)]
+#![allow(non_camel_case_types)]
 
 mod parser_gen {
 
@@ -325,7 +326,6 @@ mod listener {
 // ---------------------------------------------------------------------------------------------
 // General helper traits
 
-#[allow(non_camel_case_types)]
 #[allow(unused)]
 mod listener2 {
     use std::collections::HashMap;
@@ -1464,6 +1464,9 @@ mod listener5 {
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
 
+        // E -> F | E . id
+        // F -> id
+        //
         //  0: E -> F E_1      - ◄0 ►E_1 ►F
         //  1: F -> id         - ◄1 id!
         //  2: E_1 -> . id E_1 - ●E_1 ◄2 id! .
@@ -1474,31 +1477,37 @@ mod listener5 {
         // - parents:
         //   - E_1 -> E
 
-// TODO: ----------------------
-
-        type SynStruct = String;
 
         #[derive(Debug)]
-        pub enum CtxStruct { Struct { id: String } }
+        pub enum Ctx { E { e: SynE } }
         #[derive(Debug)]
-        pub enum CtxList { List1 { id: [String; 2] }, List2 }
+        pub enum CtxE { E_Id { e: SynE, id: String }, F { f: SynF } }
+        #[derive(Debug)]
+        pub enum CtxF { F { id: String } }
 
-        // SynStruct, SynList: defined by user below
+        // SynE, SynF: defined by user below
 
         #[derive(Debug)]
-        enum SynValue { Struct(SynStruct), List }
+        enum SynValue { E(SynE), E_1(SynE), F(SynF) }
 
         impl SynValue {
-            fn get_struct(self) -> SynStruct {
-                if let SynValue::Struct(val) = self { val } else { panic!() }
+            fn get_e(self) -> SynE {
+                if let SynValue::E(val) = self { val } else { panic!() }
+            }
+            fn get_e_1(self) -> SynE {
+                if let SynValue::E_1(val) = self { val } else { panic!() }
+            }
+            fn get_f(self) -> SynF {
+                if let SynValue::F(val) = self { val } else { panic!() }
             }
         }
 
         pub trait StructListener {
-            fn init_struct(&mut self) {}
-            fn init_list(&mut self) {}
-            fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
-            fn iter_list(&mut self, _ctx: CtxList);
+            fn exit(&mut self, _ctx: Ctx) {}
+            fn init_e(&mut self) {}
+            fn init_f(&mut self) {}
+            fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+            fn exit_f(&mut self, _ctx: CtxF) -> SynF;
         }
 
         struct ListenerWrapper<T> {
@@ -1525,17 +1534,19 @@ mod listener5 {
                 match call {
                     Call::Enter => {
                         match nt {
-                            0 => self.listener.init_struct(),   // STRUCT
-                            1 => self.listener.init_list(),     // LIST
+                            0 => self.listener.init_e(),    // E
+                            1 => self.listener.init_f(),    // F
+                            2 => self.init_e_1(),           // E_1
                             _ => panic!("unexpected exit non-terminal id: {nt}")
                         }
                     }
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_struct(),    // - 0: STRUCT -> struct id { LIST
-                            1 => self.exit_list1(),     // - 1: LIST -> id : id ; LIST
-                            2 => self.exit_list2(),     // - 2: LIST -> }
+                            0 => self.exit(),       //  0: E -> F E_1
+                            1 => self.exit_f(),     //  1: F -> id
+                            2 => self.exit_e_1(),   //  2: E_1 -> . id E_1
+                            3 => { },               //  3: E_1 -> ε
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -1550,66 +1561,81 @@ mod listener5 {
         }
 
         impl<T: StructListener> ListenerWrapper<T> {
-            fn exit_struct(&mut self) {
-                let val = self.listener.exit_struct(CtxStruct::Struct {
-                    id: self.stack_t.pop().unwrap(),
-                });
-                self.stack.push(SynValue::Struct(val));
+            fn exit(&mut self) {
+                let e = self.stack.pop().unwrap().get_e();
+                self.listener.exit(Ctx::E { e });
             }
 
-            fn exit_list1(&mut self) {
-                let id = self.stack_t.drain(self.stack_t.len() - 2..).to_vec();
-                self.listener.iter_list(CtxList::List1 { id: id.try_into().unwrap() });
+            fn init_e_1(&mut self) {
+                let f = self.stack.pop().unwrap().get_f();
+                let e = self.listener.exit_e(CtxE::F { f });
+                self.stack.push(SynValue::E(e));
             }
 
-            fn exit_list2(&mut self) {
-                let val = self.listener.iter_list(CtxList::List2);
+            fn exit_f(&mut self) {
+                let id = self.stack_t.pop().unwrap();
+                let f = self.listener.exit_f(CtxF::F { id });
+                self.stack.push(SynValue::F(f));
+            }
+
+            fn exit_e_1(&mut self) {
+                let id = self.stack_t.pop().unwrap();
+                let e = self.stack.pop().unwrap().get_e();
+                let e = self.listener.exit_e(CtxE::E_Id { id, e });
+                self.stack.push(SynValue::E(e));
             }
         }
 
         // User code -----------------------------------------------------
 
+        #[derive(Debug)]
+        pub struct SynE(Vec<String>);
+        #[derive(Debug)]
+        pub struct SynF(String);
+
         struct TestListener {
-            result: HashMap<String, Vec<(String, String)>>,
-            cur_list: Option<Vec<(String, String)>>,
+            result: Option<Vec<String>>,
             verbose: bool,
         }
 
         impl TestListener {
             pub fn new(verbose: bool) -> Self {
-                Self { result: HashMap::new(), cur_list: None, verbose }
+                Self { result: None, verbose }
             }
         }
 
         impl StructListener for TestListener {
-            fn init_struct(&mut self) {
-                if self.verbose { println!("► struct"); }
+            fn exit(&mut self, ctx: Ctx) {
+                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
+                let Ctx::E { e } = ctx;
+                self.result = Some(e.0);
             }
 
-            fn init_list(&mut self) {
-                if self.verbose { println!("► list"); }
-                self.cur_list = Some(Vec::new());
+            fn init_e(&mut self) {
+                if self.verbose { println!("► E"); }
             }
 
-            fn exit_struct(&mut self, ctx: CtxStruct) -> SynStruct {
-                if self.verbose { println!("◄ struct (ctx = {ctx:?})"); }
+            fn init_f(&mut self) {
+                if self.verbose { println!("► F"); }
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                if self.verbose { println!("◄ E (ctx = {ctx:?})"); }
                 match ctx {
-                    CtxStruct::Struct { id } => {
-                        let list = self.cur_list.take().unwrap();
-                        self.result.insert(id.clone(), list);
-                        id
+                    CtxE::E_Id { id, mut e } => {
+                        e.0.push(id);
+                        e
+                    },
+                    CtxE::F { f } => {
+                        SynE(vec![f.0])
                     }
                 }
             }
 
-            fn iter_list(&mut self, ctx: CtxList) {
+            fn exit_f(&mut self, ctx: CtxF) -> SynF {
                 if self.verbose { println!("◄ list (ctx = {ctx:?})"); }
-                match ctx {
-                    CtxList::List1 { id: [a, b] } => {
-                        self.cur_list.as_mut().unwrap().push((a, b));
-                    }
-                    CtxList::List2 => {}
-                }
+                let CtxF::F { id } = ctx;
+                SynF(id)
             }
         }
 
@@ -1617,13 +1643,15 @@ mod listener5 {
         fn parser_parse_stream() {
             let tests = vec![
                 (
-                    "struct test1 { a : int ; b : string ; c : bool ; }",
+                    "a . b . c . d",
                     true,
-                    ("test1", vec![("a", "int"), ("b", "string"), ("c", "bool")])
+                    (Some(vec!["a", "b", "c", "d"]))
                 ),
             ];
             const VERBOSE: bool = true;
             const VERBOSE_LISTENER: bool = true;
+            const T_ID: VarId = 1;
+
             let mut parser = super::build_parser();
 
             // The lexer provides the required stream, so this isn't necessary in a real case:
@@ -1636,7 +1664,7 @@ mod listener5 {
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(5), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -1662,14 +1690,8 @@ mod listener5 {
 
                 assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
                 if success {
-                    let result = wrapper.stack.pop().expect(&format!("test {test_id} failed for input {input}: wrapper stack empty"));
-                    let result = if let SynValue::Struct(syn_struct) = result {
-                        syn_struct
-                    } else {
-                        panic!("test {test_id} failed for input {input}: synvalue = {result:?}")
-                    };
                     let listener = wrapper.listener();
-                    let expected_result = hashmap![expected_result.0.to_string() => expected_result.1.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).to_vec()];
+                    let expected_result = expected_result.map(|v| v.into_iter().map(|s| s.to_string()).to_vec());
                     assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
                 }
             }
@@ -1732,6 +1754,7 @@ mod listener6 {
             // - parents:
             //   - E_1 -> E
             //   - E_2 -> E_1
+// TODO: ----------------------
 
     }
 }
