@@ -1488,14 +1488,11 @@ mod listener5 {
         // SynE, SynF: defined by user below
 
         #[derive(Debug)]
-        enum SynValue { E(SynE), E_1(SynE), F(SynF) }
+        enum SynValue { E(SynE), F(SynF) }
 
         impl SynValue {
             fn get_e(self) -> SynE {
                 if let SynValue::E(val) = self { val } else { panic!() }
-            }
-            fn get_e_1(self) -> SynE {
-                if let SynValue::E_1(val) = self { val } else { panic!() }
             }
             fn get_f(self) -> SynF {
                 if let SynValue::F(val) = self { val } else { panic!() }
