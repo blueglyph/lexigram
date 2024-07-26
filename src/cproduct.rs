@@ -80,7 +80,7 @@ pub trait CProduct: Iterator {
     /// sequence endlessly.
     ///
     /// # Example
-    /// ```#ignore
+    /// ```ignore
     /// let a = vec![1, 3, 4];
     /// let mut c = a.into_iter().repeat();
     /// assert_eq!(c.cycle_len(), 3);
@@ -102,7 +102,7 @@ pub trait CProduct: Iterator {
     /// has no iteration (e.g. an empty vector), the whole sequence is empty.
     ///
     /// # Example
-    /// ```#ignore
+    /// ```ignore
     /// let source = vec![vec![3, 1], vec![0], vec![5, 6, 8]];
     /// let products = source.into_iter().cproduct().collect::<Vec<_>>();
     /// assert_eq!(products, vec![vec![3, 0, 5], vec![3, 0, 6], vec![3, 0, 8],
