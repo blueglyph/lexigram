@@ -941,6 +941,9 @@ mod listener3 {
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
 
+        // STRUCT -> 'struct' id '{' LIST
+        // LIST -> id ':' id ';' LIST | '}'
+        //
         //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
         //  1: LIST -> id : id ; LIST     - ◄1 ►LIST ; id! : id!
         //  2: LIST -> }                  - ◄2 }
@@ -1205,6 +1208,9 @@ mod listener4 {
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
 
+        // STRUCT -> 'struct' id '{' LIST
+        // LIST -> <L> id ':' id ';' LIST | '}'
+        //
         //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
         //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!    (instead of [◄1 ►LIST ; id! : id!] in listener3)
         //  2: LIST -> }                  - ◄2 }
@@ -1299,7 +1305,7 @@ mod listener4 {
             }
 
             fn exit_list2(&mut self) {
-                let val = self.listener.iter_list(CtxList::List2);
+                self.listener.iter_list(CtxList::List2);
             }
         }
 
@@ -1476,7 +1482,6 @@ mod listener5 {
         //   - E_1: child_left_rec (4)
         // - parents:
         //   - E_1 -> E
-
 
         #[derive(Debug)]
         pub enum Ctx { E { e: SynE } }
