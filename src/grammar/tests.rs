@@ -1966,7 +1966,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
