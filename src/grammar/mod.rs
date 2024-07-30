@@ -19,9 +19,9 @@ pub type VarId = u16;
 
 #[derive(Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 pub enum Symbol {
-    #[default] Empty,   // empty symbol
     T(TokenId),         // terminal
     NT(VarId),          // non-terminal
+    #[default] Empty,   // empty symbol
     End                 // end of stream
 }
 

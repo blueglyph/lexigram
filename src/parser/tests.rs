@@ -338,8 +338,8 @@ mod opcodes {
             (T::PRS(32), 0, vec![
                 strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
                 strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
-                strip![exit 2],                         //  2: E_1 -> ε        - ◄2
-                strip![nt 3, t 1, t 0],                 //  3: E_1 -> . id E_2 - ►E_2 id! .
+                strip![nt 3, t 1, t 0],                 //  2: E_1 -> . id E_2 - ►E_2 id! .
+                strip![exit 3],                         //  3: E_1 -> ε        - ◄3
                 strip![loop 2, exit 4, t 3, t 2],       //  4: E_2 -> ( ) E_1  - ●E_1 ◄4 ) (
                 strip![loop 2, exit 5],                 //  5: E_2 -> E_1      - ●E_1 ◄5
             ]),
@@ -361,10 +361,10 @@ mod opcodes {
             // [C/amb] left recursion and ambiguity ----------------------------------------
             (T::PRS(22), 0, vec![                       /// E -> E * E | E & * E | E + E | E & + E | id
                 strip![exit 0, nt 1, t 3],              //  0: E -> id E_1     - ◄0 ►E_1 id!
-                strip![exit 1],                         //  1: E_1 -> ε        - ◄1
-                strip![loop 1, exit 2, t 3, t 0],       //  2: E_1 -> * id E_1 - ●E_1 ◄2 id! *
-                strip![loop 1, exit 3, t 3, t 1],       //  3: E_1 -> + id E_1 - ●E_1 ◄3 id! +
-                strip![nt 2, t 2],                      //  4: E_1 -> & E_2    - ►E_2 &
+                strip![loop 1, exit 1, t 3, t 0],       //  1: E_1 -> * id E_1 - ●E_1 ◄1 id! *
+                strip![loop 1, exit 2, t 3, t 1],       //  2: E_1 -> + id E_1 - ●E_1 ◄2 id! +
+                strip![nt 2, t 2],                      //  3: E_1 -> & E_2    - ►E_2 &
+                strip![exit 4],                         //  4: E_1 -> ε        - ◄4
                 strip![loop 1, exit 5, t 3, t 0],       //  5: E_2 -> * id E_1 - ●E_1 ◄5 id! *
                 strip![loop 1, exit 6, t 3, t 1],       //  6: E_2 -> + id E_1 - ●E_1 ◄6 id! +
             ]),

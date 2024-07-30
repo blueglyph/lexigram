@@ -1715,11 +1715,11 @@ mod listener6 {
     const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [(".", Some(".")), ("id", None), ("(", Some("(")), (")", Some(")"))];
     const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "F", "E_1", "E_2"];
     const SYMBOLS_NAMES: [(&str, VarId); 2] = [("E_1", 2), ("E_2", 3)];
-    const PARSING_FACTORS: [(VarId, &[Symbol]); 6] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(1)]), (2, &[Symbol::Empty]), (2, &[Symbol::T(0), Symbol::T(1), Symbol::NT(3)]), (3, &[Symbol::T(2), Symbol::T(3), Symbol::NT(2)]), (3, &[Symbol::NT(2)])];
-    const PARSING_TABLE: [VarId; 20] = [6, 0, 6, 6, 6, 6, 1, 6, 6, 6, 3, 6, 6, 6, 2, 5, 6, 4, 6, 5];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 6] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(1)]), (2, &[Symbol::T(0), Symbol::T(1), Symbol::NT(3)]), (2, &[Symbol::Empty]), (3, &[Symbol::T(2), Symbol::T(3), Symbol::NT(2)]), (3, &[Symbol::NT(2)])];
+    const PARSING_TABLE: [VarId; 20] = [6, 0, 6, 6, 6, 6, 1, 6, 6, 6, 2, 6, 6, 6, 3, 5, 6, 4, 6, 5];
     const FLAGS: [u32; 4] = [0, 0, 36, 64];
     const PARENT: [Option<VarId>; 4] = [None, None, Some(0), Some(2)];
-    const OPCODES: [&[OpCode]; 6] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::Exit(2)], &[OpCode::NT(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::T(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(5)]];
+    const OPCODES: [&[OpCode]; 6] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::NT(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::T(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(5)]];
     const START_SYMBOL: VarId = 0;
 
     pub(super) fn build_parser() -> Parser {
@@ -1755,8 +1755,8 @@ mod listener6 {
         //
         //  0: E -> F E_1      - ◄0 ►E_1 ►F
         //  1: F -> id         - ◄1 id!
-        //  2: E_1 -> ε        - ◄2
-        //  3: E_1 -> . id E_2 - ►E_2 id! .
+        //  2: E_1 -> . id E_2 - ►E_2 id! .
+        //  3: E_1 -> ε        - ◄3
         //  4: E_2 -> ( ) E_1  - ●E_1 ◄4 ) (
         //  5: E_2 -> E_1      - ●E_1 ◄5
         //
@@ -1844,8 +1844,8 @@ mod listener6 {
                         match factor_id {
                             0 => self.exit(),                   //  0: E -> F E_1      - ◄0 ►E_1 ►F
                             1 => self.exit_f(),                 //  1: F -> id         - ◄1 id!
-                            2 => { },                           //  2: E_1 -> ε        - ◄2
-                            /* no exit */                       //  3: E_1 -> . id E_2 - ►E_2 id! .
+                            /* no exit */                       //  2: E_1 -> . id E_2 - ►E_2 id! .
+                            3 => { },                           //  3: E_1 -> ε        - ◄3
                             4 |                                 //  4: E_2 -> ( ) E_1  - ●E_1 ◄4 ) (
                             5 => self.exit_e_2(factor_id),      //  5: E_2 -> E_1      - ●E_1 ◄5
                             _ => panic!("unexpected exit factor id: {factor_id}")

@@ -1704,46 +1704,46 @@ fn prs_calc_table() {
         ]),
         (22, 0, 0, vec![
             // - 0: E -> id E_1
-            // - 1: E_1 -> ε
-            // - 2: E_1 -> * id E_1
-            // - 3: E_1 -> + id E_1
-            // - 4: E_1 -> & E_2
+            // - 1: E_1 -> * id E_1
+            // - 2: E_1 -> + id E_1
+            // - 3: E_1 -> & E_2
+            // - 4: E_1 -> ε
             // - 5: E_2 -> * id E_1
             // - 6: E_2 -> + id E_1
             (0, prodf!(t 3, nt 1)),
-            (1, prodf!(e)),
             (1, prodf!(t 0, t 3, nt 1)),
             (1, prodf!(t 1, t 3, nt 1)),
             (1, prodf!(t 2, nt 2)),
+            (1, prodf!(e)),
             (2, prodf!(t 0, t 3, nt 1)),
             (2, prodf!(t 1, t 3, nt 1)),
         ], vec![
             //     | *  +  &  id $
             // ----+----------------
             // E   | .  .  .  0  .
-            // E_1 | 2  3  4  .  1
+            // E_1 | 1  2  3  .  4
             // E_2 | 5  6  .  .  .
               7,   7,   7,   0,   7,
-              2,   3,   4,   7,   1,
+              1,   2,   3,   7,   4,
               5,   6,   7,   7,   7,
         ]),
         (23, 0, 0, vec![
             // - 0: E -> F E_1
             // - 1: F -> id
             // - 2: F -> num
-            // - 3: E_1 -> ε
-            // - 4: E_1 -> * F E_1
-            // - 5: E_1 -> + F E_1
-            // - 6: E_1 -> & E_2
+            // - 3: E_1 -> * F E_1
+            // - 4: E_1 -> + F E_1
+            // - 5: E_1 -> & E_2
+            // - 6: E_1 -> ε
             // - 7: E_2 -> * F E_1
             // - 8: E_2 -> + F E_1
             (0, prodf!(nt 1, nt 2)),
             (1, prodf!(t 3)),
             (1, prodf!(t 4)),
-            (2, prodf!(e)),
             (2, prodf!(t 0, nt 1, nt 2)),
             (2, prodf!(t 1, nt 1, nt 2)),
             (2, prodf!(t 2, nt 3)),
+            (2, prodf!(e)),
             (3, prodf!(t 0, nt 1, nt 2)),
             (3, prodf!(t 1, nt 1, nt 2)),
         ], vec![
@@ -1751,11 +1751,11 @@ fn prs_calc_table() {
             // ----+--------------------
             // E   | .  .  .  0   0  .
             // F   | .  .  .  1   2  .
-            // E_1 | 4  5  6  .   .  3
+            // E_1 | 3  4  5  .   .  6
             // E_2 | 7  8  .  .   .  .
               9,   9,   9,   0,   0,   9,
               9,   9,   9,   1,   2,   9,
-              4,   5,   6,   9,   9,   3,
+              3,   4,   5,   9,   9,   6,
               7,   8,   9,   9,   9,   9,
         ]),
         (24, 0, 0, vec![
@@ -1783,15 +1783,15 @@ fn prs_calc_table() {
             // A -> A a b c | A a b d | A a e | f
             //
             // - 0: A -> f A_1
-            // - 1: A_1 -> ε
-            // - 2: A_1 -> a A_3
+            // - 1: A_1 -> a A_3
+            // - 2: A_1 -> ε
             // - 3: A_2 -> c A_1
             // - 4: A_2 -> d A_1
             // - 5: A_3 -> b A_2
             // - 6: A_3 -> e A_1
             (0, prodf!(t 5, nt 1)),
-            (1, prodf!(e)),
             (1, prodf!(t 0, nt 3)),
+            (1, prodf!(e)),
             (2, prodf!(t 2, nt 1)),
             (2, prodf!(t 3, nt 1)),
             (3, prodf!(t 1, nt 2)),
@@ -1800,11 +1800,11 @@ fn prs_calc_table() {
             //     | a  b  c  d  e  f  $
             // ----+----------------------
             // A   | .  .  .  .  .  0  .
-            // A_1 | 2  .  .  .  .  .  1
+            // A_1 | 1  .  .  .  .  .  2
             // A_2 | .  .  3  4  .  .  .
             // A_3 | .  5  .  .  6  .  .
               7,   7,   7,   7,   7,   0,   7,
-              2,   7,   7,   7,   7,   7,   1,
+              1,   7,   7,   7,   7,   7,   2,
               7,   7,   3,   4,   7,   7,   7,
               7,   5,   7,   7,   6,   7,   7,
         ]),
@@ -1966,7 +1966,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
