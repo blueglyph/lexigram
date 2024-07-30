@@ -1581,9 +1581,9 @@ mod listener5 {
             }
 
             fn exit_e_1(&mut self) {
-                let id = self.stack_t.pop().unwrap();
                 let e = self.stack.pop().unwrap().get_e();
-                let e = self.listener.exit_e(CtxE::E_Id { id, e });
+                let id = self.stack_t.pop().unwrap();
+                let e = self.listener.exit_e(CtxE::E_Id { e, id });
                 self.stack.push(SynValue::E(e));
             }
         }
@@ -1624,7 +1624,7 @@ mod listener5 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 if self.verbose { println!("◄ E (ctx = {ctx:?})"); }
                 match ctx {
-                    CtxE::E_Id { id, mut e } => {
+                    CtxE::E_Id { mut e, id } => {
                         e.0.push(id);
                         e
                     },
@@ -1880,8 +1880,8 @@ mod listener6 {
             }
 
             fn exit_e_2(&mut self, factor_id: VarId) {
-                let id = self.stack_t.pop().unwrap();
                 let e = self.stack.pop().unwrap().get_e();
+                let id = self.stack_t.pop().unwrap();
                 let ctx = match factor_id {
                     4 => CtxE::E_Id_par { e, id },
                     5 => CtxE::E_Id { e, id },
@@ -1931,12 +1931,12 @@ mod listener6 {
                     CtxE::F { f } => {
                         SynE(vec![f.0])
                     }
-                    CtxE::E_Id_par { mut id, mut e } => {
+                    CtxE::E_Id_par { mut e, mut id } => {
                         id.push_str("()");
                         e.0.push(id);
                         e
                     }
-                    CtxE::E_Id { id, mut e } => {
+                    CtxE::E_Id { mut e, id } => {
                         e.0.push(id);
                         e
                     }
