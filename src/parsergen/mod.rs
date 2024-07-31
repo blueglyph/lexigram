@@ -239,29 +239,48 @@ impl ParserBuilder {
             Some(file) => BufWriter::new(Box::new(file)),
             None => BufWriter::new(Box::new(std::io::stdout().lock()))
         };
+        let source = self.build_source_code(indent, true);
+        out.write(source.as_bytes())?;
+        // write!(out, "{source}");
+        Ok(())
+    }
+
+    fn build_source_code(&self, indent: usize, wrapper: bool) -> String {
         let s = String::from_utf8(vec![32; indent]).unwrap();
-        let mut source = vec![];
-        source.push(vec![
+        let mut parts = vec![];
+        parts.push(vec![
             "// -------------------------------------------------------------------------".to_string(),
             "// Automatically generated".to_string(),
         ]);
-        source.push(self.source_build_parser());
-        source.push(vec![
+        parts.push(self.source_build_parser());
+        if wrapper {
+            parts.push(self.source_wrapper());
+        }
+        parts.push(vec![
             "// -------------------------------------------------------------------------".to_string(),
         ]);
         // Create source code:
-        for part in source {
-            for line in part {
-                writeln!(out, "{s}{line}")?;
+        let mut source = String::new();
+        let mut first = true;
+        for part in parts {
+            if !first {
+                source.push('\n');
             }
-            writeln!(out)?;
+            first = false;
+            for line in part {
+                source.push_str(&s);
+                source.push_str(&line);
+                source.push('\n');
+            }
         }
-        Ok(())
+        source
     }
 
     fn source_build_parser(&self) -> Vec<String> {
         let num_nt = self.symbol_table.get_non_terminals().len();
         let num_t = self.symbol_table.get_terminals().len();
+        let mut symbol_names = self.symbol_table.get_names().to_vec(); // hashmap: we want predictable outcome, so we sort names
+        symbol_names.sort();
         vec![
             format!("use rlexer::grammar::{{ProdFactor, Symbol, VarId}};"),
             format!("use rlexer::parser::{{OpCode, Parser}};"),
@@ -275,8 +294,8 @@ impl ParserBuilder {
             format!("const SYMBOLS_NT: [&str; PARSER_NUM_NT] = [{}];",
                      self.symbol_table.get_non_terminals().iter().map(|s| format!("\"{s}\"")).join(", ")),
             format!("const SYMBOLS_NAMES: [(&str, VarId); {}] = [{}];",
-                     self.symbol_table.get_names().count(),
-                     self.symbol_table.get_names().map(|(s, v)| format!("(\"{s}\", {v})")).join(", ")),
+                     symbol_names.len(),
+                     symbol_names.into_iter().map(|(s, v)| format!("(\"{s}\", {v})")).join(", ")),
             format!("const PARSING_FACTORS: [(VarId, &[Symbol]); {}] = [{}];",
                      self.parsing_table.factors.len(),
                      self.parsing_table.factors.iter().map(|(v, f)| format!("({v}, &[{}])", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")),
@@ -309,5 +328,9 @@ impl ParserBuilder {
             format!("    Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)"),
             format!("}}"),
         ]
+    }
+
+    fn source_wrapper(&self) -> Vec<String> {
+        vec![]
     }
 }
