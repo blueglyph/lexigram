@@ -257,31 +257,39 @@ impl Display for GrTreeFmt<'_> {
 pub mod ruleflag {
     use crate::btreemap;
 
-    /// Star or Plus repeat factor.
+    /// Star or Plus repeat child factor.
     /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
     pub const CHILD_REPEAT: u32 = 1;
-    /// Right-recursive NT.
+    /// Right-recursive child NT.
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const R_RECURSION: u32 = 2;
-    /// Left-recursive NT.
+    /// Left-recursive child NT.
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const CHILD_L_RECURSION: u32 = 4;
-    /// Left-recursive, ambiguous NT.
+    /// Left-recursive, ambiguous child NT.
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const CHILD_AMBIGUITY: u32 = 8;
-    /// NT created to regroup the independent factors when transforming an ambiguous, recursive rule.
+    /// Child NT created to regroup the independent factors when transforming an ambiguous, recursive rule.
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const CHILD_INDEPENDENT_AMBIGUITY: u32 = 16;
-    /// Left factorization.
+    /// Left-factorized parent NT.
     /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
     pub const PARENT_L_FACTOR: u32 = 32;
+    /// Left-factorized child NT.
+    /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
     pub const CHILD_L_FACTOR: u32 = 64;
-    /// Low-latency non-terminal
+    /// Low-latency non-terminal factor.
     /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in `flags`.
     pub const L_FORM: u32 = 128;
     /// Right-associative factor.
     /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in factors.
     pub const R_ASSOC: u32 = 256;
+    /// Left-recursive parent NT.
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
+    pub const PARENT_L_RECURSION: u32 = 512;
+    /// Left-recursive, ambiguous parent NT.
+    /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
+    pub const PARENT_AMBIGUITY: u32 = 1024;
 
     pub fn to_string(flags: u32) -> Vec<String> {
         let names = btreemap![
@@ -294,6 +302,7 @@ pub mod ruleflag {
             CHILD_L_FACTOR              => "child_left_fact".to_string(),
             L_FORM                      => "L-form".to_string(),
             R_ASSOC                     => "R-assoc".to_string(),
+            PARENT_L_RECURSION          => "parent_left_rec".to_string(),
         ];
         names.into_iter().filter_map(|(f, t)| if flags & f != 0 { Some(t) } else { None } ).collect::<_>()
     }
@@ -1236,6 +1245,7 @@ impl<T> ProdRuleSet<T> {
                 let var_prime = new_var;
                 new_var += 1;
                 self.set_flags(var_prime, ruleflag::CHILD_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::CHILD_AMBIGUITY });
+                self.set_flags(var, ruleflag::PARENT_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::PARENT_AMBIGUITY });
                 self.set_parent(var_prime, var);
                 if let Some(table) = &mut self.symbol_table {
                     table.add_var_prime_name(var, var_prime);

@@ -29,7 +29,7 @@ mod parser_gen {
         const SYMBOLS_NAMES: [(&str, VarId); 1] = [("E_1", 2)];
         const PARSING_FACTORS: [(VarId, &[Symbol]); 11] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(4), Symbol::NT(0), Symbol::T(5)]), (1, &[Symbol::T(6)]), (1, &[Symbol::T(7)]), (2, &[Symbol::T(9), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(8), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(2), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(3), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(0), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(1), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::Empty])];
         const PARSING_TABLE: [VarId; 33] = [11, 11, 11, 11, 0, 11, 0, 0, 11, 11, 11, 11, 11, 11, 11, 1, 11, 2, 3, 11, 11, 11, 8, 9, 6, 7, 11, 10, 11, 11, 5, 4, 10];
-        const FLAGS: [u32; 3] = [0, 0, 12];
+        const FLAGS: [u32; 3] = [1536, 0, 12];
         const PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
         const OPCODES: [&[OpCode]; 11] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(6)], &[OpCode::Exit(3), OpCode::T(7)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(1), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(1), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(8), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(9), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(10)]];
         const START_SYMBOL: VarId = 0;
@@ -77,7 +77,7 @@ mod listener {
     const SYMBOLS_NAMES: [(&str, VarId); 2] = [("E_1", 3), ("T_1", 4)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 11] = [(0, &[Symbol::NT(1), Symbol::NT(3)]), (1, &[Symbol::NT(2), Symbol::NT(4)]), (2, &[Symbol::T(4), Symbol::NT(0), Symbol::T(5)]), (2, &[Symbol::T(6)]), (2, &[Symbol::T(7)]), (3, &[Symbol::T(0), Symbol::NT(1), Symbol::NT(3)]), (3, &[Symbol::T(1), Symbol::NT(1), Symbol::NT(3)]), (3, &[Symbol::Empty]), (4, &[Symbol::T(2), Symbol::NT(2), Symbol::NT(4)]), (4, &[Symbol::T(3), Symbol::NT(2), Symbol::NT(4)]), (4, &[Symbol::Empty])];
     const PARSING_TABLE: [VarId; 45] = [11, 11, 11, 11, 0, 11, 0, 0, 11, 11, 11, 11, 11, 1, 11, 1, 1, 11, 11, 11, 11, 11, 2, 11, 3, 4, 11, 5, 6, 11, 11, 11, 7, 11, 11, 7, 10, 10, 8, 9, 11, 10, 11, 11, 10];
-    const FLAGS: [u32; 5] = [0, 0, 0, 4, 4];
+    const FLAGS: [u32; 5] = [512, 512, 0, 4, 4];
     const PARENT: [Option<VarId>; 5] = [None, None, None, Some(0), Some(1)];
     const OPCODES: [&[OpCode]; 11] = [&[OpCode::Exit(0), OpCode::NT(3), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(4), OpCode::NT(2)], &[OpCode::Exit(2), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(3), OpCode::T(6)], &[OpCode::Exit(4), OpCode::T(7)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(7)], &[OpCode::Loop(4), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(4), OpCode::Exit(9), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(10)]];
     const START_SYMBOL: VarId = 0;
@@ -354,7 +354,7 @@ mod listener2 {
     const SYMBOLS_NAMES: [(&str, VarId); 1] = [("E_1", 2)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 11] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(4), Symbol::NT(0), Symbol::T(5)]), (1, &[Symbol::T(6)]), (1, &[Symbol::T(7)]), (2, &[Symbol::T(9), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(8), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(2), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(3), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(0), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(1), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::Empty])];
     const PARSING_TABLE: [VarId; 33] = [11, 11, 11, 11, 0, 11, 0, 0, 11, 11, 11, 11, 11, 11, 11, 1, 11, 2, 3, 11, 11, 11, 8, 9, 6, 7, 11, 10, 11, 11, 5, 4, 10];
-    const FLAGS: [u32; 3] = [0, 0, 12];
+    const FLAGS: [u32; 3] = [1536, 0, 12];
     const PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
     const OPCODES: [&[OpCode]; 11] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(6)], &[OpCode::Exit(3), OpCode::T(7)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(1), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(1), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(8), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(9), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(10)]];
     const START_SYMBOL: VarId = 0;
@@ -1451,7 +1451,7 @@ mod listener5 {
     const SYMBOLS_NAMES: [(&str, VarId); 1] = [("E_1", 2)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 4] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(1)]), (2, &[Symbol::T(0), Symbol::T(1), Symbol::NT(2)]), (2, &[Symbol::Empty])];
     const PARSING_TABLE: [VarId; 9] = [4, 0, 4, 4, 1, 4, 2, 4, 3];
-    const FLAGS: [u32; 3] = [0, 0, 4];
+    const FLAGS: [u32; 3] = [512, 0, 4];
     const PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
     const OPCODES: [&[OpCode]; 4] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)]];
     const START_SYMBOL: VarId = 0;
@@ -1734,7 +1734,7 @@ mod listener6 {
     const SYMBOLS_NAMES: [(&str, VarId); 2] = [("E_1", 2), ("E_2", 3)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 6] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(1)]), (2, &[Symbol::T(0), Symbol::T(1), Symbol::NT(3)]), (2, &[Symbol::Empty]), (3, &[Symbol::T(2), Symbol::T(3), Symbol::NT(2)]), (3, &[Symbol::NT(2)])];
     const PARSING_TABLE: [VarId; 20] = [6, 0, 6, 6, 6, 6, 1, 6, 6, 6, 2, 6, 6, 6, 3, 5, 6, 4, 6, 5];
-    const FLAGS: [u32; 4] = [0, 0, 36, 64];
+    const FLAGS: [u32; 4] = [512, 0, 36, 64];
     const PARENT: [Option<VarId>; 4] = [None, None, Some(0), Some(2)];
     const OPCODES: [&[OpCode]; 6] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::NT(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::T(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(5)]];
     const START_SYMBOL: VarId = 0;
