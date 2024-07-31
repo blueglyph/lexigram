@@ -234,6 +234,11 @@ impl ParserBuilder {
         Parser::new(self.parsing_table, self.symbol_table, self.opcodes, self.start)
     }
 
+    // Building the source code as we do below is not the most efficient, but it's done that way to
+    // - be able to build only a part of the parser, and
+    // - get the sources for the validation tests or print them / write them into a file.
+    // The whole code isn't that big, so it's not a major issue.
+
     pub fn write_source_code(&self, file: Option<File>, indent: usize) -> Result<(), std::io::Error> {
         let mut out: BufWriter<Box<dyn Write>> = match file {
             Some(file) => BufWriter::new(Box::new(file)),
