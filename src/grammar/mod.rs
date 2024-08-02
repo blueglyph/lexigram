@@ -1329,81 +1329,64 @@ impl<T> ProdRuleSet<T> {
         let mut new_var = self.get_next_available_var();
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
         let mut prods = std::mem::take(&mut self.prods);
-        let mut start = Some(0);
-        let last = self.num_nt;
-        while let Some(first) = start {
-            let range = first..last;
-            start = None;
-            let mut extra = Vec::<ProdRule>::new();
-            for i in range {
-                let mut prod = &mut prods[i];
-                if prod.len() < 2 {
-                    continue
-                }
-                let var = i as VarId;
-                let mut maybe_child = None;
-                let mut factors = prod.clone();
-                factors.sort();
-                if VERBOSE { println!("{i}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), prod_to_string(prod, self.get_symbol_table())); }
-                while factors.len() > 1 {
-                    let mut max = (0, 0);
-                    let mut max_len = 0;
-                    let simi = factors.windows(2).enumerate().map(|(j, x)| {
-                        let s = similarity(&x[0], &x[1]);
-                        if s > max.1 {
-                            max = (j, s);
-                            max_len = 2;
-                        } else if s == max.1 && j + 1 == max.0 + max_len {
-                            max_len += 1;
-                        }
-                        s
-                    }).to_vec();
-                    if max.1 == 0 {
-                        if VERBOSE { println!(" nothing to factorize"); }
-                        break;
-                    }
-                    if VERBOSE {
-                        let t = self.get_symbol_table();
-                        println!(" - sorted: {} => {}", &factors.iter().map(|f| f.to_str(t)).join(" | "), simi.iter().join(", "));
-                        println!("   max: {} for {}", max.1, (0..max_len).map(|j| factors[max.0 + j].to_str(t)).join(", "));
-                    }
-                    let var_prime = new_var;
-                    new_var += 1;
-                    self.set_flags(var, ruleflag::PARENT_L_FACTOR);
-                    let prime_flags = if let Some(child) = maybe_child {
-                        self.set_parent(child, var_prime);
-                        ruleflag::CHILD_L_FACTOR | ruleflag::PARENT_L_FACTOR
-                    } else {
-                        ruleflag::CHILD_L_FACTOR
-                    };
-                    self.set_flags(var_prime, prime_flags);
-                    if let Some(table) = &mut self.symbol_table {
-                        table.add_var_prime_name(var, var_prime);
-                    }
-                    self.set_parent(var_prime, var);
-                    let symbol_prime = Symbol::NT(var_prime);
-                    if VERBOSE {
-                        println!("   adding non-terminal {var_prime} ({}), deriving from {var} ({})",
-                                 symbol_prime.to_str(self.get_symbol_table()), Symbol::NT(var).to_str((self.get_symbol_table())));
-                    }
-                    let mut new_prod = ProdRule::new();
-                    for j in 0..max_len {
-                        new_prod.push(if factors[max.0 + j].len() > max.1 { ProdFactor::new(factors[max.0 + j][max.1..].to_vec()) } else { prodf!(e) })
-                    }
-                    if VERBOSE { println!("   new {var_prime}: {} -> {}", symbol_prime.to_str(self.get_symbol_table()), prod_to_string(&new_prod, self.get_symbol_table())); }
-                    extra.push(new_prod);
-                    for j in 1..max_len {
-                        factors.remove(max.0);
-                    }
-                    factors[max.0].truncate(max.1);
-                    factors[max.0].push(symbol_prime);
-                    *prod = factors.clone();
-                    if VERBOSE { println!("   mod {var}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), prod_to_string(&prod, self.get_symbol_table())); }
-                    if start.is_none() { start = Some(i + 1); }
-                    maybe_child = Some(var_prime);
-                }
+        let mut i = 0;
+        while i < prods.len() {
+            let mut prod = &mut prods[i];
+            let var = i as VarId;
+            i += 1;
+            if prod.len() < 2 {
+                continue
             }
-            prods.extend(extra);
+            let mut factors = prod.clone();
+            let mut extra = Vec::<ProdRule>::new();
+            let mut changed = false;
+            factors.sort();
+            if VERBOSE { println!("{var}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), factors.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")); }
+            while factors.len() > 1 {
+                let simi = factors.windows(2).enumerate()
+                    .map(|(j, x)| (j, similarity(&x[0], &x[1])))
+                    .skip_while(|(_, s)| *s == 0)
+                    .take_while(|(_, s)| *s != 0)
+                    .to_vec();
+                if simi.is_empty() {
+                    if VERBOSE { println!(" nothing to factorize"); }
+                    break;
+                }
+                changed = true;
+                let min = simi.iter().map(|(_, s)| *s).min().unwrap();
+                let start = simi[0].0;
+                let stop = start + simi.len();
+                let mut factorized = ProdFactor::new(factors[start].v.iter().take(min).cloned().to_vec());
+                let mut child = factors.drain(start..=stop).to_vec();
+                for f in &mut child {
+                    f.v.drain(0..min);
+                }
+                if child[0].v.is_empty() {
+                    let empty = child.remove(0);
+                    child.push(ProdFactor::with_flags(vec![Symbol::Empty], empty.flags));
+                }
+                let var_prime = new_var;
+                new_var += 1;
+                self.set_flags(var, ruleflag::PARENT_L_FACTOR);
+                self.set_flags(var_prime, ruleflag::CHILD_L_FACTOR);
+                if let Some(table) = &mut self.symbol_table {
+                    table.add_var_prime_name(var, var_prime);
+                }
+                self.set_parent(var_prime, var);
+                let symbol_prime = Symbol::NT(var_prime);
+                factorized.v.push(symbol_prime);
+                factors.insert(start, factorized);
+                if VERBOSE {
+                    println!(" - similarity: {} => {}", simi.iter().map(|(j, s)| format!("{j}:{s}")).join(", "), min);
+                    println!("   factorize: {}", child.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | "));
+                    println!("   left:      {}", factors.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | "));
+                }
+                extra.push(child);
+            }
+            if changed {
+                *prod = factors;
+                prods.extend(extra);
+            }
         }
         self.prods = prods;
         self.num_nt = self.prods.len();

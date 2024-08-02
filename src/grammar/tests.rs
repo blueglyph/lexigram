@@ -8,12 +8,13 @@ use crate::{btreemap, gnode, hashmap, hashset, LL1, LR, prod, prodf, sym};
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-pub(super) fn print_production_rules<T>(prods: &ProdRuleSet<T>) {
-    println!("    {}", prods.get_prods_iter().map(|(var, p)|
+pub(super) fn print_production_rules<T>(prods: &ProdRuleSet<T>, as_comment: bool) {
+    let prefix = if as_comment { "            // " } else { "    " };
+    println!("{prefix}{}", prods.get_prods_iter().map(|(var, p)|
         format!("{} -> {}",
                 Symbol::NT(var).to_str(prods.get_symbol_table()),
                 prod_to_string(p, prods.get_symbol_table()))
-    ).join("\n    "));
+    ).join(&format!("\n{prefix}")));
 }
 
 pub(super) fn print_factors<T>(rules: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor)>) {
@@ -26,6 +27,11 @@ pub(super) fn print_factors<T>(rules: &ProdRuleSet<T>, factors: &Vec<(VarId, Pro
                  )
     ).join("\n"));
 }
+
+// pub(super) fn print_all_factors<T>(rules: &ProdRuleSet<T>) {
+//     let factors = rules.get_factors().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
+//     print_factors(rules, &factors);
+// }
 
 pub(crate) fn symbol_to_macro(s: &Symbol) -> String {
     match s {
@@ -437,8 +443,7 @@ fn rts_prodrule_from() {
         let result = rules.get_prods_iter().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
         if VERBOSE {
             println!("=>");
-            print_production_rules(&rules);
-            println!();
+            print_production_rules(&rules, true);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -452,8 +457,9 @@ fn rts_prodrule_from() {
 
 fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
     println!("            {}", result.iter().map(|(i, p)|
-        format!("{i} => prod!({}),", p.iter().map(|f| f.iter().map(|s| symbol_to_macro(s))
-            .join(", ")).join("; "))).join("\n            "))
+        format!("{i} => prod!({}),", p.iter()
+            .map(|f| format!("{}{}", if f.flags != 0 { format!("#{}, ", f.flags) } else { "".to_string() }, f.iter().map(|s| symbol_to_macro(s)).join(", ")))
+            .join("; "))).join("\n            "))
 }
 
 fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsingTable, indent: usize) {
@@ -573,7 +579,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                     t 1, t 1, t 2, t 3;
                     t 3, t 2, t 4;
                     t 1, t 3, t 4, t 6;
-                    t 1, t 1, t 2;
+                    #256, t 1, t 1, t 2;
                     t 2, t 1;
                     t 1, t 2, t 6;
                     t 1, t 3, t 4, t 5;
@@ -1116,14 +1122,13 @@ fn prs_remove_left_recursion() {
         let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
-            print_production_rules(&rules);
+            print_production_rules(&rules, false);
         }
         rules.remove_left_recursion();
         let result = <BTreeMap<_, _>>::from(&rules);
         if VERBOSE {
             println!("=>");
-            print_production_rules(&rules);
-            println!();
+            print_production_rules(&rules, true);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1141,32 +1146,37 @@ fn prs_left_factorize() {
         (0, btreemap![
             // A -> d A_1 | A A_2
             // B -> A f | g | h
-            // A_1 -> ε | e
+            // A_1 -> e | ε
             // A_2 -> b | c
             0 => prod!(t 3, nt 2; nt 0, nt 3),
             1 => prod!(nt 0, t 5; t 6; t 7),
-            2 => prod!(e; t 4),
+            2 => prod!(t 4; e),
             3 => prod!(t 1; t 2),
         ]),
         (1, btreemap![
-            // A -> b A_4 | c b | d c A_3
-            // A_1 -> ε | d
-            // A_2 -> f | g
-            // A_3 -> ε | e
-            // A_4 -> b c A_1 | c g | d e A_2
-            0 => prod!(t 1, nt 4; t 2, t 1; t 3, t 2, nt 3),
-            1 => prod!(e; t 3),
-            2 => prod!(t 5; t 6),
-            3 => prod!(e; t 4),
-            4 => prod!(t 1, t 2, nt 1; t 2, t 6; t 3, t 4, nt 2),
+            // A -> b A_1 | c b | d c A_2
+            // A_1 -> b c A_3 | c g | d e A_4
+            // A_2 -> e | ε
+            // A_3 -> d | ε
+            // A_4 -> f | g
+            0 => prod!(t 1, nt 1; t 2, t 1; t 3, t 2, nt 2),
+            1 => prod!(t 1, t 2, nt 3; t 2, t 6; t 3, t 4, nt 4),
+            2 => prod!(t 4; e),
+            3 => prod!(t 3; #256, e),
+            4 => prod!(t 5; t 6),
         ]),
         (2, btreemap![]),
         (3, btreemap![
+            // A -> a
+            // B -> c B_1
+            // C -> c | b
+            // D -> d
+            // B_1 -> a | ε
             0 => prod!(t 0),
             1 => prod!(t 2, nt 4),
             2 => prod!(t 2; t 1),
             3 => prod!(t 3),
-            4 => prod!(e; t 0),
+            4 => prod!(t 0; e),
         ]),
         (4, btreemap![
             // E -> E E_1 | T
@@ -1186,14 +1196,13 @@ fn prs_left_factorize() {
         let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
-            print_production_rules(&rules);
+            print_production_rules(&rules, false);
         }
         rules.left_factorize();
         let result = BTreeMap::<_, _>::from(&rules);
         if VERBOSE {
             println!("=>");
-            print_production_rules(&rules);
-            println!();
+            print_production_rules(&rules, true);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1219,16 +1228,16 @@ fn prs_ll1_from() {
             3 => prod!(t 4, nt 2; nt 2),
         ]),
         (1, btreemap![
-            // A -> b A_4 | c b | d c A_3
-            // A_1 -> ε | d
-            // A_2 -> f | g
-            // A_3 -> ε | e
-            // A_4 -> b c A_1 | c g | d e A_2
-            0 => prod!(t 1, nt 4; t 2, t 1; t 3, t 2, nt 3),
-            1 => prod!(e; t 3),
-            2 => prod!(t 5; t 6),
-            3 => prod!(e; t 4),
-            4 => prod!(t 1, t 2, nt 1; t 2, t 6; t 3, t 4, nt 2),
+            // A -> b A_1 | c b | d c A_2
+            // A_1 -> b c A_3 | c g | d e A_4
+            // A_2 -> e | ε
+            // A_3 -> d | ε
+            // A_4 -> f | g
+            0 => prod!(t 1, nt 1; t 2, t 1; t 3, t 2, nt 2),
+            1 => prod!(t 1, t 2, nt 3; t 2, t 6; t 3, t 4, nt 4),
+            2 => prod!(t 4; e),
+            3 => prod!(t 3; #256, e),
+            4 => prod!(t 5; t 6),
         ]),
         (4, btreemap![
             // E -> T E_1
@@ -1254,14 +1263,13 @@ fn prs_ll1_from() {
         let rules_lr = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
-            print_production_rules(&rules_lr);
+            print_production_rules(&rules_lr, false);
         }
         let ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&ll1);
         if VERBOSE {
             println!("=>");
-            print_production_rules(&ll1);
-            println!();
+            print_production_rules(&ll1, true);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1343,7 +1351,7 @@ fn prs_calc_first() {
         ll1.set_start(start);
         let first = ll1.calc_first();
         if VERBOSE {
-            print_production_rules(&ll1);
+            print_production_rules(&ll1, false);
             let b = map_and_print_first(&first, ll1.get_symbol_table());
             for (sym, set) in &b {
                 println!("            sym!({}) => hashset![{}],", symbol_to_macro(sym),
@@ -1395,7 +1403,7 @@ fn prs_calc_follow() {
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         if VERBOSE {
-            print_production_rules(&ll1);
+            print_production_rules(&ll1, false);
             let b = map_and_print_follow(&follow, ll1.get_symbol_table());
             for (sym, set) in &b {
                 println!("            sym!({}) => hashset![{}],", symbol_to_macro(sym),
@@ -1762,51 +1770,51 @@ fn prs_calc_table() {
             // - 0: A -> a B d
             // - 1: A -> e
             // - 2: B -> b c B_1
-            // - 3: B_1 -> ε
-            // - 4: B_1 -> B
+            // - 3: B_1 -> B
+            // - 4: B_1 -> ε
             (0, prodf!(t 0, nt 1, t 3)),
             (0, prodf!(t 4)),
             (1, prodf!(t 1, t 2, nt 2)),
-            (2, prodf!(e)),
             (2, prodf!(nt 1)),
+            (2, prodf!(e)),
         ], vec![
             //     | a  b  c  d  e  $
             // ----+-------------------
             // A   | 0  .  .  .  1  .
             // B   | .  2  .  .  .  .
-            // B_1 | .  4  .  3  .  .
+            // B_1 | .  3  .  4  .  .
               0,   5,   5,   5,   1,   5,
               5,   2,   5,   5,   5,   5,
-              5,   4,   5,   3,   5,   5,
+              5,   3,   5,   4,   5,   5,
         ]),
         (25, 0, 0, vec![
             // A -> A a b c | A a b d | A a e | f
             //
             // - 0: A -> f A_1
-            // - 1: A_1 -> a A_3
+            // - 1: A_1 -> a A_2
             // - 2: A_1 -> ε
-            // - 3: A_2 -> c A_1
-            // - 4: A_2 -> d A_1
-            // - 5: A_3 -> b A_2
-            // - 6: A_3 -> e A_1
+            // - 3: A_2 -> b A_3
+            // - 4: A_2 -> e A_1
+            // - 5: A_3 -> c A_1
+            // - 6: A_3 -> d A_1
             (0, prodf!(t 5, nt 1)),
-            (1, prodf!(t 0, nt 3)),
+            (1, prodf!(t 0, nt 2)),
             (1, prodf!(e)),
-            (2, prodf!(t 2, nt 1)),
-            (2, prodf!(t 3, nt 1)),
-            (3, prodf!(t 1, nt 2)),
-            (3, prodf!(t 4, nt 1)),
+            (2, prodf!(t 1, nt 3)),
+            (2, prodf!(t 4, nt 1)),
+            (3, prodf!(t 2, nt 1)),
+            (3, prodf!(t 3, nt 1)),
         ], vec![
             //     | a  b  c  d  e  f  $
             // ----+----------------------
             // A   | .  .  .  .  .  0  .
             // A_1 | 1  .  .  .  .  .  2
-            // A_2 | .  .  3  4  .  .  .
-            // A_3 | .  5  .  .  6  .  .
+            // A_2 | .  3  .  .  4  .  .
+            // A_3 | .  .  5  6  .  .  .
               7,   7,   7,   7,   7,   0,   7,
               1,   7,   7,   7,   7,   7,   2,
-              7,   7,   3,   4,   7,   7,   7,
-              7,   5,   7,   7,   6,   7,   7,
+              7,   3,   7,   7,   4,   7,   7,
+              7,   7,   5,   6,   7,   7,   7,
         ]),
         (27, 0, 0, vec![
             // - 0: A -> c A_1
@@ -1828,24 +1836,29 @@ fn prs_calc_table() {
               2,   3,   5,   5,   4,
         ]),
         (28, 0, 0, vec![
-            // - 0: A -> a A_2
+            // - 0: A -> a A_1
             // - 1: A -> e
-            // - 2: A_1 -> ε
-            // - 3: A_1 -> c
-            // - 4: A_1 -> d
-            // - 5: A_2 -> ε
-            // - 6: A_2 -> b A_1
-            (0, prodf!(t 0, nt 2)),
+            // - 2: A_1 -> b A_2
+            // - 3: A_1 -> ε
+            // - 4: A_2 -> c
+            // - 5: A_2 -> d
+            // - 6: A_2 -> ε
+            (0, prodf!(t 0, nt 1)),
             (0, prodf!(t 4)),
+            (1, prodf!(t 1, nt 2)),
             (1, prodf!(e)),
-            (1, prodf!(t 2)),
-            (1, prodf!(t 3)),
+            (2, prodf!(t 2)),
+            (2, prodf!(t 3)),
             (2, prodf!(e)),
-            (2, prodf!(t 1, nt 1)),
         ], vec![
+            //     | a  b  c  d  e  $
+            // ----+-------------------
+            // A   | 0  .  .  .  1  .
+            // A_1 | .  2  .  .  .  3
+            // A_2 | .  .  4  5  .  6
               0,   7,   7,   7,   1,   7,
-              7,   7,   3,   4,   7,   2,
-              7,   6,   7,   7,   7,   5,
+              7,   2,   7,   7,   7,   3,
+              7,   7,   4,   5,   7,   6,
         ]),
 
         (100, 0, 0, vec![
@@ -1971,7 +1984,7 @@ fn prs_calc_table() {
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
-            print_production_rules(&rules_lr);
+            print_production_rules(&rules_lr, false);
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         ll1.set_start(start);
@@ -1987,7 +2000,7 @@ fn prs_calc_table() {
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
             let error = factors.len() as VarId;
-            print_production_rules(&ll1);
+            print_production_rules(&ll1, false);
             print_factors(&ll1, &factors);
             println!("{}",
                      factors.iter().enumerate().map(|(id, (v, f))|
@@ -2030,7 +2043,7 @@ fn prs_grammar_notes() {
             println!("test {test_id} with {ll_id}/{start}:");
         }
         if VERBOSE {
-            print_production_rules(&rules_lr);
+            print_production_rules(&rules_lr, false);
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         ll1.set_start(start);
@@ -2044,7 +2057,7 @@ fn prs_grammar_notes() {
         }
         if VERBOSE {
             println!("=>");
-            print_production_rules(&ll1);
+            print_production_rules(&ll1, false);
             if let Some(table) = &parsing_table {
                 print_factors(&ll1, &table.factors);
                 println!("table:");
@@ -2119,26 +2132,31 @@ fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
 #[test]
 fn rts_prs() {
     let tests = vec![
-
         (100, 0, vec![
+            // - 0: A -> a b
+            // - 1: A -> c
             (0, prodf!(t 0, t 1)),
             (0, prodf!(t 2)),
         ]),
         (102, 0, vec![
-            // A -> a A_1
-            // B -> a
-            // A_1 -> b B A_2 | c A_3
-            // A_2 -> A_1 | ε
-            // A_3 -> A_1 | ε
+            // A -> A a A b A | c
+            //
+            // - 0: A -> a A_1
+            // - 1: B -> a
+            // - 2: A_1 -> b B A_2
+            // - 3: A_1 -> c A_3
+            // - 4: A_2 -> A_1
+            // - 5: A_2 -> ε
+            // - 6: A_3 -> A_1
+            // - 7: A_3 -> ε
             (0, prodf!(t 0, nt 2)),
             (1, prodf!(t 0)),
             (2, prodf!(t 1, nt 1, nt 3)),
             (2, prodf!(t 2, nt 4)),
-            // TODO: simplifiable:
-            (3, prodf!(e)),
             (3, prodf!(nt 2)),
-            (4, prodf!(e)),
+            (3, prodf!(e)),
             (4, prodf!(nt 2)),
+            (4, prodf!(e)),
         ])
     ];
     const VERBOSE: bool = false;
@@ -2245,18 +2263,24 @@ fn rts_prs_flags() {
         (T::PRS(0), 0, btreemap![0 => 544, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
+        (T::PRS(1), 0, btreemap![0 => 32, 1 => 96, 2 => 64, 3 => 64, 4 => 64],
+         btreemap![9 => 256],
+         btreemap![1 => 0, 2 => 0, 3 => 1, 4 => 1]),
         (T::PRS(22), 0, btreemap![0 => 1536, 1 => 44, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 1]),
+        (T::PRS(25), 0, btreemap![0 => 512, 1 => 36, 2 => 96, 3 => 64],
+         btreemap![],
+         btreemap![1 => 0, 2 => 1, 3 => 2]),
         (T::PRS(26), 0, btreemap![0 => 512, 1 => 4],
          btreemap![],
          btreemap![1 => 0]),
         (T::PRS(26), 1, btreemap![0 => 1536, 1 => 12],
          btreemap![],
          btreemap![1 => 0]),
-        (T::PRS(28), 0, btreemap![0 => 32, 1 => 64, 2 => 96],
+        (T::PRS(28), 0, btreemap![0 => 32, 1 => 96, 2 => 64],
          btreemap![],
-         btreemap![1 => 2, 2 => 0]),
+         btreemap![1 => 0, 2 => 1]),
         (T::PRS(31), 0, btreemap![0 => 512, 2 => 4],
          btreemap![],
          btreemap![2 => 0]),

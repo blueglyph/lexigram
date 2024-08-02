@@ -284,8 +284,8 @@ mod opcodes {
             (T::RTS(9), 0, vec![                        /// A -> var (id ,)+
                 strip![exit 0, nt 1, t 1],              //  0: A -> var A_1    - ◄0 ►A_1 var
                 strip![nt 2, t 3, t 2],                 //  1: A_1 -> id , A_2 - ►A_2 , id!
-                strip![exit 2],                         //  2: A_2 -> ε        - ◄2
-                strip![loop 1, exit 3],                 //  3: A_2 -> A_1      - ●A_1 ◄3
+                strip![loop 1, exit 2],                 //  2: A_2 -> A_1      - ●A_1 ◄2
+                strip![exit 3],                         //  3: A_2 -> ε        - ◄3
             ]),
             (T::RTS(12), 0, vec![                       /// A -> b (c d)*
                 strip![exit 0, nt 1, t 1],              //  0: A -> b B   - ◄0 ►B b
@@ -297,10 +297,10 @@ mod opcodes {
                 strip![exit 0, t 3, nt 2, t 0],         //  0: A -> a C d   - ◄0 d ►C a
                 strip![nt 3, t 1],                      //  1: B -> b B_1   - ►B_1 b
                 strip![nt 4, t 2, nt 1],                //  2: C -> B c C_1 - ►C_1 c ►B
-                strip![exit 3],                         //  3: B_1 -> ε     - ◄3
-                strip![loop 1, exit 4],                 //  4: B_1 -> B     - ●B ◄4
-                strip![exit 5],                         //  5: C_1 -> ε     - ◄5
-                strip![loop 2, exit 6],                 //  6: C_1 -> C     - ●C ◄6
+                strip![loop 1, exit 3],                 //  3: B_1 -> B     - ●B ◄3
+                strip![exit 4],                         //  4: B_1 -> ε     - ◄4
+                strip![loop 2, exit 5],                 //  5: C_1 -> C     - ●C ◄5
+                strip![exit 6],                         //  6: C_1 -> ε     - ◄6
             ]),
             // [B] right recursion ---------------------------------------------------------
             (T::PRS(16), 0, vec![                       /// A -> B A | b     B -> a
@@ -392,18 +392,18 @@ mod opcodes {
                 strip![nt 3, t 0],                      //  1: B -> a B_1     - ►B_1 a
                 strip![loop 2, exit 2, t 1, nt 1],      //  2: A_1 -> B b A_1 - ●A_1 ◄2 b ►B
                 strip![exit 3],                         //  3: A_1 -> ε       - ◄3
-                strip![exit 4],                         //  4: B_1 -> ε       - ◄4
-                strip![loop 1, exit 5],                 //  5: B_1 -> B       - ●B ◄5
+                strip![loop 1, exit 4],                 //  4: B_1 -> B       - ●B ◄4
+                strip![exit 5],                         //  5: B_1 -> ε       - ◄5
             ]),
             // [D] left factorization -----------------------------------------------------
             (T::PRS(28), 0, vec![                       /// A -> a | a b | a b c | a b d | e
-                strip![nt 2, t 0],                      //  0: A -> a A_2   - ►A_2 a
+                strip![nt 1, t 0],                      //  0: A -> a A_1   - ►A_1 a
                 strip![exit 1, t 4],                    //  1: A -> e       - ◄1 e
-                strip![exit 2],                         //  2: A_1 -> ε     - ◄2
-                strip![exit 3, t 2],                    //  3: A_1 -> c     - ◄3 c
-                strip![exit 4, t 3],                    //  4: A_1 -> d     - ◄4 d
-                strip![exit 5],                         //  5: A_2 -> ε     - ◄5
-                strip![nt 1, t 1],                      //  6: A_2 -> b A_1 - ►A_1 b
+                strip![nt 2, t 1],                      //  2: A_1 -> b A_2 - ►A_2 b
+                strip![exit 3],                         //  3: A_1 -> ε     - ◄3
+                strip![exit 4, t 2],                    //  4: A_2 -> c     - ◄4 c
+                strip![exit 5, t 3],                    //  5: A_2 -> d     - ◄5 d
+                strip![exit 6],                         //  6: A_2 -> ε     - ◄6
             ]),
 
             /*
@@ -411,7 +411,7 @@ mod opcodes {
             ]),
             */
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let mut ll1 = rule_id.get_prs(test_id, start_nt, false);
