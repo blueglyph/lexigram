@@ -405,13 +405,19 @@ mod opcodes {
                 strip![exit 5, t 3],                    //  5: A_2 -> d     - ◄5 d
                 strip![exit 6],                         //  6: A_2 -> ε     - ◄6
             ]),
-
+            (T::PRS(33), 0, vec![                       /// A -> A a | b c | b d
+                strip![nt 2, t 1],                      //  0: A -> b A_2   - ►A_2 b
+                strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A_1 ◄1 a
+                strip![exit 2],                         //  2: A_1 -> ε     - ◄2
+                strip![exit 3, nt 1, t 2],              //  3: A_2 -> c A_1 - ◄3 ►A_1 c
+                strip![exit 4, nt 1, t 3],              //  4: A_2 -> d A_1 - ◄4 ►A_1 d
+            ]),
             /*
             (T::PRS(), 0, vec![
             ]),
             */
         ];
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let mut ll1 = rule_id.get_prs(test_id, start_nt, false);

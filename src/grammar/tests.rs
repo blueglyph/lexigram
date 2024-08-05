@@ -930,6 +930,12 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 (")".to_string(), Some(")".to_string())),
             ]);
         }
+        33 => {
+            // A -> A a | b c | b d
+            prods.extend([
+                prod!(nt 0, t 0; t 1, t 2; t 1, t 3),
+            ]);
+        }
 
         // ambiguity?
         100 => {
@@ -2287,6 +2293,9 @@ fn rts_prs_flags() {
         (T::PRS(32), 0, btreemap![0 => 512, 2 => 36, 3 => 64],
          btreemap![],
          btreemap![2 => 0, 3 => 2]),
+        (T::PRS(33), 0, btreemap![0 => 544, 1 => 4, 2 => 64],
+         btreemap![],
+         btreemap![1 => 0, 2 => 0]),
         /*
         (T::PRS(), 0, btreemap![], btreemap![], btreemap![]),
         */

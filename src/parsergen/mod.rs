@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -95,6 +96,7 @@ impl From<Symbol> for OpCode {
 pub struct ParserBuilder {
     parsing_table: LLParsingTable,
     symbol_table: SymbolTable,
+    nt_value: Vec<bool>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId
 }
@@ -108,12 +110,14 @@ impl ParserBuilder {
 
     pub fn from_rules<T>(rules: ProdRuleSet<T>) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
         let mut ll1_rules = ProdRuleSet::<LL1>::from(rules);
+        let num_nt = ll1_rules.get_num_nt();
         let start = ll1_rules.get_start().unwrap();
         let parsing_table = ll1_rules.create_parsing_table();
         let symbol_table = ll1_rules.symbol_table().expect(stringify!("symbol table is requires to create a {}", std::any::type_name::<Self>()));
         let mut builder = ParserBuilder {
             parsing_table,
             symbol_table,
+            nt_value: vec![false; num_nt],
             opcodes: Vec::new(),
             start
         };
@@ -121,8 +125,23 @@ impl ParserBuilder {
         builder
     }
 
-    fn has_flags(&self, var: VarId, flags: u32) -> bool {
+    #[inline]
+    fn nt_has_flags(&self, var: VarId, flags: u32) -> bool {
         self.parsing_table.flags[var as usize] & flags == flags
+    }
+
+    #[inline]
+    fn sym_has_flags(&self, s: &Symbol, flags: u32) -> bool {
+        if let Symbol::NT(nt) = s { self.nt_has_flags(*nt, flags) } else { false }
+    }
+
+    #[inline]
+    fn sym_has_value(&self, symbol: &Symbol) -> bool {
+        match symbol {
+            Symbol::T(t) => self.symbol_table.is_t_data(*t),
+            Symbol::NT(nt) => self.nt_value[*nt as usize],
+            _ => false
+        }
     }
 
     pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
@@ -210,7 +229,7 @@ impl ParserBuilder {
                     new.remove(0);
                 }
             }
-            if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
+            if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.nt_has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
                 opcode.push(OpCode::Exit(factor_id)); // will be popped when this NT is completed
             }
             opcode.extend(new.into_iter().map(|s| OpCode::from(s)));
@@ -335,7 +354,37 @@ impl ParserBuilder {
         ]
     }
 
+    fn build_item_ops(&self) -> HashMap::<VarId, Vec<Symbol>> {
+        let info = &self.parsing_table;
+        let mut items = HashMap::<VarId, Vec<Symbol>>::new();
+        for (factor_id, (var_id, factor)) in info.factors.iter().enumerate() {
+            let flags = info.flags[*var_id as usize];
+            if flags & ruleflag::PARENT_L_RECURSION != 0 {
+                // Add values except the l_rec child's NT
+                let values = factor.iter().take(factor.len() - 1)
+                    .filter(|&s| self.sym_has_value(s) && self.sym_has_flags(s, ruleflag::CHILD_L_RECURSION))
+                    .cloned().to_vec();
+                items.insert(*var_id, values);
+                continue;
+            }
+            let is_parent = info.parent[*var_id as usize].is_none();
+
+            let values = factor.iter().filter(|s| self.sym_has_value(s)).cloned().to_vec();
+            if let Some(current) = items.get_mut(var_id) {
+                current.extend(values);
+            } else {
+                items.insert(*var_id, values);
+            }
+
+        }
+        items
+    }
+
+
+    #[allow(unused)]
     fn source_wrapper(&self) -> Vec<String> {
+        let items = self.build_item_ops();
+
         vec![]
     }
 }
