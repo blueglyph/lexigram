@@ -108,3 +108,24 @@ mod gen_integration {
         do_test(6, true);
     }
 }
+
+mod wrapper_source {
+    use crate::grammar::{ProdRuleSet, VarId};
+    use crate::grammar::tests::build_prs;
+    use crate::{CollectJoin, LL1};
+    use crate::parsergen::ParserBuilder;
+
+    #[test]
+    fn build_items() {
+        let rules = build_prs(28, true);
+        let ll1 = ProdRuleSet::<LL1>::from(rules);
+        let builder = ParserBuilder::from_rules(ll1);
+        let items = builder.build_item_ops();
+        for f in 0..builder.parsing_table.factors.len() {
+            let f_id = f as VarId;
+            if let Some(it) = items.get(&f_id) {
+                println!("- {f_id}: {}", it.iter().map(|s| s.to_str(builder.get_symbol_table())).join(" "));
+            }
+        }
+    }
+}
