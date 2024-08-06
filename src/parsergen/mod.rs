@@ -357,13 +357,16 @@ impl ParserBuilder {
     }
 
     fn build_item_ops(&self) -> HashMap::<VarId, Vec<Symbol>> {
+        const VERBOSE: bool = true;
         let info = &self.parsing_table;
         let mut items = HashMap::<VarId, Vec<Symbol>>::new();
         let mut var_factors: Vec::<Vec<VarId>> = vec![vec![]; info.num_nt];
         for (factor_id, (var_id, _)) in info.factors.iter().enumerate() {
             var_factors[*var_id as usize].push(factor_id as VarId);
+            items.insert(factor_id as VarId, vec![]);
         }
         for (factor_id, (var_id, factor)) in info.factors.iter().enumerate() {
+            if VERBOSE { println!("- {factor_id}: {} -> {}", Symbol::NT(*var_id).to_str(self.get_symbol_table()), factor.to_str(self.get_symbol_table())); }
             let factor_id = factor_id as VarId;
             let flags = info.flags[*var_id as usize];
             if let Some(Symbol::NT(nt)) = factor.last() {
@@ -372,19 +375,21 @@ impl ParserBuilder {
                     .filter(|&s| self.sym_has_value(s))
                     .cloned().to_vec();
                 if nt != var_id && self.nt_has_flags(*nt, ruleflag::CHILD_L_RECURSION) {
+                    if VERBOSE { println!("  CHILD_L_RECURSION"); }
                     // exit_<var_id>(context = values) before entering child loop
-                    items.insert(factor_id, values);
+                    items.get_mut(&factor_id).unwrap().extend(values);
                     continue;
                 } else if flags & ruleflag::PARENT_L_FACTOR != 0 {
+                    if VERBOSE { println!("  PARENT_L_FACTOR"); }
                     // factorization reports all the values to the children
                     if let Some(pre) = items.get_mut(&factor_id) {
                         // pre-pends values that already exist for factor_id (and empties factor_id)
                         values.splice(0..0, std::mem::take(pre));
                     }
                     for f_id in var_factors[*nt as usize].iter().skip(1) {
-                        items.insert(*f_id, values.clone());
+                        items.get_mut(f_id).unwrap().extend(values.clone());
                     }
-                    items.insert(var_factors[*nt as usize][0], values.clone());
+                    items.get_mut(&var_factors[*nt as usize][0]).unwrap().extend(values);
                     continue;
                 }
             }
@@ -393,7 +398,7 @@ impl ParserBuilder {
             if let Some(current) = items.get_mut(&factor_id) {
                 current.extend(values);
             } else {
-                items.insert(factor_id, values);
+                items.get_mut(&factor_id).unwrap().extend(values);
             }
 
         }

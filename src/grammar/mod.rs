@@ -1713,6 +1713,13 @@ pub mod macros {
         (#$f:expr, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], $f) };
     }
 
+    #[macro_export(local_inner_macros)]
+    macro_rules! symbols {
+        () => { std::vec![] };
+        ($($a:ident $($b:literal $(: $num:expr)?)?,)+) => { symbols![$($a $($b $(: $num)?)?),+] };
+        ($($a:ident $($b:literal $(: $num:expr)?)?),*) => { std::vec![$(sym!($a $($b $(: $num)?)?)),*] };
+    }
+
     /// Generates a production rule. It is made up of factors separated by a semicolon.
     ///
     /// Example
