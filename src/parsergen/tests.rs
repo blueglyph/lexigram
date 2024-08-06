@@ -111,12 +111,25 @@ mod gen_integration {
 
 mod wrapper_source {
     use std::collections::BTreeMap;
-    use crate::grammar::{Symbol, VarId};
+    use crate::grammar::{ruleflag, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CharLen, CollectJoin, symbols};
     use crate::grammar::tests::T::PRS;
     use crate::parsergen::ParserBuilder;
     use crate::dfa::TokenId;
+
+    fn print_flags(builder: &ParserBuilder, indent: usize) {
+        let tbl = builder.get_symbol_table();
+        let prefix = format!("{:width$}//", "", width=indent);
+        let nt_flags = builder.parsing_table.flags.iter().enumerate().filter_map(|(nt, &f)|
+            if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt as VarId).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
+        ).join("\n");
+        let parents = builder.parsing_table.parent.iter().enumerate().filter_map(|(c, &par)|
+            if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c as VarId).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
+        ).join("\n");
+        println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { "{prefix}  - (nothing)".to_string() } else { nt_flags });
+        println!("{prefix} parents:\n{}", if parents.is_empty() { "{prefix}  - (nothing)".to_string() } else { parents });
+    }
 
     fn print_items(builder: &ParserBuilder, result_items: &BTreeMap<VarId, Vec<Symbol>>, indent: usize) {
         let tbl = builder.get_symbol_table();
@@ -149,13 +162,13 @@ mod wrapper_source {
     #[allow(unused_doc_comments)]
     fn build_items() {
         let tests: Vec<(T, VarId, BTreeMap<VarId, Vec<Symbol>>)> = vec![
-            // - NT flags:
-            //   - A: parent_left_fact (32)
-            //   - A_1: parent_left_fact | child_left_fact (96)
-            //   - A_2: child_left_fact (64)
-            // - parents:
-            //   - A_1 -> A
-            //   - A_2 -> A_1
+            // NT flags:
+            //  - A: parent_left_fact (32)
+            //  - A_1: parent_left_fact | child_left_fact (96)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
             (PRS(28), 0, btreemap![                     /// A -> a | a b | a b c | a b d | e
                 0 => symbols![],                        //  0: A -> a A_1   | ►A_1 a! |
                 1 => symbols![t 4],                     //  1: A -> e       | ◄1 e!   | e
@@ -165,13 +178,13 @@ mod wrapper_source {
                 5 => symbols![t 0, t 1, t 3],           //  5: A_2 -> d     | ◄5 d!   | a b d
                 6 => symbols![t 0, t 1],                //  6: A_2 -> ε     | ◄6      | a b
             ]),
-            // - NT flags:
-            //   - A: parent_left_fact | parent_left_rec (544)
-            //   - A_1: child_left_rec (4)
-            //   - A_2: child_left_fact (64)
-            // - parents:
-            //   - A_1 -> A
-            //   - A_2 -> A
+            // NT flags:
+            //  - A: parent_left_fact | parent_left_rec (544)
+            //  - A_1: child_left_rec (4)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
             (PRS(33), 0, btreemap![                     /// A -> A a | b c | b d
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![t 0],                     //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | a
@@ -191,6 +204,7 @@ mod wrapper_source {
             let items = builder.build_item_ops();
             let result_items = items.into_iter().collect::<BTreeMap<VarId, Vec<Symbol>>>();
             if VERBOSE {
+                print_flags(&builder, 12);
                 println!("            ({rule_id:?}, {start_nt}, btreemap![", );
                 print_items(&builder, &result_items, 16);
                 println!("            ]),");
