@@ -125,6 +125,16 @@ pub trait CollectJoin {
 
 impl<I: Iterator> CollectJoin for I {}
 
+pub trait CharLen {
+    fn charlen(&self) -> usize;
+}
+
+impl CharLen for String {
+    fn charlen(&self) -> usize {
+        self.chars().count()
+    }
+}
+
 #[cfg(test)]
 mod libtests {
     use super::*;
@@ -139,6 +149,15 @@ mod libtests {
     fn test_to_vec() {
         assert_eq!((0..5).to_vec(), vec![0, 1, 2, 3, 4]);
     }
+
+    #[test]
+    fn test_charlen() {
+        assert_eq!("".to_string().charlen(), 0);
+        assert_eq!("12345".to_string().charlen(), 5);
+        assert_eq!("◄123►".to_string().charlen(), 5);
+    }
 }
+
+
 
 // ---------------------------------------------------------------------------------------------

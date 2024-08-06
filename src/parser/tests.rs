@@ -230,7 +230,7 @@ fn parser_parse_stream_id() {
 mod opcodes {
     use crate::grammar::{ProdFactor, ProdRuleSet, Symbol, VarId};
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, print_logs, print_prs_summary, symbol_to_macro, T};
-    use crate::{CollectJoin, LL1, strip};
+    use crate::{CharLen, CollectJoin, LL1, strip};
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::ParserBuilder;
     use crate::symbol_table::SymbolTable;
@@ -264,7 +264,7 @@ mod opcodes {
                     ops.into_iter().map(|s| s.to_str(Some(&parser.symbol_table))).join(" ")
                 )
             ).to_vec();
-            let width = opcodes.iter().fold((39, 0), |acc, s| (acc.0.max(s.0.len()), acc.1.max(s.1.len())));
+            let width = opcodes.iter().fold((39, 0), |acc, s| (acc.0.max(s.0.charlen()), acc.1.max(s.1.charlen())));
             let code = opcodes.into_iter()
                 .map(|(a, b, c)| format!("{:indent$}{a:width_a$} // {b:width_b$} - {c}", "", indent=indent, width_a=width.0, width_b=width.1))
                 .join("\n");
