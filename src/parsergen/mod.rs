@@ -386,10 +386,9 @@ impl ParserBuilder {
                         // pre-pends values that already exist for factor_id (and empties factor_id)
                         values.splice(0..0, std::mem::take(pre));
                     }
-                    for f_id in var_factors[*nt as usize].iter().skip(1) {
+                    for f_id in var_factors[*nt as usize].iter() {
                         items.get_mut(f_id).unwrap().extend(values.clone());
                     }
-                    items.get_mut(&var_factors[*nt as usize][0]).unwrap().extend(values);
                     continue;
                 }
             }
