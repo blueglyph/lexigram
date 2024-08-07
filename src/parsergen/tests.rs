@@ -187,7 +187,7 @@ mod wrapper_source {
             //  - A_2 -> A
             (PRS(33), 0, btreemap![                     /// A -> A a | b c | b d
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
-                1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
+                1 => symbols![t 0, nt 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | a A
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ◄3 ►A_1 c! | b c
                 4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ◄4 ►A_1 d! | b d
@@ -201,12 +201,12 @@ mod wrapper_source {
             //  - E_2 -> E_1
             (PRS(32), 0, btreemap![                     /// E -> F | E . id | E . id ( )
                                                         /// F -> id
-                0 => symbols![],                        //  0: E -> F E_1      | ◄0 ►E_1 ►F  |
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F  | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!      | id
                 2 => symbols![],                        //  2: E_1 -> . id E_2 | ►E_2 id! .  |
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3          |
-                4 => symbols![nt 0, t 1],               //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | E id
-                5 => symbols![nt 0, t 1],               //  5: E_2 -> E_1      | ●E_1 ◄5     | E id
+                4 => symbols![t 1, nt 0],               //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | id E
+                5 => symbols![t 1, nt 0],               //  5: E_2 -> E_1      | ●E_1 ◄5     | id E
             ]),
             /*
             (PRS(), 0, btreemap![]),
@@ -216,7 +216,9 @@ mod wrapper_source {
         for (test_id, (rule_id, start_nt, expected_items)) in tests.into_iter().enumerate() {
             // if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
-            let builder = ParserBuilder::from_rules(ll1);
+            let mut builder = ParserBuilder::from_rules(ll1);
+            builder.nt_value = (0..builder.parsing_table.num_nt)
+                .map(|nt| builder.parsing_table.parent[nt].is_none()).to_vec();
             let items = builder.build_item_ops();
             let result_items = items.into_iter().collect::<BTreeMap<VarId, Vec<Symbol>>>();
             if VERBOSE {

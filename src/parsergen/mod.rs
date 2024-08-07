@@ -79,6 +79,17 @@ impl OpCode {
         }
         result
     }
+
+    fn to_symbol(&self) -> Option<Symbol> {
+        match self {
+            OpCode::Empty => Some(Symbol::Empty),
+            OpCode::T(t) => Some(Symbol::T(*t)),
+            OpCode::NT(v) => Some(Symbol::NT(*v)),
+            OpCode::End => Some(Symbol::End),
+            OpCode::Loop(v) => Some(Symbol::NT(*v)),
+            OpCode::Exit(_) => None,
+        }
+    }
 }
 
 impl From<Symbol> for OpCode {
@@ -365,21 +376,59 @@ impl ParserBuilder {
             var_factors[*var_id as usize].push(factor_id as VarId);
             items.insert(factor_id as VarId, vec![]);
         }
-        for (factor_id, (var_id, factor)) in info.factors.iter().enumerate() {
-            if VERBOSE { println!("- {factor_id}: {} -> {}", Symbol::NT(*var_id).to_str(self.get_symbol_table()), factor.to_str(self.get_symbol_table())); }
+        // for (factor_id, (var_id, factor)) in info.factors.iter().enumerate() {
+        for (factor_id, opcode) in self.opcodes.iter().enumerate() {
+            let (var_id, factor) = &info.factors[factor_id];
+            if VERBOSE {
+                println!("- {factor_id}: {} -> {}   [{}]",
+                         Symbol::NT(*var_id).to_str(self.get_symbol_table()),
+                         factor.to_str(self.get_symbol_table()),
+                         opcode.iter().map(|op| op.to_str(self.get_symbol_table())).join(" "));
+            }
             let factor_id = factor_id as VarId;
             let flags = info.flags[*var_id as usize];
-            if let Some(Symbol::NT(nt)) = factor.last() {
+
+            // TODO: from opcodes, including loop(nt) if parent has value and is parent_l_rec
+            // let mut values = factor.iter().filter(|s| self.sym_has_value(s)).cloned().to_vec();
+
+            let mut values = self.opcodes[factor_id as usize].iter().rev()
+                .filter_map(|s| {
+                    let sym_maybe = match s {
+                        OpCode::T(t) => Some(Symbol::T(*t)),
+                        OpCode::NT(nt) => Some(Symbol::NT(*nt)),
+                        OpCode::Loop(nt) => {
+                            if let Some(parent) = info.parent[*nt as usize] {
+                                if self.nt_has_flags(parent, ruleflag::PARENT_L_RECURSION) {
+                                    Some(Symbol::NT(parent))
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        }
+                        _ => None
+                    };
+                    sym_maybe.and_then(|s| if self.sym_has_value(&s) { Some(s) } else { None })
+                }).to_vec();
+
+            if let Some(OpCode::NT(nt)) = opcode.first() {
                 // Take the values except the last NT
-                let mut values = factor.iter().take(factor.len() - 1)
-                    .filter(|&s| self.sym_has_value(s))
-                    .cloned().to_vec();
+                // let mut values = factor.iter().take(factor.len() - 1)
+                //     .filter(|&s| self.sym_has_value(s))
+                //     .cloned().to_vec();
+                let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {
+                    Some(values.pop().unwrap())
+                } else {
+                    None
+                };
                 if nt != var_id && self.nt_has_flags(*nt, ruleflag::CHILD_L_RECURSION) {
                     if VERBOSE { println!("  CHILD_L_RECURSION"); }
                     // exit_<var_id>(context = values) before entering child loop
                     items.get_mut(&factor_id).unwrap().extend(values);
                     continue;
-                } else if flags & ruleflag::PARENT_L_FACTOR != 0 {
+                }
+                if flags & ruleflag::PARENT_L_FACTOR != 0 {
                     if VERBOSE { println!("  PARENT_L_FACTOR"); }
                     // factorization reports all the values to the children
                     if let Some(pre) = items.get_mut(&factor_id) {
@@ -391,9 +440,11 @@ impl ParserBuilder {
                     }
                     continue;
                 }
+                if let Some(sym) = backup {
+                    values.push(sym);
+                }
             }
             // let is_parent = info.parent[*var_id as usize].is_none();
-            let values = factor.iter().filter(|s| self.sym_has_value(s)).cloned().to_vec();
             if let Some(current) = items.get_mut(&factor_id) {
                 current.extend(values);
             } else {
