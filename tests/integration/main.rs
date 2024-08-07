@@ -1039,16 +1039,17 @@ mod listener3 {
 
         impl<T: StructListener> ListenerWrapper<T> {
             fn exit_struct(&mut self) {
-                let val = self.listener.exit_struct(CtxStruct::Struct {
-                    id: self.stack_t.pop().unwrap(),
-                    list: self.stack.pop().unwrap().get_list()
-                });
+                let id = self.stack_t.pop().unwrap();
+                let list = self.stack.pop().unwrap().get_list();
+                let val = self.listener.exit_struct(CtxStruct::Struct { id, list });
                 self.stack.push(SynValue::Struct(val));
             }
 
             fn exit_list1(&mut self) {
-                let id = self.stack_t.drain(self.stack_t.len() - 2..).to_vec();
-                let val = self.listener.exit_list(CtxList::List1 { id: id.try_into().unwrap(), list: self.stack.pop().unwrap().get_list() });
+                let id2 = self.stack_t.pop().unwrap();
+                let id1 = self.stack_t.pop().unwrap();
+                let list = self.stack.pop().unwrap().get_list();
+                let val = self.listener.exit_list(CtxList::List1 { id: [id1, id2], list });
                 self.stack.push(SynValue::List(val));
             }
 
@@ -1306,15 +1307,15 @@ mod listener4 {
 
         impl<T: StructListener> ListenerWrapper<T> {
             fn exit_struct(&mut self) {
-                let val = self.listener.exit_struct(CtxStruct::Struct {
-                    id: self.stack_t.pop().unwrap(),
-                });
+                let id = self.stack_t.pop().unwrap();
+                let val = self.listener.exit_struct(CtxStruct::Struct { id });
                 self.stack.push(SynValue::Struct(val));
             }
 
             fn exit_list1(&mut self) {
-                let id = self.stack_t.drain(self.stack_t.len() - 2..).to_vec();
-                self.listener.iter_list(CtxList::List1 { id: id.try_into().unwrap() });
+                let id2 = self.stack_t.pop().unwrap();
+                let id1 = self.stack_t.pop().unwrap();
+                self.listener.iter_list(CtxList::List1 { id: [id1, id2] });
             }
 
             fn exit_list2(&mut self) {
