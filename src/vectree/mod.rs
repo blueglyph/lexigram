@@ -149,7 +149,7 @@ impl<'a, T:'a> VecTree<T> {
             let node = item.deref().clone();
             let num_children = item.num_children();
             let index = if num_children > 0 {
-                let children = stack.drain(stack.len() - num_children..);
+                let children = stack.split_off(stack.len() - num_children);
                 self.addci_iter(None, node, children)
             } else {
                 self.add(None, node)

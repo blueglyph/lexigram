@@ -444,7 +444,7 @@ impl RuleTreeSet<General> {
                     // - a &(leaves)
                     // - a |(&(leaves) or leaves)
                     GrNode::Concat | GrNode::Or => {
-                        let children = stack.drain(stack.len() - n..).to_vec();
+                        let children = stack.split_off(stack.len() - n);
                         let new_id = if children.iter().all(|&idx| !matches!(new.get(idx), GrNode::Concat|GrNode::Or)) {
                             if VERBOSE { print!("  trivial {}: children={children:?}\n  ", sym.deref()); }
                             // trivial case with only leaves as children (could be removed and treated as a general case)
