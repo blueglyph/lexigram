@@ -294,13 +294,6 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(t 1), gnode!(L)]);
             tree.add(Some(or), gnode!(t 2));
         }
-        // 19 => { // a (b <L>)+ c
-        //     let cc = tree.add_root(gnode!(&));
-        //     tree.add(Some(cc), gnode!(t 0));
-        //     let p1 = tree.add(Some(cc), gnode!(+));
-        //     tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L)]);
-        //     tree.add(Some(cc), gnode!(t 2));
-        // }
         19 => { // A (b <L>)* c | d
             let or = tree.add_root(gnode!(|));
             let cc = tree.add(Some(or), gnode!(&));
@@ -319,7 +312,47 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 2));
             tree.add(Some(or), gnode!(t 3));
         }
+        21 => { // A -> a (b)* c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
+        22 => { // A -> a (b <L>)* c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L)]);
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
+        23 => { // A -> a (b)+ c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.addc(Some(cc), gnode!(+), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
+        24 => { // A -> a (b <L>)+ c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L)]);
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
         _ => {}
+    }
+    if 21 <= id && id <= 24 {
+        let mut table = SymbolTable::new();
+        table.extend_non_terminals(["A".to_string()]);
+        table.extend_terminals([
+            ("a".to_string(), None),
+            ("b".to_string(), None),
+            ("c".to_string(), None),
+        ]);
+        rules.symbol_table = Some(table);
     }
     rules
 }
@@ -934,6 +967,22 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // A -> A a | b c | b d
             prods.extend([
                 prod!(nt 0, t 0; t 1, t 2; t 1, t 3),
+            ]);
+        }
+        34 => {
+            // S -> id = VAL | exit | return VAL
+            // VAL -> id | num
+            prods.extend([
+                prod!(t 0, t 2, nt 1; t 3; t 4, nt 1),
+                prod!(t 0; t 1),
+            ]);
+            symbol_table.extend_non_terminals(["S".to_string(), "VAL".to_string()]);
+            symbol_table.extend_terminals([
+                ("id".to_string(), None),
+                ("num".to_string(), None),
+                ("=".to_string(), Some("=".to_string())),
+                ("exit".to_string(), Some("exit".to_string())),
+                ("return".to_string(), Some("return".to_string())),
             ]);
         }
 

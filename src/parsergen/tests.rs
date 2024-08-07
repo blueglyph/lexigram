@@ -114,7 +114,7 @@ mod wrapper_source {
     use crate::grammar::{ruleflag, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CharLen, CollectJoin, symbols};
-    use crate::grammar::tests::T::PRS;
+    use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::ParserBuilder;
     use crate::dfa::TokenId;
 
@@ -127,8 +127,8 @@ mod wrapper_source {
         let parents = builder.parsing_table.parent.iter().enumerate().filter_map(|(c, &par)|
             if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c as VarId).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
         ).join("\n");
-        println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { "{prefix}  - (nothing)".to_string() } else { nt_flags });
-        println!("{prefix} parents:\n{}", if parents.is_empty() { "{prefix}  - (nothing)".to_string() } else { parents });
+        println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
+        println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
     }
 
     fn print_items(builder: &ParserBuilder, result_items: &BTreeMap<VarId, Vec<Symbol>>, indent: usize) {
@@ -162,6 +162,63 @@ mod wrapper_source {
     #[allow(unused_doc_comments)]
     fn build_items() {
         let tests: Vec<(T, VarId, BTreeMap<VarId, Vec<Symbol>>)> = vec![
+            // --------------------------------------------------------------------------- NT/T simple mix
+            // NT flags:
+            //  - (nothing)
+            // parents:
+            //  - (nothing)
+            (PRS(34), 0, btreemap![
+                0 => symbols![t 0, nt 1],               //  0: S -> id = VAL   | ◄0 ►VAL = id!  | id VAL
+                1 => symbols![],                        //  1: S -> exit       | ◄1 exit        |
+                2 => symbols![nt 1],                    //  2: S -> return VAL | ◄2 ►VAL return | VAL
+                3 => symbols![t 0],                     //  3: VAL -> id       | ◄3 id!         | id
+                4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
+            ]),
+            // --------------------------------------------------------------------------- norm* R/L
+            // NT flags:
+            //  - A_1: child_+_or_* (1)
+            // parents:
+            //  - A_1 -> A
+            (RTS(21), 0, btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
+                1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b     // !
+                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+            ]),
+            // NT flags:
+            //  - A_1: child_+_or_* | L-form (129)
+            // parents:
+            //  - A_1 -> A
+            (RTS(22), 0, btreemap![
+                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+                1 => symbols![t 1],                     //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b
+                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+            ]),
+            // --------------------------------------------------------------------------- norm+ R/L
+            // NT flags:
+            //  - A_1: child_+_or_* | parent_left_fact (33)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            (RTS(23), 0, btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
+                1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
+                2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b     // !
+                3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b     // !!!
+            ]),
+            // NT flags:
+            //  - A_1: child_+_or_* | parent_left_fact | L-form (161)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            (RTS(24), 0, btreemap![
+                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+                1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
+                2 => symbols![t 1],                     //  2: A_2 -> A_1   | ●A_1 ◄2       | b
+                3 => symbols![t 1],                     //  3: A_2 -> ε     | ◄3            | b
+            ]),
+            // --------------------------------------------------------------------------- left_fact
             // NT flags:
             //  - A: parent_left_fact (32)
             //  - A_1: parent_left_fact | child_left_fact (96)
@@ -178,6 +235,7 @@ mod wrapper_source {
                 5 => symbols![t 0, t 1, t 3],           //  5: A_2 -> d     | ◄5 d!   | a b d
                 6 => symbols![t 0, t 1],                //  6: A_2 -> ε     | ◄6      | a b
             ]),
+            // --------------------------------------------------------------------------- left_rec [left_fact]
             // NT flags:
             //  - A: parent_left_fact | parent_left_rec (544)
             //  - A_1: child_left_rec (4)
@@ -208,11 +266,42 @@ mod wrapper_source {
                 4 => symbols![t 1, nt 0],               //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | id E
                 5 => symbols![t 1, nt 0],               //  5: E_2 -> E_1      | ●E_1 ◄5     | id E
             ]),
+            // --------------------------------------------------------------------------- right_rec L/R
+            // STRUCT -> 'struct' id '{' LIST
+            // LIST -> id ':' id ';' LIST | '}'
+            // NT flags:
+            //  - LIST: right_rec (2)
+            // parents:
+            //  - (nothing)
+            (PRS(20), 0, btreemap![
+                0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+                1 => symbols![t 5, t 5, nt 1],          //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
+                2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
+            ]),
+            // STRUCT -> 'struct' id '{' LIST
+            // LIST -> <L> id ':' id ';' LIST | '}'
+            // NT flags:
+            //  - LIST: right_rec | L-form (130)
+            // parents:
+            //  - (nothing)
+            (PRS(30), 0, btreemap![
+                0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+                1 => symbols![t 5, t 5],                //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id
+                2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
+            ]),
+            // --------------------------------------------------------------------------- left_rec + amb
+            // (PRS(9), 0, btreemap![]),
+            // (PRS(10), 0, btreemap![]),
+            // (PRS(13), 0, btreemap![]),
+            // (PRS(15), 0, btreemap![]),
+            // ---------------------------------------------------------------------------
             /*
             (PRS(), 0, btreemap![]),
             */
         ];
+        const TESTS_ALL: bool = true;
         const VERBOSE: bool = true;
+        let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items)) in tests.into_iter().enumerate() {
             // if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
@@ -227,7 +316,18 @@ mod wrapper_source {
                 print_items(&builder, &result_items, 16);
                 println!("            ]),");
             }
-            assert_eq!(result_items, expected_items, "test {test_id} {rule_id:?}/{start_nt} failed ");
+            let err_msg = format!("test {test_id} {rule_id:?}/{start_nt} failed ");
+            if TESTS_ALL {
+                if result_items != expected_items {
+                    num_errors += 1;
+                    println!("## ERROR: {err_msg}");
+                }
+            } else {
+                assert_eq!(result_items, expected_items, );
+            }
+        }
+        if TESTS_ALL {
+            assert_eq!(num_errors, 0, "{num_errors} tests have failed");
         }
     }
 }
