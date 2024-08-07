@@ -387,10 +387,6 @@ impl ParserBuilder {
             }
             let factor_id = factor_id as VarId;
             let flags = info.flags[*var_id as usize];
-
-            // TODO: from opcodes, including loop(nt) if parent has value and is parent_l_rec
-            // let mut values = factor.iter().filter(|s| self.sym_has_value(s)).cloned().to_vec();
-
             let mut values = self.opcodes[factor_id as usize].iter().rev()
                 .filter_map(|s| {
                     let sym_maybe = match s {
@@ -414,9 +410,6 @@ impl ParserBuilder {
 
             if let Some(OpCode::NT(nt)) = opcode.first() {
                 // Take the values except the last NT
-                // let mut values = factor.iter().take(factor.len() - 1)
-                //     .filter(|&s| self.sym_has_value(s))
-                //     .cloned().to_vec();
                 let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {
                     Some(values.pop().unwrap())
                 } else {
