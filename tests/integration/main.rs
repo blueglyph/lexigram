@@ -2305,6 +2305,11 @@ mod listener7 {
                     true,
                     (Some(SynA { a: s!("a"), b: vec![s!("b"), s!("b"), s!("b")], c: s!("c")}))
                 ),
+                (
+                    "a c",
+                    true,
+                    (Some(SynA { a: s!("a"), b: vec![], c: s!("c")}))
+                ),
             ];
             const VERBOSE: bool = true;
             const VERBOSE_LISTENER: bool = true;
