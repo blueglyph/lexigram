@@ -22,7 +22,7 @@ pub enum OpCode {
 }
 
 #[derive(PartialEq)]
-pub enum Call { Enter, Loop, Exit }
+pub enum Call { Enter, Loop, Exit, End }
 
 pub trait Listener {
     /// Calls the listener to execute synthesis or inheritance actions.
@@ -30,7 +30,7 @@ pub trait Listener {
     /// The function returns true when `Asm(factor_id)` has to be pushed on the parser stack,
     /// typically to attach parameters to an object being assembled by the listener
     /// (intermediate inheritance).
-    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Vec<String>) { /*false*/ }
+    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) { /*false*/ }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -116,7 +116,7 @@ impl Parser {
                         println!("- {} {} -> {} ({}): [{}]", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
                                  Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table), t_data.len(), t_data.iter().join(" "));
                     }
-                    listener.switch(call, var, factor_id, t_data);
+                    listener.switch(call, var, factor_id, Some(t_data));
                     let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                     stack.extend(self.opcodes[factor_id as usize].clone());
                     stack_sym = stack.pop().unwrap();
@@ -125,7 +125,7 @@ impl Parser {
                     let var = self.factors[factor_id as usize].0;
                     let t_data = std::mem::take(&mut stack_t);
                     if VERBOSE { println!("- EXIT {} syn ({}): [{}]", Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter().join(" ")); }
-                    listener.switch(Call::Exit, var, factor_id, t_data);
+                    listener.switch(Call::Exit, var, factor_id, Some(t_data));
                     stack_sym = stack.pop().unwrap();
                 }
                 (OpCode::T(sk), Symbol::T(sr)) => {
@@ -141,6 +141,7 @@ impl Parser {
                     (stream_sym, stream_str) = stream.next().unwrap_or((Symbol::End, "".to_string()))
                 }
                 (OpCode::End, Symbol::End) => {
+                    listener.switch(Call::End, 0, 0, None);
                     break;
                 }
                 (OpCode::End, _)  => {

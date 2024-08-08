@@ -459,6 +459,7 @@ mod listener {
     pub enum CtxT1 { Mul, Div, Empty }
 
     pub trait ExprListenerTrait {
+        fn exit(&mut self) {}
         fn enter_e(&mut self) {}
         fn enter_t(&mut self) {}
         fn enter_f(&mut self) {}
@@ -490,8 +491,10 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, mut t_data: Vec<String>) {
-            self.stack_t.append(&mut t_data);
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
             match call {
                 Call::Loop | Call::Enter => {
                     match nt {
@@ -519,6 +522,9 @@ mod listener {
                         _ => panic!("unexpected nt exit factor id: {nt}")
                     }
                 }
+                Call::End => {
+                    self.listener.exit();
+                }
             }
             // false
         }
@@ -539,6 +545,11 @@ mod listener {
     }
 
     impl ExprListenerTrait for TestListener {
+        fn exit(&mut self) {
+            if self.verbose { println!("{: <1$}$", "", self.level * 4); }
+            self.result.push("$".to_string());
+        }
+
         fn enter_e(&mut self) {
             if self.verbose { println!("{: <1$}(E", "", self.level * 4); }
             self.result.push("(E".to_string());
@@ -607,10 +618,10 @@ mod listener {
                 // E_1 -> + T E_1 | - T E_1 | ε
                 // T_1 -> * F T_1 | / F T_1 | ε
                 ("a+2*b", true, vec![
-                    "(E", "(T", "(F", "F)='a'", "(T_1", "T_1)", "T)", "(T", "(F", "F)=#2", "(T_1", "(F", "F)='b'", "T_1)", "(T_1", "T_1)", "T)", "E)"]),
+                    "(E", "(T", "(F", "F)='a'", "(T_1", "T_1)", "T)", "(T", "(F", "F)=#2", "(T_1", "(F", "F)='b'", "T_1)", "(T_1", "T_1)", "T)", "E)", "$"]),
                 ("a*(4+5)", true, vec![
                     "(E", "(T", "(F", "F)='a'", "(T_1", "(F", "(E", "(T", "(F", "F)=#4", "(T_1", "T_1)", "T)",
-                    "(T", "(F", "F)=#5", "(T_1", "T_1)", "T)", "E)", "F)", "T_1)", "(T_1", "T_1)", "T)", "E)"]),
+                    "(T", "(F", "F)=#5", "(T_1", "T_1)", "T)", "E)", "F)", "T_1)", "(T_1", "T_1)", "T)", "E)", "$"]),
             ])
         ];
         const VERBOSE: bool = false;

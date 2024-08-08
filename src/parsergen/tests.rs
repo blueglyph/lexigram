@@ -4,12 +4,33 @@ mod gen_integration {
     use std::fs::File;
     use std::io::Read;
     use crate::grammar::ProdRuleSet;
-    use crate::grammar::tests::build_prs;
+    use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
     use crate::{CollectJoin, LL1};
     use crate::parsergen::ParserBuilder;
+    use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
+    use crate::symbol_table::SymbolTable;
 
-    fn get_source(prs_id: u32, indent: usize) -> String {
-        let rules = build_prs(prs_id, false);
+    #[derive(Debug, Clone, Copy, PartialEq)]
+    pub(crate) enum T { RTS(u32), PRS(u32) }
+
+    fn get_source(rules_id: T, indent: usize) -> String {
+        let rules = match rules_id {
+            RTS(rts_id) => {
+                let rts = build_rts(rts_id);
+                let mut rules = ProdRuleSet::from(rts);
+                rules.set_start(0);
+                if rules.get_symbol_table().is_none() {
+                    let mut symbol_table = SymbolTable::new();
+                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), false);
+                    rules.set_symbol_table(symbol_table);
+                }
+                rules
+            }
+            PRS(prs_id) => {
+                build_prs(prs_id, false)
+            }
+        };
+        assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let ll1 = ProdRuleSet::<LL1>::from(rules);
         let builder = ParserBuilder::from_rules(ll1);
         builder.build_source_code(indent, false)
@@ -30,28 +51,30 @@ mod gen_integration {
         result
     }
 
-    fn get_test_data<'a>(id: u32) -> Option<(u32, usize, &'a str)> {
+    fn get_test_data<'a>(id: u32) -> Option<(T, usize, &'a str)> {
         match id {
-            0 => Some((13, 8, "write_source_code_from_ll1")),
-            1 => Some(( 4, 4, "write_source_code_for_integration_listener")),
-            2 => Some((13, 4, "write_source_code_for_integration_listener2")),
-            3 => Some((20, 4, "write_source_code_for_integration_listener3")),
-            4 => Some((30, 4, "write_source_code_for_integration_listener4")),
-            5 => Some((31, 4, "write_source_code_for_integration_listener5")),
-            6 => Some((32, 4, "write_source_code_for_integration_listener6")),
+            0 => Some((PRS(13), 8, "write_source_code_from_ll1")),
+            1 => Some((PRS( 4), 4, "write_source_code_for_integration_listener")),
+            2 => Some((PRS(13), 4, "write_source_code_for_integration_listener2")),
+            3 => Some((PRS(20), 4, "write_source_code_for_integration_listener3")),
+            4 => Some((PRS(30), 4, "write_source_code_for_integration_listener4")),
+            5 => Some((PRS(31), 4, "write_source_code_for_integration_listener5")),
+            6 => Some((PRS(32), 4, "write_source_code_for_integration_listener6")),
+            7 => Some((RTS(21), 4, "write_source_code_for_integration_listener7")),
+            8 => Some((RTS(22), 4, "write_source_code_for_integration_listener8")),
             _ => None
         }
     }
 
     fn do_test(id: u32, verbose: bool) -> bool {
-        if let Some((prs_id, indent, tag)) = get_test_data(id) {
-            let expected = get_source(prs_id, indent);
+        if let Some((rule_id, indent, tag)) = get_test_data(id) {
+            let expected = get_source(rule_id, indent);
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
                 println!("{s}// [{tag}]\n{expected}{s}// [{tag}]");
             }
             let result = get_integration_source(tag);
-            assert_eq!(result, expected, "test failed for {id} / {prs_id} / {tag}");
+            assert_eq!(result, expected, "test failed for {id} / {rule_id:?} / {tag}");
             true
         } else {
             false
@@ -106,6 +129,18 @@ mod gen_integration {
     #[test]
     fn write_source_code_for_integration_listener6() {
         do_test(6, true);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source_code_for_integration_listener7() {
+        do_test(7, true);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source_code_for_integration_listener8() {
+        do_test(8, true);
     }
 }
 
