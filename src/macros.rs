@@ -99,6 +99,20 @@ macro_rules! time {
     }
 }
 
+/// Makes the string argument a String, by using `String::from()` (see [String] for details).
+///
+/// # Example
+/// ```
+/// # #[macro_use] fn main() {
+/// # use rlexer::s;
+/// let text: String = s!("Hello");
+/// # }
+/// ```
+#[macro_export(local_inner_macros)]
+macro_rules! s {
+    ($arg:expr) => {{ String::from($arg) }}
+}
+
 #[cfg(test)]
 mod tests {
     use std::collections::{HashMap, BTreeMap, HashSet, BTreeSet};
