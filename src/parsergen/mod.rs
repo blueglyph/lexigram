@@ -271,7 +271,7 @@ impl ParserBuilder {
     // - get the sources for the validation tests or print them / write them into a file.
     // The whole code isn't that big, so it's not a major issue.
 
-    pub fn write_source_code(&self, file: Option<File>, indent: usize) -> Result<(), std::io::Error> {
+    pub fn write_source_code(&mut self, file: Option<File>, indent: usize) -> Result<(), std::io::Error> {
         let mut out: BufWriter<Box<dyn Write>> = match file {
             Some(file) => BufWriter::new(Box::new(file)),
             None => BufWriter::new(Box::new(std::io::stdout().lock()))
@@ -282,7 +282,7 @@ impl ParserBuilder {
         Ok(())
     }
 
-    fn build_source_code(&self, indent: usize, wrapper: bool) -> String {
+    fn build_source_code(&mut self, indent: usize, wrapper: bool) -> String {
         let s = String::from_utf8(vec![32; indent]).unwrap();
         let mut parts = vec![];
         parts.push(vec![
@@ -367,7 +367,7 @@ impl ParserBuilder {
         ]
     }
 
-    fn build_item_ops(&self) -> HashMap::<VarId, Vec<Symbol>> {
+    fn build_item_ops(&mut self) -> HashMap::<VarId, Vec<Symbol>> {
         const VERBOSE: bool = true;
         let info = &self.parsing_table;
         let mut items = HashMap::<VarId, Vec<Symbol>>::new();
@@ -376,7 +376,13 @@ impl ParserBuilder {
             var_factors[*var_id as usize].push(factor_id as VarId);
             items.insert(factor_id as VarId, vec![]);
         }
-        // for (factor_id, (var_id, factor)) in info.factors.iter().enumerate() {
+        for nt in 0..info.num_nt {
+            if self.parsing_table.flags[nt] & ruleflag::CHILD_REPEAT != 0 {
+                if let Some(parent) = self.parsing_table.parent[nt] {
+                    self.nt_value[nt] |= self.nt_value[parent as usize];
+                }
+            }
+        }
         for (factor_id, opcode) in self.opcodes.iter().enumerate() {
             let (var_id, factor) = &info.factors[factor_id];
             if VERBOSE {
@@ -407,6 +413,10 @@ impl ParserBuilder {
                     };
                     sym_maybe.and_then(|s| if self.sym_has_value(&s) { Some(s) } else { None })
                 }).to_vec();
+            if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
+                // all forms need to update the loop item, except on the last iteration of * because it's empty
+                values.push(Symbol::NT(*var_id));
+            }
 
             if let Some(OpCode::NT(nt)) = opcode.first() {
                 // Take the values except the last NT
@@ -422,7 +432,9 @@ impl ParserBuilder {
                     continue;
                 }
                 if flags & ruleflag::PARENT_L_FACTOR != 0 {
-                    if VERBOSE { println!("  PARENT_L_FACTOR"); }
+                    if VERBOSE { println!("  PARENT_L_FACTOR: moving {} to child {}",
+                                          values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                                          Symbol::NT(*nt).to_str(self.get_symbol_table())); }
                     // factorization reports all the values to the children
                     if let Some(pre) = items.get_mut(&factor_id) {
                         // pre-pends values that already exist for factor_id (and empties factor_id)
@@ -450,7 +462,7 @@ impl ParserBuilder {
 
 
     #[allow(unused)]
-    fn source_wrapper(&self) -> Vec<String> {
+    fn source_wrapper(&mut self) -> Vec<String> {
         let items = self.build_item_ops();
 
         vec![]

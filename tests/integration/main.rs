@@ -2142,7 +2142,7 @@ mod listener7 {
         // A -> a (b)* c
         //
         //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
-        //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b     // !
+        //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b A_1     // !
         //  2: A_1 -> ε     | ◄2            |           //
         //
         // NT flags:
@@ -2219,7 +2219,7 @@ mod listener7 {
                     Call::Exit => {
                         match factor_id {
                             0 => self.exit_a(),     //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
-                            1 => self.exit_a_1(),   //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b     // !
+                            1 => self.exit_a_1(),   //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b A_1     // !
                             2 => { },               //  2: A_1 -> ε     | ◄2            |           //
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
@@ -2415,8 +2415,8 @@ mod listener8 {
 
         // A -> a (b <L>)* c
         //
-        //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
-        //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b
+        //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
+        //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b A_1
         //  2: A_1 -> ε     | ◄2            |
         //
         // NT flags:
@@ -2439,8 +2439,6 @@ mod listener8 {
         pub enum CtxAStar {
             /// Iteration of `(b)*`
             AStar { a_star: SynAStar, b: String },
-            /// End of `(b)*` iterations
-            End { a_star: SynAStar },
         }
 
         // SynA, SynAStar: defined by user below
@@ -2499,9 +2497,9 @@ mod listener8 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_a(),             //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
-                            1 |                             //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b
-                            2 => self.exit_a_1(factor_id),  //  2: A_1 -> ε     | ◄2            |
+                            0 => self.exit_a(),             //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
+                            1 => self.exit_a_1(),           //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b A_1
+                            2 => {}                         //  2: A_1 -> ε     | ◄2            |
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -2528,19 +2526,10 @@ mod listener8 {
                 self.stack.push(SynValue::AStar(val));
             }
 
-            fn exit_a_1(&mut self, factor_id: VarId) {
-                let val = match factor_id {
-                    1 => {
-                        let a_star = self.stack.pop().unwrap().get_a_star();
-                        let b = self.stack_t.pop().unwrap();
-                        self.listener.iter_a(CtxAStar::AStar { a_star, b })
-                    }
-                    2 => {
-                        let a_star = self.stack.pop().unwrap().get_a_star();
-                        self.listener.iter_a(CtxAStar::End { a_star })
-                    }
-                    _ => panic!("unexpected exit factor id: {factor_id}")
-                };
+            fn exit_a_1(&mut self) {
+                let a_star = self.stack.pop().unwrap().get_a_star();
+                let b = self.stack_t.pop().unwrap();
+                let val = self.listener.iter_a(CtxAStar::AStar { a_star, b });
                 self.stack.push(SynValue::AStar(val));
             }
 
@@ -2590,14 +2579,10 @@ mod listener8 {
             }
 
             fn iter_a(&mut self, ctx: CtxAStar) -> SynAStar {
-                match ctx {
-                    CtxAStar::AStar { mut a_star, b } => {
-                        a_star.0 += 1;
-                        self.acc.push(b);
-                        a_star
-                    }
-                    CtxAStar::End { a_star } => a_star,
-                }
+                let CtxAStar::AStar { mut a_star, b } = ctx;
+                a_star.0 += 1;
+                self.acc.push(b);
+                a_star
             }
 
             fn exit_a(&mut self, ctx: CtxA) -> SynA {

@@ -32,7 +32,7 @@ mod gen_integration {
         };
         assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let ll1 = ProdRuleSet::<LL1>::from(rules);
-        let builder = ParserBuilder::from_rules(ll1);
+        let mut builder = ParserBuilder::from_rules(ll1);
         builder.build_source_code(indent, false)
     }
 
@@ -210,25 +210,28 @@ mod wrapper_source {
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
             ]),
             // --------------------------------------------------------------------------- norm* R/L
+            // A -> a (b)* c
             // NT flags:
             //  - A_1: child_+_or_* (1)
             // parents:
             //  - A_1 -> A
             (RTS(21), 0, btreemap![
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
-                1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b     // !
+                1 => symbols![t 1, nt 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b A_1     // !
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ]),
+            // A -> a (b <L>)* c
             // NT flags:
             //  - A_1: child_+_or_* | L-form (129)
             // parents:
             //  - A_1 -> A
             (RTS(22), 0, btreemap![
-                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
-                1 => symbols![t 1],                     //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
+                1 => symbols![t 1, nt 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b A_1
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ]),
             // --------------------------------------------------------------------------- norm+ R/L
+            // A -> a (b)+ c
             // NT flags:
             //  - A_1: child_+_or_* | parent_left_fact (33)
             //  - A_2: child_left_fact (64)
@@ -238,9 +241,10 @@ mod wrapper_source {
             (RTS(23), 0, btreemap![
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
-                2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b     // !
-                3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b     // !!!
+                2 => symbols![t 1, nt 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | b A_1     // !
+                3 => symbols![t 1, nt 1],               //  3: A_2 -> ε     | ◄3            | b A_1     // !!!
             ]),
+            // A -> a (b <L>)+ c
             // NT flags:
             //  - A_1: child_+_or_* | parent_left_fact | L-form (161)
             //  - A_2: child_left_fact (64)
@@ -248,10 +252,10 @@ mod wrapper_source {
             //  - A_1 -> A
             //  - A_2 -> A_1
             (RTS(24), 0, btreemap![
-                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
-                2 => symbols![t 1],                     //  2: A_2 -> A_1   | ●A_1 ◄2       | b
-                3 => symbols![t 1],                     //  3: A_2 -> ε     | ◄3            | b
+                2 => symbols![t 1, nt 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | b A_1
+                3 => symbols![t 1, nt 1],               //  3: A_2 -> ε     | ◄3            | b A_1
             ]),
             // --------------------------------------------------------------------------- left_fact
             // NT flags:
