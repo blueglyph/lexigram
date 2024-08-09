@@ -1912,7 +1912,7 @@ mod listener6 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_e(),                   //  0: E -> F E_1      - ◄0 ►E_1 ►F
+                            0 => self.exit_e(),                 //  0: E -> F E_1      - ◄0 ►E_1 ►F
                             1 => self.exit_f(),                 //  1: F -> id         - ◄1 id!
                             /* no exit */                       //  2: E_1 -> . id E_2 - ►E_2 id! .
                             3 => { },                           //  3: E_1 -> ε        - ◄3
@@ -2403,4 +2403,272 @@ mod listener8 {
 
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener8]
+
+    mod test {
+        use std::collections::HashMap;
+        use rlexer::dfa::TokenId;
+        use rlexer::grammar::{Symbol, VarId};
+        use rlexer::{hashmap, s};
+        use rlexer::parser::{Call, Listener};
+        use rlexer::symbol_table::SymbolTable;
+        use rlexer::CollectJoin;
+
+        // A -> a (b <L>)* c
+        //
+        //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+        //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b
+        //  2: A_1 -> ε     | ◄2            |
+        //
+        // NT flags:
+        //  - A_1: child_+_or_* | L-form (129)
+        // parents:
+        //  - A_1 -> A
+
+        #[derive(Debug)]
+        pub enum Ctx {
+            A(SynA)
+        }
+
+        #[derive(Debug)]
+        pub enum CtxA {
+            /// Factor `A -> a (b)* c`
+            A { a: String, a_star: SynAStar, c: String },
+        }
+
+        #[derive(Debug)]
+        pub enum CtxAStar {
+            /// Iteration of `(b)*`
+            AStar { a_star: SynAStar, b: String },
+            /// End of `(b)*` iterations
+            End { a_star: SynAStar },
+        }
+
+        // SynA, SynAStar: defined by user below
+
+        #[derive(Debug)]
+        enum SynValue { A(SynA), AStar(SynAStar) }
+
+        impl SynValue {
+            fn get_a(self) -> SynA {
+                if let SynValue::A(val) = self { val } else { panic!() }
+            }
+            fn get_a_star(self) -> SynAStar {
+                if let SynValue::AStar(val) = self { val } else { panic!() }
+            }
+        }
+
+        pub trait StarListener {
+            fn exit(&mut self, _ctx: Ctx) {}
+            fn init_a(&mut self) {}
+            fn init_a_iter(&mut self) -> SynAStar;
+            fn iter_a(&mut self, _ctx: CtxAStar) -> SynAStar;
+            fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        }
+
+        struct ListenerWrapper<T> {
+            verbose: bool,
+            listener: T,
+            stack: Vec<SynValue>,
+            max_stack: usize,
+            stack_t: Vec<String>,
+        }
+
+        impl<T: StarListener> ListenerWrapper<T> {
+            pub fn new(listener: T, verbose: bool) -> Self {
+                ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            }
+
+            pub fn listener(self) -> T {
+                self.listener
+            }
+        }
+
+        impl<T: StarListener> Listener for ListenerWrapper<T> {
+            fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+                if let Some(mut t_data) = t_data {
+                    self.stack_t.append(&mut t_data);
+                }
+                match call {
+                    Call::Enter => {
+                        match nt {
+                            0 => self.listener.init_a(),
+                            1 => self.init_a_1(),
+                            _ => panic!("unexpected exit non-terminal id: {nt}")
+                        }
+                    }
+                    Call::Loop => {}
+                    Call::Exit => {
+                        match factor_id {
+                            0 => self.exit_a(),             //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+                            1 |                             //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b
+                            2 => self.exit_a_1(factor_id),  //  2: A_1 -> ε     | ◄2            |
+                            _ => panic!("unexpected exit factor id: {factor_id}")
+                        }
+                    }
+                    Call::End => {
+                        self.exit();
+                    }
+                }
+                self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+                if self.verbose {
+                    println!("> stack_t:   {}", self.stack_t.join(", "));
+                    println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+                }
+            }
+        }
+
+        impl<T: StarListener> ListenerWrapper<T> {
+            fn exit(&mut self) {
+                let a = self.stack.pop().unwrap().get_a();
+                self.listener.exit(Ctx::A(a));
+            }
+
+            fn init_a_1(&mut self) {
+                let val = self.listener.init_a_iter();
+                self.stack.push(SynValue::AStar(val));
+            }
+
+            fn exit_a_1(&mut self, factor_id: VarId) {
+                let val = match factor_id {
+                    1 => {
+                        let a_star = self.stack.pop().unwrap().get_a_star();
+                        let b = self.stack_t.pop().unwrap();
+                        self.listener.iter_a(CtxAStar::AStar { a_star, b })
+                    }
+                    2 => {
+                        let a_star = self.stack.pop().unwrap().get_a_star();
+                        self.listener.iter_a(CtxAStar::End { a_star })
+                    }
+                    _ => panic!("unexpected exit factor id: {factor_id}")
+                };
+                self.stack.push(SynValue::AStar(val));
+            }
+
+            fn exit_a(&mut self) {
+                let c = self.stack_t.pop().unwrap();
+                let a_star = self.stack.pop().unwrap().get_a_star();
+                let a = self.stack_t.pop().unwrap();
+                let val = self.listener.exit_a(CtxA::A { a, a_star, c });
+                self.stack.push(SynValue::A(val));
+            }
+        }
+
+        // User code -----------------------------------------------------
+
+        #[derive(Debug, PartialEq)]
+        pub struct SynA { a: String, b: Vec<String>, num_b: u32, c: String }
+
+        #[derive(Debug)]
+        pub struct SynAStar(u32);
+
+        struct TestListener {
+            acc: Vec<String>,
+            result: Option<SynA>,
+            verbose: bool,
+        }
+
+        impl TestListener {
+            pub fn new(verbose: bool) -> Self {
+                Self { acc: Vec::new(), result: None, verbose }
+            }
+        }
+
+        impl StarListener for TestListener {
+            fn exit(&mut self, ctx: Ctx) {
+                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
+                let Ctx::A(a) = ctx;
+                self.result = Some(a);
+            }
+
+
+            fn init_a(&mut self) {
+                if self.verbose { println!("► A"); }
+            }
+
+            fn init_a_iter(&mut self) -> SynAStar {
+                SynAStar(0)
+            }
+
+            fn iter_a(&mut self, ctx: CtxAStar) -> SynAStar {
+                match ctx {
+                    CtxAStar::AStar { mut a_star, b } => {
+                        a_star.0 += 1;
+                        self.acc.push(b);
+                        a_star
+                    }
+                    CtxAStar::End { a_star } => a_star,
+                }
+            }
+
+            fn exit_a(&mut self, ctx: CtxA) -> SynA {
+                if self.verbose { println!("◄ A"); }
+                let CtxA::A { a, a_star, c } = ctx;
+                let b = std::mem::take(&mut self.acc);
+                SynA { a, b, num_b: a_star.0, c }
+            }
+        }
+
+        #[test]
+        fn parser_parse_stream() {
+            let tests = vec![
+                (
+                    "a b b b c",
+                    true,
+                    (Some(SynA { a: s!("a"), b: vec![s!("b"), s!("b"), s!("b")], num_b: 3, c: s!("c")}))
+                ),
+                (
+                    "a c",
+                    true,
+                    (Some(SynA { a: s!("a"), b: vec![], num_b: 0, c: s!("c")}))
+                ),
+            ];
+            const VERBOSE: bool = true;
+            const VERBOSE_LISTENER: bool = true;
+            const T_ID: VarId = 1;
+
+            let mut parser = super::build_parser();
+
+            // The lexer provides the required stream, so this isn't necessary in a real case:
+            let mut symb_table = SymbolTable::new();
+            symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
+            let symbols = (0..super::SYMBOLS_T.len() as TokenId)
+                .map(|t| Symbol::T(t))
+                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .collect::<HashMap<_, _>>();
+            for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
+                if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().map(|w| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                });
+
+                // User code under test ------------------------------
+
+                let listener = TestListener::new(VERBOSE_LISTENER);
+                let mut wrapper = ListenerWrapper::new(listener, VERBOSE_LISTENER);
+                let success = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        true
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        false
+                    }
+                };
+                if VERBOSE {
+                    println!("max stack: {}", wrapper.max_stack);
+                    println!("wrapper stack: {:?}", wrapper.stack);
+                    // println!("listener asm_stack: {:?}", wrapper.asm_stack);
+                }
+                // ---------------------------------------------------
+
+                assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
+                if success {
+                    let listener = wrapper.listener();
+                    assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+                }
+            }
+        }
+    }
+
 }
