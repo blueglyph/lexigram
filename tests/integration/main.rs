@@ -1144,6 +1144,11 @@ mod listener3 {
                     true,
                     ("test1", vec![("a", "int"), ("b", "string"), ("c", "bool")])
                 ),
+                (
+                    "struct test2 { }",
+                    true,
+                    ("test2", vec![])
+                ),
             ];
             const VERBOSE: bool = true;
             const VERBOSE_LISTENER: bool = true;
@@ -1436,6 +1441,11 @@ mod listener4 {
                     "struct test1 { a : int ; b : string ; c : bool ; }",
                     true,
                     ("test1", vec![("a", "int"), ("b", "string"), ("c", "bool")], Some(3))
+                ),
+                (
+                    "struct test2 { }",
+                    true,
+                    ("test2", vec![], Some(0))
                 ),
             ];
             const VERBOSE: bool = true;

@@ -416,7 +416,9 @@ impl ParserBuilder {
                     };
                     sym_maybe.and_then(|s| if self.sym_has_value(&s) { Some(s) } else { None })
                 }).to_vec();
-            if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
+            if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM  {
+                values.push(Symbol::NT(*var_id));
+            } else if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
                 // all forms need to update the loop item, except on the last iteration of * because it's empty
                 values.push(Symbol::NT(*var_id));
             }
