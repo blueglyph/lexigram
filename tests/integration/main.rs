@@ -1265,26 +1265,29 @@ mod listener4 {
         //   - (nothing)
 
         #[derive(Debug)]
-        pub enum CtxStruct { Struct { id: String } }
+        pub enum CtxStruct { Struct { id: String, list: SynList } }
         #[derive(Debug)]
-        pub enum CtxList { List1 { id: [String; 2] }, List2 }
+        pub enum CtxList { List1 { id: [String; 2], list: SynList }, List2 { list: SynList } }
 
         // SynStruct, SynList: defined by user below
 
         #[derive(Debug)]
-        enum SynValue { Struct(SynStruct), List }
+        enum SynValue { Struct(SynStruct), List(SynList) }
 
         impl SynValue {
             fn get_struct(self) -> SynStruct {
                 if let SynValue::Struct(val) = self { val } else { panic!() }
             }
+            fn get_list(self) -> SynList {
+                if let SynValue::List(val) = self { val } else { panic!() }
+            }
         }
 
         pub trait StructListener {
             fn init_struct(&mut self) {}
-            fn init_list(&mut self) {}
+            fn init_list(&mut self) -> SynList;
             fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
-            fn iter_list(&mut self, _ctx: CtxList);
+            fn iter_list(&mut self, _ctx: CtxList) -> SynList;
         }
 
         struct ListenerWrapper<T> {
@@ -1314,16 +1317,16 @@ mod listener4 {
                     Call::Enter => {
                         match nt {
                             0 => self.listener.init_struct(),   // STRUCT
-                            1 => self.listener.init_list(),     // LIST
+                            1 => self.init_list(),              // LIST
                             _ => panic!("unexpected exit non-terminal id: {nt}")
                         }
                     }
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_struct(),    // - 0: STRUCT -> struct id { LIST
-                            1 => self.exit_list1(),     // - 1: LIST -> id : id ; LIST
-                            2 => self.exit_list2(),     // - 2: LIST -> }
+                            0 => self.exit_struct(),    //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+                            1 => self.exit_list1(),     //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id LIST
+                            2 => self.exit_list2(),     //  2: LIST -> }                  | ◄2 }                  | LIST
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -1345,36 +1348,49 @@ mod listener4 {
                 // TODO:
             }
 
+            fn init_list(&mut self)  {
+                let val = self.listener.init_list();
+                self.stack.push(SynValue::List(val));
+            }
+
             fn exit_struct(&mut self) {
                 let id = self.stack_t.pop().unwrap();
-                let val = self.listener.exit_struct(CtxStruct::Struct { id });
+                let list = self.stack.pop().unwrap().get_list();
+                let val = self.listener.exit_struct(CtxStruct::Struct { id, list });
                 self.stack.push(SynValue::Struct(val));
             }
 
             fn exit_list1(&mut self) {
                 let id2 = self.stack_t.pop().unwrap();
                 let id1 = self.stack_t.pop().unwrap();
-                self.listener.iter_list(CtxList::List1 { id: [id1, id2] });
+                let list = self.stack.pop().unwrap().get_list();
+                let val = self.listener.iter_list(CtxList::List1 { id: [id1, id2], list });
+                self.stack.push(SynValue::List(val));
             }
 
             fn exit_list2(&mut self) {
-                self.listener.iter_list(CtxList::List2);
+                let list = self.stack.pop().unwrap().get_list();
+                let val = self.listener.iter_list(CtxList::List2 { list });
+                self.stack.push(SynValue::List(val));
             }
         }
 
         // User code -----------------------------------------------------
 
         type SynStruct = String;
+        #[derive(Debug)]
+        pub struct SynList(u32);
 
         struct TestListener {
             result: HashMap<String, Vec<(String, String)>>,
             cur_list: Option<Vec<(String, String)>>,
+            last_list_length: Option<u32>,
             verbose: bool,
         }
 
         impl TestListener {
             pub fn new(verbose: bool) -> Self {
-                Self { result: HashMap::new(), cur_list: None, verbose }
+                Self { result: HashMap::new(), cur_list: None, last_list_length: None, verbose }
             }
         }
 
@@ -1383,15 +1399,17 @@ mod listener4 {
                 if self.verbose { println!("► struct"); }
             }
 
-            fn init_list(&mut self) {
+            fn init_list(&mut self) -> SynList {
                 if self.verbose { println!("► list"); }
                 self.cur_list = Some(Vec::new());
+                SynList(0)
             }
 
             fn exit_struct(&mut self, ctx: CtxStruct) -> SynStruct {
                 if self.verbose { println!("◄ struct (ctx = {ctx:?})"); }
                 match ctx {
-                    CtxStruct::Struct { id } => {
+                    CtxStruct::Struct { id, list: list_meta } => {
+                        self.last_list_length = Some(list_meta.0);
                         let list = self.cur_list.take().unwrap();
                         self.result.insert(id.clone(), list);
                         id
@@ -1399,13 +1417,14 @@ mod listener4 {
                 }
             }
 
-            fn iter_list(&mut self, ctx: CtxList) {
+            fn iter_list(&mut self, ctx: CtxList) -> SynList {
                 if self.verbose { println!("◄ list (ctx = {ctx:?})"); }
                 match ctx {
-                    CtxList::List1 { id: [a, b] } => {
+                    CtxList::List1 { id: [a, b], list } => {
                         self.cur_list.as_mut().unwrap().push((a, b));
+                        SynList(list.0 + 1)
                     }
-                    CtxList::List2 => {}
+                    CtxList::List2 { list } => list,
                 }
             }
         }
@@ -1416,7 +1435,7 @@ mod listener4 {
                 (
                     "struct test1 { a : int ; b : string ; c : bool ; }",
                     true,
-                    ("test1", vec![("a", "int"), ("b", "string"), ("c", "bool")])
+                    ("test1", vec![("a", "int"), ("b", "string"), ("c", "bool")], Some(3))
                 ),
             ];
             const VERBOSE: bool = true;
@@ -1466,8 +1485,10 @@ mod listener4 {
                         panic!("test {test_id} failed for input {input}: synvalue = {result:?}")
                     };
                     let listener = wrapper.listener();
+                    let expected_list_length = expected_result.2;
                     let expected_result = hashmap![expected_result.0.to_string() => expected_result.1.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).to_vec()];
                     assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+                    assert_eq!(listener.last_list_length, expected_list_length, "test {test_id} failed for input {input}");
                 }
             }
         }

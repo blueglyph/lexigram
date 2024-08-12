@@ -325,9 +325,11 @@ mod wrapper_source {
             //  - (nothing)
             (PRS(30), 0, btreemap![
                 0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
-                1 => symbols![t 5, t 5],                //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id
-                2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
+                1 => symbols![t 5, t 5, nt 1],          //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id LIST
+                2 => symbols![nt 1],                    //  2: LIST -> }                  | ◄2 }                  | LIST
             ]),
+
+
             // --------------------------------------------------------------------------- left_rec + amb
             // (PRS(9), 0, btreemap![]),
             // (PRS(10), 0, btreemap![]),

@@ -393,6 +393,9 @@ impl ParserBuilder {
             }
             let factor_id = factor_id as VarId;
             let flags = info.flags[*var_id as usize];
+            // Default values are taken frop opcodes. Loop(nt) is only taken if the parent is l-rec;
+            // we look at the parent's flags instead of the factor's because left factorization could
+            // displace the Loop(nt) to another, non-l-rec child factor.
             let mut values = self.opcodes[factor_id as usize].iter().rev()
                 .filter_map(|s| {
                     let sym_maybe = match s {
@@ -449,7 +452,6 @@ impl ParserBuilder {
                     values.push(sym);
                 }
             }
-            // let is_parent = info.parent[*var_id as usize].is_none();
             if let Some(current) = items.get_mut(&factor_id) {
                 current.extend(values);
             } else {

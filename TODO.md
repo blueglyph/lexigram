@@ -56,6 +56,7 @@
       - [x] stack-based reconstruction
       - [ ] left/right-associativity
       - [x] ~~opcode builder based on flags~~
+      - [ ] add option for loop value/end-of-loop call (+, *, r-rec)
     - [ ] check if LL(1)
       - [ ] check indirect left recursion
     - [x] ~~build parsing table~~
