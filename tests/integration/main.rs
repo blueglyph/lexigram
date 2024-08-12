@@ -985,6 +985,8 @@ mod listener3 {
         //   - (nothing)
 
         #[derive(Debug)]
+        pub enum Ctx { Struct(SynStruct) }
+        #[derive(Debug)]
         pub enum CtxStruct { Struct { id: String, list: SynList } }
         #[derive(Debug)]
         pub enum CtxList { List1 { id: [String; 2], list: SynList }, List2 }
@@ -1005,6 +1007,7 @@ mod listener3 {
         }
 
         pub trait StructListener {
+            fn exit(&mut self, _ctx: Ctx) {}
             fn init_struct(&mut self) {}
             fn init_list(&mut self) {}
             fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
@@ -1065,7 +1068,8 @@ mod listener3 {
 
         impl<T: StructListener> ListenerWrapper<T> {
             fn exit(&mut self) {
-                // TODO:
+                let val = self.stack.pop().unwrap().get_struct();
+                self.listener.exit(Ctx::Struct(val));
             }
 
             fn exit_struct(&mut self) {
@@ -1106,6 +1110,12 @@ mod listener3 {
         }
 
         impl StructListener for TestListener {
+            fn exit(&mut self, ctx: Ctx) {
+                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
+                let Ctx::Struct((struct_name, list)) = ctx;
+                self.result.insert(struct_name, list);
+            }
+
             fn init_struct(&mut self) {
                 if self.verbose { println!("► struct"); }
             }
@@ -1190,15 +1200,13 @@ mod listener3 {
 
                 assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
                 if success {
-                    let result = wrapper.stack.pop().expect(&format!("test {test_id} failed for input {input}: wrapper stack empty"));
-                    let result = if let SynValue::Struct(syn_struct) = result {
-                        syn_struct
-                    } else {
-                        panic!("test {test_id} failed for input {input}: synvalue = {result:?}")
-                    };
-                    let _listener = wrapper.listener();
+                    let err_msg = format!("test {test_id} failed for input {input}");
+                    assert!(wrapper.stack.is_empty(), "{err_msg}");
+                    assert!(wrapper.stack_t.is_empty(), "{err_msg}");
+                    let listener = wrapper.listener();
+                    let result = listener.result.into_iter().last().expect(&err_msg);
                     let expected_result = (expected_result.0.to_string(), expected_result.1.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).to_vec());
-                    assert_eq!(result, expected_result, "test {test_id} failed for input {input}");
+                    assert_eq!(result, expected_result, "{err_msg}");
                 }
             }
         }
@@ -1270,6 +1278,8 @@ mod listener4 {
         //   - (nothing)
 
         #[derive(Debug)]
+        pub enum Ctx { Struct(SynStruct) }
+        #[derive(Debug)]
         pub enum CtxStruct { Struct { id: String, list: SynList } }
         #[derive(Debug)]
         pub enum CtxList { List1 { id: [String; 2], list: SynList }, List2 { list: SynList } }
@@ -1289,6 +1299,7 @@ mod listener4 {
         }
 
         pub trait StructListener {
+            fn exit(&mut self, _ctx: Ctx) {}
             fn init_struct(&mut self) {}
             fn init_list(&mut self) -> SynList;
             fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
@@ -1350,7 +1361,8 @@ mod listener4 {
 
         impl<T: StructListener> ListenerWrapper<T> {
             fn exit(&mut self) {
-                // TODO:
+                let val = self.stack.pop().unwrap().get_struct();
+                self.listener.exit(Ctx::Struct(val));
             }
 
             fn init_list(&mut self)  {
@@ -1389,17 +1401,21 @@ mod listener4 {
         struct TestListener {
             result: HashMap<String, Vec<(String, String)>>,
             cur_list: Option<Vec<(String, String)>>,
-            last_list_length: Option<u32>,
+            max_list_length: Option<u32>,
             verbose: bool,
         }
 
         impl TestListener {
             pub fn new(verbose: bool) -> Self {
-                Self { result: HashMap::new(), cur_list: None, last_list_length: None, verbose }
+                Self { result: HashMap::new(), cur_list: None, max_list_length: None, verbose }
             }
         }
 
         impl StructListener for TestListener {
+            fn exit(&mut self, _ctx: Ctx) {
+                self.max_list_length = self.result.iter().map(|x| x.1.len() as u32).max();
+            }
+
             fn init_struct(&mut self) {
                 if self.verbose { println!("► struct"); }
             }
@@ -1414,7 +1430,6 @@ mod listener4 {
                 if self.verbose { println!("◄ struct (ctx = {ctx:?})"); }
                 match ctx {
                     CtxStruct::Struct { id, list: list_meta } => {
-                        self.last_list_length = Some(list_meta.0);
                         let list = self.cur_list.take().unwrap();
                         self.result.insert(id.clone(), list);
                         id
@@ -1488,17 +1503,15 @@ mod listener4 {
 
                 assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
                 if success {
-                    let result = wrapper.stack.pop().expect(&format!("test {test_id} failed for input {input}: wrapper stack empty"));
-                    let result = if let SynValue::Struct(syn_struct) = result {
-                        syn_struct
-                    } else {
-                        panic!("test {test_id} failed for input {input}: synvalue = {result:?}")
-                    };
+                    let err_msg = format!("test {test_id} failed for input {input}");
+                    assert!(wrapper.stack.is_empty(), "{err_msg}");
+                    assert!(wrapper.stack_t.is_empty(), "{err_msg}");
                     let listener = wrapper.listener();
-                    let expected_list_length = expected_result.2;
-                    let expected_result = hashmap![expected_result.0.to_string() => expected_result.1.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).to_vec()];
-                    assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
-                    assert_eq!(listener.last_list_length, expected_list_length, "test {test_id} failed for input {input}");
+                    let result = listener.result.into_iter().last().expect(&err_msg);
+                    let expected_max_length = expected_result.2;
+                    let expected_result = (expected_result.0.to_string(), expected_result.1.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).to_vec());
+                    assert_eq!(result, expected_result, "{err_msg}");
+                    assert_eq!(listener.max_list_length, expected_max_length, "test {test_id} failed for input {input}");
                 }
             }
         }
@@ -2382,10 +2395,13 @@ mod listener7 {
                 }
                 // ---------------------------------------------------
 
-                assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
+                let err_msg = format!("test {test_id} failed for input {input}");
+                assert_eq!(success, expected_success, "{err_msg}");
                 if success {
+                    assert!(wrapper.stack.is_empty(), "{err_msg}");
+                    assert!(wrapper.stack_t.is_empty(), "{err_msg}");
                     let listener = wrapper.listener();
-                    assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+                    assert_eq!(listener.result, expected_result, "{err_msg}");
                 }
             }
         }
@@ -2674,14 +2690,16 @@ mod listener8 {
                 if VERBOSE {
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
-                    // println!("listener asm_stack: {:?}", wrapper.asm_stack);
                 }
                 // ---------------------------------------------------
 
-                assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
+                let err_msg = format!("test {test_id} failed for input {input}");
+                assert_eq!(success, expected_success, "{err_msg}");
                 if success {
+                    assert!(wrapper.stack.is_empty(), "{err_msg}");
+                    assert!(wrapper.stack_t.is_empty(), "{err_msg}");
                     let listener = wrapper.listener();
-                    assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+                    assert_eq!(listener.result, expected_result, "{err_msg}");
                 }
             }
         }
