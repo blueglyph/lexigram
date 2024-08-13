@@ -975,9 +975,9 @@ mod listener3 {
         // STRUCT -> 'struct' id '{' LIST
         // LIST -> id ':' id ';' LIST | '}'
         //
-        //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
-        //  1: LIST -> id : id ; LIST     - ◄1 ►LIST ; id! : id!
-        //  2: LIST -> }                  - ◄2 }
+        //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+        //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
+        //  2: LIST -> }                  | ◄2 }                  |
         //
         // - NT flags:
         //   - LIST: right_rec (2)
@@ -1048,9 +1048,9 @@ mod listener3 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_struct(),    // - 0: STRUCT -> struct id { LIST
-                            1 => self.exit_list1(),     // - 1: LIST -> id : id ; LIST
-                            2 => self.exit_list2(),     // - 2: LIST -> }
+                            0 => self.exit_struct(),    //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+                            1 => self.exit_list1(),     //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
+                            2 => self.exit_list2(),     //  2: LIST -> }                  | ◄2 }                  |
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -1268,9 +1268,9 @@ mod listener4 {
         // STRUCT -> 'struct' id '{' LIST
         // LIST -> <L> id ':' id ';' LIST | '}'
         //
-        //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
-        //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!    (instead of [◄1 ►LIST ; id! : id!] in listener3)
-        //  2: LIST -> }                  - ◄2 }
+        //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+        //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id LIST
+        //  2: LIST -> }                  | ◄2 }                  | LIST
         //
         // - NT flags:
         //   - LIST: right_rec | L-form (130)
@@ -1865,12 +1865,12 @@ mod listener6 {
         // E -> F | E . id | E . id ( )
         // F -> id
         //
-        //  0: E -> F E_1      - ◄0 ►E_1 ►F
-        //  1: F -> id         - ◄1 id!
-        //  2: E_1 -> . id E_2 - ►E_2 id! .
-        //  3: E_1 -> ε        - ◄3
-        //  4: E_2 -> ( ) E_1  - ●E_1 ◄4 ) (
-        //  5: E_2 -> E_1      - ●E_1 ◄5
+        //  //  0: E -> F E_1      | ◄0 ►E_1 ►F  | F
+        //  //  1: F -> id         | ◄1 id!      | id
+        //  //  2: E_1 -> . id E_2 | ►E_2 id! .  |
+        //  //  3: E_1 -> ε        | ◄3          |
+        //  //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | id E
+        //  //  5: E_2 -> E_1      | ●E_1 ◄5     | id E
         //
         // - NT flags:
         //   - E_1: child_left_rec | parent_left_fact (36)

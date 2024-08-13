@@ -1308,18 +1308,18 @@ impl<T> ProdRuleSet<T> {
     }
 
     /// Factorizes all the left symbols that are common to several factors by rejecting the non-common part
-    /// to a new non-terminal.Updates the symbol table if provided.
+    /// to a new non-terminal. Updates the symbol table if provided.
     ///
-    /// Finds the longest prefix α common to two or more factors:
-    /// ```eq
-    /// A -> α β1 | ... | α βm | γ1 | ... | γn;
-    /// ```
-    /// Puts the different parts into a new production rule:
-    /// ```eq
-    /// A   -> α A_0 | γ1 | ... | γn ;
-    /// A_0 -> β1 | ... | βm;
-    /// ```
-    /// Reiterates until all factors start with different symbols in every production rule.
+    /// After the factorization, every child has an NT index greater than its parent, even if the
+    /// factorization is performed several times on the same rule.
+    ///
+    /// Algorithm:
+    /// - for each NT
+    ///     - sort factors
+    ///     - repeat as long as there are common starting symbols:
+    ///         - take first group of >1 factors starting with the same symbol `α[0]`
+    ///         - extract the number of starting symbols common to all factors of the group (1 or more): `α`
+    ///         - create a new NT with the group, where `α` has been removed at the beginning
     pub fn left_factorize(&mut self) {
         fn similarity(a: &ProdFactor, b: &ProdFactor) -> usize {
             a.iter().zip(b.iter()).take_while(|(a, b)| a == b).count()
