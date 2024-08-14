@@ -431,27 +431,27 @@ fn rts_prodrule_from() {
         (8, btreemap![
             0 => prod!(t 1, nt 1),
             1 =>  prod!(t 2, nt 1; t 2)
-        ], vec![0, 1], vec![None, Some(0)]),
+        ], vec![2048, 1], vec![None, Some(0)]),
         (9, btreemap![
             0 => prod!(t 1, nt 1),
             1 =>  prod!(t 2, t 3, nt 1; t 2, t 3)
-        ], vec![0, 1], vec![None, Some(0)]),
+        ], vec![2048, 1], vec![None, Some(0)]),
         (10, btreemap![
             0 => prod!(t 1, nt 1),
             1 =>  prod!(t 2, t 3, nt 1; t 2, t 3; t 4, nt 1; t 4)
-        ], vec![0, 1], vec![None, Some(0)]),
+        ], vec![2048, 1], vec![None, Some(0)]),
         (11, btreemap![
             0 => prod!(t 1, nt 1),
             1 =>  prod!(t 2, nt 1; e)
-        ], vec![0, 1], vec![None, Some(0)]),
+        ], vec![2048, 1], vec![None, Some(0)]),
         (12, btreemap![
             0 => prod!(t 1, nt 1),
             1 =>  prod!(t 2, t 3, nt 1; e)
-        ], vec![0, 1], vec![None, Some(0)]),
+        ], vec![2048, 1], vec![None, Some(0)]),
         (13, btreemap![
             0 => prod!(t 1, nt 1),
             1 =>  prod!(t 2, t 3, nt 1; t 4, nt 1; e)
-        ], vec![0, 1], vec![None, Some(0)]),
+        ], vec![2048, 1], vec![None, Some(0)]),
         (14, btreemap![
             0 => prod!(t 1, t 2; t 1, t 3; t 1; t 2; t 3; e)
         ], vec![0], vec![None]),
@@ -462,7 +462,7 @@ fn rts_prodrule_from() {
             0 => prod!(t 0, nt 2, t 3),
             1 => prod!(t 1, nt 1; t 1),
             2 => prod!(nt 1, t 2, nt 2; nt 1, t 2),
-        ], vec![0, 1, 1], vec![None, Some(0), Some(0)]),
+        ], vec![2048, 1, 1], vec![None, Some(0), Some(0)]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected, expected_flags, expected_parent) in tests {
@@ -2290,29 +2290,29 @@ impl T {
 #[test]
 fn rts_prs_flags() {
     let tests = vec![
-        (T::RTS(9), 0,btreemap![1 => 33, 2 => 64],      // NT flags
+        (T::RTS(9), 0,btreemap![0 => 2048, 1 => 33, 2 => 64],      // NT flags
          btreemap![],                                   // factor flags
          btreemap![1 => 0, 2 => 1]),                    // parents
-        (T::RTS(11), 0, btreemap![1 => 1],
+        (T::RTS(11), 0, btreemap![0 => 2048, 1 => 1],
          btreemap![],
          btreemap![1 => 0]),
-        (T::RTS(12), 0, btreemap![1 => 1],
+        (T::RTS(12), 0, btreemap![0 => 2048, 1 => 1],
          btreemap![],
          btreemap![1 => 0]),
         (T::RTS(15), 0, btreemap![0 => 1664, 1 => 12],
          btreemap![2 => 256],
          btreemap![1 => 0]),
-        (T::RTS(16), 0, btreemap![0 => 512, 1 => 33, 2 => 4, 3 => 64],
+        (T::RTS(16), 0, btreemap![0 => 2560, 1 => 33, 2 => 4, 3 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0, 3 => 1]),
-        (T::RTS(17), 0, btreemap![1 => 33, 2 => 33, 3 => 64, 4 => 64],
+        (T::RTS(17), 0, btreemap![0 => 2048, 1 => 33, 2 => 33, 3 => 64, 4 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0, 3 => 1, 4 => 2]),
         (T::RTS(18), 0, btreemap![0 => 128], btreemap![], btreemap![]),
-        (T::RTS(19), 0, btreemap![0 => 512, 1 => 129, 2 => 4],
+        (T::RTS(19), 0, btreemap![0 => 2560, 1 => 129, 2 => 4],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
-        (T::RTS(20), 0, btreemap![0 => 640, 1 => 1, 2 => 4],
+        (T::RTS(20), 0, btreemap![0 => 2688, 1 => 1, 2 => 4],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
         (T::PRS(0), 0, btreemap![0 => 544, 1 => 4, 2 => 64],

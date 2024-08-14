@@ -2148,7 +2148,7 @@ mod listener7 {
     const SYMBOLS_NAMES: [(&str, VarId); 1] = [("A_1", 1)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 3] = [(0, &[Symbol::T(0), Symbol::NT(1), Symbol::T(2)]), (1, &[Symbol::T(1), Symbol::NT(1)]), (1, &[Symbol::Empty])];
     const PARSING_TABLE: [VarId; 8] = [0, 3, 3, 3, 3, 1, 2, 3];
-    const FLAGS: [u32; 2] = [0, 1];
+    const FLAGS: [u32; 2] = [2048, 1];
     const PARENT: [Option<VarId>; 2] = [None, Some(0)];
     const OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(1)], &[OpCode::Exit(2)]];
     const START_SYMBOL: VarId = 0;
@@ -2425,7 +2425,7 @@ mod listener8 {
     const SYMBOLS_NAMES: [(&str, VarId); 1] = [("A_1", 1)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 3] = [(0, &[Symbol::T(0), Symbol::NT(1), Symbol::T(2)]), (1, &[Symbol::T(1), Symbol::NT(1)]), (1, &[Symbol::Empty])];
     const PARSING_TABLE: [VarId; 8] = [0, 3, 3, 3, 3, 1, 2, 3];
-    const FLAGS: [u32; 2] = [0, 129];
+    const FLAGS: [u32; 2] = [2048, 129];
     const PARENT: [Option<VarId>; 2] = [None, Some(0)];
     const OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(1)], &[OpCode::Exit(2)]];
     const START_SYMBOL: VarId = 0;

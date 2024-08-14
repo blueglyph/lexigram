@@ -290,6 +290,10 @@ pub mod ruleflag {
     /// Left-recursive, ambiguous parent NT.
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const PARENT_AMBIGUITY: u32 = 1024;
+    /// Star or Plus repeat parent factor.
+    /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
+    pub const PARENT_REPEAT: u32 = 2048;
+
 
     pub fn to_string(flags: u32) -> Vec<String> {
         let names = btreemap![
@@ -678,6 +682,7 @@ impl RuleTreeSet<General> {
         self.flags.resize(*new_var as usize + 1, 0);
         self.parent.resize(*new_var as usize + 1, None);
         self.flags[*new_var as usize] = ruleflag::CHILD_REPEAT;
+        self.flags[var as usize] |= ruleflag::PARENT_REPEAT;
         self.parent[*new_var as usize] = Some(var);
         *new_var += 1;
         stack.push(id);
