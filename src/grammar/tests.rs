@@ -342,14 +342,21 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
+        25 => { // A -> a (#)* c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
         _ => {}
     }
-    if 21 <= id && id <= 24 {
+    if 21 <= id && id <= 25 {
         let mut table = SymbolTable::new();
         table.extend_non_terminals(["A".to_string()]);
         table.extend_terminals([
             ("a".to_string(), None),
-            ("b".to_string(), None),
+            if id != 25 { ("b".to_string(), None) } else { ("#".to_string(), Some("#".to_string())) },
             ("c".to_string(), None),
         ]);
         rules.symbol_table = Some(table);

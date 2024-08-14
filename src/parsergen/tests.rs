@@ -212,6 +212,7 @@ mod wrapper_source {
             // --------------------------------------------------------------------------- norm* R/L
             // A -> a (b)* c
             // NT flags:
+            //  - A:  (2048)
             //  - A_1: child_+_or_* (1)
             // parents:
             //  - A_1 -> A
@@ -222,6 +223,7 @@ mod wrapper_source {
             ]),
             // A -> a (b <L>)* c
             // NT flags:
+            //  - A:  (2048)
             //  - A_1: child_+_or_* | L-form (129)
             // parents:
             //  - A_1 -> A
@@ -230,9 +232,24 @@ mod wrapper_source {
                 1 => symbols![t 1, nt 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b A_1
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ]),
+
+            // When the repeated item has no data:
+
+            // A -> a (#)* c
+            // NT flags:
+            //  - A:  (2048)
+            //  - A_1: child_+_or_* (1)
+            // parents:
+            //  - A_1 -> A
+            (RTS(25), 0, btreemap![
+                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+                1 => symbols![],                        //  1: A_1 -> # A_1 | ●A_1 ◄1 #     |
+                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+            ]),
             // --------------------------------------------------------------------------- norm+ R/L
             // A -> a (b)+ c
             // NT flags:
+            //  - A:  (2048)
             //  - A_1: child_+_or_* | parent_left_fact (33)
             //  - A_2: child_left_fact (64)
             // parents:
@@ -246,6 +263,7 @@ mod wrapper_source {
             ]),
             // A -> a (b <L>)+ c
             // NT flags:
+            //  - A:  (2048)
             //  - A_1: child_+_or_* | parent_left_fact | L-form (161)
             //  - A_2: child_left_fact (64)
             // parents:
