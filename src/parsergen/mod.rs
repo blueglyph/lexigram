@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId};
+use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId};
 use crate::{CollectJoin, General, LL1, Normalized};
 use crate::parser::{OpCode, Parser};
 use crate::symbol_table::SymbolTable;
@@ -229,7 +229,7 @@ impl ParserBuilder {
                          Symbol::NT(*var_id).to_str(self.get_symbol_table()),
                          factor.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "));
             }
-            let factor_id = factor_id as VarId;
+            let factor_id = factor_id as FactorId;
             let flags = self.parsing_table.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);
             let mut new = self.parsing_table.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
@@ -319,7 +319,7 @@ impl ParserBuilder {
         let mut symbol_names = self.symbol_table.get_names().to_vec(); // hashmap: we want predictable outcome, so we sort names
         symbol_names.sort();
         vec![
-            format!("use rlexer::grammar::{{ProdFactor, Symbol, VarId}};"),
+            format!("use rlexer::grammar::{{ProdFactor, Symbol, VarId, FactorId}};"),
             format!("use rlexer::parser::{{OpCode, Parser}};"),
             format!("use rlexer::symbol_table::SymbolTable;\n"),
 
@@ -336,7 +336,7 @@ impl ParserBuilder {
             format!("const PARSING_FACTORS: [(VarId, &[Symbol]); {}] = [{}];",
                      self.parsing_table.factors.len(),
                      self.parsing_table.factors.iter().map(|(v, f)| format!("({v}, &[{}])", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")),
-            format!("const PARSING_TABLE: [VarId; {}] = [{}];",
+            format!("const PARSING_TABLE: [FactorId; {}] = [{}];",
                      self.parsing_table.table.len(),
                      self.parsing_table.table.iter().map(|v| format!("{v}")).join(", ")),
             format!("const FLAGS: [u32; {}] = [{}];",
@@ -353,7 +353,7 @@ impl ParserBuilder {
             format!("    symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));"),
             format!("    symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));"),
             format!("    let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();"),
-            format!("    let table: Vec<VarId> = PARSING_TABLE.into();"),
+            format!("    let table: Vec<FactorId> = PARSING_TABLE.into();"),
             format!("    let parsing_table = rlexer::grammar::LLParsingTable {{"),
             format!("        num_nt: PARSER_NUM_NT,"),
             format!("        num_t: PARSER_NUM_T + 1,"),
@@ -367,14 +367,14 @@ impl ParserBuilder {
         ]
     }
 
-    fn build_item_ops(&mut self) -> HashMap::<VarId, Vec<Symbol>> {
+    fn build_item_ops(&mut self) -> HashMap::<FactorId, Vec<Symbol>> {
         const VERBOSE: bool = true;
         let info = &self.parsing_table;
-        let mut items = HashMap::<VarId, Vec<Symbol>>::new();
-        let mut var_factors: Vec::<Vec<VarId>> = vec![vec![]; info.num_nt];
+        let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
+        let mut var_factors: Vec::<Vec<FactorId>> = vec![vec![]; info.num_nt];
         for (factor_id, (var_id, _)) in info.factors.iter().enumerate() {
-            var_factors[*var_id as usize].push(factor_id as VarId);
-            items.insert(factor_id as VarId, vec![]);
+            var_factors[*var_id as usize].push(factor_id as FactorId);
+            items.insert(factor_id as FactorId, vec![]);
         }
         for nt in 0..info.num_nt {
             if self.parsing_table.flags[nt] & ruleflag::CHILD_REPEAT != 0 {
@@ -394,7 +394,7 @@ impl ParserBuilder {
                          factor.to_str(self.get_symbol_table()),
                          opcode.iter().map(|op| op.to_str(self.get_symbol_table())).join(" "));
             }
-            let factor_id = factor_id as VarId;
+            let factor_id = factor_id as FactorId;
             let flags = info.flags[*var_id as usize];
             // Default values are taken frop opcodes. Loop(nt) is only taken if the parent is l-rec;
             // we look at the parent's flags instead of the factor's because left factorization could

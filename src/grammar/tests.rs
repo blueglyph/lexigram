@@ -504,7 +504,7 @@ fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
 
 fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsingTable, indent: usize) {
     let LLParsingTable { num_nt, num_t, factors, table, flags, parent } = parsing_table;
-    let error = factors.len() as VarId;
+    let error = factors.len() as FactorId;
     let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
     let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
     let str_t = (0..*num_t).map(|j| if j + 1 < *num_t { Symbol::T(j as VarId).to_str(symbol_table) } else { "$".to_string() }).to_vec();
@@ -1480,7 +1480,7 @@ fn prs_calc_follow() {
 
 #[test]
 fn prs_calc_table() {
-    let tests: Vec<(u32, VarId, usize, Vec<(VarId, ProdFactor)>, Vec<VarId>)> = vec![
+    let tests: Vec<(u32, VarId, usize, Vec<(VarId, ProdFactor)>, Vec<FactorId>)> = vec![
         (4, 0, 0, vec![
             // - 0: E -> T E_1
             // - 1: T -> F T_1
@@ -2061,7 +2061,7 @@ fn prs_calc_table() {
         assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{ll_id}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
-            let error = factors.len() as VarId;
+            let error = factors.len() as FactorId;
             print_production_rules(&ll1, false);
             print_factors(&ll1, &factors);
             println!("{}",

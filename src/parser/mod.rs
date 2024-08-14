@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use crate::CollectJoin;
 use crate::dfa::TokenId;
-use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId};
+use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId, FactorId};
 use crate::symbol_table::SymbolTable;
 
 mod tests;
@@ -30,7 +30,7 @@ pub trait Listener {
     /// The function returns true when `Asm(factor_id)` has to be pushed on the parser stack,
     /// typically to attach parameters to an object being assembled by the listener
     /// (intermediate inheritance).
-    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) { /*false*/ }
+    fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) { /*false*/ }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -42,7 +42,7 @@ pub struct Parser {
     opcodes: Vec<Vec<OpCode>>,
     flags: Vec<u32>,            // NT -> flags (+ or * normalization)
     parent: Vec<Option<VarId>>, // NT -> parent NT
-    table: Vec<VarId>,
+    table: Vec<FactorId>,
     symbol_table: SymbolTable,
     start: VarId
 }
@@ -74,7 +74,7 @@ impl Parser {
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<OpCode>::new();
         let mut stack_t = Vec::<String>::new();
-        let error = self.factors.len() as VarId;
+        let error = self.factors.len() as FactorId;
         let end = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
         stack.push(OpCode::NT(self.start));

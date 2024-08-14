@@ -16,6 +16,7 @@ use crate::symbol_table::SymbolTable;
 use crate::take_until::TakeUntilIterator;
 
 pub type VarId = u16;
+pub type FactorId = VarId;
 
 #[derive(Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 pub enum Symbol {
@@ -799,7 +800,7 @@ pub struct LLParsingTable {
     pub num_nt: usize,
     pub num_t: usize,
     pub factors: Vec<(VarId, ProdFactor)>,
-    pub table: Vec<VarId>,
+    pub table: Vec<FactorId>,
     pub flags: Vec<u32>,            // NT -> flags (+ or * normalization)
     pub parent: Vec<Option<VarId>>, // NT -> parent NT
 }
@@ -1412,7 +1413,7 @@ impl ProdRuleSet<LL1> {
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production factor for
     /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `factors.len()` stands for a syntactic error.
     pub fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>) -> LLParsingTable {
-        fn add_table(table: &mut Vec<Vec<VarId>>, error: VarId, num_t: usize, nt_id: VarId, t_id: VarId, f_id: VarId) {
+        fn add_table(table: &mut Vec<Vec<FactorId>>, error: VarId, num_t: usize, nt_id: VarId, t_id: VarId, f_id: FactorId) {
             let pos = nt_id as usize * num_t + t_id as usize;
             table[pos].push(f_id);
         }
@@ -1420,15 +1421,15 @@ impl ProdRuleSet<LL1> {
         const DISABLE_FILTER: bool = false;
         let factors = self.prods.iter().enumerate().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v as VarId)))
             .flat_map(|(v, x)| x.iter().map(move |f| (v as VarId, f.clone() as ProdFactor))).to_vec();
-        let error = factors.len() as VarId; // table entry for syntactic error
+        let error = factors.len() as FactorId; // table entry for syntactic error
         let num_nt = self.num_nt;
         let num_t = self.num_t + 1;
         let end = (num_t - 1) as VarId; // index of end symbol
         let mut used_t = HashSet::<Symbol>::new();
-        let mut table: Vec<Vec<VarId>> = vec![vec![]; num_nt * num_t];
+        let mut table: Vec<Vec<FactorId>> = vec![vec![]; num_nt * num_t];
         for (f_id, (nt_id, factor)) in factors.iter().enumerate() {
             used_t.extend(factor.iter().filter(|s| s.is_t()));
-            let f_id = f_id as VarId;
+            let f_id = f_id as FactorId;
             if VERBOSE { println!("- {f_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
                                   factor.to_str(self.get_symbol_table()),
                                   factor.factor_first(first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
@@ -1460,7 +1461,7 @@ impl ProdRuleSet<LL1> {
             }
         }
         // creates the table and removes ambiguities
-        let mut final_table = Vec::<VarId>::new();
+        let mut final_table = Vec::<FactorId>::new();
         for nt_id in 0..num_nt {
             for t_id in 0..num_t {
                 let pos = nt_id * num_t + t_id;

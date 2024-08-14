@@ -146,7 +146,7 @@ mod gen_integration {
 
 mod wrapper_source {
     use std::collections::BTreeMap;
-    use crate::grammar::{ruleflag, Symbol, VarId};
+    use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CharLen, CollectJoin, symbols};
     use crate::grammar::tests::T::{PRS, RTS};
@@ -166,11 +166,11 @@ mod wrapper_source {
         println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
     }
 
-    fn print_items(builder: &ParserBuilder, result_items: &BTreeMap<VarId, Vec<Symbol>>, indent: usize) {
+    fn print_items(builder: &ParserBuilder, result_items: &BTreeMap<FactorId, Vec<Symbol>>, indent: usize) {
         let tbl = builder.get_symbol_table();
         let fields = (0..builder.parsing_table.factors.len())
             .filter_map(|f| {
-                let f_id = f as VarId;
+                let f_id = f as FactorId;
                 let (v, factor) = &builder.parsing_table.factors[f];
                 let ops = &builder.opcodes[f];
                 if let Some(it) = result_items.get(&f_id) {
@@ -196,7 +196,7 @@ mod wrapper_source {
     #[test]
     #[allow(unused_doc_comments)]
     fn build_items() {
-        let tests: Vec<(T, VarId, BTreeMap<VarId, Vec<Symbol>>)> = vec![
+        let tests: Vec<(T, VarId, BTreeMap<FactorId, Vec<Symbol>>)> = vec![
             // --------------------------------------------------------------------------- NT/T simple mix
             // NT flags:
             //  - (nothing)
@@ -368,7 +368,7 @@ mod wrapper_source {
             builder.nt_value = (0..builder.parsing_table.num_nt)
                 .map(|nt| builder.parsing_table.parent[nt].is_none()).to_vec();
             let items = builder.build_item_ops();
-            let result_items = items.into_iter().collect::<BTreeMap<VarId, Vec<Symbol>>>();
+            let result_items = items.into_iter().collect::<BTreeMap<FactorId, Vec<Symbol>>>();
             if VERBOSE {
                 print_flags(&builder, 12);
                 println!("            ({rule_id:?}, {start_nt}, btreemap![", );

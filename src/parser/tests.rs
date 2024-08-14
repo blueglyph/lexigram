@@ -437,7 +437,7 @@ mod opcodes {
 
 mod listener {
     use crate::grammar::tests::build_prs;
-    use crate::grammar::VarId;
+    use crate::grammar::{FactorId, VarId};
     use crate::parser::{Call, Listener};
     use super::*;
 
@@ -491,7 +491,7 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
