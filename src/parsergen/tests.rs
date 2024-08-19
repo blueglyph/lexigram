@@ -362,7 +362,7 @@ mod wrapper_source {
         const VERBOSE: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items)) in tests.into_iter().enumerate() {
-            // if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
+            if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1);
             builder.nt_value = (0..builder.parsing_table.num_nt)

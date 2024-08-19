@@ -467,10 +467,48 @@ impl ParserBuilder {
         items
     }
 
-
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
+        const VERBOSE: bool = true;
+
+        struct ItemInfo {
+            name: String,
+            sym: Symbol,            // NT(var) or T(token)
+            is_vec: bool,           // for ex. `b: Vec<String>` in `A -> a b+ c`
+            index: Option<usize>    // when several identical symbols in the same factor: `A -> id := id ( id )`
+        }
+
+        let info = &self.parsing_table;
+        let mut var_factors: Vec::<Vec<FactorId>> = vec![vec![]; info.num_nt];  // todo: put in `ParserBuilder.var_factors`
+        for (factor_id, (var_id, _)) in info.factors.iter().enumerate() {
+            var_factors[*var_id as usize].push(factor_id as FactorId);
+        }
+
+        let nt_name = (0..info.num_nt).map(|v| if info.parent[v].is_none() { Some(self.symbol_table.get_nt_name(v as VarId)) } else { None }).to_vec();
+        let mut factor_name: Vec<Option<String>> = vec![None; info.factors.len()];
+        for (var, var_name) in nt_name.iter().enumerate() {
+            if let Some(name) = var_name {
+                let f = &var_factors[var];
+                if f.len() == 1 {
+                    factor_name[f[0] as usize] = Some(name.clone());
+                } else {
+                    for (n, idx_factor) in f.into_iter().enumerate() {
+                        factor_name[*idx_factor as usize] = Some(format!("{name}{}", n + 1));
+                    }
+                }
+            }
+        }
+        if VERBOSE {
+            println!("nt_name = {}", nt_name.iter().enumerate().map(|(i, n)| format!("{i}: {}", if let Some(nm) = n { nm } else { "-" })).join(", "));
+            println!("factor_name:");
+            for (i, n) in factor_name.iter().enumerate() {
+                println!("- {i}: {}", if let Some(nm) = n { nm } else { "-" });
+            }
+        }
+
         let items = self.build_item_ops();
+        let mut item_name = Vec::<Vec<ItemInfo>>::new();    // item_name[factor][item]
+
 
         vec![]
     }
