@@ -374,6 +374,7 @@ mod wrapper_source {
                 println!("            ({rule_id:?}, {start_nt}, btreemap![", );
                 print_items(&builder, &result_items, 16);
                 println!("            ]),");
+                builder.source_wrapper();
             }
             let err_msg = format!("test {test_id} {rule_id:?}/{start_nt} failed ");
             if TESTS_ALL {
