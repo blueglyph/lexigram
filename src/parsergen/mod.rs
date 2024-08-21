@@ -474,43 +474,33 @@ impl ParserBuilder {
         struct ItemInfo {
             name: String,
             sym: Symbol,            // NT(var) or T(token)
+            owner: VarId,           // NT owning this item; for ex. owner = `A` for `sym = b` in `A -> a b+ c`
             is_vec: bool,           // for ex. `b: Vec<String>` in `A -> a b+ c`
             index: Option<usize>    // when several identical symbols in the same factor: `A -> id := id ( id )`
         }
 
         impl ItemInfo {
             fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
-                format!("{} ({}{}{})",
+                format!("{} ({}{}{}, ◄{})",
                         self.name,
                         self.sym.to_str(symbol_table),
                         if self.is_vec { ", is_vec" } else { "" },
-                        if let Some(n) = self.index { format!(", [{n}]") } else { "".to_string() })
+                        if let Some(n) = self.index { format!(", [{n}]") } else { "".to_string() },
+                        Symbol::NT(self.owner).to_str(symbol_table))
             }
         }
 
-        let items = self.build_item_ops();
+        let items: HashMap<FactorId, Vec<Symbol>> = self.build_item_ops();
         let info = &self.parsing_table;
-        let mut var_factors: Vec::<Vec<FactorId>> = vec![vec![]; info.num_nt];  // todo: put in `ParserBuilder.var_factors`
+        let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; info.num_nt];
         for (factor_id, (var_id, _)) in info.factors.iter().enumerate() {
             var_factors[*var_id as usize].push(factor_id as FactorId);
         }
 
         let nt_name = (0..info.num_nt).map(|v| if info.parent[v].is_none() { Some(self.symbol_table.get_nt_name(v as VarId)) } else { None }).to_vec();
-        let mut factor_name: Vec<Option<String>> = vec![None; info.factors.len()];
-        for (var, var_name) in nt_name.iter().enumerate() {
-            if let Some(name) = var_name {
-                let f = &var_factors[var];
-                if f.len() == 1 {
-                    factor_name[f[0] as usize] = Some(name.clone());
-                } else {
-                    for (n, idx_factor) in f.into_iter().enumerate() {
-                        factor_name[*idx_factor as usize] = Some(format!("{name}{}", n + 1));
-                    }
-                }
-            }
-        }
+        let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; info.num_nt];
 
-        let mut item_name: Vec<Vec<ItemInfo>> = (0..info.factors.len()).map(|i| {
+        let mut item_info: Vec<Vec<ItemInfo>> = (0..info.factors.len()).map(|i| {
             let factor_id = i as FactorId;
             if let Some(item_ops) = items.get(&factor_id) {
                 let mut indices = HashMap::<Symbol, Option<usize>>::new();
@@ -521,15 +511,31 @@ impl ParserBuilder {
                     };
                     indices.insert(*s, new);
                 }
+                let mut owner = info.factors[i].0;
+                while let Some(parent) = info.parent[owner as usize] {
+                    owner = parent;
+                }
+                if !item_ops.is_empty() {
+                    let len = nt_info[owner as usize].len();
+                    if len == 1 {
+                        nt_info[owner as usize][0].1.push('1');
+                    }
+                    let mut name = Symbol::NT(owner).to_str(self.get_symbol_table());
+                    if len > 0 { name.push_str(&(len + 1).to_string()) };
+                    nt_info[owner as usize].push((factor_id, name));
+                }
                 item_ops.into_iter().map(|s| {
                     let index = if let Some(Some(index)) = indices.get_mut(s) {
                         let idx = *index;
                         *index += 1;
                         Some(idx)
-                    } else { None };
+                    } else {
+                        None
+                    };
                     ItemInfo {
                         name: s.to_str(self.get_symbol_table()).to_lowercase(),
                         sym: s.clone(),
+                        owner,
                         is_vec: false,
                         index,
                     }
@@ -540,12 +546,15 @@ impl ParserBuilder {
         }).to_vec();
 
         if VERBOSE {
-            println!("nt_name = {}", nt_name.iter().enumerate().map(|(i, n)| format!("{i}: {}", if let Some(nm) = n { nm } else { "-" })).join(", "));
-            println!("factor_name:");
-            for (i, n) in factor_name.iter().enumerate() {
-                println!("- {i}: {}", if let Some(nm) = n { nm } else { "-" });
-                for info in &item_name[i] {
-                    println!("  - {}", info.to_str(self.get_symbol_table()));
+            println!("NT info:");
+            for (v, info) in nt_info.iter().enumerate() {
+                if !info.is_empty() {
+                    println!("- {}:", Symbol::NT(v as VarId).to_str(self.get_symbol_table()));
+                    for f in info {
+                        println!("  - {}: {} {{ {} }}", f.0, f.1,
+                            item_info[f.0 as usize].iter().map(|info| info.to_str(self.get_symbol_table())).join(", ")
+                        );
+                    }
                 }
             }
         }

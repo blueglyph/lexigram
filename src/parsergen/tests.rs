@@ -294,6 +294,17 @@ mod wrapper_source {
             ]),
             // --------------------------------------------------------------------------- left_rec [left_fact]
             // NT flags:
+            //  - E: parent_left_rec (512)
+            //  - E_1: child_left_rec (4)
+            // parents:
+            //  - E_1 -> E
+            (PRS(31), 0, btreemap![                     /// E -> F | E . id ; F -> id
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
+                2 => symbols![t 1, nt 0],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | id E
+                3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
+            ]),
+            // NT flags:
             //  - A: parent_left_fact | parent_left_rec (544)
             //  - A_1: child_left_rec (4)
             //  - A_2: child_left_fact (64)
