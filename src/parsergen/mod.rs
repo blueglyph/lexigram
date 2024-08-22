@@ -515,7 +515,7 @@ impl ParserBuilder {
                 while let Some(parent) = info.parent[owner as usize] {
                     owner = parent;
                 }
-                if !item_ops.is_empty() {
+                if !item_ops.is_empty() || (self.nt_value[owner as usize] && info.flags[owner as usize] & ruleflag::R_RECURSION != 0) {
                     let len = nt_info[owner as usize].len();
                     if len == 1 {
                         nt_info[owner as usize][0].1.push('1');
@@ -558,7 +558,7 @@ impl ParserBuilder {
                         //          Symbol::NT(factor.0).to_str(self.get_symbol_table()),
                         //          factor.1.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
                         // );
-                        println!("    {}: {} {{ {} }}", f.0, f.1,
+                        println!("  - {}: {} {{ {} }}", f.0, f.1,
                             item_info[f.0 as usize].iter().map(|info| info.to_str(self.get_symbol_table())).join(", ")
                         );
                     }
