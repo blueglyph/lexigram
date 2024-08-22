@@ -368,7 +368,7 @@ impl ParserBuilder {
     }
 
     fn build_item_ops(&mut self) -> HashMap::<FactorId, Vec<Symbol>> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
         let mut var_factors: Vec::<Vec<FactorId>> = vec![vec![]; info.num_nt];
@@ -502,6 +502,7 @@ impl ParserBuilder {
 
         let mut item_info: Vec<Vec<ItemInfo>> = (0..info.factors.len()).map(|i| {
             let factor_id = i as FactorId;
+            let nt = info.factors[i].0 as usize;
             if let Some(item_ops) = items.get(&factor_id) {
                 let mut indices = HashMap::<Symbol, Option<usize>>::new();
                 for s in item_ops {
@@ -513,9 +514,16 @@ impl ParserBuilder {
                 }
                 let mut owner = info.factors[i].0;
                 while let Some(parent) = info.parent[owner as usize] {
+                    if info.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
+                        // a child + * is owner
+                        // - if <L>, it has its own public context and a user-defined return type
+                        // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
+                        // (we keep the loop for +, which has a left factorization, too)
+                        break;
+                    }
                     owner = parent;
                 }
-                if !item_ops.is_empty() || (self.nt_value[owner as usize] && info.flags[owner as usize] & ruleflag::R_RECURSION != 0) {
+                if !item_ops.is_empty() || (self.nt_value[nt] && info.flags[nt] & ruleflag::R_RECURSION != 0) {
                     let len = nt_info[owner as usize].len();
                     if len == 1 {
                         nt_info[owner as usize][0].1.push('1');
