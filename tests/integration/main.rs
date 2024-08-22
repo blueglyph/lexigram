@@ -2291,19 +2291,19 @@ mod listener7 {
                 self.stack.push(SynValue::AStar(a_star));
             }
 
-            fn exit_a_1(&mut self) {
-                let mut a_star = self.stack.pop().unwrap().get_a_star();
-                let b = self.stack_t.pop().unwrap();
-                a_star.0.push(b);
-                self.stack.push(SynValue::AStar(a_star));
-            }
-
             fn exit_a(&mut self) {
                 let c = self.stack_t.pop().unwrap();
                 let b = self.stack.pop().unwrap().get_a_star().0;
                 let a = self.stack_t.pop().unwrap();
                 let val = self.listener.exit_a(CtxA::A { a, b, c });
                 self.stack.push(SynValue::A(val));
+            }
+
+            fn exit_a_1(&mut self) {
+                let mut a_star = self.stack.pop().unwrap().get_a_star();
+                let b = self.stack_t.pop().unwrap();
+                a_star.0.push(b);
+                self.stack.push(SynValue::AStar(a_star));
             }
         }
 
@@ -2573,19 +2573,19 @@ mod listener8 {
                 self.stack.push(SynValue::AStar(val));
             }
 
-            fn exit_a_1(&mut self) {
-                let a_star = self.stack.pop().unwrap().get_a_star();
-                let b = self.stack_t.pop().unwrap();
-                let val = self.listener.iter_a(CtxAStar::AStar { a_star, b });
-                self.stack.push(SynValue::AStar(val));
-            }
-
             fn exit_a(&mut self) {
                 let c = self.stack_t.pop().unwrap();
                 let a_star = self.stack.pop().unwrap().get_a_star();
                 let a = self.stack_t.pop().unwrap();
                 let val = self.listener.exit_a(CtxA::A { a, a_star, c });
                 self.stack.push(SynValue::A(val));
+            }
+
+            fn exit_a_1(&mut self) {
+                let a_star = self.stack.pop().unwrap().get_a_star();
+                let b = self.stack_t.pop().unwrap();
+                let val = self.listener.iter_a(CtxAStar::AStar { a_star, b });
+                self.stack.push(SynValue::AStar(val));
             }
         }
 

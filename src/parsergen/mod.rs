@@ -547,11 +547,18 @@ impl ParserBuilder {
 
         if VERBOSE {
             println!("NT info:");
-            for (v, info) in nt_info.iter().enumerate() {
-                if !info.is_empty() {
+            for (v, factor_names) in nt_info.iter().enumerate() {
+                if !factor_names.is_empty() {
                     println!("- {}:", Symbol::NT(v as VarId).to_str(self.get_symbol_table()));
-                    for f in info {
-                        println!("  - {}: {} {{ {} }}", f.0, f.1,
+                    for f in factor_names {
+                        // TODO: - fetch all parents' information to rebuild after factorization
+                        //       - process other transformations
+                        // let factor = &info.factors[f.0 as usize];
+                        // println!("  - // {} -> {}",
+                        //          Symbol::NT(factor.0).to_str(self.get_symbol_table()),
+                        //          factor.1.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                        // );
+                        println!("    {}: {} {{ {} }}", f.0, f.1,
                             item_info[f.0 as usize].iter().map(|info| info.to_str(self.get_symbol_table())).join(", ")
                         );
                     }
