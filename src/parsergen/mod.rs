@@ -491,18 +491,18 @@ impl ParserBuilder {
         }
 
         let items: HashMap<FactorId, Vec<Symbol>> = self.build_item_ops();
-        let info = &self.parsing_table;
-        let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; info.num_nt];
-        for (factor_id, (var_id, _)) in info.factors.iter().enumerate() {
+        let pinfo = &self.parsing_table;
+        let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; pinfo.num_nt];
+        for (factor_id, (var_id, _)) in pinfo.factors.iter().enumerate() {
             var_factors[*var_id as usize].push(factor_id as FactorId);
         }
 
-        let nt_name = (0..info.num_nt).map(|v| if info.parent[v].is_none() { Some(self.symbol_table.get_nt_name(v as VarId)) } else { None }).to_vec();
-        let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; info.num_nt];
+        let nt_name = (0..pinfo.num_nt).map(|v| if pinfo.parent[v].is_none() { Some(self.symbol_table.get_nt_name(v as VarId)) } else { None }).to_vec();
+        let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; pinfo.num_nt];
 
-        let mut item_info: Vec<Vec<ItemInfo>> = (0..info.factors.len()).map(|i| {
+        let mut item_info: Vec<Vec<ItemInfo>> = (0..pinfo.factors.len()).map(|i| {
             let factor_id = i as FactorId;
-            let nt = info.factors[i].0 as usize;
+            let nt = pinfo.factors[i].0 as usize;
             if let Some(item_ops) = items.get(&factor_id) {
                 // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
                 // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
@@ -518,9 +518,9 @@ impl ParserBuilder {
                         indices.insert(*s, (fixer.get_unique_name(name), None));
                     }
                 }
-                let mut owner = info.factors[i].0;
-                while let Some(parent) = info.parent[owner as usize] {
-                    if info.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
+                let mut owner = pinfo.factors[i].0;
+                while let Some(parent) = pinfo.parent[owner as usize] {
+                    if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
                         // a child + * is owner
                         // - if <L>, it has its own public context and a user-defined return type
                         // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
@@ -529,7 +529,7 @@ impl ParserBuilder {
                     }
                     owner = parent;
                 }
-                if !item_ops.is_empty() || (self.nt_value[nt] && info.flags[nt] & ruleflag::R_RECURSION != 0) {
+                if !item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0) {
                     let len = nt_info[owner as usize].len();
                     if len == 1 {
                         nt_info[owner as usize][0].1.push('1');
