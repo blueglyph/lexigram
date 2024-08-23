@@ -529,7 +529,9 @@ impl ParserBuilder {
                     }
                     owner = parent;
                 }
-                if !item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0) {
+                if (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
+                    pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT
+                {
                     let len = nt_info[owner as usize].len();
                     if len == 1 {
                         nt_info[owner as usize][0].1.push('1');
