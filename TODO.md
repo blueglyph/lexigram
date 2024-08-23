@@ -70,6 +70,17 @@
       - [ ] adapter for tokens
       - [ ] SymbolTable
     - [ ] generate code
+      - [x] context
+      - [ ] SynValue
+      - [ ] trait
+      - [ ] switch
+      - [ ] impl wrapper
+      - [ ] special case of ambiguous left recursions (A α A)
+    - [ ] loose ends / to check
+      - [ ] name fixer when creating children NTs (grammar/symbol_table) 
+      - [ ] better names when creating children NTs (grammar/symbol_table)
+      - [ ] name fixer when creating enum options in contexts (ParserBuilder::source_wrapper) 
+      - [ ] better names when creating enum options in contexts (ParserBuilder::source_wrapper)
     - [ ] error recovery
   - bottom-up
     - [ ] decide algorithm (LALR?)

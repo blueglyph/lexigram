@@ -584,6 +584,7 @@ impl ParserBuilder {
     }
 }
 
+/// Dictionary-based helper that adapts names so they are unique
 struct NameFixer {
     dic: HashSet<String>
 }
@@ -593,6 +594,7 @@ impl NameFixer {
         NameFixer { dic: HashSet::new() }
     }
 
+    /// Returns `name` if it's unique, or adds a suffix first to make sure it's unique.
     pub fn get_unique_name(&mut self, mut name: String) -> String {
         let len = name.len();
         let mut index = 0;
