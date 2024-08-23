@@ -534,7 +534,7 @@ impl ParserBuilder {
                     if len == 1 {
                         nt_info[owner as usize][0].1.push('1');
                     }
-                    let mut name = Symbol::NT(owner).to_str(self.get_symbol_table());
+                    let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
                     if len > 0 { name.push_str(&(len + 1).to_string()) };
                     nt_info[owner as usize].push((factor_id, name));
                 }
@@ -580,7 +580,38 @@ impl ParserBuilder {
             }
         }
 
-        vec![]
+        let mut src = vec![];
+        for (v, factor_names) in nt_info.iter().enumerate().filter(|(_, f)| !f.is_empty()) {
+            src.push(format!("pub enum Ctx{} {{", Symbol::NT(v as VarId).to_str(self.get_symbol_table()).to_camelcase()));
+            for (f_id, f_name) in factor_names {
+                let ctx_content = item_info[*f_id as usize].iter().filter_map(|info| {
+                    if info.index.is_none() || info.index == Some(0) {
+                        let type_name_base = match info.sym {
+                            Symbol::T(t) => "String".to_string(),
+                            Symbol::NT(v) => format!("Syn{}", info.sym.to_str(self.get_symbol_table()).to_camelcase()),
+                            _ => panic!("unexpected symbol {}", info.sym)
+                        };
+                        let type_name = if info.index.is_some() {
+                            let nbr = item_info[*f_id as usize].iter().map(|nfo| if nfo.sym == info.sym { nfo.index.unwrap() } else { 0 }).max().unwrap() + 1;
+                            format!("[{type_name_base}; {nbr}]")
+                        } else {
+                            type_name_base
+                        };
+                        Some(format!("{}: {}", info.name, type_name))
+                    } else {
+                        None
+                    }
+                }).join(", ");
+                if ctx_content.is_empty() {
+                    src.push(format!("    {f_name},", ))
+                } else {
+                    src.push(format!("    {f_name} {{ {ctx_content} }},", ))
+                }
+            }
+            src.push(format!("}}"));
+        }
+
+        src
     }
 }
 
@@ -605,5 +636,43 @@ impl NameFixer {
         }
         self.dic.insert(name.clone());
         name
+    }
+}
+
+trait CamelCase {
+    fn to_camelcase(&self) -> Self;
+}
+
+impl CamelCase for String {
+    fn to_camelcase(&self) -> Self {
+        let mut upper = true;
+        self.chars().filter_map(|c| {
+            if c == '_' {
+                upper = true;
+                None
+            } else {
+                if upper {
+                    upper = false;
+                    Some(c.to_ascii_uppercase())
+                } else {
+                    Some(c.to_ascii_lowercase())
+                }
+            }
+        }).collect()
+    }
+}
+
+#[test]
+fn parsergen_camel_case() {
+    let tests = vec![
+        ("", ""),
+        ("A", "A"),
+        ("AA", "Aa"),
+        ("a", "A"),
+        ("ab_cd_ef", "AbCdEf"),
+    ];
+    for (str, expected) in tests {
+        let result = str.to_string().to_camelcase();
+        assert_eq!(result, expected);
     }
 }
