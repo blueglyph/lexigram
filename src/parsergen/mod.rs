@@ -1,6 +1,6 @@
 #![allow(dead_code)]  // TODO: remove
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -504,13 +504,19 @@ impl ParserBuilder {
             let factor_id = i as FactorId;
             let nt = info.factors[i].0 as usize;
             if let Some(item_ops) = items.get(&factor_id) {
-                let mut indices = HashMap::<Symbol, Option<usize>>::new();
+                // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
+                // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
+                // - different symbols, which means T vs NT, must have different names (e.g. `NT(A)` becomes "a",
+                //   `T(a)` becomes "a", too => one is renamed to "a1" to avoid the collision: `{ a: SynA, a1: String }`)
+                let mut indices = HashMap::<Symbol, (String, Option<usize>)>::new();
+                let mut fixer = NameFixer::new();
                 for s in item_ops {
-                    let new = match indices.get(s) {
-                        None => None,               // first occurrence -> None
-                        Some(_) => Some(0_usize),   // next occurences  -> Some(0)
-                    };
-                    indices.insert(*s, new);
+                    let name = s.to_str(self.get_symbol_table()).to_lowercase();
+                    if let Some((s, c)) = indices.get_mut(s) {
+                        *c = Some(0);
+                    } else {
+                        indices.insert(*s, (fixer.get_unique_name(name), None));
+                    }
                 }
                 let mut owner = info.factors[i].0;
                 while let Some(parent) = info.parent[owner as usize] {
@@ -533,7 +539,7 @@ impl ParserBuilder {
                     nt_info[owner as usize].push((factor_id, name));
                 }
                 item_ops.into_iter().map(|s| {
-                    let index = if let Some(Some(index)) = indices.get_mut(s) {
+                    let index = if let Some((_, Some(index))) = indices.get_mut(s) {
                         let idx = *index;
                         *index += 1;
                         Some(idx)
@@ -541,7 +547,7 @@ impl ParserBuilder {
                         None
                     };
                     ItemInfo {
-                        name: s.to_str(self.get_symbol_table()).to_lowercase(),
+                        name: indices[&s].0.clone(),
                         sym: s.clone(),
                         owner,
                         is_vec: false,
@@ -575,5 +581,27 @@ impl ParserBuilder {
         }
 
         vec![]
+    }
+}
+
+struct NameFixer {
+    dic: HashSet<String>
+}
+
+impl NameFixer {
+    pub fn new() -> Self {
+        NameFixer { dic: HashSet::new() }
+    }
+
+    pub fn get_unique_name(&mut self, mut name: String) -> String {
+        let len = name.len();
+        let mut index = 0;
+        while self.dic.contains(&name) {
+            name.truncate(len);
+            index += 1;
+            name.push_str(&index.to_string());
+        }
+        self.dic.insert(name.clone());
+        name
     }
 }
