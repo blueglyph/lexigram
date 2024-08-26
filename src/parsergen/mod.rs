@@ -471,6 +471,7 @@ impl ParserBuilder {
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = true;
 
+        #[derive(Debug)]
         struct ItemInfo {
             name: String,
             sym: Symbol,            // NT(var) or T(token)
@@ -497,7 +498,12 @@ impl ParserBuilder {
             var_factors[*var_id as usize].push(factor_id as FactorId);
         }
 
-        let nt_name = (0..pinfo.num_nt).map(|v| if pinfo.parent[v].is_none() { Some(self.symbol_table.get_nt_name(v as VarId)) } else { None }).to_vec();
+        let mut nt_fixer = NameFixer::new();
+        let mut nt_name = (0..pinfo.num_nt).map(|v| if self.nt_value[v] && pinfo.parent[v].is_none() {
+            Some(nt_fixer.get_unique_name(self.symbol_table.get_nt_name(v as VarId).to_camelcase()))
+        } else {
+            None
+        }).to_vec();
         let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; pinfo.num_nt];
 
         let mut item_info: Vec<Vec<ItemInfo>> = (0..pinfo.factors.len()).map(|i| {
@@ -516,6 +522,11 @@ impl ParserBuilder {
                         *c = Some(0);
                     } else {
                         indices.insert(*s, (fixer.get_unique_name(name), None));
+                    }
+                    if let Symbol::NT(v) = s {
+                        if nt_name[*v as usize].is_none() {
+                            nt_name[*v as usize] = Some(nt_fixer.get_unique_name(self.symbol_table.get_nt_name(*v).to_camelcase()));
+                        }
                     }
                 }
                 let mut owner = pinfo.factors[i].0;
@@ -562,6 +573,7 @@ impl ParserBuilder {
         }).to_vec();
 
         if VERBOSE {
+            println!("NT names: {}", nt_name.iter().filter_map(|n| n.clone()).join(", "));
             println!("NT info:");
             for (v, factor_names) in nt_info.iter().enumerate() {
                 if !factor_names.is_empty() {
@@ -580,17 +592,20 @@ impl ParserBuilder {
                     }
                 }
             }
+            println!();
         }
 
         let mut src = vec![];
+
+        // Writes contexts
         for (v, factor_names) in nt_info.iter().enumerate().filter(|(_, f)| !f.is_empty()) {
-            src.push(format!("pub enum Ctx{} {{", Symbol::NT(v as VarId).to_str(self.get_symbol_table()).to_camelcase()));
+            src.push(format!("pub enum Ctx{} {{", nt_name[v].clone().unwrap() /*Symbol::NT(v as VarId).to_str(self.get_symbol_table()).to_camelcase()*/));
             for (f_id, f_name) in factor_names {
                 let ctx_content = item_info[*f_id as usize].iter().filter_map(|info| {
                     if info.index.is_none() || info.index == Some(0) {
                         let type_name_base = match info.sym {
                             Symbol::T(t) => "String".to_string(),
-                            Symbol::NT(v) => format!("Syn{}", info.sym.to_str(self.get_symbol_table()).to_camelcase()),
+                            Symbol::NT(vs) => format!("Syn{}", nt_name[vs as usize].clone().unwrap()/*info.sym.to_str(self.get_symbol_table()).to_camelcase()*/),
                             _ => panic!("unexpected symbol {}", info.sym)
                         };
                         let type_name = if info.index.is_some() {
