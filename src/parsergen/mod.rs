@@ -578,7 +578,7 @@ impl ParserBuilder {
 
         if VERBOSE {
             println!("NT names: {}", nt_upper.iter()
-                .zip(nt_lower)
+                .zip(&nt_lower)
                 .filter_map(|(nu, nl)| if nu.is_some() { Some(format!("{}/{}", nu.clone().unwrap(), nl.clone().unwrap())) } else { None })
                 .join(", "));
             println!("NT info:");
@@ -634,9 +634,9 @@ impl ParserBuilder {
             }
             src.push(format!("}}"));
         }
-        src.push("".to_string());
 
         // Writes intermediate Syn types
+        src.add_space();
         let mut user_names = vec![];
         for (v, name) in nt_upper.iter().enumerate().filter_map(|(v, n)| if let Some(nm) = n { Some((v, nm)) } else { None }) {
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
@@ -648,10 +648,30 @@ impl ParserBuilder {
         if !user_names.is_empty() {
             src.push(format!("// User-defined: {}", user_names.join(", ")));
         }
-        src.push("".to_string());
-        src.push(format!("enum SynValue {{ {} }}", nt_upper.iter().filter_map(|n|
-            if let Some(nm) = n { Some(format!("{nm}(Syn{nm})")) } else { None }
-        ).join(", ")));
+
+        // Writes SynValue type and implementation
+        src.add_space();
+        let syns = nt_upper.iter().zip(&nt_lower).filter_map(|(n)|
+            if let (Some(nu), Some(nl)) = n { Some((nu.clone(), nl.clone())) } else { None }
+        ).to_vec();
+        // SynValue type
+        src.push(format!("enum SynValue {{ {} }}", syns.iter().map(|(nu, _)| format!("{nu}(Syn{nu})")).join(", ")));
+        if !syns.is_empty() {
+            // SynValue getters
+            src.add_space();
+            src.push("impl SynValue {".to_string());
+            for (nu, nl) in &syns {
+                src.push(format!("    fn get_{nl}(self) -> Syn{nu} {{"));
+                if syns.len() == 1 {
+                    src.push(format!("        let SynValue::{nu}(val) = self;"));
+                    src.push(format!("        val"));
+                } else {
+                    src.push(format!("        if let SynValue::{nu}(val) = self {{ val }} else {{ panic!() }}"));
+                }
+                src.push(format!("    }}"));
+            }
+            src.push("}".to_string());
+        }
 
         src
     }
@@ -681,12 +701,13 @@ impl NameFixer {
     }
 }
 
-trait CamelCase {
+/// Transforms names into CamelCase or underscore_parts
+trait NameTransformer {
     fn to_camelcase(&self) -> Self;
     fn to_underscore(&self) -> Self;
 }
 
-impl CamelCase for String {
+impl NameTransformer for String {
     fn to_camelcase(&self) -> Self {
         let mut upper = true;
         let result: String = self.chars().filter_map(|c| {
@@ -747,5 +768,20 @@ fn parsergen_underscore() {
     for (str, expected) in tests {
         let result = str.to_string().to_underscore();
         assert_eq!(result, expected);
+    }
+}
+
+/// Adds empty lines between blocks
+trait SourceSpacer {
+    fn add_space(&mut self);
+}
+
+impl SourceSpacer for Vec<String> {
+    fn add_space(&mut self) {
+        if let Some(line) = self.last() {
+            if !line.is_empty() {
+                self.push("".to_string());
+            }
+        }
     }
 }
