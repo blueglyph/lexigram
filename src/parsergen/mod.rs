@@ -627,6 +627,24 @@ impl ParserBuilder {
             }
             src.push(format!("}}"));
         }
+        src.push("".to_string());
+
+        // Writes intermediate Syn types
+        let mut user_names = vec![];
+        for (v, name) in nt_name.iter().enumerate().filter_map(|(v, n)| if let Some(nm) = n { Some((v, nm)) } else { None }) {
+            if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
+                src.push(format!("struct Syn{}(Vec<String>);", name.clone()));
+            } else {
+                user_names.push(format!("Syn{name}"));
+            }
+        }
+        if !user_names.is_empty() {
+            src.push(format!("// User-defined: {}", user_names.join(", ")));
+        }
+        src.push("".to_string());
+        src.push(format!("enum SynValue {{ {} }}", nt_name.iter().filter_map(|n|
+            if let Some(nm) = n { Some(format!("{nm}(Syn{nm})")) } else { None }
+        ).join(", ")));
 
         src
     }

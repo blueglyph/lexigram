@@ -70,9 +70,8 @@
       - [ ] adapter for tokens
       - [ ] SymbolTable
     - [ ] generate code
-      - [x] context
-      - [ ] SynValue
       - [x] ~~context~~
+      - [x] ~~SynValue~~
       - [ ] trait
       - [ ] switch
       - [ ] impl wrapper
