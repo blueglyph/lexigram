@@ -357,7 +357,24 @@ mod wrapper_source {
                 1 => symbols![t 5, t 5, nt 1],          //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id LIST
                 2 => symbols![nt 1],                    //  2: LIST -> }                  | ◄2 }                  | LIST
             ]),
-
+            // ---------------------------------------------------------------------------
+            // NT flags:
+            //  - A: parent_left_rec (2560)
+            //  - B: child_+_or_* | parent_left_fact (33)
+            //  - A_1: child_left_rec (4)
+            //  - B_1: child_left_fact (64)
+            // parents:
+            //  - B -> A
+            //  - A_1 -> A
+            //  - B_1 -> B
+            (RTS(16), 0, btreemap![                     /// A -> A (a)+ b | c
+                0 => symbols![t 2],                     //  0: A -> c A_1     | ◄0 ►A_1 c!    | c
+                1 => symbols![],                        //  1: B -> a B_1     | ►B_1 a!       |
+                2 => symbols![nt 1, t 1, nt 0],         //  2: A_1 -> B b A_1 | ●A_1 ◄2 b! ►B | B b A
+                3 => symbols![],                        //  3: A_1 -> ε       | ◄3            |
+                4 => symbols![t 0, nt 1, nt 0],         //  4: B_1 -> B       | ●B ◄4         | a B A
+                5 => symbols![t 0, nt 1],               //  5: B_1 -> ε       | ◄5            | a B
+            ]),
 
             // --------------------------------------------------------------------------- left_rec + amb
             // (PRS(9), 0, btreemap![]),
