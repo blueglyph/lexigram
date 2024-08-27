@@ -500,12 +500,13 @@ impl ParserBuilder {
 
         let mut nt_upper_fixer = NameFixer::new();
         let mut nt_lower_fixer = NameFixer::new();
-        let mut nt_upper = (0..pinfo.num_nt).map(|v| if self.nt_value[v] && pinfo.parent[v].is_none() {
-            Some(nt_upper_fixer.get_unique_name(self.symbol_table.get_nt_name(v as VarId).to_camelcase()))
+        let mut nt_name = (0..pinfo.num_nt).map(|v| if self.nt_value[v] && pinfo.parent[v].is_none() {
+            let nu = nt_upper_fixer.get_unique_name(self.symbol_table.get_nt_name(v as VarId).to_camelcase());
+            let nl = nt_lower_fixer.get_unique_name(nu.to_underscore());
+            Some((nu, nl))
         } else {
             None
         }).to_vec();
-        let mut nt_lower = nt_upper.iter().map(|n| n.clone().map(|nm| nt_lower_fixer.get_unique_name(nm.to_underscore()))).to_vec();
         let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; pinfo.num_nt];
 
         let mut item_info: Vec<Vec<ItemInfo>> = (0..pinfo.factors.len()).map(|i| {
@@ -520,16 +521,20 @@ impl ParserBuilder {
                 let mut fixer = NameFixer::new();
                 for s in item_ops {
                     if let Symbol::NT(v) = s {
-                        if nt_upper[*v as usize].is_none() {
+                        if nt_name[*v as usize].is_none() {
                             let name = self.symbol_table.get_nt_name(*v);
-                            nt_lower[*v as usize] = Some(nt_lower_fixer.get_unique_name(name.to_underscore()));
-                            nt_upper[*v as usize] = Some(nt_upper_fixer.get_unique_name(name.to_camelcase()));
+                            nt_name[*v as usize] = Some((nt_upper_fixer.get_unique_name(name.to_camelcase()),
+                                                         nt_lower_fixer.get_unique_name(name.to_underscore())));
                         }
                     }
                     if let Some((s, c)) = indices.get_mut(s) {
                         *c = Some(0);
                     } else {
-                        let name = if let Symbol::NT(vs) = s { nt_lower[*vs as usize].clone().unwrap() } else { s.to_str(self.get_symbol_table()).to_lowercase() };
+                        let name = if let Symbol::NT(vs) = s {
+                            nt_name[*vs as usize].clone().unwrap().1
+                        } else {
+                            s.to_str(self.get_symbol_table()).to_lowercase()
+                        };
                         indices.insert(*s, (fixer.get_unique_name(name), None));
                     }
                 }
@@ -577,9 +582,8 @@ impl ParserBuilder {
         }).to_vec();
 
         if VERBOSE {
-            println!("NT names: {}", nt_upper.iter()
-                .zip(&nt_lower)
-                .filter_map(|(nu, nl)| if nu.is_some() { Some(format!("{}/{}", nu.clone().unwrap(), nl.clone().unwrap())) } else { None })
+            println!("NT names: {}", nt_name.iter()
+                .filter_map(|n| if let Some((u, l)) = n { Some(format!("{u}/{l}")) } else { None })
                 .join(", "));
             println!("NT info:");
             for (v, factor_names) in nt_info.iter().enumerate() {
@@ -606,17 +610,19 @@ impl ParserBuilder {
 
         // Writes contexts
         for (v, factor_names) in nt_info.iter().enumerate().filter(|(_, f)| !f.is_empty()) {
-            src.push(format!("pub enum Ctx{} {{", nt_upper[v].clone().unwrap() /*Symbol::NT(v as VarId).to_str(self.get_symbol_table()).to_camelcase()*/));
+            src.push(format!("pub enum Ctx{} {{", nt_name[v].clone().unwrap().0));
             for (f_id, f_name) in factor_names {
                 let ctx_content = item_info[*f_id as usize].iter().filter_map(|info| {
                     if info.index.is_none() || info.index == Some(0) {
                         let type_name_base = match info.sym {
                             Symbol::T(t) => "String".to_string(),
-                            Symbol::NT(vs) => format!("Syn{}", nt_upper[vs as usize].clone().unwrap()/*info.sym.to_str(self.get_symbol_table()).to_camelcase()*/),
+                            Symbol::NT(vs) => format!("Syn{}", nt_name[vs as usize].clone().unwrap().0),
                             _ => panic!("unexpected symbol {}", info.sym)
                         };
                         let type_name = if info.index.is_some() {
-                            let nbr = item_info[*f_id as usize].iter().map(|nfo| if nfo.sym == info.sym { nfo.index.unwrap() } else { 0 }).max().unwrap() + 1;
+                            let nbr = item_info[*f_id as usize].iter()
+                                .map(|nfo| if nfo.sym == info.sym { nfo.index.unwrap() } else { 0 })
+                                .max().unwrap() + 1;
                             format!("[{type_name_base}; {nbr}]")
                         } else {
                             type_name_base
@@ -638,7 +644,7 @@ impl ParserBuilder {
         // Writes intermediate Syn types
         src.add_space();
         let mut user_names = vec![];
-        for (v, name) in nt_upper.iter().enumerate().filter_map(|(v, n)| if let Some(nm) = n { Some((v, nm)) } else { None }) {
+        for (v, name) in nt_name.iter().enumerate().filter_map(|(v, n)| if let Some(nm) = n { Some((v, &nm.0)) } else { None }) {
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                 src.push(format!("struct Syn{}(Vec<String>);", name.clone()));
             } else {
@@ -651,8 +657,8 @@ impl ParserBuilder {
 
         // Writes SynValue type and implementation
         src.add_space();
-        let syns = nt_upper.iter().zip(&nt_lower).filter_map(|(n)|
-            if let (Some(nu), Some(nl)) = n { Some((nu.clone(), nl.clone())) } else { None }
+        let syns = nt_name.iter().filter_map(|(n)|
+            if let Some((nu, nl)) = n { Some((nu.clone(), nl.clone())) } else { None }
         ).to_vec();
         // SynValue type
         src.push(format!("enum SynValue {{ {} }}", syns.iter().map(|(nu, _)| format!("{nu}(Syn{nu})")).join(", ")));
