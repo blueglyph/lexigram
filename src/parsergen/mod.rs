@@ -109,19 +109,20 @@ impl From<Symbol> for OpCode {
 pub struct ParserBuilder {
     parsing_table: LLParsingTable,
     symbol_table: SymbolTable,
+    name: String,
     nt_value: Vec<bool>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId
 }
 
 impl ParserBuilder {
-    pub fn from_tree(tree: RuleTreeSet<General>) -> Self {
+    pub fn from_tree(tree: RuleTreeSet<General>, name: String) -> Self {
         let normalized = RuleTreeSet::<Normalized>::from(tree);
         let lr_rules = ProdRuleSet::from(normalized);
-        Self::from_rules(lr_rules)
+        Self::from_rules(lr_rules, name)
     }
 
-    pub fn from_rules<T>(rules: ProdRuleSet<T>) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
+    pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
         let mut ll1_rules = ProdRuleSet::<LL1>::from(rules);
         let num_nt = ll1_rules.get_num_nt();
         let start = ll1_rules.get_start().unwrap();
@@ -130,6 +131,7 @@ impl ParserBuilder {
         let mut builder = ParserBuilder {
             parsing_table,
             symbol_table,
+            name,
             nt_value: vec![false; num_nt],
             opcodes: Vec::new(),
             start
@@ -609,6 +611,9 @@ impl ParserBuilder {
         let mut src = vec![];
 
         // Writes contexts
+        if let Some((nu, nl)) = &nt_name[self.start as usize] {
+            src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: Syn{nu} }} }}"));
+        }
         for (v, factor_names) in nt_info.iter().enumerate().filter(|(_, f)| !f.is_empty()) {
             src.push(format!("pub enum Ctx{} {{", nt_name[v].clone().unwrap().0));
             for (f_id, f_name) in factor_names {
@@ -678,6 +683,12 @@ impl ParserBuilder {
             }
             src.push("}".to_string());
         }
+
+        // Writes the listener trait declaration
+        src.add_space();
+        src.push(format!("pub trait {}Listener {{", self.name));
+        src.push(format!("    fn exit(&mut self, _ctx: Ctx) {{}}"));
+        src.push(format!("}}"));
 
         src
     }

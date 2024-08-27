@@ -13,7 +13,7 @@ mod gen_integration {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub(crate) enum T { RTS(u32), PRS(u32) }
 
-    fn get_source(rules_id: T, indent: usize) -> String {
+    fn get_source(rules_id: T, indent: usize, name: String) -> String {
         let rules = match rules_id {
             RTS(rts_id) => {
                 let rts = build_rts(rts_id);
@@ -32,7 +32,7 @@ mod gen_integration {
         };
         assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let ll1 = ProdRuleSet::<LL1>::from(rules);
-        let mut builder = ParserBuilder::from_rules(ll1);
+        let mut builder = ParserBuilder::from_rules(ll1, name);
         builder.build_source_code(indent, false)
     }
 
@@ -51,30 +51,30 @@ mod gen_integration {
         result
     }
 
-    fn get_test_data<'a>(id: u32) -> Option<(T, usize, &'a str)> {
+    fn get_test_data<'a>(id: u32) -> Option<(T, usize, &'a str, &'a str)> {
         match id {
-            0 => Some((PRS(13), 8, "write_source_code_from_ll1")),
-            1 => Some((PRS( 4), 4, "write_source_code_for_integration_listener")),
-            2 => Some((PRS(13), 4, "write_source_code_for_integration_listener2")),
-            3 => Some((PRS(20), 4, "write_source_code_for_integration_listener3")),
-            4 => Some((PRS(30), 4, "write_source_code_for_integration_listener4")),
-            5 => Some((PRS(31), 4, "write_source_code_for_integration_listener5")),
-            6 => Some((PRS(32), 4, "write_source_code_for_integration_listener6")),
-            7 => Some((RTS(21), 4, "write_source_code_for_integration_listener7")),
-            8 => Some((RTS(22), 4, "write_source_code_for_integration_listener8")),
+            0 => Some((PRS(13), 8, "write_source_code_from_ll1",                  "None")),
+            1 => Some((PRS( 4), 4, "write_source_code_for_integration_listener",  "Expr")),
+            2 => Some((PRS(13), 4, "write_source_code_for_integration_listener2", "Expr")),
+            3 => Some((PRS(20), 4, "write_source_code_for_integration_listener3", "Struct")),
+            4 => Some((PRS(30), 4, "write_source_code_for_integration_listener4", "Struct")),
+            5 => Some((PRS(31), 4, "write_source_code_for_integration_listener5", "Expr")),
+            6 => Some((PRS(32), 4, "write_source_code_for_integration_listener6", "Expr")),
+            7 => Some((RTS(21), 4, "write_source_code_for_integration_listener7", "Star")),
+            8 => Some((RTS(22), 4, "write_source_code_for_integration_listener8", "Star")),
             _ => None
         }
     }
 
     fn do_test(id: u32, verbose: bool) -> bool {
-        if let Some((rule_id, indent, tag)) = get_test_data(id) {
-            let expected = get_source(rule_id, indent);
+        if let Some((rule_id, indent, tag, name)) = get_test_data(id) {
+            let expected = get_source(rule_id, indent, name.to_string());
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
                 println!("{s}// [{tag}]\n{expected}{s}// [{tag}]");
             }
             let result = get_integration_source(tag);
-            assert_eq!(result, expected, "test failed for {id} / {rule_id:?} / {tag}");
+            assert_eq!(result, expected, "test failed for {id} / {rule_id:?} / {tag} ({name})");
             true
         } else {
             false
@@ -375,7 +375,7 @@ mod wrapper_source {
         for (test_id, (rule_id, start_nt, expected_items)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
-            let mut builder = ParserBuilder::from_rules(ll1);
+            let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());
             builder.nt_value = (0..builder.parsing_table.num_nt)
                 .map(|nt| builder.parsing_table.parent[nt].is_none()).to_vec();
             let items = builder.build_item_ops();
