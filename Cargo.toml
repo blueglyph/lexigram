@@ -10,3 +10,6 @@ edition = "2021"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
+
+[features]
+disabled = []
