@@ -365,9 +365,9 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A
-            (RTS(26), 0, btreemap![
-                0 => symbols![t 2],                     //  0: A -> c A_2       | ◄0 ►A_2 c!      | c
-                1 => symbols![t 0, nt 0, nt 1],         //  1: A_1 -> a A_1     | ●A_1 ◄1 a!      | a A A_1
+            (RTS(26), 0, btreemap![                     /// A -> A (c)* b | a
+                0 => symbols![t 0],                     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+                1 => symbols![t 2, nt 0, nt 1],         //  1: A_1 -> c A_1     | ●A_1 ◄1 c!      | c A A_1
                 2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
                 3 => symbols![nt 1, t 1, nt 0],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A_1 b A
                 4 => symbols![],                        //  4: A_2 -> ε         | ◄4              |
@@ -381,13 +381,13 @@ mod wrapper_source {
             //  - A_1 -> A
             //  - A_2 -> A
             //  - A_3 -> A_1
-            (RTS(16), 0, btreemap![
-                0 => symbols![t 2],                     //  0: A -> c A_2       | ◄0 ►A_2 c!      | c
-                1 => symbols![],                        //  1: A_1 -> a A_3     | ►A_3 a!         |
+            (RTS(16), 0, btreemap![                     /// A -> A (c)+ b | a
+                0 => symbols![t 0],                     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+                1 => symbols![],                        //  1: A_1 -> c A_3     | ►A_3 c!         |
                 2 => symbols![nt 1, t 1, nt 0],         //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A_1 b A
                 3 => symbols![],                        //  3: A_2 -> ε         | ◄3              |
-                4 => symbols![t 0, nt 1, nt 0],         //  4: A_3 -> A_1       | ●A_1 ◄4         | a A_1 A
-                5 => symbols![t 0, nt 1],               //  5: A_3 -> ε         | ◄5              | a A_1
+                4 => symbols![t 2, nt 1, nt 0],         //  4: A_3 -> A_1       | ●A_1 ◄4         | c A_1 A
+                5 => symbols![t 2, nt 1],               //  5: A_3 -> ε         | ◄5              | c A_1
             ]),
 
             // --------------------------------------------------------------------------- left_rec + amb

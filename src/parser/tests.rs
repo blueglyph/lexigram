@@ -388,16 +388,16 @@ mod opcodes {
             ]),
             // [A + C] normalization + left recursion --------------------------------------
             (T::RTS(26), 0, vec![                       /// A -> A a* b | c
-                strip![exit 0, nt 2, t 2],              //  0: A -> c A_2       - ◄0 ►A_2 c
-                strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1     - ●A_1 ◄1 a
+                strip![exit 0, nt 2, t 0],              //  0: A -> a A_2       - ◄0 ►A_2 a
+                strip![loop 1, exit 1, t 2],            //  1: A_1 -> c A_1     - ●A_1 ◄1 c
                 strip![exit 2],                         //  2: A_1 -> ε         - ◄2
                 strip![loop 2, exit 3, t 1, nt 1],      //  3: A_2 -> A_1 b A_2 - ●A_2 ◄3 b ►A_1
                 strip![exit 4],                         //  4: A_2 -> ε         - ◄4
             ]),
             // [A + C + D] normalization + left factorization, left recursion --------------
             (T::RTS(16), 0, vec![                       /// A -> A a+ b | c
-                strip![exit 0, nt 2, t 2],              //  0: A -> c A_2       - ◄0 ►A_2 c
-                strip![nt 3, t 0],                      //  1: A_1 -> a A_3     - ►A_3 a
+                strip![exit 0, nt 2, t 0],              //  0: A -> a A_2       - ◄0 ►A_2 a
+                strip![nt 3, t 2],                      //  1: A_1 -> c A_3     - ►A_3 c
                 strip![loop 2, exit 2, t 1, nt 1],      //  2: A_2 -> A_1 b A_2 - ●A_2 ◄2 b ►A_1
                 strip![exit 3],                         //  3: A_2 -> ε         - ◄3
                 strip![loop 1, exit 4],                 //  4: A_3 -> A_1       - ●A_1 ◄4

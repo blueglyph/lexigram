@@ -272,12 +272,12 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(nt 0));
             tree.add(Some(or), gnode!(t 4));
         }
-        16 => { // A (a)+ b | c
+        16 => { // A (c)+ b | a
             let or = tree.add_root(gnode!(|));
             let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
-            let p2 = tree.addc(Some(cc1), gnode!(+), gnode!(t 0));
+            let p2 = tree.addc(Some(cc1), gnode!(+), gnode!(t 2));
             tree.add(Some(cc1), gnode!(t 1));
-            tree.add(Some(or), gnode!(t 2));
+            tree.add(Some(or), gnode!(t 0));
         }
         17 => { // :0 ( (:1)+ :2)+ :3
             let cc = tree.add_root(gnode!(&));
@@ -349,12 +349,12 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
-        26 => { // A (a)* b | c (see also RST(16))
+        26 => { // A (c)* b | a (see also RST(16))
             let or = tree.add_root(gnode!(|));
             let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
-            let p2 = tree.addc(Some(cc1), gnode!(*), gnode!(t 0));
+            let p2 = tree.addc(Some(cc1), gnode!(*), gnode!(t 2));
             tree.add(Some(cc1), gnode!(t 1));
-            tree.add(Some(or), gnode!(t 2));
+            tree.add(Some(or), gnode!(t 0));
         }
         _ => {}
     }
