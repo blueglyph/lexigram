@@ -349,6 +349,13 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
+        26 => { // A (a)* b | c (see also RST(16))
+            let or = tree.add_root(gnode!(|));
+            let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
+            let p2 = tree.addc(Some(cc1), gnode!(*), gnode!(t 0));
+            tree.add(Some(cc1), gnode!(t 1));
+            tree.add(Some(or), gnode!(t 2));
+        }
         _ => {}
     }
     if 21 <= id && id <= 25 {

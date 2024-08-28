@@ -360,6 +360,20 @@ mod wrapper_source {
             // ---------------------------------------------------------------------------
             // NT flags:
             //  - A: parent_left_rec (2560)
+            //  - B: child_+_or_* (1)
+            //  - A_1: child_left_rec (4)
+            // parents:
+            //  - B -> A
+            //  - A_1 -> A
+            (RTS(26), 0, btreemap![                     /// A -> A (a)* b | c
+                0 => symbols![t 2],                     //  0: A -> c A_1     | ◄0 ►A_1 c!    | c
+                1 => symbols![t 0, nt 0, nt 1],         //  1: B -> a B       | ●B ◄1 a!      | a A B
+                2 => symbols![],                        //  2: B -> ε         | ◄2            |
+                3 => symbols![nt 1, t 1, nt 0],         //  3: A_1 -> B b A_1 | ●A_1 ◄3 b! ►B | B b A
+                4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
+            ]),
+            // NT flags:
+            //  - A: parent_left_rec (2560)
             //  - B: child_+_or_* | parent_left_fact (33)
             //  - A_1: child_left_rec (4)
             //  - B_1: child_left_fact (64)
