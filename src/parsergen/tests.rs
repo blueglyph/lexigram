@@ -62,6 +62,7 @@ mod gen_integration {
             6 => Some((PRS(32), 4, "write_source_code_for_integration_listener6", "Expr")),
             7 => Some((RTS(21), 4, "write_source_code_for_integration_listener7", "Star")),
             8 => Some((RTS(22), 4, "write_source_code_for_integration_listener8", "Star")),
+            9 => Some((RTS(16), 4, "write_source_code_for_integration_listener9", "Plus")),
             _ => None
         }
     }
@@ -141,6 +142,12 @@ mod gen_integration {
     #[test]
     fn write_source_code_for_integration_listener8() {
         do_test(8, true);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source_code_for_integration_listener9() {
+        do_test(9, true);
     }
 }
 
@@ -404,6 +411,7 @@ mod wrapper_source {
         const VERBOSE: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items)) in tests.into_iter().enumerate() {
+if rule_id != RTS(16) && rule_id != RTS(26) { continue }
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());

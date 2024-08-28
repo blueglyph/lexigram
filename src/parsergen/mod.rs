@@ -660,6 +660,12 @@ impl ParserBuilder {
         let mut user_names = vec![];
         for (v, name) in nt_name.iter().enumerate().filter_map(|(v, n)| if let Some(nm) = n { Some((v, &nm.0)) } else { None }) {
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
+                // TODO: <String> is only valid for a single T; there could be
+                //       - several T/NT => tuple, like `Vec<(String, SynB, String)>`
+                //                      => or struct, like `Vec<APlusItem { c: String, b: SynB, d: String }>`
+                //       - alternative factors => enum
+                //       Information on that format should be stored for each +/*.
+                //       Another possibility is forcing a dedicated NT for what's inside the +/* (lot of changes).
                 src.push(format!("struct Syn{}(Vec<String>);", name.clone()));
             } else {
                 user_names.push(format!("Syn{name}"));

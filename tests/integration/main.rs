@@ -1865,12 +1865,12 @@ mod listener6 {
         // E -> F | E . id | E . id ( )
         // F -> id
         //
-        //  //  0: E -> F E_1      | ◄0 ►E_1 ►F  | F
-        //  //  1: F -> id         | ◄1 id!      | id
-        //  //  2: E_1 -> . id E_2 | ►E_2 id! .  |
-        //  //  3: E_1 -> ε        | ◄3          |
-        //  //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | id E
-        //  //  5: E_2 -> E_1      | ●E_1 ◄5     | id E
+        //  0: E -> F E_1      | ◄0 ►E_1 ►F  | F
+        //  1: F -> id         | ◄1 id!      | id
+        //  2: E_1 -> . id E_2 | ►E_2 id! .  |
+        //  3: E_1 -> ε        | ◄3          |
+        //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | id E
+        //  5: E_2 -> E_1      | ●E_1 ◄5     | id E
         //
         // - NT flags:
         //   - E_1: child_left_rec | parent_left_fact (36)
@@ -2704,5 +2704,300 @@ mod listener8 {
             }
         }
     }
+}
 
+#[cfg(feature="disabled")]
+#[allow(unused)]
+mod listener9 {
+    // [write_source_code_for_integration_listener9]
+    // -------------------------------------------------------------------------
+    // Automatically generated
+
+    use rlexer::grammar::{ProdFactor, Symbol, VarId, FactorId};
+    use rlexer::parser::{OpCode, Parser};
+    use rlexer::symbol_table::SymbolTable;
+
+    const PARSER_NUM_T: usize = 3;
+    const PARSER_NUM_NT: usize = 4;
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("a", Some("a")), ("b", Some("b")), ("c", Some("c"))];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["A", "B", "A_1", "B_1"];
+    const SYMBOLS_NAMES: [(&str, VarId); 2] = [("A_1", 2), ("B_1", 3)];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 6] = [(0, &[Symbol::T(0), Symbol::NT(2)]), (1, &[Symbol::T(2), Symbol::NT(3)]), (2, &[Symbol::NT(1), Symbol::T(1), Symbol::NT(2)]), (2, &[Symbol::Empty]), (3, &[Symbol::NT(1)]), (3, &[Symbol::Empty])];
+    const PARSING_TABLE: [FactorId; 16] = [0, 6, 6, 6, 6, 6, 1, 6, 6, 6, 2, 3, 6, 5, 4, 6];
+    const FLAGS: [u32; 4] = [6656, 4129, 4, 64];
+    const PARENT: [Option<VarId>; 4] = [None, Some(0), Some(0), Some(1)];
+    const OPCODES: [&[OpCode]; 6] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::T(0)], &[OpCode::NT(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::NT(1)], &[OpCode::Exit(3)], &[OpCode::Loop(1), OpCode::Exit(4)], &[OpCode::Exit(5)]];
+    const START_SYMBOL: VarId = 0;
+
+    pub(super) fn build_parser() -> Parser {
+        let mut symbol_table = SymbolTable::new();
+        symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
+        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));
+        let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
+        let table: Vec<FactorId> = PARSING_TABLE.into();
+        let parsing_table = rlexer::grammar::LLParsingTable {
+            num_nt: PARSER_NUM_NT,
+            num_t: PARSER_NUM_T + 1,
+            factors,
+            table,
+            flags: FLAGS.into(),
+            parent: PARENT.into(),
+        };
+        Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)
+    }
+
+    // -------------------------------------------------------------------------
+    // [write_source_code_for_integration_listener9]
+
+    mod test {
+        use std::collections::HashMap;
+        use rlexer::dfa::TokenId;
+        use rlexer::grammar::{Symbol, VarId};
+        use rlexer::{hashmap, s};
+        use rlexer::parser::{Call, Listener};
+        use rlexer::symbol_table::SymbolTable;
+        use rlexer::CollectJoin;
+
+        /// A -> A (c)+ b | a
+        //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+        //  1: A_1 -> c A_3     | ►A_3 c!         |
+        //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A_1 b A
+        //  3: A_2 -> ε         | ◄3              |
+        //  4: A_3 -> A_1       | ●A_1 ◄4         | c A_1 A
+        //  5: A_3 -> ε         | ◄5              | c A_1
+        //
+        // NT flags:
+        //  - A: parent_left_rec | parent_+_or_* | plus (6656)
+        //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+        //  - A_2: child_left_rec (4)
+        //  - A_3: child_left_fact (64)
+        // parents:
+        //  - A_1 -> A
+        //  - A_2 -> A
+        //  - A_3 -> A_1
+
+        #[derive(Debug)]
+        pub enum Ctx {
+            A { a: SynA }
+        }
+
+        #[derive(Debug)]
+        pub enum CtxA {
+            /// Factor `A -> a`
+            A1 { a: String },
+            /// Factor `A -> A (c)+ b
+            A2 { c_plus: SynAPlus, b: String, a: SynA },
+        }
+
+        // SynA: defined by user below
+
+        #[derive(Debug)]
+        struct SynAPlus {
+            c: Vec<String>,
+        }
+
+        #[derive(Debug)]
+        enum SynValue { A(SynA), APlus(SynAPlus) }
+
+        impl SynValue {
+            fn get_a(self) -> SynA {
+                if let SynValue::A(val) = self { val } else { panic!() }
+            }
+            fn get_a_plus(self) -> SynAPlus {
+                if let SynValue::APlus(val) = self { val } else { panic!() }
+            }
+        }
+
+        pub trait StarListener {
+            fn exit(&mut self, _ctx: Ctx) {}
+            fn init_a(&mut self) {}
+            fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        }
+
+        struct ListenerWrapper<T> {
+            verbose: bool,
+            listener: T,
+            stack: Vec<SynValue>,
+            max_stack: usize,
+            stack_t: Vec<String>,
+        }
+
+        impl<T: StarListener> ListenerWrapper<T> {
+            pub fn new(listener: T, verbose: bool) -> Self {
+                ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            }
+
+            pub fn listener(self) -> T {
+                self.listener
+            }
+        }
+
+        impl<T: StarListener> Listener for ListenerWrapper<T> {
+            fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+                if let Some(mut t_data) = t_data {
+                    self.stack_t.append(&mut t_data);
+                }
+                match call {
+                    Call::Enter => {
+                        match nt {
+                            0 => self.listener.init_a(),
+                            1 => self.init_a_1(),
+                            2 => self.init_a_2(),
+                            3 => {}
+                            _ => panic!("unexpected exit non-terminal id: {nt}")
+                        }
+                    }
+                    Call::Loop => {}
+                    Call::Exit => {
+                        match factor_id {
+                            0 => self.exit_a(),     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+                            1 => self.exit_a_1(),   //  1: A_1 -> c A_3     | ►A_3 c!         |
+                            2 => self.exit_a_2(),   //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A_1 b A
+                            3 => { }                //  3: A_2 -> ε         | ◄3              |
+                            4 |                     //  4: A_3 -> A_1       | ●A_1 ◄4         | c A_1 A
+                            5 => self.exit_a_3(),   //  5: A_3 -> ε         | ◄5              | c A_1
+                            _ => panic!("unexpected exit factor id: {factor_id}")
+                        }
+                    }
+                    Call::End => {
+                        self.exit();
+                    }
+                }
+                self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+                if self.verbose {
+                    println!("> stack_t:   {}", self.stack_t.join(", "));
+                    println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+                }
+            }
+        }
+
+        impl<T: StarListener> ListenerWrapper<T> {
+            fn exit(&mut self) {
+                let a = self.stack.pop().unwrap().get_a();
+                self.listener.exit(Ctx::A { a });
+            }
+
+// --------------------------------- todo: below
+
+            fn init_a_1(&mut self) {
+                let a_star = SynAPlus { c: Vec::new() };
+                self.stack.push(SynValue::APlus(a_star));
+            }
+
+            fn exit_a(&mut self) {
+                let c = self.stack_t.pop().unwrap();
+                let b = self.stack.pop().unwrap().get_a_plus().0;
+                let a = self.stack_t.pop().unwrap();
+                let val = self.listener.exit_a(CtxA::A { a, b, c });
+                self.stack.push(SynValue::A(val));
+            }
+
+            fn exit_a_1(&mut self) {
+                let mut a_star = self.stack.pop().unwrap().get_a_plus();
+                let b = self.stack_t.pop().unwrap();
+                a_star.0.push(b);
+                self.stack.push(SynValue::APlus(a_star));
+            }
+        }
+
+        // User code -----------------------------------------------------
+
+        #[derive(Debug, PartialEq)]
+        pub struct SynA { a: String, b: Vec<String>, c: String }
+
+        struct TestListener {
+            result: Option<SynA>,
+            verbose: bool,
+        }
+
+        impl TestListener {
+            pub fn new(verbose: bool) -> Self {
+                Self { result: None, verbose }
+            }
+        }
+
+        impl StarListener for TestListener {
+            fn exit(&mut self, ctx: Ctx) {
+                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
+                let Ctx::A(a) = ctx;
+                self.result = Some(a);
+            }
+
+            fn init_a(&mut self) {
+                if self.verbose { println!("► A"); }
+            }
+
+            fn exit_a(&mut self, ctx: CtxA) -> SynA {
+                if self.verbose { println!("◄ A"); }
+                let CtxA::A { a, b, c } = ctx;
+                SynA { a, b, c}
+            }
+        }
+
+        #[test]
+        fn parser_parse_stream() {
+            let tests = vec![
+                (
+                    "a b b b c",
+                    true,
+                    (Some(SynA { a: s!("a"), b: vec![s!("b"), s!("b"), s!("b")], c: s!("c")}))
+                ),
+                (
+                    "a c",
+                    true,
+                    (Some(SynA { a: s!("a"), b: vec![], c: s!("c")}))
+                ),
+            ];
+            const VERBOSE: bool = true;
+            const VERBOSE_LISTENER: bool = true;
+            const T_ID: VarId = 1;
+
+            let mut parser = super::build_parser();
+
+            // The lexer provides the required stream, so this isn't necessary in a real case:
+            let mut symb_table = SymbolTable::new();
+            symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
+            let symbols = (0..super::SYMBOLS_T.len() as TokenId)
+                .map(|t| Symbol::T(t))
+                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .collect::<HashMap<_, _>>();
+            for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
+                if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().map(|w| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                });
+
+                // User code under test ------------------------------
+
+                let listener = TestListener::new(VERBOSE_LISTENER);
+                let mut wrapper = ListenerWrapper::new(listener, VERBOSE_LISTENER);
+                let success = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        true
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        false
+                    }
+                };
+                if VERBOSE {
+                    println!("max stack: {}", wrapper.max_stack);
+                    println!("wrapper stack: {:?}", wrapper.stack);
+                    // println!("listener asm_stack: {:?}", wrapper.asm_stack);
+                }
+                // ---------------------------------------------------
+
+                let err_msg = format!("test {test_id} failed for input {input}");
+                assert_eq!(success, expected_success, "{err_msg}");
+                if success {
+                    assert!(wrapper.stack.is_empty(), "{err_msg}");
+                    assert!(wrapper.stack_t.is_empty(), "{err_msg}");
+                    let listener = wrapper.listener();
+                    assert_eq!(listener.result, expected_result, "{err_msg}");
+                }
+            }
+        }
+    }
 }
