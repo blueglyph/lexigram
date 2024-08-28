@@ -249,8 +249,8 @@ mod wrapper_source {
             // --------------------------------------------------------------------------- norm+ R/L
             // A -> a (b)+ c
             // NT flags:
-            //  - A:  (2048)
-            //  - A_1: child_+_or_* | parent_left_fact (33)
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
             //  - A_2: child_left_fact (64)
             // parents:
             //  - A_1 -> A
@@ -263,8 +263,8 @@ mod wrapper_source {
             ]),
             // A -> a (b <L>)+ c
             // NT flags:
-            //  - A:  (2048)
-            //  - A_1: child_+_or_* | parent_left_fact | L-form (161)
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
             //  - A_2: child_left_fact (64)
             // parents:
             //  - A_1 -> A
@@ -373,8 +373,8 @@ mod wrapper_source {
                 4 => symbols![],                        //  4: A_2 -> ε         | ◄4              |
             ]),
             // NT flags:
-            //  - A: parent_left_rec (2560)
-            //  - A_1: child_+_or_* | parent_left_fact (33)
+            //  - A: parent_left_rec | parent_+_or_* | plus (6656)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
             //  - A_2: child_left_rec (4)
             //  - A_3: child_left_fact (64)
             // parents:

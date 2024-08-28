@@ -533,7 +533,16 @@ impl ParserBuilder {
                         *c = Some(0);
                     } else {
                         let name = if let Symbol::NT(vs) = s {
-                            nt_name[*vs as usize].clone().unwrap().1
+                            let flag = pinfo.flags[*vs as usize];
+                            if flag & ruleflag::CHILD_REPEAT != 0 {
+                                let inside_factor_id = var_factors[*vs as usize][0];
+                                let inside_factor = &pinfo.factors[inside_factor_id as usize].1;
+                                let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore();
+                                plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
+                                plus_name
+                            } else {
+                                nt_name[*vs as usize].clone().unwrap().1
+                            }
                         } else {
                             s.to_str(self.get_symbol_table()).to_lowercase()
                         };

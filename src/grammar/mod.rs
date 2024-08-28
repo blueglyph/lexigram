@@ -294,7 +294,8 @@ pub mod ruleflag {
     /// Star or Plus repeat parent factor.
     /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
     pub const PARENT_REPEAT: u32 = 2048;
-
+    /// CHILD_REPEAT and PARENT_REPEAT is +, not * (used with both flags)
+    pub const REPEAT_PLUS: u32 = 4096;
 
     pub fn to_string(flags: u32) -> Vec<String> {
         let names = btreemap![
@@ -308,6 +309,9 @@ pub mod ruleflag {
             L_FORM                      => "L-form".to_string(),
             R_ASSOC                     => "R-assoc".to_string(),
             PARENT_L_RECURSION          => "parent_left_rec".to_string(),
+            PARENT_AMBIGUITY            => "parent_amb".to_string(),
+            PARENT_REPEAT               => "parent_+_or_*".to_string(),
+            REPEAT_PLUS                 => "plus".to_string(),
         ];
         names.into_iter().filter_map(|(f, t)| if flags & f != 0 { Some(t) } else { None } ).collect::<_>()
     }
@@ -682,8 +686,9 @@ impl RuleTreeSet<General> {
         self.set_tree(*new_var, qtree);
         self.flags.resize(*new_var as usize + 1, 0);
         self.parent.resize(*new_var as usize + 1, None);
-        self.flags[*new_var as usize] = ruleflag::CHILD_REPEAT;
-        self.flags[var as usize] |= ruleflag::PARENT_REPEAT;
+        let plus_flag = if is_plus { ruleflag::REPEAT_PLUS } else { 0 };
+        self.flags[*new_var as usize] = ruleflag::CHILD_REPEAT | plus_flag;
+        self.flags[var as usize] |= ruleflag::PARENT_REPEAT | plus_flag;
         self.parent[*new_var as usize] = Some(var);
         *new_var += 1;
         stack.push(id);
@@ -746,8 +751,8 @@ impl ProdFactor {
         ProdFactor { v, flags }
     }
 
-    pub fn symbols(self) -> Vec<Symbol> {
-        self.v
+    pub fn symbols(&self) -> &Vec<Symbol> {
+        &self.v
     }
 
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
