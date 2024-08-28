@@ -2793,9 +2793,7 @@ mod listener9 {
         // SynA: defined by user below
 
         #[derive(Debug)]
-        struct SynAPlus {
-            c: Vec<String>,
-        }
+        struct SynAPlus(Vec<String>);
 
         #[derive(Debug)]
         enum SynValue { A(SynA), APlus(SynAPlus) }
@@ -2878,12 +2876,18 @@ mod listener9 {
                 self.listener.exit(Ctx::A { a });
             }
 
-// --------------------------------- todo: below
-
             fn init_a_1(&mut self) {
-                let a_star = SynAPlus { c: Vec::new() };
+                let a_star = SynAPlus(Vec::new());
                 self.stack.push(SynValue::APlus(a_star));
             }
+
+            fn init_a_2(&mut self) {
+                let a = self.stack_t.pop().unwrap();
+                let a = self.listener.exit_a(CtxA::A1 { a });
+                self.stack.push(SynValue::A(a));
+            }
+
+// --------------------------------- todo: below
 
             fn exit_a(&mut self) {
                 let c = self.stack_t.pop().unwrap();
