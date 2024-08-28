@@ -288,19 +288,19 @@ mod opcodes {
                 strip![exit 3],                         //  3: A_2 -> ε        - ◄3
             ]),
             (T::RTS(12), 0, vec![                       /// A -> b (c d)*
-                strip![exit 0, nt 1, t 1],              //  0: A -> b B   - ◄0 ►B b
-                strip![loop 1, exit 1, t 3, t 2],       //  1: B -> c d B - ●B ◄1 d c
-                strip![exit 2],                         //  2: B -> ε     - ◄2
+                strip![exit 0, nt 1, t 1],              //  0: A -> b A_1     - ◄0 ►A_1 b
+                strip![loop 1, exit 1, t 3, t 2],       //  1: A_1 -> c d A_1 - ●A_1 ◄1 d c
+                strip![exit 2],                         //  2: A_1 -> ε       - ◄2
             ]),
             // [A + A] cascaded + normalizations -------------------------------------------
             (T::RTS(17), 0, vec![                       /// A -> a ( (b)+ c)+ d
-                strip![exit 0, t 3, nt 2, t 0],         //  0: A -> a C d   - ◄0 d ►C a
-                strip![nt 3, t 1],                      //  1: B -> b B_1   - ►B_1 b
-                strip![nt 4, t 2, nt 1],                //  2: C -> B c C_1 - ►C_1 c ►B
-                strip![loop 1, exit 3],                 //  3: B_1 -> B     - ●B ◄3
-                strip![exit 4],                         //  4: B_1 -> ε     - ◄4
-                strip![loop 2, exit 5],                 //  5: C_1 -> C     - ●C ◄5
-                strip![exit 6],                         //  6: C_1 -> ε     - ◄6
+                strip![exit 0, t 3, nt 2, t 0],         //  0: A -> a A_2 d     - ◄0 d ►A_2 a
+                strip![nt 3, t 1],                      //  1: A_1 -> b A_3     - ►A_3 b
+                strip![nt 4, t 2, nt 1],                //  2: A_2 -> A_1 c A_4 - ►A_4 c ►A_1
+                strip![loop 1, exit 3],                 //  3: A_3 -> A_1       - ●A_1 ◄3
+                strip![exit 4],                         //  4: A_3 -> ε         - ◄4
+                strip![loop 2, exit 5],                 //  5: A_4 -> A_2       - ●A_2 ◄5
+                strip![exit 6],                         //  6: A_4 -> ε         - ◄6
             ]),
             // [B] right recursion ---------------------------------------------------------
             (T::PRS(16), 0, vec![                       /// A -> B A | b     B -> a
@@ -386,14 +386,22 @@ mod opcodes {
                 strip![loop 2, exit 9, nt 1, t 1],      //  9: E_1 -> + F E_1 - ●E_1 ◄9 ►F +
                 strip![exit 10],                        // 10: E_1 -> ε       - ◄10
             ]),
+            // [A + C] normalization + left recursion --------------------------------------
+            (T::RTS(26), 0, vec![                       /// A -> A a* b | c
+                strip![exit 0, nt 2, t 2],              //  0: A -> c A_2       - ◄0 ►A_2 c
+                strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1     - ●A_1 ◄1 a
+                strip![exit 2],                         //  2: A_1 -> ε         - ◄2
+                strip![loop 2, exit 3, t 1, nt 1],      //  3: A_2 -> A_1 b A_2 - ●A_2 ◄3 b ►A_1
+                strip![exit 4],                         //  4: A_2 -> ε         - ◄4
+            ]),
             // [A + C + D] normalization + left factorization, left recursion --------------
             (T::RTS(16), 0, vec![                       /// A -> A a+ b | c
-                strip![exit 0, nt 2, t 2],              //  0: A -> c A_1     - ◄0 ►A_1 c
-                strip![nt 3, t 0],                      //  1: B -> a B_1     - ►B_1 a
-                strip![loop 2, exit 2, t 1, nt 1],      //  2: A_1 -> B b A_1 - ●A_1 ◄2 b ►B
-                strip![exit 3],                         //  3: A_1 -> ε       - ◄3
-                strip![loop 1, exit 4],                 //  4: B_1 -> B       - ●B ◄4
-                strip![exit 5],                         //  5: B_1 -> ε       - ◄5
+                strip![exit 0, nt 2, t 2],              //  0: A -> c A_2       - ◄0 ►A_2 c
+                strip![nt 3, t 0],                      //  1: A_1 -> a A_3     - ►A_3 a
+                strip![loop 2, exit 2, t 1, nt 1],      //  2: A_2 -> A_1 b A_2 - ●A_2 ◄2 b ►A_1
+                strip![exit 3],                         //  3: A_2 -> ε         - ◄3
+                strip![loop 1, exit 4],                 //  4: A_3 -> A_1       - ●A_1 ◄4
+                strip![exit 5],                         //  5: A_3 -> ε         - ◄5
             ]),
             // [D] left factorization -----------------------------------------------------
             (T::PRS(28), 0, vec![                       /// A -> a | a b | a b c | a b d | e

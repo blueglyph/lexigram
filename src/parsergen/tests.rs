@@ -360,34 +360,34 @@ mod wrapper_source {
             // ---------------------------------------------------------------------------
             // NT flags:
             //  - A: parent_left_rec (2560)
-            //  - B: child_+_or_* (1)
-            //  - A_1: child_left_rec (4)
+            //  - A_1: child_+_or_* (1)
+            //  - A_2: child_left_rec (4)
             // parents:
-            //  - B -> A
             //  - A_1 -> A
-            (RTS(26), 0, btreemap![                     /// A -> A (a)* b | c
-                0 => symbols![t 2],                     //  0: A -> c A_1     | ◄0 ►A_1 c!    | c
-                1 => symbols![t 0, nt 0, nt 1],         //  1: B -> a B       | ●B ◄1 a!      | a A B
-                2 => symbols![],                        //  2: B -> ε         | ◄2            |
-                3 => symbols![nt 1, t 1, nt 0],         //  3: A_1 -> B b A_1 | ●A_1 ◄3 b! ►B | B b A
-                4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
+            //  - A_2 -> A
+            (RTS(26), 0, btreemap![
+                0 => symbols![t 2],                     //  0: A -> c A_2       | ◄0 ►A_2 c!      | c
+                1 => symbols![t 0, nt 0, nt 1],         //  1: A_1 -> a A_1     | ●A_1 ◄1 a!      | a A A_1
+                2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
+                3 => symbols![nt 1, t 1, nt 0],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A_1 b A
+                4 => symbols![],                        //  4: A_2 -> ε         | ◄4              |
             ]),
             // NT flags:
             //  - A: parent_left_rec (2560)
-            //  - B: child_+_or_* | parent_left_fact (33)
-            //  - A_1: child_left_rec (4)
-            //  - B_1: child_left_fact (64)
+            //  - A_1: child_+_or_* | parent_left_fact (33)
+            //  - A_2: child_left_rec (4)
+            //  - A_3: child_left_fact (64)
             // parents:
-            //  - B -> A
             //  - A_1 -> A
-            //  - B_1 -> B
-            (RTS(16), 0, btreemap![                     /// A -> A (a)+ b | c
-                0 => symbols![t 2],                     //  0: A -> c A_1     | ◄0 ►A_1 c!    | c
-                1 => symbols![],                        //  1: B -> a B_1     | ►B_1 a!       |
-                2 => symbols![nt 1, t 1, nt 0],         //  2: A_1 -> B b A_1 | ●A_1 ◄2 b! ►B | B b A
-                3 => symbols![],                        //  3: A_1 -> ε       | ◄3            |
-                4 => symbols![t 0, nt 1, nt 0],         //  4: B_1 -> B       | ●B ◄4         | a B A
-                5 => symbols![t 0, nt 1],               //  5: B_1 -> ε       | ◄5            | a B
+            //  - A_2 -> A
+            //  - A_3 -> A_1
+            (RTS(16), 0, btreemap![
+                0 => symbols![t 2],                     //  0: A -> c A_2       | ◄0 ►A_2 c!      | c
+                1 => symbols![],                        //  1: A_1 -> a A_3     | ►A_3 a!         |
+                2 => symbols![nt 1, t 1, nt 0],         //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A_1 b A
+                3 => symbols![],                        //  3: A_2 -> ε         | ◄3              |
+                4 => symbols![t 0, nt 1, nt 0],         //  4: A_3 -> A_1       | ●A_1 ◄4         | a A_1 A
+                5 => symbols![t 0, nt 1],               //  5: A_3 -> ε         | ◄5              | a A_1
             ]),
 
             // --------------------------------------------------------------------------- left_rec + amb

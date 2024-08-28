@@ -2272,12 +2272,14 @@ impl T {
         let mut ll1 = match self {
             T::RTS(id) => {
                 let mut rts = build_rts(*id);
-                let mut rules = ProdRuleSet::from(rts);
-                if rules.get_symbol_table().is_none() {
+                if rts.get_symbol_table().is_none() {
+                    let num_nt = rts.trees.len();
+                    let num_t = rts.get_terminals().iter().map(|token| *token as usize).max().unwrap_or(0) + 1;
                     let mut symbol_table = SymbolTable::new();
-                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), is_t_data);
-                    rules.set_symbol_table(symbol_table);
+                    complete_symbol_table(&mut symbol_table, num_t, num_nt, is_t_data);
+                    rts.set_symbol_table(symbol_table);
                 }
+                let mut rules = ProdRuleSet::from(rts);
                 assert_eq!(rules.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
                 if VERBOSE {
                     print!("General rules\n- ");
