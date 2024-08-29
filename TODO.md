@@ -81,6 +81,7 @@
       - [ ] better names when creating children NTs (grammar/symbol_table)
       - [ ] name fixer when creating enum options in contexts (ParserBuilder::source_wrapper) 
       - [ ] better names when creating enum options in contexts (ParserBuilder::source_wrapper)
+      - [ ] option to generate or not last call after iterations in left_rec?
     - [ ] error recovery
   - bottom-up
     - [ ] decide algorithm (LALR?)

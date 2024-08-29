@@ -1588,7 +1588,7 @@ mod listener5 {
         #[derive(Debug)]
         pub enum Ctx { E { e: SynE } }
         #[derive(Debug)]
-        pub enum CtxE { E_Id { e: SynE, id: String }, F { f: SynF } }
+        pub enum CtxE { E_Id { e: SynE, id: String }, F { f: SynF }, E { e: SynE } }
         #[derive(Debug)]
         pub enum CtxF { F { id: String } }
 
@@ -1695,18 +1695,25 @@ mod listener5 {
             }
 
             fn exit_e(&mut self) {
+                let e = self.stack.pop().unwrap().get_e();
+                let e = self.listener.exit_e(CtxE::E { e });
+                self.stack.push(SynValue::E(e));
             }
         }
 
         // User code -----------------------------------------------------
 
         #[derive(Debug)]
-        pub struct SynE(Vec<String>);
+        pub enum SynE {
+            Tmp(Vec<String>),
+            Final(String)
+        }
+
         #[derive(Debug)]
         pub struct SynF(String);
 
         struct TestListener {
-            result: Option<Vec<String>>,
+            result: Option<String>,
             verbose: bool,
         }
 
@@ -1719,8 +1726,11 @@ mod listener5 {
         impl ExprListener for TestListener {
             fn exit(&mut self, ctx: Ctx) {
                 if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::E { e } = ctx;
-                self.result = Some(e.0);
+                if let Ctx::E { e: SynE::Final(e) } = ctx {
+                    self.result = Some(e);
+                } else {
+                    panic!("unexpected final context {ctx:?}");
+                }
             }
 
             fn init_e(&mut self) {
@@ -1734,13 +1744,17 @@ mod listener5 {
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 if self.verbose { println!("◄ E (ctx = {ctx:?})"); }
                 match ctx {
-                    CtxE::E_Id { mut e, id } => {
-                        e.0.push(id);
-                        e
+                    CtxE::E_Id { e: SynE::Tmp(mut e), id } => {
+                        e.push(id);
+                        SynE::Tmp(e)
                     },
                     CtxE::F { f } => {
-                        SynE(vec![f.0])
+                        SynE::Tmp(vec![f.0])
                     }
+                    CtxE::E { e: SynE::Tmp(e) } => {
+                        SynE::Final(e.join(""))
+                    }
+                    _ => panic!("unexpected context {ctx:?}")
                 }
             }
 
@@ -1757,12 +1771,12 @@ mod listener5 {
                 (
                     "a . b . c . d",
                     true,
-                    (Some(vec!["a", "b", "c", "d"]))
+                    (Some("abcd"))
                 ),
                 (
                     "a",
                     true,
-                    (Some(vec!["a"]))
+                    (Some("a"))
                 ),
             ];
             const VERBOSE: bool = true;
@@ -1808,7 +1822,7 @@ mod listener5 {
                 assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
                 if success {
                     let listener = wrapper.listener();
-                    let expected_result = expected_result.map(|v| v.into_iter().map(|s| s.to_string()).to_vec());
+                    let expected_result = expected_result.map(|s| s.to_string());
                     assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
                 }
             }
@@ -1897,7 +1911,10 @@ mod listener6 {
             /// Factor `E -> E . id ( )`
             E_Id_par { e: SynE, id: String },
             /// Factor `E -> F`
-            F { f: SynF } }
+            F { f: SynF },
+            // optional last call not used:
+            // E { e: SynE },
+        }
         #[derive(Debug)]
         pub enum CtxF {
             /// Factor `F -> id`
@@ -1962,7 +1979,7 @@ mod listener6 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_e(),                 //  0: E -> F E_1      - ◄0 ►E_1 ►F
+                            0 => /*self.exit_e()*/ { },         //  0: E -> F E_1      - ◄0 ►E_1 ►F   (optional last call not used)
                             1 => self.exit_f(),                 //  1: F -> id         - ◄1 id!
                             /* no exit */                       //  2: E_1 -> . id E_2 - ►E_2 id! .
                             3 => { },                           //  3: E_1 -> ε        - ◄3
@@ -1976,7 +1993,6 @@ mod listener6 {
                     }
                 }
                 self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-                // self.max_asm_stack = std::cmp::max(self.max_asm_stack, self.asm_stack.len());
                 if self.verbose {
                     println!("> stack_t:   {}", self.stack_t.join(", "));
                     println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
@@ -1986,7 +2002,8 @@ mod listener6 {
 
         impl<T: ExprListener> ListenerWrapper<T> {
             fn exit(&mut self) {
-                // TODO:
+                let e = self.stack.pop().unwrap().get_e();
+                self.listener.exit(Ctx::E { e });
             }
 
             fn init_e_1(&mut self) {
@@ -2013,10 +2030,9 @@ mod listener6 {
                 self.stack.push(SynValue::E(e));
             }
 
-            fn exit_e(&mut self) {
-                let e = self.stack.pop().unwrap().get_e();
-                self.listener.exit(Ctx::E { e });
-            }
+            // optional last call not used:
+            // fn exit_e(&mut self) {
+            // }
         }
 
         // User code -----------------------------------------------------
