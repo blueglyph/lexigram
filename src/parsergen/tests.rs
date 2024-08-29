@@ -398,9 +398,26 @@ mod wrapper_source {
             ]),
 
             // --------------------------------------------------------------------------- left_rec + amb
+            // NT flags:
+            //  - E: parent_left_rec | parent_amb (1536)
+            //  - E_1: child_left_rec | child_amb (12)
+            // parents:
+            //  - E_1 -> E
+            (PRS(13), 0, btreemap![
+                0 => symbols![nt 1],                    //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
+                1 => symbols![nt 0],                    //  1: F -> ( E )     | ◄1 ) ►E (    | E
+                2 => symbols![t 6],                     //  2: F -> N         | ◄2 N!        | N
+                3 => symbols![t 7],                     //  3: F -> I         | ◄3 I!        | I
+                4 => symbols![nt 1, nt 0],              //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | F E
+                5 => symbols![nt 1, nt 0],              //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | F E
+                6 => symbols![nt 1, nt 0],              //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | F E
+                7 => symbols![nt 1, nt 0],              //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | F E
+                8 => symbols![nt 1, nt 0],              //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | F E
+                9 => symbols![nt 1, nt 0],              //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | F E
+                10 => symbols![],                       // 10: E_1 -> ε       | ◄10          |
+            ]),
             // (PRS(9), 0, btreemap![]),
             // (PRS(10), 0, btreemap![]),
-            // (PRS(13), 0, btreemap![]),
             // (PRS(15), 0, btreemap![]),
             // ---------------------------------------------------------------------------
             /*
@@ -411,7 +428,7 @@ mod wrapper_source {
         const VERBOSE: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items)) in tests.into_iter().enumerate() {
-if rule_id != RTS(16) && rule_id != RTS(26) { continue }
+// if rule_id != RTS(16) && rule_id != RTS(26) { continue }
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());

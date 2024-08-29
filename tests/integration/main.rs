@@ -399,22 +399,23 @@ mod listener2 {
     // F -> ( E ) | N | I
     // E_1 -> : F E_1 | ^ F E_1 | / F E_1 | * F E_1 | - F E_1 | + F E_1 | ε
     //
-    //  0: E -> F E_1     - ◄0 ►E_1 ►F
-    //  1: F -> ( E )     - ◄1 ) ►E (
-    //  2: F -> N         - ◄2 N!
-    //  3: F -> I         - ◄3 I!
-    //  4: E_1 -> : F E_1 - ●E_1 ◄4 ►F :
-    //  5: E_1 -> ^ F E_1 - ●E_1 ◄5 ►F ^
-    //  6: E_1 -> / F E_1 - ●E_1 ◄6 ►F /
-    //  7: E_1 -> * F E_1 - ●E_1 ◄7 ►F *
-    //  8: E_1 -> - F E_1 - ●E_1 ◄8 ►F -
-    //  9: E_1 -> + F E_1 - ●E_1 ◄9 ►F +
-    // 10: E_1 -> ε       - ◄10
+    //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
+    //  1: F -> ( E )     | ◄1 ) ►E (    | E
+    //  2: F -> N         | ◄2 N!        | N
+    //  3: F -> I         | ◄3 I!        | I
+    //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | F E
+    //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | F E
+    //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | F E
+    //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | F E
+    //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | F E
+    //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | F E
+    // 10: E_1 -> ε       | ◄10          |
     //
-    // - NT flags:
-    //   - E_1: child_left_rec | child_amb (12)
-    // - parents:
-    //   - E_1 -> E
+    // NT flags:
+    //  - E: parent_left_rec | parent_amb (1536)
+    //  - E_1: child_left_rec | child_amb (12)
+    // parents:
+    //  - E_1 -> E
 
     pub enum CtxE {
         Dum { e: [SynE; 2] },
@@ -560,17 +561,17 @@ mod listener2 {
                         println!("◄ {}", factor_str(factor_id, true));
                     }
                     match factor_id {
-                        0 => self.exit_e(),
-                        1 => self.exit_f1(),
-                        2 => self.exit_f2(),
-                        3 => self.exit_f3(),
-                        4 => self.asm_e_1(factor_id, PRIORITY_DUM, LEFT_ASSOC_DUM),
-                        5 => self.asm_e_1(factor_id, PRIORITY_EXP, LEFT_ASSOC_EXP),
-                        6 => self.asm_e_1(factor_id, PRIORITY_DIV, LEFT_ASSOC_DIV),
-                        7 => self.asm_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL),
-                        8 => self.asm_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB),
-                        9 => self.asm_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD),
-                        10 => {}
+                        0 => self.exit_e(),                                         //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
+                        1 => self.exit_f1(),                                        //  1: F -> ( E )     | ◄1 ) ►E (    | E
+                        2 => self.exit_f2(),                                        //  2: F -> N         | ◄2 N!        | N
+                        3 => self.exit_f3(),                                        //  3: F -> I         | ◄3 I!        | I
+                        4 => self.asm_e_1(factor_id, PRIORITY_DUM, LEFT_ASSOC_DUM), //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | F E
+                        5 => self.asm_e_1(factor_id, PRIORITY_EXP, LEFT_ASSOC_EXP), //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | F E
+                        6 => self.asm_e_1(factor_id, PRIORITY_DIV, LEFT_ASSOC_DIV), //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | F E
+                        7 => self.asm_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL), //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | F E
+                        8 => self.asm_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB), //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | F E
+                        9 => self.asm_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD), //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | F E
+                        10 => {}                                                    // 10: E_1 -> ε       | ◄10          |
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1573,15 +1574,16 @@ mod listener5 {
         // E -> F | E . id
         // F -> id
         //
-        //  0: E -> F E_1      - ◄0 ►E_1 ►F
-        //  1: F -> id         - ◄1 id!
-        //  2: E_1 -> . id E_1 - ●E_1 ◄2 id! .
-        //  3: E_1 -> ε        - ◄3
+        //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+        //  1: F -> id         | ◄1 id!        | id
+        //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | id E
+        //  3: E_1 -> ε        | ◄3            |
         //
-        // - NT flags:
-        //   - E_1: child_left_rec (4)
-        // - parents:
-        //   - E_1 -> E
+        // NT flags:
+        //  - E: parent_left_rec (512)
+        //  - E_1: child_left_rec (4)
+        // parents:
+        //  - E_1 -> E
 
         #[derive(Debug)]
         pub enum Ctx { E { e: SynE } }
@@ -1647,10 +1649,10 @@ mod listener5 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_e(),     //  0: E -> F E_1
-                            1 => self.exit_f(),     //  1: F -> id
-                            2 => self.exit_e_1(),   //  2: E_1 -> . id E_1
-                            3 => { },               //  3: E_1 -> ε
+                            0 => self.exit_e(),     //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                            1 => self.exit_f(),     //  1: F -> id         | ◄1 id!        | id
+                            2 => self.exit_e_1(),   //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | id E
+                            3 => { },               //  3: E_1 -> ε        | ◄3            |
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -1669,7 +1671,8 @@ mod listener5 {
 
         impl<T: ExprListener> ListenerWrapper<T> {
             fn exit(&mut self) {
-                // TODO:
+                let e = self.stack.pop().unwrap().get_e();
+                self.listener.exit(Ctx::E { e });
             }
 
             fn init_e_1(&mut self) {
@@ -1692,8 +1695,6 @@ mod listener5 {
             }
 
             fn exit_e(&mut self) {
-                let e = self.stack.pop().unwrap().get_e();
-                self.listener.exit(Ctx::E { e });
             }
         }
 
@@ -1757,6 +1758,11 @@ mod listener5 {
                     "a . b . c . d",
                     true,
                     (Some(vec!["a", "b", "c", "d"]))
+                ),
+                (
+                    "a",
+                    true,
+                    (Some(vec!["a"]))
                 ),
             ];
             const VERBOSE: bool = true;
@@ -2850,11 +2856,11 @@ mod listener9 {
                     Call::Exit => {
                         match factor_id {
                             0 => self.exit_a(),     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
-                            1 => self.exit_a_1(),   //  1: A_1 -> c A_3     | ►A_3 c!         |
-                            2 => self.exit_a_2(),   //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A_1 b A
+                            1 => { },               //  1: A_1 -> c A_3     | ►A_3 c!         |
+                            2 => self.exit_a_1(),   //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A_1 b A
                             3 => { }                //  3: A_2 -> ε         | ◄3              |
                             4 |                     //  4: A_3 -> A_1       | ●A_1 ◄4         | c A_1 A
-                            5 => self.exit_a_3(),   //  5: A_3 -> ε         | ◄5              | c A_1
+                            5 => self.exit_a_2(),   //  5: A_3 -> ε         | ◄5              | c A_1
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -2890,10 +2896,8 @@ mod listener9 {
 // --------------------------------- todo: below
 
             fn exit_a(&mut self) {
-                let c = self.stack_t.pop().unwrap();
-                let b = self.stack.pop().unwrap().get_a_plus().0;
                 let a = self.stack_t.pop().unwrap();
-                let val = self.listener.exit_a(CtxA::A { a, b, c });
+                let val = self.listener.exit_a(CtxA::A1 { a });
                 self.stack.push(SynValue::A(val));
             }
 
@@ -2902,6 +2906,10 @@ mod listener9 {
                 let b = self.stack_t.pop().unwrap();
                 a_star.0.push(b);
                 self.stack.push(SynValue::APlus(a_star));
+            }
+
+            fn exit_a_2(&mut self) {
+
             }
         }
 
