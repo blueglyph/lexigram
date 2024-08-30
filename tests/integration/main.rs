@@ -2367,9 +2367,9 @@ mod listener7 {
         fn parser_parse_stream() {
             let tests = vec![
                 (
-                    "a b b b c",
+                    "a b b c",
                     true,
-                    (Some(SynA { a: s!("a"), b: vec![s!("b"), s!("b"), s!("b")], c: s!("c")}))
+                    (Some(SynA { a: s!("a"), b: vec![s!("b"), s!("b")], c: s!("c")}))
                 ),
                 (
                     "a c",
@@ -2808,8 +2808,10 @@ mod listener9 {
         pub enum CtxA {
             /// Factor `A -> a`
             A1 { a: String },
-            /// Factor `A -> A (c)+ b
+            /// Factor `A -> A (c)+ b (iteration)
             A2 { c_plus: SynAPlus, b: String, a: SynA },
+            /// Factor `A -> A (c)+ b (final)
+            A3 { a: SynA },
         }
 
         // SynA: defined by user below
@@ -3205,8 +3207,8 @@ mod listener10 {
             }
 
             fn exit_a_2(&mut self) {
-                let mut a_star = self.stack.pop().unwrap().get_a_star();
                 let b = self.stack_t.pop().unwrap();
+                let mut a_star = self.stack.pop().unwrap().get_a_star();
                 a_star.0.push(b);
                 self.stack.push(SynValue::APlus(a_star));
             }
