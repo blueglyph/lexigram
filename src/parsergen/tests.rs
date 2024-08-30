@@ -63,6 +63,7 @@ mod gen_integration {
             7 => Some((RTS(21), 4, "write_source_code_for_integration_listener7", "Star")),
             8 => Some((RTS(22), 4, "write_source_code_for_integration_listener8", "Star")),
             9 => Some((RTS(16), 4, "write_source_code_for_integration_listener9", "Plus")),
+            10 => Some((RTS(23), 4, "write_source_code_for_integration_listener10", "Plus")),
             _ => None
         }
     }
@@ -148,6 +149,12 @@ mod gen_integration {
     #[test]
     fn write_source_code_for_integration_listener9() {
         do_test(9, true);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source_code_for_integration_listener10() {
+        do_test(10, true);
     }
 }
 
