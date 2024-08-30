@@ -192,6 +192,10 @@ fn parser_parse_stream_id() {
             // A -> a (b)+ c
             ("a b b c", true),
         ]),
+        (T::RTS(27), 0, 999, 999, vec![
+            // A -> a (b)+ c
+            ("a b b c", true),
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {

@@ -64,6 +64,7 @@ mod gen_integration {
             8 => Some((RTS(22), 4, "write_source_code_for_integration_listener8", "Star")),
             9 => Some((RTS(16), 4, "write_source_code_for_integration_listener9", "Plus")),
             10 => Some((RTS(23), 4, "write_source_code_for_integration_listener10", "Plus")),
+            11 => Some((RTS(27), 4, "write_source_code_for_integration_listener11", "Plus")),
             _ => None
         }
     }
@@ -156,7 +157,12 @@ mod gen_integration {
     fn write_source_code_for_integration_listener10() {
         do_test(10, true);
     }
-}
+
+    #[ignore]
+    #[test]
+    fn write_source_code_for_integration_listener11() {
+        do_test(11, true);
+    }}
 
 mod wrapper_source {
     use std::collections::BTreeMap;
@@ -274,6 +280,20 @@ mod wrapper_source {
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
                 2 => symbols![t 1, nt 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | b A_1     // !
                 3 => symbols![t 1, nt 1],               //  3: A_2 -> ε     | ◄3            | b A_1     // !!!
+            ]),
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            (RTS(27), 0, btreemap![
+                0 => symbols![t 0, nt 2, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
+                1 => symbols![t 1],                     //  1: B -> b       | ◄1 b!         | b
+                2 => symbols![],                        //  2: A_1 -> B A_2 | ►A_2 ►B       |
+                3 => symbols![nt 1, nt 2],              //  3: A_2 -> A_1   | ●A_1 ◄3       | B A_1
+                4 => symbols![nt 1, nt 2],              //  4: A_2 -> ε     | ◄4            | B A_1
             ]),
             // A -> a (b <L>)+ c
             // NT flags:
