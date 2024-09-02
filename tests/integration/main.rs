@@ -1576,7 +1576,7 @@ mod listener5 {
         //
         //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
         //  1: F -> id         | ◄1 id!        | id
-        //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | id E
+        //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
         //  3: E_1 -> ε        | ◄3            |
         //
         // NT flags:
@@ -1651,7 +1651,7 @@ mod listener5 {
                         match factor_id {
                             0 => self.exit_e(),     //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
                             1 => self.exit_f(),     //  1: F -> id         | ◄1 id!        | id
-                            2 => self.exit_e_1(),   //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | id E
+                            2 => self.exit_e_1(),   //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
                             3 => { },               //  3: E_1 -> ε        | ◄3            |
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
@@ -1688,8 +1688,8 @@ mod listener5 {
             }
 
             fn exit_e_1(&mut self) {
-                let e = self.stack.pop().unwrap().get_e();
                 let id = self.stack_t.pop().unwrap();
+                let e = self.stack.pop().unwrap().get_e();
                 let e = self.listener.exit_e(CtxE::E_Id { e, id });
                 self.stack.push(SynValue::E(e));
             }
@@ -2728,7 +2728,6 @@ mod listener8 {
     }
 }
 
-#[cfg(feature="disabled")]
 #[allow(unused)]
 mod listener9 {
     // [write_source_code_for_integration_listener9]
@@ -2741,7 +2740,7 @@ mod listener9 {
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 4;
-    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("a", Some("a")), ("b", Some("b")), ("c", Some("c"))];
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("a", None), ("b", None), ("c", None)];
     const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["A", "B", "A_1", "B_1"];
     const SYMBOLS_NAMES: [(&str, VarId); 2] = [("A_1", 2), ("B_1", 3)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 6] = [(0, &[Symbol::T(0), Symbol::NT(2)]), (1, &[Symbol::T(2), Symbol::NT(3)]), (2, &[Symbol::NT(1), Symbol::T(1), Symbol::NT(2)]), (2, &[Symbol::Empty]), (3, &[Symbol::NT(1)]), (3, &[Symbol::Empty])];
@@ -2784,10 +2783,10 @@ mod listener9 {
         /// A -> A (c)+ b | a
         //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
         //  1: A_1 -> c A_3     | ►A_3 c!         |
-        //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A_1 b A
+        //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b
         //  3: A_2 -> ε         | ◄3              |
-        //  4: A_3 -> A_1       | ●A_1 ◄4         | c A_1 A
-        //  5: A_3 -> ε         | ◄5              | c A_1
+        //  4: A_3 -> A_1       | ●A_1 ◄4         | A_1 c
+        //  5: A_3 -> ε         | ◄5              | A_1 c
         //
         // NT flags:
         //  - A: parent_left_rec | parent_+_or_* | plus (6656)
@@ -2806,10 +2805,10 @@ mod listener9 {
 
         #[derive(Debug)]
         pub enum CtxA {
-            /// Factor `A -> a`
+            /// Factor `A -> a` (init)
             A1 { a: String },
             /// Factor `A -> A (c)+ b (iteration)
-            A2 { c_plus: SynAPlus, b: String, a: SynA },
+            A2 { a: SynA, c_plus: Vec<String>, b: String },
             /// Factor `A -> A (c)+ b (final)
             A3 { a: SynA },
         }
@@ -2817,7 +2816,7 @@ mod listener9 {
         // SynA: defined by user below
 
         #[derive(Debug)]
-        struct SynAPlus(Vec<String>);
+        pub struct SynAPlus(Vec<String>);
 
         #[derive(Debug)]
         enum SynValue { A(SynA), APlus(SynAPlus) }
@@ -2874,11 +2873,11 @@ mod listener9 {
                     Call::Exit => {
                         match factor_id {
                             0 => self.exit_a(),     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
-                            1 => { },               //  1: A_1 -> c A_3     | ►A_3 c!         |
-                            2 => self.exit_a_1(),   //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A_1 b A
+                                                    //  1: A_1 -> c A_3     | ►A_3 c!         |
+                            2 => self.exit_a_2(),   //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b
                             3 => { }                //  3: A_2 -> ε         | ◄3              |
-                            4 |                     //  4: A_3 -> A_1       | ●A_1 ◄4         | c A_1 A
-                            5 => self.exit_a_2(),   //  5: A_3 -> ε         | ◄5              | c A_1
+                            4 |                     //  4: A_3 -> A_1       | ●A_1 ◄4         | A_1 c
+                            5 => self.exit_a_3(),   //  5: A_3 -> ε         | ◄5              | A_1 c
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -2907,37 +2906,39 @@ mod listener9 {
 
             fn init_a_2(&mut self) {
                 let a = self.stack_t.pop().unwrap();
-                let a = self.listener.exit_a(CtxA::A1 { a });
-                self.stack.push(SynValue::A(a));
-            }
-
-// --------------------------------- todo: below
-
-            fn exit_a(&mut self) {
-                let a = self.stack_t.pop().unwrap();
                 let val = self.listener.exit_a(CtxA::A1 { a });
                 self.stack.push(SynValue::A(val));
             }
 
-            fn exit_a_1(&mut self) {
-                let mut a_star = self.stack.pop().unwrap().get_a_plus();
-                let b = self.stack_t.pop().unwrap();
-                a_star.0.push(b);
-                self.stack.push(SynValue::APlus(a_star));
+            fn exit_a(&mut self) {
+                let a = self.stack.pop().unwrap().get_a();
+                let val = self.listener.exit_a(CtxA::A3 { a });
+                self.stack.push(SynValue::A(val));
             }
 
             fn exit_a_2(&mut self) {
+                let b = self.stack_t.pop().unwrap();
+                let c_plus = self.stack.pop().unwrap().get_a_plus().0;
+                let a = self.stack.pop().unwrap().get_a();
+                let val = self.listener.exit_a(CtxA::A2 { a, c_plus, b });
+                self.stack.push(SynValue::A(val));
+            }
 
+            fn exit_a_3(&mut self) {
+                let c = self.stack_t.pop().unwrap();
+                let mut a_plus = self.stack.pop().unwrap().get_a_plus();
+                a_plus.0.push(c);
+                self.stack.push(SynValue::APlus(a_plus));
             }
         }
 
         // User code -----------------------------------------------------
 
         #[derive(Debug, PartialEq)]
-        pub struct SynA { a: String, b: Vec<String>, c: String }
+        pub struct SynA(String);
 
         struct TestListener {
-            result: Option<SynA>,
+            result: Option<String>,
             verbose: bool,
         }
 
@@ -2950,8 +2951,8 @@ mod listener9 {
         impl StarListener for TestListener {
             fn exit(&mut self, ctx: Ctx) {
                 if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::A(a) = ctx;
-                self.result = Some(a);
+                let Ctx::A { a } = ctx;
+                self.result = Some(a.0);
             }
 
             fn init_a(&mut self) {
@@ -2960,8 +2961,12 @@ mod listener9 {
 
             fn exit_a(&mut self, ctx: CtxA) -> SynA {
                 if self.verbose { println!("◄ A"); }
-                let CtxA::A { a, b, c } = ctx;
-                SynA { a, b, c}
+                let a = match ctx {
+                    CtxA::A1 { a } => a,
+                    CtxA::A2 { a, c_plus, b } => a.0 + &c_plus.into_iter().collect::<String>() + &b + ";",
+                    CtxA::A3 { a } => a.0,
+                };
+                SynA(a)
             }
         }
 
@@ -2969,14 +2974,19 @@ mod listener9 {
         fn parser_parse_stream() {
             let tests = vec![
                 (
-                    "a b b b c",
+                    "a c c c b",
                     true,
-                    (Some(SynA { a: s!("a"), b: vec![s!("b"), s!("b"), s!("b")], c: s!("c")}))
+                    (Some("acccb;"))
                 ),
                 (
-                    "a c",
+                    "a c c c b c c b",
                     true,
-                    (Some(SynA { a: s!("a"), b: vec![], c: s!("c")}))
+                    (Some("acccb;ccb;"))
+                ),
+                (
+                    "a b",
+                    false,
+                    (None)
                 ),
             ];
             const VERBOSE: bool = true;
@@ -3025,7 +3035,7 @@ mod listener9 {
                     assert!(wrapper.stack.is_empty(), "{err_msg}");
                     assert!(wrapper.stack_t.is_empty(), "{err_msg}");
                     let listener = wrapper.listener();
-                    assert_eq!(listener.result, expected_result, "{err_msg}");
+                    assert_eq!(listener.result, expected_result.map(str::to_string), "{err_msg}");
                 }
             }
         }
@@ -3088,8 +3098,8 @@ mod listener10 {
         //
         //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
         //  1: A_1 -> b A_2 | ►A_2 b!       |
-        //  2: A_2 -> A_1   | ●A_1 ◄2       | b A_1
-        //  3: A_2 -> ε     | ◄3            | b A_1
+        //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
+        //  3: A_2 -> ε     | ◄3            | A_1 b
         //
         // NT flags:
         //  - A: parent_+_or_* | plus (6144)
