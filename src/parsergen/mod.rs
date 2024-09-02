@@ -239,21 +239,33 @@ impl ParserBuilder {
             let mut opcode = Vec::<OpCode>::new();
             if flags & ruleflag::CHILD_L_FACTOR != 0 {
                 let parent = self.parsing_table.parent[*var_id as usize].unwrap();
+                // replaces Enter by Loop when going back to left-factorization parent, typically when coupled with + or *
+                // (per construction, there can't be any factor going back to the grand-parent or further up in a left factorization, so
+                //  we don't check that)
                 if new.get(0) == Some(&Symbol::NT(parent)) {
                     opcode.push(OpCode::Loop(parent));
                     new.remove(0);
                 }
             }
             if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.nt_has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
+                // if it's not a parent of left factorization, or
+                // if none of the NT in the factor is a child of left factorization,
+                // => adds an Exit
+                // (said otherwise: we don't want an exit in a parent or in the middle of a chain of left factorizations;
+                //  the exit should be only at the end of left factorizations, or in factors that aren't left-factorized)
                 opcode.push(OpCode::Exit(factor_id)); // will be popped when this NT is completed
             }
             opcode.extend(new.into_iter().map(|s| OpCode::from(s)));
             let r_form_right_rec = flags & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
             if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false) && !r_form_right_rec {
+                // swaps Exit(self) when it's in 2nd position (only happens in [Loop(_), Exit(self), ...],
+                // except right recursions that aren't left-form, because we let them unfold naturally (uses more stack)
                 opcode.swap(0, 1);
             }
             opcode.iter_mut().for_each(|o| {
                 if let OpCode::NT(v) = o {
+                    // replaces Enter by Loop when back to self,
+                    // except right recursions that aren't left-form, because we let them unfold naturally (uses more stack)
                     if v == var_id && !r_form_right_rec {
                         *o = OpCode::Loop(*v)
                     }
