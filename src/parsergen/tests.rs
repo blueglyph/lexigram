@@ -13,7 +13,7 @@ mod gen_integration {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub(crate) enum T { RTS(u32), PRS(u32) }
 
-    fn get_source(rules_id: T, indent: usize, name: String) -> String {
+    fn get_source(rules_id: T, indent: usize, is_t_data: bool, name: String) -> String {
         let rules = match rules_id {
             RTS(rts_id) => {
                 let rts = build_rts(rts_id);
@@ -21,7 +21,7 @@ mod gen_integration {
                 rules.set_start(0);
                 if rules.get_symbol_table().is_none() {
                     let mut symbol_table = SymbolTable::new();
-                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), false);
+                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), is_t_data);
                     rules.set_symbol_table(symbol_table);
                 }
                 rules
@@ -51,27 +51,28 @@ mod gen_integration {
         result
     }
 
-    fn get_test_data<'a>(id: u32) -> Option<(T, usize, &'a str, &'a str)> {
+    fn get_test_data<'a>(id: u32) -> Option<(T, usize, bool, &'a str, &'a str)> {
         match id {
-            0 => Some((PRS(13), 8, "write_source_code_from_ll1",                  "None")),
-            1 => Some((PRS( 4), 4, "write_source_code_for_integration_listener",  "Expr")),
-            2 => Some((PRS(13), 4, "write_source_code_for_integration_listener2", "Expr")),
-            3 => Some((PRS(20), 4, "write_source_code_for_integration_listener3", "Struct")),
-            4 => Some((PRS(30), 4, "write_source_code_for_integration_listener4", "Struct")),
-            5 => Some((PRS(31), 4, "write_source_code_for_integration_listener5", "Expr")),
-            6 => Some((PRS(32), 4, "write_source_code_for_integration_listener6", "Expr")),
-            7 => Some((RTS(21), 4, "write_source_code_for_integration_listener7", "Star")),
-            8 => Some((RTS(22), 4, "write_source_code_for_integration_listener8", "Star")),
-            9 => Some((RTS(16), 4, "write_source_code_for_integration_listener9", "Plus")),
-            10 => Some((RTS(23), 4, "write_source_code_for_integration_listener10", "Plus")),
-            11 => Some((RTS(27), 4, "write_source_code_for_integration_listener11", "Plus")),
+            //         rules   indent  t_data   tag name                                      listener name
+             0 => Some((PRS(13), 8,    false, "write_source_code_from_ll1",                   "None")),
+             1 => Some((PRS( 4), 4,    false, "write_source_code_for_integration_listener",   "Expr")),
+             2 => Some((PRS(13), 4,    false, "write_source_code_for_integration_listener2",  "Expr")),
+             3 => Some((PRS(20), 4,    false, "write_source_code_for_integration_listener3",  "Struct")),
+             4 => Some((PRS(30), 4,    false, "write_source_code_for_integration_listener4",  "Struct")),
+             5 => Some((PRS(31), 4,    false, "write_source_code_for_integration_listener5",  "Expr")),
+             6 => Some((PRS(32), 4,    false, "write_source_code_for_integration_listener6",  "Expr")),
+             7 => Some((RTS(21), 4,    false, "write_source_code_for_integration_listener7",  "Star")),
+             8 => Some((RTS(22), 4,    false, "write_source_code_for_integration_listener8",  "Star")),
+             9 => Some((RTS(16), 4,    true,  "write_source_code_for_integration_listener9",  "Plus")),
+            10 => Some((RTS(23), 4,    false, "write_source_code_for_integration_listener10", "Plus")),
+            11 => Some((RTS(27), 4,    false, "write_source_code_for_integration_listener11", "Plus")),
             _ => None
         }
     }
 
     fn do_test(id: u32, verbose: bool) -> bool {
-        if let Some((rule_id, indent, tag, name)) = get_test_data(id) {
-            let expected = get_source(rule_id, indent, name.to_string());
+        if let Some((rule_id, indent, is_t_data, tag, name)) = get_test_data(id) {
+            let expected = get_source(rule_id, indent, is_t_data, name.to_string());
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
                 println!("{s}// [{tag}]\n{expected}{s}// [{tag}]");
