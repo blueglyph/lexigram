@@ -267,7 +267,6 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ]),
             // --------------------------------------------------------------------------- norm+ R/L
-            // A -> a (b)+ c
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -275,11 +274,11 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A_1
-            (RTS(23), 0, btreemap![
+            (RTS(23), 0, btreemap![                     /// A -> a (b)+ c
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
-                2 => symbols![t 1, nt 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | b A_1     // !
-                3 => symbols![t 1, nt 1],               //  3: A_2 -> ε     | ◄3            | b A_1     // !!!
+                2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b     // !
+                3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b     // !!!
             ]),
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
@@ -288,14 +287,13 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A_1
-            (RTS(27), 0, btreemap![
+            (RTS(27), 0, btreemap![                     /// A -> a (B)+ c; B -> b
                 0 => symbols![t 0, nt 2, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![t 1],                     //  1: B -> b       | ◄1 b!         | b
                 2 => symbols![],                        //  2: A_1 -> B A_2 | ►A_2 ►B       |
-                3 => symbols![nt 1, nt 2],              //  3: A_2 -> A_1   | ●A_1 ◄3       | B A_1
-                4 => symbols![nt 1, nt 2],              //  4: A_2 -> ε     | ◄4            | B A_1
+                3 => symbols![nt 2, nt 1],              //  3: A_2 -> A_1   | ●A_1 ◄3       | A_1 B
+                4 => symbols![nt 2, nt 1],              //  4: A_2 -> ε     | ◄4            | A_1 B
             ]),
-            // A -> a (b <L>)+ c
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
@@ -303,11 +301,11 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A_1
-            (RTS(24), 0, btreemap![
+            (RTS(24), 0, btreemap![                     /// A -> a (b <L>)+ c
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
-                2 => symbols![t 1, nt 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | b A_1
-                3 => symbols![t 1, nt 1],               //  3: A_2 -> ε     | ◄3            | b A_1
+                2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
+                3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
             ]),
             // --------------------------------------------------------------------------- left_fact
             // NT flags:
@@ -335,7 +333,7 @@ mod wrapper_source {
             (PRS(31), 0, btreemap![                     /// E -> F | E . id ; F -> id
                 0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
-                2 => symbols![t 1, nt 0],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | id E
+                2 => symbols![nt 0, t 1],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
             ]),
             // NT flags:
@@ -347,7 +345,7 @@ mod wrapper_source {
             //  - A_2 -> A
             (PRS(33), 0, btreemap![                     /// A -> A a | b c | b d
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
-                1 => symbols![t 0, nt 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | a A
+                1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ◄3 ►A_1 c! | b c
                 4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ◄4 ►A_1 d! | b d
@@ -365,8 +363,8 @@ mod wrapper_source {
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!      | id
                 2 => symbols![],                        //  2: E_1 -> . id E_2 | ►E_2 id! .  |
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3          |
-                4 => symbols![t 1, nt 0],               //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | id E
-                5 => symbols![t 1, nt 0],               //  5: E_2 -> E_1      | ●E_1 ◄5     | id E
+                4 => symbols![nt 0, t 1],               //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | E id
+                5 => symbols![nt 0, t 1],               //  5: E_2 -> E_1      | ●E_1 ◄5     | E id
             ]),
             // --------------------------------------------------------------------------- right_rec L/R
             // STRUCT -> 'struct' id '{' LIST
@@ -401,9 +399,9 @@ mod wrapper_source {
             //  - A_2 -> A
             (RTS(26), 0, btreemap![                     /// A -> A (c)* b | a
                 0 => symbols![t 0],                     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
-                1 => symbols![t 2, nt 0, nt 1],         //  1: A_1 -> c A_1     | ●A_1 ◄1 c!      | c A A_1
+                1 => symbols![t 2, nt 1],               //  1: A_1 -> c A_1     | ●A_1 ◄1 c!      | c A_1
                 2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
-                3 => symbols![nt 1, t 1, nt 0],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A_1 b A
+                3 => symbols![nt 0, nt 1, t 1],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A A_1 b
                 4 => symbols![],                        //  4: A_2 -> ε         | ◄4              |
             ]),
             // NT flags:
@@ -418,9 +416,9 @@ mod wrapper_source {
             (RTS(16), 0, btreemap![                     /// A -> A (c)+ b | a
                 0 => symbols![t 0],                     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
                 1 => symbols![],                        //  1: A_1 -> c A_3     | ►A_3 c!         |
-                2 => symbols![nt 1, t 1, nt 0],         //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A_1 b A
+                2 => symbols![nt 0, nt 1, t 1],         //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b     ????????????????
                 3 => symbols![],                        //  3: A_2 -> ε         | ◄3              |
-                4 => symbols![t 2, nt 1, nt 0],         //  4: A_3 -> A_1       | ●A_1 ◄4         | c A_1 A
+                4 => symbols![t 2, nt 1],               //  4: A_3 -> A_1       | ●A_1 ◄4         | c A_1
                 5 => symbols![t 2, nt 1],               //  5: A_3 -> ε         | ◄5              | c A_1
             ]),
 
@@ -451,8 +449,8 @@ mod wrapper_source {
             (PRS(), 0, btreemap![]),
             */
         ];
-        const TESTS_ALL: bool = true;
         const VERBOSE: bool = true;
+        const TESTS_ALL: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items)) in tests.into_iter().enumerate() {
 // if rule_id != RTS(16) && rule_id != RTS(26) { continue }

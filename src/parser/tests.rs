@@ -434,6 +434,8 @@ mod opcodes {
             */
         ];
         const VERBOSE: bool = true;
+        const TESTS_ALL: bool = true;
+        let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let mut ll1 = rule_id.get_prs(test_id, start_nt, false);
@@ -446,7 +448,18 @@ mod opcodes {
                 println!("Final factors and opcodes:");
                 print_opcodes(&parser);
             }
-            assert_eq!(parser.opcodes, expected_opcodes, "test {test_id} {rule_id:?}/{start_nt} failed");
+            let err_msg = format!("test {test_id} {rule_id:?}/{start_nt} failed");
+            if TESTS_ALL {
+                if parser.opcodes != expected_opcodes {
+                    num_errors += 1;
+                    println!("## ERROR: {err_msg}");
+                }
+            } else {
+                assert_eq!(parser.opcodes, expected_opcodes, "{err_msg}");
+            }
+        }
+        if TESTS_ALL {
+            assert_eq!(num_errors, 0, "{num_errors} tests have failed");
         }
     }
 }
