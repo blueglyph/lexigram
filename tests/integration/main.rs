@@ -1074,16 +1074,16 @@ mod listener3 {
             }
 
             fn exit_struct(&mut self) {
-                let id = self.stack_t.pop().unwrap();
                 let list = self.stack.pop().unwrap().get_list();
+                let id = self.stack_t.pop().unwrap();
                 let val = self.listener.exit_struct(CtxStruct::Struct { id, list });
                 self.stack.push(SynValue::Struct(val));
             }
 
             fn exit_list1(&mut self) {
+                let list = self.stack.pop().unwrap().get_list();
                 let id2 = self.stack_t.pop().unwrap();
                 let id1 = self.stack_t.pop().unwrap();
-                let list = self.stack.pop().unwrap().get_list();
                 let val = self.listener.exit_list(CtxList::List1 { id: [id1, id2], list });
                 self.stack.push(SynValue::List(val));
             }
@@ -1270,7 +1270,7 @@ mod listener4 {
         // LIST -> <L> id ':' id ';' LIST | '}'
         //
         //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
-        //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id LIST
+        //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | LIST id id
         //  2: LIST -> }                  | ◄2 }                  | LIST
         //
         // - NT flags:
@@ -1342,7 +1342,7 @@ mod listener4 {
                     Call::Exit => {
                         match factor_id {
                             0 => self.exit_struct(),    //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
-                            1 => self.exit_list1(),     //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id LIST
+                            1 => self.exit_list1(),     //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | LIST id id
                             2 => self.exit_list2(),     //  2: LIST -> }                  | ◄2 }                  | LIST
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }

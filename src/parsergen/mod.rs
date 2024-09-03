@@ -404,7 +404,7 @@ impl ParserBuilder {
         for (factor_id, opcode) in self.opcodes.iter().enumerate() {
             let (var_id, factor) = &info.factors[factor_id];
             if VERBOSE {
-                println!("- {factor_id}: {} -> {}   [{}]",
+                print!("- {factor_id}: {} -> {}   [{}]",
                          Symbol::NT(*var_id).to_str(self.get_symbol_table()),
                          factor.to_str(self.get_symbol_table()),
                          opcode.iter().map(|op| op.to_str(self.get_symbol_table())).join(" "));
@@ -419,28 +419,57 @@ impl ParserBuilder {
                     let sym_maybe = match s {
                         OpCode::T(t) => Some(Symbol::T(*t)),
                         OpCode::NT(nt) => Some(Symbol::NT(*nt)),
+                        /*
                         OpCode::Loop(nt) => {
                             if let Some(parent) = info.parent[*nt as usize] {
                                 if self.nt_has_flags(parent, ruleflag::PARENT_L_RECURSION) {
+                                    if VERBOSE { print!("| {} -> {}", s.to_str(self.get_symbol_table()), Symbol::NT(parent).to_str(self.get_symbol_table())); }
                                     Some(Symbol::NT(parent))
                                 } else {
+                                    if VERBOSE { print!("| {} dropped", s.to_str(self.get_symbol_table())); }
                                     None
                                 }
                             } else {
+                                if VERBOSE { print!("| {} dropped", s.to_str(self.get_symbol_table())); }
                                 None
                             }
                         }
-                        _ => None
+                        */
+                        _ => {
+                            if VERBOSE { print!("| {} dropped", s.to_str(self.get_symbol_table())); }
+                            None
+                        }
                     };
                     sym_maybe.and_then(|s| if self.sym_has_value(&s) { Some(s) } else { None })
                 }).to_vec();
-            if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM  {
-                values.push(Symbol::NT(*var_id));
-            } else if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
-                // all forms need to update the loop item, except on the last iteration of * because it's empty
-                values.push(Symbol::NT(*var_id));
+
+            if !values.is_empty() {
+                // Loop NTs which carry values are kept on the stack, too
+                let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 {
+                    Some(Symbol::NT(*var_id))
+                } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
+                    let parent = info.parent[*var_id as usize].unwrap();
+                    Some(Symbol::NT(parent))
+                } else {
+                    None
+                };
+                if let Some(s) = sym_maybe {
+                    if self.sym_has_value(&s) {
+                        if VERBOSE { print!("| loop => {}", s.to_str(self.get_symbol_table())); }
+                        values.insert(0, s);
+                    }
+                }
             }
 
+            if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM  {
+                if VERBOSE { print!("| <L> r-rec => {}", Symbol::NT(*var_id).to_str(self.get_symbol_table())); }
+                values.insert(0, Symbol::NT(*var_id));
+            } /*else if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
+                // all forms need to update the loop item, except on the last iteration of * because it's empty
+                if VERBOSE { print!("| <L> child * + => {}", Symbol::NT(*var_id).to_str(self.get_symbol_table())); }
+                values.push(Symbol::NT(*var_id));
+            }*/
+            if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             if let Some(OpCode::NT(nt)) = opcode.first() {
                 // Take the values except the last NT
                 let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {
