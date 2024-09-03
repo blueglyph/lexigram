@@ -443,32 +443,24 @@ impl ParserBuilder {
                     sym_maybe.and_then(|s| if self.sym_has_value(&s) { Some(s) } else { None })
                 }).to_vec();
 
-            if !values.is_empty() {
-                // Loop NTs which carry values are kept on the stack, too
-                let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 {
-                    Some(Symbol::NT(*var_id))
-                } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
-                    let parent = info.parent[*var_id as usize].unwrap();
-                    Some(Symbol::NT(parent))
-                } else {
-                    None
-                };
-                if let Some(s) = sym_maybe {
-                    if self.sym_has_value(&s) {
-                        if VERBOSE { print!("| loop => {}", s.to_str(self.get_symbol_table())); }
-                        values.insert(0, s);
-                    }
+            // Loop NTs which carry values are kept on the stack, too
+            let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
+                Some(Symbol::NT(*var_id))
+            } else if flags & ruleflag::CHILD_L_RECURSION != 0 && !values.is_empty() {
+                let parent = info.parent[*var_id as usize].unwrap();
+                Some(Symbol::NT(parent))
+            } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM  {
+                Some(Symbol::NT(*var_id))
+            } else {
+                None
+            };
+            if let Some(s) = sym_maybe {
+                if self.sym_has_value(&s) {
+                    if VERBOSE { print!("| loop => {}", s.to_str(self.get_symbol_table())); }
+                    values.insert(0, s);
                 }
             }
 
-            if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM  {
-                if VERBOSE { print!("| <L> r-rec => {}", Symbol::NT(*var_id).to_str(self.get_symbol_table())); }
-                values.insert(0, Symbol::NT(*var_id));
-            } /*else if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
-                // all forms need to update the loop item, except on the last iteration of * because it's empty
-                if VERBOSE { print!("| <L> child * + => {}", Symbol::NT(*var_id).to_str(self.get_symbol_table())); }
-                values.push(Symbol::NT(*var_id));
-            }*/
             if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             if let Some(OpCode::NT(nt)) = opcode.first() {
                 // Take the values except the last NT
