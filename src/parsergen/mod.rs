@@ -305,7 +305,8 @@ impl ParserBuilder {
         ]);
         parts.push(self.source_build_parser());
         if wrapper {
-            parts.push(self.source_wrapper());
+            let items = self.build_item_ops();
+            parts.push(self.source_wrapper(items));
         }
         parts.push(vec![
             "// -------------------------------------------------------------------------".to_string(),
@@ -382,7 +383,7 @@ impl ParserBuilder {
     }
 
     fn build_item_ops(&mut self) -> HashMap::<FactorId, Vec<Symbol>> {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
         let mut var_factors: Vec::<Vec<FactorId>> = vec![vec![]; info.num_nt];
@@ -482,7 +483,7 @@ impl ParserBuilder {
     }
 
     #[allow(unused)]
-    fn source_wrapper(&mut self) -> Vec<String> {
+    fn source_wrapper(&mut self, items: HashMap<FactorId, Vec<Symbol>>) -> Vec<String> {
         const VERBOSE: bool = true;
 
         #[derive(Debug)]
@@ -505,7 +506,6 @@ impl ParserBuilder {
             }
         }
 
-        let items: HashMap<FactorId, Vec<Symbol>> = self.build_item_ops();
         let pinfo = &self.parsing_table;
         let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; pinfo.num_nt];
         for (factor_id, (var_id, _)) in pinfo.factors.iter().enumerate() {

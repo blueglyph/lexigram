@@ -451,6 +451,7 @@ mod wrapper_source {
             */
         ];
         const VERBOSE: bool = true;
+        const VERBOSE_DETAILS: bool = false;
         const TESTS_ALL: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items)) in tests.into_iter().enumerate() {
@@ -461,14 +462,17 @@ mod wrapper_source {
             builder.nt_value = (0..builder.parsing_table.num_nt)
                 .map(|nt| builder.parsing_table.parent[nt].is_none()).to_vec();
             let items = builder.build_item_ops();
-            let result_items = items.into_iter().collect::<BTreeMap<FactorId, Vec<Symbol>>>();
+            let result_items = items.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<FactorId, Vec<Symbol>>>();
             if VERBOSE {
                 print_flags(&builder, 12);
                 println!("            ({rule_id:?}, {start_nt}, btreemap![", );
                 print_items(&builder, &result_items, 16);
                 println!("            ]),");
-                let src = builder.source_wrapper();
-                println!("{}", src.into_iter().map(|s| format!(">   {s}")).join("\n"));
+                let src = builder.source_wrapper(items);
+                if VERBOSE_DETAILS {
+                    println!("{:-<40} Source code:", "");
+                    println!("{}", src.into_iter().map(|s| format!("    {s}")).join("\n"));
+                }
             }
             let err_msg = format!("test {test_id} {rule_id:?}/{start_nt} failed ");
             if TESTS_ALL {
