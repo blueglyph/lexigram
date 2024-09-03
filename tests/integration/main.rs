@@ -2208,7 +2208,7 @@ mod listener7 {
         // A -> a (b)* c
         //
         //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
-        //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b A_1     // !
+        //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b     // !
         //  2: A_1 -> ε     | ◄2            |           //
         //
         // NT flags:
@@ -2285,7 +2285,7 @@ mod listener7 {
                     Call::Exit => {
                         match factor_id {
                             0 => self.exit_a(),     //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
-                            1 => self.exit_a_1(),   //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | b A_1     // !
+                            1 => self.exit_a_1(),   //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b     // !
                             2 => { },               //  2: A_1 -> ε     | ◄2            |           //
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
@@ -2322,8 +2322,8 @@ mod listener7 {
             }
 
             fn exit_a_1(&mut self) {
-                let mut a_star = self.stack.pop().unwrap().get_a_star();
                 let b = self.stack_t.pop().unwrap();
+                let mut a_star = self.stack.pop().unwrap().get_a_star();
                 a_star.0.push(b);
                 self.stack.push(SynValue::AStar(a_star));
             }
