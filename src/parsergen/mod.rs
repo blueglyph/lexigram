@@ -401,6 +401,11 @@ impl ParserBuilder {
                 }
             }
         }
+        if VERBOSE {
+            println!("NT with value: {}", self.nt_value.iter().enumerate().filter_map(|(v, has_value)|
+                if *has_value { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
+            ).join(", "));
+        }
         for (factor_id, opcode) in self.opcodes.iter().enumerate() {
             let (var_id, factor) = &info.factors[factor_id];
             if VERBOSE {
