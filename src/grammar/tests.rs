@@ -364,6 +364,39 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
         }
+        28 => { // A -> (a B)+ c ; B -> b
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 0), gnode!(nt 1)]);
+            // let cc2 = tree.add(Some(p1), gnode!(&));
+            // tree.add_iter(Some(cc2), [gnode!(t 0), gnode!(nt 1)]);
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        29 => { // a ( (B b)* c)* d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            let p2 = tree.add(Some(cc2), gnode!(*));
+            tree.addc_iter(Some(p2), gnode!(&), [gnode!(nt 1), gnode!(t 1)]);
+            tree.add(Some(cc2), gnode!(t 2));
+            tree.add(Some(cc), gnode!(t 3));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        30 => { // a ( (B)+ b)+ c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            tree.addc(Some(cc2), gnode!(+), gnode!(nt 1));
+            tree.add(Some(cc2), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
         _ => {}
     }
     if 21 <= id && id <= 25 || id == 27 {

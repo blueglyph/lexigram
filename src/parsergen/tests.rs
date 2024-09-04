@@ -297,6 +297,35 @@ mod wrapper_source {
             ]),
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            (RTS(28), 0, btreemap![                     /// A -> (a B)+ c; B -> b
+                0 => symbols![nt 2, t 2],               //  0: A -> A_1 c     | ◄0 c! ►A_1 | A_1 c
+                1 => symbols![t 1],                     //  1: B -> b         | ◄1 b!      | b
+                2 => symbols![],                        //  2: A_1 -> a B A_2 | ►A_2 ►B a! |
+                3 => symbols![nt 2, t 0, nt 1],         //  3: A_2 -> A_1     | ●A_1 ◄3    | A_1 a B
+                4 => symbols![nt 2, t 0, nt 1],         //  4: A_2 -> ε       | ◄4         | A_1 a B
+            ]),
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - A_1: child_+_or_* (1)
+            //  - A_2: child_+_or_* (1)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            (RTS(29), 0, btreemap![                     /// a ( (B b)* c)* d
+                0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
+                1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!           | b
+                2 => symbols![nt 2, nt 1, t 1],         //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 B b
+                3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
+                4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
+                5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
+            ]),
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
             //  - A_2: child_left_fact (64)
             // parents:
