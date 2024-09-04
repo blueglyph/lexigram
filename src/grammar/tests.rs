@@ -397,6 +397,14 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
         }
+        31 => { // A -> (a | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(p1), gnode!(|), [gnode!(t 0), gnode!(nt 1)]);
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
         _ => {}
     }
     if 21 <= id && id <= 25 || id == 27 {
