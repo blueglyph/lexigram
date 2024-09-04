@@ -575,9 +575,13 @@ impl ParserBuilder {
                             if flag & ruleflag::CHILD_REPEAT != 0 {
                                 let inside_factor_id = var_factors[*vs as usize][0];
                                 let inside_factor = &pinfo.factors[inside_factor_id as usize].1;
-                                let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore();
-                                plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
-                                plus_name
+                                if false {
+                                    let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore();
+                                    plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
+                                    plus_name
+                                } else {
+                                    if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
+                                }
                             } else {
                                 nt_name[*vs as usize].clone().unwrap().1
                             }
