@@ -136,6 +136,10 @@ impl SymbolTable {
         name.1.as_ref().unwrap_or(&name.0).clone()
     }
 
+    pub fn set_t_name(&mut self, token: TokenId, name_maybe: Option<String>) {
+        self.t[token as usize].1 = name_maybe
+    }
+
     pub fn get_nt_name(&self, var: VarId) -> String {
         // if *var as usize >= self.nt.len() { return format!("??NT({var})") }
         self.nt[var as usize].clone()

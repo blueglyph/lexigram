@@ -166,13 +166,17 @@ mod gen_integration {
     }}
 
 mod wrapper_source {
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, HashSet};
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CharLen, CollectJoin, symbols};
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::ParserBuilder;
     use crate::dfa::TokenId;
+    use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
+
+    #[derive(Clone)]
+    enum HasValue { Set(Vec<Symbol>), All, Default }
 
     fn print_flags(builder: &ParserBuilder, indent: usize) {
         let tbl = builder.get_symbol_table();
@@ -214,10 +218,47 @@ mod wrapper_source {
         }
     }
 
+    fn set_has_value(builder: &mut ParserBuilder, has_value: HasValue) {
+        let mut valuables = HashSet::<TokenId>::new();
+        let num_t = builder.parsing_table.num_t as TokenId - 1;    // excluding the end symbol
+        match has_value {
+            Set(symbols) => {
+                for s in symbols {
+                    match s {
+                        Symbol::T(t) => { valuables.insert(t); }
+                        Symbol::NT(v) => { builder.nt_value[v as usize] = true; }
+                        _ => {}
+                    }
+                }
+            },
+            All | Default => {
+                for v in 0..builder.parsing_table.num_nt {
+                    if builder.parsing_table.parent[v].is_none() { builder.nt_value[v] = true }
+                }
+                if let All = has_value {
+                    valuables.extend(0..num_t);
+                } else /* Default */ {
+                    valuables.extend((0..num_t).filter(|t| builder.symbol_table.is_t_data(*t)));
+                }
+            }
+        }
+        for t in 0..num_t {
+            let is_valuable = valuables.contains(&t);
+            if builder.symbol_table.is_t_data(t) != is_valuable {
+                if is_valuable {
+                    builder.symbol_table.set_t_name(t, None);
+                } else {
+                    let name = builder.symbol_table.get_t_name(t);
+                    builder.symbol_table.set_t_name(t, Some(name));
+                }
+            }
+        }
+    }
+
     #[test]
     #[allow(unused_doc_comments)]
     fn build_items() {
-        let tests: Vec<(T, VarId, BTreeMap<FactorId, Vec<Symbol>>)> = vec![
+        let tests: Vec<(T, u16, BTreeMap<u16, Vec<Symbol>>, HasValue)> = vec![
             // --------------------------------------------------------------------------- NT/T simple mix
             // NT flags:
             //  - (nothing)
@@ -229,7 +270,7 @@ mod wrapper_source {
                 2 => symbols![nt 1],                    //  2: S -> return VAL | ◄2 ►VAL return | VAL
                 3 => symbols![t 0],                     //  3: VAL -> id       | ◄3 id!         | id
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
-            ]),
+            ], Default),
             // --------------------------------------------------------------------------- norm* R/L
             // A -> a (b)* c
             // NT flags:
@@ -241,7 +282,7 @@ mod wrapper_source {
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
-            ]),
+            ], All),
             // A -> a (b <L>)* c
             // NT flags:
             //  - A: parent_+_or_* (2048)
@@ -252,7 +293,7 @@ mod wrapper_source {
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
-            ]),
+            ], All),
 
             // When the repeated item has no data:
 
@@ -266,7 +307,7 @@ mod wrapper_source {
                 0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
                 1 => symbols![],                        //  1: A_1 -> # A_1 | ●A_1 ◄1 #     |
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
-            ]),
+            ], Default),
             // --------------------------------------------------------------------------- norm+ R/L
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
@@ -280,7 +321,7 @@ mod wrapper_source {
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
                 2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
                 3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
-            ]),
+            ], All),
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -294,7 +335,7 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: A_1 -> B A_2 | ►A_2 ►B       |
                 3 => symbols![nt 2, nt 1],              //  3: A_2 -> A_1   | ●A_1 ◄3       | A_1 B
                 4 => symbols![nt 2, nt 1],              //  4: A_2 -> ε     | ◄4            | A_1 B
-            ]),
+            ], All),
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -308,7 +349,7 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: A_1 -> a B A_2 | ►A_2 ►B a! |
                 3 => symbols![nt 2, t 0, nt 1],         //  3: A_2 -> A_1     | ●A_1 ◄3    | A_1 a B
                 4 => symbols![nt 2, t 0, nt 1],         //  4: A_2 -> ε       | ◄4         | A_1 a B
-            ]),
+            ], All),
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -323,7 +364,15 @@ mod wrapper_source {
                 3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
                 4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
-            ]),
+            ], All),
+            (RTS(29), 0, btreemap![                     /// a ( (B b)* c)* d
+                0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
+                1 => symbols![],                        //  1: B -> b           | ◄1 b            |
+                2 => symbols![],                        //  2: A_1 -> B b A_1   | ●A_1 ◄2 b ►B    |
+                3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
+                4 => symbols![nt 3, t 2],               //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 c
+                5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
+            ], Set(symbols![nt 0, t 0, t 2, t 3])),
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
@@ -336,7 +385,7 @@ mod wrapper_source {
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
                 2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
                 3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
-            ]),
+            ], Default),
             // --------------------------------------------------------------------------- left_fact
             // NT flags:
             //  - A: parent_left_fact (32)
@@ -353,7 +402,7 @@ mod wrapper_source {
                 4 => symbols![t 0, t 1, t 2],           //  4: A_2 -> c     | ◄4 c!   | a b c
                 5 => symbols![t 0, t 1, t 3],           //  5: A_2 -> d     | ◄5 d!   | a b d
                 6 => symbols![t 0, t 1],                //  6: A_2 -> ε     | ◄6      | a b
-            ]),
+            ], Default),
             // --------------------------------------------------------------------------- left_rec [left_fact]
             // NT flags:
             //  - E: parent_left_rec (512)
@@ -365,7 +414,7 @@ mod wrapper_source {
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
                 2 => symbols![nt 0, t 1],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
-            ]),
+            ], Default),
             // NT flags:
             //  - A: parent_left_fact | parent_left_rec (544)
             //  - A_1: child_left_rec (4)
@@ -379,7 +428,7 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ◄3 ►A_1 c! | b c
                 4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ◄4 ►A_1 d! | b d
-            ]),
+            ], Default),
             // NT flags:
             //  - E: parent_left_rec (512)
             //  - E_1: child_left_rec | parent_left_fact (36)
@@ -395,7 +444,7 @@ mod wrapper_source {
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3          |
                 4 => symbols![nt 0, t 1],               //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | E id
                 5 => symbols![nt 0, t 1],               //  5: E_2 -> E_1      | ●E_1 ◄5     | E id
-            ]),
+            ], Default),
             // --------------------------------------------------------------------------- right_rec L/R
             // STRUCT -> 'struct' id '{' LIST
             // LIST -> id ':' id ';' LIST | '}'
@@ -407,7 +456,7 @@ mod wrapper_source {
                 0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
                 1 => symbols![t 5, t 5, nt 1],          //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
                 2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
-            ]),
+            ], Default),
             // STRUCT -> 'struct' id '{' LIST
             // LIST -> <L> id ':' id ';' LIST | '}'
             // NT flags:
@@ -418,7 +467,7 @@ mod wrapper_source {
                 0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
                 1 => symbols![nt 1, t 5, t 5],          //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | LIST id id
                 2 => symbols![nt 1],                    //  2: LIST -> }                  | ◄2 }                  | LIST
-            ]),
+            ], Default),
             // ---------------------------------------------------------------------------
             // NT flags:
             //  - A: parent_left_rec | parent_+_or_* (2560)
@@ -433,7 +482,7 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
                 3 => symbols![nt 0, nt 1, t 1],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A A_1 b
                 4 => symbols![],                        //  4: A_2 -> ε         | ◄4              |
-            ]),
+            ], Default),
             // NT flags:
             //  - A: parent_left_rec | parent_+_or_* | plus (6656)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -450,7 +499,7 @@ mod wrapper_source {
                 3 => symbols![],                        //  3: A_2 -> ε         | ◄3              |
                 4 => symbols![nt 1, t 2],               //  4: A_3 -> A_1       | ●A_1 ◄4         | A_1 c
                 5 => symbols![nt 1, t 2],               //  5: A_3 -> ε         | ◄5              | A_1 c
-            ]),
+            ], Default),
 
             // --------------------------------------------------------------------------- left_rec + amb
             // NT flags:
@@ -470,7 +519,7 @@ mod wrapper_source {
                 8 => symbols![nt 0, nt 1],              //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | E F
                 9 => symbols![nt 0, nt 1],              //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | E F
                 10 => symbols![],                       // 10: E_1 -> ε       | ◄10          |
-            ]),
+            ], Default),
             // (PRS(9), 0, btreemap![]),
             // (PRS(10), 0, btreemap![]),
             // (PRS(15), 0, btreemap![]),
@@ -483,19 +532,23 @@ mod wrapper_source {
         const VERBOSE_DETAILS: bool = true;
         const TESTS_ALL: bool = true;
         let mut num_errors = 0;
-        for (test_id, (rule_id, start_nt, expected_items)) in tests.into_iter().enumerate() {
+        for (test_id, (rule_id, start_nt, expected_items, has_value)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());
-            builder.nt_value = (0..builder.parsing_table.num_nt)
-                .map(|nt| builder.parsing_table.parent[nt].is_none()).to_vec();
+            set_has_value(&mut builder, has_value.clone());
             let items = builder.build_item_ops();
             let result_items = items.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<FactorId, Vec<Symbol>>>();
             if VERBOSE {
                 print_flags(&builder, 12);
                 println!("            ({rule_id:?}, {start_nt}, btreemap![", );
                 print_items(&builder, &result_items, 16);
-                println!("            ]),");
+                let has_value_str = match &has_value {
+                    Set(s) => format!("Set(symbols![{}])", s.iter().map(|s| symbol_to_macro(s)).join(", ")),
+                    All => "All".to_string(),
+                    Default => "Default".to_string()
+                };
+                println!("            ], {has_value_str}),");
                 let src = builder.source_wrapper(items);
                 if VERBOSE_DETAILS {
                     println!("{:-<40} Source code:", "");
