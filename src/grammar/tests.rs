@@ -279,7 +279,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc1), gnode!(t 1));
             tree.add(Some(or), gnode!(t 0));
         }
-        17 => { // :0 ( (:1)+ :2)+ :3
+        17 => { // a ( (b)+ c)+ d
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let p1 = tree.add(Some(cc), gnode!(+));
@@ -526,7 +526,7 @@ fn rts_prodrule_from() {
             0 => prod!(t 0, nt 2, t 3),
             1 => prod!(t 1, nt 1; t 1),
             2 => prod!(nt 1, t 2, nt 2; nt 1, t 2),
-        ], vec![6144, 4097, 4097], vec![None, Some(0), Some(0)]),
+        ], vec![6144, 4097, 6145], vec![None, Some(2), Some(0)]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected, expected_flags, expected_parent) in tests {
@@ -2371,9 +2371,9 @@ fn rts_prs_flags() {
         (T::RTS(16), 0, btreemap![0 => 6656, 1 => 4129, 2 => 4, 3 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0, 3 => 1]),
-        (T::RTS(17), 0, btreemap![0 => 6144, 1 => 4129, 2 => 4129, 3 => 64, 4 => 64],
+        (T::RTS(17), 0, btreemap![0 => 6144, 1 => 4129, 2 => 6177, 3 => 64, 4 => 64],
          btreemap![],
-         btreemap![1 => 0, 2 => 0, 3 => 1, 4 => 2]),
+         btreemap![1 => 2, 2 => 0, 3 => 1, 4 => 2]),
         (T::RTS(18), 0, btreemap![0 => 128], btreemap![], btreemap![]),
         (T::RTS(19), 0, btreemap![0 => 2560, 1 => 129, 2 => 4],
          btreemap![],
@@ -2381,6 +2381,9 @@ fn rts_prs_flags() {
         (T::RTS(20), 0, btreemap![0 => 2688, 1 => 1, 2 => 4],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
+        (T::RTS(29), 0, btreemap![0 => 2048, 2 => 1, 3 => 2049],
+         btreemap![],
+         btreemap![2 => 3, 3 => 0]),
         (T::PRS(0), 0, btreemap![0 => 544, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
@@ -2415,7 +2418,7 @@ fn rts_prs_flags() {
         (T::PRS(), 0, btreemap![], btreemap![], btreemap![]),
         */
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
     for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }

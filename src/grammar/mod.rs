@@ -690,6 +690,37 @@ impl RuleTreeSet<General> {
         self.flags[*new_var as usize] = ruleflag::CHILD_REPEAT | plus_flag;
         self.flags[var as usize] |= ruleflag::PARENT_REPEAT | plus_flag;
         self.parent[*new_var as usize] = Some(var);
+        if VERBOSE {
+            println!("=> {}: parent {}, child {}",
+                     if is_plus { "+" } else { "*" },
+                     Symbol::NT(var).to_str(self.get_symbol_table()),
+                     Symbol::NT(*new_var).to_str(self.get_symbol_table()));
+        }
+        // We rectify the parent/child relationship in case of cascaded + or *. Since we perform a
+        // bottom-up reconstruction, a rule like A -> ( ( a )+ b )+ will yield
+        //   A -> A_2
+        //   A_1 -> a A_1 | ε       parent: A
+        //   A_2 -> A_1 b A_2 | ε   parent: A
+        // We want A_1's parent to be A_2. We keep the wrong order in the parent chain: A_1 -> A_2 -> A,
+        // which is unfortunate in some later tests but still easier than changing everything here.
+        let mut rectify_maybe = None;
+        for node in self.get_tree(*new_var).unwrap().iter_depth_simple() {
+            if let GrNode::Symbol(Symbol::NT(child)) = node.deref() {
+                if *child != *new_var && self.flags[*child as usize] & ruleflag::CHILD_REPEAT != 0 {
+                    rectify_maybe = Some(*child);
+                    break;
+                }
+            }
+        }
+        if let Some(child) = rectify_maybe {
+            self.parent[child as usize] = Some(*new_var);
+            self.flags[*new_var as usize] |= ruleflag::PARENT_REPEAT;
+            if VERBOSE {
+                println!("=> rectify {}'s parent as {}",
+                         Symbol::NT(child).to_str(self.get_symbol_table()),
+                         Symbol::NT(*new_var).to_str(self.get_symbol_table()));
+            }
+        }
         *new_var += 1;
         stack.push(id);
     }
