@@ -544,7 +544,7 @@ impl ParserBuilder {
 
         let mut nt_upper_fixer = NameFixer::new();
         let mut nt_lower_fixer = NameFixer::new();
-        let mut nt_name = (0..pinfo.num_nt).map(|v| if self.nt_value[v] && pinfo.parent[v].is_none() {
+        let mut nt_name = (0..pinfo.num_nt).map(|v| if self.nt_value[v] || pinfo.parent[v].is_none() {
             let nu = nt_upper_fixer.get_unique_name(self.symbol_table.get_nt_name(v as VarId).to_camelcase());
             let nl = nt_lower_fixer.get_unique_name(nu.to_underscore());
             Some((nu, nl))
