@@ -393,11 +393,15 @@ impl ParserBuilder {
         }
         for nt in 0..info.num_nt {
             if self.parsing_table.flags[nt] & ruleflag::CHILD_REPEAT != 0 {
-                if let Some(parent) = self.parsing_table.parent[nt] {
-                    // parent has value and child has any data?
-                    if self.nt_value[parent as usize] && info.factors[var_factors[nt][0] as usize].1.iter().any(|s| { self.sym_has_value(s) }) {
-                        self.nt_value[nt] = true;
-                    }
+                // Cascaded child_repeat are in the wrong order (e.g. A <- A_2 <- A_1), so if the parent of `nt` is itself a child_repeat which
+                // has a value, its `nt_value` flag hasn't been set yet. We must iterate back to the top parent_repeat to see if it has a value.
+                let mut top_nt = nt;
+                while let Some(parent) = self.parsing_table.parent[top_nt] {
+                    top_nt = parent as usize;
+                }
+                // parent has value and child has any data?
+                if self.nt_value[top_nt] && info.factors[var_factors[nt][0] as usize].1.iter().any(|s| { self.sym_has_value(s) }) {
+                    self.nt_value[nt] = true;
                 }
             }
         }
