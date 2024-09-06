@@ -428,22 +428,6 @@ impl ParserBuilder {
                     let sym_maybe = match s {
                         OpCode::T(t) => Some(Symbol::T(*t)),
                         OpCode::NT(nt) => Some(Symbol::NT(*nt)),
-                        /*
-                        OpCode::Loop(nt) => {
-                            if let Some(parent) = info.parent[*nt as usize] {
-                                if self.nt_has_flags(parent, ruleflag::PARENT_L_RECURSION) {
-                                    if VERBOSE { print!("| {} -> {}", s.to_str(self.get_symbol_table()), Symbol::NT(parent).to_str(self.get_symbol_table())); }
-                                    Some(Symbol::NT(parent))
-                                } else {
-                                    if VERBOSE { print!("| {} dropped", s.to_str(self.get_symbol_table())); }
-                                    None
-                                }
-                            } else {
-                                if VERBOSE { print!("| {} dropped", s.to_str(self.get_symbol_table())); }
-                                None
-                            }
-                        }
-                        */
                         _ => {
                             if VERBOSE { print!("| {} dropped", s.to_str(self.get_symbol_table())); }
                             None

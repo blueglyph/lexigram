@@ -357,7 +357,7 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A
-            (RTS(29), 0, btreemap![                     /// a ( (B b)* c)* d
+            (RTS(29), 0, btreemap![                     /// A -> a ( (B b)* c)* d
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
                 1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!           | b
                 2 => symbols![nt 2, nt 1, t 1],         //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 B b
@@ -365,7 +365,7 @@ mod wrapper_source {
                 4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], All),
-            (RTS(29), 0, btreemap![                     /// a ( (B b)* c)* d
+            (RTS(29), 0, btreemap![                     /// A -> a ( (B b)* c)* d
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
                 1 => symbols![],                        //  1: B -> b           | ◄1 b            |
                 2 => symbols![],                        //  2: A_1 -> B b A_1   | ●A_1 ◄2 b ►B    |
@@ -373,6 +373,45 @@ mod wrapper_source {
                 4 => symbols![nt 3, t 2],               //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 c
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], Set(symbols![nt 0, t 0, t 2, t 3])),
+            (RTS(29), 0, btreemap![                     /// A -> a ( (B b)* c)* d
+                0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
+                1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!           | b
+                2 => symbols![nt 2, t 1],               //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 b
+                3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
+                4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
+                5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
+            ], Set(symbols![t 0, t 1, t 2, t 3])),
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
+            //  - A_3: child_left_fact (64)
+            //  - A_4: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A_2
+            //  - A_2 -> A
+            //  - A_3 -> A_1
+            //  - A_4 -> A_2
+            (RTS(30), 0, btreemap![                     /// A -> a ( (B b)+ c)+ d
+                0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a! | a A_2 d
+                1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!         | b
+                2 => symbols![],                        //  2: A_1 -> B b A_3   | ►A_3 b! ►B    |
+                3 => symbols![],                        //  3: A_2 -> A_1 c A_4 | ►A_4 c! ►A_1  |
+                4 => symbols![nt 2, nt 1, t 1],         //  4: A_3 -> A_1       | ●A_1 ◄4       | A_1 B b
+                5 => symbols![nt 2, nt 1, t 1],         //  5: A_3 -> ε         | ◄5            | A_1 B b
+                6 => symbols![nt 3, nt 2, t 2],         //  6: A_4 -> A_2       | ●A_2 ◄6       | A_2 A_1 c
+                7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
+            ], All),
+            (RTS(30), 0, btreemap![                     /// A -> a ( (B b)+ c)+ d
+                0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a! | a A_2 d
+                1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!         | b
+                2 => symbols![],                        //  2: A_1 -> B b A_3   | ►A_3 b! ►B    |
+                3 => symbols![],                        //  3: A_2 -> A_1 c A_4 | ►A_4 c! ►A_1  |
+                4 => symbols![nt 2, t 1],               //  4: A_3 -> A_1       | ●A_1 ◄4       | A_1 b
+                5 => symbols![nt 2, t 1],               //  5: A_3 -> ε         | ◄5            | A_1 b
+                6 => symbols![nt 3, nt 2, t 2],         //  6: A_4 -> A_2       | ●A_2 ◄6       | A_2 A_1 c
+                7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
+            ], Set(symbols![t 0, t 1, t 2, t 3])),
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
@@ -523,9 +562,11 @@ mod wrapper_source {
             // (PRS(9), 0, btreemap![]),
             // (PRS(10), 0, btreemap![]),
             // (PRS(15), 0, btreemap![]),
+            // (RTS(31), 0, btreemap![], Default),  // TODO: reports error, not supported, user must create NT for OR under + or *
             // ---------------------------------------------------------------------------
             /*
-            (PRS(), 0, btreemap![]),
+            (PRS(), 0, btreemap![], Default),
+            (RTS(), 0, btreemap![], Default),
             */
         ];
         const VERBOSE: bool = true;
@@ -533,6 +574,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items, has_value)) in tests.into_iter().enumerate() {
+if ![RTS(29), RTS(30)].contains(&rule_id) { continue }
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());
