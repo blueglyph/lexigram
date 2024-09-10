@@ -1,6 +1,6 @@
 #![allow(dead_code)]  // TODO: remove
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -386,128 +386,151 @@ impl ParserBuilder {
         const VERBOSE: bool = true;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
-        let mut var_factors: Vec::<Vec<FactorId>> = vec![vec![]; info.num_nt];
+        let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; info.num_nt];
+        let mut var_groups: Vec<Vec<(VarId, FactorId)>> = vec![vec![]; info.num_nt];
         for (factor_id, (var_id, _)) in info.factors.iter().enumerate() {
             var_factors[*var_id as usize].push(factor_id as FactorId);
+            let mut top_var_id = *var_id as usize;
+            while let Some(parent) = info.parent[top_var_id] {
+                top_var_id = parent as usize;
+            }
+            var_groups[top_var_id].push((*var_id, factor_id as FactorId));
         }
-        let mut change = true;
-        while change {
-            change = false;
-            for factor_id in 0..info.factors.len() {
-                items.insert(factor_id as FactorId, vec![]);
+        if VERBOSE {
+            println!("Groups:");
+            for (parent_id, group) in var_groups.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
+                let ids = group.iter().map(|(v, _)| *v).collect::<BTreeSet<VarId>>();
+                println!("{}: {}, factors {}",
+                         Symbol::NT(parent_id as VarId).to_str(self.get_symbol_table()),
+                    ids.iter().map(|v| Symbol::NT(*v).to_str(self.get_symbol_table())).join(", "),
+                    group.iter().map(|(_, f)| f.to_string()).join(", ")
+                );
             }
-
-            if VERBOSE {
-                println!("NT with value: {}", self.nt_value.iter().enumerate().filter_map(|(v, has_value)|
-                    if *has_value { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
-                ).join(", "));
-            }
-            for (factor_id, opcode) in self.opcodes.iter().enumerate() {
-                let (var_id, factor) = &info.factors[factor_id];
+        }
+        // we proceed by var parent, then all factors in each parent/children group
+        for (_parent_id, group) in var_groups.into_iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
+            let mut change = true;
+            while change {
+                change = false;
                 if VERBOSE {
-                    print!("- {factor_id}: {} -> {}   [{}]",
-                           Symbol::NT(*var_id).to_str(self.get_symbol_table()),
-                           factor.to_str(self.get_symbol_table()),
-                           opcode.iter().map(|op| op.to_str(self.get_symbol_table())).join(" "));
+                    let ids = group.iter().map(|(v, _)| *v).collect::<BTreeSet<VarId>>();
+                    println!("parent: {}, NT with value: {}",
+                             Symbol::NT(_parent_id as VarId).to_str(self.get_symbol_table()),
+                             ids.into_iter().filter_map(|v| if self.nt_value[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None } ).join(", "));
                 }
-                let factor_id = factor_id as FactorId;
-                let flags = info.flags[*var_id as usize];
+                for (_, factor_id) in &group {
+                    items.insert(*factor_id, vec![]);
+                }
+                for (var_id, factor_id) in &group {
+                    let opcode = &self.opcodes[*factor_id as usize];
+                    let (_, factor) = &info.factors[*factor_id as usize];
+                    if VERBOSE {
+                        print!("- {factor_id}: {} -> {}   [{}]",
+                               Symbol::NT(*var_id).to_str(self.get_symbol_table()),
+                               factor.to_str(self.get_symbol_table()),
+                               opcode.iter().map(|op| op.to_str(self.get_symbol_table())).join(" "));
+                    }
+                    // let factor_id = factor_id as FactorId;
+                    let flags = info.flags[*var_id as usize];
 
-                // Default values are taken from opcodes. Loop(nt) is only taken if the parent is l-rec;
-                // we look at the parent's flags instead of the factor's because left factorization could
-                // displace the Loop(nt) to another non-l-rec child factor.
-                let mut values = self.opcodes[factor_id as usize].iter().rev()
-                    .filter_map(|s| {
-                        let sym_maybe = match s {
-                            OpCode::T(t) => Some(Symbol::T(*t)),
-                            OpCode::NT(nt) => Some(Symbol::NT(*nt)),
-                            _ => {
-                                if VERBOSE { print!("| {} dropped", s.to_str(self.get_symbol_table())); }
-                                None
+                    // Default values are taken from opcodes. Loop(nt) is only taken if the parent is l-rec;
+                    // we look at the parent's flags instead of the factor's because left factorization could
+                    // displace the Loop(nt) to another non-l-rec child factor.
+                    let mut values = self.opcodes[*factor_id as usize].iter().rev()
+                        .filter_map(|s| {
+                            let sym_maybe = match s {
+                                OpCode::T(t) => Some(Symbol::T(*t)),
+                                OpCode::NT(nt) => Some(Symbol::NT(*nt)),
+                                _ => {
+                                    if VERBOSE { print!("| {} dropped", s.to_str(self.get_symbol_table())); }
+                                    None
+                                }
+                            };
+                            sym_maybe.and_then(|s| if self.sym_has_value(&s) { Some(s) } else { None })
+                        }).to_vec();
+
+                    // Looks if a child_repeat has a value
+                    if !values.is_empty() && self.parsing_table.parent[*var_id as usize].is_some() {
+                        let mut top_nt = *var_id as usize;
+                        print!(" [{}, so {}?", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "), Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()));
+                        while self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT == 0 {
+                            if let Some(parent) = self.parsing_table.parent[top_nt] {
+                                top_nt = parent as usize;
+                            } else {
+                                break;
                             }
-                        };
-                        sym_maybe.and_then(|s| if self.sym_has_value(&s) { Some(s) } else { None })
-                    }).to_vec();
-
-                // Looks if a child_repeat has a value
-                if !values.is_empty() && self.parsing_table.parent[*var_id as usize].is_some() {
-                    let mut top_nt = *var_id as usize;
-                    print!(" [{}, so {}?", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "), Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()));
-                    while self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT == 0 {
-                        if let Some(parent) = self.parsing_table.parent[top_nt] {
-                            top_nt = parent as usize;
-                        } else {
-                            break;
                         }
+                        if self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT != 0 {
+                            if VERBOSE && !self.nt_value[top_nt] { print!(" {} is now valued", Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table())); }
+                            change |= !self.nt_value[top_nt];
+                            self.nt_value[top_nt] = true;
+                        }
+                        print!("]");
                     }
-                    if self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT != 0 {
-                        if VERBOSE && !self.nt_value[top_nt] { print!(" {} is now valued", Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table())); }
-                        change |= !self.nt_value[top_nt];
-                        self.nt_value[top_nt] = true;
-                    }
-                    print!("]");
-                }
-                if change {
-                    if VERBOSE { println!("\nnt_value changed"); }
-                    break;
-                }
+                    if change {
+                        // the nt_value of one item has been set.
+                        if VERBOSE { println!("\nnt_value changed"); }
 
-                // Loop NTs which carry values are kept on the stack, too
-                let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
-                    Some(Symbol::NT(*var_id))
-                } else if flags & ruleflag::CHILD_L_RECURSION != 0 && !values.is_empty() {
-                    let parent = info.parent[*var_id as usize].unwrap();
-                    Some(Symbol::NT(parent))
-                } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
-                    Some(Symbol::NT(*var_id))
-                } else {
-                    None
-                };
-                if let Some(s) = sym_maybe {
-                    if self.sym_has_value(&s) {
-                        if VERBOSE { print!("| loop => {}", s.to_str(self.get_symbol_table())); }
-                        values.insert(0, s);
+                        break;
                     }
-                }
 
-                if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
-                if let Some(OpCode::NT(nt)) = opcode.first() {
-                    // Take the values except the last NT
-                    let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {
-                        Some(values.pop().unwrap())
+                    // Loop NTs which carry values are kept on the stack, too
+                    let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
+                        Some(Symbol::NT(*var_id))
+                    } else if flags & ruleflag::CHILD_L_RECURSION != 0 && !values.is_empty() {
+                        let parent = info.parent[*var_id as usize].unwrap();
+                        Some(Symbol::NT(parent))
+                    } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
+                        Some(Symbol::NT(*var_id))
                     } else {
                         None
                     };
-                    if nt != var_id && self.nt_has_flags(*nt, ruleflag::CHILD_L_RECURSION) {
-                        if VERBOSE { println!("  CHILD_L_RECURSION"); }
-                        // exit_<var_id>(context = values) before entering child loop
+                    if let Some(s) = sym_maybe {
+                        if self.sym_has_value(&s) {
+                            if VERBOSE { print!("| loop => {}", s.to_str(self.get_symbol_table())); }
+                            values.insert(0, s);
+                        }
+                    }
+
+                    if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+                    if let Some(OpCode::NT(nt)) = opcode.first() {
+                        // Take the values except the last NT
+                        let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {
+                            Some(values.pop().unwrap())
+                        } else {
+                            None
+                        };
+                        if nt != var_id && self.nt_has_flags(*nt, ruleflag::CHILD_L_RECURSION) {
+                            if VERBOSE { println!("  CHILD_L_RECURSION"); }
+                            // exit_<var_id>(context = values) before entering child loop
+                            items.get_mut(&factor_id).unwrap().extend(values);
+                            continue;
+                        }
+                        if flags & ruleflag::PARENT_L_FACTOR != 0 {
+                            if VERBOSE {
+                                println!("  PARENT_L_FACTOR: moving {} to child {}",
+                                         values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                                         Symbol::NT(*nt).to_str(self.get_symbol_table()));
+                            }
+                            // factorization reports all the values to the children
+                            if let Some(pre) = items.get_mut(&factor_id) {
+                                // pre-pends values that already exist for factor_id (and empties factor_id)
+                                values.splice(0..0, std::mem::take(pre));
+                            }
+                            for f_id in var_factors[*nt as usize].iter() {
+                                items.get_mut(f_id).unwrap().extend(values.clone());
+                            }
+                            continue;
+                        }
+                        if let Some(sym) = backup {
+                            values.push(sym);
+                        }
+                    }
+                    if let Some(current) = items.get_mut(&factor_id) {
+                        current.extend(values);
+                    } else {
                         items.get_mut(&factor_id).unwrap().extend(values);
-                        continue;
                     }
-                    if flags & ruleflag::PARENT_L_FACTOR != 0 {
-                        if VERBOSE {
-                            println!("  PARENT_L_FACTOR: moving {} to child {}",
-                                     values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
-                                     Symbol::NT(*nt).to_str(self.get_symbol_table()));
-                        }
-                        // factorization reports all the values to the children
-                        if let Some(pre) = items.get_mut(&factor_id) {
-                            // pre-pends values that already exist for factor_id (and empties factor_id)
-                            values.splice(0..0, std::mem::take(pre));
-                        }
-                        for f_id in var_factors[*nt as usize].iter() {
-                            items.get_mut(f_id).unwrap().extend(values.clone());
-                        }
-                        continue;
-                    }
-                    if let Some(sym) = backup {
-                        values.push(sym);
-                    }
-                }
-                if let Some(current) = items.get_mut(&factor_id) {
-                    current.extend(values);
-                } else {
-                    items.get_mut(&factor_id).unwrap().extend(values);
                 }
             }
         }
