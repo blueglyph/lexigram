@@ -353,9 +353,9 @@ mod wrapper_source {
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
-            //  - A_2: child_+_or_* (1)
+            //  - A_2: child_+_or_* | parent_+_or_* (2049)
             // parents:
-            //  - A_1 -> A
+            //  - A_1 -> A_2
             //  - A_2 -> A
             (RTS(29), 0, btreemap![                     /// A -> a ( (B b)* c)* d
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
@@ -574,7 +574,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items, has_value)) in tests.into_iter().enumerate() {
-if ![RTS(29), RTS(30)].contains(&rule_id) { continue }
+// if ![RTS(29), RTS(30)].contains(&rule_id) { continue }
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());
