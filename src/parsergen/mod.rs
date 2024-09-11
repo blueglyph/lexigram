@@ -412,11 +412,14 @@ impl ParserBuilder {
             let mut change = true;
             while change {
                 change = false;
+                let mut nt_used = HashSet::<VarId>::new();
                 if VERBOSE {
                     let ids = group.iter().map(|(v, _)| *v).collect::<BTreeSet<VarId>>();
                     println!("parent: {}, NT with value: {}",
                              Symbol::NT(_parent_id as VarId).to_str(self.get_symbol_table()),
-                             ids.into_iter().filter_map(|v| if self.nt_value[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None } ).join(", "));
+                             ids.into_iter().filter_map(|v|
+                                 if self.nt_value[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
+                             ).join(", "));
                 }
                 for (_, factor_id) in &group {
                     items.insert(*factor_id, vec![]);
@@ -430,7 +433,6 @@ impl ParserBuilder {
                                factor.to_str(self.get_symbol_table()),
                                opcode.iter().map(|op| op.to_str(self.get_symbol_table())).join(" "));
                     }
-                    // let factor_id = factor_id as FactorId;
                     let flags = info.flags[*var_id as usize];
 
                     // Default values are taken from opcodes. Loop(nt) is only taken if the parent is l-rec;
@@ -440,9 +442,12 @@ impl ParserBuilder {
                         .filter_map(|s| {
                             let sym_maybe = match s {
                                 OpCode::T(t) => Some(Symbol::T(*t)),
-                                OpCode::NT(nt) => Some(Symbol::NT(*nt)),
+                                OpCode::NT(nt) => {
+                                    nt_used.insert(*nt);
+                                    Some(Symbol::NT(*nt))
+                                },
                                 _ => {
-                                    if VERBOSE { print!("| {} dropped", s.to_str(self.get_symbol_table())); }
+                                    if VERBOSE { print!(" | {} dropped", s.to_str(self.get_symbol_table())); }
                                     None
                                 }
                             };
@@ -452,7 +457,7 @@ impl ParserBuilder {
                     // Looks if a child_repeat has a value
                     if !values.is_empty() && self.parsing_table.parent[*var_id as usize].is_some() {
                         let mut top_nt = *var_id as usize;
-                        print!(" [{}, so {}?", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "), Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()));
+                        // print!(" [{}, so {}?", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "), Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()));
                         while self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT == 0 {
                             if let Some(parent) = self.parsing_table.parent[top_nt] {
                                 top_nt = parent as usize;
@@ -461,16 +466,20 @@ impl ParserBuilder {
                             }
                         }
                         if self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT != 0 {
-                            if VERBOSE && !self.nt_value[top_nt] { print!(" {} is now valued", Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table())); }
-                            change |= !self.nt_value[top_nt];
+                            if VERBOSE && !self.nt_value[top_nt] {
+                                print!(" | {} is now valued {}",
+                                       Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()),
+                                       if nt_used.contains(&(top_nt as VarId)) { "and was used before" } else { "but wasn't used before" }
+                                );
+                            }
+                            change |= !self.nt_value[top_nt] && nt_used.contains(&(top_nt as VarId));
                             self.nt_value[top_nt] = true;
                         }
-                        print!("]");
+                        // print!("]");
                     }
                     if change {
                         // the nt_value of one item has been set.
-                        if VERBOSE { println!("\nnt_value changed"); }
-
+                        if VERBOSE { println!("\nnt_value changed, redoing this group"); }
                         break;
                     }
 
@@ -487,7 +496,7 @@ impl ParserBuilder {
                     };
                     if let Some(s) = sym_maybe {
                         if self.sym_has_value(&s) {
-                            if VERBOSE { print!("| loop => {}", s.to_str(self.get_symbol_table())); }
+                            if VERBOSE { print!(" | loop => {}", s.to_str(self.get_symbol_table())); }
                             values.insert(0, s);
                         }
                     }
