@@ -283,16 +283,30 @@ mod wrapper_source {
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], All),
-            // A -> a (b <L>)* c
+
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* | L-form (129)
             // parents:
             //  - A_1 -> A
-            (RTS(22), 0, btreemap![
+            (RTS(22), 0, btreemap![                     /// A -> a (b <L>)* c
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+            ], All),
+            // NT flags:
+            //  - A: parent_left_fact | parent_+_or_* (2080)
+            //  - A_1: child_+_or_* | L-form (129)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            (RTS(32), 0, btreemap![                     /// A -> a (a | c) (b <L>)* c
+                0 => symbols![],                        //  0: A -> a A_2     | ►A_2 a!       |
+                1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1   | ●A_1 ◄1 b!    | A_1 b
+                2 => symbols![],                        //  2: A_1 -> ε       | ◄2            |
+                3 => symbols![t 0, t 0, nt 1, t 2],     //  3: A_2 -> a A_1 c | ◄3 c! ►A_1 a! | a a A_1 c
+                4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_2 -> c A_1 c | ◄4 c! ►A_1 c! | a c A_1 c
             ], All),
 
             // When the repeated item has no data:
