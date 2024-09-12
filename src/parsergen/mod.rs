@@ -262,6 +262,32 @@ impl ParserBuilder {
                 // except right recursions that aren't left-form, because we let them unfold naturally (uses more stack)
                 opcode.swap(0, 1);
             }
+            if flags & ruleflag::CHILD_L_FACTOR != 0 {
+                if opcode.len() >= 2 {
+                    let mut fact_top = *var_id;
+                    while let Some(parent) = self.parsing_table.parent[fact_top as usize] {
+                        fact_top = parent;
+                    }
+                    if VERBOSE {
+                        println!("  - check for initial exit swap: opcode = [{}], daddy = {}",
+                                 opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                                 Symbol::NT(fact_top).to_str(self.get_symbol_table()));
+                    }
+                    if self.parsing_table.flags[fact_top as usize] & ruleflag::PARENT_L_RECURSION != 0 &&
+                        matches!(opcode[0], OpCode::Exit(_)) &&
+                        matches!(opcode[1], OpCode::NT(v) if self.parsing_table.flags[v as usize] & ruleflag::CHILD_L_RECURSION != 0)
+                    {
+                        if VERBOSE {
+                            println!("    swapping for initial exit_{}: {} <-> {}",
+                                Symbol::NT(fact_top).to_str(self.get_symbol_table()).to_lowercase(),
+                                opcode[0].to_str(self.get_symbol_table()),
+                                opcode[1].to_str(self.get_symbol_table())
+                            );
+                        }
+                        opcode.swap(0, 1);
+                    }
+                }
+            }
             opcode.iter_mut().for_each(|o| {
                 if let OpCode::NT(v) = o {
                     // replaces Enter by Loop when back to self,
