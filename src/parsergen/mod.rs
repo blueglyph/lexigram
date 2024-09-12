@@ -574,7 +574,7 @@ impl ParserBuilder {
 
     #[allow(unused)]
     fn source_wrapper(&mut self, items: HashMap<FactorId, Vec<Symbol>>) -> Vec<String> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         #[derive(Debug)]
         struct ItemInfo {
@@ -668,6 +668,7 @@ impl ParserBuilder {
                 }
                 if (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
                     pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT
+                    || pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0
                 {
                     let len = nt_info[owner as usize].len();
                     if len == 1 {
@@ -677,22 +678,34 @@ impl ParserBuilder {
                     if len > 0 { name.push_str(&(len + 1).to_string()) };
                     nt_info[owner as usize].push((factor_id, name));
                 }
-                item_ops.into_iter().map(|s| {
-                    let index = if let Some((_, Some(index))) = indices.get_mut(s) {
-                        let idx = *index;
-                        *index += 1;
-                        Some(idx)
-                    } else {
-                        None
-                    };
-                    ItemInfo {
-                        name: indices[&s].0.clone(),
-                        sym: s.clone(),
-                        owner,
+                if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
+                    // we put here the return context for the final exit of left recursive rule
+                    // let parent = pinfo.parent[nt].unwrap();
+                    vec![ItemInfo {
+                        name: nt_name[owner as usize].as_ref().map(|n| n.1.clone()).unwrap(),
+                        sym: Symbol::NT(owner as VarId),
+                        owner: owner,
                         is_vec: false,
-                        index,
-                    }
-                }).to_vec()
+                        index: None,
+                    }]
+                } else {
+                    item_ops.into_iter().map(|s| {
+                        let index = if let Some((_, Some(index))) = indices.get_mut(s) {
+                            let idx = *index;
+                            *index += 1;
+                            Some(idx)
+                        } else {
+                            None
+                        };
+                        ItemInfo {
+                            name: indices[&s].0.clone(),
+                            sym: s.clone(),
+                            owner,
+                            is_vec: false,
+                            index,
+                        }
+                    }).to_vec()
+                }
             } else {
                 vec![]
             }
