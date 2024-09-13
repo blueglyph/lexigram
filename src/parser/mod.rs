@@ -66,6 +66,14 @@ impl Parser {
         Some(&self.symbol_table)
     }
 
+    pub(crate) fn get_factors(&self) -> &Vec<(VarId, ProdFactor)> {
+        &self.factors
+    }
+
+    pub(crate) fn get_opcodes(&self) -> &Vec<Vec<OpCode>> {
+        &self.opcodes
+    }
+
     pub fn parse_stream<I, L>(&mut self, listener: &mut L, mut stream: I) -> Result<(), String>
         where I: Iterator<Item=(Symbol, String)>,
               L: Listener,
