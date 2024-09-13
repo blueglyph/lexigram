@@ -27,7 +27,7 @@ mod gen_integration {
                 rules
             }
             PRS(prs_id) => {
-                build_prs(prs_id, false)
+                build_prs(prs_id, is_t_data)
             }
         };
         assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
@@ -66,7 +66,7 @@ mod gen_integration {
              9 => Some((RTS(16), 4,    true,  "write_source_code_for_integration_listener9",  "Plus")),
             10 => Some((RTS(23), 4,    false, "write_source_code_for_integration_listener10", "Plus")),
             11 => Some((RTS(27), 4,    false, "write_source_code_for_integration_listener11", "Plus")),
-            12 => Some((PRS(33), 4,    false, "write_source_code_for_integration_listener12", "LeftRec")),
+            12 => Some((PRS(33), 4,    true,  "write_source_code_for_integration_listener12", "LeftRec")),
             _ => None
         }
     }
