@@ -3639,7 +3639,6 @@ mod listener11 {
     }
 }
 
-#[cfg(feature = "disabled")]
 #[allow(unused)]
 mod listener12 {
     // [write_source_code_for_integration_listener12]
@@ -3652,7 +3651,7 @@ mod listener12 {
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
-    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("a", Some("a")), ("b", Some("b")), ("c", Some("c")), ("d", Some("d"))];
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("a", None), ("b", None), ("c", None), ("d", None)];
     const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["A", "A_1", "A_2"];
     const SYMBOLS_NAMES: [(&str, VarId); 2] = [("A_1", 1), ("A_2", 2)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 5] = [(0, &[Symbol::T(1), Symbol::NT(2)]), (1, &[Symbol::T(0), Symbol::NT(1)]), (1, &[Symbol::Empty]), (2, &[Symbol::T(2), Symbol::NT(1)]), (2, &[Symbol::T(3), Symbol::NT(1)])];
@@ -3829,8 +3828,6 @@ mod listener12 {
             }
         }
 
-// FIXME: below ---------------------------------------
-
         // User code -----------------------------------------------------
 
         #[derive(Debug)]
@@ -3839,62 +3836,50 @@ mod listener12 {
         #[derive(Debug)]
         pub struct SynA {
             choice: Bcbd,
-            count_a: u32
+            count_a: u32,
+            finished: bool
         }
-
-        #[derive(Debug)]
-        pub struct SynF(String);
 
         struct TestListener {
             result: Option<String>,
+            finished: bool,
             verbose: bool,
         }
 
         impl TestListener {
             pub fn new(verbose: bool) -> Self {
-                Self { result: None, verbose }
+                Self { result: None, finished: false, verbose }
             }
         }
 
         impl LeftRecListener for TestListener {
             fn exit(&mut self, ctx: Ctx) {
                 if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                if let Ctx::E { e: SynE::Final(e) } = ctx {
-                    self.result = Some(e);
-                } else {
-                    panic!("unexpected final context {ctx:?}");
-                }
+                let Ctx::A { a } = ctx;
+                self.result = Some(match a.choice {
+                    Bcbd::Bc(s) | Bcbd::Bd(s) => s
+                } + &a.count_a.to_string());
+                self.finished = a.finished;
             }
 
             fn init_a(&mut self) {
-                if self.verbose { println!("► E"); }
+                if self.verbose { println!("► A"); }
             }
 
-            fn init_f(&mut self) {
-                if self.verbose { println!("► F"); }
-            }
-
-            fn exit_a(&mut self, ctx: CtxE) -> SynE {
-                if self.verbose { println!("◄ E (ctx = {ctx:?})"); }
+            fn exit_a(&mut self, ctx: CtxA) -> SynA {
+                if self.verbose { println!("◄ A (ctx = {ctx:?})"); }
                 match ctx {
-                    CtxE::E_Id { e: SynE::Tmp(mut e), id } => {
-                        e.push(id);
-                        SynE::Tmp(e)
-                    },
-                    CtxE::F { f } => {
-                        SynE::Tmp(vec![f.0])
+                    CtxA::A1 { mut a, .. } => {
+                        a.count_a += 1;
+                        a
                     }
-                    CtxE::E { e: SynE::Tmp(e) } => {
-                        SynE::Final(e.join(""))
+                    CtxA::A2 { mut a } => {
+                        a.finished = true;
+                        a
                     }
-                    _ => panic!("unexpected context {ctx:?}")
+                    CtxA::A3 { b, c } => SynA { choice: Bcbd::Bc(b + &c), count_a: 0, finished: false },
+                    CtxA::A4 { b, d } => SynA { choice: Bcbd::Bd(b + &d), count_a: 0, finished: false }
                 }
-            }
-
-            fn exit_f(&mut self, ctx: CtxF) -> SynF {
-                if self.verbose { println!("◄ list (ctx = {ctx:?})"); }
-                let CtxF::F { id } = ctx;
-                SynF(id)
             }
         }
 
@@ -3902,15 +3887,20 @@ mod listener12 {
         fn parser_parse_stream() {
             let tests = vec![
                 (
-                    "a . b . c . d",
+                    "b d a a",
                     true,
-                    (Some("abcd"))
+                    Some("bd2")
                 ),
                 (
-                    "a",
+                    "b c a",
                     true,
-                    (Some("a"))
+                    Some("bc1")
                 ),
+                (
+                    "b c",
+                    true,
+                    Some("bc0")
+                )
             ];
             const VERBOSE: bool = true;
             const VERBOSE_LISTENER: bool = true;
@@ -3956,6 +3946,7 @@ mod listener12 {
                     let listener = wrapper.listener();
                     let expected_result = expected_result.map(|s| s.to_string());
                     assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+                    assert!(listener.finished, "test {test_id} failed for input {input}");
                 }
             }
         }
