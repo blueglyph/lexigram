@@ -308,114 +308,8 @@ impl ParserBuilder {
         }
     }
 
-    pub fn make_parser(self) -> Parser {
-        Parser::new(self.parsing_table, self.symbol_table, self.opcodes, self.start)
-    }
-
-    // Building the source code as we do below is not the most efficient, but it's done that way to
-    // - be able to build only a part of the parser, and
-    // - get the sources for the validation tests or print them / write them into a file.
-    // The whole code isn't that big, so it's not a major issue.
-
-    pub fn write_source_code(&mut self, file: Option<File>, indent: usize) -> Result<(), std::io::Error> {
-        let mut out: BufWriter<Box<dyn Write>> = match file {
-            Some(file) => BufWriter::new(Box::new(file)),
-            None => BufWriter::new(Box::new(std::io::stdout().lock()))
-        };
-        let source = self.build_source_code(indent, true);
-        out.write(source.as_bytes())?;
-        // write!(out, "{source}");
-        Ok(())
-    }
-
-    fn build_source_code(&mut self, indent: usize, wrapper: bool) -> String {
-        let s = String::from_utf8(vec![32; indent]).unwrap();
-        let mut parts = vec![];
-        parts.push(vec![
-            "// -------------------------------------------------------------------------".to_string(),
-            "// Automatically generated".to_string(),
-        ]);
-        parts.push(self.source_build_parser());
-        if wrapper {
-            let items = self.build_item_ops();
-            parts.push(self.source_wrapper(items));
-        }
-        parts.push(vec![
-            "// -------------------------------------------------------------------------".to_string(),
-        ]);
-        // Create source code:
-        let mut source = String::new();
-        let mut first = true;
-        for part in parts {
-            if !first {
-                source.push('\n');
-            }
-            first = false;
-            for line in part {
-                source.push_str(&s);
-                source.push_str(&line);
-                source.push('\n');
-            }
-        }
-        source
-    }
-
-    fn source_build_parser(&self) -> Vec<String> {
-        let num_nt = self.symbol_table.get_non_terminals().len();
-        let num_t = self.symbol_table.get_terminals().len();
-        let mut symbol_names = self.symbol_table.get_names().to_vec(); // hashmap: we want predictable outcome, so we sort names
-        symbol_names.sort();
-        vec![
-            format!("use rlexer::grammar::{{ProdFactor, Symbol, VarId, FactorId}};"),
-            format!("use rlexer::parser::{{OpCode, Parser}};"),
-            format!("use rlexer::symbol_table::SymbolTable;\n"),
-
-            format!("const PARSER_NUM_T: usize = {num_t};"),
-            format!("const PARSER_NUM_NT: usize = {num_nt};"),
-            format!("const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [{}];",
-                     self.symbol_table.get_terminals().iter().map(|(s, os)|
-                         format!("(\"{s}\", {})", os.as_ref().map(|s| format!("Some(\"{s}\")")).unwrap_or("None".to_string()))).join(", ")),
-            format!("const SYMBOLS_NT: [&str; PARSER_NUM_NT] = [{}];",
-                     self.symbol_table.get_non_terminals().iter().map(|s| format!("\"{s}\"")).join(", ")),
-            format!("const SYMBOLS_NAMES: [(&str, VarId); {}] = [{}];",
-                     symbol_names.len(),
-                     symbol_names.into_iter().map(|(s, v)| format!("(\"{s}\", {v})")).join(", ")),
-            format!("const PARSING_FACTORS: [(VarId, &[Symbol]); {}] = [{}];",
-                     self.parsing_table.factors.len(),
-                     self.parsing_table.factors.iter().map(|(v, f)| format!("({v}, &[{}])", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")),
-            format!("const PARSING_TABLE: [FactorId; {}] = [{}];",
-                     self.parsing_table.table.len(),
-                     self.parsing_table.table.iter().map(|v| format!("{v}")).join(", ")),
-            format!("const FLAGS: [u32; {}] = [{}];",
-                     self.parsing_table.flags.len(), self.parsing_table.flags.iter().join(", ")),
-            format!("const PARENT: [Option<VarId>; {}] = [{}];",
-                     self.parsing_table.parent.len(), self.parsing_table.parent.iter().map(|p| if let Some(par) = p { format!("Some({par})") } else { format!("None") }).join(", ")),
-            format!("const OPCODES: [&[OpCode]; {}] = [{}];", self.opcodes.len(),
-                     self.opcodes.iter().map(|strip| format!("&[{}]", strip.into_iter().map(|op| format!("OpCode::{op:?}")).join(", "))).join(", ")),
-            format!("const START_SYMBOL: VarId = {};\n", self.start),
-
-            format!("pub(super) fn build_parser() -> Parser {{"),
-            format!("    let mut symbol_table = SymbolTable::new();"),
-            format!("    symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));"),
-            format!("    symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));"),
-            format!("    symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));"),
-            format!("    let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();"),
-            format!("    let table: Vec<FactorId> = PARSING_TABLE.into();"),
-            format!("    let parsing_table = rlexer::grammar::LLParsingTable {{"),
-            format!("        num_nt: PARSER_NUM_NT,"),
-            format!("        num_t: PARSER_NUM_T + 1,"),
-            format!("        factors,"),
-            format!("        table,"),
-            format!("        flags: FLAGS.into(),"),
-            format!("        parent: PARENT.into(),"),
-            format!("    }};"),
-            format!("    Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)"),
-            format!("}}"),
-        ]
-    }
-
     fn build_item_ops(&mut self) -> HashMap::<FactorId, Vec<Symbol>> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
         let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; info.num_nt];
@@ -578,6 +472,112 @@ impl ParserBuilder {
             }
         }
         items
+    }
+
+    pub fn make_parser(self) -> Parser {
+        Parser::new(self.parsing_table, self.symbol_table, self.opcodes, self.start)
+    }
+
+    // Building the source code as we do below is not the most efficient, but it's done that way to
+    // - be able to build only a part of the parser, and
+    // - get the sources for the validation tests or print them / write them into a file.
+    // The whole code isn't that big, so it's not a major issue.
+
+    pub fn write_source_code(&mut self, file: Option<File>, indent: usize) -> Result<(), std::io::Error> {
+        let mut out: BufWriter<Box<dyn Write>> = match file {
+            Some(file) => BufWriter::new(Box::new(file)),
+            None => BufWriter::new(Box::new(std::io::stdout().lock()))
+        };
+        let source = self.build_source_code(indent, true);
+        out.write(source.as_bytes())?;
+        // write!(out, "{source}");
+        Ok(())
+    }
+
+    fn build_source_code(&mut self, indent: usize, wrapper: bool) -> String {
+        let s = String::from_utf8(vec![32; indent]).unwrap();
+        let mut parts = vec![];
+        parts.push(vec![
+            "// -------------------------------------------------------------------------".to_string(),
+            "// Automatically generated".to_string(),
+        ]);
+        parts.push(self.source_build_parser());
+        if wrapper {
+            let items = self.build_item_ops();
+            parts.push(self.source_wrapper(items));
+        }
+        parts.push(vec![
+            "// -------------------------------------------------------------------------".to_string(),
+        ]);
+        // Create source code:
+        let mut source = String::new();
+        let mut first = true;
+        for part in parts {
+            if !first {
+                source.push('\n');
+            }
+            first = false;
+            for line in part {
+                source.push_str(&s);
+                source.push_str(&line);
+                source.push('\n');
+            }
+        }
+        source
+    }
+
+    fn source_build_parser(&self) -> Vec<String> {
+        let num_nt = self.symbol_table.get_non_terminals().len();
+        let num_t = self.symbol_table.get_terminals().len();
+        let mut symbol_names = self.symbol_table.get_names().to_vec(); // hashmap: we want predictable outcome, so we sort names
+        symbol_names.sort();
+        vec![
+            format!("use rlexer::grammar::{{ProdFactor, Symbol, VarId, FactorId}};"),
+            format!("use rlexer::parser::{{OpCode, Parser}};"),
+            format!("use rlexer::symbol_table::SymbolTable;\n"),
+
+            format!("const PARSER_NUM_T: usize = {num_t};"),
+            format!("const PARSER_NUM_NT: usize = {num_nt};"),
+            format!("const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [{}];",
+                     self.symbol_table.get_terminals().iter().map(|(s, os)|
+                         format!("(\"{s}\", {})", os.as_ref().map(|s| format!("Some(\"{s}\")")).unwrap_or("None".to_string()))).join(", ")),
+            format!("const SYMBOLS_NT: [&str; PARSER_NUM_NT] = [{}];",
+                     self.symbol_table.get_non_terminals().iter().map(|s| format!("\"{s}\"")).join(", ")),
+            format!("const SYMBOLS_NAMES: [(&str, VarId); {}] = [{}];",
+                     symbol_names.len(),
+                     symbol_names.into_iter().map(|(s, v)| format!("(\"{s}\", {v})")).join(", ")),
+            format!("const PARSING_FACTORS: [(VarId, &[Symbol]); {}] = [{}];",
+                     self.parsing_table.factors.len(),
+                     self.parsing_table.factors.iter().map(|(v, f)| format!("({v}, &[{}])", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")),
+            format!("const PARSING_TABLE: [FactorId; {}] = [{}];",
+                     self.parsing_table.table.len(),
+                     self.parsing_table.table.iter().map(|v| format!("{v}")).join(", ")),
+            format!("const FLAGS: [u32; {}] = [{}];",
+                     self.parsing_table.flags.len(), self.parsing_table.flags.iter().join(", ")),
+            format!("const PARENT: [Option<VarId>; {}] = [{}];",
+                     self.parsing_table.parent.len(), self.parsing_table.parent.iter().map(|p| if let Some(par) = p { format!("Some({par})") } else { format!("None") }).join(", ")),
+            format!("const OPCODES: [&[OpCode]; {}] = [{}];", self.opcodes.len(),
+                     self.opcodes.iter().map(|strip| format!("&[{}]", strip.into_iter().map(|op| format!("OpCode::{op:?}")).join(", "))).join(", ")),
+            format!("const START_SYMBOL: VarId = {};\n", self.start),
+
+            format!("pub(super) fn build_parser() -> Parser {{"),
+            format!("    let mut symbol_table = SymbolTable::new();"),
+            format!("    symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));"),
+            format!("    symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));"),
+            format!("    symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));"),
+            format!("    let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();"),
+            format!("    let table: Vec<FactorId> = PARSING_TABLE.into();"),
+            format!("    let parsing_table = rlexer::grammar::LLParsingTable {{"),
+            format!("        num_nt: PARSER_NUM_NT,"),
+            format!("        num_t: PARSER_NUM_T + 1,"),
+            format!("        factors,"),
+            format!("        table,"),
+            format!("        flags: FLAGS.into(),"),
+            format!("        parent: PARENT.into(),"),
+            format!("    }};"),
+            format!("    Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)"),
+            format!("}}"),
+        ]
     }
 
     #[allow(unused)]
