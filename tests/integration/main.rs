@@ -1161,8 +1161,8 @@ mod listener3 {
                     ("test2", vec![])
                 ),
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             let mut parser = super::build_parser();
 
             // The lexer provides the required stream, so this isn't necessary in a real case:
@@ -1464,8 +1464,8 @@ mod listener4 {
                     ("test2", vec![], Some(0))
                 ),
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             let mut parser = super::build_parser();
 
             // The lexer provides the required stream, so this isn't necessary in a real case:
@@ -1779,8 +1779,8 @@ mod listener5 {
                     (Some("a"))
                 ),
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             const T_ID: VarId = 1;
 
             let mut parser = super::build_parser();
@@ -2102,8 +2102,8 @@ mod listener6 {
                     (Some(vec!["a", "b", "c()", "d"]))
                 ),
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             const T_ID: VarId = 1;
 
             let mut parser = super::build_parser();
@@ -2377,8 +2377,8 @@ mod listener7 {
                     (Some(SynA { a: s!("a"), b: vec![], c: s!("c")}))
                 ),
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             const T_ID: VarId = 1;
 
             let mut parser = super::build_parser();
@@ -2676,8 +2676,8 @@ mod listener8 {
                     (Some(SynA { a: s!("a"), b: vec![], num_b: 0, c: s!("c")}))
                 ),
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             const T_ID: VarId = 1;
 
             let mut parser = super::build_parser();
@@ -2989,8 +2989,8 @@ mod listener9 {
                     (None)
                 ),
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             const T_ID: VarId = 1;
 
             let mut parser = super::build_parser();
@@ -3272,8 +3272,8 @@ mod listener10 {
                     (None)
                 ),
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             const T_ID: VarId = 1;
 
             let mut parser = super::build_parser();
@@ -3586,8 +3586,8 @@ mod listener11 {
                     (None)
                 ),
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             const T_ID: VarId = 1;
 
             let mut parser = super::build_parser();
@@ -3902,8 +3902,8 @@ mod listener12 {
                     Some("bc0")
                 )
             ];
-            const VERBOSE: bool = true;
-            const VERBOSE_LISTENER: bool = true;
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
             const T_ID: VarId = 1;
 
             let mut parser = super::build_parser();

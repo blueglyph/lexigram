@@ -370,8 +370,8 @@ mod opcodes {
             ]),
             */
         ];
-        const VERBOSE: bool = true;
-        const TESTS_ALL: bool = true;
+        const VERBOSE: bool = false;
+        const TESTS_ALL: bool = false;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
