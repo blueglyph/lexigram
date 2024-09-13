@@ -3658,7 +3658,7 @@ mod listener12 {
     const PARSING_TABLE: [FactorId; 15] = [5, 0, 5, 5, 5, 1, 5, 5, 5, 2, 5, 5, 3, 4, 5];
     const FLAGS: [u32; 3] = [544, 4, 64];
     const PARENT: [Option<VarId>; 3] = [None, Some(0), Some(0)];
-    const OPCODES: [&[OpCode]; 5] = [&[OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(0)], &[OpCode::Exit(2)], &[OpCode::NT(1), OpCode::Exit(3), OpCode::T(2)], &[OpCode::NT(1), OpCode::Exit(4), OpCode::T(3)]];
+    const OPCODES: [&[OpCode]; 5] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(0)], &[OpCode::Exit(2)], &[OpCode::NT(1), OpCode::Exit(3), OpCode::T(2)], &[OpCode::NT(1), OpCode::Exit(4), OpCode::T(3)]];
     const START_SYMBOL: VarId = 0;
 
     pub(super) fn build_parser() -> Parser {
@@ -3693,7 +3693,7 @@ mod listener12 {
 
         // A -> A a | b c | b d
         //
-        //  0: A -> b A_2   | ►A_2 b!    |
+        //  0: A -> b A_2   | ◄0 ►A_2 b! |
         //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
         //  2: A_1 -> ε     | ◄2         |
         //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
@@ -3770,7 +3770,7 @@ mod listener12 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_a(),             //  0: A -> b A_2   | ►A_2 b!    |
+                            0 => self.exit_a(),             //  0: A -> b A_2   | ◄0 ►A_2 b! |
                             1 => self.exit_a_1(),           //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                             2 => {}                         //  2: A_1 -> ε     | ◄2         |
                             3 |                             //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c

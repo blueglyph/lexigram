@@ -484,7 +484,7 @@ mod wrapper_source {
             //  - A_1 -> A
             //  - A_2 -> A
             (PRS(33), 0, btreemap![                     /// A -> A a | b c | b d
-                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
+                0 => symbols![],                        //  0: A -> b A_2   | ◄0 ►A_2 b! |
                 1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c

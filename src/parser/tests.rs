@@ -350,7 +350,7 @@ mod opcodes {
                 strip![loop 2, exit 2, t 1, t 0],       //  2: E_1 -> . id E_1 - ●E_1 ◄2 id! .
                 strip![exit 3],                         //  3: E_1 -> ε        - ◄3
             ]),
-            (T::PRS(32), 0, vec![
+            (T::PRS(32), 0, vec![                       /// E -> F | E . id | E . id ( );  F -> id
                 strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
                 strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
                 strip![nt 3, t 1, t 0],                 //  2: E_1 -> . id E_2 - ►E_2 id! .
@@ -429,7 +429,7 @@ mod opcodes {
                 strip![exit 6],                         //  6: A_2 -> ε     - ◄6
             ]),
             (T::PRS(33), 0, vec![                       /// A -> A a | b c | b d
-                strip![nt 2, t 1],                      //  0: A -> b A_2   - ►A_2 b
+                strip![exit 0, nt 2, t 1],              //  0: A -> b A_2   - ◄0 ►A_2 b
                 strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A_1 ◄1 a
                 strip![exit 2],                         //  2: A_1 -> ε     - ◄2
                 strip![nt 1, exit 3, t 2],              //  3: A_2 -> c A_1 - ►A_1 ◄3 c

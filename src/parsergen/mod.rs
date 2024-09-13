@@ -237,22 +237,28 @@ impl ParserBuilder {
             let mut new = self.parsing_table.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
             if VERBOSE { println!("- {}", new.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut opcode = Vec::<OpCode>::new();
+            let parent = self.parsing_table.parent[*var_id as usize];
             if flags & ruleflag::CHILD_L_FACTOR != 0 {
-                let parent = self.parsing_table.parent[*var_id as usize].unwrap();
+                let parent = parent.unwrap();
                 // replaces Enter by Loop when going back to left-factorization parent, typically when coupled with + or *
-                // (per construction, there can't be any factor going back to the grand-parent or further up in a left factorization, so
+                // (per construction, there can't be any factor going back to the grandparent or further up in a left factorization, so
                 //  we don't check that)
                 if new.get(0) == Some(&Symbol::NT(parent)) {
                     opcode.push(OpCode::Loop(parent));
                     new.remove(0);
                 }
             }
-            if flags & ruleflag::PARENT_L_FACTOR == 0 || new.iter().all(|s| if let Symbol::NT(ch) = s { !self.nt_has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true }) {
+            if flags & ruleflag::PARENT_L_FACTOR == 0 ||
+                flags & ruleflag::PARENT_L_RECURSION != 0 && parent.is_none() ||
+                new.iter().all(|s| if let Symbol::NT(ch) = s { !self.nt_has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true })
+            {
                 // if it's not a parent of left factorization, or
-                // if none of the NT in the factor is a child of left factorization,
+                // if none of the NT in the factor is a child of left factorization, or
+                // if it's the top parent of left recursion + left factorization,
                 // => adds an Exit
                 // (said otherwise: we don't want an exit in a parent or in the middle of a chain of left factorizations;
-                //  the exit should be only at the end of left factorizations, or in factors that aren't left-factorized)
+                //  the exit should be only at the end of left factorizations, or in factors that aren't left-factorized -
+                //  except the special case of left recursion + left factorization, which needs the final exit)
                 opcode.push(OpCode::Exit(factor_id)); // will be popped when this NT is completed
             }
             opcode.extend(new.into_iter().map(|s| OpCode::from(s)));
@@ -528,7 +534,9 @@ impl ParserBuilder {
                     }
 
                     if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
-                    if let Some(OpCode::NT(nt)) = opcode.first() {
+                    let extra_lrec_exit = self.nt_has_flags(*var_id, ruleflag::PARENT_L_RECURSION | ruleflag::PARENT_L_FACTOR) &&
+                        info.parent[*var_id as usize].is_none();
+                    if let Some(OpCode::NT(nt)) = opcode.get(if extra_lrec_exit { 1 } else { 0 }) {
                         // Take the values except the last NT
                         let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {
                             Some(values.pop().unwrap())
