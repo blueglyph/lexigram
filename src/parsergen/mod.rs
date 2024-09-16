@@ -111,6 +111,7 @@ pub struct ParserBuilder {
     symbol_table: SymbolTable,
     name: String,
     nt_value: Vec<bool>,
+    nt_group: Vec<Vec<(VarId, FactorId)>>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId
 }
@@ -133,6 +134,7 @@ impl ParserBuilder {
             symbol_table,
             name,
             nt_value: vec![false; num_nt],
+            nt_group: Vec::new(),
             opcodes: Vec::new(),
             start
         };
@@ -313,18 +315,18 @@ impl ParserBuilder {
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
         let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; info.num_nt];
-        let mut var_groups: Vec<Vec<(VarId, FactorId)>> = vec![vec![]; info.num_nt];
+        let mut nt_group: Vec<Vec<(VarId, FactorId)>> = vec![vec![]; info.num_nt];
         for (factor_id, (var_id, _)) in info.factors.iter().enumerate() {
             var_factors[*var_id as usize].push(factor_id as FactorId);
             let mut top_var_id = *var_id as usize;
             while let Some(parent) = info.parent[top_var_id] {
                 top_var_id = parent as usize;
             }
-            var_groups[top_var_id].push((*var_id, factor_id as FactorId));
+            nt_group[top_var_id].push((*var_id, factor_id as FactorId));
         }
         if VERBOSE {
             println!("Groups:");
-            for (parent_id, group) in var_groups.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
+            for (parent_id, group) in nt_group.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
                 let ids = group.iter().map(|(v, _)| *v).collect::<BTreeSet<VarId>>();
                 println!("{}: {}, factors {}",
                          Symbol::NT(parent_id as VarId).to_str(self.get_symbol_table()),
@@ -334,7 +336,7 @@ impl ParserBuilder {
             }
         }
         // we proceed by var parent, then all factors in each parent/children group
-        for (_parent_id, group) in var_groups.into_iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
+        for (_parent_id, group) in nt_group.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
             let mut change = true;
             while change {
                 change = false;
@@ -347,10 +349,10 @@ impl ParserBuilder {
                                  if self.nt_value[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
                              ).join(", "));
                 }
-                for (_, factor_id) in &group {
+                for (_, factor_id) in group {
                     items.insert(*factor_id, vec![]);
                 }
-                for (var_id, factor_id) in &group {
+                for (var_id, factor_id) in group {
                     let opcode = &self.opcodes[*factor_id as usize];
                     let (_, factor) = &info.factors[*factor_id as usize];
                     if VERBOSE {
@@ -471,6 +473,7 @@ impl ParserBuilder {
                 }
             }
         }
+        self.nt_group = nt_group;
         items
     }
 
