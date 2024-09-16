@@ -796,7 +796,7 @@ mod wrapper_source {
             //  - E_1: child_left_rec | child_amb (12)
             // parents:
             //  - E_1 -> E
-            (PRS(13), 0, btreemap![
+            (PRS(13), 0, btreemap![                     /// // E -> E : E | E ^ E | E / E | E * E | E - E | E + E | F;  F -> ( E ) | NUM | ID
                 0 => symbols![nt 1],                    //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
                 1 => symbols![nt 0],                    //  1: F -> ( E )     | ◄1 ) ►E (    | E
                 2 => symbols![t 6],                     //  2: F -> N         | ◄2 N!        | N

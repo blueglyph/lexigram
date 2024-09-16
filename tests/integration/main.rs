@@ -403,12 +403,12 @@ mod listener2 {
     //  1: F -> ( E )     | ◄1 ) ►E (    | E
     //  2: F -> N         | ◄2 N!        | N
     //  3: F -> I         | ◄3 I!        | I
-    //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | F E
-    //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | F E
-    //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | F E
-    //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | F E
-    //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | F E
-    //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | F E
+    //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | E F
+    //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | E F
+    //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | E F
+    //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | E F
+    //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | E F
+    //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | E F
     // 10: E_1 -> ε       | ◄10          |
     //
     // NT flags:
@@ -546,10 +546,7 @@ mod listener2 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => {
-                            self.listener.init_e();
-                            self.init_e();
-                        },
+                        0 => self.init_e(),
                         1 => self.listener.init_f(factor_id),
                         2 => self.init_e_1(factor_id),
                         _ => panic!("unexpected exit nt: {nt}")
@@ -565,12 +562,12 @@ mod listener2 {
                         1 => self.exit_f1(),                                        //  1: F -> ( E )     | ◄1 ) ►E (    | E
                         2 => self.exit_f2(),                                        //  2: F -> N         | ◄2 N!        | N
                         3 => self.exit_f3(),                                        //  3: F -> I         | ◄3 I!        | I
-                        4 => self.asm_e_1(factor_id, PRIORITY_DUM, LEFT_ASSOC_DUM), //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | F E
-                        5 => self.asm_e_1(factor_id, PRIORITY_EXP, LEFT_ASSOC_EXP), //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | F E
-                        6 => self.asm_e_1(factor_id, PRIORITY_DIV, LEFT_ASSOC_DIV), //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | F E
-                        7 => self.asm_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL), //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | F E
-                        8 => self.asm_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB), //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | F E
-                        9 => self.asm_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD), //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | F E
+                        4 => self.asm_e_1(factor_id, PRIORITY_DUM, LEFT_ASSOC_DUM), //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | E F
+                        5 => self.asm_e_1(factor_id, PRIORITY_EXP, LEFT_ASSOC_EXP), //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | E F
+                        6 => self.asm_e_1(factor_id, PRIORITY_DIV, LEFT_ASSOC_DIV), //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | E F
+                        7 => self.asm_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL), //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | E F
+                        8 => self.asm_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB), //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | E F
+                        9 => self.asm_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD), //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | E F
                         10 => {}                                                    // 10: E_1 -> ε       | ◄10          |
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -625,6 +622,7 @@ mod listener2 {
 
         fn init_e(&mut self) {
             // stopper for this expression (PRIORITY_MIN and right-associativity means it will never be merged)
+            self.listener.init_e();
             self.asm_stack.push((AsmItem { val: None, ty: AsmE::E}, PRIORITY_MIN, false));
         }
 
@@ -1352,7 +1350,6 @@ mod listener4 {
                     }
                 }
                 self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-                // self.max_asm_stack = std::cmp::max(self.max_asm_stack, self.asm_stack.len());
                 if self.verbose {
                     println!("> stack_t:   {}", self.stack_t.join(", "));
                     println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
@@ -1498,7 +1495,6 @@ mod listener4 {
                 if VERBOSE {
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
-                    // println!("listener asm_stack: {:?}", wrapper.asm_stack);
                 }
                 // ---------------------------------------------------
 
@@ -2489,6 +2485,7 @@ mod listener8 {
         //  2: A_1 -> ε     | ◄2            |
         //
         // NT flags:
+        //  - A: parent_+_or_* (2048)
         //  - A_1: child_+_or_* | L-form (129)
         // parents:
         //  - A_1 -> A
