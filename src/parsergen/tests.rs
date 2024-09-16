@@ -828,8 +828,8 @@ mod wrapper_source {
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
-            let items = builder.build_item_ops();
-            let result_items = items.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<FactorId, Vec<Symbol>>>();
+            builder.build_item_ops();
+            let result_items = builder.item_ops.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<FactorId, Vec<Symbol>>>();
             if VERBOSE {
                 print_flags(&builder, 12);
                 println!("            ({rule_id:?}, {start_nt}, btreemap![", );
@@ -840,7 +840,7 @@ mod wrapper_source {
                     Default => "Default".to_string()
                 };
                 println!("            ], {has_value_str}),");
-                let src = builder.source_wrapper(items);
+                let src = builder.source_wrapper();
                 if VERBOSE_DETAILS {
                     println!("{:-<40} Source code:", "");
                     println!("{}", src.into_iter().map(|s| format!("    {s}")).join("\n"));

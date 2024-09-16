@@ -112,6 +112,7 @@ pub struct ParserBuilder {
     name: String,
     nt_value: Vec<bool>,
     nt_group: Vec<Vec<(VarId, FactorId)>>,
+    item_ops: HashMap<FactorId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId
 }
@@ -135,6 +136,7 @@ impl ParserBuilder {
             name,
             nt_value: vec![false; num_nt],
             nt_group: Vec::new(),
+            item_ops: HashMap::new(),
             opcodes: Vec::new(),
             start
         };
@@ -310,7 +312,7 @@ impl ParserBuilder {
         }
     }
 
-    fn build_item_ops(&mut self) -> HashMap::<FactorId, Vec<Symbol>> {
+    fn build_item_ops(&mut self) {
         const VERBOSE: bool = false;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
@@ -474,7 +476,7 @@ impl ParserBuilder {
             }
         }
         self.nt_group = nt_group;
-        items
+        self.item_ops = items;
     }
 
     pub fn make_parser(self) -> Parser {
@@ -506,8 +508,8 @@ impl ParserBuilder {
         ]);
         parts.push(self.source_build_parser());
         if wrapper {
-            let items = self.build_item_ops();
-            parts.push(self.source_wrapper(items));
+            self.build_item_ops();
+            parts.push(self.source_wrapper());
         }
         parts.push(vec![
             "// -------------------------------------------------------------------------".to_string(),
@@ -584,7 +586,7 @@ impl ParserBuilder {
     }
 
     #[allow(unused)]
-    fn source_wrapper(&mut self, items: HashMap<FactorId, Vec<Symbol>>) -> Vec<String> {
+    fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
 
         #[derive(Debug)]
@@ -627,7 +629,7 @@ impl ParserBuilder {
         let mut item_info: Vec<Vec<ItemInfo>> = (0..pinfo.factors.len()).map(|i| {
             let factor_id = i as FactorId;
             let nt = pinfo.factors[i].0 as usize;
-            if let Some(item_ops) = items.get(&factor_id) {
+            if let Some(item_ops) = self.item_ops.get(&factor_id) {
                 // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
                 // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
                 // - different symbols, which means T vs NT, must have different names (e.g. `NT(A)` becomes "a",
