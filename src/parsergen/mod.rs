@@ -105,6 +105,28 @@ impl From<Symbol> for OpCode {
 
 // ---------------------------------------------------------------------------------------------
 
+#[derive(Debug)]
+struct ItemInfo {
+    name: String,
+    sym: Symbol,            // NT(var) or T(token)
+    owner: VarId,           // NT owning this item; for ex. owner = `A` for `sym = b` in `A -> a b+ c`
+    is_vec: bool,           // for ex. `b: Vec<String>` in `A -> a b+ c`
+    index: Option<usize>    // when several identical symbols in the same factor: `A -> id := id ( id )`
+}
+
+impl ItemInfo {
+    fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
+        format!("{} ({}{}{}, ◄{})",
+                self.name,
+                self.sym.to_str(symbol_table),
+                if self.is_vec { ", is_vec" } else { "" },
+                if let Some(n) = self.index { format!(", [{n}]") } else { "".to_string() },
+                Symbol::NT(self.owner).to_str(symbol_table))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
 #[allow(unused)]
 pub struct ParserBuilder {
     parsing_table: LLParsingTable,
@@ -479,6 +501,183 @@ impl ParserBuilder {
         self.item_ops = items;
     }
 
+    /// Calculates nt_name, nt_info, item_info
+    ///
+    /// * `nt_name[var]: Option<(String, String)>` contains upper-case and lower-case unique identifiers for each parent NT
+    /// * `nt_info[var]: Vec<(FactorId, String)>` contains the enum variant names for each context
+    /// * `item_info[factor]: Vec<ItemInfo>` contains the data available on the stacks when exiting the factor
+    ///
+    /// For example:
+    ///
+    /// ```text
+    /// // 0: S -> id = VAL   | ◄0 ►VAL = id!  | id VAL
+    /// // 1: S -> exit       | ◄1 exit        |
+    /// // 2: S -> return VAL | ◄2 ►VAL return | VAL
+    /// // 3: VAL -> id       | ◄3 id!         | id
+    /// // 4: VAL -> num      | ◄4 num!        | num
+    ///
+    /// pub enum CtxS {
+    ///     S1 { id: String, val: SynVal },
+    ///     S2 { val: SynVal },
+    /// }
+    /// pub enum CtxVal {
+    ///     Val1 { id: String },
+    ///     Val2 { num: String },
+    /// }
+    ///
+    /// nt_name = [Some(("S", "s")), Some(("Val", "val"))]
+    /// nt_info = [[(0, "S1"), (2, "S2")], [(3, "Val1"), (4, "Val2")]]
+    /// item_info = [[ItemInfo { name: "id", sym: T(0), owner: 0, … },
+    ///               ItemInfo { name: "val", sym: NT(1), owner: 0, … }],
+    ///              [],
+    ///              [ItemInfo { name: "val", sym: NT(1), owner: 0, … }], …
+    /// ```
+    fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Vec<(FactorId, String)>>, Vec<Vec<ItemInfo>>) {
+        const VERBOSE: bool = false;
+
+        let pinfo = &self.parsing_table;
+        let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; pinfo.num_nt];
+        for (factor_id, (var_id, _)) in pinfo.factors.iter().enumerate() {
+            var_factors[*var_id as usize].push(factor_id as FactorId);
+        }
+
+        let mut nt_upper_fixer = NameFixer::new();
+        let mut nt_lower_fixer = NameFixer::new();
+        let mut nt_name: Vec<Option<(String, String)>> = (0..pinfo.num_nt).map(|v| if self.nt_value[v] || pinfo.parent[v].is_none() {
+            let nu = nt_upper_fixer.get_unique_name(self.symbol_table.get_nt_name(v as VarId).to_camelcase());
+            let nl = nt_lower_fixer.get_unique_name(nu.to_underscore());
+            Some((nu, nl))
+        } else {
+            None
+        }).to_vec();
+
+        let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; pinfo.num_nt];
+        let item_info: Vec<Vec<ItemInfo>> = (0..pinfo.factors.len()).map(|i| {
+            let factor_id = i as FactorId;
+            let nt = pinfo.factors[i].0 as usize;
+            if let Some(item_ops) = self.item_ops.get(&factor_id) {
+                // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
+                // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
+                // - different symbols, which means T vs NT, must have different names (e.g. `NT(A)` becomes "a",
+                //   `T(a)` becomes "a", too => one is renamed to "a1" to avoid the collision: `{ a: SynA, a1: String }`)
+                let mut indices = HashMap::<Symbol, (String, Option<usize>)>::new();
+                let mut fixer = NameFixer::new();
+                for s in item_ops {
+                    if let Symbol::NT(v) = s {
+                        if nt_name[*v as usize].is_none() {
+                            let name = self.symbol_table.get_nt_name(*v);
+                            nt_name[*v as usize] = Some((nt_upper_fixer.get_unique_name(name.to_camelcase()),
+                                                         nt_lower_fixer.get_unique_name(name.to_underscore())));
+                        }
+                    }
+                    if let Some((_, c)) = indices.get_mut(s) {
+                        *c = Some(0);
+                    } else {
+                        let name = if let Symbol::NT(vs) = s {
+                            let flag = pinfo.flags[*vs as usize];
+                            if flag & ruleflag::CHILD_REPEAT != 0 {
+                                let inside_factor_id = var_factors[*vs as usize][0];
+                                let inside_factor = &pinfo.factors[inside_factor_id as usize].1;
+                                if false {
+                                    let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore();
+                                    plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
+                                    plus_name
+                                } else {
+                                    if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
+                                }
+                            } else {
+                                nt_name[*vs as usize].clone().unwrap().1
+                            }
+                        } else {
+                            s.to_str(self.get_symbol_table()).to_lowercase()
+                        };
+                        indices.insert(*s, (fixer.get_unique_name(name), None));
+                    }
+                }
+                let mut owner = pinfo.factors[i].0;
+                while let Some(parent) = pinfo.parent[owner as usize] {
+                    if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
+                        // a child + * is owner
+                        // - if <L>, it has its own public context and a user-defined return type
+                        // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
+                        // (we keep the loop for +, which has a left factorization, too)
+                        break;
+                    }
+                    owner = parent;
+                }
+                if (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
+                    pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT
+                    || pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0
+                {
+                    let len = nt_info[owner as usize].len();
+                    if len == 1 {
+                        nt_info[owner as usize][0].1.push('1');
+                    }
+                    let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
+                    if len > 0 { name.push_str(&(len + 1).to_string()) };
+                    nt_info[owner as usize].push((factor_id, name));
+                }
+                if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
+                    // we put here the return context for the final exit of left recursive rule
+                    // let parent = pinfo.parent[nt].unwrap();
+                    vec![ItemInfo {
+                        name: nt_name[owner as usize].as_ref().map(|n| n.1.clone()).unwrap(),
+                        sym: Symbol::NT(owner as VarId),
+                        owner: owner,
+                        is_vec: false,
+                        index: None,
+                    }]
+                } else {
+                    item_ops.into_iter().map(|s| {
+                        let index = if let Some((_, Some(index))) = indices.get_mut(s) {
+                            let idx = *index;
+                            *index += 1;
+                            Some(idx)
+                        } else {
+                            None
+                        };
+                        ItemInfo {
+                            name: indices[&s].0.clone(),
+                            sym: s.clone(),
+                            owner,
+                            is_vec: false,
+                            index,
+                        }
+                    }).to_vec()
+                }
+            } else {
+                vec![]
+            }
+        }).to_vec();
+
+        if VERBOSE {
+            println!("NT names: {}", nt_name.iter()
+                .filter_map(|n| if let Some((u, l)) = n { Some(format!("{u}/{l}")) } else { None })
+                .join(", "));
+            println!("NT info:");
+            for (v, factor_names) in nt_info.iter().enumerate() {
+                if !factor_names.is_empty() {
+                    println!("- {}:", Symbol::NT(v as VarId).to_str(self.get_symbol_table()));
+                    for f in factor_names {
+                        // TODO: - fetch all parents' information to rebuild after factorization
+                        //       - process other transformations
+                        // let factor = &info.factors[f.0 as usize];
+                        // println!("  - // {} -> {}",
+                        //          Symbol::NT(factor.0).to_str(self.get_symbol_table()),
+                        //          factor.1.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                        // );
+                        println!("  - {}: {} {{ {} }}", f.0, f.1,
+                            item_info[f.0 as usize].iter().map(|info| info.to_str(self.get_symbol_table())).join(", ")
+                        );
+                    }
+                }
+            }
+            println!();
+        }
+
+        (nt_name, nt_info, item_info)
+    }
+
     pub fn make_parser(self) -> Parser {
         Parser::new(self.parsing_table, self.symbol_table, self.opcodes, self.start)
     }
@@ -589,165 +788,8 @@ impl ParserBuilder {
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
 
-        #[derive(Debug)]
-        struct ItemInfo {
-            name: String,
-            sym: Symbol,            // NT(var) or T(token)
-            owner: VarId,           // NT owning this item; for ex. owner = `A` for `sym = b` in `A -> a b+ c`
-            is_vec: bool,           // for ex. `b: Vec<String>` in `A -> a b+ c`
-            index: Option<usize>    // when several identical symbols in the same factor: `A -> id := id ( id )`
-        }
-
-        impl ItemInfo {
-            fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
-                format!("{} ({}{}{}, ◄{})",
-                        self.name,
-                        self.sym.to_str(symbol_table),
-                        if self.is_vec { ", is_vec" } else { "" },
-                        if let Some(n) = self.index { format!(", [{n}]") } else { "".to_string() },
-                        Symbol::NT(self.owner).to_str(symbol_table))
-            }
-        }
-
+        let (nt_name, nt_info, item_info) = self.get_type_info();
         let pinfo = &self.parsing_table;
-        let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; pinfo.num_nt];
-        for (factor_id, (var_id, _)) in pinfo.factors.iter().enumerate() {
-            var_factors[*var_id as usize].push(factor_id as FactorId);
-        }
-
-        let mut nt_upper_fixer = NameFixer::new();
-        let mut nt_lower_fixer = NameFixer::new();
-        let mut nt_name = (0..pinfo.num_nt).map(|v| if self.nt_value[v] || pinfo.parent[v].is_none() {
-            let nu = nt_upper_fixer.get_unique_name(self.symbol_table.get_nt_name(v as VarId).to_camelcase());
-            let nl = nt_lower_fixer.get_unique_name(nu.to_underscore());
-            Some((nu, nl))
-        } else {
-            None
-        }).to_vec();
-        let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; pinfo.num_nt];
-
-        let mut item_info: Vec<Vec<ItemInfo>> = (0..pinfo.factors.len()).map(|i| {
-            let factor_id = i as FactorId;
-            let nt = pinfo.factors[i].0 as usize;
-            if let Some(item_ops) = self.item_ops.get(&factor_id) {
-                // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
-                // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
-                // - different symbols, which means T vs NT, must have different names (e.g. `NT(A)` becomes "a",
-                //   `T(a)` becomes "a", too => one is renamed to "a1" to avoid the collision: `{ a: SynA, a1: String }`)
-                let mut indices = HashMap::<Symbol, (String, Option<usize>)>::new();
-                let mut fixer = NameFixer::new();
-                for s in item_ops {
-                    if let Symbol::NT(v) = s {
-                        if nt_name[*v as usize].is_none() {
-                            let name = self.symbol_table.get_nt_name(*v);
-                            nt_name[*v as usize] = Some((nt_upper_fixer.get_unique_name(name.to_camelcase()),
-                                                         nt_lower_fixer.get_unique_name(name.to_underscore())));
-                        }
-                    }
-                    if let Some((s, c)) = indices.get_mut(s) {
-                        *c = Some(0);
-                    } else {
-                        let name = if let Symbol::NT(vs) = s {
-                            let flag = pinfo.flags[*vs as usize];
-                            if flag & ruleflag::CHILD_REPEAT != 0 {
-                                let inside_factor_id = var_factors[*vs as usize][0];
-                                let inside_factor = &pinfo.factors[inside_factor_id as usize].1;
-                                if false {
-                                    let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore();
-                                    plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
-                                    plus_name
-                                } else {
-                                    if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
-                                }
-                            } else {
-                                nt_name[*vs as usize].clone().unwrap().1
-                            }
-                        } else {
-                            s.to_str(self.get_symbol_table()).to_lowercase()
-                        };
-                        indices.insert(*s, (fixer.get_unique_name(name), None));
-                    }
-                }
-                let mut owner = pinfo.factors[i].0;
-                while let Some(parent) = pinfo.parent[owner as usize] {
-                    if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
-                        // a child + * is owner
-                        // - if <L>, it has its own public context and a user-defined return type
-                        // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
-                        // (we keep the loop for +, which has a left factorization, too)
-                        break;
-                    }
-                    owner = parent;
-                }
-                if (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
-                    pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT
-                    || pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0
-                {
-                    let len = nt_info[owner as usize].len();
-                    if len == 1 {
-                        nt_info[owner as usize][0].1.push('1');
-                    }
-                    let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
-                    if len > 0 { name.push_str(&(len + 1).to_string()) };
-                    nt_info[owner as usize].push((factor_id, name));
-                }
-                if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
-                    // we put here the return context for the final exit of left recursive rule
-                    // let parent = pinfo.parent[nt].unwrap();
-                    vec![ItemInfo {
-                        name: nt_name[owner as usize].as_ref().map(|n| n.1.clone()).unwrap(),
-                        sym: Symbol::NT(owner as VarId),
-                        owner: owner,
-                        is_vec: false,
-                        index: None,
-                    }]
-                } else {
-                    item_ops.into_iter().map(|s| {
-                        let index = if let Some((_, Some(index))) = indices.get_mut(s) {
-                            let idx = *index;
-                            *index += 1;
-                            Some(idx)
-                        } else {
-                            None
-                        };
-                        ItemInfo {
-                            name: indices[&s].0.clone(),
-                            sym: s.clone(),
-                            owner,
-                            is_vec: false,
-                            index,
-                        }
-                    }).to_vec()
-                }
-            } else {
-                vec![]
-            }
-        }).to_vec();
-
-        if VERBOSE {
-            println!("NT names: {}", nt_name.iter()
-                .filter_map(|n| if let Some((u, l)) = n { Some(format!("{u}/{l}")) } else { None })
-                .join(", "));
-            println!("NT info:");
-            for (v, factor_names) in nt_info.iter().enumerate() {
-                if !factor_names.is_empty() {
-                    println!("- {}:", Symbol::NT(v as VarId).to_str(self.get_symbol_table()));
-                    for f in factor_names {
-                        // TODO: - fetch all parents' information to rebuild after factorization
-                        //       - process other transformations
-                        // let factor = &info.factors[f.0 as usize];
-                        // println!("  - // {} -> {}",
-                        //          Symbol::NT(factor.0).to_str(self.get_symbol_table()),
-                        //          factor.1.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
-                        // );
-                        println!("  - {}: {} {{ {} }}", f.0, f.1,
-                            item_info[f.0 as usize].iter().map(|info| info.to_str(self.get_symbol_table())).join(", ")
-                        );
-                    }
-                }
-            }
-            println!();
-        }
 
         let mut src = vec![];
 
