@@ -133,7 +133,8 @@ pub struct ParserBuilder {
     symbol_table: SymbolTable,
     name: String,
     nt_value: Vec<bool>,
-    nt_group: Vec<Vec<(VarId, FactorId)>>,
+    nt_parent: Vec<Vec<VarId>>,
+    var_factors: Vec<Vec<FactorId>>,
     item_ops: HashMap<FactorId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId
@@ -157,7 +158,8 @@ impl ParserBuilder {
             symbol_table,
             name,
             nt_value: vec![false; num_nt],
-            nt_group: Vec::new(),
+            nt_parent: Vec::new(),
+            var_factors: Vec::new(),
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
             start
@@ -334,23 +336,32 @@ impl ParserBuilder {
         }
     }
 
+    fn get_group_factors(&self, g: &Vec<VarId>) -> Vec<(VarId, FactorId)> {
+        g.iter().flat_map(|c|
+            self.var_factors[*c as usize].iter().map(|f| (*c, *f))
+        ).collect::<Vec<_>>()
+    }
+
     fn build_item_ops(&mut self) {
         const VERBOSE: bool = false;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
-        let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; info.num_nt];
-        let mut nt_group: Vec<Vec<(VarId, FactorId)>> = vec![vec![]; info.num_nt];
+        self.var_factors = vec![vec![]; info.num_nt];
         for (factor_id, (var_id, _)) in info.factors.iter().enumerate() {
-            var_factors[*var_id as usize].push(factor_id as FactorId);
-            let mut top_var_id = *var_id as usize;
+            self.var_factors[*var_id as usize].push(factor_id as FactorId);
+        }
+        let mut nt_parent: Vec<Vec<VarId>> = vec![vec![]; info.num_nt];
+        for var_id in 0..info.num_nt {
+            let mut top_var_id = var_id;
             while let Some(parent) = info.parent[top_var_id] {
                 top_var_id = parent as usize;
             }
-            nt_group[top_var_id].push((*var_id, factor_id as FactorId));
+            nt_parent[top_var_id].push(var_id as VarId);
         }
         if VERBOSE {
             println!("Groups:");
-            for (parent_id, group) in nt_group.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
+            for (parent_id, group) in nt_parent.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
+                let group = self.get_group_factors(group);
                 let ids = group.iter().map(|(v, _)| *v).collect::<BTreeSet<VarId>>();
                 println!("{}: {}, factors {}",
                          Symbol::NT(parent_id as VarId).to_str(self.get_symbol_table()),
@@ -360,7 +371,9 @@ impl ParserBuilder {
             }
         }
         // we proceed by var parent, then all factors in each parent/children group
-        for (_parent_id, group) in nt_group.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
+        for (_parent_id, g) in nt_parent.iter().enumerate() {
+            // takes all the factors in the group (and their NT ID):
+            let group = self.get_group_factors(g);
             let mut change = true;
             while change {
                 change = false;
@@ -373,10 +386,10 @@ impl ParserBuilder {
                                  if self.nt_value[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
                              ).join(", "));
                 }
-                for (_, factor_id) in group {
+                for (_, factor_id) in &group {
                     items.insert(*factor_id, vec![]);
                 }
-                for (var_id, factor_id) in group {
+                for (var_id, factor_id) in &group {
                     let opcode = &self.opcodes[*factor_id as usize];
                     let (_, factor) = &info.factors[*factor_id as usize];
                     if VERBOSE {
@@ -480,7 +493,7 @@ impl ParserBuilder {
                                 // pre-pends values that already exist for factor_id (and empties factor_id)
                                 values.splice(0..0, std::mem::take(pre));
                             }
-                            for f_id in var_factors[*nt as usize].iter() {
+                            for f_id in self.var_factors[*nt as usize].iter() {
                                 items.get_mut(f_id).unwrap().extend(values.clone());
                             }
                             continue;
@@ -497,7 +510,7 @@ impl ParserBuilder {
                 }
             }
         }
-        self.nt_group = nt_group;
+        self.nt_parent = nt_parent;
         self.item_ops = items;
     }
 
