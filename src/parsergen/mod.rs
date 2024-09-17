@@ -809,6 +809,8 @@ impl ParserBuilder {
         // Writes contexts
         if let Some((nu, nl)) = &nt_name[self.start as usize] {
             src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: Syn{nu} }} }}"));
+        } else {
+            src.push(format!("pub enum Ctx {{ {} }}", Symbol::NT(self.start).to_str(self.get_symbol_table()).to_camelcase()));
         }
         for (v, factor_names) in nt_info.iter().enumerate().filter(|(_, f)| !f.is_empty()) {
             src.push(format!("pub enum Ctx{} {{", nt_name[v].clone().unwrap().0));
@@ -886,12 +888,101 @@ impl ParserBuilder {
             src.push("}".to_string());
         }
 
+        // Prepares the data for the following sections
+        let src_init = Vec::<String>::new();
+        let src_exit = Vec::<String>::new();
+        let src_listener_decl = Vec::<String>::new();
+        let src_wrapper_impl = Vec::<String>::new();
+
+        // TODO: populate the src_*
+
         // Writes the listener trait declaration
         src.add_space();
         src.push(format!("pub trait {}Listener {{", self.name));
         src.push(format!("    fn exit(&mut self, _ctx: Ctx) {{}}"));
+        src.extend(src_listener_decl);
         src.push(format!("}}"));
 
+        // Writes the switch() function
+        src.add_space();
+        src.push(format!("struct ListenerWrapper<T> {{"));
+        src.push(format!("    verbose: bool,"));
+        src.push(format!("    listener: T,"));
+        src.push(format!("    stack: Vec<SynValue>,"));
+        src.push(format!("    max_stack: usize,"));
+        src.push(format!("    stack_t: Vec<String>,"));
+        src.push(format!("}}"));
+        src.push(format!(""));
+        src.push(format!("impl<T: LeftRecListener> ListenerWrapper<T> {{"));
+        src.push(format!("    pub fn new(listener: T, verbose: bool) -> Self {{"));
+        src.push(format!("        ListenerWrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
+        src.push(format!("    }}"));
+        src.push(format!(""));
+        src.push(format!("    pub fn listener(self) -> T {{"));
+        src.push(format!("        self.listener"));
+        src.push(format!("    }}"));
+        src.push(format!("}}"));
+        src.push(format!(""));
+        src.push(format!("impl<T: LeftRecListener> Listener for ListenerWrapper<T> {{"));
+        src.push(format!("    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {{"));
+        src.push(format!("        if let Some(mut t_data) = t_data {{"));
+        src.push(format!("            self.stack_t.append(&mut t_data);"));
+        src.push(format!("        }}"));
+        src.push(format!("        match call {{"));
+        src.push(format!("            Call::Enter => {{"));
+        src.push(format!("                match nt {{"));
+        /*
+        src.push(format!("                    0 => self.listener.init_a(),    // A"));
+        src.push(format!("                    1 => {{}}                         // A_1"));
+        src.push(format!("                    2 => {{}}                         // A_2"));
+        */
+        src.extend(src_init);
+        src.push(format!("                    _ => panic!(\"unexpected exit non-terminal id: {{nt}}\")"));
+        src.push(format!("                }}"));
+        src.push(format!("            }}"));
+        src.push(format!("            Call::Loop => {{}}"));
+        src.push(format!("            Call::Exit => {{"));
+        src.push(format!("                match factor_id {{"));
+        /*
+        src.push(format!("                    0 => self.exit_a(),             //  0: A -> b A_2   | ◄0 ►A_2 b! |"));
+        src.push(format!("                    1 => self.exit_a_1(),           //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a"));
+        src.push(format!("                    2 => {{}}                         //  2: A_1 -> ε     | ◄2         |"));
+        src.push(format!("                    3 |                             //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c"));
+        src.push(format!("                    4 => self.exit_a_2(factor_id),  //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d"));
+        */
+        src.extend(src_exit);
+        src.push(format!("                    _ => panic!(\"unexpected exit factor id: {{factor_id}}\")"));
+        src.push(format!("                }}"));
+        src.push(format!("            }}"));
+        src.push(format!("            Call::End => {{"));
+        src.push(format!("                self.exit();"));
+        src.push(format!("            }}"));
+        src.push(format!("        }}"));
+        src.push(format!("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());"));
+        src.push(format!("        if self.verbose {{"));
+        src.push(format!("            println!(\"> stack_t:   {{}}\", self.stack_t.join(\", \"));"));
+        src.push(format!("            println!(\"> stack:     {{}}\", self.stack.iter().map(|it| format!(\"{{it:?}}\")).join(\", \"));"));
+        src.push(format!("        }}"));
+        src.push(format!("    }}"));
+        src.push(format!("}}"));
+
+        src.add_space();
+        src.push(format!("impl<T: LeftRecListener> ListenerWrapper<T> {{"));
+        src.push(format!("    fn exit(&mut self, _ctx: Ctx) {{"));
+        if let Some((nu, nl)) = &nt_name[self.start as usize] {
+            src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{nl}();"));
+            src.push(format!("        self.listener.exit(Ctx::{nu} {{ {nl} }});"));
+        } else {
+            src.push(format!("        self.listener.exit(Ctx::{});", Symbol::NT(self.start).to_str(self.get_symbol_table()).to_camelcase()));
+        }
+        src.push(format!("    }}"));
+        src.extend(src_wrapper_impl);
+        src.push(format!("}}"));
+
+        /*
+                                let a = self.stack.pop().unwrap().get_a();
+                                self.listener.exit(Ctx::A { a });
+        */
         src
     }
 }
