@@ -403,6 +403,8 @@ mod opcodes {
 
 mod wrapper_source {
     use std::collections::{BTreeMap, HashSet};
+    use std::fs::File;
+    use std::io::Read;
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CharLen, CollectJoin, symbols};
@@ -489,6 +491,21 @@ mod wrapper_source {
                 }
             }
         }
+    }
+
+    fn get_wrapper_source(tag: &str) -> Option<String> {
+        const FILENAME: &str = "data/test/wrapper_source.out.rs";
+        let file_tag = format!("[{tag}]");
+        let mut file = File::open(FILENAME).ok()?;
+        let mut buffer = String::new();
+        file.read_to_string(&mut buffer).expect("Couldn't read source file");
+        let mut result = buffer.lines()
+            .skip_while(|l| !l.contains(&file_tag))
+            .skip(2)
+            .take_while(|l| !l.contains(&file_tag))
+            .join("\n");
+        result.push('\n');
+        Some(result)
     }
 
     #[test]
@@ -820,7 +837,8 @@ mod wrapper_source {
             */
         ];
         const VERBOSE: bool = true;
-        const VERBOSE_DETAILS: bool = true;
+        const PRINT_SOURCE: bool = true;
+        const TEST_SOURCE: bool = true;
         const TESTS_ALL: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items, has_value)) in tests.into_iter().enumerate() {
@@ -830,6 +848,8 @@ mod wrapper_source {
             set_has_value(&mut builder, has_value.clone());
             builder.build_item_ops();
             let result_items = builder.item_ops.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<FactorId, Vec<Symbol>>>();
+            let src = builder.source_wrapper();
+            let test_name = format!("wrapper source for test {test_id}: {rule_id:?}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
             if VERBOSE {
                 print_flags(&builder, 12);
                 println!("            ({rule_id:?}, {start_nt}, btreemap![", );
@@ -840,20 +860,28 @@ mod wrapper_source {
                     Default => "Default".to_string()
                 };
                 println!("            ], {has_value_str}),");
-                let src = builder.source_wrapper();
-                if VERBOSE_DETAILS {
-                    println!("{:-<40} Source code:", "");
-                    println!("{}", src.into_iter().map(|s| format!("    {s}")).join("\n"));
-                }
             }
+            let mut result_src = src.into_iter().map(|s| if !s.is_empty() { format!("    {s}") } else { s }).join("\n");
+            result_src.push_str("\n\n");
+            if PRINT_SOURCE {
+                println!("// {0:-<60}\n// [{test_name}]\n\n{result_src}// [{test_name}]\n// {:-<60}\n", "");
+            }
+            let expected_src = get_wrapper_source(&test_name);
             let err_msg = format!("test {test_id} {rule_id:?}/{start_nt} failed ");
             if TESTS_ALL {
                 if result_items != expected_items {
                     num_errors += 1;
                     println!("## ERROR: {err_msg}");
                 }
+                if TEST_SOURCE && Some(result_src) != expected_src {
+                    num_errors += 1;
+                    println!("## SOURCE MISMATCH: {err_msg}");
+                }
             } else {
-                assert_eq!(result_items, expected_items, );
+                assert_eq!(result_items, expected_items, "{err_msg}");
+                if TEST_SOURCE {
+                    assert_eq!(Some(result_src), expected_src, "{err_msg}");
+                }
             }
         }
         if TESTS_ALL {
