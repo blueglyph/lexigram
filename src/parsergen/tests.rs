@@ -523,7 +523,7 @@ mod wrapper_source {
                 2 => symbols![nt 1],                    //  2: S -> return VAL | ◄2 ►VAL return | VAL
                 3 => symbols![t 0],                     //  3: VAL -> id       | ◄3 id!         | id
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
-            ], Default),
+            ], Set(symbols![nt 0, nt 1, t 0, t 1])),
             // --------------------------------------------------------------------------- norm* R/L
             // A -> a (b)* c
             // NT flags:
@@ -838,7 +838,7 @@ mod wrapper_source {
         ];
         const VERBOSE: bool = true;
         const PRINT_SOURCE: bool = true;
-        const TEST_SOURCE: bool = true;
+        const TEST_SOURCE: bool = false;
         const TESTS_ALL: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items, has_value)) in tests.into_iter().enumerate() {
@@ -846,7 +846,19 @@ mod wrapper_source {
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
+            if VERBOSE {
+                println!("before, NT with value: {}",
+                         (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
+                             if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
+                         ).join(", "));
+            }
             builder.build_item_ops();
+            if VERBOSE {
+                println!("after,  NT with value: {}",
+                         (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
+                             if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
+                         ).join(", "));
+            }
             let result_items = builder.item_ops.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<FactorId, Vec<Symbol>>>();
             let src = builder.source_wrapper();
             let test_name = format!("wrapper source for test {test_id}: {rule_id:?}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));

@@ -810,7 +810,7 @@ impl ParserBuilder {
         if let Some((nu, nl)) = &nt_name[self.start as usize] {
             src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: Syn{nu} }} }}"));
         } else {
-            src.push(format!("pub enum Ctx {{ {} }}", Symbol::NT(self.start).to_str(self.get_symbol_table()).to_camelcase()));
+            panic!("{} has no name", Symbol::NT(self.start).to_str(self.get_symbol_table()));
         }
         for (v, factor_names) in nt_info.iter().enumerate().filter(|(_, f)| !f.is_empty()) {
             src.push(format!("pub enum Ctx{} {{", nt_name[v].clone().unwrap().0));
@@ -847,7 +847,7 @@ impl ParserBuilder {
         // Writes intermediate Syn types
         src.add_space();
         let mut user_names = vec![];
-        for (v, name) in nt_name.iter().enumerate().filter_map(|(v, n)| if let Some(nm) = n { Some((v, &nm.0)) } else { None }) {
+        for (v, name) in nt_name.iter().enumerate().filter_map(|(v, n)| if let Some((nu, _nl)) = n { Some((v, nu)) } else { None }) {
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                 // TODO: <String> is only valid for a single T; there could be
                 //       - several T/NT => tuple, like `Vec<(String, SynB, String)>`
@@ -857,7 +857,11 @@ impl ParserBuilder {
                 //       Another possibility is forcing a dedicated NT for what's inside the +/* (lot of changes).
                 src.push(format!("struct Syn{}(Vec<String>);", name.clone()));
             } else {
-                user_names.push(format!("Syn{name}"));
+                if self.nt_value[v] {
+                    user_names.push(format!("Syn{name}"));
+                } else {
+                    src.push(format!("struct Syn{name}();"))
+                }
             }
         }
         if !user_names.is_empty() {
@@ -970,10 +974,12 @@ impl ParserBuilder {
         src.push(format!("impl<T: LeftRecListener> ListenerWrapper<T> {{"));
         src.push(format!("    fn exit(&mut self, _ctx: Ctx) {{"));
         if let Some((nu, nl)) = &nt_name[self.start as usize] {
-            src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{nl}();"));
-            src.push(format!("        self.listener.exit(Ctx::{nu} {{ {nl} }});"));
-        } else {
-            src.push(format!("        self.listener.exit(Ctx::{});", Symbol::NT(self.start).to_str(self.get_symbol_table()).to_camelcase()));
+            if self.nt_value[self.start as usize] {
+                src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{nl}();"));
+                src.push(format!("        self.listener.exit(Ctx::{nu} {{ {nl} }});"));
+            } else {
+                src.push(format!("        self.listener.exit(Ctx::{nu}{{ {nl}: Syn{nu}() }});"));
+            }
         }
         src.push(format!("    }}"));
         src.extend(src_wrapper_impl);

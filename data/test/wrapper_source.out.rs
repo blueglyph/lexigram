@@ -1,5 +1,7 @@
 ================================================================================
 Test 0: rules PRS(34), start 0:
+before, NT with value: S, VAL
+after,  NT with value: S, VAL
             // NT flags:
             //  - (nothing)
             // parents:
@@ -10,7 +12,7 @@ Test 0: rules PRS(34), start 0:
                 2 => symbols![nt 1],                    //  2: S -> return VAL | ◄2 ►VAL return | VAL
                 3 => symbols![t 0],                     //  3: VAL -> id       | ◄3 id!         | id
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
-            ], Default),
+            ], Set(symbols![nt 0, nt 1, t 0, t 1])),
 // ------------------------------------------------------------
 // [wrapper source for test 0: PRS(34), start S]
 
@@ -100,6 +102,8 @@ Test 0: rules PRS(34), start 0:
 
 ================================================================================
 Test 1: rules RTS(21), start 0:
+before, NT with value: A
+after,  NT with value: A, A_1
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -195,6 +199,8 @@ Test 1: rules RTS(21), start 0:
 
 ================================================================================
 Test 2: rules RTS(22), start 0:
+before, NT with value: A
+after,  NT with value: A, A_1
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* | L-form (129)
@@ -292,6 +298,8 @@ Test 2: rules RTS(22), start 0:
 
 ================================================================================
 Test 3: rules RTS(32), start 0:
+before, NT with value: A
+after,  NT with value: A, A_1
             // NT flags:
             //  - A: parent_left_fact | parent_+_or_* (2080)
             //  - A_1: child_+_or_* | L-form (129)
@@ -394,6 +402,8 @@ Test 3: rules RTS(32), start 0:
 
 ================================================================================
 Test 4: rules RTS(25), start 0:
+before, NT with value: A
+after,  NT with value: A
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -486,6 +496,8 @@ Test 4: rules RTS(25), start 0:
 
 ================================================================================
 Test 5: rules RTS(23), start 0:
+before, NT with value: A
+after,  NT with value: A, A_1
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -584,6 +596,8 @@ Test 5: rules RTS(23), start 0:
 
 ================================================================================
 Test 6: rules RTS(27), start 0:
+before, NT with value: A, B
+after,  NT with value: A, B, A_1
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -689,6 +703,8 @@ Test 6: rules RTS(27), start 0:
 
 ================================================================================
 Test 7: rules RTS(28), start 0:
+before, NT with value: A, B
+after,  NT with value: A, B, A_1
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -794,6 +810,8 @@ Test 7: rules RTS(28), start 0:
 
 ================================================================================
 Test 8: rules RTS(29), start 0:
+before, NT with value: A, B
+after,  NT with value: A, B, A_1, A_2
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -904,6 +922,8 @@ Test 8: rules RTS(29), start 0:
 
 ================================================================================
 Test 9: rules RTS(29), start 0:
+before, NT with value: A
+after,  NT with value: A, A_2
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -927,8 +947,9 @@ Test 9: rules RTS(29), start 0:
         A { a: String, star: SynA2, d: String },
     }
 
+    struct SynB();
     struct SynA2(Vec<String>);
-    // User-defined: SynA, SynB
+    // User-defined: SynA
 
     enum SynValue { A(SynA), B(SynB), A2(SynA2) }
 
@@ -1007,6 +1028,8 @@ Test 9: rules RTS(29), start 0:
 
 ================================================================================
 Test 10: rules RTS(29), start 0:
+before, NT with value:
+after,  NT with value: A_1, A_2
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -1033,9 +1056,10 @@ Test 10: rules RTS(29), start 0:
         B { b: String },
     }
 
+    struct SynA();
+    struct SynB();
     struct SynA1(Vec<String>);
     struct SynA2(Vec<String>);
-    // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
 
@@ -1107,8 +1131,7 @@ Test 10: rules RTS(29), start 0:
 
     impl<T: LeftRecListener> ListenerWrapper<T> {
         fn exit(&mut self, _ctx: Ctx) {
-            let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(Ctx::A{ a: SynA() });
         }
     }
 
@@ -1117,6 +1140,8 @@ Test 10: rules RTS(29), start 0:
 
 ================================================================================
 Test 11: rules RTS(30), start 0:
+before, NT with value: A, B
+after,  NT with value: A, B, A_1, A_2
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -1233,6 +1258,8 @@ Test 11: rules RTS(30), start 0:
 
 ================================================================================
 Test 12: rules RTS(30), start 0:
+before, NT with value:
+after,  NT with value: A_1, A_2
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -1265,9 +1292,10 @@ Test 12: rules RTS(30), start 0:
         B { b: String },
     }
 
+    struct SynA();
+    struct SynB();
     struct SynA1(Vec<String>);
     struct SynA2(Vec<String>);
-    // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
 
@@ -1339,8 +1367,7 @@ Test 12: rules RTS(30), start 0:
 
     impl<T: LeftRecListener> ListenerWrapper<T> {
         fn exit(&mut self, _ctx: Ctx) {
-            let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(Ctx::A{ a: SynA() });
         }
     }
 
@@ -1349,6 +1376,8 @@ Test 12: rules RTS(30), start 0:
 
 ================================================================================
 Test 13: rules RTS(24), start 0:
+before, NT with value: A
+after,  NT with value: A, A_1
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
@@ -1450,6 +1479,8 @@ Test 13: rules RTS(24), start 0:
 
 ================================================================================
 Test 14: rules PRS(28), start 0:
+before, NT with value: A
+after,  NT with value: A
             // NT flags:
             //  - A: parent_left_fact (32)
             //  - A_1: parent_left_fact | child_left_fact (96)
@@ -1552,6 +1583,8 @@ Test 14: rules PRS(28), start 0:
 
 ================================================================================
 Test 15: rules PRS(31), start 0:
+before, NT with value: E, F
+after,  NT with value: E, F
             // NT flags:
             //  - E: parent_left_rec (512)
             //  - E_1: child_left_rec (4)
@@ -1652,6 +1685,8 @@ Test 15: rules PRS(31), start 0:
 
 ================================================================================
 Test 16: rules PRS(33), start 0:
+before, NT with value: A
+after,  NT with value: A
             // NT flags:
             //  - A: parent_left_fact | parent_left_rec (544)
             //  - A_1: child_left_rec (4)
@@ -1751,6 +1786,8 @@ Test 16: rules PRS(33), start 0:
 
 ================================================================================
 Test 17: rules PRS(32), start 0:
+before, NT with value: E, F
+after,  NT with value: E, F
             // NT flags:
             //  - E: parent_left_rec (512)
             //  - E_1: child_left_rec | parent_left_fact (36)
@@ -1857,6 +1894,8 @@ Test 17: rules PRS(32), start 0:
 
 ================================================================================
 Test 18: rules PRS(20), start 0:
+before, NT with value: STRUCT, LIST
+after,  NT with value: STRUCT, LIST
             // NT flags:
             //  - LIST: right_rec (2)
             // parents:
@@ -1954,6 +1993,8 @@ Test 18: rules PRS(20), start 0:
 
 ================================================================================
 Test 19: rules PRS(30), start 0:
+before, NT with value: STRUCT, LIST
+after,  NT with value: STRUCT, LIST
             // NT flags:
             //  - LIST: right_rec | L-form (130)
             // parents:
@@ -2051,6 +2092,8 @@ Test 19: rules PRS(30), start 0:
 
 ================================================================================
 Test 20: rules RTS(26), start 0:
+before, NT with value: A
+after,  NT with value: A, A_1
             // NT flags:
             //  - A: parent_left_rec | parent_+_or_* (2560)
             //  - A_1: child_+_or_* (1)
@@ -2152,6 +2195,8 @@ Test 20: rules RTS(26), start 0:
 
 ================================================================================
 Test 21: rules RTS(16), start 0:
+before, NT with value: A
+after,  NT with value: A, A_1
             // NT flags:
             //  - A: parent_left_rec | parent_+_or_* | plus (6656)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -2256,6 +2301,8 @@ Test 21: rules RTS(16), start 0:
 
 ================================================================================
 Test 22: rules PRS(13), start 0:
+before, NT with value: E, F
+after,  NT with value: E, F
             // NT flags:
             //  - E: parent_left_rec | parent_amb (1536)
             //  - E_1: child_left_rec | child_amb (12)
