@@ -523,7 +523,7 @@ mod wrapper_source {
                 2 => symbols![nt 1],                    //  2: S -> return VAL | ◄2 ►VAL return | VAL
                 3 => symbols![t 0],                     //  3: VAL -> id       | ◄3 id!         | id
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
-            ], Set(symbols![nt 0, nt 1, t 0, t 1])),
+            ], Set(symbols![nt 0, t 0, t 1])),
             // --------------------------------------------------------------------------- norm* R/L
             // A -> a (b)* c
             // NT flags:
@@ -838,8 +838,8 @@ mod wrapper_source {
         ];
         const VERBOSE: bool = true;
         const PRINT_SOURCE: bool = true;
-        const TEST_SOURCE: bool = false;
-        const TESTS_ALL: bool = true;
+        const TEST_SOURCE: bool = true;
+        const TESTS_ALL: bool = false;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_items, has_value)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
