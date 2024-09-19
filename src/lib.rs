@@ -154,7 +154,7 @@ impl NameFixer {
         while self.dic.contains(&name) {
             name.truncate(len);
             index += 1;
-            name.push_str(&index.to_string());
+            Self::add_number(&mut name, index);
         }
         self.dic.insert(name.clone());
         name
@@ -289,6 +289,8 @@ mod libtests {
         assert_eq!(fixer.get_unique_name("a".to_string()), "a1");
         assert_eq!(fixer.get_unique_name("b".to_string()), "b");
         assert_eq!(fixer.get_unique_name("a".to_string()), "a2");
+        assert_eq!(fixer.get_unique_name("U2".to_string()), "U2");
+        assert_eq!(fixer.get_unique_name("U2".to_string()), "U2_1");
     }
 
     #[test]
