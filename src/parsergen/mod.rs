@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId};
-use crate::{CollectJoin, General, LL1, Normalized};
+use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer};
 use crate::parser::{OpCode, Parser};
 use crate::symbol_table::SymbolTable;
 
@@ -990,130 +990,5 @@ impl ParserBuilder {
                                 self.listener.exit(Ctx::A { a });
         */
         src
-    }
-}
-
-/// Dictionary-based helper that adapts names so they are unique
-struct NameFixer {
-    dic: HashSet<String>
-}
-
-impl NameFixer {
-    pub fn new() -> Self {
-        NameFixer { dic: HashSet::new() }
-    }
-
-    /// Returns `name` if it's unique, or adds a suffix first to make sure it's unique.
-    pub fn get_unique_name(&mut self, mut name: String) -> String {
-        let len = name.len();
-        let mut index = 0;
-        while self.dic.contains(&name) {
-            name.truncate(len);
-            index += 1;
-            name.push_str(&index.to_string());
-        }
-        self.dic.insert(name.clone());
-        name
-    }
-}
-
-/// Transforms names into CamelCase or underscore_parts
-trait NameTransformer {
-    fn to_camelcase(&self) -> Self;
-    fn to_underscore_lowercase(&self) -> Self;
-    fn to_underscore_uppercase(&self) -> Self;
-}
-
-impl NameTransformer for String {
-    fn to_camelcase(&self) -> Self {
-        let mut upper = true;
-        let result: String = self.chars().filter_map(|c| {
-            if c == '_' {
-                upper = true;
-                None
-            } else {
-                if upper {
-                    upper = false;
-                    Some(c.to_ascii_uppercase())
-                } else {
-                    Some(c.to_ascii_lowercase())
-                }
-            }
-        }).collect();
-        assert!(!result.is_empty());
-        result
-    }
-
-    fn to_underscore_lowercase(&self) -> Self {
-        let mut result = String::new();
-        for c in self.chars() {
-            if !result.is_empty() && c.is_ascii_uppercase() {
-                result.push('_');
-            }
-            result.push(c.to_ascii_lowercase());
-        }
-        result
-    }
-
-    fn to_underscore_uppercase(&self) -> Self {
-        let mut result = String::new();
-        for c in self.chars() {
-            if !result.is_empty() && c.is_ascii_uppercase() {
-                result.push('_');
-            }
-            result.push(c.to_ascii_uppercase());
-        }
-        result
-    }
-}
-
-#[test]
-fn parsergen_camel_case() {
-    let tests = vec![
-        ("A", "A"),
-        ("AA", "Aa"),
-        ("AB1", "Ab1"),
-        ("A_1", "A1"),
-        ("NUM_VAL", "NumVal"),
-        ("a", "A"),
-        ("ab_cd_ef", "AbCdEf"),
-    ];
-    for (str, expected) in tests {
-        let result = str.to_string().to_camelcase();
-        assert_eq!(result, expected);
-    }
-}
-
-#[test]
-fn parsergen_underscore() {
-    let tests = vec![
-        ("a", "a", "A"),
-        ("AA", "a_a", "A_A"),
-        ("A1", "a1", "A1"),
-        ("aB1", "a_b1", "A_B1"),
-        ("A", "a", "A"),
-        ("AbCdEf", "ab_cd_ef", "AB_CD_EF"),
-        ("ANewTest", "a_new_test", "A_NEW_TEST"),
-    ];
-    for (str, expected_lower, expected_upper) in tests {
-        let result_lower = str.to_string().to_underscore_lowercase();
-        let result_upper = str.to_string().to_underscore_uppercase();
-        assert_eq!(result_lower, expected_lower);
-        assert_eq!(result_upper, expected_upper);
-    }
-}
-
-/// Adds empty lines between blocks
-trait SourceSpacer {
-    fn add_space(&mut self);
-}
-
-impl SourceSpacer for Vec<String> {
-    fn add_space(&mut self) {
-        if let Some(line) = self.last() {
-            if !line.is_empty() {
-                self.push("".to_string());
-            }
-        }
     }
 }
