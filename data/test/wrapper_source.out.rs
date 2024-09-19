@@ -19,7 +19,8 @@ after,  NT with value: S, VAL
     pub enum Ctx { S { s: SynS } }
     pub enum CtxS {
         S1 { id: String, val: SynVal },
-        S2 { val: SynVal },
+        S2,
+        S3 { val: SynVal },
     }
     pub enum CtxVal {
         Val1 { id: String },
@@ -946,6 +947,9 @@ after,  NT with value: A, A_2
     pub enum CtxA {
         A { a: String, star: SynA2, d: String },
     }
+    pub enum CtxB {
+        B,
+    }
 
     struct SynB();
     struct SynA2(Vec<String>);
@@ -1399,8 +1403,8 @@ after,  NT with value: A, A_1
         A { a: String, plus: SynA1, c: String },
     }
     pub enum CtxA1 {
-        A11 { plus: SynA1, b: String },
-        A12 { plus: SynA1, b: String },
+        A1_1 { plus: SynA1, b: String },
+        A1_2 { plus: SynA1, b: String },
     }
 
     // User-defined: SynA, SynA1

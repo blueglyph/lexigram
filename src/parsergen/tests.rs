@@ -523,7 +523,7 @@ mod wrapper_source {
                 2 => symbols![nt 1],                    //  2: S -> return VAL | ◄2 ►VAL return | VAL
                 3 => symbols![t 0],                     //  3: VAL -> id       | ◄3 id!         | id
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
-            ], Set(symbols![nt 0, t 0, t 1])),
+            ], Set(symbols![nt 0, nt 1, t 0, t 1])),
             // --------------------------------------------------------------------------- norm* R/L
             // A -> a (b)* c
             // NT flags:

@@ -533,15 +533,15 @@ impl ParserBuilder {
     ///     S1 { id: String, val: SynVal },
     ///     S2 { val: SynVal },
     /// }
-    /// pub enum CtxVal {
-    ///     Val1 { id: String },
-    ///     Val2 { num: String },
+    /// pub enum CtxS {
+    ///     S1 { id: String, val: SynVal },
+    ///     S2,
+    ///     S3 { val: SynVal },
     /// }
     ///
     /// nt_name = [Some(("S", "s")), Some(("Val", "val"))]
-    /// nt_info = [[(0, "S1"), (2, "S2")], [(3, "Val1"), (4, "Val2")]]
-    /// item_info = [[ItemInfo { name: "id", sym: T(0), owner: 0, … },
-    ///               ItemInfo { name: "val", sym: NT(1), owner: 0, … }],
+    /// nt_info = [[(0, "S1"), (1, "S2"), (2, "S3")], [(3, "Val1"), (4, "Val2")]]
+    /// item_info = [[ItemInfo { name: "id", sym: T(0), owner: 0, … }, ItemInfo { name: "val", sym: NT(1), owner: 0, … }],
     ///              [],
     ///              [ItemInfo { name: "val", sym: NT(1), owner: 0, … }], …
     /// ```
@@ -618,16 +618,29 @@ impl ParserBuilder {
                     }
                     owner = parent;
                 }
-                if (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
+                let has_no_exit = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 ||
+                    (pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0 &&
+                     self.opcodes[i].len() == 1 && self.opcodes[i][0] == OpCode::Exit(i as FactorId));
+                let has_data = (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
                     pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT
-                    || pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0
-                {
+                    || pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0;
+                let has_context = has_data || (!has_no_exit && pinfo.parent[nt].is_none());
+                if VERBOSE {
+                    println!("NT {nt}, factor {factor_id}: has_data = {has_data}, has_no_exit = {} = {} && {} ({}), parent_left_fact = {} => has_context = {has_context}",
+                             has_no_exit,
+                             pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0,
+                             self.opcodes[i].len() == 1 && self.opcodes[i][0] == OpCode::Exit(i as VarId),
+                             self.opcodes[i].iter().map(|op| op.to_str(self.get_symbol_table())).join(" "),
+                             pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0
+                    );
+                }
+                if has_context {
                     let len = nt_info[owner as usize].len();
                     if len == 1 {
-                        nt_info[owner as usize][0].1.push('1');
+                        NameFixer::add_number(&mut nt_info[owner as usize][0].1, 1);
                     }
                     let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
-                    if len > 0 { name.push_str(&(len + 1).to_string()) };
+                    if len > 0 { NameFixer::add_number(&mut name, len + 1); };
                     nt_info[owner as usize].push((factor_id, name));
                 }
                 if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
@@ -687,7 +700,9 @@ impl ParserBuilder {
             }
             println!();
         }
-
+        // println!("nt_name: {nt_name:?}");
+        // println!("nt_info: {nt_info:?}");
+        // println!("item_info: {item_info:?}");
         (nt_name, nt_info, item_info)
     }
 

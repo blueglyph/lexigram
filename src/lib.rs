@@ -159,6 +159,13 @@ impl NameFixer {
         self.dic.insert(name.clone());
         name
     }
+
+    pub fn add_number(s: &mut String, num: usize) {
+        if s.ends_with(|c: char| c.is_digit(10)) {
+            s.push('_');
+        }
+        s.push_str(&format!("{num}"));
+    }
 }
 
 /// Transforms names into CamelCase or underscore_parts (lower or upper case)
