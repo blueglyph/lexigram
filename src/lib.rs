@@ -137,29 +137,6 @@ impl CharLen for String {
     }
 }
 
-#[cfg(test)]
-mod libtests {
-    use super::*;
-
-    #[test]
-    fn test_col_to_string() {
-        let x = std::collections::BTreeSet::<u32>::from([10, 20, 25]);
-        assert_eq!(x.iter().join(", "), "10, 20, 25");
-    }
-
-    #[test]
-    fn test_to_vec() {
-        assert_eq!((0..5).to_vec(), vec![0, 1, 2, 3, 4]);
-    }
-
-    #[test]
-    fn test_charlen() {
-        assert_eq!("".to_string().charlen(), 0);
-        assert_eq!("12345".to_string().charlen(), 5);
-        assert_eq!("◄123►".to_string().charlen(), 5);
-    }
-}
-
 /// Dictionary-based helper that adapts names so they are unique
 pub struct NameFixer {
     dic: HashSet<String>
@@ -186,13 +163,38 @@ impl NameFixer {
 
 /// Transforms names into CamelCase or underscore_parts (lower or upper case)
 pub trait NameTransformer {
-    fn to_camelcase(&self) -> Self;
-    fn to_underscore_lowercase(&self) -> Self;
-    fn to_underscore_uppercase(&self) -> Self;
+    /// Transforms the string or string slice into a string with the camelcase equivalent.
+    /// ```
+    /// # use rlexer::NameTransformer;
+    /// assert_eq!("statement".to_camelcase(), "Statement");
+    /// assert_eq!("NUM_VAL".to_camelcase(), "NumVal");
+    /// assert_eq!("expr_1".to_string().to_camelcase(), "Expr1");
+    /// ```
+    fn to_camelcase(&self) -> String;
+
+    /// Transforms the camelcase string slice into a string with lowercase words separated by underscores.
+    /// Note that numbers are not separated.
+    /// ```
+    /// # use rlexer::NameTransformer;
+    /// assert_eq!("NumVal".to_underscore_lowercase(), "num_val");
+    /// assert_eq!("Expr1".to_underscore_lowercase(), "expr1");
+    /// assert_eq!("XAndY".to_string().to_underscore_lowercase(), "x_and_y");
+    /// ```
+    fn to_underscore_lowercase(&self) -> String;
+
+    /// Transforms the camelcase string or string slice into a string with uppercase words separated by underscores.
+    /// Note that numbers are not separated.
+    /// ```
+    /// # use rlexer::NameTransformer;
+    /// assert_eq!("NumVal".to_underscore_uppercase(), "NUM_VAL");
+    /// assert_eq!("Expr1".to_underscore_uppercase(), "EXPR1");
+    /// assert_eq!("XAndY".to_string().to_underscore_uppercase(), "X_AND_Y");
+    /// ```
+    fn to_underscore_uppercase(&self) -> String;
 }
 
-impl NameTransformer for String {
-    fn to_camelcase(&self) -> Self {
+impl NameTransformer for str {
+    fn to_camelcase(&self) -> String {
         let mut upper = true;
         let result: String = self.chars().filter_map(|c| {
             if c == '_' {
@@ -211,7 +213,7 @@ impl NameTransformer for String {
         result
     }
 
-    fn to_underscore_lowercase(&self) -> Self {
+    fn to_underscore_lowercase(&self) -> String {
         let mut result = String::new();
         for c in self.chars() {
             if !result.is_empty() && c.is_ascii_uppercase() {
@@ -222,7 +224,7 @@ impl NameTransformer for String {
         result
     }
 
-    fn to_underscore_uppercase(&self) -> Self {
+    fn to_underscore_uppercase(&self) -> String {
         let mut result = String::new();
         for c in self.chars() {
             if !result.is_empty() && c.is_ascii_uppercase() {
@@ -234,44 +236,10 @@ impl NameTransformer for String {
     }
 }
 
-#[test]
-fn parsergen_camel_case() {
-    let tests = vec![
-        ("A", "A"),
-        ("AA", "Aa"),
-        ("AB1", "Ab1"),
-        ("A_1", "A1"),
-        ("NUM_VAL", "NumVal"),
-        ("a", "A"),
-        ("ab_cd_ef", "AbCdEf"),
-    ];
-    for (str, expected) in tests {
-        let result = str.to_string().to_camelcase();
-        assert_eq!(result, expected);
-    }
-}
-
-#[test]
-fn parsergen_underscore() {
-    let tests = vec![
-        ("a", "a", "A"),
-        ("AA", "a_a", "A_A"),
-        ("A1", "a1", "A1"),
-        ("aB1", "a_b1", "A_B1"),
-        ("A", "a", "A"),
-        ("AbCdEf", "ab_cd_ef", "AB_CD_EF"),
-        ("ANewTest", "a_new_test", "A_NEW_TEST"),
-    ];
-    for (str, expected_lower, expected_upper) in tests {
-        let result_lower = str.to_string().to_underscore_lowercase();
-        let result_upper = str.to_string().to_underscore_uppercase();
-        assert_eq!(result_lower, expected_lower);
-        assert_eq!(result_upper, expected_upper);
-    }
-}
-
 /// Adds empty lines between blocks of text
 pub trait SourceSpacer {
+    /// Adds an empty string to the vector, but only if the last vector string isn't empty. If the vector is
+    /// empty, doesn't add anything.
     fn add_space(&mut self);
 }
 
@@ -282,6 +250,93 @@ impl SourceSpacer for Vec<String> {
                 self.push("".to_string());
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod libtests {
+    use super::*;
+
+    #[test]
+    fn test_col_to_string() {
+        let x = std::collections::BTreeSet::<u32>::from([10, 20, 25]);
+        assert_eq!(x.iter().join(", "), "10, 20, 25");
+    }
+
+    #[test]
+    fn test_to_vec() {
+        assert_eq!((0..5).to_vec(), vec![0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_charlen() {
+        assert_eq!("".to_string().charlen(), 0);
+        assert_eq!("12345".to_string().charlen(), 5);
+        assert_eq!("◄123►".to_string().charlen(), 5);
+    }
+
+    #[test]
+    fn test_name_fixer() {
+        let mut fixer = NameFixer::new();
+        assert_eq!(fixer.get_unique_name("a".to_string()), "a");
+        assert_eq!(fixer.get_unique_name("a".to_string()), "a1");
+        assert_eq!(fixer.get_unique_name("b".to_string()), "b");
+        assert_eq!(fixer.get_unique_name("a".to_string()), "a2");
+    }
+
+    #[test]
+    fn test_to_camel_case() {
+        let tests = vec![
+            ("A", "A"),
+            ("AA", "Aa"),
+            ("AB1", "Ab1"),
+            ("A_1", "A1"),
+            ("NUM_VAL", "NumVal"),
+            ("a", "A"),
+            ("ab_cd_ef", "AbCdEf"),
+        ];
+        for (str, expected) in tests {
+            let result = str.to_string().to_camelcase();
+            assert_eq!(result, expected);
+        }
+    }
+
+    #[test]
+    fn test_to_underscore() {
+        let tests = vec![
+            ("a", "a", "A"),
+            ("AA", "a_a", "A_A"),
+            ("A1", "a1", "A1"),
+            ("aB1", "a_b1", "A_B1"),
+            ("A", "a", "A"),
+            ("AbCdEf", "ab_cd_ef", "AB_CD_EF"),
+            ("ANewTest", "a_new_test", "A_NEW_TEST"),
+        ];
+        for (str, expected_lower, expected_upper) in tests {
+            let result_lower = str.to_string().to_underscore_lowercase();
+            let result_upper = str.to_string().to_underscore_uppercase();
+            assert_eq!(result_lower, expected_lower);
+            assert_eq!(result_upper, expected_upper);
+        }
+    }
+
+    #[test]
+    fn test_add_space() {
+        let mut src = Vec::<String>::new();
+        src.add_space();
+        assert!(src.is_empty());
+        src.push("1".to_string());
+        assert_eq!(src, vec!["1".to_string()]);
+        src.add_space();
+        assert_eq!(src, vec!["1".to_string(), "".to_string()]);
+        src.add_space();
+        assert_eq!(src, vec!["1".to_string(), "".to_string()]);
+        src.push("2".to_string());
+        assert_eq!(src, vec!["1".to_string(), "".to_string(), "2".to_string()]);
+        src.add_space();
+        assert_eq!(src, vec!["1".to_string(), "".to_string(), "2".to_string(), "".to_string()]);
+        src.add_space();
+        assert_eq!(src, vec!["1".to_string(), "".to_string(), "2".to_string(), "".to_string()]);
     }
 }
 
