@@ -558,7 +558,7 @@ impl ParserBuilder {
         let mut nt_lower_fixer = NameFixer::new();
         let mut nt_name: Vec<Option<(String, String)>> = (0..pinfo.num_nt).map(|v| if self.nt_value[v] || pinfo.parent[v].is_none() {
             let nu = nt_upper_fixer.get_unique_name(self.symbol_table.get_nt_name(v as VarId).to_camelcase());
-            let nl = nt_lower_fixer.get_unique_name(nu.to_underscore());
+            let nl = nt_lower_fixer.get_unique_name(nu.to_underscore_lowercase());
             Some((nu, nl))
         } else {
             None
@@ -580,7 +580,7 @@ impl ParserBuilder {
                         if nt_name[*v as usize].is_none() {
                             let name = self.symbol_table.get_nt_name(*v);
                             nt_name[*v as usize] = Some((nt_upper_fixer.get_unique_name(name.to_camelcase()),
-                                                         nt_lower_fixer.get_unique_name(name.to_underscore())));
+                                                         nt_lower_fixer.get_unique_name(name.to_underscore_lowercase())));
                         }
                     }
                     if let Some((_, c)) = indices.get_mut(s) {
@@ -592,7 +592,7 @@ impl ParserBuilder {
                                 let inside_factor_id = var_factors[*vs as usize][0];
                                 let inside_factor = &pinfo.factors[inside_factor_id as usize].1;
                                 if false {
-                                    let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore();
+                                    let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
                                     plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
                                     plus_name
                                 } else {
@@ -1020,7 +1020,8 @@ impl NameFixer {
 /// Transforms names into CamelCase or underscore_parts
 trait NameTransformer {
     fn to_camelcase(&self) -> Self;
-    fn to_underscore(&self) -> Self;
+    fn to_underscore_lowercase(&self) -> Self;
+    fn to_underscore_uppercase(&self) -> Self;
 }
 
 impl NameTransformer for String {
@@ -1043,13 +1044,24 @@ impl NameTransformer for String {
         result
     }
 
-    fn to_underscore(&self) -> Self {
+    fn to_underscore_lowercase(&self) -> Self {
         let mut result = String::new();
         for c in self.chars() {
             if !result.is_empty() && c.is_ascii_uppercase() {
                 result.push('_');
             }
             result.push(c.to_ascii_lowercase());
+        }
+        result
+    }
+
+    fn to_underscore_uppercase(&self) -> Self {
+        let mut result = String::new();
+        for c in self.chars() {
+            if !result.is_empty() && c.is_ascii_uppercase() {
+                result.push('_');
+            }
+            result.push(c.to_ascii_uppercase());
         }
         result
     }
@@ -1061,6 +1073,8 @@ fn parsergen_camel_case() {
         ("A", "A"),
         ("AA", "Aa"),
         ("AB1", "Ab1"),
+        ("A_1", "A1"),
+        ("NUM_VAL", "NumVal"),
         ("a", "A"),
         ("ab_cd_ef", "AbCdEf"),
     ];
@@ -1073,17 +1087,19 @@ fn parsergen_camel_case() {
 #[test]
 fn parsergen_underscore() {
     let tests = vec![
-        ("a", "a"),
-        ("AA", "a_a"),
-        ("A1", "a1"),
-        ("aB1", "a_b1"),
-        ("A", "a"),
-        ("AbCdEf", "ab_cd_ef"),
-        ("ANewTest", "a_new_test"),
+        ("a", "a", "A"),
+        ("AA", "a_a", "A_A"),
+        ("A1", "a1", "A1"),
+        ("aB1", "a_b1", "A_B1"),
+        ("A", "a", "A"),
+        ("AbCdEf", "ab_cd_ef", "AB_CD_EF"),
+        ("ANewTest", "a_new_test", "A_NEW_TEST"),
     ];
-    for (str, expected) in tests {
-        let result = str.to_string().to_underscore();
-        assert_eq!(result, expected);
+    for (str, expected_lower, expected_upper) in tests {
+        let result_lower = str.to_string().to_underscore_lowercase();
+        let result_upper = str.to_string().to_underscore_uppercase();
+        assert_eq!(result_lower, expected_lower);
+        assert_eq!(result_upper, expected_upper);
     }
 }
 
