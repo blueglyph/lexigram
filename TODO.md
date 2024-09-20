@@ -78,6 +78,7 @@
       - [ ] special case of ambiguous left recursions (A α A)
       - [ ] NT whose nt_value is false but which carry other valuable NTs or T data must have an internal Syn type
     - [ ] loose ends / to check
+      - [ ] name fixer / ...: prevent reserved words ("type", "const", ...) 
       - [ ] name fixer when creating children NTs (grammar/symbol_table) 
       - [ ] better names when creating children NTs (grammar/symbol_table)
       - [ ] name fixer when creating enum options in contexts (ParserBuilder::source_wrapper) 
