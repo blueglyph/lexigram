@@ -220,7 +220,7 @@ after,  NT with value: A, A_1
         A { a: String, star: SynA1, c: String },
     }
     pub enum CtxA1 {
-        A1 { star: SynA1, b: String },
+        A1 { star_it: SynA1, b: String },
     }
 
     // User-defined: SynA, SynA1
@@ -324,7 +324,7 @@ after,  NT with value: A, A_1
         A2 { a: String, c: [String; 2], star: SynA1 },
     }
     pub enum CtxA1 {
-        A1 { star: SynA1, b: String },
+        A1 { star_it: SynA1, b: String },
     }
 
     // User-defined: SynA, SynA1
@@ -624,7 +624,8 @@ after,  NT with value: A, B, A_1
         B { b: String },
     }
 
-    struct SynA1(Vec<String>);
+    struct SynA1(Vec<SynA1Item>);
+    struct SynA1Item { b: SynB }
     // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
@@ -731,7 +732,8 @@ after,  NT with value: A, B, A_1
         B { b: String },
     }
 
-    struct SynA1(Vec<String>);
+    struct SynA1(Vec<SynA1Item>);
+    struct SynA1Item { a: String, b: SynB }
     // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
@@ -830,7 +832,7 @@ item_info =
   ],
   //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 B b
   [
-    ItemInfo { name: "star", sym: NT(2), owner: 2, is_vec: false, index: None },
+    ItemInfo { name: "star_it", sym: NT(2), owner: 2, is_vec: false, index: None },
     ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None },
     ItemInfo { name: "b1", sym: T(1), owner: 2, is_vec: false, index: None }
   ],
@@ -838,14 +840,13 @@ item_info =
   [],
   //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
   [
-    ItemInfo { name: "star", sym: NT(3), owner: 3, is_vec: false, index: None },
-    ItemInfo { name: "star1", sym: NT(2), owner: 3, is_vec: false, index: None },
+    ItemInfo { name: "star_it", sym: NT(3), owner: 3, is_vec: false, index: None },
+    ItemInfo { name: "star", sym: NT(2), owner: 3, is_vec: false, index: None },
     ItemInfo { name: "c", sym: T(2), owner: 3, is_vec: false, index: None }
   ],
   //  5: A_2 -> ε         | ◄5              |
   []
 ]
-
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -872,8 +873,10 @@ item_info =
         B { b: String },
     }
 
-    struct SynA1(Vec<String>);
-    struct SynA2(Vec<String>);
+    struct SynA1(Vec<SynA1Item>);
+    struct SynA1Item { b: SynB, b1: String }
+    struct SynA2(Vec<SynA2Item>);
+    struct SynA2Item { star: SynA1, c: String }
     // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
@@ -1096,7 +1099,8 @@ after,  NT with value: A_1, A_2
     struct SynA();
     struct SynB();
     struct SynA1(Vec<String>);
-    struct SynA2(Vec<String>);
+    struct SynA2(Vec<SynA2Item>);
+    struct SynA2Item { star: SynA1, c: String }
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
 
@@ -1198,20 +1202,20 @@ item_info =
   [],
   //  4: A_3 -> A_1       | ●A_1 ◄4       | A_1 B b
   [
-    ItemInfo { name: "plus", sym: NT(2), owner: 2 (A_1), is_vec: false, index: None },
+    ItemInfo { name: "plus_it", sym: NT(2), owner: 2 (A_1), is_vec: false, index: None },
     ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None },
     ItemInfo { name: "b1", sym: T(1), owner: 2, is_vec: false, index: None }
   ],
   //  5: A_3 -> ε         | ◄5            | A_1 B b
   [
-    ItemInfo { name: "plus", sym: NT(2), owner: 2, is_vec: false, index: None },
+    ItemInfo { name: "plus_it", sym: NT(2), owner: 2, is_vec: false, index: None },
     ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None },
     ItemInfo { name: "b1", sym: T(1), owner: 2, is_vec: false, index: None }
   ],
   //  6: A_4 -> A_2       | ●A_2 ◄6       | A_2 A_1 c
   [
-    ItemInfo { name: "plus", sym: NT(3), owner: 3 (A_2), is_vec: false, index: None },
-    ItemInfo { name: "plus1", sym: NT(2), owner: 3, is_vec: false, index: None },
+    ItemInfo { name: "plus_it", sym: NT(3), owner: 3 (A_2), is_vec: false, index: None },
+    ItemInfo { name: "plus", sym: NT(2), owner: 3, is_vec: false, index: None },
     ItemInfo { name: "c", sym: T(2), owner: 3, is_vec: false, index: None }
   ],
   //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
@@ -1253,8 +1257,10 @@ item_info =
         B { b: String },
     }
 
-    struct SynA1(Vec<String>);
-    struct SynA2(Vec<String>);
+    struct SynA1(Vec<SynA1Item>);
+    struct SynA1Item { b: SynB, b1: String }
+    struct SynA2(Vec<SynA2Item>);
+    struct SynA2Item { plus: SynA1, c: String }
     // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
@@ -1374,7 +1380,8 @@ after,  NT with value: A_1, A_2
     struct SynA();
     struct SynB();
     struct SynA1(Vec<String>);
-    struct SynA2(Vec<String>);
+    struct SynA2(Vec<SynA2Item>);
+    struct SynA2Item { plus: SynA1, c: String }
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
 
@@ -1478,8 +1485,8 @@ after,  NT with value: A, A_1
         A { a: String, plus: SynA1, c: String },
     }
     pub enum CtxA1 {
-        A1_1 { plus: SynA1, b: String },
-        A1_2 { plus: SynA1, b: String },
+        A1_1 { plus_it: SynA1, b: String },
+        A1_2 { plus_it: SynA1, b: String },
     }
 
     // User-defined: SynA, SynA1
@@ -2607,4 +2614,115 @@ item_info:
     }
 
 // [wrapper source for test 23: PRS(35), start A]
+// ------------------------------------------------------------
+
+================================================================================
+Test 24: rules RTS(33), start 0:
+before, NT with value: A, B
+after,  NT with value: A, B, A_1
+nt_name: [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1"))]
+nt_info: [[(0, "A1"), (1, "A2")], [(2, "B")], []]
+item_info: [[ItemInfo { name: "star", sym: NT(2), owner: 0, is_vec: false, index: None }, ItemInfo { name: "b", sym: T(1), owner: 0, is_vec: false, index: None }], [ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None }], [ItemInfo { name: "b", sym: T(1), owner: 1, is_vec: false, index: None }], [ItemInfo { name: "star_it", sym: NT(2), owner: 2, is_vec: false, index: None }, ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None }, ItemInfo { name: "c", sym: T(2), owner: 2, is_vec: false, index: None }], []]
+nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None }, ItemInfo { name: "c", sym: T(2), owner: 2, is_vec: false, index: None }]}
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - A_1: child_+_or_* (1)
+            // parents:
+            //  - A_1 -> A
+            (RTS(33), 0, btreemap![
+                0 => symbols![nt 2, t 1],               //  0: A -> A_1 b     | ◄0 b! ►A_1    | A_1 b
+                1 => symbols![t 0],                     //  1: A -> a         | ◄1 a!         | a
+                2 => symbols![t 1],                     //  2: B -> b         | ◄2 b!         | b
+                3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> B c A_1 | ●A_1 ◄3 c! ►B | A_1 B c
+                4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
+            ], All),
+// ------------------------------------------------------------
+// [wrapper source for test 24: RTS(33), start A]
+
+    pub enum Ctx { A { a: SynA } }
+    pub enum CtxA {
+        A1 { star: SynA1, b: String },
+        A2 { a: String },
+    }
+    pub enum CtxB {
+        B { b: String },
+    }
+
+    struct SynA1(Vec<SynA1Item>);
+    struct SynA1Item { b: SynB, c: String }
+    // User-defined: SynA, SynB
+
+    enum SynValue { A(SynA), B(SynB), A1(SynA1) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_b(self) -> SynB {
+            if let SynValue::B(val) = self { val } else { panic!() }
+        }
+        fn get_a1(self) -> SynA1 {
+            if let SynValue::A1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        fn exit(&mut self, _ctx: Ctx) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(Ctx::A { a });
+        }
+    }
+
+// [wrapper source for test 24: RTS(33), start A]
 // ------------------------------------------------------------

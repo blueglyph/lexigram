@@ -842,6 +842,18 @@ mod wrapper_source {
                 2 => symbols![t 0, t 2, t 2],           //  2: A_1 -> c c | ◄2 c! c! | a c c
                 3 => symbols![t 0],                     //  3: A_1 -> ε   | ◄3       | a
             ], Default),
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - A_1: child_+_or_* (1)
+            // parents:
+            //  - A_1 -> A
+            (RTS(33), 0, btreemap![
+                0 => symbols![nt 2, t 1],               //  0: A -> A_1 b     | ◄0 b! ►A_1    | A_1 b
+                1 => symbols![t 0],                     //  1: A -> a         | ◄1 a!         | a
+                2 => symbols![t 1],                     //  2: B -> b         | ◄2 b!         | b
+                3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> B c A_1 | ●A_1 ◄3 c! ►B | A_1 B c
+                4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
+            ], All),
             // ---------------------------------------------------------------------------
             /*
             (PRS(), 0, btreemap![], Default),

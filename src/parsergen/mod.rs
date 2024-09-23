@@ -105,7 +105,7 @@ impl From<Symbol> for OpCode {
 
 // ---------------------------------------------------------------------------------------------
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 struct ItemInfo {
     name: String,
     sym: Symbol,            // NT(var) or T(token)
@@ -519,33 +519,46 @@ impl ParserBuilder {
     /// * `nt_name[var]: Option<(String, String)>` contains upper-case and lower-case unique identifiers for each parent NT
     /// * `nt_info[var]: Vec<(FactorId, String)>` contains the enum variant names for each context
     /// * `item_info[factor]: Vec<ItemInfo>` contains the data available on the stacks when exiting the factor
+    /// * `nt_repeat[var]: HashMap<VarId, Vec<ItemInfo>>` contains the data of + and * items
     ///
     /// For example:
     ///
     /// ```text
-    /// // 0: S -> id = VAL   | ◄0 ►VAL = id!  | id VAL
-    /// // 1: S -> exit       | ◄1 exit        |
-    /// // 2: S -> return VAL | ◄2 ►VAL return | VAL
-    /// // 3: VAL -> id       | ◄3 id!         | id
-    /// // 4: VAL -> num      | ◄4 num!        | num
+    /// // A -> (B c)* b | a; B -> b
+    /// //
+    /// //  0: A -> A_1 b     | ◄0 b! ►A_1    | A_1 b
+    /// //  1: A -> a         | ◄1 a!         | a
+    /// //  2: B -> b         | ◄2 b!         | b
+    /// //  3: A_1 -> B c A_1 | ●A_1 ◄3 c! ►B | A_1 B c
+    /// //  4: A_1 -> ε       | ◄4            |
     ///
-    /// pub enum CtxS {
-    ///     S1 { id: String, val: SynVal },
-    ///     S2 { val: SynVal },
+    /// pub enum Ctx { A { a: SynA } }
+    /// pub enum CtxA {
+    ///     A1 { star: SynA1, b: String },
+    ///     A2 { a: String },
     /// }
-    /// pub enum CtxS {
-    ///     S1 { id: String, val: SynVal },
-    ///     S2,
-    ///     S3 { val: SynVal },
+    /// pub enum CtxB {
+    ///     B { b: String },
     /// }
     ///
-    /// nt_name = [Some(("S", "s")), Some(("Val", "val"))]
-    /// nt_info = [[(0, "S1"), (1, "S2"), (2, "S3")], [(3, "Val1"), (4, "Val2")]]
-    /// item_info = [[ItemInfo { name: "id", sym: T(0), owner: 0, … }, ItemInfo { name: "val", sym: NT(1), owner: 0, … }],
-    ///              [],
-    ///              [ItemInfo { name: "val", sym: NT(1), owner: 0, … }], …
+    /// struct SynA1(Vec<SynA1Item>);
+    /// struct SynA1Item { b: SynB, c: String }
+    /// // User-defined: SynA, SynB
+    ///
+    /// nt_name = [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1"))]
+    /// nt_info = [[(0, "A1"), (1, "A2")], [(2, "B")], []]
+    /// item_info = [
+    ///     [ItemInfo { name: "star", sym: NT(2), .. }, ItemInfo { name: "b", sym: T(1), .. }],
+    ///     [ItemInfo { name: "a", sym: T(0), .. }],
+    ///     [ItemInfo { name: "b", sym: T(1), .. }],
+    ///     [ItemInfo { name: "star_it", sym: NT(2), .. }, ItemInfo { name: "b", sym: NT(1), .. }, ItemInfo { name: "c", sym: T(2), .. }],
+    ///     []
+    /// ]
+    /// nt_repeat = {
+    ///     2: [ItemInfo { name: "b", sym: NT(1), .. }, ItemInfo { name: "c", sym: T(2), .. }]
+    /// }
     /// ```
-    fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Vec<(FactorId, String)>>, Vec<Vec<ItemInfo>>) {
+    fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Vec<(FactorId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
         const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
@@ -565,6 +578,7 @@ impl ParserBuilder {
         }).to_vec();
 
         let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; pinfo.num_nt];
+        let mut nt_repeat = HashMap::<VarId, Vec<ItemInfo>>::new();
         let item_info: Vec<Vec<ItemInfo>> = (0..pinfo.factors.len()).map(|i| {
             let factor_id = i as FactorId;
             let nt = pinfo.factors[i].0 as usize;
@@ -575,6 +589,18 @@ impl ParserBuilder {
                 //   `T(a)` becomes "a", too => one is renamed to "a1" to avoid the collision: `{ a: SynA, a1: String }`)
                 let mut indices = HashMap::<Symbol, (String, Option<usize>)>::new();
                 let mut fixer = NameFixer::new();
+                let mut owner = pinfo.factors[i].0;
+                while let Some(parent) = pinfo.parent[owner as usize] {
+                    if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
+                        // a child + * is owner
+                        // - if <L>, it has its own public context and a user-defined return type
+                        // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
+                        // (we keep the loop for +, which has a left factorization, too)
+                        break;
+                    }
+                    owner = parent;
+                }
+                let is_nt_repeat = pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
                 for s in item_ops {
                     if let Symbol::NT(v) = s {
                         if nt_name[*v as usize].is_none() {
@@ -596,7 +622,13 @@ impl ParserBuilder {
                                     plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
                                     plus_name
                                 } else {
-                                    if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
+                                    if is_nt_repeat && indices.is_empty() {
+                                        // iterator variable in a + * loop (visible with <L>, for ex)
+                                        if flag & ruleflag::REPEAT_PLUS != 0 { "plus_it".to_string() } else { "star_it".to_string() }
+                                    } else {
+                                        // reference to a + * result
+                                        if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
+                                    }
                                 }
                             } else {
                                 nt_name[*vs as usize].clone().unwrap().1
@@ -606,17 +638,6 @@ impl ParserBuilder {
                         };
                         indices.insert(*s, (fixer.get_unique_name(name), None));
                     }
-                }
-                let mut owner = pinfo.factors[i].0;
-                while let Some(parent) = pinfo.parent[owner as usize] {
-                    if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
-                        // a child + * is owner
-                        // - if <L>, it has its own public context and a user-defined return type
-                        // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
-                        // (we keep the loop for +, which has a left factorization, too)
-                        break;
-                    }
-                    owner = parent;
                 }
                 let has_no_exit = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 ||
                     (pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0 &&
@@ -654,7 +675,7 @@ impl ParserBuilder {
                         index: None,
                     }]
                 } else {
-                    item_ops.into_iter().map(|s| {
+                    let infos = item_ops.into_iter().map(|s| {
                         let index = if let Some((_, Some(index))) = indices.get_mut(s) {
                             let idx = *index;
                             *index += 1;
@@ -669,7 +690,14 @@ impl ParserBuilder {
                             is_vec: false,
                             index,
                         }
-                    }).to_vec()
+                    }).to_vec();
+                    if is_nt_repeat && infos.len() > 1 && !nt_repeat.contains_key(&owner) {
+                        let iter = infos.iter().skip(1).cloned().to_vec();
+                        if iter.len() > 1 || !iter[0].sym.is_t() {
+                            nt_repeat.insert(owner, iter);
+                        }
+                    }
+                    infos
                 }
             } else {
                 vec![]
@@ -700,10 +728,11 @@ impl ParserBuilder {
             }
             println!();
         }
-        // println!("nt_name: {nt_name:?}");
-        // println!("nt_info: {nt_info:?}");
-        // println!("item_info: {item_info:?}");
-        (nt_name, nt_info, item_info)
+        println!("nt_name: {nt_name:?}");
+        println!("nt_info: {nt_info:?}");
+        println!("item_info: {item_info:?}");
+        println!("nt_repeat: {nt_repeat:?}");
+        (nt_name, nt_info, item_info, nt_repeat)
     }
 
     pub fn make_parser(self) -> Parser {
@@ -812,11 +841,34 @@ impl ParserBuilder {
         ]
     }
 
+    fn source_infos(infos: &Vec<ItemInfo>, nt_name: &Vec<Option<(String, String)>>) -> String {
+        infos.iter().filter_map(|info| {
+            if info.index.is_none() || info.index == Some(0) {
+                let type_name_base = match info.sym {
+                    Symbol::T(_) => "String".to_string(),
+                    Symbol::NT(vs) => format!("Syn{}", nt_name[vs as usize].clone().unwrap().0),
+                    _ => panic!("unexpected symbol {}", info.sym)
+                };
+                let type_name = if info.index.is_some() {
+                    let nbr = infos.iter()
+                        .map(|nfo| if nfo.sym == info.sym { nfo.index.unwrap() } else { 0 })
+                        .max().unwrap() + 1;
+                    format!("[{type_name_base}; {nbr}]")
+                } else {
+                    type_name_base
+                };
+                Some(format!("{}: {}", info.name, type_name))
+            } else {
+                None
+            }
+        }).join(", ")
+    }
+
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
 
-        let (nt_name, nt_info, item_info) = self.get_type_info();
+        let (nt_name, nt_info, item_info, nt_repeat) = self.get_type_info();
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
@@ -830,26 +882,7 @@ impl ParserBuilder {
         for (v, factor_names) in nt_info.iter().enumerate().filter(|(_, f)| !f.is_empty()) {
             src.push(format!("pub enum Ctx{} {{", nt_name[v].clone().unwrap().0));
             for (f_id, f_name) in factor_names {
-                let ctx_content = item_info[*f_id as usize].iter().filter_map(|info| {
-                    if info.index.is_none() || info.index == Some(0) {
-                        let type_name_base = match info.sym {
-                            Symbol::T(t) => "String".to_string(),
-                            Symbol::NT(vs) => format!("Syn{}", nt_name[vs as usize].clone().unwrap().0),
-                            _ => panic!("unexpected symbol {}", info.sym)
-                        };
-                        let type_name = if info.index.is_some() {
-                            let nbr = item_info[*f_id as usize].iter()
-                                .map(|nfo| if nfo.sym == info.sym { nfo.index.unwrap() } else { 0 })
-                                .max().unwrap() + 1;
-                            format!("[{type_name_base}; {nbr}]")
-                        } else {
-                            type_name_base
-                        };
-                        Some(format!("{}: {}", info.name, type_name))
-                    } else {
-                        None
-                    }
-                }).join(", ");
+                let ctx_content = Self::source_infos(&item_info[*f_id as usize], &nt_name);
                 if ctx_content.is_empty() {
                     src.push(format!("    {f_name},", ))
                 } else {
@@ -864,13 +897,14 @@ impl ParserBuilder {
         let mut user_names = vec![];
         for (v, name) in nt_name.iter().enumerate().filter_map(|(v, n)| if let Some((nu, _nl)) = n { Some((v, nu)) } else { None }) {
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
-                // TODO: <String> is only valid for a single T; there could be
-                //       - several T/NT => tuple, like `Vec<(String, SynB, String)>`
-                //                      => or struct, like `Vec<APlusItem { c: String, b: SynB, d: String }>`
-                //       - alternative factors => enum
-                //       Information on that format should be stored for each +/*.
-                //       Another possibility is forcing a dedicated NT for what's inside the +/* (lot of changes).
-                src.push(format!("struct Syn{}(Vec<String>);", name.clone()));
+                if let Some(infos) = nt_repeat.get(&(v as VarId)) {
+                    // complex + * items; for ex. A -> (B b)+
+                    src.push(format!("struct Syn{0}(Vec<Syn{}Item>);", name.clone()));
+                    src.push(format!("struct Syn{}Item {{ {} }}", name.clone(), Self::source_infos(&infos, &nt_name)));
+                } else {
+                    // + * item is only a terminal
+                    src.push(format!("struct Syn{}(Vec<String>);", name.clone()));
+                }
             } else {
                 if self.nt_value[v] {
                     user_names.push(format!("Syn{name}"));
