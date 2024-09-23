@@ -813,6 +813,39 @@ after,  NT with value: A, B, A_1
 Test 8: rules RTS(29), start 0:
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
+
+// A -> a ( (B b)* c)* d
+
+item_info =
+[
+  //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
+  [
+    ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None },
+    ItemInfo { name: "star", sym: NT(3), owner: 0, is_vec: false, index: None },
+    ItemInfo { name: "d", sym: T(3), owner: 0, is_vec: false, index: None }
+  ],
+  //  1: B -> b           | ◄1 b!           | b
+  [
+    ItemInfo { name: "b", sym: T(1), owner: 1, is_vec: false, index: None }
+  ],
+  //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 B b
+  [
+    ItemInfo { name: "star", sym: NT(2), owner: 2, is_vec: false, index: None },
+    ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None },
+    ItemInfo { name: "b1", sym: T(1), owner: 2, is_vec: false, index: None }
+  ],
+  //  3: A_1 -> ε         | ◄3              |
+  [],
+  //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
+  [
+    ItemInfo { name: "star", sym: NT(3), owner: 3, is_vec: false, index: None },
+    ItemInfo { name: "star1", sym: NT(2), owner: 3, is_vec: false, index: None },
+    ItemInfo { name: "c", sym: T(2), owner: 3, is_vec: false, index: None }
+  ],
+  //  5: A_2 -> ε         | ◄5              |
+  []
+]
+
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -1146,6 +1179,48 @@ after,  NT with value: A_1, A_2
 Test 11: rules RTS(30), start 0:
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
+nt_name = [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1")), Some(("A2", "a2")), None, None]
+item_info =
+[
+  //  0: A -> a A_2 d     | ◄0 d! ►A_2 a! | a A_2 d
+  [
+    ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None },
+    ItemInfo { name: "plus", sym: NT(3), owner: 0, is_vec: false, index: None },
+    ItemInfo { name: "d", sym: T(3), owner: 0, is_vec: false, index: None }
+  ],
+  //  1: B -> b           | ◄1 b!         | b
+  [
+    ItemInfo { name: "b", sym: T(1), owner: 1, is_vec: false, index: None }
+  ],
+  //  2: A_1 -> B b A_3   | ►A_3 b! ►B    |
+  [],
+  //  3: A_2 -> A_1 c A_4 | ►A_4 c! ►A_1  |
+  [],
+  //  4: A_3 -> A_1       | ●A_1 ◄4       | A_1 B b
+  [
+    ItemInfo { name: "plus", sym: NT(2), owner: 2 (A_1), is_vec: false, index: None },
+    ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None },
+    ItemInfo { name: "b1", sym: T(1), owner: 2, is_vec: false, index: None }
+  ],
+  //  5: A_3 -> ε         | ◄5            | A_1 B b
+  [
+    ItemInfo { name: "plus", sym: NT(2), owner: 2, is_vec: false, index: None },
+    ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None },
+    ItemInfo { name: "b1", sym: T(1), owner: 2, is_vec: false, index: None }
+  ],
+  //  6: A_4 -> A_2       | ●A_2 ◄6       | A_2 A_1 c
+  [
+    ItemInfo { name: "plus", sym: NT(3), owner: 3 (A_2), is_vec: false, index: None },
+    ItemInfo { name: "plus1", sym: NT(2), owner: 3, is_vec: false, index: None },
+    ItemInfo { name: "c", sym: T(2), owner: 3, is_vec: false, index: None }
+  ],
+  //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
+  [
+    ItemInfo { name: "plus", sym: NT(3), owner: 3, is_vec: false, index: None },
+    ItemInfo { name: "plus1", sym: NT(2), owner: 3, is_vec: false, index: None },
+    ItemInfo { name: "c", sym: T(2), owner: 3, is_vec: false, index: None }
+  ]
+]
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -2417,4 +2492,119 @@ after,  NT with value: E, F
     }
 
 // [wrapper source for test 22: PRS(13), start E]
+// ------------------------------------------------------------
+
+Test 23: rules PRS(35), start 0:
+before, NT with value: A
+after,  NT with value: A
+nt_name: [Some(("A", "a")), None]
+nt_info: [[(1, "A1"), (2, "A2"), (3, "A3")], []]
+item_info:
+[
+    [],
+    [
+        ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None },
+        ItemInfo { name: "b", sym: T(1), owner: 0, is_vec: false, index: Some(0) },
+        ItemInfo { name: "b", sym: T(1), owner: 0, is_vec: false, index: Some(1) }
+    ],
+    [
+        ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None },
+        ItemInfo { name: "c", sym: T(2), owner: 0, is_vec: false, index: Some(0) },
+        ItemInfo { name: "c", sym: T(2), owner: 0, is_vec: false, index: Some(1) }
+    ],
+    [
+        ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None }
+    ]
+]
+            // NT flags:
+            //  - A: parent_left_fact (32)
+            //  - A_1: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            (PRS(35), 0, btreemap![                     /// A -> a | a b b | a c c
+                0 => symbols![],                        //  0: A -> a A_1 | ►A_1 a!  |
+                1 => symbols![t 0, t 1, t 1],           //  1: A_1 -> b b | ◄1 b! b! | a b b
+                2 => symbols![t 0, t 2, t 2],           //  2: A_1 -> c c | ◄2 c! c! | a c c
+                3 => symbols![t 0],                     //  3: A_1 -> ε   | ◄3       | a
+            ], Default),
+// ------------------------------------------------------------
+// [wrapper source for test 23: PRS(35), start A]
+
+    pub enum Ctx { A { a: SynA } }
+    pub enum CtxA {
+        A1 { a: String, b: [String; 2] },
+        A2 { a: String, c: [String; 2] },
+        A3 { a: String },
+    }
+
+    // User-defined: SynA
+
+    enum SynValue { A(SynA) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            let SynValue::A(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        fn exit(&mut self, _ctx: Ctx) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(Ctx::A { a });
+        }
+    }
+
+// [wrapper source for test 23: PRS(35), start A]
 // ------------------------------------------------------------

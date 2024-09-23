@@ -1059,6 +1059,12 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("return".to_string(), Some("return".to_string())),
             ]);
         }
+        35 => {
+            // A -> a | a b b | a c c
+            prods.extend([
+                prod!(t 0; t 0, t 1, t 1; t 0, t 2, t 2),
+            ]);
+        }
 
         // ambiguity?
         100 => {

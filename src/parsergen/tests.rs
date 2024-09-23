@@ -830,6 +830,18 @@ mod wrapper_source {
             // (PRS(10), 0, btreemap![]),
             // (PRS(15), 0, btreemap![]),
             // (RTS(31), 0, btreemap![], Default),  // TODO: reports error, not supported, user must create NT for OR under + or *
+            // --------------------------------------------------------------------------- misc
+            // NT flags:
+            //  - A: parent_left_fact (32)
+            //  - A_1: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            (PRS(35), 0, btreemap![                     /// A -> a | a b b | a c c
+                0 => symbols![],                        //  0: A -> a A_1 | ►A_1 a!  |
+                1 => symbols![t 0, t 1, t 1],           //  1: A_1 -> b b | ◄1 b! b! | a b b
+                2 => symbols![t 0, t 2, t 2],           //  2: A_1 -> c c | ◄2 c! c! | a c c
+                3 => symbols![t 0],                     //  3: A_1 -> ε   | ◄3       | a
+            ], Default),
             // ---------------------------------------------------------------------------
             /*
             (PRS(), 0, btreemap![], Default),
