@@ -728,10 +728,10 @@ impl ParserBuilder {
             }
             println!();
         }
-        println!("nt_name: {nt_name:?}");
-        println!("nt_info: {nt_info:?}");
-        println!("item_info: {item_info:?}");
-        println!("nt_repeat: {nt_repeat:?}");
+        // println!("nt_name: {nt_name:?}");
+        // println!("nt_info: {nt_info:?}");
+        // println!("item_info: {item_info:?}");
+        // println!("nt_repeat: {nt_repeat:?}");
         (nt_name, nt_info, item_info, nt_repeat)
     }
 
@@ -841,6 +841,7 @@ impl ParserBuilder {
         ]
     }
 
+    /// Structure elements used in a context or in a +* child type
     fn source_infos(infos: &Vec<ItemInfo>, nt_name: &Vec<Option<(String, String)>>) -> String {
         infos.iter().filter_map(|info| {
             if info.index.is_none() || info.index == Some(0) {
