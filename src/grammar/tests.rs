@@ -349,10 +349,10 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
-        26 => { // A (c)* b | a (see also RST(16))
+        26 => { // A (c)* b | a (see also RTS(16))
             let or = tree.add_root(gnode!(|));
             let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
-            let p2 = tree.addc(Some(cc1), gnode!(*), gnode!(t 2));
+            tree.addc(Some(cc1), gnode!(*), gnode!(t 2));
             tree.add(Some(cc1), gnode!(t 1));
             tree.add(Some(or), gnode!(t 0));
         }
@@ -414,6 +414,16 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L)]);
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
+        }
+        33 => { // A -> (B c)* b | a; B -> b
+            let or = tree.add_root(gnode!(|));
+            let cc1 = tree.add(Some(or), gnode!(&));
+            let p2 = tree.add(Some(cc1), gnode!(*));
+            tree.addc_iter(Some(p2), gnode!(&), [gnode!(nt 1), gnode!(t 2)]);
+            tree.add(Some(cc1), gnode!(t 1));
+            tree.add(Some(or), gnode!(t 0));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
         }
         _ => {}
     }
