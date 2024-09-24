@@ -943,11 +943,30 @@ impl ParserBuilder {
         }
 
         // Prepares the data for the following sections
-        let src_init = Vec::<String>::new();
-        let src_exit = Vec::<String>::new();
-        let src_listener_decl = Vec::<String>::new();
-        let src_wrapper_impl = Vec::<String>::new();
+        let mut src_init = Vec::<String>::new();
+        let mut src_exit = Vec::<String>::new();
+        let mut src_listener_decl = Vec::<String>::new();
+        let mut src_wrapper_impl = Vec::<String>::new();
 
+        for nt in 0..self.parsing_table.num_nt {
+            let flags = self.parsing_table.flags[nt];
+            if self.parsing_table.parent[nt].is_none() {
+                let has_value = self.nt_value[nt];
+                let (nu, nl) = nt_name[nt].as_ref().unwrap();
+                if has_value && self.nt_has_flags(nt as VarId, ruleflag::R_RECURSION | ruleflag::L_FORM) {
+                    src_listener_decl.push(format!("    fn init_{nl}() -> Syn{nu};"));
+                    src_init.push(format!("                    {nt} => self.init_{nl}(),"));
+                    src_wrapper_impl.push(format!("    fn init_{nl}() {{"));
+                    src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
+                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                    src_wrapper_impl.push(format!("    }}"));
+                } else {
+                    src_listener_decl.push(format!("    fn init_{nl}() {{}}"));
+                    src_init.push(format!("                    {nt} => self.listener.init_{nl}(),"));
+                }
+            }
+
+        }
         // TODO: populate the src_*
 
         // Writes the listener trait declaration

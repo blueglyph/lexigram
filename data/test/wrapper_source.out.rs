@@ -42,6 +42,8 @@ after,  NT with value: S, VAL
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_s() {}
+        fn init_val() {}
     }
 
     struct ListenerWrapper<T> {
@@ -70,6 +72,8 @@ after,  NT with value: S, VAL
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_s(),
+                        1 => self.listener.init_val(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -139,6 +143,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -167,6 +172,7 @@ after,  NT with value: A, A_1
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -238,6 +244,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -266,6 +273,7 @@ after,  NT with value: A, A_1
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -342,6 +350,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -370,6 +379,7 @@ after,  NT with value: A, A_1
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -436,6 +446,7 @@ after,  NT with value: A
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -464,6 +475,7 @@ after,  NT with value: A
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -536,6 +548,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -564,6 +577,7 @@ after,  NT with value: A, A_1
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -644,6 +658,8 @@ after,  NT with value: A, B, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+        fn init_b() {}
     }
 
     struct ListenerWrapper<T> {
@@ -672,6 +688,8 @@ after,  NT with value: A, B, A_1
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
+                        1 => self.listener.init_b(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -752,6 +770,8 @@ after,  NT with value: A, B, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+        fn init_b() {}
     }
 
     struct ListenerWrapper<T> {
@@ -780,6 +800,8 @@ after,  NT with value: A, B, A_1
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
+                        1 => self.listener.init_b(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -898,6 +920,8 @@ item_info =
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+        fn init_b() {}
     }
 
     struct ListenerWrapper<T> {
@@ -926,6 +950,8 @@ item_info =
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
+                        1 => self.listener.init_b(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1007,6 +1033,8 @@ after,  NT with value: A, A_2
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+        fn init_b() {}
     }
 
     struct ListenerWrapper<T> {
@@ -1035,6 +1063,8 @@ after,  NT with value: A, A_2
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
+                        1 => self.listener.init_b(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1121,6 +1151,8 @@ after,  NT with value: A_1, A_2
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+        fn init_b() {}
     }
 
     struct ListenerWrapper<T> {
@@ -1149,6 +1181,8 @@ after,  NT with value: A_1, A_2
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
+                        1 => self.listener.init_b(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1282,6 +1316,8 @@ item_info =
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+        fn init_b() {}
     }
 
     struct ListenerWrapper<T> {
@@ -1310,6 +1346,8 @@ item_info =
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
+                        1 => self.listener.init_b(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1402,6 +1440,8 @@ after,  NT with value: A_1, A_2
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+        fn init_b() {}
     }
 
     struct ListenerWrapper<T> {
@@ -1430,6 +1470,8 @@ after,  NT with value: A_1, A_2
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
+                        1 => self.listener.init_b(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1504,6 +1546,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -1532,6 +1575,7 @@ after,  NT with value: A, A_1
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1608,6 +1652,7 @@ after,  NT with value: A
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -1636,6 +1681,7 @@ after,  NT with value: A
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1710,6 +1756,8 @@ after,  NT with value: E, F
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_e() {}
+        fn init_f() {}
     }
 
     struct ListenerWrapper<T> {
@@ -1738,6 +1786,8 @@ after,  NT with value: E, F
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_e(),
+                        1 => self.listener.init_f(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1811,6 +1861,7 @@ after,  NT with value: A
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -1839,6 +1890,7 @@ after,  NT with value: A
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1919,6 +1971,8 @@ after,  NT with value: E, F
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_e() {}
+        fn init_f() {}
     }
 
     struct ListenerWrapper<T> {
@@ -1947,6 +2001,8 @@ after,  NT with value: E, F
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_e(),
+                        1 => self.listener.init_f(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2018,6 +2074,8 @@ after,  NT with value: STRUCT, LIST
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_struct() {}
+        fn init_list() {}
     }
 
     struct ListenerWrapper<T> {
@@ -2046,6 +2104,8 @@ after,  NT with value: STRUCT, LIST
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_struct(),
+                        1 => self.listener.init_list(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2117,6 +2177,8 @@ after,  NT with value: STRUCT, LIST
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_struct() {}
+        fn init_list() -> SynList;
     }
 
     struct ListenerWrapper<T> {
@@ -2145,6 +2207,8 @@ after,  NT with value: STRUCT, LIST
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_struct(),
+                        1 => self.init_list(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2170,6 +2234,10 @@ after,  NT with value: STRUCT, LIST
         fn exit(&mut self, _ctx: Ctx) {
             let struct = self.stack.pop().unwrap().get_struct();
             self.listener.exit(Ctx::Struct { struct });
+        }
+        fn init_list() {
+            let val = self.listener.init_list();
+            self.stack.push(SynValue::List(val));
         }
     }
 
@@ -2220,6 +2288,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -2248,6 +2317,7 @@ after,  NT with value: A, A_1
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2326,6 +2396,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -2354,6 +2425,7 @@ after,  NT with value: A, A_1
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2386,122 +2458,7 @@ after,  NT with value: A, A_1
 // ------------------------------------------------------------
 
 ================================================================================
-Test 22: rules PRS(13), start 0:
-before, NT with value: E, F
-after,  NT with value: E, F
-            // NT flags:
-            //  - E: parent_left_rec | parent_amb (1536)
-            //  - E_1: child_left_rec | child_amb (12)
-            // parents:
-            //  - E_1 -> E
-            (PRS(13), 0, btreemap![
-                0 => symbols![nt 1],                    //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
-                1 => symbols![nt 0],                    //  1: F -> ( E )     | ◄1 ) ►E (    | E
-                2 => symbols![t 6],                     //  2: F -> N         | ◄2 N!        | N
-                3 => symbols![t 7],                     //  3: F -> I         | ◄3 I!        | I
-                4 => symbols![nt 0, nt 1],              //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | E F
-                5 => symbols![nt 0, nt 1],              //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | E F
-                6 => symbols![nt 0, nt 1],              //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | E F
-                7 => symbols![nt 0, nt 1],              //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | E F
-                8 => symbols![nt 0, nt 1],              //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | E F
-                9 => symbols![nt 0, nt 1],              //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | E F
-                10 => symbols![],                       // 10: E_1 -> ε       | ◄10          |
-            ], Default),
-// ------------------------------------------------------------
-// [wrapper source for test 22: PRS(13), start E]
-
-    pub enum Ctx { E { e: SynE } }
-    pub enum CtxE {
-        E1 { f: SynF },
-        E2 { e: SynE, f: SynF },
-        E3 { e: SynE, f: SynF },
-        E4 { e: SynE, f: SynF },
-        E5 { e: SynE, f: SynF },
-        E6 { e: SynE, f: SynF },
-        E7 { e: SynE, f: SynF },
-        E8 { e: SynE },
-    }
-    pub enum CtxF {
-        F1 { e: SynE },
-        F2 { n: String },
-        F3 { i: String },
-    }
-
-    // User-defined: SynE, SynF
-
-    enum SynValue { E(SynE), F(SynF) }
-
-    impl SynValue {
-        fn get_e(self) -> SynE {
-            if let SynValue::E(val) = self { val } else { panic!() }
-        }
-        fn get_f(self) -> SynF {
-            if let SynValue::F(val) = self { val } else { panic!() }
-        }
-    }
-
-    pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
-    }
-
-    struct ListenerWrapper<T> {
-        verbose: bool,
-        listener: T,
-        stack: Vec<SynValue>,
-        max_stack: usize,
-        stack_t: Vec<String>,
-    }
-
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
-            if let Some(mut t_data) = t_data {
-                self.stack_t.append(&mut t_data);
-            }
-            match call {
-                Call::Enter => {
-                    match nt {
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
-                Call::Exit => {
-                    match factor_id {
-                        _ => panic!("unexpected exit factor id: {factor_id}")
-                    }
-                }
-                Call::End => {
-                    self.exit();
-                }
-            }
-            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-            }
-        }
-    }
-
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
-            let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(Ctx::E { e });
-        }
-    }
-
-// [wrapper source for test 22: PRS(13), start E]
-// ------------------------------------------------------------
-
-Test 23: rules PRS(35), start 0:
+Test 22: rules PRS(35), start 0:
 before, NT with value: A
 after,  NT with value: A
 nt_name: [Some(("A", "a")), None]
@@ -2535,7 +2492,7 @@ item_info:
                 3 => symbols![t 0],                     //  3: A_1 -> ε   | ◄3       | a
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 23: PRS(35), start A]
+// [wrapper source for test 22: PRS(35), start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -2557,6 +2514,7 @@ item_info:
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
     }
 
     struct ListenerWrapper<T> {
@@ -2585,6 +2543,7 @@ item_info:
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2613,11 +2572,11 @@ item_info:
         }
     }
 
-// [wrapper source for test 23: PRS(35), start A]
+// [wrapper source for test 22: PRS(35), start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 24: rules RTS(33), start 0:
+Test 23: rules RTS(33), start 0:
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
 nt_name: [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1"))]
@@ -2637,7 +2596,7 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
                 4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 24: RTS(33), start A]
+// [wrapper source for test 23: RTS(33), start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -2668,6 +2627,8 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+        fn init_b() {}
     }
 
     struct ListenerWrapper<T> {
@@ -2696,6 +2657,8 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
             match call {
                 Call::Enter => {
                     match nt {
+                        0 => self.listener.init_a(),
+                        1 => self.listener.init_b(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2724,5 +2687,6 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
         }
     }
 
-// [wrapper source for test 24: RTS(33), start A]
+// [wrapper source for test 23: RTS(33), start A]
 // ------------------------------------------------------------
+

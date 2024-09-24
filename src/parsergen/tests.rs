@@ -525,13 +525,12 @@ mod wrapper_source {
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
             ], Set(symbols![nt 0, nt 1, t 0, t 1])),
             // --------------------------------------------------------------------------- norm* R/L
-            // A -> a (b)* c
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
             // parents:
             //  - A_1 -> A
-            (RTS(21), 0, btreemap![
+            (RTS(21), 0, btreemap![                     /// A -> a (b)* c
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
@@ -807,29 +806,6 @@ mod wrapper_source {
                 5 => symbols![nt 1, t 2],               //  5: A_3 -> ε         | ◄5              | A_1 c
             ], Default),
 
-            // --------------------------------------------------------------------------- left_rec + amb
-            // NT flags:
-            //  - E: parent_left_rec | parent_amb (1536)
-            //  - E_1: child_left_rec | child_amb (12)
-            // parents:
-            //  - E_1 -> E
-            (PRS(13), 0, btreemap![                     /// // E -> E : E | E ^ E | E / E | E * E | E - E | E + E | F;  F -> ( E ) | NUM | ID
-                0 => symbols![nt 1],                    //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
-                1 => symbols![nt 0],                    //  1: F -> ( E )     | ◄1 ) ►E (    | E
-                2 => symbols![t 6],                     //  2: F -> N         | ◄2 N!        | N
-                3 => symbols![t 7],                     //  3: F -> I         | ◄3 I!        | I
-                4 => symbols![nt 0, nt 1],              //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | E F  // ?? asm, not sure yet
-                5 => symbols![nt 0, nt 1],              //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | E F
-                6 => symbols![nt 0, nt 1],              //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | E F
-                7 => symbols![nt 0, nt 1],              //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | E F
-                8 => symbols![nt 0, nt 1],              //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | E F
-                9 => symbols![nt 0, nt 1],              //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | E F
-                10 => symbols![],                       // 10: E_1 -> ε       | ◄10          |
-            ], Default),
-            // (PRS(9), 0, btreemap![]),
-            // (PRS(10), 0, btreemap![]),
-            // (PRS(15), 0, btreemap![]),
-            // (RTS(31), 0, btreemap![], Default),  // TODO: reports error, not supported, user must create NT for OR under + or *
             // --------------------------------------------------------------------------- misc
             // NT flags:
             //  - A: parent_left_fact (32)
@@ -854,6 +830,31 @@ mod wrapper_source {
                 3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> B c A_1 | ●A_1 ◄3 c! ►B | A_1 B c
                 4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
             ], All),
+            // --------------------------------------------------------------------------- left_rec + amb
+            // NT flags:
+            //  - E: parent_left_rec | parent_amb (1536)
+            //  - E_1: child_left_rec | child_amb (12)
+            // parents:
+            //  - E_1 -> E
+            /*
+            (PRS(13), 0, btreemap![                     /// // E -> E : E | E ^ E | E / E | E * E | E - E | E + E | F;  F -> ( E ) | NUM | ID
+                0 => symbols![nt 1],                    //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
+                1 => symbols![nt 0],                    //  1: F -> ( E )     | ◄1 ) ►E (    | E
+                2 => symbols![t 6],                     //  2: F -> N         | ◄2 N!        | N
+                3 => symbols![t 7],                     //  3: F -> I         | ◄3 I!        | I
+                4 => symbols![nt 0, nt 1],              //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | E F  // ?? asm, not sure yet
+                5 => symbols![nt 0, nt 1],              //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | E F
+                6 => symbols![nt 0, nt 1],              //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | E F
+                7 => symbols![nt 0, nt 1],              //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | E F
+                8 => symbols![nt 0, nt 1],              //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | E F
+                9 => symbols![nt 0, nt 1],              //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | E F
+                10 => symbols![],                       // 10: E_1 -> ε       | ◄10          |
+            ], Default),
+            */
+            // (PRS(9), 0, btreemap![]),
+            // (PRS(10), 0, btreemap![]),
+            // (PRS(15), 0, btreemap![]),
+            // (RTS(31), 0, btreemap![], Default),  // TODO: reports error, not supported, user must create NT for OR under + or *
             // ---------------------------------------------------------------------------
             /*
             (PRS(), 0, btreemap![], Default),
