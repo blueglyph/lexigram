@@ -2339,7 +2339,7 @@ pub(crate) fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
     println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub(crate) enum T { RTS(u32), PRS(u32) }
 
 impl T {

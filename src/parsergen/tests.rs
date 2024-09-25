@@ -402,7 +402,7 @@ mod opcodes {
 }
 
 mod wrapper_source {
-    use std::collections::{BTreeMap, HashSet};
+    use std::collections::{BTreeMap, HashMap, HashSet};
     use std::fs::File;
     use std::io::Read;
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
@@ -546,6 +546,11 @@ mod wrapper_source {
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], All),
+            (RTS(22), 0, btreemap![
+                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+                1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
+                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+            ], Set(symbols![nt 0, t 0, t 2])),
             // NT flags:
             //  - A: parent_left_fact | parent_+_or_* (2080)
             //  - A_1: child_+_or_* | L-form (129)
@@ -866,8 +871,10 @@ mod wrapper_source {
         const TEST_SOURCE: bool = true;
         const TESTS_ALL: bool = false;
         let mut num_errors = 0;
+        let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, expected_items, has_value)) in tests.into_iter().enumerate() {
-            if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
+            let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
+            if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
@@ -886,7 +893,7 @@ mod wrapper_source {
             }
             let result_items = builder.item_ops.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<FactorId, Vec<Symbol>>>();
             let src = builder.source_wrapper();
-            let test_name = format!("wrapper source for test {test_id}: {rule_id:?}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
+            let test_name = format!("wrapper source for rule {rule_id:?} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
             if VERBOSE {
                 print_flags(&builder, 12);
                 println!("            ({rule_id:?}, {start_nt}, btreemap![", );
@@ -915,10 +922,10 @@ mod wrapper_source {
                     println!("## SOURCE MISMATCH: {err_msg}");
                 }
             } else {
-                assert_eq!(result_items, expected_items, "{err_msg}");
                 if TEST_SOURCE {
                     assert_eq!(Some(result_src), expected_src, "{err_msg}");
                 }
+                assert_eq!(result_items, expected_items, "{err_msg}");
             }
         }
         if TESTS_ALL {

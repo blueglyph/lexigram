@@ -1,5 +1,5 @@
 ================================================================================
-Test 0: rules PRS(34), start 0:
+Test 0: rules PRS(34) #1, start 0:
 before, NT with value: S, VAL
 after,  NT with value: S, VAL
             // NT flags:
@@ -14,7 +14,7 @@ after,  NT with value: S, VAL
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
             ], Set(symbols![nt 0, nt 1, t 0, t 1])),
 // ------------------------------------------------------------
-// [wrapper source for test 0: PRS(34), start S]
+// [wrapper source for rule PRS(34) #1, start S]
 
     pub enum Ctx { S { s: SynS } }
     pub enum CtxS {
@@ -102,7 +102,7 @@ after,  NT with value: S, VAL
         }
     }
 
-// [wrapper source for test 0: PRS(34), start S]
+// [wrapper source for rule PRS(34) #1, start S]
 // ------------------------------------------------------------
 
 ================================================================================
@@ -120,7 +120,7 @@ after,  NT with value: A, A_1
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 1: RTS(21), start A]
+// [wrapper source for rule RTS(21) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -206,7 +206,7 @@ after,  NT with value: A, A_1
         }
     }
 
-// [wrapper source for test 1: RTS(21), start A]
+// [wrapper source for rule RTS(21) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
@@ -224,7 +224,7 @@ after,  NT with value: A, A_1
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 2: RTS(22), start A]
+// [wrapper source for rule RTS(22) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -313,11 +313,108 @@ after,  NT with value: A, A_1
         }
     }
 
-// [wrapper source for test 2: RTS(22), start A]
+// [wrapper source for rule RTS(22) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 3: rules RTS(32), start 0:
+Test 3: rules RTS(22) #2, start 0:
+before, NT with value: A
+after,  NT with value: A
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - A_1: child_+_or_* | L-form (129)
+            // parents:
+            //  - A_1 -> A
+            (RTS(22), 0, btreemap![
+                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+                1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
+                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+            ], Set(symbols![nt 0, t 0, t 2])),
+// ------------------------------------------------------------
+// [wrapper source for rule RTS(22) #2, start A]
+
+    pub enum Ctx { A { a: SynA } }
+    pub enum CtxA {
+        A { a: String, c: String },
+    }
+
+    // User-defined: SynA
+
+    enum SynValue { A(SynA) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            let SynValue::A(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),
+                        1 => {}
+                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        fn exit(&mut self, _ctx: Ctx) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(Ctx::A { a });
+        }
+    }
+
+// [wrapper source for rule RTS(22) #2, start A]
+// ------------------------------------------------------------
+
+================================================================================
+Test 4: rules RTS(32) #1, start 0:
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -335,7 +432,7 @@ after,  NT with value: A, A_1
                 4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_2 -> c A_1 c | ◄4 c! ►A_1 c! | a c A_1 c
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 3: RTS(32), start A]
+// [wrapper source for rule RTS(32) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -425,11 +522,11 @@ after,  NT with value: A, A_1
         }
     }
 
-// [wrapper source for test 3: RTS(32), start A]
+// [wrapper source for rule RTS(32) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 4: rules RTS(25), start 0:
+Test 5: rules RTS(25) #1, start 0:
 before, NT with value: A
 after,  NT with value: A
             // NT flags:
@@ -443,7 +540,7 @@ after,  NT with value: A
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 4: RTS(25), start A]
+// [wrapper source for rule RTS(25) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -522,11 +619,11 @@ after,  NT with value: A
         }
     }
 
-// [wrapper source for test 4: RTS(25), start A]
+// [wrapper source for rule RTS(25) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 5: rules RTS(23), start 0:
+Test 6: rules RTS(23) #1, start 0:
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -543,7 +640,7 @@ after,  NT with value: A, A_1
                 3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 5: RTS(23), start A]
+// [wrapper source for rule RTS(23) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -629,11 +726,11 @@ after,  NT with value: A, A_1
         }
     }
 
-// [wrapper source for test 5: RTS(23), start A]
+// [wrapper source for rule RTS(23) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 6: rules RTS(27), start 0:
+Test 7: rules RTS(27) #1, start 0:
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
             // NT flags:
@@ -651,7 +748,7 @@ after,  NT with value: A, B, A_1
                 4 => symbols![nt 2, nt 1],              //  4: A_2 -> ε     | ◄4            | A_1 B
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 6: RTS(27), start A]
+// [wrapper source for rule RTS(27) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -746,11 +843,11 @@ after,  NT with value: A, B, A_1
         }
     }
 
-// [wrapper source for test 6: RTS(27), start A]
+// [wrapper source for rule RTS(27) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 7: rules RTS(28), start 0:
+Test 8: rules RTS(28) #1, start 0:
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
             // NT flags:
@@ -768,7 +865,7 @@ after,  NT with value: A, B, A_1
                 4 => symbols![nt 2, t 0, nt 1],         //  4: A_2 -> ε       | ◄4         | A_1 a B
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 7: RTS(28), start A]
+// [wrapper source for rule RTS(28) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -863,11 +960,11 @@ after,  NT with value: A, B, A_1
         }
     }
 
-// [wrapper source for test 7: RTS(28), start A]
+// [wrapper source for rule RTS(28) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 8: rules RTS(29), start 0:
+Test 9: rules RTS(29) #1, start 0:
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
 
@@ -918,7 +1015,7 @@ item_info =
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 8: RTS(29), start A]
+// [wrapper source for rule RTS(29) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -1023,11 +1120,11 @@ item_info =
         }
     }
 
-// [wrapper source for test 8: RTS(29), start A]
+// [wrapper source for rule RTS(29) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 9: rules RTS(29), start 0:
+Test 10: rules RTS(29) #2, start 0:
 before, NT with value: A
 after,  NT with value: A, A_2
             // NT flags:
@@ -1046,7 +1143,7 @@ after,  NT with value: A, A_2
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], Set(symbols![nt 0, t 0, t 2, t 3])),
 // ------------------------------------------------------------
-// [wrapper source for test 9: RTS(29), start A]
+// [wrapper source for rule RTS(29) #2, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -1142,11 +1239,11 @@ after,  NT with value: A, A_2
         }
     }
 
-// [wrapper source for test 9: RTS(29), start A]
+// [wrapper source for rule RTS(29) #2, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 10: rules RTS(29), start 0:
+Test 11: rules RTS(29) #3, start 0:
 before, NT with value:
 after,  NT with value: A_1, A_2
             // NT flags:
@@ -1165,7 +1262,7 @@ after,  NT with value: A_1, A_2
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], Set(symbols![t 0, t 1, t 2, t 3])),
 // ------------------------------------------------------------
-// [wrapper source for test 10: RTS(29), start A]
+// [wrapper source for rule RTS(29) #3, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -1269,11 +1366,11 @@ after,  NT with value: A_1, A_2
         }
     }
 
-// [wrapper source for test 10: RTS(29), start A]
+// [wrapper source for rule RTS(29) #3, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 11: rules RTS(30), start 0:
+Test 12: rules RTS(30) #1, start 0:
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
 nt_name = [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1")), Some(("A2", "a2")), None, None]
@@ -1340,7 +1437,7 @@ item_info =
                 7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 11: RTS(30), start A]
+// [wrapper source for rule RTS(30) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -1445,11 +1542,11 @@ item_info =
         }
     }
 
-// [wrapper source for test 11: RTS(30), start A]
+// [wrapper source for rule RTS(30) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 12: rules RTS(30), start 0:
+Test 13: rules RTS(30) #2, start 0:
 before, NT with value:
 after,  NT with value: A_1, A_2
             // NT flags:
@@ -1474,7 +1571,7 @@ after,  NT with value: A_1, A_2
                 7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
             ], Set(symbols![t 0, t 1, t 2, t 3])),
 // ------------------------------------------------------------
-// [wrapper source for test 12: RTS(30), start A]
+// [wrapper source for rule RTS(30) #2, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -1578,11 +1675,11 @@ after,  NT with value: A_1, A_2
         }
     }
 
-// [wrapper source for test 12: RTS(30), start A]
+// [wrapper source for rule RTS(30) #2, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 13: rules RTS(24), start 0:
+Test 14: rules RTS(24) #1, start 0:
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -1599,7 +1696,7 @@ after,  NT with value: A, A_1
                 3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 13: RTS(24), start A]
+// [wrapper source for rule RTS(24) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -1689,11 +1786,11 @@ after,  NT with value: A, A_1
         }
     }
 
-// [wrapper source for test 13: RTS(24), start A]
+// [wrapper source for rule RTS(24) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 14: rules PRS(28), start 0:
+Test 15: rules PRS(28) #1, start 0:
 before, NT with value: A
 after,  NT with value: A
             // NT flags:
@@ -1713,7 +1810,7 @@ after,  NT with value: A
                 6 => symbols![t 0, t 1],                //  6: A_2 -> ε     | ◄6      | a b
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 14: PRS(28), start A]
+// [wrapper source for rule PRS(28) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -1795,11 +1892,11 @@ after,  NT with value: A
         }
     }
 
-// [wrapper source for test 14: PRS(28), start A]
+// [wrapper source for rule PRS(28) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 15: rules PRS(31), start 0:
+Test 16: rules PRS(31) #1, start 0:
 before, NT with value: E, F
 after,  NT with value: E, F
             // NT flags:
@@ -1814,7 +1911,7 @@ after,  NT with value: E, F
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 15: PRS(31), start E]
+// [wrapper source for rule PRS(31) #1, start E]
 
     pub enum Ctx { E { e: SynE } }
     pub enum CtxE {
@@ -1901,11 +1998,11 @@ after,  NT with value: E, F
         }
     }
 
-// [wrapper source for test 15: PRS(31), start E]
+// [wrapper source for rule PRS(31) #1, start E]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 16: rules PRS(33), start 0:
+Test 17: rules PRS(33) #1, start 0:
 before, NT with value: A
 after,  NT with value: A
             // NT flags:
@@ -1923,7 +2020,7 @@ after,  NT with value: A
                 4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 16: PRS(33), start A]
+// [wrapper source for rule PRS(33) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -2004,11 +2101,11 @@ after,  NT with value: A
         }
     }
 
-// [wrapper source for test 16: PRS(33), start A]
+// [wrapper source for rule PRS(33) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 17: rules PRS(32), start 0:
+Test 18: rules PRS(32) #1, start 0:
 before, NT with value: E, F
 after,  NT with value: E, F
             // NT flags:
@@ -2027,7 +2124,7 @@ after,  NT with value: E, F
                 5 => symbols![nt 0, t 1],               //  5: E_2 -> E_1      | ●E_1 ◄5     | E id
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 17: PRS(32), start E]
+// [wrapper source for rule PRS(32) #1, start E]
 
     pub enum Ctx { E { e: SynE } }
     pub enum CtxE {
@@ -2116,11 +2213,11 @@ after,  NT with value: E, F
         }
     }
 
-// [wrapper source for test 17: PRS(32), start E]
+// [wrapper source for rule PRS(32) #1, start E]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 18: rules PRS(20), start 0:
+Test 19: rules PRS(20) #1, start 0:
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
             // NT flags:
@@ -2133,7 +2230,7 @@ after,  NT with value: STRUCT, LIST
                 2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 18: PRS(20), start STRUCT]
+// [wrapper source for rule PRS(20) #1, start STRUCT]
 
     pub enum Ctx { Struct { struct: SynStruct } }
     pub enum CtxStruct {
@@ -2219,11 +2316,11 @@ after,  NT with value: STRUCT, LIST
         }
     }
 
-// [wrapper source for test 18: PRS(20), start STRUCT]
+// [wrapper source for rule PRS(20) #1, start STRUCT]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 19: rules PRS(30), start 0:
+Test 20: rules PRS(30) #1, start 0:
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
             // NT flags:
@@ -2236,7 +2333,7 @@ after,  NT with value: STRUCT, LIST
                 2 => symbols![nt 1],                    //  2: LIST -> }                  | ◄2 }                  | LIST
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 19: PRS(30), start STRUCT]
+// [wrapper source for rule PRS(30) #1, start STRUCT]
 
     pub enum Ctx { Struct { struct: SynStruct } }
     pub enum CtxStruct {
@@ -2326,11 +2423,11 @@ after,  NT with value: STRUCT, LIST
         }
     }
 
-// [wrapper source for test 19: PRS(30), start STRUCT]
+// [wrapper source for rule PRS(30) #1, start STRUCT]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 20: rules RTS(26), start 0:
+Test 21: rules RTS(26) #1, start 0:
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -2348,7 +2445,7 @@ after,  NT with value: A, A_1
                 4 => symbols![],                        //  4: A_2 -> ε         | ◄4              |
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 20: RTS(26), start A]
+// [wrapper source for rule RTS(26) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -2436,11 +2533,11 @@ after,  NT with value: A, A_1
         }
     }
 
-// [wrapper source for test 20: RTS(26), start A]
+// [wrapper source for rule RTS(26) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 21: rules RTS(16), start 0:
+Test 22: rules RTS(16) #1, start 0:
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -2461,7 +2558,7 @@ after,  NT with value: A, A_1
                 5 => symbols![nt 1, t 2],               //  5: A_3 -> ε         | ◄5              | A_1 c
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 21: RTS(16), start A]
+// [wrapper source for rule RTS(16) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -2549,11 +2646,11 @@ after,  NT with value: A, A_1
         }
     }
 
-// [wrapper source for test 21: RTS(16), start A]
+// [wrapper source for rule RTS(16) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 22: rules PRS(35), start 0:
+Test 23: rules PRS(35) #1, start 0:
 before, NT with value: A
 after,  NT with value: A
 nt_name: [Some(("A", "a")), None]
@@ -2587,7 +2684,7 @@ item_info:
                 3 => symbols![t 0],                     //  3: A_1 -> ε   | ◄3       | a
             ], Default),
 // ------------------------------------------------------------
-// [wrapper source for test 22: PRS(35), start A]
+// [wrapper source for rule PRS(35) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -2667,11 +2764,11 @@ item_info:
         }
     }
 
-// [wrapper source for test 22: PRS(35), start A]
+// [wrapper source for rule PRS(35) #1, start A]
 // ------------------------------------------------------------
 
 ================================================================================
-Test 23: rules RTS(33), start 0:
+Test 24: rules RTS(33) #1, start 0:
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
 nt_name: [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1"))]
@@ -2691,7 +2788,7 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
                 4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
             ], All),
 // ------------------------------------------------------------
-// [wrapper source for test 23: RTS(33), start A]
+// [wrapper source for rule RTS(33) #1, start A]
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
@@ -2787,6 +2884,6 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
         }
     }
 
-// [wrapper source for test 23: RTS(33), start A]
+// [wrapper source for rule RTS(33) #1, start A]
 // ------------------------------------------------------------
 
