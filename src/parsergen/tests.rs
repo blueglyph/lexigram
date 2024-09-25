@@ -823,7 +823,7 @@ mod wrapper_source {
             //  - A_1: child_+_or_* (1)
             // parents:
             //  - A_1 -> A
-            (RTS(33), 0, btreemap![
+            (RTS(33), 0, btreemap![                     /// A -> (B c)* b | a; B -> b
                 0 => symbols![nt 2, t 1],               //  0: A -> A_1 b     | ◄0 b! ►A_1    | A_1 b
                 1 => symbols![t 0],                     //  1: A -> a         | ◄1 a!         | a
                 2 => symbols![t 1],                     //  2: B -> b         | ◄2 b!         | b

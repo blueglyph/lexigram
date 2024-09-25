@@ -950,8 +950,8 @@ impl ParserBuilder {
 
         for nt in 0..self.parsing_table.num_nt {
             let flags = self.parsing_table.flags[nt];
+            let has_value = self.nt_value[nt];
             if self.parsing_table.parent[nt].is_none() {
-                let has_value = self.nt_value[nt];
                 let (nu, nl) = nt_name[nt].as_ref().unwrap();
                 if has_value && self.nt_has_flags(nt as VarId, ruleflag::R_RECURSION | ruleflag::L_FORM) {
                     src_listener_decl.push(format!("    fn init_{nl}() -> Syn{nu};"));
@@ -963,6 +963,24 @@ impl ParserBuilder {
                 } else {
                     src_listener_decl.push(format!("    fn init_{nl}() {{}}"));
                     src_init.push(format!("                    {nt} => self.listener.init_{nl}(),"));
+                }
+            } else {
+                if flags & ruleflag::CHILD_REPEAT != 0 {
+                    if has_value {
+                        let (nu, nl) = nt_name[nt].as_ref().unwrap();
+                        src_init.push(format!("                    {nt} => self.init_{nl}(),"));
+                        src_wrapper_impl.push(format!("    fn init_{nl}() {{"));
+                        if flags & ruleflag::L_FORM != 0 {
+                            src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
+                            src_listener_decl.push(format!("    fn init_{nl}() -> Syn{nu};"));
+                        } else {
+                            src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
+                        }
+                        src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                        src_wrapper_impl.push(format!("    }}"));
+                    } else {
+                        src_init.push(format!("                    {nt} => {{}}"));
+                    }
                 }
             }
 

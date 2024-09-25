@@ -173,6 +173,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -198,6 +199,10 @@ after,  NT with value: A, A_1
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
         }
     }
 
@@ -245,6 +250,7 @@ after,  NT with value: A, A_1
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a() {}
+        fn init_a1() -> SynA1;
     }
 
     struct ListenerWrapper<T> {
@@ -274,6 +280,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -299,6 +306,10 @@ after,  NT with value: A, A_1
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = self.listener.init_a1();
+            self.stack.push(SynValue::A1(val));
         }
     }
 
@@ -351,6 +362,7 @@ after,  NT with value: A, A_1
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a() {}
+        fn init_a1() -> SynA1;
     }
 
     struct ListenerWrapper<T> {
@@ -380,6 +392,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -405,6 +418,10 @@ after,  NT with value: A, A_1
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = self.listener.init_a1();
+            self.stack.push(SynValue::A1(val));
         }
     }
 
@@ -476,6 +493,7 @@ after,  NT with value: A
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => {}
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -578,6 +596,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -603,6 +622,10 @@ after,  NT with value: A, A_1
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
         }
     }
 
@@ -690,6 +713,7 @@ after,  NT with value: A, B, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
+                        2 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -715,6 +739,10 @@ after,  NT with value: A, B, A_1
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
         }
     }
 
@@ -802,6 +830,7 @@ after,  NT with value: A, B, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
+                        2 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -827,6 +856,10 @@ after,  NT with value: A, B, A_1
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
         }
     }
 
@@ -952,6 +985,8 @@ item_info =
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
+                        2 => self.init_a1(),
+                        3 => self.init_a2(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -977,6 +1012,14 @@ item_info =
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+        fn init_a2() {
+            let val = SynA2(Vec::new());
+            self.stack.push(SynValue::A2(val));
         }
     }
 
@@ -1065,6 +1108,8 @@ after,  NT with value: A, A_2
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
+                        2 => {}
+                        3 => self.init_a2(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1090,6 +1135,10 @@ after,  NT with value: A, A_2
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a2() {
+            let val = SynA2(Vec::new());
+            self.stack.push(SynValue::A2(val));
         }
     }
 
@@ -1183,6 +1232,8 @@ after,  NT with value: A_1, A_2
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
+                        2 => self.init_a1(),
+                        3 => self.init_a2(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1207,6 +1258,14 @@ after,  NT with value: A_1, A_2
     impl<T: LeftRecListener> ListenerWrapper<T> {
         fn exit(&mut self, _ctx: Ctx) {
             self.listener.exit(Ctx::A{ a: SynA() });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+        fn init_a2() {
+            let val = SynA2(Vec::new());
+            self.stack.push(SynValue::A2(val));
         }
     }
 
@@ -1348,6 +1407,8 @@ item_info =
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
+                        2 => self.init_a1(),
+                        3 => self.init_a2(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1373,6 +1434,14 @@ item_info =
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+        fn init_a2() {
+            let val = SynA2(Vec::new());
+            self.stack.push(SynValue::A2(val));
         }
     }
 
@@ -1472,6 +1541,8 @@ after,  NT with value: A_1, A_2
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
+                        2 => self.init_a1(),
+                        3 => self.init_a2(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1496,6 +1567,14 @@ after,  NT with value: A_1, A_2
     impl<T: LeftRecListener> ListenerWrapper<T> {
         fn exit(&mut self, _ctx: Ctx) {
             self.listener.exit(Ctx::A{ a: SynA() });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+        fn init_a2() {
+            let val = SynA2(Vec::new());
+            self.stack.push(SynValue::A2(val));
         }
     }
 
@@ -1547,6 +1626,7 @@ after,  NT with value: A, A_1
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a() {}
+        fn init_a1() -> SynA1;
     }
 
     struct ListenerWrapper<T> {
@@ -1576,6 +1656,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1601,6 +1682,10 @@ after,  NT with value: A, A_1
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = self.listener.init_a1();
+            self.stack.push(SynValue::A1(val));
         }
     }
 
@@ -2318,6 +2403,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2343,6 +2429,10 @@ after,  NT with value: A, A_1
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
         }
     }
 
@@ -2426,6 +2516,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2451,6 +2542,10 @@ after,  NT with value: A, A_1
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
         }
     }
 
@@ -2659,6 +2754,7 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
+                        2 => self.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -2684,6 +2780,10 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
         fn exit(&mut self, _ctx: Ctx) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a1() {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
         }
     }
 
