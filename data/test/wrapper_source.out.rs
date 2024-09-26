@@ -355,6 +355,7 @@ item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: No
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a() {}
+        fn init_a1() {}
     }
 
     struct ListenerWrapper<T> {
@@ -384,7 +385,7 @@ item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: No
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
-                        1 => {}
+                        1 => self.listener.init_a1(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }

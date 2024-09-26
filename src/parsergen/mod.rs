@@ -569,13 +569,14 @@ impl ParserBuilder {
 
         let mut nt_upper_fixer = NameFixer::new();
         let mut nt_lower_fixer = NameFixer::new();
-        let mut nt_name: Vec<Option<(String, String)>> = (0..pinfo.num_nt).map(|v| if self.nt_value[v] || pinfo.parent[v].is_none() {
-            let nu = nt_upper_fixer.get_unique_name(self.symbol_table.get_nt_name(v as VarId).to_camelcase());
-            let nl = nt_lower_fixer.get_unique_name(nu.to_underscore_lowercase());
-            Some((nu, nl))
-        } else {
-            None
-        }).to_vec();
+        let mut nt_name: Vec<Option<(String, String)>> = (0..pinfo.num_nt).map(|v|
+            if self.nt_value[v] || pinfo.parent[v].is_none() || self.nt_has_flags(v as VarId, ruleflag::CHILD_REPEAT | ruleflag::L_FORM) {
+                let nu = nt_upper_fixer.get_unique_name(self.symbol_table.get_nt_name(v as VarId).to_camelcase());
+                let nl = nt_lower_fixer.get_unique_name(nu.to_underscore_lowercase());
+                Some((nu, nl))
+            } else {
+                None
+            }).to_vec();
 
         let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; pinfo.num_nt];
         let mut nt_repeat = HashMap::<VarId, Vec<ItemInfo>>::new();
@@ -980,7 +981,13 @@ impl ParserBuilder {
                         src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                         src_wrapper_impl.push(format!("    }}"));
                     } else {
-                        src_init.push(format!("                    {nt} => {{}}"));
+                        if flags & ruleflag::L_FORM != 0 {
+                            let (nu, nl) = nt_name[nt].as_ref().unwrap();
+                            src_init.push(format!("                    {nt} => self.listener.init_{nl}(),"));
+                            src_listener_decl.push(format!("    fn init_{nl}() {{}}"));
+                        } else {
+                            src_init.push(format!("                    {nt} => {{}}"));
+                        }
                     }
                 }
             }
