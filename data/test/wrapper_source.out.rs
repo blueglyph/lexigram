@@ -228,29 +228,29 @@ after,  NT with value: A, A_1
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
-        A { a: String, star: SynA1, c: String },
+        A { a: String, star: SynAIter, c: String },
     }
-    pub enum CtxA1 {
-        A1 { star_it: SynA1, b: String },
+    pub enum CtxAIter {
+        A1 { star_it: SynAIter, b: String },
     }
 
-    // User-defined: SynA, SynA1
+    // User-defined: SynA, SynAIter
 
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum SynValue { A(SynA), AIter(SynAIter) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
-        fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+        fn get_a_iter(self) -> SynAIter {
+            if let SynValue::AIter(val) = self { val } else { panic!() }
         }
     }
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a() {}
-        fn init_a1() -> SynA1;
+        fn init_a_iter() -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -280,7 +280,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
-                        1 => self.init_a1(),
+                        1 => self.init_a_iter(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -307,9 +307,9 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
-            let val = self.listener.init_a1();
-            self.stack.push(SynValue::A1(val));
+        fn init_a_iter() {
+            let val = self.listener.init_a_iter();
+            self.stack.push(SynValue::AIter(val));
         }
     }
 
@@ -355,7 +355,7 @@ item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: No
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a() {}
-        fn init_a1() {}
+        fn init_a_iter() {}
     }
 
     struct ListenerWrapper<T> {
@@ -385,7 +385,7 @@ item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: No
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
-                        1 => self.listener.init_a1(),
+                        1 => self.listener.init_a_iter(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -440,30 +440,30 @@ after,  NT with value: A, A_1
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
-        A1 { a: [String; 2], star: SynA1, c: String },
-        A2 { a: String, c: [String; 2], star: SynA1 },
+        A1 { a: [String; 2], star: SynAIter, c: String },
+        A2 { a: String, c: [String; 2], star: SynAIter },
     }
-    pub enum CtxA1 {
-        A1 { star_it: SynA1, b: String },
+    pub enum CtxAIter {
+        A1 { star_it: SynAIter, b: String },
     }
 
-    // User-defined: SynA, SynA1
+    // User-defined: SynA, SynAIter
 
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum SynValue { A(SynA), AIter(SynAIter) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
-        fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+        fn get_a_iter(self) -> SynAIter {
+            if let SynValue::AIter(val) = self { val } else { panic!() }
         }
     }
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a() {}
-        fn init_a1() -> SynA1;
+        fn init_a_iter() -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -493,7 +493,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
-                        1 => self.init_a1(),
+                        1 => self.init_a_iter(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -520,9 +520,9 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
-            let val = self.listener.init_a1();
-            self.stack.push(SynValue::A1(val));
+        fn init_a_iter() {
+            let val = self.listener.init_a_iter();
+            self.stack.push(SynValue::AIter(val));
         }
     }
 
@@ -1684,30 +1684,30 @@ after,  NT with value: A, A_1
 
     pub enum Ctx { A { a: SynA } }
     pub enum CtxA {
-        A { a: String, plus: SynA1, c: String },
+        A { a: String, plus: SynAIter, c: String },
     }
-    pub enum CtxA1 {
-        A1_1 { plus_it: SynA1, b: String },
-        A1_2 { plus_it: SynA1, b: String },
+    pub enum CtxAIter {
+        A1_1 { plus_it: SynAIter, b: String },
+        A1_2 { plus_it: SynAIter, b: String },
     }
 
-    // User-defined: SynA, SynA1
+    // User-defined: SynA, SynAIter
 
-    enum SynValue { A(SynA), A1(SynA1) }
+    enum SynValue { A(SynA), AIter(SynAIter) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
-        fn get_a1(self) -> SynA1 {
-            if let SynValue::A1(val) = self { val } else { panic!() }
+        fn get_a_iter(self) -> SynAIter {
+            if let SynValue::AIter(val) = self { val } else { panic!() }
         }
     }
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a() {}
-        fn init_a1() -> SynA1;
+        fn init_a_iter() -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -1737,7 +1737,7 @@ after,  NT with value: A, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
-                        1 => self.init_a1(),
+                        1 => self.init_a_iter(),
                         _ => panic!("unexpected exit non-terminal id: {nt}")
                     }
                 }
@@ -1764,9 +1764,9 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
-            let val = self.listener.init_a1();
-            self.stack.push(SynValue::A1(val));
+        fn init_a_iter() {
+            let val = self.listener.init_a_iter();
+            self.stack.push(SynValue::AIter(val));
         }
     }
 

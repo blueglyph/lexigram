@@ -904,7 +904,11 @@ mod wrapper_source {
         const PRINT_SOURCE: bool = true;
         const TEST_SOURCE: bool = true;
         const TESTS_ALL: bool = false;
-        const REPLACE_SOURCE: bool = true;
+
+        // CAUTION! Setting this to 'true' modifies the validation file with the current result
+        const REPLACE_SOURCE: bool = false;
+        //
+
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, expected_items, has_value)) in tests.into_iter().enumerate() {
