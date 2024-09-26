@@ -911,7 +911,7 @@ mod wrapper_source {
                 println!("// {0:-<60}\n// [{test_name}]\n\n{result_src}// [{test_name}]\n// {:-<60}\n", "");
             }
             let expected_src = get_wrapper_source(&test_name);
-            let err_msg = format!("test {test_id} {rule_id:?}/{start_nt} failed ");
+            let err_msg = format!("test {test_id} {rule_id:?} #{rule_iter} failed ");
             if TESTS_ALL {
                 if result_items != expected_items {
                     num_errors += 1;

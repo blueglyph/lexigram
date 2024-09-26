@@ -896,23 +896,27 @@ impl ParserBuilder {
         // Writes intermediate Syn types
         src.add_space();
         let mut user_names = vec![];
-        for (v, name) in nt_name.iter().enumerate().filter_map(|(v, n)| if let Some((nu, _nl)) = n { Some((v, nu)) } else { None }) {
+        let mut syns = Vec::<(&str, &str)>::new();
+        for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
+            let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                 if let Some(infos) = nt_repeat.get(&(v as VarId)) {
                     // complex + * items; for ex. A -> (B b)+
-                    src.push(format!("struct Syn{0}(Vec<Syn{}Item>);", name.clone()));
-                    src.push(format!("struct Syn{}Item {{ {} }}", name.clone(), Self::source_infos(&infos, &nt_name)));
+                    src.push(format!("struct Syn{nu}(Vec<Syn{nu}Item>);"));
+                    src.push(format!("struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
                 } else {
                     // + * item is only a terminal
-                    src.push(format!("struct Syn{}(Vec<String>);", name.clone()));
+                    src.push(format!("struct Syn{nu}(Vec<String>);"));
                 }
             } else {
                 if self.nt_value[v] {
-                    user_names.push(format!("Syn{name}"));
+                    user_names.push(format!("Syn{nu}"));
                 } else {
-                    src.push(format!("struct Syn{name}();"))
+                    src.push(format!("struct Syn{nu}();"))
                 }
             }
+            // syns.push((nu.to_string(), nl.to_string()));
+            syns.push((nu, nl));
         }
         if !user_names.is_empty() {
             src.push(format!("// User-defined: {}", user_names.join(", ")));
@@ -920,9 +924,6 @@ impl ParserBuilder {
 
         // Writes SynValue type and implementation
         src.add_space();
-        let syns = nt_name.iter().filter_map(|(n)|
-            if let Some((nu, nl)) = n { Some((nu.clone(), nl.clone())) } else { None }
-        ).to_vec();
         // SynValue type
         src.push(format!("enum SynValue {{ {} }}", syns.iter().map(|(nu, _)| format!("{nu}(Syn{nu})")).join(", ")));
         if !syns.is_empty() {

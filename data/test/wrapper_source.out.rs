@@ -320,6 +320,9 @@ after,  NT with value: A, A_1
 Test 3: rules RTS(22) #2, start 0:
 before, NT with value: A
 after,  NT with value: A
+nt_name: [Some(("A", "a")), None]
+nt_info: [[(0, "A")], []]
+item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None }, ItemInfo { name: "c", sym: T(2), owner: 0, is_vec: false, index: None }], [], []]
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* | L-form (129)
@@ -1153,18 +1156,14 @@ after,  NT with value: A, A_2
         B,
     }
 
-    struct SynB();
     struct SynA2(Vec<String>);
     // User-defined: SynA
 
-    enum SynValue { A(SynA), B(SynB), A2(SynA2) }
+    enum SynValue { A(SynA), A2(SynA2) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
             if let SynValue::A(val) = self { val } else { panic!() }
-        }
-        fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
         }
         fn get_a2(self) -> SynA2 {
             if let SynValue::A2(val) = self { val } else { panic!() }
@@ -1272,21 +1271,13 @@ after,  NT with value: A_1, A_2
         B { b: String },
     }
 
-    struct SynA();
-    struct SynB();
     struct SynA1(Vec<String>);
     struct SynA2(Vec<SynA2Item>);
     struct SynA2Item { star: SynA1, c: String }
 
-    enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
+    enum SynValue { A1(SynA1), A2(SynA2) }
 
     impl SynValue {
-        fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
-        }
-        fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
-        }
         fn get_a1(self) -> SynA1 {
             if let SynValue::A1(val) = self { val } else { panic!() }
         }
@@ -1581,21 +1572,13 @@ after,  NT with value: A_1, A_2
         B { b: String },
     }
 
-    struct SynA();
-    struct SynB();
     struct SynA1(Vec<String>);
     struct SynA2(Vec<SynA2Item>);
     struct SynA2Item { plus: SynA1, c: String }
 
-    enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
+    enum SynValue { A1(SynA1), A2(SynA2) }
 
     impl SynValue {
-        fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
-        }
-        fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
-        }
         fn get_a1(self) -> SynA1 {
             if let SynValue::A1(val) = self { val } else { panic!() }
         }
