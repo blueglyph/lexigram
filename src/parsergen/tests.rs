@@ -403,8 +403,8 @@ mod opcodes {
 
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
-    use std::fs::File;
-    use std::io::Read;
+    use std::fs::{File, OpenOptions};
+    use std::io::{BufRead, BufReader, BufWriter, Read, Seek, Write};
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CharLen, CollectJoin, symbols};
@@ -493,19 +493,53 @@ mod wrapper_source {
         }
     }
 
+    const FILENAME: &str = "data/test/wrapper_source.out.rs";
+
     fn get_wrapper_source(tag: &str) -> Option<String> {
-        const FILENAME: &str = "data/test/wrapper_source.out.rs";
         let file_tag = format!("[{tag}]");
-        let mut file = File::open(FILENAME).ok()?;
-        let mut buffer = String::new();
-        file.read_to_string(&mut buffer).expect("Couldn't read source file");
-        let mut result = buffer.lines()
+        let file = File::open(FILENAME).ok()?;
+        let mut result = BufReader::new(file).lines()
+            .filter_map(|l| l.ok())
             .skip_while(|l| !l.contains(&file_tag))
             .skip(2)
             .take_while(|l| !l.contains(&file_tag))
             .join("\n");
         result.push('\n');
         Some(result)
+    }
+
+    fn replace_wrapper_source(tag: &str, new_src: &str) -> std::io::Result<()> {
+        let file_tag = format!("[{tag}]");
+        let file = File::open(FILENAME)?;
+        let mut buf = BufReader::new(file);
+        let mut count = 0;
+        let mut line = String::new();
+        let mut after = String::new();
+        let mut position = 0;
+        loop {
+            line.clear();
+            buf.read_line(&mut line)?;
+            if line.contains(&file_tag) {
+                count += 1;
+                match count {
+                    1 => {
+                        position = buf.stream_position()?;
+                    }
+                    2 => {
+                        after.push_str(&line);
+                        buf.read_to_string(&mut after)?;
+                        break;
+                    }
+                    _ => panic!()
+                }
+            }
+        }
+        let file = OpenOptions::new().write(true).open(FILENAME)?;
+        file.set_len(position)?;
+        let mut buf = BufWriter::new(file);
+        buf.seek(std::io::SeekFrom::End(0))?;
+        write!(&mut buf, "\n{new_src}\n\n{after}")?;
+        Ok(())
     }
 
     #[test]
@@ -870,6 +904,7 @@ mod wrapper_source {
         const PRINT_SOURCE: bool = true;
         const TEST_SOURCE: bool = true;
         const TESTS_ALL: bool = false;
+        const REPLACE_SOURCE: bool = true;
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, expected_items, has_value)) in tests.into_iter().enumerate() {
@@ -905,8 +940,8 @@ mod wrapper_source {
                 };
                 println!("            ], {has_value_str}),");
             }
-            let mut result_src = src.into_iter().map(|s| if !s.is_empty() { format!("    {s}") } else { s }).join("\n");
-            result_src.push_str("\n\n");
+            let result = src.into_iter().map(|s| if !s.is_empty() { format!("    {s}") } else { s }).join("\n");
+            let result_src = result.clone() + "\n\n";
             if PRINT_SOURCE {
                 println!("// {0:-<60}\n// [{test_name}]\n\n{result_src}// [{test_name}]\n// {:-<60}\n", "");
             }
@@ -923,6 +958,9 @@ mod wrapper_source {
                 }
             } else {
                 if TEST_SOURCE {
+                    if REPLACE_SOURCE && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() {
+                        replace_wrapper_source(&test_name, &result).expect("replacement failed");
+                    }
                     assert_eq!(Some(result_src), expected_src, "{err_msg}");
                 }
                 assert_eq!(result_items, expected_items, "{err_msg}");
