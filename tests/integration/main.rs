@@ -31,7 +31,7 @@ mod parser_gen {
         const PARSING_TABLE: [FactorId; 33] = [11, 11, 11, 11, 0, 11, 0, 0, 11, 11, 11, 11, 11, 11, 11, 1, 11, 2, 3, 11, 11, 11, 8, 9, 6, 7, 11, 10, 11, 11, 5, 4, 10];
         const FLAGS: [u32; 3] = [1536, 0, 12];
         const PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
-        const OPCODES: [&[OpCode]; 11] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(6)], &[OpCode::Exit(3), OpCode::T(7)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(1), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(1), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(8), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(9), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(10)]];
+        const OPCODES: [&[OpCode]; 11] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(6)], &[OpCode::Exit(3), OpCode::T(7)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(1), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(1), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(8), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(9), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(10)]];
         const START_SYMBOL: VarId = 0;
 
         pub(super) fn build_parser() -> Parser {
@@ -79,7 +79,7 @@ mod listener {
     const PARSING_TABLE: [FactorId; 45] = [11, 11, 11, 11, 0, 11, 0, 0, 11, 11, 11, 11, 11, 1, 11, 1, 1, 11, 11, 11, 11, 11, 2, 11, 3, 4, 11, 5, 6, 11, 11, 11, 7, 11, 11, 7, 10, 10, 8, 9, 11, 10, 11, 11, 10];
     const FLAGS: [u32; 5] = [512, 512, 0, 4, 4];
     const PARENT: [Option<VarId>; 5] = [None, None, None, Some(0), Some(1)];
-    const OPCODES: [&[OpCode]; 11] = [&[OpCode::Exit(0), OpCode::NT(3), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(4), OpCode::NT(2)], &[OpCode::Exit(2), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(3), OpCode::T(6)], &[OpCode::Exit(4), OpCode::T(7)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(7)], &[OpCode::Loop(4), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(4), OpCode::Exit(9), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(10)]];
+    const OPCODES: [&[OpCode]; 11] = [&[OpCode::NT(3), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(4), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(3), OpCode::T(6)], &[OpCode::Exit(4), OpCode::T(7)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(7)], &[OpCode::Loop(4), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(4), OpCode::Exit(9), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(10)]];
     const START_SYMBOL: VarId = 0;
 
     pub(super) fn build_parser() -> Parser {
@@ -368,7 +368,7 @@ mod listener2 {
     const PARSING_TABLE: [FactorId; 33] = [11, 11, 11, 11, 0, 11, 0, 0, 11, 11, 11, 11, 11, 11, 11, 1, 11, 2, 3, 11, 11, 11, 8, 9, 6, 7, 11, 10, 11, 11, 5, 4, 10];
     const FLAGS: [u32; 3] = [1536, 0, 12];
     const PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
-    const OPCODES: [&[OpCode]; 11] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(6)], &[OpCode::Exit(3), OpCode::T(7)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(1), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(1), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(8), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(9), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(10)]];
+    const OPCODES: [&[OpCode]; 11] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(6)], &[OpCode::Exit(3), OpCode::T(7)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(1), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(1), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(8), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(9), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(10)]];
     const START_SYMBOL: VarId = 0;
 
     pub(super) fn build_parser() -> Parser {
@@ -1534,7 +1534,7 @@ mod listener5 {
     const PARSING_TABLE: [FactorId; 9] = [4, 0, 4, 4, 1, 4, 2, 4, 3];
     const FLAGS: [u32; 3] = [512, 0, 4];
     const PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
-    const OPCODES: [&[OpCode]; 4] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)]];
+    const OPCODES: [&[OpCode]; 4] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)]];
     const START_SYMBOL: VarId = 0;
 
     pub(super) fn build_parser() -> Parser {
@@ -1845,7 +1845,7 @@ mod listener6 {
     const PARSING_TABLE: [FactorId; 20] = [6, 0, 6, 6, 6, 6, 1, 6, 6, 6, 2, 6, 6, 6, 3, 5, 6, 4, 6, 5];
     const FLAGS: [u32; 4] = [512, 0, 36, 64];
     const PARENT: [Option<VarId>; 4] = [None, None, Some(0), Some(2)];
-    const OPCODES: [&[OpCode]; 6] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::NT(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::T(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(5)]];
+    const OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::NT(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::T(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(5)]];
     const START_SYMBOL: VarId = 0;
 
     pub(super) fn build_parser() -> Parser {
@@ -2744,7 +2744,7 @@ mod listener9 {
     const PARSING_TABLE: [FactorId; 16] = [0, 6, 6, 6, 6, 6, 1, 6, 6, 6, 2, 3, 6, 5, 4, 6];
     const FLAGS: [u32; 4] = [6656, 4129, 4, 64];
     const PARENT: [Option<VarId>; 4] = [None, Some(0), Some(0), Some(1)];
-    const OPCODES: [&[OpCode]; 6] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::T(0)], &[OpCode::NT(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::NT(1)], &[OpCode::Exit(3)], &[OpCode::Loop(1), OpCode::Exit(4)], &[OpCode::Exit(5)]];
+    const OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::T(0)], &[OpCode::NT(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::NT(1)], &[OpCode::Exit(3)], &[OpCode::Loop(1), OpCode::Exit(4)], &[OpCode::Exit(5)]];
     const START_SYMBOL: VarId = 0;
 
     pub(super) fn build_parser() -> Parser {
@@ -3655,7 +3655,7 @@ mod listener12 {
     const PARSING_TABLE: [FactorId; 15] = [5, 0, 5, 5, 5, 1, 5, 5, 5, 2, 5, 5, 3, 4, 5];
     const FLAGS: [u32; 3] = [544, 4, 64];
     const PARENT: [Option<VarId>; 3] = [None, Some(0), Some(0)];
-    const OPCODES: [&[OpCode]; 5] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(0)], &[OpCode::Exit(2)], &[OpCode::NT(1), OpCode::Exit(3), OpCode::T(2)], &[OpCode::NT(1), OpCode::Exit(4), OpCode::T(3)]];
+    const OPCODES: [&[OpCode]; 5] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(0)], &[OpCode::Exit(2)], &[OpCode::NT(1), OpCode::Exit(3), OpCode::T(2)], &[OpCode::NT(1), OpCode::Exit(4), OpCode::T(3)]];
     const START_SYMBOL: VarId = 0;
 
     pub(super) fn build_parser() -> Parser {
