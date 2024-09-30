@@ -295,6 +295,11 @@ impl ParserBuilder {
                 // swaps Exit(self) when it's in 2nd position (only happens in [Loop(_), Exit(self), ...],
                 // except right recursions that aren't left-form, because we let them unfold naturally (uses more stack)
                 opcode.swap(0, 1);
+            } else if flags & ruleflag::PARENT_L_RECURSION != 0 {
+                // swaps Exit(self) and call to left recursive item so that the wrapper can issue an exit_NT
+                // with the correct context
+                opcode.swap(0, 1);
+
             }
             if flags & ruleflag::CHILD_L_FACTOR != 0 {
                 if opcode.len() >= 2 {
@@ -467,9 +472,7 @@ impl ParserBuilder {
                     }
 
                     if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
-                    let extra_lrec_exit = self.nt_has_flags(*var_id, ruleflag::PARENT_L_RECURSION | ruleflag::PARENT_L_FACTOR) &&
-                        info.parent[*var_id as usize].is_none();
-                    if let Some(OpCode::NT(nt)) = opcode.get(if extra_lrec_exit { 1 } else { 0 }) {
+                    if let Some(OpCode::NT(nt)) = opcode.get(0) {
                         // Take the values except the last NT
                         let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {
                             Some(values.pop().unwrap())

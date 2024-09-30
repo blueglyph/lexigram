@@ -270,25 +270,25 @@ mod opcodes {
             ]),
             // [C] left recursion ----------------------------------------------------------
             (T::PRS(26), 0, vec![                       // A -> A a | b
-                strip![exit 0, nt 1, t 1],              //  0: A -> b A_1   - ◄0 ►A_1 b
+                strip![nt 1, exit 0, t 1],              //  0: A -> b A_1   - ►A_1 ◄0 b
                 strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A_1 ◄1 a
                 strip![exit 2],                         //  2: A_1 -> ε     - ◄2
             ]),
             (T::PRS(31), 0, vec![                       // E -> F | E . id;  F -> id
-                strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
+                strip![nt 2, exit 0, nt 1],             //  0: E -> F E_1      - ►E_1 ◄0 ►F
                 strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
                 strip![loop 2, exit 2, t 1, t 0],       //  2: E_1 -> . id E_1 - ●E_1 ◄2 id! .
                 strip![exit 3],                         //  3: E_1 -> ε        - ◄3
             ]),
             (T::PRS(36), 0, vec![                       // E -> F | num | E . id;  F -> id
-                strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
-                strip![exit 1, nt 2, t 2],              //  1: E -> num E_1    - ◄1 ►E_1 num!
+                strip![nt 2, exit 0, nt 1],             //  0: E -> F E_1      - ►E_1 ◄0 ►F
+                strip![nt 2, exit 1, t 2],              //  1: E -> num E_1    - ►E_1 ◄1 num!
                 strip![exit 2, t 1],                    //  2: F -> id         - ◄2 id!
                 strip![loop 2, exit 3, t 1, t 0],       //  3: E_1 -> . id E_1 - ●E_1 ◄3 id! .
                 strip![exit 4],                         //  4: E_1 -> ε        - ◄4
             ]),
             (T::PRS(32), 0, vec![                       // E -> F | E . id | E . id ( );  F -> id
-                strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
+                strip![nt 2, exit 0, nt 1],             //  0: E -> F E_1      - ►E_1 ◄0 ►F
                 strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
                 strip![nt 3, t 1, t 0],                 //  2: E_1 -> . id E_2 - ►E_2 id! .
                 strip![exit 3],                         //  3: E_1 -> ε        - ◄3
@@ -298,8 +298,8 @@ mod opcodes {
             (T::PRS(4), 0, vec![                        // E -> E + T | E - T | T
                                                         // T -> T * F | T / F | F
                                                         // F -> ( E ) | NUM | ID
-                strip![exit 0, nt 3, nt 1],             //  0: E -> T E_1     - ◄0 ►E_1 ►T
-                strip![exit 1, nt 4, nt 2],             //  1: T -> F T_1     - ◄1 ►T_1 ►F
+                strip![nt 3, exit 0, nt 1],             //  0: E -> T E_1     - ►E_1 ◄0 ►T
+                strip![nt 4, exit 1, nt 2],             //  1: T -> F T_1     - ►T_1 ◄1 ►F
                 strip![exit 2, t 5, nt 0, t 4],         //  2: F -> ( E )     - ◄2 ) ►E (
                 strip![exit 3, t 6],                    //  3: F -> N         - ◄3 N!
                 strip![exit 4, t 7],                    //  4: F -> I         - ◄4 I!
@@ -312,7 +312,7 @@ mod opcodes {
             ]),
             // [C/amb] left recursion and ambiguity ----------------------------------------
             (T::PRS(22), 0, vec![                       // E -> E * E | E & * E | E + E | E & + E | id
-                strip![exit 0, nt 1, t 3],              //  0: E -> id E_1     - ◄0 ►E_1 id!
+                strip![nt 1, exit 0, t 3],              //  0: E -> id E_1     - ►E_1 ◄0 id!
                 strip![loop 1, exit 1, t 3, t 0],       //  1: E_1 -> * id E_1 - ●E_1 ◄1 id! *
                 strip![loop 1, exit 2, t 3, t 1],       //  2: E_1 -> + id E_1 - ●E_1 ◄2 id! +
                 strip![nt 2, t 2],                      //  3: E_1 -> & E_2    - ►E_2 &
@@ -321,12 +321,12 @@ mod opcodes {
                 strip![loop 1, exit 6, t 3, t 1],       //  6: E_2 -> + id E_1 - ●E_1 ◄6 id! +
             ]),
             (T::PRS(26), 1, vec![                       // B -> B a B | b
-                strip![exit 0, nt 1, t 1],              //  0: B -> b B_1     - ◄0 ►B_1 b
+                strip![nt 1, exit 0, t 1],              //  0: B -> b B_1     - ►B_1 ◄0 b
                 strip![loop 1, exit 1, t 1, t 0],       //  1: B_1 -> a b B_1 - ●B_1 ◄1 b a
                 strip![exit 2],                         //  2: B_1 -> ε       - ◄2
             ]),
             (T::PRS(13), 0, vec![
-                strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1     - ◄0 ►E_1 ►F
+                strip![nt 2, exit 0, nt 1],             //  0: E -> F E_1     - ►E_1 ◄0 ►F
                 strip![exit 1, t 5, nt 0, t 4],         //  1: F -> ( E )     - ◄1 ) ►E (
                 strip![exit 2, t 6],                    //  2: F -> N         - ◄2 N!
                 strip![exit 3, t 7],                    //  3: F -> I         - ◄3 I!
@@ -340,7 +340,7 @@ mod opcodes {
             ]),
             // [A + C] normalization + left recursion --------------------------------------
             (T::RTS(26), 0, vec![                       // A -> A a* b | c
-                strip![exit 0, nt 2, t 0],              //  0: A -> a A_2       - ◄0 ►A_2 a
+                strip![nt 2, exit 0, t 0],              //  0: A -> a A_2       - ►A_2 ◄0 a
                 strip![loop 1, exit 1, t 2],            //  1: A_1 -> c A_1     - ●A_1 ◄1 c
                 strip![exit 2],                         //  2: A_1 -> ε         - ◄2
                 strip![loop 2, exit 3, t 1, nt 1],      //  3: A_2 -> A_1 b A_2 - ●A_2 ◄3 b ►A_1
@@ -348,7 +348,7 @@ mod opcodes {
             ]),
             // [A + C + D] normalization + left factorization, left recursion --------------
             (T::RTS(16), 0, vec![                       // A -> A a+ b | c
-                strip![exit 0, nt 2, t 0],              //  0: A -> a A_2       - ◄0 ►A_2 a
+                strip![nt 2, exit 0, t 0],              //  0: A -> a A_2       - ►A_2 ◄0 a
                 strip![nt 3, t 2],                      //  1: A_1 -> c A_3     - ►A_3 c
                 strip![loop 2, exit 2, t 1, nt 1],      //  2: A_2 -> A_1 b A_2 - ●A_2 ◄2 b ►A_1
                 strip![exit 3],                         //  3: A_2 -> ε         - ◄3
@@ -366,7 +366,7 @@ mod opcodes {
                 strip![exit 6],                         //  6: A_2 -> ε     - ◄6
             ]),
             (T::PRS(33), 0, vec![                       // A -> A a | b c | b d
-                strip![exit 0, nt 2, t 1],              //  0: A -> b A_2   - ◄0 ►A_2 b
+                strip![nt 2, exit 0, t 1],              //  0: A -> b A_2   - ►A_2 ◄0 b
                 strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A_1 ◄1 a
                 strip![exit 2],                         //  2: A_1 -> ε     - ◄2
                 strip![nt 1, exit 3, t 2],              //  3: A_2 -> c A_1 - ►A_1 ◄3 c
@@ -980,13 +980,13 @@ mod wrapper_source {
                     println!("## SOURCE MISMATCH: {err_msg}");
                 }
             } else {
+                assert_eq!(result_items, expected_items, "{err_msg}");
                 if TEST_SOURCE {
                     if REPLACE_SOURCE && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() {
                         replace_wrapper_source(&test_name, &result).expect("replacement failed");
                     }
                     assert_eq!(Some(result_src), expected_src, "{err_msg}");
                 }
-                assert_eq!(result_items, expected_items, "{err_msg}");
             }
         }
         if TESTS_ALL {
