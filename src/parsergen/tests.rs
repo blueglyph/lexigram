@@ -274,11 +274,18 @@ mod opcodes {
                 strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A_1 ◄1 a
                 strip![exit 2],                         //  2: A_1 -> ε     - ◄2
             ]),
-            (T::PRS(31), 0, vec![
+            (T::PRS(31), 0, vec![                       // E -> F | E . id;  F -> id
                 strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
                 strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
                 strip![loop 2, exit 2, t 1, t 0],       //  2: E_1 -> . id E_1 - ●E_1 ◄2 id! .
                 strip![exit 3],                         //  3: E_1 -> ε        - ◄3
+            ]),
+            (T::PRS(36), 0, vec![                       // E -> F | num | E . id;  F -> id
+                strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
+                strip![exit 1, nt 2, t 2],              //  1: E -> num E_1    - ◄1 ►E_1 num!
+                strip![exit 2, t 1],                    //  2: F -> id         - ◄2 id!
+                strip![loop 2, exit 3, t 1, t 0],       //  3: E_1 -> . id E_1 - ●E_1 ◄3 id! .
+                strip![exit 4],                         //  4: E_1 -> ε        - ◄4
             ]),
             (T::PRS(32), 0, vec![                       // E -> F | E . id | E . id ( );  F -> id
                 strip![exit 0, nt 2, nt 1],             //  0: E -> F E_1      - ◄0 ►E_1 ►F
@@ -758,6 +765,18 @@ mod wrapper_source {
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
                 2 => symbols![nt 0, t 1],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
+            ], Default),
+            // NT flags:
+            //  - E: parent_left_rec (512)
+            //  - E_1: child_left_rec (4)
+            // parents:
+            //  - E_1 -> E
+            (PRS(36), 0, btreemap![                     /// E -> F | num | E . id ; F -> id
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                1 => symbols![t 2],                     //  1: E -> num E_1    | ◄1 ►E_1 num!  | num
+                2 => symbols![t 1],                     //  2: F -> id         | ◄2 id!        | id
+                3 => symbols![nt 0, t 1],               //  3: E_1 -> . id E_1 | ●E_1 ◄3 id! . | E id
+                4 => symbols![],                        //  4: E_1 -> ε        | ◄4            |
             ], Default),
             // NT flags:
             //  - A: parent_left_fact | parent_left_rec (544)

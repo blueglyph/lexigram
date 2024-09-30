@@ -1075,6 +1075,20 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 0; t 0, t 1, t 1; t 0, t 2, t 2),
             ]);
         }
+        36 => {
+            // E -> F | num | E . id
+            // F -> id
+            prods.extend([
+                prod!(nt 1; t 2; nt 0, t 0, t 1),
+                prod!(t 1),
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string(), "F".to_string()]);
+            symbol_table.extend_terminals([
+                (".".to_string(), Some(".".to_string())),
+                ("id".to_string(), None),
+                ("num".to_string(), None),
+            ]);
+        }
 
         // ambiguity?
         100 => {

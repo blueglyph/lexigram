@@ -1986,6 +1986,114 @@ after,  NT with value: E, F
 // ------------------------------------------------------------
 
 ================================================================================
+Test 17: rules PRS(36) #1, start 0:
+before, NT with value: E, F
+after,  NT with value: E, F
+            // NT flags:
+            //  - E: parent_left_rec (512)
+            //  - E_1: child_left_rec (4)
+            // parents:
+            //  - E_1 -> E
+            (PRS(36), 0, btreemap![
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                1 => symbols![t 2],                     //  1: E -> num E_1    | ◄1 ►E_1 num!  | num
+                2 => symbols![t 1],                     //  2: F -> id         | ◄2 id!        | id
+                3 => symbols![nt 0, t 1],               //  3: E_1 -> . id E_1 | ●E_1 ◄3 id! . | E id
+                4 => symbols![],                        //  4: E_1 -> ε        | ◄4            |
+            ], Default),
+// ------------------------------------------------------------
+// [wrapper source for rule PRS(36) #1, start E]
+
+    pub enum Ctx { E { e: SynE } }
+    pub enum CtxE {
+        E1 { f: SynF },
+        E2 { num: String },
+        E3 { e: SynE, id: String },
+        E4 { e: SynE },
+    }
+    pub enum CtxF {
+        F { id: String },
+    }
+
+    // User-defined: SynE, SynF
+
+    enum SynValue { E(SynE), F(SynF) }
+
+    impl SynValue {
+        fn get_e(self) -> SynE {
+            if let SynValue::E(val) = self { val } else { panic!() }
+        }
+        fn get_f(self) -> SynF {
+            if let SynValue::F(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+        fn init_e() {}
+        fn init_f() {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_e(),
+                        1 => self.listener.init_f(),
+                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        fn exit(&mut self, _ctx: Ctx) {
+            let e = self.stack.pop().unwrap().get_e();
+            self.listener.exit(Ctx::E { e });
+        }
+    }
+
+// [wrapper source for rule PRS(36) #1, start E]
+// ------------------------------------------------------------
+
+================================================================================
 Test 17: rules PRS(33) #1, start 0:
 before, NT with value: A
 after,  NT with value: A
