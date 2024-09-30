@@ -103,17 +103,17 @@ mod listener {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener]
 
-    // - 0: E -> T E_1
-    // - 1: T -> F T_1
-    // - 2: F -> ( E )
-    // - 3: F -> NUM
-    // - 4: F -> ID
-    // - 5: E_1 -> + T E_1
-    // - 6: E_1 -> - T E_1
-    // - 7: E_1 -> ε
-    // - 8: T_1 -> * F T_1
-    // - 9: T_1 -> / F T_1
-    // - 10: T_1 -> ε
+    //  0: E -> T E_1     - ►E_1 ◄0 ►T
+    //  1: T -> F T_1     - ►T_1 ◄1 ►F
+    //  2: F -> ( E )     - ◄2 ) ►E (
+    //  3: F -> N         - ◄3 N!
+    //  4: F -> I         - ◄4 I!
+    //  5: E_1 -> - T E_1 - ●E_1 ◄5 ►T -
+    //  6: E_1 -> + T E_1 - ●E_1 ◄6 ►T +
+    //  7: E_1 -> ε       - ◄7
+    //  8: T_1 -> / F T_1 - ●T_1 ◄8 ►F /
+    //  9: T_1 -> * F T_1 - ●T_1 ◄9 ►F *
+    // 10: T_1 -> ε       - ◄10
     pub enum CtxF { LpRp, Num(String), Id(String) }
     pub enum CtxE1 { Add, Sub, Empty }
     pub enum CtxT1 { Mul, Div, Empty }
@@ -167,17 +167,17 @@ mod listener {
                 }
                 Call::Exit => {
                     match factor_id {
-                        0 => self.listener.exit_e(),
-                        1 => self.listener.exit_t(),
-                        2 => self.listener.exit_f(CtxF::LpRp),
-                        3 => self.listener.exit_f(CtxF::Num(self.stack_t.pop().unwrap())),
-                        4 => self.listener.exit_f(CtxF::Id(self.stack_t.pop().unwrap())),
-                        5 => self.listener.exit_e_1(CtxE1::Add),
-                        6 => self.listener.exit_e_1(CtxE1::Sub),
-                        7 => self.listener.exit_e_1(CtxE1::Empty),
-                        8 => self.listener.exit_t_1(CtxT1::Mul),
-                        9 => self.listener.exit_t_1(CtxT1::Div),
-                        10 => self.listener.exit_t_1(CtxT1::Empty),
+                        0 => {}                                                                 //  0: E -> T E_1     - ►E_1 ◄0 ►T
+                        1 => {}                                                                 //  1: T -> F T_1     - ►T_1 ◄1 ►F
+                        2 => self.listener.exit_f(CtxF::LpRp),                                  //  2: F -> ( E )     - ◄2 ) ►E (
+                        3 => self.listener.exit_f(CtxF::Num(self.stack_t.pop().unwrap())),      //  3: F -> N         - ◄3 N!
+                        4 => self.listener.exit_f(CtxF::Id(self.stack_t.pop().unwrap())),       //  4: F -> I         - ◄4 I!
+                        5 => self.listener.exit_e_1(CtxE1::Add),                                //  5: E_1 -> - T E_1 - ●E_1 ◄5 ►T -
+                        6 => self.listener.exit_e_1(CtxE1::Sub),                                //  6: E_1 -> + T E_1 - ●E_1 ◄6 ►T +
+                        7 => { self.listener.exit_e_1(CtxE1::Empty); self.listener.exit_e(); }  //  7: E_1 -> ε       - ◄7
+                        8 => self.listener.exit_t_1(CtxT1::Mul),                                //  8: T_1 -> / F T_1 - ●T_1 ◄8 ►F /
+                        9 => self.listener.exit_t_1(CtxT1::Div),                                //  9: T_1 -> * F T_1 - ●T_1 ◄9 ►F *
+                        10 => { self.listener.exit_t_1(CtxT1::Empty); self.listener.exit_t(); } // 10: T_1 -> ε       - ◄10
                         _ => panic!("unexpected nt exit factor id: {nt}")
                     }
                 }
@@ -399,7 +399,7 @@ mod listener2 {
     // F -> ( E ) | N | I
     // E_1 -> : F E_1 | ^ F E_1 | / F E_1 | * F E_1 | - F E_1 | + F E_1 | ε
     //
-    //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
+    //  0: E -> F E_1     | ►E_1 ◄0 ►F   | F
     //  1: F -> ( E )     | ◄1 ) ►E (    | E
     //  2: F -> N         | ◄2 N!        | N
     //  3: F -> I         | ◄3 I!        | I
@@ -558,7 +558,7 @@ mod listener2 {
                         println!("◄ {}", factor_str(factor_id, true));
                     }
                     match factor_id {
-                        0 => self.exit_e(),                                         //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
+                        0 => {}                                                     //  0: E -> F E_1     | ►E_1 ◄0 ►F   | F
                         1 => self.exit_f1(),                                        //  1: F -> ( E )     | ◄1 ) ►E (    | E
                         2 => self.exit_f2(),                                        //  2: F -> N         | ◄2 N!        | N
                         3 => self.exit_f3(),                                        //  3: F -> I         | ◄3 I!        | I
@@ -568,7 +568,7 @@ mod listener2 {
                         7 => self.asm_e_1(factor_id, PRIORITY_MUL, LEFT_ASSOC_MUL), //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | E F
                         8 => self.asm_e_1(factor_id, PRIORITY_SUB, LEFT_ASSOC_SUB), //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | E F
                         9 => self.asm_e_1(factor_id, PRIORITY_ADD, LEFT_ASSOC_ADD), //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | E F
-                        10 => {}                                                    // 10: E_1 -> ε       | ◄10          |
+                        10 => self.exit_e(),                                        // 10: E_1 -> ε       | ◄10          |
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1570,7 +1570,7 @@ mod listener5 {
         // E -> F | E . id
         // F -> id
         //
-        //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+        //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
         //  1: F -> id         | ◄1 id!        | id
         //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
         //  3: E_1 -> ε        | ◄3            |
@@ -1638,17 +1638,17 @@ mod listener5 {
                         match nt {
                             0 => self.listener.init_e(),    // E
                             1 => self.listener.init_f(),    // F
-                            2 => self.init_e_1(),           // E_1
+                            2 => {}                         // E_1
                             _ => panic!("unexpected exit non-terminal id: {nt}")
                         }
                     }
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_e(),     //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                            0 => self.init_e_1(),   //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
                             1 => self.exit_f(),     //  1: F -> id         | ◄1 id!        | id
                             2 => self.exit_e_1(),   //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
-                            3 => { },               //  3: E_1 -> ε        | ◄3            |
+                            3 => self.exit_e(),     //  3: E_1 -> ε        | ◄3            |
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -2778,7 +2778,7 @@ mod listener9 {
         use rlexer::CollectJoin;
 
         /// A -> A (c)+ b | a
-        //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+        //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
         //  1: A_1 -> c A_3     | ►A_3 c!         |
         //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b
         //  3: A_2 -> ε         | ◄3              |
@@ -2869,10 +2869,10 @@ mod listener9 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_a(),     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+                            0 => {}                 //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                                                     //  1: A_1 -> c A_3     | ►A_3 c!         |
                             2 => self.exit_a_2(),   //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b
-                            3 => { }                //  3: A_2 -> ε         | ◄3              |
+                            3 => self.exit_a(),     //  3: A_2 -> ε         | ◄3              |
                             4 |                     //  4: A_3 -> A_1       | ●A_1 ◄4         | A_1 c
                             5 => self.exit_a_3(),   //  5: A_3 -> ε         | ◄5              | A_1 c
                             _ => panic!("unexpected exit factor id: {factor_id}")
@@ -3690,7 +3690,7 @@ mod listener12 {
 
         // A -> A a | b c | b d
         //
-        //  0: A -> b A_2   | ◄0 ►A_2 b! |
+        //  0: A -> b A_2   | ►A_2 ◄0 b! |
         //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
         //  2: A_1 -> ε     | ◄2         |
         //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
@@ -3767,9 +3767,9 @@ mod listener12 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.exit_a(),             //  0: A -> b A_2   | ◄0 ►A_2 b! |
+                            0 => {}                         //  0: A -> b A_2   | ►A_2 ◄0 b! |
                             1 => self.exit_a_1(),           //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
-                            2 => {}                         //  2: A_1 -> ε     | ◄2         |
+                            2 => self.exit_a(),             //  2: A_1 -> ε     | ◄2         |
                             3 |                             //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
                             4 => self.exit_a_2(factor_id),  //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
                             _ => panic!("unexpected exit factor id: {factor_id}")
