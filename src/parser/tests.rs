@@ -314,25 +314,41 @@ mod listener {
                 }
                 Call::Exit => {
                     match factor_id {
-                        0 => self.listener.exit_e(),
-                        1 => self.listener.exit_t(),
+                        0 => {}
+                        1 => {}
                         2 => self.listener.exit_f(CtxF::LpRp),
                         3 => self.listener.exit_f(CtxF::Num(self.stack_t.pop().unwrap())),
                         4 => self.listener.exit_f(CtxF::Id(self.stack_t.pop().unwrap())),
                         5 => self.listener.exit_e_1(CtxE1::Add),
                         6 => self.listener.exit_e_1(CtxE1::Sub),
-                        7 => self.listener.exit_e_1(CtxE1::Empty),
+                        7 => self.exit_e_1(),
                         8 => self.listener.exit_t_1(CtxT1::Mul),
                         9 => self.listener.exit_t_1(CtxT1::Div),
-                        10 => self.listener.exit_t_1(CtxT1::Empty),
+                        10 => self.exit_t_1(),
                         _ => panic!("unexpected nt exit factor id: {nt}")
                     }
                 }
                 Call::End => {
-                    self.listener.exit();
+                    self.exit();
                 }
             }
             // false
+        }
+    }
+
+    impl<T: ExprListenerTrait> ListenerWrapper<T> {
+        fn exit(&mut self) {
+            self.listener.exit();
+        }
+
+        fn exit_e_1(&mut self) {
+            self.listener.exit_e_1(CtxE1::Empty);
+            self.listener.exit_e();
+        }
+
+        fn exit_t_1(&mut self) {
+            self.listener.exit_t_1(CtxT1::Empty);
+            self.listener.exit_t();
         }
     }
 
@@ -424,10 +440,10 @@ mod listener {
                 // E_1 -> + T E_1 | - T E_1 | ε
                 // T_1 -> * F T_1 | / F T_1 | ε
                 ("a+2*b", true, vec![
-                    "(E", "(T", "(F", "F)='a'", "T)", "(T_1", "T_1)", "E)", "(T", "(F", "F)=#2", "T)", "(T_1", "(F", "F)='b'", "T_1)", "(T_1", "T_1)", "$"]),
+                    "(E", "(T", "(F", "F)='a'", "(T_1", "T_1)", "T)", "(T", "(F", "F)=#2", "(T_1", "(F", "F)='b'", "T_1)", "(T_1", "T_1)", "T)", "E)", "$"]),
                 ("a*(4+5)", true, vec![
-                    "(E", "(T", "(F", "F)='a'", "T)", "(T_1", "(F", "(E", "(T", "(F", "F)=#4", "T)",
-                    "(T_1", "T_1)", "E)", "(T", "(F", "F)=#5", "T)", "(T_1", "T_1)", "F)", "T_1)", "(T_1", "T_1)", "E)", "$"]),
+                    "(E", "(T", "(F", "F)='a'", "(T_1", "(F", "(E", "(T", "(F", "F)=#4", "(T_1", "T_1)", "T)",
+                    "(T", "(F", "F)=#5", "(T_1", "T_1)", "T)", "E)", "F)", "T_1)", "(T_1", "T_1)", "T)", "E)", "$"]),
             ])
         ];
         const VERBOSE: bool = false;

@@ -167,17 +167,17 @@ mod listener {
                 }
                 Call::Exit => {
                     match factor_id {
-                        0 => {}                                                                 //  0: E -> T E_1     - ►E_1 ◄0 ►T
-                        1 => {}                                                                 //  1: T -> F T_1     - ►T_1 ◄1 ►F
-                        2 => self.listener.exit_f(CtxF::LpRp),                                  //  2: F -> ( E )     - ◄2 ) ►E (
-                        3 => self.listener.exit_f(CtxF::Num(self.stack_t.pop().unwrap())),      //  3: F -> N         - ◄3 N!
-                        4 => self.listener.exit_f(CtxF::Id(self.stack_t.pop().unwrap())),       //  4: F -> I         - ◄4 I!
-                        5 => self.listener.exit_e_1(CtxE1::Add),                                //  5: E_1 -> - T E_1 - ●E_1 ◄5 ►T -
-                        6 => self.listener.exit_e_1(CtxE1::Sub),                                //  6: E_1 -> + T E_1 - ●E_1 ◄6 ►T +
-                        7 => { self.listener.exit_e_1(CtxE1::Empty); self.listener.exit_e(); }  //  7: E_1 -> ε       - ◄7
-                        8 => self.listener.exit_t_1(CtxT1::Mul),                                //  8: T_1 -> / F T_1 - ●T_1 ◄8 ►F /
-                        9 => self.listener.exit_t_1(CtxT1::Div),                                //  9: T_1 -> * F T_1 - ●T_1 ◄9 ►F *
-                        10 => { self.listener.exit_t_1(CtxT1::Empty); self.listener.exit_t(); } // 10: T_1 -> ε       - ◄10
+                        0 => {}                                                             //  0: E -> T E_1     - ►E_1 ◄0 ►T
+                        1 => {}                                                             //  1: T -> F T_1     - ►T_1 ◄1 ►F
+                        2 => self.listener.exit_f(CtxF::LpRp),                              //  2: F -> ( E )     - ◄2 ) ►E (
+                        3 => self.listener.exit_f(CtxF::Num(self.stack_t.pop().unwrap())),  //  3: F -> N         - ◄3 N!
+                        4 => self.listener.exit_f(CtxF::Id(self.stack_t.pop().unwrap())),   //  4: F -> I         - ◄4 I!
+                        5 => self.listener.exit_e_1(CtxE1::Add),                            //  5: E_1 -> - T E_1 - ●E_1 ◄5 ►T -
+                        6 => self.listener.exit_e_1(CtxE1::Sub),                            //  6: E_1 -> + T E_1 - ●E_1 ◄6 ►T +
+                        7 => self.exit_e_1(),                                               //  7: E_1 -> ε       - ◄7
+                        8 => self.listener.exit_t_1(CtxT1::Mul),                            //  8: T_1 -> / F T_1 - ●T_1 ◄8 ►F /
+                        9 => self.listener.exit_t_1(CtxT1::Div),                            //  9: T_1 -> * F T_1 - ●T_1 ◄9 ►F *
+                        10 => self.exit_t_1(),                                              // 10: T_1 -> ε       - ◄10
                         _ => panic!("unexpected nt exit factor id: {nt}")
                     }
                 }
@@ -192,6 +192,16 @@ mod listener {
     impl<T: ExprListener> ListenerWrapper<T> {
         fn exit(&mut self) {
 
+        }
+
+        fn exit_e_1(&mut self) {
+            self.listener.exit_e_1(CtxE1::Empty);
+            self.listener.exit_e();
+        }
+
+        fn exit_t_1(&mut self) {
+            self.listener.exit_t_1(CtxT1::Empty);
+            self.listener.exit_t();
         }
     }
 
