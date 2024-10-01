@@ -983,6 +983,9 @@ mod wrapper_source {
                     println!("## ERROR: {err_msg}");
                 }
                 if TEST_SOURCE && Some(result_src) != expected_src {
+                    if REPLACE_SOURCE {
+                        replace_wrapper_source(&test_name, &result).expect("replacement failed");
+                    }
                     num_errors += 1;
                     println!("## SOURCE MISMATCH: {err_msg}");
                 }
