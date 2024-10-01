@@ -761,7 +761,7 @@ mod wrapper_source {
             // parents:
             //  - E_1 -> E
             (PRS(31), 0, btreemap![                     /// E -> F | E . id ; F -> id
-                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
                 2 => symbols![nt 0, t 1],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
@@ -772,7 +772,7 @@ mod wrapper_source {
             // parents:
             //  - E_1 -> E
             (PRS(36), 0, btreemap![                     /// E -> F | num | E . id ; F -> id
-                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
                 1 => symbols![t 2],                     //  1: E -> num E_1    | ◄1 ►E_1 num!  | num
                 2 => symbols![t 1],                     //  2: F -> id         | ◄2 id!        | id
                 3 => symbols![nt 0, t 1],               //  3: E_1 -> . id E_1 | ●E_1 ◄3 id! . | E id
@@ -786,7 +786,7 @@ mod wrapper_source {
             //  - A_1 -> A
             //  - A_2 -> A
             (PRS(33), 0, btreemap![                     /// A -> A a | b c | b d
-                0 => symbols![],                        //  0: A -> b A_2   | ◄0 ►A_2 b! |
+                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 ◄0 b! |
                 1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
@@ -801,7 +801,7 @@ mod wrapper_source {
             //  - E_2 -> E_1
             (PRS(32), 0, btreemap![                     /// E -> F | E . id | E . id ( )
                                                         /// F -> id
-                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F  | F
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F  | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!      | id
                 2 => symbols![],                        //  2: E_1 -> . id E_2 | ►E_2 id! .  |
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3          |
@@ -840,7 +840,7 @@ mod wrapper_source {
             //  - A_1 -> A
             //  - A_2 -> A
             (RTS(26), 0, btreemap![                     /// A -> A (c)* b | a
-                0 => symbols![t 0],                     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+                0 => symbols![t 0],                     //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                 1 => symbols![nt 1, t 2],               //  1: A_1 -> c A_1     | ●A_1 ◄1 c!      | A_1 c
                 2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
                 3 => symbols![nt 0, nt 1, t 1],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A A_1 b
@@ -856,7 +856,7 @@ mod wrapper_source {
             //  - A_2 -> A
             //  - A_3 -> A_1
             (RTS(16), 0, btreemap![                     /// A -> A (c)+ b | a
-                0 => symbols![t 0],                     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+                0 => symbols![t 0],                     //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                 1 => symbols![],                        //  1: A_1 -> c A_3     | ►A_3 c!         |
                 2 => symbols![nt 0, nt 1, t 1],         //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b
                 3 => symbols![],                        //  3: A_2 -> ε         | ◄3              |
@@ -896,7 +896,7 @@ mod wrapper_source {
             //  - E_1 -> E
             /*
             (PRS(13), 0, btreemap![                     /// // E -> E : E | E ^ E | E / E | E * E | E - E | E + E | F;  F -> ( E ) | NUM | ID
-                0 => symbols![nt 1],                    //  0: E -> F E_1     | ◄0 ►E_1 ►F   | F
+                0 => symbols![nt 1],                    //  0: E -> F E_1     | ►E_1 ◄0 ►F   | F
                 1 => symbols![nt 0],                    //  1: F -> ( E )     | ◄1 ) ►E (    | E
                 2 => symbols![t 6],                     //  2: F -> N         | ◄2 N!        | N
                 3 => symbols![t 7],                     //  3: F -> I         | ◄3 I!        | I

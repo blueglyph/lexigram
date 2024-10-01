@@ -558,7 +558,7 @@ mod listener2 {
                     match nt {
                         0 => self.init_e(),
                         1 => self.listener.init_f(factor_id),
-                        2 => self.init_e_1(factor_id),
+                        2 => {}
                         _ => panic!("unexpected exit nt: {nt}")
                     }
                 }
@@ -568,7 +568,7 @@ mod listener2 {
                         println!("◄ {}", factor_str(factor_id, true));
                     }
                     match factor_id {
-                        0 => {}                                                     //  0: E -> F E_1     | ►E_1 ◄0 ►F   | F
+                        0 => self.init_e_1(),                                       //  0: E -> F E_1     | ►E_1 ◄0 ►F   | F
                         1 => self.exit_f1(),                                        //  1: F -> ( E )     | ◄1 ) ►E (    | E
                         2 => self.exit_f2(),                                        //  2: F -> N         | ◄2 N!        | N
                         3 => self.exit_f3(),                                        //  3: F -> I         | ◄3 I!        | I
@@ -636,7 +636,7 @@ mod listener2 {
             self.asm_stack.push((AsmItem { val: None, ty: AsmE::E}, PRIORITY_MIN, false));
         }
 
-        fn init_e_1(&mut self, factor_id: VarId) {
+        fn init_e_1(&mut self) {
             // F of E -> F E_1 is now on the stack => attach it
             let new_f = self.stack.pop().unwrap().get_f();
             // child_amb, so promoting the value:
@@ -644,7 +644,7 @@ mod listener2 {
             let top = &mut self.asm_stack.last_mut().unwrap().0;
             assert_eq!(top.ty, AsmE::E);
             assert_eq!(top.val, None);
-            if self.verbose { println!("► {}, attach {} to E", factor_str(factor_id, true), syn_e_str(&new_e)); }
+            if self.verbose { println!("◄ 0, attach {} to E", syn_e_str(&new_e)); }
             top.val = new_e;
         }
 
@@ -2871,7 +2871,7 @@ mod listener9 {
                         match nt {
                             0 => self.listener.init_a(),
                             1 => self.init_a_1(),
-                            2 => self.init_a_2(),
+                            2 => {}
                             3 => {}
                             _ => panic!("unexpected exit non-terminal id: {nt}")
                         }
@@ -2879,7 +2879,7 @@ mod listener9 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => {}                 //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
+                            0 => self.init_a_2(),   //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                                                     //  1: A_1 -> c A_3     | ►A_3 c!         |
                             2 => self.exit_a_2(),   //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b
                             3 => self.exit_a(),     //  3: A_2 -> ε         | ◄3              |
@@ -3781,7 +3781,7 @@ mod listener12 {
                             1 => self.exit_a_1(),           //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                             2 => self.exit_a(),             //  2: A_1 -> ε     | ◄2         |
                             3 |                             //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
-                            4 => self.exit_a_2(factor_id),  //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
+                            4 => self.init_a_1(factor_id),  //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -3816,7 +3816,7 @@ mod listener12 {
                 self.stack.push(SynValue::A(val));
             }
 
-            fn exit_a_2(&mut self, factor_id: VarId) {
+            fn init_a_1(&mut self, factor_id: VarId) {
                 let ctx = match factor_id {
                     3 => {
                         let c = self.stack_t.pop().unwrap();
