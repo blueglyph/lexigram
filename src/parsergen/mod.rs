@@ -1007,6 +1007,8 @@ impl ParserBuilder {
                             src_init.push(format!("                    {nt} => {{}}"));
                         }
                     }
+                } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
+                    src_init.push(format!("                    {nt} => {{}}"));
                 }
             }
 
@@ -1054,7 +1056,7 @@ impl ParserBuilder {
         src.push(format!("                    2 => {{}}                         // A_2"));
         */
         src.extend(src_init);
-        src.push(format!("                    _ => panic!(\"unexpected exit non-terminal id: {{nt}}\")"));
+        src.push(format!("                    _ => panic!(\"unexpected enter non-terminal id: {{nt}}\")"));
         src.push(format!("                }}"));
         src.push(format!("            }}"));
         src.push(format!("            Call::Loop => {{}}"));

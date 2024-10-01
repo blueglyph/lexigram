@@ -74,7 +74,7 @@ after,  NT with value: S, VAL
                     match nt {
                         0 => self.listener.init_s(),
                         1 => self.listener.init_val(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -174,7 +174,7 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a1(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -281,7 +281,7 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a_iter(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -386,7 +386,7 @@ item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: No
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.listener.init_a_iter(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -494,7 +494,7 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a_iter(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -595,7 +595,7 @@ after,  NT with value: A
                     match nt {
                         0 => self.listener.init_a(),
                         1 => {}
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -698,7 +698,7 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a1(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -815,7 +815,7 @@ after,  NT with value: A, B, A_1
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -932,7 +932,7 @@ after,  NT with value: A, B, A_1
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -1088,7 +1088,7 @@ item_info =
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
                         3 => self.init_a2(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -1207,7 +1207,7 @@ after,  NT with value: A, A_2
                         1 => self.listener.init_b(),
                         2 => {}
                         3 => self.init_a2(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -1323,7 +1323,7 @@ after,  NT with value: A_1, A_2
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
                         3 => self.init_a2(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -1498,7 +1498,7 @@ item_info =
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
                         3 => self.init_a2(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -1624,7 +1624,7 @@ after,  NT with value: A_1, A_2
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
                         3 => self.init_a2(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -1738,7 +1738,7 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a_iter(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -1848,7 +1848,7 @@ after,  NT with value: A
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -1889,7 +1889,7 @@ after,  NT with value: E, F
             // parents:
             //  - E_1 -> E
             (PRS(31), 0, btreemap![
-                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
                 2 => symbols![nt 0, t 1],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
@@ -1954,7 +1954,8 @@ after,  NT with value: E, F
                     match nt {
                         0 => self.listener.init_e(),
                         1 => self.listener.init_f(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        2 => {}
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -1995,7 +1996,7 @@ after,  NT with value: E, F
             // parents:
             //  - E_1 -> E
             (PRS(36), 0, btreemap![
-                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
                 1 => symbols![t 2],                     //  1: E -> num E_1    | ◄1 ►E_1 num!  | num
                 2 => symbols![t 1],                     //  2: F -> id         | ◄2 id!        | id
                 3 => symbols![nt 0, t 1],               //  3: E_1 -> . id E_1 | ●E_1 ◄3 id! . | E id
@@ -2062,7 +2063,8 @@ after,  NT with value: E, F
                     match nt {
                         0 => self.listener.init_e(),
                         1 => self.listener.init_f(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        2 => {}
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -2105,7 +2107,7 @@ after,  NT with value: A
             //  - A_1 -> A
             //  - A_2 -> A
             (PRS(33), 0, btreemap![
-                0 => symbols![],                        //  0: A -> b A_2   | ◄0 ►A_2 b! |
+                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 ◄0 b! |
                 1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
@@ -2165,7 +2167,8 @@ after,  NT with value: A
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        1 => {}
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -2208,7 +2211,7 @@ after,  NT with value: E, F
             //  - E_1 -> E
             //  - E_2 -> E_1
             (PRS(32), 0, btreemap![
-                0 => symbols![nt 1],                    //  0: E -> F E_1      | ◄0 ►E_1 ►F  | F
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F  | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!      | id
                 2 => symbols![],                        //  2: E_1 -> . id E_2 | ►E_2 id! .  |
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3          |
@@ -2277,7 +2280,8 @@ after,  NT with value: E, F
                     match nt {
                         0 => self.listener.init_e(),
                         1 => self.listener.init_f(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        2 => {}
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -2380,7 +2384,7 @@ after,  NT with value: STRUCT, LIST
                     match nt {
                         0 => self.listener.init_struct(),
                         1 => self.listener.init_list(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -2483,7 +2487,7 @@ after,  NT with value: STRUCT, LIST
                     match nt {
                         0 => self.listener.init_struct(),
                         1 => self.init_list(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -2530,7 +2534,7 @@ after,  NT with value: A, A_1
             //  - A_1 -> A
             //  - A_2 -> A
             (RTS(26), 0, btreemap![
-                0 => symbols![t 0],                     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+                0 => symbols![t 0],                     //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                 1 => symbols![nt 1, t 2],               //  1: A_1 -> c A_1     | ●A_1 ◄1 c!      | A_1 c
                 2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
                 3 => symbols![nt 0, nt 1, t 1],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A A_1 b
@@ -2593,7 +2597,8 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a1(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        2 => {}
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -2642,7 +2647,7 @@ after,  NT with value: A, A_1
             //  - A_2 -> A
             //  - A_3 -> A_1
             (RTS(16), 0, btreemap![
-                0 => symbols![t 0],                     //  0: A -> a A_2       | ◄0 ►A_2 a!      | a
+                0 => symbols![t 0],                     //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                 1 => symbols![],                        //  1: A_1 -> c A_3     | ►A_3 c!         |
                 2 => symbols![nt 0, nt 1, t 1],         //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b
                 3 => symbols![],                        //  3: A_2 -> ε         | ◄3              |
@@ -2706,7 +2711,8 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a1(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        2 => {}
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -2828,7 +2834,7 @@ item_info:
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
@@ -2944,7 +2950,7 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
-                        _ => panic!("unexpected exit non-terminal id: {nt}")
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
