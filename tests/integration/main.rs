@@ -103,6 +103,10 @@ mod listener {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener]
 
+    // E -> E + T | E - T | T
+    // T -> T * F | T / F | F
+    // F -> ( E ) | NUM | ID
+    //
     //  0: E -> T E_1     - ►E_1 ◄0 ►T
     //  1: T -> F T_1     - ►T_1 ◄1 ►F
     //  2: F -> ( E )     - ◄2 ) ►E (
@@ -114,6 +118,16 @@ mod listener {
     //  8: T_1 -> / F T_1 - ●T_1 ◄8 ►F /
     //  9: T_1 -> * F T_1 - ●T_1 ◄9 ►F *
     // 10: T_1 -> ε       - ◄10
+    //
+    // - NT flags:
+    //   - E: parent_left_rec (512)
+    //   - T: parent_left_rec (512)
+    //   - E_1: child_left_rec (4)
+    //   - T_1: child_left_rec (4)
+    // - parents:
+    //   - E_1 -> E
+    //   - T_1 -> T
+
     pub enum CtxF { LpRp, Num(String), Id(String) }
     pub enum CtxE1 { Add, Sub, Empty }
     pub enum CtxT1 { Mul, Div, Empty }
@@ -420,6 +434,7 @@ mod listener2 {
     //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | E F
     //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | E F
     // 10: E_1 -> ε       | ◄10          |
+    //
     //
     // NT flags:
     //  - E: parent_left_rec | parent_amb (1536)
@@ -1898,12 +1913,13 @@ mod listener6 {
         //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | id E
         //  5: E_2 -> E_1      | ●E_1 ◄5     | id E
         //
-        // - NT flags:
-        //   - E_1: child_left_rec | parent_left_fact (36)
-        //   - E_2: child_left_fact (64)
-        // - parents:
-        //   - E_1 -> E
-        //   - E_2 -> E_1
+        // NT flags:
+        //  - E: parent_left_rec (512)
+        //  - E_1: child_left_rec | parent_left_fact (36)
+        //  - E_2: child_left_fact (64)
+        // parents:
+        //  - E_1 -> E
+        //  - E_2 -> E_1
 
         #[derive(Debug)]
         pub enum Ctx {
@@ -2218,6 +2234,7 @@ mod listener7 {
         //  2: A_1 -> ε     | ◄2            |           //
         //
         // NT flags:
+        //  - A: parent_+_or_* (2048)
         //  - A_1: child_+_or_* (1)
         // parents:
         //  - A_1 -> A
