@@ -3959,3 +3959,342 @@ mod listener12 {
         }
     }
 }
+
+#[allow(unused)]
+mod listener13 {
+    // [write_source_code_for_integration_listener13]
+    // -------------------------------------------------------------------------
+    // Automatically generated
+
+    use rlexer::grammar::{ProdFactor, Symbol, VarId, FactorId};
+    use rlexer::parser::{OpCode, Parser};
+    use rlexer::symbol_table::SymbolTable;
+
+    const PARSER_NUM_T: usize = 3;
+    const PARSER_NUM_NT: usize = 3;
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [(".", Some(".")), ("id", None), ("num", None)];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "F", "E_1"];
+    const SYMBOLS_NAMES: [(&str, VarId); 1] = [("E_1", 2)];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 5] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (0, &[Symbol::T(2), Symbol::NT(2)]), (1, &[Symbol::T(1)]), (2, &[Symbol::T(0), Symbol::T(1), Symbol::NT(2)]), (2, &[Symbol::Empty])];
+    const PARSING_TABLE: [FactorId; 12] = [5, 0, 1, 5, 5, 2, 5, 5, 3, 5, 5, 4];
+    const FLAGS: [u32; 3] = [512, 0, 4];
+    const PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
+    const OPCODES: [&[OpCode]; 5] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(2), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Exit(2), OpCode::T(1)], &[OpCode::Loop(2), OpCode::Exit(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(4)]];
+    const START_SYMBOL: VarId = 0;
+
+    pub(super) fn build_parser() -> Parser {
+        let mut symbol_table = SymbolTable::new();
+        symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
+        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));
+        let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
+        let table: Vec<FactorId> = PARSING_TABLE.into();
+        let parsing_table = rlexer::grammar::LLParsingTable {
+            num_nt: PARSER_NUM_NT,
+            num_t: PARSER_NUM_T + 1,
+            factors,
+            table,
+            flags: FLAGS.into(),
+            parent: PARENT.into(),
+        };
+        Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)
+    }
+
+    // -------------------------------------------------------------------------
+    // [write_source_code_for_integration_listener13]
+
+    mod test {
+        use std::collections::HashMap;
+        use rlexer::dfa::TokenId;
+        use rlexer::grammar::{Symbol, VarId};
+        use rlexer::hashmap;
+        use rlexer::parser::{Call, Listener};
+        use rlexer::symbol_table::SymbolTable;
+        use rlexer::CollectJoin;
+
+        // E -> F | num | E . id
+        // F -> id
+        //
+        //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+        //  1: E -> num E_1    | ◄1 ►E_1 num!  | num
+        //  2: F -> id         | ◄2 id!        | id
+        //  3: E_1 -> . id E_1 | ●E_1 ◄3 id! . | E id
+        //  4: E_1 -> ε        | ◄4            |
+        //
+        // NT flags:
+        //  - E: parent_left_rec (512)
+        //  - E_1: child_left_rec (4)
+        // parents:
+        //  - E_1 -> E
+
+        #[derive(Debug)]
+        pub enum Ctx { E { e: SynE } }
+        #[derive(Debug)]
+        pub enum CtxE { F { f: SynF }, Num { num: String }, E_Id { e: SynE, id: String }, E { e: SynE } }
+        #[derive(Debug)]
+        pub enum CtxF { F { id: String } }
+
+        // SynE, SynF: defined by user below
+
+        #[derive(Debug)]
+        enum SynValue { E(SynE), F(SynF) }
+
+        impl SynValue {
+            fn get_e(self) -> SynE {
+                if let SynValue::E(val) = self { val } else { panic!() }
+            }
+            fn get_f(self) -> SynF {
+                if let SynValue::F(val) = self { val } else { panic!() }
+            }
+        }
+
+        pub trait ExprListener {
+            fn exit(&mut self, _ctx: Ctx) {}
+            fn init_e(&mut self) {}
+            fn init_f(&mut self) {}
+            fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+            fn exit_f(&mut self, _ctx: CtxF) -> SynF;
+        }
+
+        struct ListenerWrapper<T> {
+            verbose: bool,
+            listener: T,
+            stack: Vec<SynValue>,
+            max_stack: usize,
+            stack_t: Vec<String>,
+        }
+
+        impl<T: ExprListener> ListenerWrapper<T> {
+            pub fn new(listener: T, verbose: bool) -> Self {
+                ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            }
+
+            pub fn listener(self) -> T {
+                self.listener
+            }
+        }
+
+        impl<T: ExprListener> Listener for ListenerWrapper<T> {
+            fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+                if let Some(mut t_data) = t_data {
+                    self.stack_t.append(&mut t_data);
+                }
+                match call {
+                    Call::Enter => {
+                        match nt {
+                            0 => self.listener.init_e(),    // E
+                            1 => self.listener.init_f(),    // F
+                            2 => {}                         // E_1
+                            _ => panic!("unexpected exit non-terminal id: {nt}")
+                        }
+                    }
+                    Call::Loop => {}
+                    Call::Exit => {
+                        match factor_id {
+                            0 |                             //  0: E -> F E_1      | ◄0 ►E_1 ►F    | F
+                            1 => self.init_e_1(factor_id),  //  1: E -> num E_1    | ◄1 ►E_1 num!  | num
+                            2 => self.exit_f(),             //  2: F -> id         | ◄2 id!        | id
+                            3 => self.exit_e_1(),           //  3: E_1 -> . id E_1 | ●E_1 ◄3 id! . | E id
+                            4 => self.exit_e(),             //  4: E_1 -> ε        | ◄4            |
+                            _ => panic!("unexpected exit factor id: {factor_id}")
+                        }
+                    }
+                    Call::End => {
+                        self.exit();
+                    }
+                }
+                self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+                // self.max_asm_stack = std::cmp::max(self.max_asm_stack, self.asm_stack.len());
+                if self.verbose {
+                    println!("> stack_t:   {}", self.stack_t.join(", "));
+                    println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+                }
+            }
+        }
+
+        impl<T: ExprListener> ListenerWrapper<T> {
+            fn exit(&mut self) {
+                let e = self.stack.pop().unwrap().get_e();
+                self.listener.exit(Ctx::E { e });
+            }
+
+            fn init_e_1(&mut self, factor_id: VarId) {
+                let val = match factor_id {
+                    0 => {
+                        let f = self.stack.pop().unwrap().get_f();
+                        self.listener.exit_e(CtxE::F { f })
+                    }
+                    1 => {
+                        let num = self.stack_t.pop().unwrap();
+                        self.listener.exit_e(CtxE::Num { num })
+                    }
+                    _ => panic!("unexpected factor id: {factor_id}")
+                };
+                self.stack.push(SynValue::E(val));
+            }
+
+            fn exit_f(&mut self) {
+                let id = self.stack_t.pop().unwrap();
+                let f = self.listener.exit_f(CtxF::F { id });
+                self.stack.push(SynValue::F(f));
+            }
+
+            fn exit_e_1(&mut self) {
+                let id = self.stack_t.pop().unwrap();
+                let e = self.stack.pop().unwrap().get_e();
+                let e = self.listener.exit_e(CtxE::E_Id { e, id });
+                self.stack.push(SynValue::E(e));
+            }
+
+            fn exit_e(&mut self) {
+                let e = self.stack.pop().unwrap().get_e();
+                let e = self.listener.exit_e(CtxE::E { e });
+                self.stack.push(SynValue::E(e));
+            }
+        }
+
+        // User code -----------------------------------------------------
+
+        #[derive(Debug)]
+        pub enum SynE {
+            Tmp(Vec<String>),
+            Final(String)
+        }
+
+        #[derive(Debug)]
+        pub struct SynF(String);
+
+        struct TestListener {
+            result: Option<String>,
+            verbose: bool,
+        }
+
+        impl TestListener {
+            pub fn new(verbose: bool) -> Self {
+                Self { result: None, verbose }
+            }
+        }
+
+        impl ExprListener for TestListener {
+            fn exit(&mut self, ctx: Ctx) {
+                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
+                if let Ctx::E { e: SynE::Final(e) } = ctx {
+                    self.result = Some(e);
+                } else {
+                    panic!("unexpected final context {ctx:?}");
+                }
+            }
+
+            fn init_e(&mut self) {
+                if self.verbose { println!("► E"); }
+            }
+
+            fn init_f(&mut self) {
+                if self.verbose { println!("► F"); }
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                if self.verbose { println!("◄ E (ctx = {ctx:?})"); }
+                match ctx {
+                    CtxE::E_Id { e: SynE::Tmp(mut e), id } => {
+                        e.push(id);
+                        SynE::Tmp(e)
+                    },
+                    CtxE::F { f } => {
+                        SynE::Tmp(vec![f.0])
+                    }
+                    CtxE::Num { num } => {
+                        SynE::Tmp(vec![format!("[{num}]")])
+                    }
+                    CtxE::E { e: SynE::Tmp(e) } => {
+                        SynE::Final(e.join("/"))
+                    }
+                    _ => panic!("unexpected context {ctx:?}")
+                }
+            }
+
+            fn exit_f(&mut self, ctx: CtxF) -> SynF {
+                if self.verbose { println!("◄ list (ctx = {ctx:?})"); }
+                let CtxF::F { id } = ctx;
+                SynF(id)
+            }
+        }
+
+        #[test]
+        fn parser_parse_stream() {
+            let tests = vec![
+                (
+                    "a . b . c . d",
+                    true,
+                    (Some("a/b/c/d"))
+                ),
+                (
+                    "10 . b . c . d",
+                    true,
+                    (Some("[10]/b/c/d"))
+                ),
+                (
+                    "a",
+                    true,
+                    (Some("a"))
+                ),
+            ];
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
+            const T_ID: VarId = 1;
+            const T_NUM: VarId = 2;
+
+            let mut parser = super::build_parser();
+
+            // The lexer provides the required stream, so this isn't necessary in a real case:
+            let mut symb_table = SymbolTable::new();
+            symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
+            let symbols = (0..super::SYMBOLS_T.len() as TokenId)
+                .map(|t| Symbol::T(t))
+                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .collect::<HashMap<_, _>>();
+            for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
+                if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().map(|w| {
+                    if let Some(s) = symbols.get(w) {
+                        (*s, w.to_string())
+                    } else {
+                        if w.chars().next().unwrap().is_digit(10) {
+                            (Symbol::T(T_NUM), w.to_string())
+                        } else {
+                            (Symbol::T(T_ID), w.to_string())
+                        }
+                    }
+                });
+
+                // User code under test ------------------------------
+
+                let listener = TestListener::new(VERBOSE_LISTENER);
+                let mut wrapper = ListenerWrapper::new(listener, VERBOSE_LISTENER);
+                let success = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully"); }
+                        true
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        false
+                    }
+                };
+                if VERBOSE {
+                    println!("max stack: {}", wrapper.max_stack);
+                    println!("wrapper stack: {:?}", wrapper.stack);
+                    // println!("listener asm_stack: {:?}", wrapper.asm_stack);
+                }
+                // ---------------------------------------------------
+
+                assert_eq!(success, expected_success, "test {test_id} failed for input {input}");
+                if success {
+                    let listener = wrapper.listener();
+                    let expected_result = expected_result.map(|s| s.to_string());
+                    assert_eq!(listener.result, expected_result, "test {test_id} failed for input {input}");
+                }
+            }
+        }
+    }
+}
