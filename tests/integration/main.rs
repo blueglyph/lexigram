@@ -1906,7 +1906,7 @@ mod listener6 {
         // E -> F | E . id | E . id ( )
         // F -> id
         //
-        //  0: E -> F E_1      | ◄0 ►E_1 ►F  | F
+        //  0: E -> F E_1      | ►E_1 ◄0 ►F  | F
         //  1: F -> id         | ◄1 id!      | id
         //  2: E_1 -> . id E_2 | ►E_2 id! .  |
         //  3: E_1 -> ε        | ◄3          |
@@ -1993,18 +1993,18 @@ mod listener6 {
                         match nt {
                             0 => self.listener.init_e(),
                             1 => self.listener.init_f(),
-                            2 => self.init_e_1(),
-                            3 => { },
+                            2 => {}
+                            3 => {}
                             _ => panic!("unexpected exit non-terminal id: {nt}")
                         }
                     }
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => /*self.exit_e()*/ { },         //  0: E -> F E_1      - ◄0 ►E_1 ►F   (optional last call not used)
+                            0 => self.init_e_1(),               //  0: E -> F E_1      - ►E_1 ◄0 ►F
                             1 => self.exit_f(),                 //  1: F -> id         - ◄1 id!
                             /* no exit */                       //  2: E_1 -> . id E_2 - ►E_2 id! .
-                            3 => { },                           //  3: E_1 -> ε        - ◄3
+                            3 => /*self.exit_e()*/ {}           //  3: E_1 -> ε        - ◄3             (optional last call not used)
                             4 |                                 //  4: E_2 -> ( ) E_1  - ●E_1 ◄4 ) (
                             5 => self.exit_e_2(factor_id),      //  5: E_2 -> E_1      - ●E_1 ◄5
                             _ => panic!("unexpected exit factor id: {factor_id}")
@@ -2886,10 +2886,10 @@ mod listener9 {
                 match call {
                     Call::Enter => {
                         match nt {
-                            0 => self.listener.init_a(),
-                            1 => self.init_a_1(),
-                            2 => {}
-                            3 => {}
+                            0 => self.listener.init_a(),    //  - A: parent_left_rec | parent_+_or_* | plus (6656)
+                            1 => self.init_a_1(),           //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+                            2 => {}                         //  - A_2: child_left_rec (4)
+                            3 => {}                         //  - A_3: child_left_fact (64)
                             _ => panic!("unexpected exit non-terminal id: {nt}")
                         }
                     }
