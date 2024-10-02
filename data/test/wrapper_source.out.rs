@@ -494,6 +494,7 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a_iter(),
+                        2 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -698,6 +699,7 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a1(),
+                        2 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -815,6 +817,7 @@ after,  NT with value: A, B, A_1
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
+                        3 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -932,6 +935,7 @@ after,  NT with value: A, B, A_1
                         0 => self.listener.init_a(),
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
+                        3 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1498,6 +1502,8 @@ item_info =
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
                         3 => self.init_a2(),
+                        4 => {}
+                        5 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1624,6 +1630,8 @@ after,  NT with value: A_1, A_2
                         1 => self.listener.init_b(),
                         2 => self.init_a1(),
                         3 => self.init_a2(),
+                        4 => {}
+                        5 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1738,6 +1746,7 @@ after,  NT with value: A, A_1
                     match nt {
                         0 => self.listener.init_a(),
                         1 => self.init_a_iter(),
+                        2 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1848,6 +1857,8 @@ after,  NT with value: A
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => {}
+                        2 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -2168,6 +2179,7 @@ after,  NT with value: A
                     match nt {
                         0 => self.listener.init_a(),
                         1 => {}
+                        2 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -2281,6 +2293,7 @@ after,  NT with value: E, F
                         0 => self.listener.init_e(),
                         1 => self.listener.init_f(),
                         2 => {}
+                        3 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -2712,6 +2725,7 @@ after,  NT with value: A, A_1
                         0 => self.listener.init_a(),
                         1 => self.init_a1(),
                         2 => {}
+                        3 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -2834,6 +2848,7 @@ item_info:
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),
+                        1 => {}
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }

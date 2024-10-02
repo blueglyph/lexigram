@@ -1007,7 +1007,7 @@ impl ParserBuilder {
                             src_init.push(format!("                    {nt} => {{}}"));
                         }
                     }
-                } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
+                } else if flags & (ruleflag::CHILD_L_RECURSION | ruleflag::CHILD_L_FACTOR) != 0 {
                     src_init.push(format!("                    {nt} => {{}}"));
                 }
             }
