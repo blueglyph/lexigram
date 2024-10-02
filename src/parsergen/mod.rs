@@ -376,7 +376,7 @@ impl ParserBuilder {
             }
         }
         // we proceed by var parent, then all factors in each parent/children group
-        for (_parent_id, g) in nt_parent.iter().enumerate() {
+        for (_parent_id, g) in nt_parent.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
             // takes all the factors in the group (and their NT ID):
             let group = self.get_group_factors(g);
             let mut change = true;
