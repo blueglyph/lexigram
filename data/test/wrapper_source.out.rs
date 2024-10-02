@@ -815,9 +815,9 @@ after,  NT with value: A, B, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_b(),                // B
                         2 => self.init_a1(),                        // A_1
                         3 => {}                                     // A_2
+                        1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -933,9 +933,9 @@ after,  NT with value: A, B, A_1
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_b(),                // B
                         2 => self.init_a1(),                        // A_1
                         3 => {}                                     // A_2
+                        1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1089,9 +1089,9 @@ item_info =
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_b(),                // B
                         2 => self.init_a1(),                        // A_1
                         3 => self.init_a2(),                        // A_2
+                        1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1208,9 +1208,9 @@ after,  NT with value: A, A_2
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_b(),                // B
                         2 => {}                                     // A_1
                         3 => self.init_a2(),                        // A_2
+                        1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1324,9 +1324,9 @@ after,  NT with value: A_1, A_2
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_b(),                // B
                         2 => self.init_a1(),                        // A_1
                         3 => self.init_a2(),                        // A_2
+                        1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1499,11 +1499,11 @@ item_info =
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_b(),                // B
                         2 => self.init_a1(),                        // A_1
                         3 => self.init_a2(),                        // A_2
                         4 => {}                                     // A_3
                         5 => {}                                     // A_4
+                        1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1627,11 +1627,11 @@ after,  NT with value: A_1, A_2
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_b(),                // B
                         2 => self.init_a1(),                        // A_1
                         3 => self.init_a2(),                        // A_2
                         4 => {}                                     // A_3
                         5 => {}                                     // A_4
+                        1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1964,8 +1964,8 @@ after,  NT with value: E, F
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_e(),                // E
-                        1 => self.listener.init_f(),                // F
                         2 => {}                                     // E_1
+                        1 => self.listener.init_f(),                // F
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -2073,8 +2073,8 @@ after,  NT with value: E, F
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_e(),                // E
-                        1 => self.listener.init_f(),                // F
                         2 => {}                                     // E_1
+                        1 => self.listener.init_f(),                // F
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -2291,9 +2291,9 @@ after,  NT with value: E, F
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_e(),                // E
-                        1 => self.listener.init_f(),                // F
                         2 => {}                                     // E_1
                         3 => {}                                     // E_2
+                        1 => self.listener.init_f(),                // F
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -2963,8 +2963,8 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_b(),                // B
                         2 => self.init_a1(),                        // A_1
+                        1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
