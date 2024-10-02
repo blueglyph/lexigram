@@ -183,7 +183,7 @@ mod gen_integration {
 mod opcodes {
     use crate::grammar::{Symbol, VarId};
     use crate::grammar::tests::{print_prs_summary, T};
-    use crate::{CharLen, CollectJoin, strip};
+    use crate::{CollectJoin, strip, columns_to_str};
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::ParserBuilder;
     use crate::dfa::TokenId;
@@ -210,17 +210,15 @@ mod opcodes {
         if !factors.is_empty() {
             let indent = 16;
             let opcodes = factors.into_iter().zip(parser.get_opcodes()).map(|(s, ops)|
-                (
+                vec![
                     format!("strip![{}],", ops.iter().map(|o| opcode_to_macro(o)).join(", ")),
-                    s,
-                    ops.into_iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ")
-                )
+                    format!("// {s}"),
+                    format!("- {}", ops.into_iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ")),
+                ]
             ).to_vec();
-            let width = opcodes.iter().fold((39, 0), |acc, s| (acc.0.max(s.0.charlen()), acc.1.max(s.1.charlen())));
-            let code = opcodes.into_iter()
-                .map(|(a, b, c)| format!("{:indent$}{a:width_a$} // {b:width_b$} - {c}", "", indent=indent, width_a=width.0, width_b=width.1))
-                .join("\n");
-            println!("{}", code);
+            for l in columns_to_str(opcodes, Some(vec![40, 0, 0])) {
+                println!("{:indent$}{l}", "", indent = indent)
+            }
         }
     }
 
@@ -384,7 +382,7 @@ mod opcodes {
             ]),
             */
         ];
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const TESTS_ALL: bool = false;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
@@ -421,7 +419,7 @@ mod wrapper_source {
     use std::io::{BufRead, BufReader, BufWriter, Read, Seek, Write};
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
-    use crate::{btreemap, CharLen, CollectJoin, symbols};
+    use crate::{btreemap, CollectJoin, symbols, columns_to_str};
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::ParserBuilder;
     use crate::dfa::TokenId;
@@ -451,22 +449,18 @@ mod wrapper_source {
                 let (v, factor) = &builder.parsing_table.factors[f];
                 let ops = &builder.opcodes[f];
                 if let Some(it) = result_items.get(&f_id) {
-                    Some((
+                    Some(vec![
                         format!("{f_id} => symbols![{}],", it.iter().map(|s| symbol_to_macro(s)).join(", ")),
-                        format!("{f_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), factor.iter().map(|s| s.to_str(tbl)).join(" ")),
-                        ops.into_iter().map(|s| s.to_str(tbl)).join(" "),
-                        format!("{}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
-                    ))
+                        format!("// {f_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), factor.iter().map(|s| s.to_str(tbl)).join(" ")),
+                        format!("| {}", ops.into_iter().map(|s| s.to_str(tbl)).join(" ")),
+                        format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
+                    ])
                 } else {
                     None
                 }
             }).to_vec();
-        let width = fields.iter().fold((40, 0, 0), |acc, s| {
-            (acc.0.max(s.0.charlen()), acc.1.max(s.1.charlen()), acc.2.max(s.2.charlen()))
-        });
-        for (symbols, c_factor, c_ops, c_items) in fields {
-            println!("{:indent$}{symbols:width_a$}// {c_factor:width_b$} | {c_ops:width_c$} | {c_items}",
-                     "", width_a = width.0, width_b = width.1, width_c = width.2, indent = indent);
+        for l in columns_to_str(fields, Some(vec![40, 0, 0, 0])) {
+            println!("{:indent$}{l}", "", indent = indent)
         }
     }
 
@@ -929,7 +923,7 @@ mod wrapper_source {
         const VERBOSE: bool = true;
         const PRINT_SOURCE: bool = true;
         const TEST_SOURCE: bool = true;
-        const TESTS_ALL: bool = false;
+        const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
         const REPLACE_SOURCE: bool = false;

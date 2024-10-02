@@ -99,13 +99,25 @@ pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, item: I) -> usize
     new_index
 }
 
-// fn vadd<T>(v: &mut Vec<Vec<Dup>>, item: T) -> usize where T: IntoIterator<Item=Dup> + Clone {
-//     let new_index = v.len();
-//     if VERBOSE_CC { print!("_{}=dup [{}], ", new_index, item.clone().into_iter().map(|i| i.peek().to_string()).join(", ")); }
-//     v.push(Vec::from_iter(item));
-//     new_index
-// }
-
+/// Takes `lines` of columns and outputs lines of strings in which the columns
+/// are aligned. The minimum width of each column can be preset with the optional `min_widths` vector.
+///
+/// The final width of each column is the 1 + maximum number of characters - not bytes - of the strings
+/// representing that column in all the lines (the +1 makes sure columns are separated by at least one
+/// space). The last column is left as-is; no spaces are added to adjust its width.
+pub fn columns_to_str(lines: Vec<Vec<String>>, min_widths: Option<Vec<usize>>) -> Vec<String> {
+    let min_widths = min_widths.unwrap_or(vec![0; lines.get(0).map(|v| v.len()).unwrap_or(0)]);
+    let ncol = min_widths.len();
+    let mut width = lines.iter().fold(min_widths, |acc, s| {
+        assert_eq!(s.len(), ncol, "number of columns is not consistently {ncol}");
+        acc.into_iter().zip(s).map(|(a, s)| a.max(s.charlen() + 1)).collect()
+    });
+    if let Some(x) = width.last_mut() { *x = 0 };
+    lines.into_iter().map(|v| v.into_iter().zip(&width).map(|(mut s, w)| {
+        for _ in 0..w.saturating_sub(s.charlen()) { s.push(' ') }
+        s
+    }).collect::<String>()).collect()
+}
 
 // ---------------------------------------------------------------------------------------------
 // General helper traits
@@ -128,10 +140,11 @@ pub trait CollectJoin {
 impl<I: Iterator> CollectJoin for I {}
 
 pub trait CharLen {
+    /// Returns the length in characters (not bytes).
     fn charlen(&self) -> usize;
 }
 
-impl CharLen for String {
+impl CharLen for str {
     fn charlen(&self) -> usize {
         self.chars().count()
     }
@@ -263,6 +276,34 @@ impl SourceSpacer for Vec<String> {
 #[cfg(test)]
 mod libtests {
     use super::*;
+
+    #[test]
+    fn test_column_to_str() {
+        let a = vec![
+            vec!["1".to_string(), "2".to_string()],
+            vec!["◄10".to_string(), "20".to_string()],
+            vec!["100".to_string(), "200".to_string()],
+        ];
+        let b = vec![
+            vec!["1".to_string(), "◄20".to_string(), "3000".to_string()],
+            vec!["10".to_string(), "2000".to_string(), "3".to_string()],
+            vec!["1000".to_string(), "2".to_string(), "300".to_string()],
+        ];
+        let tests = vec![
+            (a.clone(), Some(vec![2, 0]), "1   2\n◄10 20\n100 200"),
+            (a, None, "1   2\n◄10 20\n100 200"),
+            (b.clone(), Some(vec![3, 2, 0]), "1    ◄20  3000\n10   2000 3\n1000 2    300"),
+            (b, Some(vec![8, 2, 0]), "1       ◄20  3000\n10      2000 3\n1000    2    300"),
+            (vec![], Some(vec![]), ""),
+            (vec![], Some(vec![1, 2, 3]), ""),
+            (vec![], None, ""),
+        ];
+        for (i, (v, w, expected)) in tests.into_iter().enumerate() {
+            let result_v = columns_to_str(v, w);
+            let result = result_v.join("\n");
+            assert_eq!(result, expected, "failed with test {i}")
+        }
+    }
 
     #[test]
     fn test_col_to_string() {
