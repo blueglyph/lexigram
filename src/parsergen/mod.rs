@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId};
-use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer};
+use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str};
 use crate::parser::{OpCode, Parser};
 use crate::symbol_table::SymbolTable;
 
@@ -963,7 +963,7 @@ impl ParserBuilder {
         }
 
         // Prepares the data for the following sections
-        let mut src_init = Vec::<String>::new();
+        let mut src_init = Vec::<Vec<String>>::new();
         let mut src_exit = Vec::<String>::new();
         let mut src_listener_decl = Vec::<String>::new();
         let mut src_wrapper_impl = Vec::<String>::new();
@@ -971,24 +971,25 @@ impl ParserBuilder {
         for nt in 0..self.parsing_table.num_nt {
             let flags = self.parsing_table.flags[nt];
             let has_value = self.nt_value[nt];
+            let nt_comment = format!("// {}", Symbol::NT(nt as VarId).to_str(self.get_symbol_table()));
             if self.parsing_table.parent[nt].is_none() {
                 let (nu, nl) = nt_name[nt].as_ref().unwrap();
                 if has_value && self.nt_has_flags(nt as VarId, ruleflag::R_RECURSION | ruleflag::L_FORM) {
                     src_listener_decl.push(format!("    fn init_{nl}() -> Syn{nu};"));
-                    src_init.push(format!("                    {nt} => self.init_{nl}(),"));
+                    src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
                     src_wrapper_impl.push(format!("    fn init_{nl}() {{"));
                     src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
                     src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                     src_wrapper_impl.push(format!("    }}"));
                 } else {
                     src_listener_decl.push(format!("    fn init_{nl}() {{}}"));
-                    src_init.push(format!("                    {nt} => self.listener.init_{nl}(),"));
+                    src_init.push(vec![format!("                    {nt} => self.listener.init_{nl}(),"), nt_comment]);
                 }
             } else {
                 if flags & ruleflag::CHILD_REPEAT != 0 {
                     if has_value {
                         let (nu, nl) = nt_name[nt].as_ref().unwrap();
-                        src_init.push(format!("                    {nt} => self.init_{nl}(),"));
+                        src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
                         src_wrapper_impl.push(format!("    fn init_{nl}() {{"));
                         if flags & ruleflag::L_FORM != 0 {
                             src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
@@ -1001,14 +1002,14 @@ impl ParserBuilder {
                     } else {
                         if flags & ruleflag::L_FORM != 0 {
                             let (nu, nl) = nt_name[nt].as_ref().unwrap();
-                            src_init.push(format!("                    {nt} => self.listener.init_{nl}(),"));
+                            src_init.push(vec![format!("                    {nt} => self.listener.init_{nl}(),"), nt_comment]);
                             src_listener_decl.push(format!("    fn init_{nl}() {{}}"));
                         } else {
-                            src_init.push(format!("                    {nt} => {{}}"));
+                            src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
                         }
                     }
                 } else if flags & (ruleflag::CHILD_L_RECURSION | ruleflag::CHILD_L_FACTOR) != 0 {
-                    src_init.push(format!("                    {nt} => {{}}"));
+                    src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
                 }
             }
 
@@ -1055,7 +1056,7 @@ impl ParserBuilder {
         src.push(format!("                    1 => {{}}                         // A_1"));
         src.push(format!("                    2 => {{}}                         // A_2"));
         */
-        src.extend(src_init);
+        src.extend(columns_to_str(src_init, Some(vec![64, 0])));
         src.push(format!("                    _ => panic!(\"unexpected enter non-terminal id: {{nt}}\")"));
         src.push(format!("                }}"));
         src.push(format!("            }}"));
