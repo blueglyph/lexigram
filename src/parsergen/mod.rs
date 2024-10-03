@@ -664,9 +664,11 @@ impl ParserBuilder {
                 let has_data = (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
                     pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT
                     || pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0;
-                let has_context = has_data || (!has_no_exit && pinfo.parent[nt].is_none());
+                let is_fact_placeholder = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 &&
+                    self.opcodes[i].iter().any(|op| matches!(op, &OpCode::NT(child) if pinfo.flags[child as usize] & ruleflag::CHILD_L_FACTOR != 0));
+                let has_context = (has_data && !is_fact_placeholder) || (!has_no_exit && pinfo.parent[nt].is_none());
                 if VERBOSE {
-                    println!("NT {nt}, factor {factor_id}: has_data = {has_data}, has_no_exit = {} = {} && {} ({}), parent_left_fact = {} => has_context = {has_context}",
+                    println!("NT {nt}, factor {factor_id}: has_data = {has_data} is_fact_placeholder = {is_fact_placeholder}, has_no_exit = {} = {} && {} ({}), parent_left_fact = {} => has_context = {has_context}",
                              has_no_exit,
                              pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0,
                              self.opcodes[i].len() == 1 && self.opcodes[i][0] == OpCode::Exit(i as VarId),
