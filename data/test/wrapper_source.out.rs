@@ -2237,9 +2237,8 @@ after,  NT with value: E, F
     pub enum CtxE {
         E1 { f: SynF },
         E2 { e: SynE },
-        E3 { e: SynE },
+        E3 { e: SynE, id: String },
         E4 { e: SynE, id: String },
-        E5 { e: SynE, id: String },
     }
     pub enum CtxF {
         F { id: String },
@@ -2426,6 +2425,215 @@ after,  NT with value: STRUCT, LIST
     }
 
 // [wrapper source for rule PRS(20) #1, start STRUCT]
+// ------------------------------------------------------------
+
+================================================================================
+Test 21: rules PRS(20) #2, start 0:
+before, NT with value: STRUCT
+after,  NT with value: STRUCT
+            // NT flags:
+            //  - LIST: right_rec (2)
+            // parents:
+            //  - (nothing)
+            (PRS(20), 0, btreemap![
+                0 => symbols![t 5],                     //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id
+                1 => symbols![t 5, t 5],                //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id
+                2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
+            ], Set(symbols![nt 0, t 5])),
+// ------------------------------------------------------------
+// [wrapper source for rule PRS(20) #2, start STRUCT]
+
+    pub enum Ctx { Struct { struct: SynStruct } }
+    pub enum CtxStruct {
+        Struct { id: String },
+    }
+    pub enum CtxList {
+        List1 { id: [String; 2] },
+        List2,
+    }
+
+    // User-defined: SynStruct
+
+    enum SynValue { Struct(SynStruct) }
+
+    impl SynValue {
+        fn get_struct(self) -> SynStruct {
+            let SynValue::Struct(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+        fn init_struct() {}
+        fn init_list() {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_struct(),           // STRUCT
+                        1 => self.listener.init_list(),             // LIST
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        fn exit(&mut self, _ctx: Ctx) {
+            let struct = self.stack.pop().unwrap().get_struct();
+            self.listener.exit(Ctx::Struct { struct });
+        }
+    }
+
+// [wrapper source for rule PRS(20) #2, start STRUCT]
+// ------------------------------------------------------------
+
+================================================================================
+Test 22: rules PRS(37) #1, start 0:
+before, NT with value: STRUCT, LIST
+after,  NT with value: STRUCT, LIST
+            // NT flags:
+            //  - LIST: right_rec | parent_left_fact (34)
+            //  - LIST_1: child_left_fact (64)
+            // parents:
+            //  - LIST_1 -> LIST
+            (PRS(37), 0, btreemap![
+                0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+                1 => symbols![],                        //  1: LIST -> }                  | ◄1 }                  |
+                2 => symbols![],                        //  2: LIST -> id LIST_1          | ►LIST_1 id!           |
+                3 => symbols![t 5, t 5],                //  3: LIST_1 -> : id ; LIST      | ●LIST ◄3 ; id! :      | id id
+                4 => symbols![t 5],                     //  4: LIST_1 -> ; LIST           | ●LIST ◄4 ;            | id
+            ], Default),
+// ------------------------------------------------------------
+// [wrapper source for rule PRS(37) #1, start STRUCT]
+
+    pub enum Ctx { Struct { struct: SynStruct } }
+    pub enum CtxStruct {
+        Struct { id: String, list: SynList },
+    }
+    pub enum CtxList {
+        List1,
+        List2 { id: [String; 2] },
+        List3 { id: String },
+    }
+
+    // User-defined: SynStruct, SynList
+
+    enum SynValue { Struct(SynStruct), List(SynList) }
+
+    impl SynValue {
+        fn get_struct(self) -> SynStruct {
+            if let SynValue::Struct(val) = self { val } else { panic!() }
+        }
+        fn get_list(self) -> SynList {
+            if let SynValue::List(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+        fn init_struct() {}
+        fn init_list() {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_struct(),           // STRUCT
+                        1 => self.listener.init_list(),             // LIST
+                        2 => {}                                     // LIST_1
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        fn exit(&mut self, _ctx: Ctx) {
+            let struct = self.stack.pop().unwrap().get_struct();
+            self.listener.exit(Ctx::Struct { struct });
+        }
+    }
+
+// [wrapper source for rule PRS(37) #1, start STRUCT]
 // ------------------------------------------------------------
 
 ================================================================================

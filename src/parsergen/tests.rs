@@ -821,6 +821,25 @@ mod wrapper_source {
                 1 => symbols![t 5, t 5, nt 1],          //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
                 2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
             ], Default),
+            (PRS(20), 0, btreemap![
+                0 => symbols![t 5],                     //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id
+                1 => symbols![t 5, t 5],                //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id
+                2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
+            ], Set(symbols![nt 0, t 5])),
+            // STRUCT -> 'struct' id '{' LIST
+            // LIST -> id ':' id ';' LIST | id ';' LIST | '}'
+            // NT flags:
+            //  - LIST: right_rec | parent_left_fact (34)
+            //  - LIST_1: child_left_fact (64)
+            // parents:
+            //  - LIST_1 -> LIST
+            (PRS(37), 0, btreemap![
+                0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+                1 => symbols![],                        //  1: LIST -> }                  | ◄1 }                  |
+                2 => symbols![],                        //  2: LIST -> id LIST_1          | ►LIST_1 id!           |
+                3 => symbols![t 5, t 5],                //  3: LIST_1 -> : id ; LIST      | ●LIST ◄3 ; id! :      | id id
+                4 => symbols![t 5],                     //  4: LIST_1 -> ; LIST           | ●LIST ◄4 ;            | id
+            ], Default),
             // STRUCT -> 'struct' id '{' LIST
             // LIST -> <L> id ':' id ';' LIST | '}'
             // NT flags:
