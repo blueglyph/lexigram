@@ -1401,9 +1401,9 @@ mod listener4 {
             }
 
             fn exit_list1(&mut self) {
+                let list = self.stack.pop().unwrap().get_list();
                 let id2 = self.stack_t.pop().unwrap();
                 let id1 = self.stack_t.pop().unwrap();
-                let list = self.stack.pop().unwrap().get_list();
                 let val = self.listener.iter_list(CtxList::List1 { id: [id1, id2], list });
                 self.stack.push(SynValue::List(val));
             }
