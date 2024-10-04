@@ -276,8 +276,9 @@ impl ParserBuilder {
                     new.remove(0);
                 }
             }
+            let parent_lrec_no_lfact = flags & (ruleflag::PARENT_L_RECURSION | ruleflag::PARENT_L_FACTOR) == ruleflag::PARENT_L_RECURSION;
             if flags & ruleflag::PARENT_L_FACTOR == 0 ||
-                flags & ruleflag::PARENT_L_RECURSION != 0 && parent.is_none() ||
+                parent_lrec_no_lfact ||
                 new.iter().all(|s| if let Symbol::NT(ch) = s { !self.nt_has_flags(*ch, ruleflag::CHILD_L_FACTOR) } else { true })
             {
                 // if it's not a parent of left factorization, or
@@ -295,7 +296,7 @@ impl ParserBuilder {
                 // swaps Exit(self) when it's in 2nd position (only happens in [Loop(_), Exit(self), ...],
                 // except right recursions that aren't left-form, because we let them unfold naturally (uses more stack)
                 opcode.swap(0, 1);
-            } else if flags & ruleflag::PARENT_L_RECURSION != 0 {
+            } else if parent_lrec_no_lfact {
                 // swaps Exit(self) and call to left recursive item so that the wrapper can issue an exit_NT
                 // with the correct context
                 opcode.swap(0, 1);
