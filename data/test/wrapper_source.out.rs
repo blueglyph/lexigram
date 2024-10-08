@@ -42,8 +42,8 @@ after,  NT with value: S, VAL
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_s() {}
-        fn init_val() {}
+        fn init_s(&mut self) {}
+        fn init_val(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -143,7 +143,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
+        fn init_a(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -200,7 +200,7 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
@@ -249,8 +249,8 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_a_iter() -> SynAIter;
+        fn init_a(&mut self) {}
+        fn init_a_iter(&mut self) -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -307,7 +307,7 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a_iter() {
+        fn init_a_iter(&mut self) {
             let val = self.listener.init_a_iter();
             self.stack.push(SynValue::AIter(val));
         }
@@ -354,8 +354,8 @@ item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: No
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_a_iter() {}
+        fn init_a(&mut self) {}
+        fn init_a_iter(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -462,8 +462,8 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_a_iter() -> SynAIter;
+        fn init_a(&mut self) {}
+        fn init_a_iter(&mut self) -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -521,7 +521,7 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a_iter() {
+        fn init_a_iter(&mut self) {
             let val = self.listener.init_a_iter();
             self.stack.push(SynValue::AIter(val));
         }
@@ -565,7 +565,7 @@ after,  NT with value: A
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
+        fn init_a(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -668,7 +668,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
+        fn init_a(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -726,7 +726,7 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
@@ -784,8 +784,8 @@ after,  NT with value: A, B, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_b() {}
+        fn init_a(&mut self) {}
+        fn init_b(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -844,7 +844,7 @@ after,  NT with value: A, B, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
@@ -902,8 +902,8 @@ after,  NT with value: A, B, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_b() {}
+        fn init_a(&mut self) {}
+        fn init_b(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -962,7 +962,7 @@ after,  NT with value: A, B, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
@@ -1058,8 +1058,8 @@ item_info =
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_b() {}
+        fn init_a(&mut self) {}
+        fn init_b(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -1118,11 +1118,11 @@ item_info =
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
-        fn init_a2() {
+        fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
@@ -1177,8 +1177,8 @@ after,  NT with value: A, A_2
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_b() {}
+        fn init_a(&mut self) {}
+        fn init_b(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -1237,7 +1237,7 @@ after,  NT with value: A, A_2
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a2() {
+        fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
@@ -1293,8 +1293,8 @@ after,  NT with value: A_1, A_2
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_b() {}
+        fn init_a(&mut self) {}
+        fn init_b(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -1352,11 +1352,11 @@ after,  NT with value: A_1, A_2
         fn exit(&mut self, _ctx: Ctx) {
             self.listener.exit(Ctx::A{ a: SynA() });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
-        fn init_a2() {
+        fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
@@ -1468,8 +1468,8 @@ item_info =
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_b() {}
+        fn init_a(&mut self) {}
+        fn init_b(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -1530,11 +1530,11 @@ item_info =
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
-        fn init_a2() {
+        fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
@@ -1596,8 +1596,8 @@ after,  NT with value: A_1, A_2
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_b() {}
+        fn init_a(&mut self) {}
+        fn init_b(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -1657,11 +1657,11 @@ after,  NT with value: A_1, A_2
         fn exit(&mut self, _ctx: Ctx) {
             self.listener.exit(Ctx::A{ a: SynA() });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
-        fn init_a2() {
+        fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
@@ -1714,8 +1714,8 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_a_iter() -> SynAIter;
+        fn init_a(&mut self) {}
+        fn init_a_iter(&mut self) -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -1773,7 +1773,7 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a_iter() {
+        fn init_a_iter(&mut self) {
             let val = self.listener.init_a_iter();
             self.stack.push(SynValue::AIter(val));
         }
@@ -1827,7 +1827,7 @@ after,  NT with value: A
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
+        fn init_a(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -1933,8 +1933,8 @@ after,  NT with value: E, F
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_e() {}
-        fn init_f() {}
+        fn init_e(&mut self) {}
+        fn init_f(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2042,8 +2042,8 @@ after,  NT with value: E, F
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_e() {}
-        fn init_f() {}
+        fn init_e(&mut self) {}
+        fn init_f(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2148,7 +2148,7 @@ after,  NT with value: A
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
+        fn init_a(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2255,7 +2255,7 @@ after,  NT with value: A
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
+        fn init_a(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2366,8 +2366,8 @@ after,  NT with value: E, F
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_e() {}
-        fn init_f() {}
+        fn init_e(&mut self) {}
+        fn init_f(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2471,8 +2471,8 @@ after,  NT with value: STRUCT, LIST
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_struct() {}
-        fn init_list() {}
+        fn init_struct(&mut self) {}
+        fn init_list(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2572,8 +2572,8 @@ after,  NT with value: STRUCT
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_struct() {}
-        fn init_list() {}
+        fn init_struct(&mut self) {}
+        fn init_list(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2679,8 +2679,8 @@ after,  NT with value: STRUCT, LIST
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_struct() {}
-        fn init_list() {}
+        fn init_struct(&mut self) {}
+        fn init_list(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2783,8 +2783,8 @@ after,  NT with value: STRUCT, LIST
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_struct() {}
-        fn init_list() -> SynList;
+        fn init_struct(&mut self) {}
+        fn init_list(&mut self) -> SynList;
     }
 
     struct ListenerWrapper<T> {
@@ -2841,7 +2841,7 @@ after,  NT with value: STRUCT, LIST
             let struct = self.stack.pop().unwrap().get_struct();
             self.listener.exit(Ctx::Struct { struct });
         }
-        fn init_list() {
+        fn init_list(&mut self) {
             let val = self.listener.init_list();
             self.stack.push(SynValue::List(val));
         }
@@ -2894,7 +2894,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
+        fn init_a(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2952,7 +2952,7 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
@@ -3008,7 +3008,7 @@ after,  NT with value: A, A_1
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
+        fn init_a(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -3067,7 +3067,7 @@ after,  NT with value: A, A_1
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
@@ -3133,7 +3133,7 @@ item_info:
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
+        fn init_a(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -3247,8 +3247,8 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a() {}
-        fn init_b() {}
+        fn init_a(&mut self) {}
+        fn init_b(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -3306,7 +3306,7 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
-        fn init_a1() {
+        fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }

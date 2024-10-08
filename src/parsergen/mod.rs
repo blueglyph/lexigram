@@ -945,17 +945,20 @@ impl ParserBuilder {
                 let flags = self.parsing_table.flags[nt];
                 let has_value = self.nt_value[nt];
                 let nt_comment = format!("// {}", Symbol::NT(*var).to_str(self.get_symbol_table()));
+
+                // Call::Enter
+
                 if self.parsing_table.parent[nt].is_none() {
                     let (nu, nl) = nt_name[nt].as_ref().unwrap();
                     if has_value && self.nt_has_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) {
-                        src_listener_decl.push(format!("    fn init_{nl}() -> Syn{nu};"));
+                        src_listener_decl.push(format!("    fn init_{nl}(&mut self) -> Syn{nu};"));
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
-                        src_wrapper_impl.push(format!("    fn init_{nl}() {{"));
+                        src_wrapper_impl.push(format!("    fn init_{nl}(&mut self) {{"));
                         src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
                         src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                         src_wrapper_impl.push(format!("    }}"));
                     } else {
-                        src_listener_decl.push(format!("    fn init_{nl}() {{}}"));
+                        src_listener_decl.push(format!("    fn init_{nl}(&mut self) {{}}"));
                         src_init.push(vec![format!("                    {nt} => self.listener.init_{nl}(),"), nt_comment]);
                     }
                 } else {
@@ -963,10 +966,10 @@ impl ParserBuilder {
                         if has_value {
                             let (nu, nl) = nt_name[nt].as_ref().unwrap();
                             src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
-                            src_wrapper_impl.push(format!("    fn init_{nl}() {{"));
+                            src_wrapper_impl.push(format!("    fn init_{nl}(&mut self) {{"));
                             if flags & ruleflag::L_FORM != 0 {
                                 src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
-                                src_listener_decl.push(format!("    fn init_{nl}() -> Syn{nu};"));
+                                src_listener_decl.push(format!("    fn init_{nl}(&mut self) -> Syn{nu};"));
                             } else {
                                 src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
                             }
@@ -976,7 +979,7 @@ impl ParserBuilder {
                             if flags & ruleflag::L_FORM != 0 {
                                 let (nu, nl) = nt_name[nt].as_ref().unwrap();
                                 src_init.push(vec![format!("                    {nt} => self.listener.init_{nl}(),"), nt_comment]);
-                                src_listener_decl.push(format!("    fn init_{nl}() {{}}"));
+                                src_listener_decl.push(format!("    fn init_{nl}(&mut self) {{}}"));
                             } else {
                                 src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
                             }
