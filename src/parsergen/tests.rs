@@ -793,6 +793,20 @@ mod wrapper_source {
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
                 4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
             ], Default),
+            //  - A: parent_left_fact | parent_left_rec (544)
+            //  - A_1: child_left_rec (4)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            (PRS(38), 0, btreemap![                     // A -> A a | A b | b c | b d
+                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
+                1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
+                2 => symbols![nt 0, t 1],               //  2: A_1 -> b A_1 | ●A_1 ◄2 b! | A b
+                3 => symbols![],                        //  3: A_1 -> ε     | ◄3         |
+                4 => symbols![t 1, t 2],                //  4: A_2 -> c A_1 | ►A_1 ◄4 c! | b c
+                5 => symbols![t 1, t 3],                //  5: A_2 -> d A_1 | ►A_1 ◄5 d! | b d
+            ], Default),
             // NT flags:
             //  - E: parent_left_rec (512)
             //  - E_1: child_left_rec | parent_left_fact (36)

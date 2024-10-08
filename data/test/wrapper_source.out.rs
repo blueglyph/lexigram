@@ -2212,6 +2212,113 @@ after,  NT with value: A
 // ------------------------------------------------------------
 
 ================================================================================
+Test 19: rules PRS(38) #1, start 0:
+before, NT with value: A
+after,  NT with value: A
+            // NT flags:
+            //  - A: parent_left_fact | parent_left_rec (544)
+            //  - A_1: child_left_rec (4)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            (PRS(38), 0, btreemap![
+                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
+                1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
+                2 => symbols![nt 0, t 1],               //  2: A_1 -> b A_1 | ●A_1 ◄2 b! | A b
+                3 => symbols![],                        //  3: A_1 -> ε     | ◄3         |
+                4 => symbols![t 1, t 2],                //  4: A_2 -> c A_1 | ►A_1 ◄4 c! | b c
+                5 => symbols![t 1, t 3],                //  5: A_2 -> d A_1 | ►A_1 ◄5 d! | b d
+            ], Default),
+// ------------------------------------------------------------
+// [wrapper source for rule PRS(38) #1, start A]
+
+    pub enum Ctx { A { a: SynA } }
+    pub enum CtxA {
+        A1 { a: SynA, a1: String },
+        A2 { a: SynA, b: String },
+        A3 { a: SynA },
+        A4 { b: String, c: String },
+        A5 { b: String, d: String },
+    }
+
+    // User-defined: SynA
+
+    enum SynValue { A(SynA) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            let SynValue::A(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a() {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => {}                                     // A_1
+                        2 => {}                                     // A_2
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        fn exit(&mut self, _ctx: Ctx) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(Ctx::A { a });
+        }
+    }
+
+// [wrapper source for rule PRS(38) #1, start A]
+// ------------------------------------------------------------
+
+================================================================================
 Test 18: rules PRS(32) #1, start 0:
 before, NT with value: E, F
 after,  NT with value: E, F
