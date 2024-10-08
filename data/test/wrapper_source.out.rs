@@ -2447,7 +2447,7 @@ after,  NT with value: STRUCT, LIST
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(20) #1, start STRUCT]
 
-    pub enum Ctx { Struct { struct: SynStruct } }
+    pub enum Ctx { Struct { struct1: SynStruct } }
     pub enum CtxStruct {
         Struct { id: String, list: SynList },
     }
@@ -2461,7 +2461,7 @@ after,  NT with value: STRUCT, LIST
     enum SynValue { Struct(SynStruct), List(SynList) }
 
     impl SynValue {
-        fn get_struct(self) -> SynStruct {
+        fn get_struct1(self) -> SynStruct {
             if let SynValue::Struct(val) = self { val } else { panic!() }
         }
         fn get_list(self) -> SynList {
@@ -2471,7 +2471,7 @@ after,  NT with value: STRUCT, LIST
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_struct(&mut self) {}
+        fn init_struct1(&mut self) {}
         fn init_list(&mut self) {}
     }
 
@@ -2501,7 +2501,7 @@ after,  NT with value: STRUCT, LIST
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_struct(),           // STRUCT
+                        0 => self.listener.init_struct1(),          // STRUCT
                         1 => self.listener.init_list(),             // LIST
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -2526,8 +2526,8 @@ after,  NT with value: STRUCT, LIST
 
     impl<T: LeftRecListener> ListenerWrapper<T> {
         fn exit(&mut self, _ctx: Ctx) {
-            let struct = self.stack.pop().unwrap().get_struct();
-            self.listener.exit(Ctx::Struct { struct });
+            let struct1 = self.stack.pop().unwrap().get_struct1();
+            self.listener.exit(Ctx::Struct { struct1 });
         }
     }
 
@@ -2550,7 +2550,7 @@ after,  NT with value: STRUCT
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(20) #2, start STRUCT]
 
-    pub enum Ctx { Struct { struct: SynStruct } }
+    pub enum Ctx { Struct { struct1: SynStruct } }
     pub enum CtxStruct {
         Struct { id: String },
     }
@@ -2564,7 +2564,7 @@ after,  NT with value: STRUCT
     enum SynValue { Struct(SynStruct) }
 
     impl SynValue {
-        fn get_struct(self) -> SynStruct {
+        fn get_struct1(self) -> SynStruct {
             let SynValue::Struct(val) = self;
             val
         }
@@ -2572,7 +2572,7 @@ after,  NT with value: STRUCT
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_struct(&mut self) {}
+        fn init_struct1(&mut self) {}
         fn init_list(&mut self) {}
     }
 
@@ -2602,7 +2602,7 @@ after,  NT with value: STRUCT
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_struct(),           // STRUCT
+                        0 => self.listener.init_struct1(),          // STRUCT
                         1 => self.listener.init_list(),             // LIST
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -2627,8 +2627,8 @@ after,  NT with value: STRUCT
 
     impl<T: LeftRecListener> ListenerWrapper<T> {
         fn exit(&mut self, _ctx: Ctx) {
-            let struct = self.stack.pop().unwrap().get_struct();
-            self.listener.exit(Ctx::Struct { struct });
+            let struct1 = self.stack.pop().unwrap().get_struct1();
+            self.listener.exit(Ctx::Struct { struct1 });
         }
     }
 
@@ -2654,7 +2654,7 @@ after,  NT with value: STRUCT, LIST
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(37) #1, start STRUCT]
 
-    pub enum Ctx { Struct { struct: SynStruct } }
+    pub enum Ctx { Struct { struct1: SynStruct } }
     pub enum CtxStruct {
         Struct { id: String, list: SynList },
     }
@@ -2669,7 +2669,7 @@ after,  NT with value: STRUCT, LIST
     enum SynValue { Struct(SynStruct), List(SynList) }
 
     impl SynValue {
-        fn get_struct(self) -> SynStruct {
+        fn get_struct1(self) -> SynStruct {
             if let SynValue::Struct(val) = self { val } else { panic!() }
         }
         fn get_list(self) -> SynList {
@@ -2679,7 +2679,7 @@ after,  NT with value: STRUCT, LIST
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_struct(&mut self) {}
+        fn init_struct1(&mut self) {}
         fn init_list(&mut self) {}
     }
 
@@ -2709,7 +2709,7 @@ after,  NT with value: STRUCT, LIST
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_struct(),           // STRUCT
+                        0 => self.listener.init_struct1(),          // STRUCT
                         1 => self.listener.init_list(),             // LIST
                         2 => {}                                     // LIST_1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
@@ -2735,8 +2735,8 @@ after,  NT with value: STRUCT, LIST
 
     impl<T: LeftRecListener> ListenerWrapper<T> {
         fn exit(&mut self, _ctx: Ctx) {
-            let struct = self.stack.pop().unwrap().get_struct();
-            self.listener.exit(Ctx::Struct { struct });
+            let struct1 = self.stack.pop().unwrap().get_struct1();
+            self.listener.exit(Ctx::Struct { struct1 });
         }
     }
 
@@ -2759,7 +2759,7 @@ after,  NT with value: STRUCT, LIST
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(30) #1, start STRUCT]
 
-    pub enum Ctx { Struct { struct: SynStruct } }
+    pub enum Ctx { Struct { struct1: SynStruct } }
     pub enum CtxStruct {
         Struct { id: String, list: SynList },
     }
@@ -2773,7 +2773,7 @@ after,  NT with value: STRUCT, LIST
     enum SynValue { Struct(SynStruct), List(SynList) }
 
     impl SynValue {
-        fn get_struct(self) -> SynStruct {
+        fn get_struct1(self) -> SynStruct {
             if let SynValue::Struct(val) = self { val } else { panic!() }
         }
         fn get_list(self) -> SynList {
@@ -2783,7 +2783,7 @@ after,  NT with value: STRUCT, LIST
 
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
-        fn init_struct(&mut self) {}
+        fn init_struct1(&mut self) {}
         fn init_list(&mut self) -> SynList;
     }
 
@@ -2813,7 +2813,7 @@ after,  NT with value: STRUCT, LIST
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_struct(),           // STRUCT
+                        0 => self.listener.init_struct1(),          // STRUCT
                         1 => self.init_list(),                      // LIST
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -2838,8 +2838,8 @@ after,  NT with value: STRUCT, LIST
 
     impl<T: LeftRecListener> ListenerWrapper<T> {
         fn exit(&mut self, _ctx: Ctx) {
-            let struct = self.stack.pop().unwrap().get_struct();
-            self.listener.exit(Ctx::Struct { struct });
+            let struct1 = self.stack.pop().unwrap().get_struct1();
+            self.listener.exit(Ctx::Struct { struct1 });
         }
         fn init_list(&mut self) {
             let val = self.listener.init_list();

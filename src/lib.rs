@@ -156,8 +156,16 @@ pub struct NameFixer {
 }
 
 impl NameFixer {
+    const RUST_KEYWORDS: [&'static str; 51] = [
+        "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn", "for", "if", "impl", "in",
+        "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return", "self", "Self", "static", "struct", "super",
+        "trait", "true", "type", "unsafe", "use", "where", "while", "async", "await", "dyn", "abstract", "become", "box",
+        "do", "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield", "try"];
+
     pub fn new() -> Self {
-        NameFixer { dic: HashSet::new() }
+        let mut dic = HashSet::<String>::new();
+        dic.extend(Self::RUST_KEYWORDS.iter().map(|s| s.to_string()));
+        NameFixer { dic }
     }
 
     /// Returns `name` if it's unique, or adds a suffix number first to make sure it's unique.
