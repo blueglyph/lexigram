@@ -1,6 +1,6 @@
 #![allow(dead_code)]  // TODO: remove
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -286,6 +286,33 @@ impl ParserBuilder {
         g.iter().flat_map(|c|
             self.var_factors[*c as usize].iter().map(|f| (*c, *f))
         ).collect::<Vec<_>>()
+    }
+
+    /// Gathers all the alternatives in NT, and if some of them are parent_l_fact, search the
+    /// terminal child_l_fact instead. The result is the set of contexts that are used to
+    /// call self.listener.exit_<NT>(ctx) for a right-rec, a left-rec parent, a left-rec child, ...
+    fn gather_factors(&self, nt: VarId) -> Vec<FactorId> {
+        const VERBOSE: bool = false;
+        let mut alt = vec![];
+        let mut explore = VecDeque::<VarId>::new();
+        explore.push_back(nt);
+        while !explore.is_empty() {
+            let var = explore.pop_front().unwrap();
+            if VERBOSE { println!("{var}: alt = {} | explore = {}", alt.iter().join(", "), explore.iter().join(", ")); }
+            for f in &self.var_factors[var as usize] {
+                let (_, prodfactor) = &self.parsing_table.factors[*f as usize];
+                if let Some(Symbol::NT(last)) = prodfactor.symbols().last() {
+                    if self.nt_has_flags(*last, ruleflag::CHILD_L_FACTOR) {
+                        // only one factor calls NT(last), so we won't push it twice in explore:
+                        explore.push_back(*last);
+                        continue;
+                    }
+                }
+                alt.push(*f);
+            }
+            if VERBOSE { println!("  => alt = {} | explore = {}", alt.iter().join(", "), explore.iter().join(", ")); }
+        }
+        alt
     }
 
     fn build_item_ops(&mut self) {
