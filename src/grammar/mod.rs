@@ -770,7 +770,7 @@ pub type ProdRule = Vec<ProdFactor>;
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct ProdFactor {
     v: Vec<Symbol>,
-    flags: u32
+    flags: u32          // only for L_FORM and R_ASSOC
 }
 
 impl ProdFactor {
