@@ -173,6 +173,20 @@ impl NameFixer {
         name
     }
 
+    /// Returns `name` followed by "1" if it's unique, or adds another incremental suffix number to make sure it's unique.
+    pub fn get_unique_name_num(&mut self, mut name: String) -> String {
+        let len = name.len();
+        let mut index = 1;
+        Self::add_number(&mut name, index);
+        while self.dic.contains(&name) {
+            name.truncate(len);
+            index += 1;
+            Self::add_number(&mut name, index);
+        }
+        self.dic.insert(name.clone());
+        name
+    }
+
     pub fn add_number(s: &mut String, num: usize) {
         if s.ends_with(|c: char| c.is_digit(10)) {
             s.push('_');
@@ -332,6 +346,17 @@ mod libtests {
         assert_eq!(fixer.get_unique_name("a".to_string()), "a2");
         assert_eq!(fixer.get_unique_name("U2".to_string()), "U2");
         assert_eq!(fixer.get_unique_name("U2".to_string()), "U2_1");
+    }
+
+    #[test]
+    fn test_name_fixer_num() {
+        let mut fixer = NameFixer::new();
+        assert_eq!(fixer.get_unique_name_num("a".to_string()), "a1");
+        assert_eq!(fixer.get_unique_name_num("a".to_string()), "a2");
+        assert_eq!(fixer.get_unique_name_num("b".to_string()), "b1");
+        assert_eq!(fixer.get_unique_name_num("a".to_string()), "a3");
+        assert_eq!(fixer.get_unique_name_num("U2".to_string()), "U2_1");
+        assert_eq!(fixer.get_unique_name_num("U2".to_string()), "U2_2");
     }
 
     #[test]
