@@ -934,9 +934,10 @@ impl ParserBuilder {
 
         // Prepares the data for the following sections
         let mut src_init = Vec::<Vec<String>>::new();
-        let mut src_exit = Vec::<String>::new();
+        let mut src_exit = Vec::<Vec<String>>::new();
         let mut src_listener_decl = Vec::<String>::new();
         let mut src_wrapper_impl = Vec::<String>::new();
+        let mut exit_fixer = NameFixer::new();
 
         // we proceed by var parent, then all factors in each parent/children group
         for (_parent_id, group) in self.nt_parent.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
@@ -989,6 +990,92 @@ impl ParserBuilder {
                     }
                 }
 
+                // Call::Exit
+
+                fn make_choices(factors: &Vec<FactorId>, name: &str) -> Vec<String> {
+                    assert!(!factors.is_empty(), "factors cannot be empty");
+                    if factors.len() == 1 {
+                        vec![format!("                    {} => self.{name}(),", factors[0])]
+                    } else {
+                        let mut choices = (0..factors.len() - 1).map(|i| format!("                    {} |", factors[i])).to_vec();
+                        choices.push(format!("                    {} => self.{name}(factor_id),", factors.last().unwrap()));
+                        choices
+                    }
+                }
+
+                if flags & ruleflag::R_RECURSION != 0 {
+                    //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+                    //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
+                    //  2: LIST -> }                  | ◄2 }                  |
+
+                    // with l-form:
+                    //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+                    //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | LIST id id
+                    //  2: LIST -> }                  | ◄2 }                  | LIST
+
+                    // with l-fact:
+                    //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
+                    //  1: LIST -> }                  | ◄1 }                  |
+                    //  2: LIST -> id LIST_1          | ►LIST_1 id!           |
+                    //  3: LIST_1 -> : id ; LIST      | ●LIST ◄3 ; id! :      | id id
+                    //  4: LIST_1 -> ; LIST           | ●LIST ◄4 ;            | id
+                    let (nu, nl) = nt_name[nt].as_ref().unwrap();
+                    if flags & ruleflag::L_FORM == 0 {
+                        if has_value {
+                            src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) -> Syn{nu};"));
+                        } else {
+                            src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) {{}}"));
+                        }
+                        let (loop_factors, init_factors): (Vec<FactorId>, Vec<FactorId>) = self.gather_factors(nt as VarId).into_iter().partition(|f|
+                            self.parsing_table.factors[*f as usize].1.last() == Some(&Symbol::NT(nt as VarId))
+                        );
+
+                        // loop factor(s):
+                        let loop_name = exit_fixer.get_unique_name_num(format!("exit_{nl}"));
+                        let choices = make_choices(&loop_factors, &loop_name);
+                        let comments = loop_factors.iter().map(|f| {
+                            let (v, pf) = &self.parsing_table.factors[*f as usize];
+                            format!("// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table()))
+                        }).to_vec();
+                        src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
+                        src_wrapper_impl.push(format!("    fn {loop_name}(&mut self{}) {{", if loop_factors.len() > 1 { ", factor_id: FactorId" } else { "" }));
+                        if loop_factors.len() == 1 {
+                            let mut var_fixer = NameFixer::new(); todo!("manage indexed vars to be put in one or several []");
+                            let f = loop_factors[0];
+                            for var in item_info[f as usize].iter().rev() {
+                                if var.index.is_some() { src_wrapper_impl.push("        // this should be []:".to_string()); }
+                                if let Symbol::NT(nt) = var.sym {
+                                    src_wrapper_impl.push(format!("        let {} = self.stack.pop().unwrap().get_{}();", var.name, nt_name[nt as usize].as_ref().unwrap().1));
+                                } else {
+                                    src_wrapper_impl.push(format!("        let {} = self.stack_t.pop().unwrap();", var.name));
+                                }
+                            }
+                            let ctx_params = item_info[f as usize].iter().map(|info| info.name.clone()).join(", ");
+                            let ctx = if ctx_params.is_empty() { "".to_string() } else { format!(" {{ {ctx_params} }}") };
+                            src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}(Ctx{nu}{ctx})", if has_value { "let val = " } else { "" }));
+
+                        } else {
+
+                        }
+                        src_wrapper_impl.push(format!("    }}"));
+
+                        // init factor(s), which is in fact the last iteration before the stack is unwound:
+                        let init_name = exit_fixer.get_unique_name_num(format!("exit_{nl}"));
+                        let choices = make_choices(&init_factors, &init_name);
+                        let comments = init_factors.iter().map(|f| {
+                            let (v, pf) = &self.parsing_table.factors[*f as usize];
+                            format!("// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table()))
+                        }).to_vec();
+                        src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
+                        src_wrapper_impl.push(format!("    fn {init_name}(&mut self{}) {{", if init_factors.len() > 1 { ", factor_id: FactorId" } else { "" }));
+                        src_wrapper_impl.push(format!("    }}"));
+                    }
+
+                } else if flags & ruleflag::PARENT_L_RECURSION != 0 {
+
+                } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
+
+                }
             }
         }
 
@@ -1048,7 +1135,7 @@ impl ParserBuilder {
         src.push(format!("                    3 |                             //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c"));
         src.push(format!("                    4 => self.exit_a_2(factor_id),  //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d"));
         */
-        src.extend(src_exit);
+        src.extend(columns_to_str(src_exit, Some(vec![64, 0])));
         src.push(format!("                    _ => panic!(\"unexpected exit factor id: {{factor_id}}\")"));
         src.push(format!("                }}"));
         src.push(format!("            }}"));
