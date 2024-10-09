@@ -528,7 +528,7 @@ impl ParserBuilder {
     ///     2: [ItemInfo { name: "b", sym: NT(1), .. }, ItemInfo { name: "c", sym: T(2), .. }]
     /// }
     /// ```
-    fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Vec<(FactorId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
+    fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Vec<(FactorId, String)>>, Vec<Option<String>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
         const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
@@ -558,140 +558,161 @@ impl ParserBuilder {
             }
         }).to_vec();
 
+        // todo: remove nt_info
         let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; pinfo.num_nt];
+        let mut factor_info: Vec<Option<String>> = vec![None; pinfo.factors.len()];
         let mut nt_repeat = HashMap::<VarId, Vec<ItemInfo>>::new();
-        let item_info: Vec<Vec<ItemInfo>> = (0..pinfo.factors.len()).map(|i| {
-            let factor_id = i as FactorId;
-            let nt = pinfo.factors[i].0 as usize;
-            if let Some(item_ops) = self.item_ops.get(&factor_id) {
-                // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
-                // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
-                // - different symbols, which means T vs NT, must have different names (e.g. `NT(A)` becomes "a",
-                //   `T(a)` becomes "a", too => one is renamed to "a1" to avoid the collision: `{ a: SynA, a1: String }`)
-                let mut indices = HashMap::<Symbol, (String, Option<usize>)>::new();
-                let mut fixer = NameFixer::new();
-                let mut owner = pinfo.factors[i].0;
-                while let Some(parent) = pinfo.parent[owner as usize] {
-                    if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
-                        // a child + * is owner
-                        // - if <L>, it has its own public context and a user-defined return type
-                        // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
-                        // (we keep the loop for +, which has a left factorization, too)
-                        break;
-                    }
-                    owner = parent;
-                }
-                let is_nt_repeat = pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
-                for s in item_ops {
-                    if let Symbol::NT(v) = s {
-                        if nt_name[*v as usize].is_none() {
-                            let name = self.symbol_table.get_nt_name(*v);
-                            nt_name[*v as usize] = Some((nt_upper_fixer.get_unique_name(name.to_camelcase()),
-                                                         nt_lower_fixer.get_unique_name(name.to_underscore_lowercase())));
-                        }
-                    }
-                    if let Some((_, c)) = indices.get_mut(s) {
-                        *c = Some(0);
-                    } else {
-                        let name = if let Symbol::NT(vs) = s {
-                            let flag = pinfo.flags[*vs as usize];
-                            if flag & ruleflag::CHILD_REPEAT != 0 {
-                                let inside_factor_id = self.var_factors[*vs as usize][0];
-                                let inside_factor = &pinfo.factors[inside_factor_id as usize].1;
-                                if false {
-                                    let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
-                                    plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
-                                    plus_name
-                                } else {
-                                    if is_nt_repeat && indices.is_empty() {
-                                        // iterator variable in a + * loop (visible with <L>, for ex)
-                                        if flag & ruleflag::REPEAT_PLUS != 0 { "plus_it".to_string() } else { "star_it".to_string() }
-                                    } else {
-                                        // reference to a + * result
-                                        if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
-                                    }
-                                }
-                            } else {
-                                nt_name[*vs as usize].clone().unwrap().1
+        let mut item_info: Vec<Vec<ItemInfo>> = vec![vec![]; pinfo.factors.len()];
+        for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
+            for nt in group {
+                let mut prev_i = None;
+                for &factor_id in &self.var_factors[*nt as usize] {
+                    let i = factor_id as usize;
+                    let nt = pinfo.factors[i].0 as usize;
+                    item_info[i] = if let Some(item_ops) = self.item_ops.get(&factor_id) {
+                        // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
+                        // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
+                        // - different symbols, which means T vs NT, must have different names (e.g. `NT(A)` becomes "a",
+                        //   `T(a)` becomes "a", too => one is renamed to "a1" to avoid the collision: `{ a: SynA, a1: String }`)
+                        let mut indices = HashMap::<Symbol, (String, Option<usize>)>::new();
+                        let mut fixer = NameFixer::new();
+                        let mut owner = pinfo.factors[i].0;
+                        while let Some(parent) = pinfo.parent[owner as usize] {
+                            if pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0 {
+                                // a child + * is owner
+                                // - if <L>, it has its own public context and a user-defined return type
+                                // - if not <L>, it has no context and a generator-defined return type (like Vec<String>)
+                                // (we keep the loop for +, which has a left factorization, too)
+                                break;
                             }
-                        } else {
-                            s.to_str(self.get_symbol_table()).to_lowercase()
-                        };
-                        indices.insert(*s, (fixer.get_unique_name(name), None));
-                    }
-                }
-                let has_no_exit = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 ||
-                    (pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0 &&
-                     self.opcodes[i].len() == 1 && self.opcodes[i][0] == OpCode::Exit(i as FactorId));
-                let has_data = (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
-                    pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT
-                    || pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0;
-                let is_fact_placeholder = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 &&
-                    self.opcodes[i].iter().any(|op| matches!(op, &OpCode::NT(child) if pinfo.flags[child as usize] & ruleflag::CHILD_L_FACTOR != 0));
-                let has_context = (has_data && !is_fact_placeholder) || (!has_no_exit && pinfo.parent[nt].is_none());
-                if VERBOSE {
-                    println!("NT {nt}, factor {factor_id}: has_data = {has_data} is_fact_placeholder = {is_fact_placeholder}, has_no_exit = {} = {} && {} ({}), parent_left_fact = {} => has_context = {has_context}",
-                             has_no_exit,
-                             pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0,
-                             self.opcodes[i].len() == 1 && self.opcodes[i][0] == OpCode::Exit(i as VarId),
-                             self.opcodes[i].iter().map(|op| op.to_str(self.get_symbol_table())).join(" "),
-                             pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0
-                    );
-                }
-                if has_context {
-                    let len = nt_info[owner as usize].len();
-                    if len == 1 {
-                        NameFixer::add_number(&mut nt_info[owner as usize][0].1, 1);
-                    }
-                    let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
-                    if len > 0 { NameFixer::add_number(&mut name, len + 1); };
-                    nt_info[owner as usize].push((factor_id, name));
-                }
-                if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
-                    // we put here the return context for the final exit of left recursive rule
-                    // let parent = pinfo.parent[nt].unwrap();
-                    vec![ItemInfo {
-                        name: nt_name[owner as usize].as_ref().map(|n| n.1.clone()).unwrap(),
-                        sym: Symbol::NT(owner as VarId),
-                        owner: owner,
-                        is_vec: false,
-                        index: None,
-                    }]
-                } else {
-                    let infos = item_ops.into_iter().map(|s| {
-                        let index = if let Some((_, Some(index))) = indices.get_mut(s) {
-                            let idx = *index;
-                            *index += 1;
-                            Some(idx)
-                        } else {
-                            None
-                        };
-                        ItemInfo {
-                            name: indices[&s].0.clone(),
-                            sym: s.clone(),
-                            owner,
-                            is_vec: false,
-                            index,
+                            owner = parent;
                         }
-                    }).to_vec();
-                    if is_nt_repeat && infos.len() > 1 && !nt_repeat.contains_key(&owner) {
-                        let iter = infos.iter().skip(1).cloned().to_vec();
-                        if iter.len() > 1 || !iter[0].sym.is_t() {
-                            nt_repeat.insert(owner, iter);
+                        let is_nt_repeat = pinfo.flags[owner as usize] & ruleflag::CHILD_REPEAT != 0;
+                        for s in item_ops {
+                            if let Symbol::NT(v) = s {
+                                if nt_name[*v as usize].is_none() {
+                                    let name = self.symbol_table.get_nt_name(*v);
+                                    nt_name[*v as usize] = Some((nt_upper_fixer.get_unique_name(name.to_camelcase()),
+                                                                 nt_lower_fixer.get_unique_name(name.to_underscore_lowercase())));
+                                }
+                            }
+                            if let Some((_, c)) = indices.get_mut(s) {
+                                *c = Some(0);
+                            } else {
+                                let name = if let Symbol::NT(vs) = s {
+                                    let flag = pinfo.flags[*vs as usize];
+                                    if flag & ruleflag::CHILD_REPEAT != 0 {
+                                        let inside_factor_id = self.var_factors[*vs as usize][0];
+                                        let inside_factor = &pinfo.factors[inside_factor_id as usize].1;
+                                        if false {
+                                            let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
+                                            plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
+                                            plus_name
+                                        } else {
+                                            if is_nt_repeat && indices.is_empty() {
+                                                // iterator variable in a + * loop (visible with <L>, for ex)
+                                                if flag & ruleflag::REPEAT_PLUS != 0 { "plus_it".to_string() } else { "star_it".to_string() }
+                                            } else {
+                                                // reference to a + * result
+                                                if flag & ruleflag::REPEAT_PLUS != 0 { "plus".to_string() } else { "star".to_string() }
+                                            }
+                                        }
+                                    } else {
+                                        nt_name[*vs as usize].clone().unwrap().1
+                                    }
+                                } else {
+                                    s.to_str(self.get_symbol_table()).to_lowercase()
+                                };
+                                indices.insert(*s, (fixer.get_unique_name(name), None));
+                            }
                         }
-                    }
-                    infos
+                        let has_no_exit = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 ||
+                            (pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0 &&
+                             self.opcodes[i].len() == 1 && self.opcodes[i][0] == OpCode::Exit(i as FactorId));
+                        let has_data = (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
+                            pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT
+                            || pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0;
+                        let is_fact_placeholder = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 &&
+                            self.opcodes[i].iter().any(|op| matches!(op, &OpCode::NT(child) if pinfo.flags[child as usize] & ruleflag::CHILD_L_FACTOR != 0));
+                        let has_context = (has_data && !is_fact_placeholder) || (!has_no_exit && pinfo.parent[nt].is_none());
+                        if VERBOSE {
+                            print!("NT {nt}, factor {factor_id}: has_data = {has_data} is_fact_placeholder = {is_fact_placeholder}");
+                            println!(", has_no_exit = {} = {} && {} ({}), parent_left_fact = {} => has_context = {has_context}",
+                                     has_no_exit,
+                                     pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0,
+                                     self.opcodes[i].len() == 1 && self.opcodes[i][0] == OpCode::Exit(i as VarId),
+                                     self.opcodes[i].iter().map(|op| op.to_str(self.get_symbol_table())).join(" "),
+                                     pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0
+                            );
+                        }
+                        if has_context {
+                            // todo: remove nt_info
+                            let len = nt_info[owner as usize].len();
+                            if len == 1 {
+                                NameFixer::add_number(&mut nt_info[owner as usize][0].1, 1);
+                                // todo: remove this awful hack with last_i:
+                                if let Some(last_i) = prev_i {
+                                    // work-around for compiler, which is unable to handle factor_info[last_i].as_mut(), for some reason
+                                    let s: Option<String> = std::mem::take(&mut factor_info[last_i]);
+                                    let mut s2 = s.unwrap();
+                                    NameFixer::add_number(&mut s2, 1);
+                                    factor_info[last_i] = Some(s2);
+                                }
+                            }
+                            let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
+                            if len > 0 { NameFixer::add_number(&mut name, len + 1); };
+                            nt_info[owner as usize].push((factor_id, name.clone()));
+                            factor_info[i] = Some(name);
+                            prev_i = Some(i);
+                        }
+                        if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
+                            // we put here the return context for the final exit of left recursive rule
+                            // let parent = pinfo.parent[nt].unwrap();
+                            vec![ItemInfo {
+                                name: nt_name[owner as usize].as_ref().map(|n| n.1.clone()).unwrap(),
+                                sym: Symbol::NT(owner as VarId),
+                                owner: owner,
+                                is_vec: false,
+                                index: None,
+                            }]
+                        } else {
+                            let infos = item_ops.into_iter().map(|s| {
+                                let index = if let Some((_, Some(index))) = indices.get_mut(s) {
+                                    let idx = *index;
+                                    *index += 1;
+                                    Some(idx)
+                                } else {
+                                    None
+                                };
+                                ItemInfo {
+                                    name: indices[&s].0.clone(),
+                                    sym: s.clone(),
+                                    owner,
+                                    is_vec: false,
+                                    index,
+                                }
+                            }).to_vec();
+                            if is_nt_repeat && infos.len() > 1 && !nt_repeat.contains_key(&owner) {
+                                let iter = infos.iter().skip(1).cloned().to_vec();
+                                if iter.len() > 1 || !iter[0].sym.is_t() {
+                                    nt_repeat.insert(owner, iter);
+                                }
+                            }
+                            infos
+                        }
+                    } else {
+                        vec![]
+                    };
                 }
-            } else {
-                vec![]
             }
-        }).to_vec();
+        }
 
         if VERBOSE {
             println!("NT names: {}", nt_name.iter()
                 .filter_map(|n| if let Some((u, l)) = n { Some(format!("{u}/{l}")) } else { None })
                 .join(", "));
             println!("NT info:");
+            // todo: remove nt_info
             for (v, factor_names) in nt_info.iter().enumerate() {
                 if !factor_names.is_empty() {
                     println!("- {}:", Symbol::NT(v as VarId).to_str(self.get_symbol_table()));
@@ -711,11 +732,12 @@ impl ParserBuilder {
             }
             println!();
         }
-        // println!("nt_name: {nt_name:?}");
-        // println!("nt_info: {nt_info:?}");
-        // println!("item_info: {item_info:?}");
-        // println!("nt_repeat: {nt_repeat:?}");
-        (nt_name, nt_info, item_info, nt_repeat)
+        println!("nt_name: {nt_name:?}");
+        println!("nt_info: {nt_info:?}");
+        println!("factor_info: {factor_info:?}");
+        println!("item_info: {item_info:?}");
+        println!("nt_repeat: {nt_repeat:?}");
+        (nt_name, nt_info, factor_info, item_info, nt_repeat)
     }
 
     pub fn make_parser(self) -> Parser {
@@ -852,7 +874,7 @@ impl ParserBuilder {
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
 
-        let (nt_name, nt_info, item_info, nt_repeat) = self.get_type_info();
+        let (nt_name, nt_info, factor_info, item_info, nt_repeat) = self.get_type_info();
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
@@ -863,6 +885,7 @@ impl ParserBuilder {
         } else {
             panic!("{} has no name", Symbol::NT(self.start).to_str(self.get_symbol_table()));
         }
+        // todo: remove nt_info
         for (v, factor_names) in nt_info.iter().enumerate().filter(|(_, f)| !f.is_empty()) {
             src.push(format!("pub enum Ctx{} {{", nt_name[v].clone().unwrap().0));
             for (f_id, f_name) in factor_names {
@@ -1079,6 +1102,7 @@ impl ParserBuilder {
                                     }
                                 }
                             }).join(", ");
+/*
                             let nt_factor = self.parsing_table.factors[f as usize].0 as usize;
                             let f_relative = (f - self.var_factors[nt_factor][0]) as usize;
                             let ctx = if ctx_params.is_empty() {
@@ -1087,6 +1111,15 @@ impl ParserBuilder {
                                 // println!("nt={nt}, f = {f}, f_relative={f_relative}, var_factors = {:?}", self.var_factors);
                                 format!("Ctx{nu}::{} {{ {ctx_params} }}", nt_info[nt][f_relative].1)
                             };
+*/
+                            let ctx = if ctx_params.is_empty() {
+                                format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap())
+                            } else {
+                                // println!("nt={nt}, f = {f}, f_relative={f_relative}, var_factors = {:?}", self.var_factors);
+                                format!("Ctx{nu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap())
+                            };
+
+
                             if is_single {
                                 src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}({ctx});", if has_value { "let val = " } else { "" }));
                                 if has_value {
