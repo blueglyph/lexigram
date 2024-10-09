@@ -1026,12 +1026,12 @@ impl ParserBuilder {
                         } else {
                             src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) {{}}"));
                         }
-                        // TODO: move everything into loop
-                        //       let loop_factors = self.gather_factors(nt as VarId);
+                        let loop_factors = self.gather_factors(nt as VarId);
+/*
                         let (loop_factors, init_factors): (Vec<FactorId>, Vec<FactorId>) = self.gather_factors(nt as VarId).into_iter().partition(|f|
                             self.parsing_table.factors[*f as usize].1.last() == Some(&Symbol::NT(nt as VarId))
                         );
-
+*/
                         // loop factor(s):
                         let loop_name = exit_fixer.get_unique_name_num(format!("exit_{nl}"));
                         let choices = make_choices(&loop_factors, &loop_name);
@@ -1041,12 +1041,19 @@ impl ParserBuilder {
                         }).to_vec();
                         src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
                         src_wrapper_impl.push(format!("    fn {loop_name}(&mut self{}) {{", if loop_factors.len() > 1 { ", factor_id: FactorId" } else { "" }));
-                        if loop_factors.len() == 1 {
+                        let is_single = loop_factors.len() == 1;
+                        let indent = if is_single { "        " } else { "                " };
+                        if !is_single {
+                            src_wrapper_impl.push(format!("        let ctx = match factor_id {{"));
+                        }
+                        for f in loop_factors {
                             let mut var_fixer = NameFixer::new();
                             let mut indices = HashMap::<Symbol, Vec<String>>::new();
                             let mut non_indices = Vec::<String>::new();
-                            let f = loop_factors[0];
-                            for item in item_info[f as usize].iter().rev() {
+                            if !is_single {
+                                src_wrapper_impl.push(format!("            {f} => {{"));
+                            }
+                            for (i, item) in item_info[f as usize].iter().rev().enumerate() {
                                 let varname = if let Some(index) = item.index {
                                     let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
                                     indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);
@@ -1056,10 +1063,10 @@ impl ParserBuilder {
                                     non_indices.push(name.clone());
                                     name
                                 };
-                                if let Symbol::NT(nt) = item.sym {
-                                    src_wrapper_impl.push(format!("        let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[nt as usize].as_ref().unwrap().1));
+                                if let Symbol::NT(v) = item.sym {
+                                    src_wrapper_impl.push(format!("{indent}let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].as_ref().unwrap().1));
                                 } else {
-                                    src_wrapper_impl.push(format!("        let {varname} = self.stack_t.pop().unwrap();"));
+                                    src_wrapper_impl.push(format!("{indent}let {varname} = self.stack_t.pop().unwrap();"));
                                 }
                             }
                             let ctx_params = item_info[f as usize].iter().filter_map(|item| {
@@ -1078,19 +1085,34 @@ impl ParserBuilder {
                                     }
                                 }
                             }).join(", ");
-                            let ctx = if ctx_params.is_empty() { "".to_string() } else { format!(" {{ {ctx_params} }}") };
-                            let f_relative = (f - self.var_factors[nt][0]) as usize;
-                            src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}(Ctx{nu}::{}{ctx})",
-                                                          if has_value { "let val = " } else { "" }, nt_info[nt][f_relative].1));
+                            let nt_factor = self.parsing_table.factors[f as usize].0 as usize;
+                            let f_relative = (f - self.var_factors[nt_factor][0]) as usize;
+                            let ctx = if ctx_params.is_empty() {
+                                format!("Ctx{nu}::{}", nt_info[nt][f_relative].1)
+                            } else {
+                                // println!("nt={nt}, f = {f}, f_relative={f_relative}, var_factors = {:?}", self.var_factors);
+                                format!("Ctx{nu}::{} {{ {ctx_params} }}", nt_info[nt][f_relative].1)
+                            };
+                            if is_single {
+                                src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}({ctx});", if has_value { "let val = " } else { "" }));
+                                if has_value {
+                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                                }
+                            } else {
+                                src_wrapper_impl.push(format!("{indent}{ctx}"));
+                                src_wrapper_impl.push(format!("            }}"));
+                            }
+                        }
+                        if !is_single {
+                            src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {loop_name}\")"));
+                            src_wrapper_impl.push(format!("        }};"));
+                            src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}(ctx);", if has_value { "let val = " } else { "" }));
                             if has_value {
                                 src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                             }
-                        } else {
-
                         }
                         src_wrapper_impl.push(format!("    }}"));
 /*
-                        // TODO: move everything into loop
                         // init factor(s), which is in fact the last iteration before the stack is unwound:
                         let init_name = exit_fixer.get_unique_name_num(format!("exit_{nl}"));
                         let choices = make_choices(&init_factors, &init_name);
