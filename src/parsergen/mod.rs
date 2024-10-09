@@ -153,13 +153,17 @@ impl ParserBuilder {
         let start = ll1_rules.get_start().unwrap();
         let parsing_table = ll1_rules.create_parsing_table();
         let symbol_table = ll1_rules.symbol_table().expect(stringify!("symbol table is requires to create a {}", std::any::type_name::<Self>()));
+        let mut var_factors = vec![vec![]; num_nt];
+        for (factor_id, (var_id, _)) in parsing_table.factors.iter().enumerate() {
+            var_factors[*var_id as usize].push(factor_id as FactorId);
+        }
         let mut builder = ParserBuilder {
             parsing_table,
             symbol_table,
             name,
             nt_value: vec![false; num_nt],
             nt_parent: Vec::new(),
-            var_factors: Vec::new(),
+            var_factors,
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
             start
@@ -319,10 +323,6 @@ impl ParserBuilder {
         const VERBOSE: bool = false;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
-        self.var_factors = vec![vec![]; info.num_nt];
-        for (factor_id, (var_id, _)) in info.factors.iter().enumerate() {
-            self.var_factors[*var_id as usize].push(factor_id as FactorId);
-        }
         let mut nt_parent: Vec<Vec<VarId>> = vec![vec![]; info.num_nt];
         for var_id in 0..info.num_nt {
             let mut top_var_id = var_id;
@@ -533,11 +533,6 @@ impl ParserBuilder {
         const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
-        let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]; pinfo.num_nt];
-        for (factor_id, (var_id, _)) in pinfo.factors.iter().enumerate() {
-            var_factors[*var_id as usize].push(factor_id as FactorId);
-        }
-
         let mut nt_upper_fixer = NameFixer::new();
         let mut nt_lower_fixer = NameFixer::new();
         let mut nt_name: Vec<Option<(String, String)>> = (0..pinfo.num_nt).map(|v| {
@@ -602,7 +597,7 @@ impl ParserBuilder {
                         let name = if let Symbol::NT(vs) = s {
                             let flag = pinfo.flags[*vs as usize];
                             if flag & ruleflag::CHILD_REPEAT != 0 {
-                                let inside_factor_id = var_factors[*vs as usize][0];
+                                let inside_factor_id = self.var_factors[*vs as usize][0];
                                 let inside_factor = &pinfo.factors[inside_factor_id as usize].1;
                                 if false {
                                     let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
