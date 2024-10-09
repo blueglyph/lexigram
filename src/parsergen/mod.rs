@@ -333,18 +333,18 @@ impl ParserBuilder {
         }
         if VERBOSE {
             println!("Groups:");
-            for (parent_id, group) in nt_parent.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
-                let group = self.get_group_factors(group);
+            for g in nt_parent.iter().filter(|vf| !vf.is_empty()) {
+                let group = self.get_group_factors(g);
                 let ids = group.iter().map(|(v, _)| *v).collect::<BTreeSet<VarId>>();
                 println!("{}: {}, factors {}",
-                         Symbol::NT(parent_id as VarId).to_str(self.get_symbol_table()),
+                         Symbol::NT(g[0]).to_str(self.get_symbol_table()),
                     ids.iter().map(|v| Symbol::NT(*v).to_str(self.get_symbol_table())).join(", "),
                     group.iter().map(|(_, f)| f.to_string()).join(", ")
                 );
             }
         }
         // we proceed by var parent, then all factors in each parent/children group
-        for (_parent_id, g) in nt_parent.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
+        for g in nt_parent.iter().filter(|vf| !vf.is_empty()) {
             // takes all the factors in the group (and their NT ID):
             let group = self.get_group_factors(g);
             let mut change = true;
@@ -354,7 +354,7 @@ impl ParserBuilder {
                 if VERBOSE {
                     let ids = group.iter().map(|(v, _)| *v).collect::<BTreeSet<VarId>>();
                     println!("parent: {}, NT with value: {}",
-                             Symbol::NT(_parent_id as VarId).to_str(self.get_symbol_table()),
+                             Symbol::NT(g[0]).to_str(self.get_symbol_table()),
                              ids.into_iter().filter_map(|v|
                                  if self.nt_value[v as usize] { Some(Symbol::NT(v as VarId).to_str(self.get_symbol_table())) } else { None }
                              ).join(", "));
@@ -940,7 +940,7 @@ impl ParserBuilder {
         let mut exit_fixer = NameFixer::new();
 
         // we proceed by var parent, then all factors in each parent/children group
-        for (_parent_id, group) in self.nt_parent.iter().enumerate().filter(|(_, vf)| !vf.is_empty()) {
+        for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             for var in group {
                 let nt = *var as usize;
                 let flags = self.parsing_table.flags[nt];
