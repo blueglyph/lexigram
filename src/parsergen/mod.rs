@@ -157,12 +157,20 @@ impl ParserBuilder {
         for (factor_id, (var_id, _)) in parsing_table.factors.iter().enumerate() {
             var_factors[*var_id as usize].push(factor_id as FactorId);
         }
+        let mut nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
+        for var_id in 0..num_nt {
+            let mut top_var_id = var_id;
+            while let Some(parent) = parsing_table.parent[top_var_id] {
+                top_var_id = parent as usize;
+            }
+            nt_parent[top_var_id].push(var_id as VarId);
+        }
         let mut builder = ParserBuilder {
             parsing_table,
             symbol_table,
             name,
             nt_value: vec![false; num_nt],
-            nt_parent: Vec::new(),
+            nt_parent,
             var_factors,
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
@@ -323,17 +331,9 @@ impl ParserBuilder {
         const VERBOSE: bool = false;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
-        let mut nt_parent: Vec<Vec<VarId>> = vec![vec![]; info.num_nt];
-        for var_id in 0..info.num_nt {
-            let mut top_var_id = var_id;
-            while let Some(parent) = info.parent[top_var_id] {
-                top_var_id = parent as usize;
-            }
-            nt_parent[top_var_id].push(var_id as VarId);
-        }
         if VERBOSE {
             println!("Groups:");
-            for g in nt_parent.iter().filter(|vf| !vf.is_empty()) {
+            for g in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
                 let group = self.get_group_factors(g);
                 let ids = group.iter().map(|(v, _)| *v).collect::<BTreeSet<VarId>>();
                 println!("{}: {}, factors {}",
@@ -344,7 +344,7 @@ impl ParserBuilder {
             }
         }
         // we proceed by var parent, then all factors in each parent/children group
-        for g in nt_parent.iter().filter(|vf| !vf.is_empty()) {
+        for g in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             // takes all the factors in the group (and their NT ID):
             let group = self.get_group_factors(g);
             let mut change = true;
@@ -481,7 +481,6 @@ impl ParserBuilder {
                 }
             }
         }
-        self.nt_parent = nt_parent;
         self.item_ops = items;
     }
 
