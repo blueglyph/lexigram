@@ -1020,21 +1020,6 @@ impl ParserBuilder {
                 }
 
                 if flags & ruleflag::R_RECURSION != 0 {
-                    //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
-                    //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
-                    //  2: LIST -> }                  | ◄2 }                  |
-
-                    // with l-form:
-                    //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
-                    //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | LIST id id
-                    //  2: LIST -> }                  | ◄2 }                  | LIST
-
-                    // with l-fact:
-                    //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
-                    //  1: LIST -> }                  | ◄1 }                  |
-                    //  2: LIST -> id LIST_1          | ►LIST_1 id!           |
-                    //  3: LIST_1 -> : id ; LIST      | ●LIST ◄3 ; id! :      | id id
-                    //  4: LIST_1 -> ; LIST           | ●LIST ◄4 ;            | id
                     let (nu, nl) = nt_name[nt].as_ref().unwrap();
                     if has_value {
                         src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) -> Syn{nu};"));
