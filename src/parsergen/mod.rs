@@ -487,7 +487,7 @@ impl ParserBuilder {
     /// Calculates nt_name, nt_info, item_info
     ///
     /// * `nt_name[var]: Option<(String, String)>` contains upper-case and lower-case unique identifiers for each parent NT
-    /// * `nt_info[var]: Vec<(FactorId, String)>` contains the enum variant names for each context
+    /// * `factor_info[factor]: Vec<Option<(VarId, String)>>` contains the enum variant names for each context (must be regrouped by VarId)
     /// * `item_info[factor]: Vec<ItemInfo>` contains the data available on the stacks when exiting the factor
     /// * `nt_repeat[var]: HashMap<VarId, Vec<ItemInfo>>` contains the data of + and * items
     ///
@@ -516,7 +516,7 @@ impl ParserBuilder {
     /// // User-defined: SynA, SynB
     ///
     /// nt_name = [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1"))]
-    /// nt_info = [[(0, "A1"), (1, "A2")], [(2, "B")], []]
+    /// factor_info: [Some((0, "A1")), Some((0, "A2")), Some((1, "B")), None, None]
     /// item_info = [
     ///     [ItemInfo { name: "star", sym: NT(2), .. }, ItemInfo { name: "b", sym: T(1), .. }],
     ///     [ItemInfo { name: "a", sym: T(0), .. }],
@@ -528,7 +528,7 @@ impl ParserBuilder {
     ///     2: [ItemInfo { name: "b", sym: NT(1), .. }, ItemInfo { name: "c", sym: T(2), .. }]
     /// }
     /// ```
-    fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Vec<(FactorId, String)>>, Vec<Option<String>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
+    fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
         const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
@@ -558,9 +558,7 @@ impl ParserBuilder {
             }
         }).to_vec();
 
-        // todo: remove nt_info
-        let mut nt_info: Vec<Vec<(FactorId, String)>> = vec![vec![]; pinfo.num_nt];
-        let mut factor_info: Vec<Option<String>> = vec![None; pinfo.factors.len()];
+        let mut factor_info: Vec<Option<(VarId, String)>> = vec![None; pinfo.factors.len()];
         let mut nt_repeat = HashMap::<VarId, Vec<ItemInfo>>::new();
         let mut item_info: Vec<Vec<ItemInfo>> = vec![vec![]; pinfo.factors.len()];
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
@@ -646,23 +644,19 @@ impl ParserBuilder {
                             );
                         }
                         if has_context {
-                            // todo: remove nt_info
                             let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
                             group_names.entry(name.clone())
                                 .and_modify(|(last_i, number)| {
                                     if *number == 1 {
-                                        NameFixer::add_number(&mut nt_info[owner as usize][0].1, 1);
-                                        NameFixer::add_number(factor_info[*last_i].as_mut().unwrap(), 1);
+                                        NameFixer::add_number(&mut factor_info[*last_i].as_mut().unwrap().1, 1);
                                     }
                                     NameFixer::add_number(&mut name, *number + 1);
-                                    nt_info[owner as usize].push((factor_id, name.clone()));
-                                    factor_info[i] = Some(name.clone());
+                                    factor_info[i] = Some((owner, name.clone()));
                                     *last_i = i;
                                     *number += 1;
                                 })
                                 .or_insert_with(|| {
-                                    nt_info[owner as usize].push((factor_id, name.clone()));
-                                    factor_info[i] = Some(name);
+                                    factor_info[i] = Some((owner, name));
                                     (i, 1)
                                 });
                         }
@@ -712,33 +706,21 @@ impl ParserBuilder {
             println!("NT names: {}", nt_name.iter()
                 .filter_map(|n| if let Some((u, l)) = n { Some(format!("{u}/{l}")) } else { None })
                 .join(", "));
-            println!("NT info:");
-            // todo: remove nt_info
-            for (v, factor_names) in nt_info.iter().enumerate() {
-                if !factor_names.is_empty() {
-                    println!("- {}:", Symbol::NT(v as VarId).to_str(self.get_symbol_table()));
-                    for f in factor_names {
-                        // TODO: - fetch all parents' information to rebuild after factorization
-                        //       - process other transformations
-                        // let factor = &info.factors[f.0 as usize];
-                        // println!("  - // {} -> {}",
-                        //          Symbol::NT(factor.0).to_str(self.get_symbol_table()),
-                        //          factor.1.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
-                        // );
-                        println!("  - {}: {} {{ {} }}", f.0, f.1,
-                            item_info[f.0 as usize].iter().map(|info| info.to_str(self.get_symbol_table())).join(", ")
-                        );
-                    }
+            println!("factor info:");
+            for factor_names in &factor_info {
+                if let Some((v, name)) = factor_names {
+                    println!("- {}: {name}", Symbol::NT(*v).to_str(self.get_symbol_table()));
+                    // TODO: - fetch all parents' information to rebuild after factorization
+                    //       - process other transformations
                 }
             }
             println!();
         }
         println!("nt_name: {nt_name:?}");
-        println!("nt_info: {nt_info:?}");
         println!("factor_info: {factor_info:?}");
         println!("item_info: {item_info:?}");
         println!("nt_repeat: {nt_repeat:?}");
-        (nt_name, nt_info, factor_info, item_info, nt_repeat)
+        (nt_name, factor_info, item_info, nt_repeat)
     }
 
     pub fn make_parser(self) -> Parser {
@@ -875,7 +857,7 @@ impl ParserBuilder {
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
 
-        let (nt_name, nt_info, factor_info, item_info, nt_repeat) = self.get_type_info();
+        let (nt_name, factor_info, item_info, nt_repeat) = self.get_type_info();
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
@@ -886,18 +868,34 @@ impl ParserBuilder {
         } else {
             panic!("{} has no name", Symbol::NT(self.start).to_str(self.get_symbol_table()));
         }
-        // todo: remove nt_info
-        for (v, factor_names) in nt_info.iter().enumerate().filter(|(_, f)| !f.is_empty()) {
-            src.push(format!("pub enum Ctx{} {{", nt_name[v].clone().unwrap().0));
-            for (f_id, f_name) in factor_names {
-                let ctx_content = Self::source_infos(&item_info[*f_id as usize], &nt_name);
-                if ctx_content.is_empty() {
-                    src.push(format!("    {f_name},", ))
-                } else {
-                    src.push(format!("    {f_name} {{ {ctx_content} }},", ))
+
+        for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
+            let mut group_names = HashMap::<VarId, Vec<FactorId>>::new();
+            // fetches the NT that have factor data
+            for nt in group {
+                for &factor_id in &self.var_factors[*nt as usize] {
+                    if let Some((owner, name)) = &factor_info[factor_id as usize] {
+                        group_names.entry(*owner)
+                            .and_modify(|v| v.push(factor_id))
+                            .or_insert_with(|| vec![factor_id]);
+                    }
                 }
             }
-            src.push(format!("}}"));
+            for &nt in group {
+                if let Some(factors) = group_names.get(&nt) {
+                    src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].as_ref().unwrap().0));
+                    for &f_id in factors {
+                        let ctx_content = Self::source_infos(&item_info[f_id as usize], &nt_name);
+                        let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
+                        if ctx_content.is_empty() {
+                            src.push(format!("    {f_name},", ))
+                        } else {
+                            src.push(format!("    {f_name} {{ {ctx_content} }},", ))
+                        }
+                    }
+                    src.push(format!("}}"));
+                }
+            }
         }
 
         // Writes intermediate Syn types
@@ -1103,21 +1101,12 @@ impl ParserBuilder {
                                     }
                                 }
                             }).join(", ");
-/*
-                            let nt_factor = self.parsing_table.factors[f as usize].0 as usize;
-                            let f_relative = (f - self.var_factors[nt_factor][0]) as usize;
+
                             let ctx = if ctx_params.is_empty() {
-                                format!("Ctx{nu}::{}", nt_info[nt][f_relative].1)
+                                format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap().1)
                             } else {
                                 // println!("nt={nt}, f = {f}, f_relative={f_relative}, var_factors = {:?}", self.var_factors);
-                                format!("Ctx{nu}::{} {{ {ctx_params} }}", nt_info[nt][f_relative].1)
-                            };
-*/
-                            let ctx = if ctx_params.is_empty() {
-                                format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap())
-                            } else {
-                                // println!("nt={nt}, f = {f}, f_relative={f_relative}, var_factors = {:?}", self.var_factors);
-                                format!("Ctx{nu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap())
+                                format!("Ctx{nu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
                             };
 
 
