@@ -564,11 +564,11 @@ impl ParserBuilder {
         let mut nt_repeat = HashMap::<VarId, Vec<ItemInfo>>::new();
         let mut item_info: Vec<Vec<ItemInfo>> = vec![vec![]; pinfo.factors.len()];
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
+            let mut prev_i: Option<(String, usize, usize)> = None;
             for nt in group {
-                let mut prev_i = None;
-                for &factor_id in &self.var_factors[*nt as usize] {
+                let nt = *nt as usize;
+                for &factor_id in &self.var_factors[nt] {
                     let i = factor_id as usize;
-                    let nt = pinfo.factors[i].0 as usize;
                     item_info[i] = if let Some(item_ops) = self.item_ops.get(&factor_id) {
                         // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
                         // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
@@ -647,21 +647,28 @@ impl ParserBuilder {
                         }
                         if has_context {
                             // todo: remove nt_info
-                            let len = nt_info[owner as usize].len();
-                            if len == 1 {
-                                NameFixer::add_number(&mut nt_info[owner as usize][0].1, 1);
-                                // todo: remove this awful hack with last_i:
-                                if let Some(last_i) = prev_i {
-                                    let x: &mut Option<String> = &mut factor_info[last_i];
-                                    let y: &mut String = x.as_mut().unwrap();
-                                    NameFixer::add_number(y, 1);
-                                }
-                            }
                             let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
-                            if len > 0 { NameFixer::add_number(&mut name, len + 1); };
-                            nt_info[owner as usize].push((factor_id, name.clone()));
-                            factor_info[i] = Some(name);
-                            prev_i = Some(i);
+                            if let Some((last_name, last_i, number)) = prev_i {
+                                if last_name == name {
+                                    if number == 1 {
+                                        NameFixer::add_number(&mut nt_info[owner as usize][0].1, 1);
+                                        let a = factor_info[last_i].as_mut().unwrap();
+                                        NameFixer::add_number(a, 1);
+                                    }
+                                    prev_i = Some((name.clone(), i, number + 1));
+                                    NameFixer::add_number(&mut name, number + 1);
+                                    nt_info[owner as usize].push((factor_id, name.clone()));
+                                    factor_info[i] = Some(name);
+                                } else {
+                                    nt_info[owner as usize].push((factor_id, name.clone()));
+                                    prev_i = Some((name.clone(), i, 1));
+                                    factor_info[i] = Some(name);
+                                }
+                            } else {
+                                nt_info[owner as usize].push((factor_id, name.clone()));
+                                prev_i = Some((name.clone(), i, 1));
+                                factor_info[i] = Some(name);
+                            };
                         }
                         if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
                             // we put here the return context for the final exit of left recursive rule
@@ -1018,7 +1025,7 @@ impl ParserBuilder {
                     }
                 }
 
-                if flags & ruleflag::R_RECURSION != 0 {
+                if false && flags & ruleflag::R_RECURSION != 0 {
                     //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
                     //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
                     //  2: LIST -> }                  | ◄2 }                  |
