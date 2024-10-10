@@ -1129,18 +1129,6 @@ impl ParserBuilder {
                             }
                         }
                         src_wrapper_impl.push(format!("    }}"));
-/*
-                        // init factor(s), which is in fact the last iteration before the stack is unwound:
-                        let init_name = exit_fixer.get_unique_name_num(format!("exit_{nl}"));
-                        let choices = make_choices(&init_factors, &init_name);
-                        let comments = init_factors.iter().map(|f| {
-                            let (v, pf) = &self.parsing_table.factors[*f as usize];
-                            format!("// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table()))
-                        }).to_vec();
-                        src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
-                        src_wrapper_impl.push(format!("    fn {init_name}(&mut self{}) {{", if init_factors.len() > 1 { ", factor_id: FactorId" } else { "" }));
-                        src_wrapper_impl.push(format!("    }}"));
-*/
                     }
 
                 } else if flags & ruleflag::PARENT_L_RECURSION != 0 {
