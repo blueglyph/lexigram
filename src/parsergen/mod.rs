@@ -1008,7 +1008,7 @@ impl ParserBuilder {
 
                 // Call::Exit
 
-                fn make_choices(factors: &Vec<FactorId>, name: &str) -> Vec<String> {
+                fn make_match_choices(factors: &Vec<FactorId>, name: &str) -> Vec<String> {
                     assert!(!factors.is_empty(), "factors cannot be empty");
                     if factors.len() == 1 {
                         vec![format!("                    {} => self.{name}(),", factors[0])]
@@ -1042,27 +1042,21 @@ impl ParserBuilder {
                         } else {
                             src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) {{}}"));
                         }
-                        let loop_factors = self.gather_factors(nt as VarId);
-/*
-                        let (loop_factors, init_factors): (Vec<FactorId>, Vec<FactorId>) = self.gather_factors(nt as VarId).into_iter().partition(|f|
-                            self.parsing_table.factors[*f as usize].1.last() == Some(&Symbol::NT(nt as VarId))
-                        );
-*/
-                        // loop factor(s):
-                        let loop_name = exit_fixer.get_unique_name_num(format!("exit_{nl}"));
-                        let choices = make_choices(&loop_factors, &loop_name);
-                        let comments = loop_factors.iter().map(|f| {
+                        let exit_factors = self.gather_factors(nt as VarId);
+                        let exit_name = exit_fixer.get_unique_name_num(format!("exit_{nl}"));
+                        let choices = make_match_choices(&exit_factors, &exit_name);
+                        let comments = exit_factors.iter().map(|f| {
                             let (v, pf) = &self.parsing_table.factors[*f as usize];
                             format!("// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table()))
                         }).to_vec();
                         src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
-                        src_wrapper_impl.push(format!("    fn {loop_name}(&mut self{}) {{", if loop_factors.len() > 1 { ", factor_id: FactorId" } else { "" }));
-                        let is_single = loop_factors.len() == 1;
+                        src_wrapper_impl.push(format!("    fn {exit_name}(&mut self{}) {{", if exit_factors.len() > 1 { ", factor_id: FactorId" } else { "" }));
+                        let is_single = exit_factors.len() == 1;
                         let indent = if is_single { "        " } else { "                " };
                         if !is_single {
                             src_wrapper_impl.push(format!("        let ctx = match factor_id {{"));
                         }
-                        for f in loop_factors {
+                        for f in exit_factors {
                             let mut var_fixer = NameFixer::new();
                             let mut indices = HashMap::<Symbol, Vec<String>>::new();
                             let mut non_indices = Vec::<String>::new();
@@ -1101,15 +1095,12 @@ impl ParserBuilder {
                                     }
                                 }
                             }).join(", ");
-
                             let ctx = if ctx_params.is_empty() {
                                 format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap().1)
                             } else {
                                 // println!("nt={nt}, f = {f}, f_relative={f_relative}, var_factors = {:?}", self.var_factors);
                                 format!("Ctx{nu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
                             };
-
-
                             if is_single {
                                 src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}({ctx});", if has_value { "let val = " } else { "" }));
                                 if has_value {
@@ -1121,7 +1112,7 @@ impl ParserBuilder {
                             }
                         }
                         if !is_single {
-                            src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {loop_name}\")"));
+                            src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {exit_name}\")"));
                             src_wrapper_impl.push(format!("        }};"));
                             src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}(ctx);", if has_value { "let val = " } else { "" }));
                             if has_value {
