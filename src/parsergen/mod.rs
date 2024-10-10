@@ -652,11 +652,9 @@ impl ParserBuilder {
                                 NameFixer::add_number(&mut nt_info[owner as usize][0].1, 1);
                                 // todo: remove this awful hack with last_i:
                                 if let Some(last_i) = prev_i {
-                                    // work-around for compiler, which is unable to handle factor_info[last_i].as_mut(), for some reason
-                                    let s: Option<String> = std::mem::take(&mut factor_info[last_i]);
-                                    let mut s2 = s.unwrap();
-                                    NameFixer::add_number(&mut s2, 1);
-                                    factor_info[last_i] = Some(s2);
+                                    let x: &mut Option<String> = &mut factor_info[last_i];
+                                    let y: &mut String = x.as_mut().unwrap();
+                                    NameFixer::add_number(y, 1);
                                 }
                             }
                             let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
