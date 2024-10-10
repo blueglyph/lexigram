@@ -564,7 +564,7 @@ impl ParserBuilder {
         let mut nt_repeat = HashMap::<VarId, Vec<ItemInfo>>::new();
         let mut item_info: Vec<Vec<ItemInfo>> = vec![vec![]; pinfo.factors.len()];
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
-            let mut prev_i: Option<(String, usize, usize)> = None;
+            let mut group_names = HashMap::<String, (usize, usize)>::new();
             for nt in group {
                 let nt = *nt as usize;
                 for &factor_id in &self.var_factors[nt] {
@@ -648,27 +648,23 @@ impl ParserBuilder {
                         if has_context {
                             // todo: remove nt_info
                             let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
-                            if let Some((last_name, last_i, number)) = prev_i {
-                                if last_name == name {
-                                    if number == 1 {
+                            group_names.entry(name.clone())
+                                .and_modify(|(last_i, number)| {
+                                    if *number == 1 {
                                         NameFixer::add_number(&mut nt_info[owner as usize][0].1, 1);
-                                        let a = factor_info[last_i].as_mut().unwrap();
-                                        NameFixer::add_number(a, 1);
+                                        NameFixer::add_number(factor_info[*last_i].as_mut().unwrap(), 1);
                                     }
-                                    prev_i = Some((name.clone(), i, number + 1));
-                                    NameFixer::add_number(&mut name, number + 1);
+                                    NameFixer::add_number(&mut name, *number + 1);
+                                    nt_info[owner as usize].push((factor_id, name.clone()));
+                                    factor_info[i] = Some(name.clone());
+                                    *last_i = i;
+                                    *number += 1;
+                                })
+                                .or_insert_with(|| {
                                     nt_info[owner as usize].push((factor_id, name.clone()));
                                     factor_info[i] = Some(name);
-                                } else {
-                                    nt_info[owner as usize].push((factor_id, name.clone()));
-                                    prev_i = Some((name.clone(), i, 1));
-                                    factor_info[i] = Some(name);
-                                }
-                            } else {
-                                nt_info[owner as usize].push((factor_id, name.clone()));
-                                prev_i = Some((name.clone(), i, 1));
-                                factor_info[i] = Some(name);
-                            };
+                                    (i, 1)
+                                });
                         }
                         if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
                             // we put here the return context for the final exit of left recursive rule
@@ -1025,7 +1021,7 @@ impl ParserBuilder {
                     }
                 }
 
-                if false && flags & ruleflag::R_RECURSION != 0 {
+                if flags & ruleflag::R_RECURSION != 0 {
                     //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
                     //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
                     //  2: LIST -> }                  | ◄2 }                  |
