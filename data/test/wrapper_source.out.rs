@@ -2473,6 +2473,7 @@ after,  NT with value: STRUCT, LIST
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_struct1(&mut self) {}
         fn init_list(&mut self) {}
+        fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
 
     struct ListenerWrapper<T> {
@@ -2509,6 +2510,8 @@ after,  NT with value: STRUCT, LIST
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 |                                         // LIST -> id : id ; LIST
+                        2 => self.exit_list1(factor_id),            // LIST -> }
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2528,6 +2531,22 @@ after,  NT with value: STRUCT, LIST
         fn exit(&mut self, _ctx: Ctx) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
+        }
+        fn exit_list1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let list = self.stack.pop().unwrap().get_list();
+                    let id_2 = self.stack_t.pop().unwrap();
+                    let id_1 = self.stack_t.pop().unwrap();
+                    CtxList::List1 { id: [id_1, id_2], list }
+                }
+                2 => {
+                    CtxList::List2
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_list1")
+            };
+            let val = self.listener.exit_list(ctx);
+            self.stack.push(SynValue::List(val));
         }
     }
 
@@ -2574,6 +2593,7 @@ after,  NT with value: STRUCT
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_struct1(&mut self) {}
         fn init_list(&mut self) {}
+        fn exit_list(&mut self, _ctx: CtxList) {}
     }
 
     struct ListenerWrapper<T> {
@@ -2610,6 +2630,8 @@ after,  NT with value: STRUCT
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 |                                         // LIST -> id : id ; LIST
+                        2 => self.exit_list1(factor_id),            // LIST -> }
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2629,6 +2651,20 @@ after,  NT with value: STRUCT
         fn exit(&mut self, _ctx: Ctx) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
+        }
+        fn exit_list1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let id_2 = self.stack_t.pop().unwrap();
+                    let id_1 = self.stack_t.pop().unwrap();
+                    CtxList::List1 { id: [id_1, id_2] }
+                }
+                2 => {
+                    CtxList::List2
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_list1")
+            };
+            self.listener.exit_list(ctx);
         }
     }
 
@@ -2681,6 +2717,7 @@ after,  NT with value: STRUCT, LIST
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_struct1(&mut self) {}
         fn init_list(&mut self) {}
+        fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
 
     struct ListenerWrapper<T> {
@@ -2718,6 +2755,9 @@ after,  NT with value: STRUCT, LIST
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 |                                         // LIST -> }
+                        3 |                                         // LIST_1 -> : id ; LIST
+                        4 => self.exit_list1(factor_id),            // LIST_1 -> ; LIST
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2737,6 +2777,25 @@ after,  NT with value: STRUCT, LIST
         fn exit(&mut self, _ctx: Ctx) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
+        }
+        fn exit_list1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    CtxList::List1
+                }
+                3 => {
+                    let id_2 = self.stack_t.pop().unwrap();
+                    let id_1 = self.stack_t.pop().unwrap();
+                    CtxList::List2 { id: [id_1, id_2] }
+                }
+                4 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxList::List3 { id }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_list1")
+            };
+            let val = self.listener.exit_list(ctx);
+            self.stack.push(SynValue::List(val));
         }
     }
 
