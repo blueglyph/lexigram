@@ -1698,27 +1698,27 @@ mod listener5 {
 
             fn init_e_1(&mut self) {
                 let f = self.stack.pop().unwrap().get_f();
-                let e = self.listener.exit_e(CtxE::F { f });
-                self.stack.push(SynValue::E(e));
+                let val = self.listener.exit_e(CtxE::F { f });
+                self.stack.push(SynValue::E(val));
             }
 
             fn exit_f(&mut self) {
                 let id = self.stack_t.pop().unwrap();
-                let f = self.listener.exit_f(CtxF::F { id });
-                self.stack.push(SynValue::F(f));
+                let val = self.listener.exit_f(CtxF::F { id });
+                self.stack.push(SynValue::F(val));
             }
 
             fn exit_e_1(&mut self) {
                 let id = self.stack_t.pop().unwrap();
                 let e = self.stack.pop().unwrap().get_e();
-                let e = self.listener.exit_e(CtxE::E_Id { e, id });
-                self.stack.push(SynValue::E(e));
+                let val = self.listener.exit_e(CtxE::E_Id { e, id });
+                self.stack.push(SynValue::E(val));
             }
 
             fn exit_e(&mut self) {
                 let e = self.stack.pop().unwrap().get_e();
-                let e = self.listener.exit_e(CtxE::E { e });
-                self.stack.push(SynValue::E(e));
+                let val = self.listener.exit_e(CtxE::E { e });
+                self.stack.push(SynValue::E(val));
             }
         }
 
@@ -1934,8 +1934,8 @@ mod listener6 {
             E_Id_par { e: SynE, id: String },
             /// Factor `E -> F`
             F { f: SynF },
-            // optional last call not used:
-            // E { e: SynE },
+            /// end of loop
+            E { e: SynE },
         }
         #[derive(Debug)]
         pub enum CtxF {
@@ -2001,12 +2001,12 @@ mod listener6 {
                     Call::Loop => {}
                     Call::Exit => {
                         match factor_id {
-                            0 => self.init_e_1(),               //  0: E -> F E_1      - ►E_1 ◄0 ►F
-                            1 => self.exit_f(),                 //  1: F -> id         - ◄1 id!
-                            /* no exit */                       //  2: E_1 -> . id E_2 - ►E_2 id! .
-                            3 => /*self.exit_e()*/ {}           //  3: E_1 -> ε        - ◄3             (optional last call not used)
-                            4 |                                 //  4: E_2 -> ( ) E_1  - ●E_1 ◄4 ) (
-                            5 => self.exit_e_2(factor_id),      //  5: E_2 -> E_1      - ●E_1 ◄5
+                            0 => self.init_e_1(),               //  0: E -> F E_1      | ►E_1 ◄0 ►F  | F
+                            1 => self.exit_f(),                 //  1: F -> id         | ◄1 id!      | id
+                            /* no exit */                       //  2: E_1 -> . id E_2 | ►E_2 id! .  |
+                            3 => self.exit_e(),                 //  3: E_1 -> ε        | ◄3          |
+                            4 |                                 //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | id E
+                            5 => self.exit_e_2(factor_id),      //  5: E_2 -> E_1      | ●E_1 ◄5     | id E
                             _ => panic!("unexpected exit factor id: {factor_id}")
                         }
                     }
@@ -2030,14 +2030,14 @@ mod listener6 {
 
             fn init_e_1(&mut self) {
                 let f = self.stack.pop().unwrap().get_f();
-                let e = self.listener.exit_e(CtxE::F { f });
-                self.stack.push(SynValue::E(e));
+                let val = self.listener.exit_e(CtxE::F { f });
+                self.stack.push(SynValue::E(val));
             }
 
             fn exit_f(&mut self) {
                 let id = self.stack_t.pop().unwrap();
-                let f = self.listener.exit_f(CtxF::F { id });
-                self.stack.push(SynValue::F(f));
+                let val = self.listener.exit_f(CtxF::F { id });
+                self.stack.push(SynValue::F(val));
             }
 
             fn exit_e_2(&mut self, factor_id: VarId) {
@@ -2048,13 +2048,15 @@ mod listener6 {
                     5 => CtxE::E_Id { e, id },
                     _ => panic!()
                 };
-                let e = self.listener.exit_e(ctx);
-                self.stack.push(SynValue::E(e));
+                let val = self.listener.exit_e(ctx);
+                self.stack.push(SynValue::E(val));
             }
 
-            // optional last call not used:
-            // fn exit_e(&mut self) {
-            // }
+            fn exit_e(&mut self) {
+                let e = self.stack.pop().unwrap().get_e();
+                let val = self.listener.exit_e(CtxE::E { e });
+                self.stack.push(SynValue::E(val));
+            }
         }
 
         // User code -----------------------------------------------------
@@ -2105,6 +2107,10 @@ mod listener6 {
                         e.0.push(id);
                         e
                     }
+                    CtxE::E { mut e } => {
+                        e.0.push("".to_string());
+                        e
+                    }
                 }
             }
 
@@ -2121,7 +2127,7 @@ mod listener6 {
                 (
                     "a . b . c ( ) . d",
                     true,
-                    (Some(vec!["a", "b", "c()", "d"]))
+                    (Some(vec!["a", "b", "c()", "d", ""]))
                 ),
             ];
             const VERBOSE: bool = false;
@@ -4136,37 +4142,38 @@ mod listener13 {
             }
 
             fn init_e_1(&mut self, factor_id: VarId) {
-                let val = match factor_id {
+                let ctx = match factor_id {
                     0 => {
                         let f = self.stack.pop().unwrap().get_f();
-                        self.listener.exit_e(CtxE::F { f })
+                        CtxE::F { f }
                     }
                     1 => {
                         let num = self.stack_t.pop().unwrap();
-                        self.listener.exit_e(CtxE::Num { num })
+                        CtxE::Num { num }
                     }
                     _ => panic!("unexpected factor id: {factor_id}")
                 };
+                let val = self.listener.exit_e(ctx);
                 self.stack.push(SynValue::E(val));
             }
 
             fn exit_f(&mut self) {
                 let id = self.stack_t.pop().unwrap();
-                let f = self.listener.exit_f(CtxF::F { id });
-                self.stack.push(SynValue::F(f));
+                let val = self.listener.exit_f(CtxF::F { id });
+                self.stack.push(SynValue::F(val));
             }
 
             fn exit_e_1(&mut self) {
                 let id = self.stack_t.pop().unwrap();
                 let e = self.stack.pop().unwrap().get_e();
-                let e = self.listener.exit_e(CtxE::E_Id { e, id });
-                self.stack.push(SynValue::E(e));
+                let val = self.listener.exit_e(CtxE::E_Id { e, id });
+                self.stack.push(SynValue::E(val));
             }
 
             fn exit_e(&mut self) {
                 let e = self.stack.pop().unwrap().get_e();
-                let e = self.listener.exit_e(CtxE::E { e });
-                self.stack.push(SynValue::E(e));
+                let val = self.listener.exit_e(CtxE::E { e });
+                self.stack.push(SynValue::E(val));
             }
         }
 
