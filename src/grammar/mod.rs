@@ -297,6 +297,9 @@ pub mod ruleflag {
     /// CHILD_REPEAT and PARENT_REPEAT is +, not * (used with both flags)
     pub const REPEAT_PLUS: u32 = 4096;
 
+    pub const TRANSF_PARENT: u32 = R_RECURSION | PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
+    pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACTOR;
+
     pub fn to_string(flags: u32) -> Vec<String> {
         let names = btreemap![
             CHILD_REPEAT                => "child_+_or_*".to_string(),

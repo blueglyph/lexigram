@@ -536,7 +536,9 @@ impl ParserBuilder {
         let mut nt_lower_fixer = NameFixer::new();
         let mut nt_name: Vec<Option<(String, String)>> = (0..pinfo.num_nt).map(|v| {
             let iter = self.nt_has_flags(v as VarId, ruleflag::CHILD_REPEAT | ruleflag::L_FORM);
-            if self.nt_value[v] || pinfo.parent[v].is_none() || iter {
+            // we take all the NTs, now:
+            // if self.nt_value[v] || pinfo.parent[v].is_none() || iter
+            {
                 let name = if iter {
                     // use the name "<parent>_iter" for +* + l-form children
                     let mut top_var_id = v;
@@ -553,9 +555,7 @@ impl ParserBuilder {
                 let nu = nt_upper_fixer.get_unique_name(name.to_camelcase());
                 let nl = nt_lower_fixer.get_unique_name(nu.to_underscore_lowercase());
                 Some((nu, nl))
-            } else {
-                None
-            }
+            } // else { None }
         }).to_vec();
 
         let mut factor_info: Vec<Option<(VarId, String)>> = vec![None; pinfo.factors.len()];
@@ -957,11 +957,23 @@ impl ParserBuilder {
 
         // we proceed by var parent, then all factors in each parent/children group
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
+            let parent_nt = group[0] as usize;
+            let parent_flags = self.parsing_table.flags[parent_nt];
+            let parent_has_value = self.nt_value[parent_nt];
+            if VERBOSE { println!("- GROUP {}, parent has {}value, parent flags: {}",
+                                  group.iter().map(|v| Symbol::NT(*v).to_str(self.get_symbol_table())).join(", "),
+                                  if parent_has_value { "" } else { "no " },
+                                  ruleflag::to_string(parent_flags).join(" | ")); }
             for var in group {
                 let nt = *var as usize;
                 let flags = self.parsing_table.flags[nt];
                 let has_value = self.nt_value[nt];
                 let nt_comment = format!("// {}", Symbol::NT(*var).to_str(self.get_symbol_table()));
+                let is_parent = nt == parent_nt;
+                if VERBOSE { println!("  - VAR {}, has {}value, flags: {}",
+                                      Symbol::NT(*var).to_str(self.get_symbol_table()),
+                                      if has_value { "" } else { "no " },
+                                      ruleflag::to_string(flags).join(" | ")); }
 
                 // Call::Enter
 
@@ -1019,28 +1031,41 @@ impl ParserBuilder {
                     }
                 }
 
-                if flags & ruleflag::R_RECURSION != 0 {
+                // - right recursion
+                // - parent left recursion
+                // - no transformation (or only left factorization)
+                // - no ambiguity, no +, no *
+                if flags & ruleflag::CHILD_L_FACTOR == 0 &&     // already taken by self.gather_factors
+                    (flags & ruleflag::R_RECURSION != 0 || parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION == 0)
+                {
                     let (nu, nl) = nt_name[nt].as_ref().unwrap();
-                    if has_value {
-                        src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) -> Syn{nu};"));
-                    } else {
-                        src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) {{}}"));
+                    let (pnu, pnl) = nt_name[parent_nt].as_ref().unwrap();
+                    if is_parent {
+                        if has_value {
+                            src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) -> Syn{nu};"));
+                        } else {
+                            src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) {{}}"));
+                        }
                     }
                     let exit_factors = self.gather_factors(nt as VarId);
-                    let exit_name = exit_fixer.get_unique_name_num(format!("exit_{nl}"));
-                    let choices = make_match_choices(&exit_factors, &exit_name);
+                    let init_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("init_{nl}") } else { format!("exit_{nl}") };
+                    let fn_name = exit_fixer.get_unique_name(init_or_exit_name.clone());
+                    let choices = make_match_choices(&exit_factors, &fn_name);
                     let comments = exit_factors.iter().map(|f| {
                         let (v, pf) = &self.parsing_table.factors[*f as usize];
                         format!("// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table()))
                     }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
-                    src_wrapper_impl.push(format!("    fn {exit_name}(&mut self{}) {{", if exit_factors.len() > 1 { ", factor_id: FactorId" } else { "" }));
+                    src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if exit_factors.len() > 1 { ", factor_id: FactorId" } else { "" }));
                     let is_single = exit_factors.len() == 1;
                     let indent = if is_single { "        " } else { "                " };
                     if !is_single {
                         src_wrapper_impl.push(format!("        let ctx = match factor_id {{"));
                     }
                     for f in exit_factors {
+                        if VERBOSE { println!("    - FACTOR {f}: {} -> {}",
+                                              Symbol::NT(*var).to_str(self.get_symbol_table()),
+                                              self.parsing_table.factors[f as usize].1.to_str(self.get_symbol_table())); }
                         let mut var_fixer = NameFixer::new();
                         let mut indices = HashMap::<Symbol, Vec<String>>::new();
                         let mut non_indices = Vec::<String>::new();
@@ -1080,15 +1105,14 @@ impl ParserBuilder {
                             }
                         }).join(", ");
                         let ctx = if ctx_params.is_empty() {
-                            format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap().1)
+                            format!("Ctx{pnu}::{}", factor_info[f as usize].as_ref().unwrap().1)
                         } else {
-                            // println!("nt={nt}, f = {f}, f_relative={f_relative}, var_factors = {:?}", self.var_factors);
-                            format!("Ctx{nu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
+                            format!("Ctx{pnu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
                         };
                         if is_single {
-                            src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}({ctx});", if has_value { "let val = " } else { "" }));
-                            if has_value {
-                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                            src_wrapper_impl.push(format!("        {}self.listener.exit_{pnl}({ctx});", if parent_has_value { "let val = " } else { "" }));
+                            if parent_has_value {
+                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{pnu}(val));"));
                             }
                         } else {
                             src_wrapper_impl.push(format!("{indent}{ctx}"));
@@ -1096,18 +1120,14 @@ impl ParserBuilder {
                         }
                     }
                     if !is_single {
-                        src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {exit_name}\")"));
+                        src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {fn_name}\")"));
                         src_wrapper_impl.push(format!("        }};"));
-                        src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}(ctx);", if has_value { "let val = " } else { "" }));
-                        if has_value {
-                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
+                        src_wrapper_impl.push(format!("        {}self.listener.exit_{pnl}(ctx);", if parent_has_value { "let val = " } else { "" }));
+                        if parent_has_value {
+                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{pnu}(val));"));
                         }
                     }
                     src_wrapper_impl.push(format!("    }}"));
-                } else if flags & ruleflag::PARENT_L_RECURSION != 0 {
-
-                } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
-
                 }
             }
         }

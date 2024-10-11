@@ -43,7 +43,9 @@ after,  NT with value: S, VAL
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_s(&mut self) {}
+        fn exit_s(&mut self, _ctx: CtxS) -> SynS;
         fn init_val(&mut self) {}
+        fn exit_val(&mut self, _ctx: CtxVal) -> SynVal;
     }
 
     struct ListenerWrapper<T> {
@@ -80,6 +82,11 @@ after,  NT with value: S, VAL
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        0 |                                         // S -> id = VAL
+                        1 |                                         // S -> exit
+                        2 => self.exit_s(factor_id),                // S -> return VAL
+                        3 |                                         // VAL -> id
+                        4 => self.exit_val(factor_id),              // VAL -> num
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -99,6 +106,40 @@ after,  NT with value: S, VAL
         fn exit(&mut self, _ctx: Ctx) {
             let s = self.stack.pop().unwrap().get_s();
             self.listener.exit(Ctx::S { s });
+        }
+        fn exit_s(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                0 => {
+                    let val = self.stack.pop().unwrap().get_val();
+                    let id = self.stack_t.pop().unwrap();
+                    CtxS::S1 { id, val }
+                }
+                1 => {
+                    CtxS::S2
+                }
+                2 => {
+                    let val = self.stack.pop().unwrap().get_val();
+                    CtxS::S3 { val }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_s")
+            };
+            let val = self.listener.exit_s(ctx);
+            self.stack.push(SynValue::S(val));
+        }
+        fn exit_val(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                3 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxVal::Val1 { id }
+                }
+                4 => {
+                    let num = self.stack_t.pop().unwrap();
+                    CtxVal::Val2 { num }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_val")
+            };
+            let val = self.listener.exit_val(ctx);
+            self.stack.push(SynValue::Val(val));
         }
     }
 
@@ -786,6 +827,7 @@ after,  NT with value: A, B, A_1
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
         fn init_b(&mut self) {}
+        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
     struct ListenerWrapper<T> {
@@ -824,6 +866,7 @@ after,  NT with value: A, B, A_1
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -847,6 +890,11 @@ after,  NT with value: A, B, A_1
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_b(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_b(CtxB::B { b });
+            self.stack.push(SynValue::B(val));
         }
     }
 
@@ -904,6 +952,7 @@ after,  NT with value: A, B, A_1
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
         fn init_b(&mut self) {}
+        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
     struct ListenerWrapper<T> {
@@ -942,6 +991,7 @@ after,  NT with value: A, B, A_1
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -965,6 +1015,11 @@ after,  NT with value: A, B, A_1
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_b(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_b(CtxB::B { b });
+            self.stack.push(SynValue::B(val));
         }
     }
 
@@ -1060,6 +1115,7 @@ item_info =
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
         fn init_b(&mut self) {}
+        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
     struct ListenerWrapper<T> {
@@ -1098,6 +1154,7 @@ item_info =
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1125,6 +1182,11 @@ item_info =
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_b(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_b(CtxB::B { b });
+            self.stack.push(SynValue::B(val));
         }
     }
 
@@ -1179,6 +1241,7 @@ after,  NT with value: A, A_2
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
         fn init_b(&mut self) {}
+        fn exit_b(&mut self, _ctx: CtxB) {}
     }
 
     struct ListenerWrapper<T> {
@@ -1217,6 +1280,7 @@ after,  NT with value: A, A_2
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1240,6 +1304,9 @@ after,  NT with value: A, A_2
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_b(&mut self) {
+            self.listener.exit_b(CtxB::B);
         }
     }
 
@@ -1295,6 +1362,7 @@ after,  NT with value: A_1, A_2
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
         fn init_b(&mut self) {}
+        fn exit_b(&mut self, _ctx: CtxB) {}
     }
 
     struct ListenerWrapper<T> {
@@ -1333,6 +1401,7 @@ after,  NT with value: A_1, A_2
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1359,6 +1428,10 @@ after,  NT with value: A_1, A_2
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_b(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            self.listener.exit_b(CtxB::B { b });
         }
     }
 
@@ -1470,6 +1543,7 @@ item_info =
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
         fn init_b(&mut self) {}
+        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
     struct ListenerWrapper<T> {
@@ -1510,6 +1584,7 @@ item_info =
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1537,6 +1612,11 @@ item_info =
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_b(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_b(CtxB::B { b });
+            self.stack.push(SynValue::B(val));
         }
     }
 
@@ -1598,6 +1678,7 @@ after,  NT with value: A_1, A_2
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
         fn init_b(&mut self) {}
+        fn exit_b(&mut self, _ctx: CtxB) {}
     }
 
     struct ListenerWrapper<T> {
@@ -1638,6 +1719,7 @@ after,  NT with value: A_1, A_2
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1664,6 +1746,10 @@ after,  NT with value: A_1, A_2
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_b(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            self.listener.exit_b(CtxB::B { b });
         }
     }
 
@@ -1934,7 +2020,9 @@ after,  NT with value: E, F
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_e(&mut self) {}
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
         fn init_f(&mut self) {}
+        fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
     struct ListenerWrapper<T> {
@@ -1972,6 +2060,10 @@ after,  NT with value: E, F
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        0 => self.init_e(),                         // E -> F E_1
+                        2 |                                         // E_1 -> . id E_1
+                        3 => self.exit_e1(factor_id),               // E_1 -> ε
+                        1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1991,6 +2083,32 @@ after,  NT with value: E, F
         fn exit(&mut self, _ctx: Ctx) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(Ctx::E { e });
+        }
+        fn init_e(&mut self) {
+            let f = self.stack.pop().unwrap().get_f();
+            let val = self.listener.exit_e(CtxE::E1 { f });
+            self.stack.push(SynValue::E(val));
+        }
+        fn exit_e1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                2 => {
+                    let id = self.stack_t.pop().unwrap();
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E2 { e, id }
+                }
+                3 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E3 { e }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+        fn exit_f(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_f(CtxF::F { id });
+            self.stack.push(SynValue::F(val));
         }
     }
 
@@ -2043,7 +2161,9 @@ after,  NT with value: E, F
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_e(&mut self) {}
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
         fn init_f(&mut self) {}
+        fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
     struct ListenerWrapper<T> {
@@ -2081,6 +2201,11 @@ after,  NT with value: E, F
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        0 |                                         // E -> F E_1
+                        1 => self.init_e(factor_id),                // E -> num E_1
+                        3 |                                         // E_1 -> . id E_1
+                        4 => self.exit_e1(factor_id),               // E_1 -> ε
+                        2 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2100,6 +2225,42 @@ after,  NT with value: E, F
         fn exit(&mut self, _ctx: Ctx) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(Ctx::E { e });
+        }
+        fn init_e(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                0 => {
+                    let f = self.stack.pop().unwrap().get_f();
+                    CtxE::E1 { f }
+                }
+                1 => {
+                    let num = self.stack_t.pop().unwrap();
+                    CtxE::E2 { num }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn init_e")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+        fn exit_e1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                3 => {
+                    let id = self.stack_t.pop().unwrap();
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E3 { e, id }
+                }
+                4 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E4 { e }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+        fn exit_f(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_f(CtxF::F { id });
+            self.stack.push(SynValue::F(val));
         }
     }
 
@@ -2367,7 +2528,9 @@ after,  NT with value: E, F
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_e(&mut self) {}
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
         fn init_f(&mut self) {}
+        fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
     struct ListenerWrapper<T> {
@@ -2406,6 +2569,11 @@ after,  NT with value: E, F
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        0 => self.init_e(),                         // E -> F E_1
+                        3 |                                         // E_1 -> ε
+                        4 |                                         // E_2 -> ( ) E_1
+                        5 => self.exit_e1(factor_id),               // E_2 -> E_1
+                        1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2425,6 +2593,37 @@ after,  NT with value: E, F
         fn exit(&mut self, _ctx: Ctx) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(Ctx::E { e });
+        }
+        fn init_e(&mut self) {
+            let f = self.stack.pop().unwrap().get_f();
+            let val = self.listener.exit_e(CtxE::E1 { f });
+            self.stack.push(SynValue::E(val));
+        }
+        fn exit_e1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                3 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E2 { e }
+                }
+                4 => {
+                    let id = self.stack_t.pop().unwrap();
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E3 { e, id }
+                }
+                5 => {
+                    let id = self.stack_t.pop().unwrap();
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E4 { e, id }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+        fn exit_f(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_f(CtxF::F { id });
+            self.stack.push(SynValue::F(val));
         }
     }
 
@@ -2472,6 +2671,7 @@ after,  NT with value: STRUCT, LIST
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_struct1(&mut self) {}
+        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
@@ -2510,8 +2710,9 @@ after,  NT with value: STRUCT, LIST
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> id : id ; LIST
-                        2 => self.exit_list1(factor_id),            // LIST -> }
+                        2 => self.exit_list(factor_id),             // LIST -> }
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2532,7 +2733,13 @@ after,  NT with value: STRUCT, LIST
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
         }
-        fn exit_list1(&mut self, factor_id: FactorId) {
+        fn exit_struct1(&mut self) {
+            let list = self.stack.pop().unwrap().get_list();
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_struct1(CtxStruct::Struct { id, list });
+            self.stack.push(SynValue::Struct(val));
+        }
+        fn exit_list(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
                     let list = self.stack.pop().unwrap().get_list();
@@ -2543,7 +2750,7 @@ after,  NT with value: STRUCT, LIST
                 2 => {
                     CtxList::List2
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_list1")
+                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
             };
             let val = self.listener.exit_list(ctx);
             self.stack.push(SynValue::List(val));
@@ -2592,6 +2799,7 @@ after,  NT with value: STRUCT
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_struct1(&mut self) {}
+        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
         fn exit_list(&mut self, _ctx: CtxList) {}
     }
@@ -2630,8 +2838,9 @@ after,  NT with value: STRUCT
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> id : id ; LIST
-                        2 => self.exit_list1(factor_id),            // LIST -> }
+                        2 => self.exit_list(factor_id),             // LIST -> }
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2652,7 +2861,12 @@ after,  NT with value: STRUCT
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
         }
-        fn exit_list1(&mut self, factor_id: FactorId) {
+        fn exit_struct1(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_struct1(CtxStruct::Struct { id });
+            self.stack.push(SynValue::Struct(val));
+        }
+        fn exit_list(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
                     let id_2 = self.stack_t.pop().unwrap();
@@ -2662,7 +2876,7 @@ after,  NT with value: STRUCT
                 2 => {
                     CtxList::List2
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_list1")
+                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
             };
             self.listener.exit_list(ctx);
         }
@@ -2716,6 +2930,7 @@ after,  NT with value: STRUCT, LIST
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_struct1(&mut self) {}
+        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
@@ -2755,9 +2970,10 @@ after,  NT with value: STRUCT, LIST
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> }
                         3 |                                         // LIST_1 -> : id ; LIST
-                        4 => self.exit_list1(factor_id),            // LIST_1 -> ; LIST
+                        4 => self.exit_list(factor_id),             // LIST_1 -> ; LIST
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2778,7 +2994,13 @@ after,  NT with value: STRUCT, LIST
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
         }
-        fn exit_list1(&mut self, factor_id: FactorId) {
+        fn exit_struct1(&mut self) {
+            let list = self.stack.pop().unwrap().get_list();
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_struct1(CtxStruct::Struct { id, list });
+            self.stack.push(SynValue::Struct(val));
+        }
+        fn exit_list(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
                     CtxList::List1
@@ -2792,7 +3014,7 @@ after,  NT with value: STRUCT, LIST
                     let id = self.stack_t.pop().unwrap();
                     CtxList::List3 { id }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_list1")
+                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
             };
             let val = self.listener.exit_list(ctx);
             self.stack.push(SynValue::List(val));
@@ -2843,6 +3065,7 @@ after,  NT with value: STRUCT, LIST
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_struct1(&mut self) {}
+        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) -> SynList;
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
@@ -2881,8 +3104,9 @@ after,  NT with value: STRUCT, LIST
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> id : id ; LIST
-                        2 => self.exit_list1(factor_id),            // LIST -> }
+                        2 => self.exit_list(factor_id),             // LIST -> }
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2903,11 +3127,17 @@ after,  NT with value: STRUCT, LIST
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
         }
+        fn exit_struct1(&mut self) {
+            let list = self.stack.pop().unwrap().get_list();
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_struct1(CtxStruct::Struct { id, list });
+            self.stack.push(SynValue::Struct(val));
+        }
         fn init_list(&mut self) {
             let val = self.listener.init_list();
             self.stack.push(SynValue::List(val));
         }
-        fn exit_list1(&mut self, factor_id: FactorId) {
+        fn exit_list(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
                     let id_2 = self.stack_t.pop().unwrap();
@@ -2919,7 +3149,7 @@ after,  NT with value: STRUCT, LIST
                     let list = self.stack.pop().unwrap().get_list();
                     CtxList::List2 { list }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_list1")
+                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
             };
             let val = self.listener.exit_list(ctx);
             self.stack.push(SynValue::List(val));
@@ -3328,6 +3558,7 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
         fn init_b(&mut self) {}
+        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
     struct ListenerWrapper<T> {
@@ -3365,6 +3596,7 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        2 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3388,6 +3620,11 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_b(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_b(CtxB::B { b });
+            self.stack.push(SynValue::B(val));
         }
     }
 
