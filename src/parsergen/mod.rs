@@ -907,17 +907,17 @@ impl ParserBuilder {
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                 if let Some(infos) = nt_repeat.get(&(v as VarId)) {
                     // complex + * items; for ex. A -> (B b)+
-                    src.push(format!("struct Syn{nu}(Vec<Syn{nu}Item>);"));
-                    src.push(format!("struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
+                    src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
+                    src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
                 } else {
                     // + * item is only a terminal
-                    src.push(format!("struct Syn{nu}(Vec<String>);"));
+                    src.push(format!("pub struct Syn{nu}(Vec<String>);"));
                 }
             } else {
                 if self.nt_value[v] {
                     user_names.push(format!("Syn{nu}"));
                 } else {
-                    src.push(format!("struct Syn{nu}();"))
+                    src.push(format!("pub struct Syn{nu}();"))
                 }
             }
             // syns.push((nu.to_string(), nl.to_string()));

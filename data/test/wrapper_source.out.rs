@@ -168,7 +168,7 @@ after,  NT with value: A, A_1
         A { a: String, star: SynA1, c: String },
     }
 
-    struct SynA1(Vec<String>);
+    pub struct SynA1(Vec<String>);
     // User-defined: SynA
 
     enum SynValue { A(SynA), A1(SynA1) }
@@ -727,7 +727,7 @@ after,  NT with value: A, A_1
         A { a: String, plus: SynA1, c: String },
     }
 
-    struct SynA1(Vec<String>);
+    pub struct SynA1(Vec<String>);
     // User-defined: SynA
 
     enum SynValue { A(SynA), A1(SynA1) }
@@ -848,8 +848,8 @@ after,  NT with value: A, B, A_1
         B { b: String },
     }
 
-    struct SynA1(Vec<SynA1Item>);
-    struct SynA1Item { b: SynB }
+    pub struct SynA1(Vec<SynA1Item>);
+    pub struct SynA1Item { b: SynB }
     // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
@@ -982,8 +982,8 @@ after,  NT with value: A, B, A_1
         B { b: String },
     }
 
-    struct SynA1(Vec<SynA1Item>);
-    struct SynA1Item { a: String, b: SynB }
+    pub struct SynA1(Vec<SynA1Item>);
+    pub struct SynA1Item { a: String, b: SynB }
     // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
@@ -1148,10 +1148,10 @@ item_info =
         B { b: String },
     }
 
-    struct SynA1(Vec<SynA1Item>);
-    struct SynA1Item { b: SynB, b1: String }
-    struct SynA2(Vec<SynA2Item>);
-    struct SynA2Item { star: SynA1, c: String }
+    pub struct SynA1(Vec<SynA1Item>);
+    pub struct SynA1Item { b: SynB, b1: String }
+    pub struct SynA2(Vec<SynA2Item>);
+    pub struct SynA2Item { star: SynA1, c: String }
     // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
@@ -1292,7 +1292,7 @@ after,  NT with value: A, A_2
         B,
     }
 
-    struct SynA2(Vec<String>);
+    pub struct SynA2(Vec<String>);
     // User-defined: SynA
 
     enum SynValue { A(SynA), A2(SynA2) }
@@ -1421,9 +1421,9 @@ after,  NT with value: A_1, A_2
         B { b: String },
     }
 
-    struct SynA1(Vec<String>);
-    struct SynA2(Vec<SynA2Item>);
-    struct SynA2Item { star: SynA1, c: String }
+    pub struct SynA1(Vec<String>);
+    pub struct SynA2(Vec<SynA2Item>);
+    pub struct SynA2Item { star: SynA1, c: String }
 
     enum SynValue { A1(SynA1), A2(SynA2) }
 
@@ -1602,10 +1602,10 @@ item_info =
         B { b: String },
     }
 
-    struct SynA1(Vec<SynA1Item>);
-    struct SynA1Item { b: SynB, b1: String }
-    struct SynA2(Vec<SynA2Item>);
-    struct SynA2Item { plus: SynA1, c: String }
+    pub struct SynA1(Vec<SynA1Item>);
+    pub struct SynA1Item { b: SynB, b1: String }
+    pub struct SynA2(Vec<SynA2Item>);
+    pub struct SynA2Item { plus: SynA1, c: String }
     // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
@@ -1754,9 +1754,9 @@ after,  NT with value: A_1, A_2
         B { b: String },
     }
 
-    struct SynA1(Vec<String>);
-    struct SynA2(Vec<SynA2Item>);
-    struct SynA2Item { plus: SynA1, c: String }
+    pub struct SynA1(Vec<String>);
+    pub struct SynA2(Vec<SynA2Item>);
+    pub struct SynA2Item { plus: SynA1, c: String }
 
     enum SynValue { A1(SynA1), A2(SynA2) }
 
@@ -3299,7 +3299,7 @@ after,  NT with value: A, A_1
         A3 { a: SynA },
     }
 
-    struct SynA1(Vec<String>);
+    pub struct SynA1(Vec<String>);
     // User-defined: SynA
 
     enum SynValue { A(SynA), A1(SynA1) }
@@ -3439,7 +3439,7 @@ after,  NT with value: A, A_1
         A3 { a: SynA },
     }
 
-    struct SynA1(Vec<String>);
+    pub struct SynA1(Vec<String>);
     // User-defined: SynA
 
     enum SynValue { A(SynA), A1(SynA1) }
@@ -3700,8 +3700,8 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
         B { b: String },
     }
 
-    struct SynA1(Vec<SynA1Item>);
-    struct SynA1Item { b: SynB, c: String }
+    pub struct SynA1(Vec<SynA1Item>);
+    pub struct SynA1Item { b: SynB, c: String }
     // User-defined: SynA, SynB
 
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
