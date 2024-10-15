@@ -580,6 +580,11 @@ mod wrapper_source {
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], All, btreemap![0 => vec![0]]),
+            (RTS(21), 0, btreemap![                     /// A -> a (b)* c
+                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+                1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
+                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+            ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 
             // NT flags:
             //  - A: parent_+_or_* (2048)

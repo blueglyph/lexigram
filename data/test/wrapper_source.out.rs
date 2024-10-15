@@ -260,6 +260,115 @@ after,  NT with value: A, A_1
 // ------------------------------------------------------------
 
 ================================================================================
+Test 2: rules RTS(21) #2, start 0:
+before, NT with value: A
+after,  NT with value: A
+nt_name: [Some(("A", "a")), Some(("A1", "a1"))]
+factor_info: [Some((0, "A")), None, None]
+item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None }, ItemInfo { name: "c", sym: T(2), owner: 0, is_vec: false, index: None }], [], []]
+nt_repeat: {}
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - A_1: child_+_or_* (1)
+            // parents:
+            //  - A_1 -> A
+            (RTS(21), 0, btreemap![
+                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
+                1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
+                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+            ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
+// ------------------------------------------------------------
+// [wrapper source for rule RTS(21) #2, start A]
+
+    pub enum Ctx { A { a: SynA } }
+    pub enum CtxA {
+        A { a: String, c: String },
+    }
+
+    // User-defined: SynA
+
+    enum SynValue { A(SynA) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            let SynValue::A(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => {}                                     // A_1
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.exit_a(),                         // A -> a A_1 c
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: LeftRecListener> ListenerWrapper<T> {
+        fn exit(&mut self, _ctx: Ctx) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(Ctx::A { a });
+        }
+        fn exit_a(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let a = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_a(CtxA::A { a, c });
+            self.stack.push(SynValue::A(val));
+        }
+    }
+
+// [wrapper source for rule RTS(21) #2, start A]
+// ------------------------------------------------------------
+
+================================================================================
 Test 2: rules RTS(22), start 0:
 before, NT with value: A
 after,  NT with value: A, A_1
