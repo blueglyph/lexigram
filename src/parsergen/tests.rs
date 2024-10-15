@@ -526,7 +526,10 @@ mod wrapper_source {
         let mut position = 0;
         loop {
             line.clear();
-            buf.read_line(&mut line)?;
+            match buf.read_line(&mut line) {
+                Ok(n) => if n == 0 { return Err(std::io::Error::new(std::io::ErrorKind::NotFound, format!("tag {file_tag} not found"))); }
+                Err(e) => return Err(e),
+            }
             if line.contains(&file_tag) {
                 count += 1;
                 match count {
