@@ -1015,15 +1015,34 @@ impl ParserBuilder {
 
                 // Call::Exit
 
-                fn make_match_choices(factors: &Vec<FactorId>, name: &str) -> Vec<String> {
+                fn make_match_choices(factors: &Vec<FactorId>, name: &str, flags: u32, no_method: bool) -> (bool, Vec<String>) {
                     assert!(!factors.is_empty(), "factors cannot be empty");
-                    if factors.len() == 1 {
-                        vec![format!("                    {} => self.{name}(),", factors[0])]
+                    // if + or * child, the last factor is always empty (end of loop),
+                    // it must be used if + child, but discarded if * child
+                    let mut factors = factors.clone();
+                    let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
+                    let is_factor = factors.len() - discarded > 1 && flags & ruleflag::CHILD_REPEAT == 0;
+                    let mut choices = Vec::<String>::new();
+                    if factors.len() - discarded == 1 {
+                        if no_method {
+                            choices.push(format!("                    {} => {{}}", factors[0]));
+                        } else {
+                            choices.push(format!("                    {} => self.{name}(),", factors[0]));
+                        }
                     } else {
-                        let mut choices = (0..factors.len() - 1).map(|i| format!("                    {} |", factors[i])).to_vec();
-                        choices.push(format!("                    {} => self.{name}(factor_id),", factors.last().unwrap()));
-                        choices
+                        choices.extend( (0..factors.len() - 1 - discarded).map(|i| format!("                    {} |", factors[i])));
+                        if no_method {
+                            choices.push(format!("                    {} => {{}}", factors.last().unwrap()));
+                        } else {
+                            choices.push(format!("                    {} => self.{name}({}),",
+                                                 factors.last().unwrap(),
+                                                 if is_factor { "factor_id" } else { "" }));
+                        }
                     }
+                    if discarded == 1 {
+                        choices.push(format!("                    {} => {{}}", factors.last().unwrap()));
+                    }
+                    (is_factor, choices)
                 }
 
                 // - right recursion
@@ -1032,7 +1051,7 @@ impl ParserBuilder {
                 // - no ambiguity, no +, no *
                 if flags & ruleflag::CHILD_L_FACTOR == 0 &&     // already taken by self.gather_factors
                     (flags & ruleflag::R_RECURSION != 0 || parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT == 0) &&
-                    flags & ruleflag::CHILD_REPEAT == 0
+                    flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != (ruleflag::CHILD_REPEAT | ruleflag::L_FORM)
                 {
                     let (nu, nl) = nt_name[nt].as_ref().unwrap();
                     let (pnu, pnl) = nt_name[parent_nt].as_ref().unwrap();
@@ -1044,86 +1063,101 @@ impl ParserBuilder {
                         }
                     }
                     let exit_factors = self.gather_factors(nt as VarId);
+                    if VERBOSE { println!("exit factors: {}", exit_factors.iter().join(", ")); }
                     let init_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("init_{nl}") } else { format!("exit_{nl}") };
                     let fn_name = exit_fixer.get_unique_name(init_or_exit_name.clone());
-                    let choices = make_match_choices(&exit_factors, &fn_name);
+                    let no_method = !has_value && flags & ruleflag::CHILD_REPEAT != 0;
+                    let (is_factor, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method);
+                    if VERBOSE { println!("choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {
                         let (v, pf) = &self.parsing_table.factors[*f as usize];
                         format!("// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table()))
                     }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
-                    src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if exit_factors.len() > 1 { ", factor_id: FactorId" } else { "" }));
-                    let is_single = exit_factors.len() == 1;
-                    let indent = if is_single { "        " } else { "                " };
-                    if !is_single {
-                        src_wrapper_impl.push(format!("        let ctx = match factor_id {{"));
+                    if !no_method {
+                        src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor { ", factor_id: FactorId" } else { "" }));
                     }
-                    for f in exit_factors {
-                        if VERBOSE { println!("    - FACTOR {f}: {} -> {}",
-                                              Symbol::NT(*var).to_str(self.get_symbol_table()),
-                                              self.parsing_table.factors[f as usize].1.to_str(self.get_symbol_table())); }
-                        let mut var_fixer = NameFixer::new();
-                        let mut indices = HashMap::<Symbol, Vec<String>>::new();
-                        let mut non_indices = Vec::<String>::new();
+                    if flags & ruleflag::CHILD_REPEAT != 0 {
+
+                    } else {
+                        // no_method is irrelevant here
+                        assert!(!no_method);
+                        let is_single = exit_factors.len() == 1;
+                        let indent = if is_single { "        " } else { "                " };
                         if !is_single {
-                            src_wrapper_impl.push(format!("            {f} => {{"));
+                            src_wrapper_impl.push(format!("        let ctx = match factor_id {{"));
                         }
-                        for (i, item) in item_info[f as usize].iter().rev().enumerate() {
-                            let varname = if let Some(index) = item.index {
-                                let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
-                                indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);
-                                name
+                        for f in exit_factors {
+                            if VERBOSE {
+                                println!("    - FACTOR {f}: {} -> {}",
+                                         Symbol::NT(*var).to_str(self.get_symbol_table()),
+                                         self.parsing_table.factors[f as usize].1.to_str(self.get_symbol_table()));
+                            }
+                            let mut var_fixer = NameFixer::new();
+                            let mut indices = HashMap::<Symbol, Vec<String>>::new();
+                            let mut non_indices = Vec::<String>::new();
+                            if !is_single {
+                                src_wrapper_impl.push(format!("            {f} => {{"));
+                            }
+                            for (i, item) in item_info[f as usize].iter().rev().enumerate() {
+                                let varname = if let Some(index) = item.index {
+                                    let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
+                                    indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);
+                                    name
+                                } else {
+                                    let name = item.name.clone();
+                                    non_indices.push(name.clone());
+                                    name
+                                };
+                                if let Symbol::NT(v) = item.sym {
+                                    src_wrapper_impl.push(format!("{indent}let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].as_ref().unwrap().1));
+                                } else {
+                                    src_wrapper_impl.push(format!("{indent}let {varname} = self.stack_t.pop().unwrap();"));
+                                }
+                            }
+                            let ctx_params = item_info[f as usize].iter().filter_map(|item| {
+                                if let Some(index) = item.index {
+                                    if index == 0 {
+                                        Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
+                                    } else {
+                                        None
+                                    }
+                                } else {
+                                    let name = non_indices.pop().unwrap();
+                                    if name == item.name {
+                                        Some(name)
+                                    } else {
+                                        Some(format!("{}: {name}", item.name))
+                                    }
+                                }
+                            }).join(", ");
+                            let ctx = if ctx_params.is_empty() {
+                                format!("Ctx{pnu}::{}", factor_info[f as usize].as_ref().unwrap().1)
                             } else {
-                                let name = item.name.clone();
-                                non_indices.push(name.clone());
-                                name
+                                format!("Ctx{pnu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
                             };
-                            if let Symbol::NT(v) = item.sym {
-                                src_wrapper_impl.push(format!("{indent}let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].as_ref().unwrap().1));
+                            if is_single {
+                                src_wrapper_impl.push(format!("        {}self.listener.exit_{pnl}({ctx});", if parent_has_value { "let val = " } else { "" }));
+                                if parent_has_value {
+                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{pnu}(val));"));
+                                }
                             } else {
-                                src_wrapper_impl.push(format!("{indent}let {varname} = self.stack_t.pop().unwrap();"));
+                                src_wrapper_impl.push(format!("{indent}{ctx}"));
+                                src_wrapper_impl.push(format!("            }}"));
                             }
                         }
-                        let ctx_params = item_info[f as usize].iter().filter_map(|item| {
-                            if let Some(index) = item.index {
-                                if index == 0 {
-                                    Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
-                                } else {
-                                    None
-                                }
-                            } else {
-                                let name = non_indices.pop().unwrap();
-                                if name == item.name {
-                                    Some(name)
-                                } else {
-                                    Some(format!("{}: {name}", item.name))
-                                }
-                            }
-                        }).join(", ");
-                        let ctx = if ctx_params.is_empty() {
-                            format!("Ctx{pnu}::{}", factor_info[f as usize].as_ref().unwrap().1)
-                        } else {
-                            format!("Ctx{pnu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
-                        };
-                        if is_single {
-                            src_wrapper_impl.push(format!("        {}self.listener.exit_{pnl}({ctx});", if parent_has_value { "let val = " } else { "" }));
+                        if !is_single {
+                            src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {fn_name}\")"));
+                            src_wrapper_impl.push(format!("        }};"));
+                            src_wrapper_impl.push(format!("        {}self.listener.exit_{pnl}(ctx);", if parent_has_value { "let val = " } else { "" }));
                             if parent_has_value {
                                 src_wrapper_impl.push(format!("        self.stack.push(SynValue::{pnu}(val));"));
                             }
-                        } else {
-                            src_wrapper_impl.push(format!("{indent}{ctx}"));
-                            src_wrapper_impl.push(format!("            }}"));
                         }
                     }
-                    if !is_single {
-                        src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {fn_name}\")"));
-                        src_wrapper_impl.push(format!("        }};"));
-                        src_wrapper_impl.push(format!("        {}self.listener.exit_{pnl}(ctx);", if parent_has_value { "let val = " } else { "" }));
-                        if parent_has_value {
-                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{pnu}(val));"));
-                        }
+                    if !no_method {
+                        src_wrapper_impl.push(format!("    }}"));
                     }
-                    src_wrapper_impl.push(format!("    }}"));
                 }
             }
         }

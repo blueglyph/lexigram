@@ -223,6 +223,8 @@ after,  NT with value: A, A_1
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
+                        1 => self.exit_a1(),                        // A_1 -> b A_1
+                        2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -253,6 +255,8 @@ after,  NT with value: A, A_1
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_a1(&mut self) {
         }
     }
 
@@ -337,6 +341,8 @@ nt_repeat: {}
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
+                        1 |                                         // A_1 -> b A_1
+                        2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -780,6 +786,8 @@ after,  NT with value: A
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
+                        1 |                                         // A_1 -> # A_1
+                        2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -892,6 +900,8 @@ after,  NT with value: A, A_1
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
+                        2 |                                         // A_2 -> A_1
+                        3 => self.exit_a1(),                        // A_2 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -922,6 +932,8 @@ after,  NT with value: A, A_1
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_a1(&mut self) {
         }
     }
 
@@ -1020,6 +1032,8 @@ after,  NT with value: A, B, A_1
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
+                        3 |                                         // A_2 -> A_1
+                        4 => self.exit_a1(),                        // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1051,6 +1065,8 @@ after,  NT with value: A, B, A_1
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_a1(&mut self) {
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -1154,6 +1170,8 @@ after,  NT with value: A, B, A_1
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> A_1 c
+                        3 |                                         // A_2 -> A_1
+                        4 => self.exit_a1(),                        // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1184,6 +1202,8 @@ after,  NT with value: A, B, A_1
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_a1(&mut self) {
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -1325,6 +1345,10 @@ item_info =
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
+                        2 => self.exit_a1(),                        // A_1 -> B b A_1
+                        3 => {}                                     // A_1 -> ε
+                        4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
+                        5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1357,9 +1381,13 @@ item_info =
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+        fn exit_a1(&mut self) {
+        }
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_a2(&mut self) {
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -1460,6 +1488,10 @@ after,  NT with value: A, A_2
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
+                        2 |                                         // A_1 -> B b A_1
+                        3 => {}                                     // A_1 -> ε
+                        4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
+                        5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1491,6 +1523,8 @@ after,  NT with value: A, A_2
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_a2(&mut self) {
         }
         fn exit_b(&mut self) {
             self.listener.exit_b(CtxB::B);
@@ -1590,6 +1624,10 @@ after,  NT with value: A_1, A_2
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
+                        2 => self.exit_a1(),                        // A_1 -> B b A_1
+                        3 => {}                                     // A_1 -> ε
+                        4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
+                        5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1620,9 +1658,13 @@ after,  NT with value: A_1, A_2
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+        fn exit_a1(&mut self) {
+        }
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_a2(&mut self) {
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -1781,6 +1823,10 @@ item_info =
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
+                        4 |                                         // A_3 -> A_1
+                        5 => self.exit_a1(),                        // A_3 -> ε
+                        6 |                                         // A_4 -> A_2
+                        7 => self.exit_a2(),                        // A_4 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1813,9 +1859,13 @@ item_info =
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+        fn exit_a1(&mut self) {
+        }
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_a2(&mut self) {
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -1925,6 +1975,10 @@ after,  NT with value: A_1, A_2
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
+                        4 |                                         // A_3 -> A_1
+                        5 => self.exit_a1(),                        // A_3 -> ε
+                        6 |                                         // A_4 -> A_2
+                        7 => self.exit_a2(),                        // A_4 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1955,9 +2009,13 @@ after,  NT with value: A_1, A_2
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+        fn exit_a1(&mut self) {
+        }
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
+        }
+        fn exit_a2(&mut self) {
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -3464,6 +3522,8 @@ after,  NT with value: A, A_1
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_a(),                         // A -> a A_2
+                        1 => self.exit_a1(),                        // A_1 -> c A_1
+                        2 => {}                                     // A_1 -> ε
                         3 |                                         // A_2 -> A_1 b A_2
                         4 => self.exit_a2(factor_id),               // A_2 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -3494,6 +3554,8 @@ after,  NT with value: A, A_1
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_a1(&mut self) {
         }
         fn exit_a2(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -3605,6 +3667,8 @@ after,  NT with value: A, A_1
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_a(),                         // A -> a A_2
+                        4 |                                         // A_3 -> A_1
+                        5 => self.exit_a1(),                        // A_3 -> ε
                         2 |                                         // A_2 -> A_1 b A_2
                         3 => self.exit_a2(factor_id),               // A_2 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -3635,6 +3699,8 @@ after,  NT with value: A, A_1
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_a1(&mut self) {
         }
         fn exit_a2(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -3872,6 +3938,8 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
                     match factor_id {
                         0 |                                         // A -> A_1 b
                         1 => self.exit_a(factor_id),                // A -> a
+                        3 => self.exit_a1(),                        // A_1 -> B c A_1
+                        4 => {}                                     // A_1 -> ε
                         2 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -3912,6 +3980,8 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
+        }
+        fn exit_a1(&mut self) {
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
