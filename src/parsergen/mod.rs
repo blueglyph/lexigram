@@ -914,13 +914,8 @@ impl ParserBuilder {
                     src.push(format!("pub struct Syn{nu}(Vec<String>);"));
                 }
             } else {
-                if self.nt_value[v] {
-                    user_names.push(format!("Syn{nu}"));
-                } else {
-                    src.push(format!("pub struct Syn{nu}();"))
-                }
+                user_names.push(format!("Syn{nu}"));
             }
-            // syns.push((nu.to_string(), nl.to_string()));
             syns.push((nu, nl));
         }
         if !user_names.is_empty() {
