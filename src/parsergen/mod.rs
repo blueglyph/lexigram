@@ -1,6 +1,6 @@
 #![allow(dead_code)]  // TODO: remove
 
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -955,6 +955,7 @@ impl ParserBuilder {
             let parent_nt = group[0] as usize;
             let parent_flags = self.parsing_table.flags[parent_nt];
             let parent_has_value = self.nt_value[parent_nt];
+            let mut exit_factor_done = group.iter().flat_map(|v| &self.var_factors[*v as usize]).map(|f| (*f, false)).collect::<BTreeMap<FactorId, bool>>();
             if VERBOSE { println!("- GROUP {}, parent has {}value, parent flags: {}",
                                   group.iter().map(|v| Symbol::NT(*v).to_str(self.get_symbol_table())).join(", "),
                                   if parent_has_value { "" } else { "no " },
@@ -1085,6 +1086,9 @@ impl ParserBuilder {
                     }
                     let exit_factors = self.gather_factors(nt as VarId);
                     if VERBOSE { println!("    exit factors: {}", exit_factors.iter().join(", ")); }
+                    for f in &exit_factors {
+                        exit_factor_done.insert(*f, true);
+                    }
                     let init_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("init_{nl}") } else { format!("exit_{nl}") };
                     let fn_name = exit_fixer.get_unique_name(init_or_exit_name.clone());
                     let (is_factor, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method);
@@ -1216,6 +1220,19 @@ impl ParserBuilder {
                     if !no_method {
                         src_wrapper_impl.push(format!("    }}"));
                     }
+                }
+            }
+            for (f, _) in exit_factor_done.iter().filter(|(_, done)| !**done) {
+                let is_called = self.opcodes[*f as usize].iter().any(|o| *o == OpCode::Exit(*f));
+                let (v, pf) = &self.parsing_table.factors[*f as usize];
+                let comment = format!("// {} -> {} ({})",
+                                      Symbol::NT(*v).to_str(self.get_symbol_table()),
+                                      pf.to_str(self.get_symbol_table()),
+                                      if is_called { "not used" } else { "never called" });
+                if is_called {
+                    src_exit.push(vec![format!("                    {f} => {{}}"), comment]);
+                } else {
+                    src_exit.push(vec![format!("                 /* {f} */"), comment]);
                 }
             }
         }

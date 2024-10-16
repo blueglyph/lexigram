@@ -698,6 +698,11 @@ after,  NT with value: A, A_1
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                     /* 0 */                                        // A -> a A_2 (never called)
+                        1 => {}                                     // A_1 -> b A_1 (not used)
+                        2 => {}                                     // A_1 -> ε (not used)
+                        3 => {}                                     // A_2 -> a A_1 c (not used)
+                        4 => {}                                     // A_2 -> c A_1 c (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -917,6 +922,7 @@ after,  NT with value: A, A_1
                         0 => self.exit_a(),                         // A -> a A_1 c
                         2 |                                         // A_2 -> A_1
                         3 => self.exit_a1(),                        // A_2 -> ε
+                     /* 1 */                                        // A_1 -> b A_2 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1053,6 +1059,7 @@ after,  NT with value: A, B, A_1
                         0 => self.exit_a(),                         // A -> a A_1 c
                         3 |                                         // A_2 -> A_1
                         4 => self.exit_a1(),                        // A_2 -> ε
+                     /* 2 */                                        // A_1 -> B A_2 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1195,6 +1202,7 @@ after,  NT with value: A, B, A_1
                         0 => self.exit_a(),                         // A -> A_1 c
                         3 |                                         // A_2 -> A_1
                         4 => self.exit_a1(),                        // A_2 -> ε
+                     /* 2 */                                        // A_1 -> a B A_2 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1878,6 +1886,8 @@ item_info =
                         5 => self.exit_a1(),                        // A_3 -> ε
                         6 |                                         // A_4 -> A_2
                         7 => self.exit_a2(),                        // A_4 -> ε
+                     /* 2 */                                        // A_1 -> B b A_3 (never called)
+                     /* 3 */                                        // A_2 -> A_1 c A_4 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2040,6 +2050,8 @@ after,  NT with value: A_1, A_2
                         5 => self.exit_a1(),                        // A_3 -> ε
                         6 |                                         // A_4 -> A_2
                         7 => self.exit_a2(),                        // A_4 -> ε
+                     /* 2 */                                        // A_1 -> B b A_3 (never called)
+                     /* 3 */                                        // A_2 -> A_1 c A_4 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2184,6 +2196,7 @@ after,  NT with value: A, A_1
                         0 => self.exit_a(),                         // A -> a A_1 c
                         2 |                                         // A_2 -> A_1
                         3 => self.exit_a_iter(),                    // A_2 -> ε
+                     /* 1 */                                        // A_1 -> b A_2 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2309,6 +2322,13 @@ after,  NT with value: A
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                     /* 0 */                                        // A -> a A_1 (never called)
+                        1 => {}                                     // A -> e (not used)
+                     /* 2 */                                        // A_1 -> b A_2 (never called)
+                        3 => {}                                     // A_1 -> ε (not used)
+                        4 => {}                                     // A_2 -> c (not used)
+                        5 => {}                                     // A_2 -> d (not used)
+                        6 => {}                                     // A_2 -> ε (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2705,6 +2725,11 @@ after,  NT with value: A
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                     /* 0 */                                        // A -> b A_2 (never called)
+                        1 => {}                                     // A_1 -> a A_1 (not used)
+                        2 => {}                                     // A_1 -> ε (not used)
+                        3 => {}                                     // A_2 -> c A_1 (not used)
+                        4 => {}                                     // A_2 -> d A_1 (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2812,6 +2837,12 @@ after,  NT with value: A
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                     /* 0 */                                        // A -> b A_2 (never called)
+                        1 => {}                                     // A_1 -> a A_1 (not used)
+                        2 => {}                                     // A_1 -> b A_1 (not used)
+                        3 => {}                                     // A_1 -> ε (not used)
+                        4 => {}                                     // A_2 -> c A_1 (not used)
+                        5 => {}                                     // A_2 -> d A_1 (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2931,6 +2962,7 @@ after,  NT with value: E, F
                         3 |                                         // E_1 -> ε
                         4 |                                         // E_2 -> ( ) E_1
                         5 => self.exit_e1(factor_id),               // E_2 -> E_1
+                     /* 2 */                                        // E_1 -> . id E_2 (never called)
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -3332,6 +3364,7 @@ after,  NT with value: STRUCT, LIST
                         1 |                                         // LIST -> }
                         3 |                                         // LIST_1 -> : id ; LIST
                         4 => self.exit_list(factor_id),             // LIST_1 -> ; LIST
+                     /* 2 */                                        // LIST -> id LIST_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3754,6 +3787,7 @@ after,  NT with value: A, A_1
                         5 => self.exit_a1(),                        // A_3 -> ε
                         2 |                                         // A_2 -> A_1 b A_2
                         3 => self.exit_a2(factor_id),               // A_2 -> ε
+                     /* 1 */                                        // A_1 -> c A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3905,6 +3939,10 @@ item_info:
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                     /* 0 */                                        // A -> a A_1 (never called)
+                        1 => {}                                     // A_1 -> b b (not used)
+                        2 => {}                                     // A_1 -> c c (not used)
+                        3 => {}                                     // A_1 -> ε (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
