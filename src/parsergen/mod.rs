@@ -966,6 +966,7 @@ impl ParserBuilder {
                 let has_value = self.nt_value[nt];
                 let nt_comment = format!("// {}", sym_nt.to_str(self.get_symbol_table()));
                 let is_parent = nt == parent_nt;
+                let is_child_repeat_lform = self.nt_has_flags(*var, ruleflag::CHILD_REPEAT | ruleflag::L_FORM);
                 if VERBOSE { println!("  - VAR {}, has {}value, flags: {}",
                                       sym_nt.to_str(self.get_symbol_table()),
                                       if has_value { "" } else { "no " },
@@ -1051,12 +1052,12 @@ impl ParserBuilder {
                 // - no transformation (or only left factorization)
                 // - no ambiguity, no +, no *
                 if flags & ruleflag::CHILD_L_FACTOR == 0 &&     // already taken by self.gather_factors
-                    (flags & ruleflag::R_RECURSION != 0 || parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT == 0) &&
-                    flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != (ruleflag::CHILD_REPEAT | ruleflag::L_FORM)
+                    (flags & ruleflag::R_RECURSION != 0 || parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT == 0)
                 {
                     let (nu, nl) = nt_name[nt].as_ref().unwrap();
                     let (pnu, pnl) = nt_name[parent_nt].as_ref().unwrap();
-                    if is_parent {
+                    let no_method = !has_value && flags & ruleflag::CHILD_REPEAT != 0;
+                    if is_parent || (is_child_repeat_lform && !no_method) {
                         if has_value {
                             src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) -> Syn{nu};"));
                         } else {
@@ -1067,7 +1068,6 @@ impl ParserBuilder {
                     if VERBOSE { println!("    exit factors: {}", exit_factors.iter().join(", ")); }
                     let init_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("init_{nl}") } else { format!("exit_{nl}") };
                     let fn_name = exit_fixer.get_unique_name(init_or_exit_name.clone());
-                    let no_method = !has_value && flags & ruleflag::CHILD_REPEAT != 0;
                     let (is_factor, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method);
                     if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {
@@ -1078,7 +1078,6 @@ impl ParserBuilder {
                     if !no_method {
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor { ", factor_id: FactorId" } else { "" }));
                     }
-                    let is_single = exit_factors.len() == 1;
                     if flags & ruleflag::CHILD_REPEAT != 0 {
                         assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {}",
                                    sym_nt.to_str(self.get_symbol_table()),
@@ -1104,8 +1103,9 @@ impl ParserBuilder {
                                     name
                                 };
                                 if let Symbol::NT(v) = item.sym {
-                                    let mut_s = if v as usize == nt { "mut " } else { "" };
-                                    src_wrapper_impl.push(format!("        let {mut_s}{varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].as_ref().unwrap().1));
+                                    let mut_s = if !is_child_repeat_lform && v as usize == nt { "mut " } else { "" };
+                                    src_wrapper_impl.push(format!("        let {mut_s}{varname} = self.stack.pop().unwrap().get_{}();",
+                                                                  nt_name[v as usize].as_ref().unwrap().1));
                                 } else {
                                     src_wrapper_impl.push(format!("        let {varname} = self.stack_t.pop().unwrap();"));
                                 }
@@ -1113,12 +1113,8 @@ impl ParserBuilder {
                             // if VERBOSE { println!("      item_info[{f}] = {:?}", item_info[f as usize]); }
                             // if VERBOSE { println!("      indices     = {indices:?}"); }
                             // if VERBOSE { println!("      non_indices = {non_indices:?}"); }
-                            let var_name = non_indices.pop().unwrap();
-                            let is_simple = item_info[f as usize].len() == 2 && item_info[f as usize][1].sym.is_t(); // Vec<String>
-                            if is_simple {
-                                src_wrapper_impl.push(format!("        {var_name}.0.push({});", &non_indices[0]));
-                            } else {
-                                let params = item_info[f as usize].iter().skip(1).filter_map(|item| {
+                            if is_child_repeat_lform {
+                                let ctx_params = item_info[f as usize].iter().filter_map(|item| {
                                     if let Some(index) = item.index {
                                         if index == 0 {
                                             Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
@@ -1134,13 +1130,46 @@ impl ParserBuilder {
                                         }
                                     }
                                 }).join(", ");
-                                src_wrapper_impl.push(format!("        {var_name}.0.push(Syn{nu}Item {{ {params} }});"));
+                                let ctx = if ctx_params.is_empty() {
+                                    format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap().1)
+                                } else {
+                                    format!("Ctx{nu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
+                                };
+                                src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}({ctx});", if parent_has_value { "let val = " } else { "" }));
+                                if parent_has_value {
+                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{pnu}(val));"));
+                                }
+                            } else {
+                                let var_name = non_indices.pop().unwrap();
+                                let is_simple = item_info[f as usize].len() == 2 && item_info[f as usize][1].sym.is_t(); // Vec<String>
+                                if is_simple {
+                                    src_wrapper_impl.push(format!("        {var_name}.0.push({});", &non_indices[0]));
+                                } else {
+                                    let params = item_info[f as usize].iter().skip(1).filter_map(|item| {
+                                        if let Some(index) = item.index {
+                                            if index == 0 {
+                                                Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
+                                            } else {
+                                                None
+                                            }
+                                        } else {
+                                            let name = non_indices.pop().unwrap();
+                                            if name == item.name {
+                                                Some(name)
+                                            } else {
+                                                Some(format!("{}: {name}", item.name))
+                                            }
+                                        }
+                                    }).join(", ");
+                                    src_wrapper_impl.push(format!("        {var_name}.0.push(Syn{nu}Item {{ {params} }});"));
+                                }
+                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
                             }
-                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
                         }
                     } else {
                         // no_method is irrelevant here
                         assert!(!no_method);
+                        let is_single = exit_factors.len() == 1;
                         let indent = if is_single { "        " } else { "                " };
                         if !is_single {
                             src_wrapper_impl.push(format!("        let ctx = match factor_id {{"));

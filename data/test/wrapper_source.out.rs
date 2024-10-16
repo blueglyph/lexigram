@@ -421,6 +421,7 @@ after,  NT with value: A, A_1
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_a_iter(&mut self) -> SynAIter;
+        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -458,6 +459,8 @@ after,  NT with value: A, A_1
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
+                        1 => self.exit_a_iter(),                    // A_1 -> b A_1
+                        2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -488,6 +491,12 @@ after,  NT with value: A, A_1
         fn init_a_iter(&mut self) {
             let val = self.listener.init_a_iter();
             self.stack.push(SynValue::AIter(val));
+        }
+        fn exit_a_iter(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let star_it = self.stack.pop().unwrap().get_a_iter();
+            let val = self.listener.exit_a_iter(CtxAIter::A1 { star_it, b });
+            self.stack.push(SynValue::A(val));
         }
     }
 
@@ -572,6 +581,8 @@ item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: No
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
+                        1 |                                         // A_1 -> b A_1
+                        2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2132,6 +2143,7 @@ after,  NT with value: A, A_1
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_a_iter(&mut self) -> SynAIter;
+        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -2170,6 +2182,8 @@ after,  NT with value: A, A_1
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
+                        2 |                                         // A_2 -> A_1
+                        3 => self.exit_a_iter(),                    // A_2 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2200,6 +2214,12 @@ after,  NT with value: A, A_1
         fn init_a_iter(&mut self) {
             let val = self.listener.init_a_iter();
             self.stack.push(SynValue::AIter(val));
+        }
+        fn exit_a_iter(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let plus_it = self.stack.pop().unwrap().get_a_iter();
+            let val = self.listener.exit_a_iter(CtxAIter::A1_1 { plus_it, b });
+            self.stack.push(SynValue::A(val));
         }
     }
 
