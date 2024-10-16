@@ -257,6 +257,10 @@ after,  NT with value: A, A_1
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let mut star_it = self.stack.pop().unwrap().get_a1();
+            star_it.0.push(b);
+            self.stack.push(SynValue::A1(star_it));
         }
     }
 
@@ -934,6 +938,10 @@ after,  NT with value: A, A_1
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let mut plus_it = self.stack.pop().unwrap().get_a1();
+            plus_it.0.push(b);
+            self.stack.push(SynValue::A1(plus_it));
         }
     }
 
@@ -1067,6 +1075,10 @@ after,  NT with value: A, B, A_1
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let b = self.stack.pop().unwrap().get_b();
+            let mut plus_it = self.stack.pop().unwrap().get_a1();
+            plus_it.0.push(SynA1Item { b });
+            self.stack.push(SynValue::A1(plus_it));
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -1204,6 +1216,11 @@ after,  NT with value: A, B, A_1
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let b = self.stack.pop().unwrap().get_b();
+            let a = self.stack_t.pop().unwrap();
+            let mut plus_it = self.stack.pop().unwrap().get_a1();
+            plus_it.0.push(SynA1Item { a, b });
+            self.stack.push(SynValue::A1(plus_it));
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -1382,12 +1399,22 @@ item_info =
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let b1 = self.stack_t.pop().unwrap();
+            let b = self.stack.pop().unwrap().get_b();
+            let mut star_it = self.stack.pop().unwrap().get_a1();
+            star_it.0.push(SynA1Item { b, b1 });
+            self.stack.push(SynValue::A1(star_it));
         }
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
         fn exit_a2(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let star = self.stack.pop().unwrap().get_a1();
+            let mut star_it = self.stack.pop().unwrap().get_a2();
+            star_it.0.push(SynA2Item { star, c });
+            self.stack.push(SynValue::A2(star_it));
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -1525,6 +1552,10 @@ after,  NT with value: A, A_2
             self.stack.push(SynValue::A2(val));
         }
         fn exit_a2(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let mut star_it = self.stack.pop().unwrap().get_a2();
+            star_it.0.push(c);
+            self.stack.push(SynValue::A2(star_it));
         }
         fn exit_b(&mut self) {
             self.listener.exit_b(CtxB::B);
@@ -1659,12 +1690,21 @@ after,  NT with value: A_1, A_2
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let mut star_it = self.stack.pop().unwrap().get_a1();
+            star_it.0.push(b);
+            self.stack.push(SynValue::A1(star_it));
         }
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
         fn exit_a2(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let star = self.stack.pop().unwrap().get_a1();
+            let mut star_it = self.stack.pop().unwrap().get_a2();
+            star_it.0.push(SynA2Item { star, c });
+            self.stack.push(SynValue::A2(star_it));
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -1860,12 +1900,22 @@ item_info =
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let b1 = self.stack_t.pop().unwrap();
+            let b = self.stack.pop().unwrap().get_b();
+            let mut plus_it = self.stack.pop().unwrap().get_a1();
+            plus_it.0.push(SynA1Item { b, b1 });
+            self.stack.push(SynValue::A1(plus_it));
         }
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
         fn exit_a2(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let plus = self.stack.pop().unwrap().get_a1();
+            let mut plus_it = self.stack.pop().unwrap().get_a2();
+            plus_it.0.push(SynA2Item { plus, c });
+            self.stack.push(SynValue::A2(plus_it));
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -2010,12 +2060,21 @@ after,  NT with value: A_1, A_2
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let mut plus_it = self.stack.pop().unwrap().get_a1();
+            plus_it.0.push(b);
+            self.stack.push(SynValue::A1(plus_it));
         }
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
         fn exit_a2(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let plus = self.stack.pop().unwrap().get_a1();
+            let mut plus_it = self.stack.pop().unwrap().get_a2();
+            plus_it.0.push(SynA2Item { plus, c });
+            self.stack.push(SynValue::A2(plus_it));
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
@@ -3556,6 +3615,10 @@ after,  NT with value: A, A_1
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let mut star_it = self.stack.pop().unwrap().get_a1();
+            star_it.0.push(c);
+            self.stack.push(SynValue::A1(star_it));
         }
         fn exit_a2(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -3701,6 +3764,10 @@ after,  NT with value: A, A_1
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let mut plus_it = self.stack.pop().unwrap().get_a1();
+            plus_it.0.push(c);
+            self.stack.push(SynValue::A1(plus_it));
         }
         fn exit_a2(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -3982,6 +4049,11 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
             self.stack.push(SynValue::A1(val));
         }
         fn exit_a1(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let b = self.stack.pop().unwrap().get_b();
+            let mut star_it = self.stack.pop().unwrap().get_a1();
+            star_it.0.push(SynA1Item { b, c });
+            self.stack.push(SynValue::A1(star_it));
         }
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();

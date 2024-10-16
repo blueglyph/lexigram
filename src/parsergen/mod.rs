@@ -960,13 +960,14 @@ impl ParserBuilder {
                                   if parent_has_value { "" } else { "no " },
                                   ruleflag::to_string(parent_flags).join(" | ")); }
             for var in group {
+                let sym_nt = Symbol::NT(*var);
                 let nt = *var as usize;
                 let flags = self.parsing_table.flags[nt];
                 let has_value = self.nt_value[nt];
-                let nt_comment = format!("// {}", Symbol::NT(*var).to_str(self.get_symbol_table()));
+                let nt_comment = format!("// {}", sym_nt.to_str(self.get_symbol_table()));
                 let is_parent = nt == parent_nt;
                 if VERBOSE { println!("  - VAR {}, has {}value, flags: {}",
-                                      Symbol::NT(*var).to_str(self.get_symbol_table()),
+                                      sym_nt.to_str(self.get_symbol_table()),
                                       if has_value { "" } else { "no " },
                                       ruleflag::to_string(flags).join(" | ")); }
 
@@ -1063,12 +1064,12 @@ impl ParserBuilder {
                         }
                     }
                     let exit_factors = self.gather_factors(nt as VarId);
-                    if VERBOSE { println!("exit factors: {}", exit_factors.iter().join(", ")); }
+                    if VERBOSE { println!("    exit factors: {}", exit_factors.iter().join(", ")); }
                     let init_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("init_{nl}") } else { format!("exit_{nl}") };
                     let fn_name = exit_fixer.get_unique_name(init_or_exit_name.clone());
                     let no_method = !has_value && flags & ruleflag::CHILD_REPEAT != 0;
                     let (is_factor, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method);
-                    if VERBOSE { println!("choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
+                    if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {
                         let (v, pf) = &self.parsing_table.factors[*f as usize];
                         format!("// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table()))
@@ -1077,12 +1078,69 @@ impl ParserBuilder {
                     if !no_method {
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor { ", factor_id: FactorId" } else { "" }));
                     }
+                    let is_single = exit_factors.len() == 1;
                     if flags & ruleflag::CHILD_REPEAT != 0 {
-
+                        assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {}",
+                                   sym_nt.to_str(self.get_symbol_table()),
+                                   exit_factors.iter().join(", "));
+                        if has_value {
+                            let f = exit_factors[0];
+                            if VERBOSE {
+                                println!("    - FACTOR {f}: {} -> {}",
+                                         sym_nt.to_str(self.get_symbol_table()),
+                                         self.parsing_table.factors[f as usize].1.to_str(self.get_symbol_table()));
+                            }
+                            let mut var_fixer = NameFixer::new();
+                            let mut indices = HashMap::<Symbol, Vec<String>>::new();
+                            let mut non_indices = Vec::<String>::new();
+                            for (i, item) in item_info[f as usize].iter().rev().enumerate() {
+                                let varname = if let Some(index) = item.index {
+                                    let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
+                                    indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);
+                                    name
+                                } else {
+                                    let name = item.name.clone();
+                                    non_indices.push(name.clone());
+                                    name
+                                };
+                                if let Symbol::NT(v) = item.sym {
+                                    let mut_s = if v as usize == nt { "mut " } else { "" };
+                                    src_wrapper_impl.push(format!("        let {mut_s}{varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].as_ref().unwrap().1));
+                                } else {
+                                    src_wrapper_impl.push(format!("        let {varname} = self.stack_t.pop().unwrap();"));
+                                }
+                            }
+                            // if VERBOSE { println!("      item_info[{f}] = {:?}", item_info[f as usize]); }
+                            // if VERBOSE { println!("      indices     = {indices:?}"); }
+                            // if VERBOSE { println!("      non_indices = {non_indices:?}"); }
+                            let var_name = non_indices.pop().unwrap();
+                            let is_simple = item_info[f as usize].len() == 2 && item_info[f as usize][1].sym.is_t(); // Vec<String>
+                            if is_simple {
+                                src_wrapper_impl.push(format!("        {var_name}.0.push({});", &non_indices[0]));
+                            } else {
+                                let params = item_info[f as usize].iter().skip(1).filter_map(|item| {
+                                    if let Some(index) = item.index {
+                                        if index == 0 {
+                                            Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
+                                        } else {
+                                            None
+                                        }
+                                    } else {
+                                        let name = non_indices.pop().unwrap();
+                                        if name == item.name {
+                                            Some(name)
+                                        } else {
+                                            Some(format!("{}: {name}", item.name))
+                                        }
+                                    }
+                                }).join(", ");
+                                src_wrapper_impl.push(format!("        {var_name}.0.push(Syn{nu}Item {{ {params} }});"));
+                            }
+                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
+                        }
                     } else {
                         // no_method is irrelevant here
                         assert!(!no_method);
-                        let is_single = exit_factors.len() == 1;
                         let indent = if is_single { "        " } else { "                " };
                         if !is_single {
                             src_wrapper_impl.push(format!("        let ctx = match factor_id {{"));
