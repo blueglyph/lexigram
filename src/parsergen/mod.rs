@@ -1047,6 +1047,25 @@ impl ParserBuilder {
                     (is_factor, choices)
                 }
 
+                fn get_var_params(item_info: &Vec<ItemInfo>, skip: usize, indices: HashMap<Symbol, Vec<String>>, mut non_indices: Vec<String>) -> String {
+                    item_info.iter().skip(skip).filter_map(|item| {
+                        if let Some(index) = item.index {
+                            if index == 0 {
+                                Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
+                            } else {
+                                None
+                            }
+                        } else {
+                            let name = non_indices.pop().unwrap();
+                            if name == item.name {
+                                Some(name)
+                            } else {
+                                Some(format!("{}: {name}", item.name))
+                            }
+                        }
+                    }).join(", ")
+                }
+
                 // - right recursion
                 // - parent left recursion
                 // - no transformation (or only left factorization)
@@ -1110,26 +1129,8 @@ impl ParserBuilder {
                                     src_wrapper_impl.push(format!("        let {varname} = self.stack_t.pop().unwrap();"));
                                 }
                             }
-                            // if VERBOSE { println!("      item_info[{f}] = {:?}", item_info[f as usize]); }
-                            // if VERBOSE { println!("      indices     = {indices:?}"); }
-                            // if VERBOSE { println!("      non_indices = {non_indices:?}"); }
                             if is_child_repeat_lform {
-                                let ctx_params = item_info[f as usize].iter().filter_map(|item| {
-                                    if let Some(index) = item.index {
-                                        if index == 0 {
-                                            Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
-                                        } else {
-                                            None
-                                        }
-                                    } else {
-                                        let name = non_indices.pop().unwrap();
-                                        if name == item.name {
-                                            Some(name)
-                                        } else {
-                                            Some(format!("{}: {name}", item.name))
-                                        }
-                                    }
-                                }).join(", ");
+                                let ctx_params = get_var_params(&item_info[f as usize], 0, indices, non_indices);
                                 let ctx = if ctx_params.is_empty() {
                                     format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap().1)
                                 } else {
@@ -1145,22 +1146,7 @@ impl ParserBuilder {
                                 if is_simple {
                                     src_wrapper_impl.push(format!("        {var_name}.0.push({});", &non_indices[0]));
                                 } else {
-                                    let params = item_info[f as usize].iter().skip(1).filter_map(|item| {
-                                        if let Some(index) = item.index {
-                                            if index == 0 {
-                                                Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
-                                            } else {
-                                                None
-                                            }
-                                        } else {
-                                            let name = non_indices.pop().unwrap();
-                                            if name == item.name {
-                                                Some(name)
-                                            } else {
-                                                Some(format!("{}: {name}", item.name))
-                                            }
-                                        }
-                                    }).join(", ");
+                                    let params = get_var_params(&item_info[f as usize], 1, indices, non_indices);
                                     src_wrapper_impl.push(format!("        {var_name}.0.push(Syn{nu}Item {{ {params} }});"));
                                 }
                                 src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
@@ -1202,22 +1188,7 @@ impl ParserBuilder {
                                     src_wrapper_impl.push(format!("{indent}let {varname} = self.stack_t.pop().unwrap();"));
                                 }
                             }
-                            let ctx_params = item_info[f as usize].iter().filter_map(|item| {
-                                if let Some(index) = item.index {
-                                    if index == 0 {
-                                        Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
-                                    } else {
-                                        None
-                                    }
-                                } else {
-                                    let name = non_indices.pop().unwrap();
-                                    if name == item.name {
-                                        Some(name)
-                                    } else {
-                                        Some(format!("{}: {name}", item.name))
-                                    }
-                                }
-                            }).join(", ");
+                            let ctx_params = get_var_params(&item_info[f as usize], 0, indices, non_indices);
                             let ctx = if ctx_params.is_empty() {
                                 format!("Ctx{pnu}::{}", factor_info[f as usize].as_ref().unwrap().1)
                             } else {
