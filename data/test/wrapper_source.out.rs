@@ -1,5 +1,8 @@
-================================================================================
-Test 0: rules PRS(34) #1, start 0:
+#![cfg(test)]
+#![cfg(feature = "disabled")]
+// ================================================================================
+// Test 0: rules PRS(34) #1, start 0:
+/*
 before, NT with value: S, VAL
 after,  NT with value: S, VAL
             // NT flags:
@@ -12,7 +15,9 @@ after,  NT with value: S, VAL
                 2 => symbols![nt 1],                    //  2: S -> return VAL | ◄2 ►VAL return | VAL
                 3 => symbols![t 0],                     //  3: VAL -> id       | ◄3 id!         | id
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
-            ], Set(symbols![nt 0, nt 1, t 0, t 1])),
+            ], Set(symbols![nt 0, nt 1, t 0, t 1]), btreemap![0 => vec![0, 1, 2], 1 => vec![3, 4]]),
+*/
+pub(super) mod rules_prs_34_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(34) #1, start S]
 
@@ -146,8 +151,11 @@ after,  NT with value: S, VAL
 // [wrapper source for rule PRS(34) #1, start S]
 // ------------------------------------------------------------
 
-================================================================================
-Test 1: rules RTS(21), start 0:
+}
+
+// ================================================================================
+// Test 1: rules RTS(21) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -159,7 +167,9 @@ after,  NT with value: A, A_1
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
-            ], All),
+            ], All, btreemap![0 => vec![0]]),
+*/
+mod rules_rts_21_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(21) #1, start A]
 
@@ -267,14 +277,13 @@ after,  NT with value: A, A_1
 // [wrapper source for rule RTS(21) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 2: rules RTS(21) #2, start 0:
+}
+
+// ================================================================================
+// Test 2: rules RTS(21) #2, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A
-nt_name: [Some(("A", "a")), Some(("A1", "a1"))]
-factor_info: [Some((0, "A")), None, None]
-item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None }, ItemInfo { name: "c", sym: T(2), owner: 0, is_vec: false, index: None }], [], []]
-nt_repeat: {}
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -285,6 +294,8 @@ nt_repeat: {}
                 1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
+*/
+mod rules_rts_21_2 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(21) #2, start A]
 
@@ -378,8 +389,11 @@ nt_repeat: {}
 // [wrapper source for rule RTS(21) #2, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 2: rules RTS(22), start 0:
+}
+
+// ================================================================================
+// Test 3: rules RTS(22) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -391,7 +405,9 @@ after,  NT with value: A, A_1
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
-            ], All),
+            ], All, btreemap![0 => vec![0]]),
+*/
+mod rules_rts_22_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(22) #1, start A]
 
@@ -503,13 +519,13 @@ after,  NT with value: A, A_1
 // [wrapper source for rule RTS(22) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 3: rules RTS(22) #2, start 0:
+}
+
+// ================================================================================
+// Test 4: rules RTS(22) #2, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A
-nt_name: [Some(("A", "a")), None]
-nt_info: [[(0, "A")], []]
-item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None }, ItemInfo { name: "c", sym: T(2), owner: 0, is_vec: false, index: None }], [], []]
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* | L-form (129)
@@ -519,7 +535,9 @@ item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: No
                 0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
                 1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
-            ], Set(symbols![nt 0, t 0, t 2])),
+            ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
+*/
+mod rules_rts_22_2 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(22) #2, start A]
 
@@ -614,8 +632,11 @@ item_info: [[ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: No
 // [wrapper source for rule RTS(22) #2, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 4: rules RTS(32) #1, start 0:
+}
+
+// ================================================================================
+// Test 5: rules RTS(32) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -631,7 +652,9 @@ after,  NT with value: A, A_1
                 2 => symbols![],                        //  2: A_1 -> ε       | ◄2            |
                 3 => symbols![t 0, t 0, nt 1, t 2],     //  3: A_2 -> a A_1 c | ◄3 c! ►A_1 a! | a a A_1 c
                 4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_2 -> c A_1 c | ◄4 c! ►A_1 c! | a c A_1 c
-            ], All),
+            ], All, btreemap![0 => vec![3, 4]]),
+*/
+mod rules_rts_32_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(32) #1, start A]
 
@@ -732,8 +755,11 @@ after,  NT with value: A, A_1
 // [wrapper source for rule RTS(32) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 5: rules RTS(25) #1, start 0:
+}
+
+// ================================================================================
+// Test 6: rules RTS(25) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A
             // NT flags:
@@ -745,7 +771,9 @@ after,  NT with value: A
                 0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
                 1 => symbols![],                        //  1: A_1 -> # A_1 | ●A_1 ◄1 #     |
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
-            ], Default),
+            ], Default, btreemap![0 => vec![0]]),
+*/
+mod rules_rts_25_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(25) #1, start A]
 
@@ -839,8 +867,11 @@ after,  NT with value: A
 // [wrapper source for rule RTS(25) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 6: rules RTS(23) #1, start 0:
+}
+
+// ================================================================================
+// Test 7: rules RTS(23) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -855,7 +886,9 @@ after,  NT with value: A, A_1
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
                 2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
                 3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
-            ], All),
+            ], All, btreemap![0 => vec![0]]),
+*/
+mod rules_rts_23_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(23) #1, start A]
 
@@ -965,8 +998,11 @@ after,  NT with value: A, A_1
 // [wrapper source for rule RTS(23) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 7: rules RTS(27) #1, start 0:
+}
+
+// ================================================================================
+// Test 8: rules RTS(27) #1, start 0:
+/*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
             // NT flags:
@@ -982,7 +1018,9 @@ after,  NT with value: A, B, A_1
                 2 => symbols![],                        //  2: A_1 -> B A_2 | ►A_2 ►B       |
                 3 => symbols![nt 2, nt 1],              //  3: A_2 -> A_1   | ●A_1 ◄3       | A_1 B
                 4 => symbols![nt 2, nt 1],              //  4: A_2 -> ε     | ◄4            | A_1 B
-            ], All),
+            ], All, btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+mod rules_rts_27_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(27) #1, start A]
 
@@ -1108,8 +1146,11 @@ after,  NT with value: A, B, A_1
 // [wrapper source for rule RTS(27) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 8: rules RTS(28) #1, start 0:
+}
+
+// ================================================================================
+// Test 9: rules RTS(28) #1, start 0:
+/*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
             // NT flags:
@@ -1125,7 +1166,9 @@ after,  NT with value: A, B, A_1
                 2 => symbols![],                        //  2: A_1 -> a B A_2 | ►A_2 ►B a! |
                 3 => symbols![nt 2, t 0, nt 1],         //  3: A_2 -> A_1     | ●A_1 ◄3    | A_1 a B
                 4 => symbols![nt 2, t 0, nt 1],         //  4: A_2 -> ε       | ◄4         | A_1 a B
-            ], All),
+            ], All, btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+mod rules_rts_28_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(28) #1, start A]
 
@@ -1251,8 +1294,11 @@ after,  NT with value: A, B, A_1
 // [wrapper source for rule RTS(28) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 9: rules RTS(29) #1, start 0:
+}
+
+// ================================================================================
+// Test 10: rules RTS(29) #1, start 0:
+/*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
 
@@ -1301,7 +1347,9 @@ item_info =
                 3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
                 4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
-            ], All),
+            ], All, btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+mod rules_rts_29_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(29) #1, start A]
 
@@ -1445,8 +1493,11 @@ item_info =
 // [wrapper source for rule RTS(29) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 10: rules RTS(29) #2, start 0:
+}
+
+// ================================================================================
+// Test 11: rules RTS(29) #2, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A, A_2
             // NT flags:
@@ -1463,7 +1514,9 @@ after,  NT with value: A, A_2
                 3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
                 4 => symbols![nt 3, t 2],               //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 c
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
-            ], Set(symbols![nt 0, t 0, t 2, t 3])),
+            ], Set(symbols![nt 0, t 0, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+mod rules_rts_29_2 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(29) #2, start A]
 
@@ -1584,8 +1637,11 @@ after,  NT with value: A, A_2
 // [wrapper source for rule RTS(29) #2, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 11: rules RTS(29) #3, start 0:
+}
+
+// ================================================================================
+// Test 12: rules RTS(29) #3, start 0:
+/*
 before, NT with value:
 after,  NT with value: A_1, A_2
             // NT flags:
@@ -1602,7 +1658,9 @@ after,  NT with value: A_1, A_2
                 3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
                 4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
-            ], Set(symbols![t 0, t 1, t 2, t 3])),
+            ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+mod rules_rts_29_3 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(29) #3, start A]
 
@@ -1734,8 +1792,11 @@ after,  NT with value: A_1, A_2
 // [wrapper source for rule RTS(29) #3, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 12: rules RTS(30) #1, start 0:
+}
+
+// ================================================================================
+// Test 13: rules RTS(30) #1, start 0:
+/*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
 nt_name = [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1")), Some(("A2", "a2")), None, None]
@@ -1800,7 +1861,9 @@ item_info =
                 5 => symbols![nt 2, nt 1, t 1],         //  5: A_3 -> ε         | ◄5            | A_1 B b
                 6 => symbols![nt 3, nt 2, t 2],         //  6: A_4 -> A_2       | ●A_2 ◄6       | A_2 A_1 c
                 7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
-            ], All),
+            ], All, btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+mod rules_rts_30_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(30) #1, start A]
 
@@ -1948,8 +2011,11 @@ item_info =
 // [wrapper source for rule RTS(30) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 13: rules RTS(30) #2, start 0:
+}
+
+// ================================================================================
+// Test 14: rules RTS(30) #2, start 0:
+/*
 before, NT with value:
 after,  NT with value: A_1, A_2
             // NT flags:
@@ -1972,7 +2038,9 @@ after,  NT with value: A_1, A_2
                 5 => symbols![nt 2, t 1],               //  5: A_3 -> ε         | ◄5            | A_1 b
                 6 => symbols![nt 3, nt 2, t 2],         //  6: A_4 -> A_2       | ●A_2 ◄6       | A_2 A_1 c
                 7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
-            ], Set(symbols![t 0, t 1, t 2, t 3])),
+            ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+mod rules_rts_30_2 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(30) #2, start A]
 
@@ -2108,8 +2176,11 @@ after,  NT with value: A_1, A_2
 // [wrapper source for rule RTS(30) #2, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 14: rules RTS(24) #1, start 0:
+}
+
+// ================================================================================
+// Test 15: rules RTS(24) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -2124,7 +2195,9 @@ after,  NT with value: A, A_1
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
                 2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
                 3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
-            ], Default),
+            ], Default, btreemap![0 => vec![0]]),
+*/
+mod rules_rts_24_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(24) #1, start A]
 
@@ -2239,8 +2312,11 @@ after,  NT with value: A, A_1
 // [wrapper source for rule RTS(24) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 15: rules PRS(28) #1, start 0:
+}
+
+// ================================================================================
+// Test 16: rules PRS(28) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A
             // NT flags:
@@ -2258,7 +2334,9 @@ after,  NT with value: A
                 4 => symbols![t 0, t 1, t 2],           //  4: A_2 -> c     | ◄4 c!   | a b c
                 5 => symbols![t 0, t 1, t 3],           //  5: A_2 -> d     | ◄5 d!   | a b d
                 6 => symbols![t 0, t 1],                //  6: A_2 -> ε     | ◄6      | a b
-            ], Default),
+            ], Default, btreemap![0 => vec![1, 3, 4, 5, 6]]),
+*/
+mod rules_prs_28_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(28) #1, start A]
 
@@ -2354,8 +2432,11 @@ after,  NT with value: A
 // [wrapper source for rule PRS(28) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 16: rules PRS(31) #1, start 0:
+}
+
+// ================================================================================
+// Test 17: rules PRS(31) #1, start 0:
+/*
 before, NT with value: E, F
 after,  NT with value: E, F
             // NT flags:
@@ -2368,7 +2449,9 @@ after,  NT with value: E, F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
                 2 => symbols![nt 0, t 1],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
-            ], Default),
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+mod rules_prs_31_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(31) #1, start E]
 
@@ -2493,8 +2576,11 @@ after,  NT with value: E, F
 // [wrapper source for rule PRS(31) #1, start E]
 // ------------------------------------------------------------
 
-================================================================================
-Test 17: rules PRS(36) #1, start 0:
+}
+
+// ================================================================================
+// Test 18: rules PRS(36) #1, start 0:
+/*
 before, NT with value: E, F
 after,  NT with value: E, F
             // NT flags:
@@ -2504,11 +2590,13 @@ after,  NT with value: E, F
             //  - E_1 -> E
             (PRS(36), 0, btreemap![
                 0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
-                1 => symbols![t 2],                     //  1: E -> num E_1    | ◄1 ►E_1 num!  | num
+                1 => symbols![t 2],                     //  1: E -> num E_1    | ►E_1 ◄1 num!  | num
                 2 => symbols![t 1],                     //  2: F -> id         | ◄2 id!        | id
                 3 => symbols![nt 0, t 1],               //  3: E_1 -> . id E_1 | ●E_1 ◄3 id! . | E id
                 4 => symbols![],                        //  4: E_1 -> ε        | ◄4            |
-            ], Default),
+            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2]]),
+*/
+mod rules_prs_36_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(36) #1, start E]
 
@@ -2645,8 +2733,11 @@ after,  NT with value: E, F
 // [wrapper source for rule PRS(36) #1, start E]
 // ------------------------------------------------------------
 
-================================================================================
-Test 17: rules PRS(33) #1, start 0:
+}
+
+// ================================================================================
+// Test 19: rules PRS(33) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A
             // NT flags:
@@ -2657,12 +2748,14 @@ after,  NT with value: A
             //  - A_1 -> A
             //  - A_2 -> A
             (PRS(33), 0, btreemap![
-                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 ◄0 b! |
+                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
                 4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
-            ], Default),
+            ], Default, btreemap![0 => vec![3, 4]]),
+*/
+mod rules_prs_33_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(33) #1, start A]
 
@@ -2755,8 +2848,11 @@ after,  NT with value: A
 // [wrapper source for rule PRS(33) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 19: rules PRS(38) #1, start 0:
+}
+
+// ================================================================================
+// Test 20: rules PRS(38) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A
             // NT flags:
@@ -2773,7 +2869,9 @@ after,  NT with value: A
                 3 => symbols![],                        //  3: A_1 -> ε     | ◄3         |
                 4 => symbols![t 1, t 2],                //  4: A_2 -> c A_1 | ►A_1 ◄4 c! | b c
                 5 => symbols![t 1, t 3],                //  5: A_2 -> d A_1 | ►A_1 ◄5 d! | b d
-            ], Default),
+            ], Default, btreemap![0 => vec![4, 5]]),
+*/
+mod rules_prs_38_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(38) #1, start A]
 
@@ -2868,8 +2966,11 @@ after,  NT with value: A
 // [wrapper source for rule PRS(38) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 18: rules PRS(32) #1, start 0:
+}
+
+// ================================================================================
+// Test 21: rules PRS(32) #1, start 0:
+/*
 before, NT with value: E, F
 after,  NT with value: E, F
             // NT flags:
@@ -2886,7 +2987,9 @@ after,  NT with value: E, F
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3          |
                 4 => symbols![nt 0, t 1],               //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | E id
                 5 => symbols![nt 0, t 1],               //  5: E_2 -> E_1      | ●E_1 ◄5     | E id
-            ], Default),
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+mod rules_prs_32_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(32) #1, start E]
 
@@ -3020,8 +3123,11 @@ after,  NT with value: E, F
 // [wrapper source for rule PRS(32) #1, start E]
 // ------------------------------------------------------------
 
-================================================================================
-Test 19: rules PRS(20) #1, start 0:
+}
+
+// ================================================================================
+// Test 22: rules PRS(20) #1, start 0:
+/*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
             // NT flags:
@@ -3032,7 +3138,9 @@ after,  NT with value: STRUCT, LIST
                 0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
                 1 => symbols![t 5, t 5, nt 1],          //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
                 2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
-            ], Default),
+            ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
+*/
+mod rules_prs_20_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(20) #1, start STRUCT]
 
@@ -3150,8 +3258,11 @@ after,  NT with value: STRUCT, LIST
 // [wrapper source for rule PRS(20) #1, start STRUCT]
 // ------------------------------------------------------------
 
-================================================================================
-Test 21: rules PRS(20) #2, start 0:
+}
+
+// ================================================================================
+// Test 23: rules PRS(20) #2, start 0:
+/*
 before, NT with value: STRUCT
 after,  NT with value: STRUCT
             // NT flags:
@@ -3162,7 +3273,9 @@ after,  NT with value: STRUCT
                 0 => symbols![t 5],                     //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id
                 1 => symbols![t 5, t 5],                //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id
                 2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
-            ], Set(symbols![nt 0, t 5])),
+            ], Set(symbols![nt 0, t 5]), btreemap![0 => vec![0], 1 => vec![1, 2]]),
+*/
+mod rules_prs_20_2 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(20) #2, start STRUCT]
 
@@ -3275,8 +3388,11 @@ after,  NT with value: STRUCT
 // [wrapper source for rule PRS(20) #2, start STRUCT]
 // ------------------------------------------------------------
 
-================================================================================
-Test 22: rules PRS(37) #1, start 0:
+}
+
+// ================================================================================
+// Test 24: rules PRS(37) #1, start 0:
+/*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
             // NT flags:
@@ -3290,7 +3406,9 @@ after,  NT with value: STRUCT, LIST
                 2 => symbols![],                        //  2: LIST -> id LIST_1          | ►LIST_1 id!           |
                 3 => symbols![t 5, t 5],                //  3: LIST_1 -> : id ; LIST      | ●LIST ◄3 ; id! :      | id id
                 4 => symbols![t 5],                     //  4: LIST_1 -> ; LIST           | ●LIST ◄4 ;            | id
-            ], Default),
+            ], Default, btreemap![0 => vec![0], 1 => vec![1, 3, 4]]),
+*/
+mod rules_prs_37_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(37) #1, start STRUCT]
 
@@ -3415,8 +3533,11 @@ after,  NT with value: STRUCT, LIST
 // [wrapper source for rule PRS(37) #1, start STRUCT]
 // ------------------------------------------------------------
 
-================================================================================
-Test 20: rules PRS(30) #1, start 0:
+}
+
+// ================================================================================
+// Test 25: rules PRS(30) #1, start 0:
+/*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
             // NT flags:
@@ -3427,7 +3548,9 @@ after,  NT with value: STRUCT, LIST
                 0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
                 1 => symbols![nt 1, t 5, t 5],          //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | LIST id id
                 2 => symbols![nt 1],                    //  2: LIST -> }                  | ◄2 }                  | LIST
-            ], Default),
+            ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
+*/
+mod rules_prs_30_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(30) #1, start STRUCT]
 
@@ -3550,8 +3673,11 @@ after,  NT with value: STRUCT, LIST
 // [wrapper source for rule PRS(30) #1, start STRUCT]
 // ------------------------------------------------------------
 
-================================================================================
-Test 21: rules RTS(26) #1, start 0:
+}
+
+// ================================================================================
+// Test 26: rules RTS(26) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -3567,7 +3693,9 @@ after,  NT with value: A, A_1
                 2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
                 3 => symbols![nt 0, nt 1, t 1],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A A_1 b
                 4 => symbols![],                        //  4: A_2 -> ε         | ◄4              |
-            ], Default),
+            ], Default, btreemap![0 => vec![0]]),
+*/
+mod rules_rts_26_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(26) #1, start A]
 
@@ -3695,8 +3823,11 @@ after,  NT with value: A, A_1
 // [wrapper source for rule RTS(26) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 22: rules RTS(16) #1, start 0:
+}
+
+// ================================================================================
+// Test 27: rules RTS(16) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A, A_1
             // NT flags:
@@ -3715,7 +3846,9 @@ after,  NT with value: A, A_1
                 3 => symbols![],                        //  3: A_2 -> ε         | ◄3              |
                 4 => symbols![nt 1, t 2],               //  4: A_3 -> A_1       | ●A_1 ◄4         | A_1 c
                 5 => symbols![nt 1, t 2],               //  5: A_3 -> ε         | ◄5              | A_1 c
-            ], Default),
+            ], Default, btreemap![0 => vec![0]]),
+*/
+mod rules_rts_16_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(16) #1, start A]
 
@@ -3845,29 +3978,13 @@ after,  NT with value: A, A_1
 // [wrapper source for rule RTS(16) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 23: rules PRS(35) #1, start 0:
+}
+
+// ================================================================================
+// Test 28: rules PRS(35) #1, start 0:
+/*
 before, NT with value: A
 after,  NT with value: A
-nt_name: [Some(("A", "a")), None]
-nt_info: [[(1, "A1"), (2, "A2"), (3, "A3")], []]
-item_info:
-[
-    [],
-    [
-        ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None },
-        ItemInfo { name: "b", sym: T(1), owner: 0, is_vec: false, index: Some(0) },
-        ItemInfo { name: "b", sym: T(1), owner: 0, is_vec: false, index: Some(1) }
-    ],
-    [
-        ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None },
-        ItemInfo { name: "c", sym: T(2), owner: 0, is_vec: false, index: Some(0) },
-        ItemInfo { name: "c", sym: T(2), owner: 0, is_vec: false, index: Some(1) }
-    ],
-    [
-        ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None }
-    ]
-]
             // NT flags:
             //  - A: parent_left_fact (32)
             //  - A_1: child_left_fact (64)
@@ -3878,7 +3995,9 @@ item_info:
                 1 => symbols![t 0, t 1, t 1],           //  1: A_1 -> b b | ◄1 b! b! | a b b
                 2 => symbols![t 0, t 2, t 2],           //  2: A_1 -> c c | ◄2 c! c! | a c c
                 3 => symbols![t 0],                     //  3: A_1 -> ε   | ◄3       | a
-            ], Default),
+            ], Default, btreemap![0 => vec![1, 2, 3]]),
+*/
+mod rules_prs_35_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule PRS(35) #1, start A]
 
@@ -3968,14 +4087,13 @@ item_info:
 // [wrapper source for rule PRS(35) #1, start A]
 // ------------------------------------------------------------
 
-================================================================================
-Test 24: rules RTS(33) #1, start 0:
+}
+
+// ================================================================================
+// Test 29: rules RTS(33) #1, start 0:
+/*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
-nt_name: [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1"))]
-nt_info: [[(0, "A1"), (1, "A2")], [(2, "B")], []]
-item_info: [[ItemInfo { name: "star", sym: NT(2), owner: 0, is_vec: false, index: None }, ItemInfo { name: "b", sym: T(1), owner: 0, is_vec: false, index: None }], [ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None }], [ItemInfo { name: "b", sym: T(1), owner: 1, is_vec: false, index: None }], [ItemInfo { name: "star_it", sym: NT(2), owner: 2, is_vec: false, index: None }, ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None }, ItemInfo { name: "c", sym: T(2), owner: 2, is_vec: false, index: None }], []]
-nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None }, ItemInfo { name: "c", sym: T(2), owner: 2, is_vec: false, index: None }]}
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -3987,7 +4105,9 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
                 2 => symbols![t 1],                     //  2: B -> b         | ◄2 b!         | b
                 3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> B c A_1 | ●A_1 ◄3 c! ►B | A_1 B c
                 4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
-            ], All),
+            ], All, btreemap![0 => vec![0, 1], 1 => vec![2]]),
+*/
+mod rules_rts_33_1 {
 // ------------------------------------------------------------
 // [wrapper source for rule RTS(33) #1, start A]
 
@@ -4123,3 +4243,4 @@ nt_repeat: {2: [ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index
 // [wrapper source for rule RTS(33) #1, start A]
 // ------------------------------------------------------------
 
+}

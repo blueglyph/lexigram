@@ -975,11 +975,12 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
-            if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
+            if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
             if VERBOSE {
+                println!("/*");
                 println!("before, NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
                              if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
@@ -1014,7 +1015,14 @@ mod wrapper_source {
             let result = src.into_iter().map(|s| if !s.is_empty() { format!("    {s}") } else { s }).join("\n");
             let result_src = result.clone() + "\n\n";
             if PRINT_SOURCE {
+                println!("*/");
+                let rule_name = match rule_id {
+                    RTS(n) => format!("rts_{n}"),
+                    PRS(n) => format!("prs_{n}"),
+                };
+                println!("mod rules_{rule_name}_{rule_iter} {{");
                 println!("// {0:-<60}\n// [{test_name}]\n\n{result_src}// [{test_name}]\n// {:-<60}\n", "");
+                println!("}}");
             }
             let expected_src = get_wrapper_source(&test_name);
             let err_msg = format!("test {test_id} {rule_id:?} #{rule_iter} failed ");
