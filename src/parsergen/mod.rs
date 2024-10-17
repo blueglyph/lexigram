@@ -939,6 +939,8 @@ impl ParserBuilder {
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].as_ref().unwrap().0));
                     for &f_id in factors {
+                        let (v, pf) = &self.parsing_table.factors[f_id as usize];
+                        src.push(format!("    /// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table())));
                         let ctx_content = Self::source_infos(&item_info[f_id as usize], &nt_name);
                         let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
                         if ctx_content.is_empty() {

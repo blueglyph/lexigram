@@ -31,13 +31,18 @@ mod rules_prs_34_1 {
     pub enum Ctx { S { s: SynS } }
     #[derive(Debug)]
     pub enum CtxS {
+        /// S -> id = VAL
         S1 { id: String, val: SynVal },
+        /// S -> exit
         S2,
+        /// S -> return VAL
         S3 { val: SynVal },
     }
     #[derive(Debug)]
     pub enum CtxVal {
+        /// VAL -> id
         Val1 { id: String },
+        /// VAL -> num
         Val2 { num: String },
     }
 
@@ -195,6 +200,7 @@ mod rules_rts_21_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_1 c
         A { a: String, star: SynA1, c: String },
     }
 
@@ -331,6 +337,7 @@ mod rules_rts_21_2 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_1 c
         A { a: String, c: String },
     }
 
@@ -452,10 +459,12 @@ mod rules_rts_22_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_1 c
         A { a: String, star: SynAIter, c: String },
     }
     #[derive(Debug)]
     pub enum CtxAIter {
+        /// A_1 -> b A_1
         A1 { star_it: SynAIter, b: String },
     }
 
@@ -594,6 +603,7 @@ mod rules_rts_22_2 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_1 c
         A { a: String, c: String },
     }
 
@@ -720,11 +730,14 @@ mod rules_rts_32_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A_2 -> a A_1 c
         A1 { a: [String; 2], star: SynAIter, c: String },
+        /// A_2 -> c A_1 c
         A2 { a: String, c: [String; 2], star: SynAIter },
     }
     #[derive(Debug)]
     pub enum CtxAIter {
+        /// A_1 -> b A_1
         A1 { star_it: SynAIter, b: String },
     }
 
@@ -851,6 +864,7 @@ mod rules_rts_25_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_1 c
         A { a: String, c: String },
     }
 
@@ -975,6 +989,7 @@ mod rules_rts_23_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_1 c
         A { a: String, plus: SynA1, c: String },
     }
 
@@ -1117,10 +1132,12 @@ mod rules_rts_27_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_1 c
         A { a: String, plus: SynA1, c: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
+        /// B -> b
         B { b: String },
     }
 
@@ -1279,10 +1296,12 @@ mod rules_rts_28_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> A_1 c
         A { plus: SynA1, c: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
+        /// B -> b
         B { b: String },
     }
 
@@ -1474,10 +1493,12 @@ mod rules_rts_29_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_2 d
         A { a: String, star: SynA2, d: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
+        /// B -> b
         B { b: String },
     }
 
@@ -1657,10 +1678,12 @@ mod rules_rts_29_2 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_2 d
         A { a: String, star: SynA2, d: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
+        /// B -> b
         B,
     }
 
@@ -1812,10 +1835,12 @@ mod rules_rts_29_3 {
     pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_2 d
         A { a: String, star: SynA2, d: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
+        /// B -> b
         B { b: String },
     }
 
@@ -2029,10 +2054,12 @@ mod rules_rts_30_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_2 d
         A { a: String, plus: SynA2, d: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
+        /// B -> b
         B { b: String },
     }
 
@@ -2222,10 +2249,12 @@ mod rules_rts_30_2 {
     pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_2 d
         A { a: String, plus: SynA2, d: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
+        /// B -> b
         B { b: String },
     }
 
@@ -2393,11 +2422,14 @@ mod rules_rts_24_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_1 c
         A { a: String, plus: SynAIter, c: String },
     }
     #[derive(Debug)]
     pub enum CtxAIter {
+        /// A_2 -> A_1
         A1_1 { plus_it: SynAIter, b: String },
+        /// A_2 -> ε
         A1_2 { plus_it: SynAIter, b: String },
     }
 
@@ -2544,10 +2576,15 @@ mod rules_prs_28_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> e
         A1 { e: String },
+        /// A_1 -> ε
         A2 { a: String },
+        /// A_2 -> c
         A3 { a: String, b: String, c: String },
+        /// A_2 -> d
         A4 { a: String, b: String, d: String },
+        /// A_2 -> ε
         A5 { a: String, b: String },
     }
 
@@ -2668,12 +2705,16 @@ mod rules_prs_31_1 {
     pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
     pub enum CtxE {
+        /// E -> F E_1
         E1 { f: SynF },
+        /// E_1 -> . id E_1
         E2 { e: SynE, id: String },
+        /// E_1 -> ε
         E3 { e: SynE },
     }
     #[derive(Debug)]
     pub enum CtxF {
+        /// F -> id
         F { id: String },
     }
 
@@ -2825,13 +2866,18 @@ mod rules_prs_36_1 {
     pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
     pub enum CtxE {
+        /// E -> F E_1
         E1 { f: SynF },
+        /// E -> num E_1
         E2 { num: String },
+        /// E_1 -> . id E_1
         E3 { e: SynE, id: String },
+        /// E_1 -> ε
         E4 { e: SynE },
     }
     #[derive(Debug)]
     pub enum CtxF {
+        /// F -> id
         F { id: String },
     }
 
@@ -2996,9 +3042,13 @@ mod rules_prs_33_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A_1 -> a A_1
         A1 { a: SynA, a1: String },
+        /// A_1 -> ε
         A2 { a: SynA },
+        /// A_2 -> c A_1
         A3 { b: String, c: String },
+        /// A_2 -> d A_1
         A4 { b: String, d: String },
     }
 
@@ -3121,10 +3171,15 @@ mod rules_prs_38_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A_1 -> a A_1
         A1 { a: SynA, a1: String },
+        /// A_1 -> b A_1
         A2 { a: SynA, b: String },
+        /// A_1 -> ε
         A3 { a: SynA },
+        /// A_2 -> c A_1
         A4 { b: String, c: String },
+        /// A_2 -> d A_1
         A5 { b: String, d: String },
     }
 
@@ -3248,13 +3303,18 @@ mod rules_prs_32_1 {
     pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
     pub enum CtxE {
+        /// E -> F E_1
         E1 { f: SynF },
+        /// E_1 -> ε
         E2 { e: SynE },
+        /// E_2 -> ( ) E_1
         E3 { e: SynE, id: String },
+        /// E_2 -> E_1
         E4 { e: SynE, id: String },
     }
     #[derive(Debug)]
     pub enum CtxF {
+        /// F -> id
         F { id: String },
     }
 
@@ -3411,11 +3471,14 @@ mod rules_prs_20_1 {
     pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
     pub enum CtxStruct {
+        /// STRUCT -> struct id { LIST
         Struct { id: String, list: SynList },
     }
     #[derive(Debug)]
     pub enum CtxList {
+        /// LIST -> id : id ; LIST
         List1 { id: [String; 2], list: SynList },
+        /// LIST -> }
         List2,
     }
 
@@ -3558,11 +3621,14 @@ mod rules_prs_20_2 {
     pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
     pub enum CtxStruct {
+        /// STRUCT -> struct id { LIST
         Struct { id: String },
     }
     #[derive(Debug)]
     pub enum CtxList {
+        /// LIST -> id : id ; LIST
         List1 { id: [String; 2] },
+        /// LIST -> }
         List2,
     }
 
@@ -3701,12 +3767,16 @@ mod rules_prs_37_1 {
     pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
     pub enum CtxStruct {
+        /// STRUCT -> struct id { LIST
         Struct { id: String, list: SynList },
     }
     #[derive(Debug)]
     pub enum CtxList {
+        /// LIST -> }
         List1,
+        /// LIST_1 -> : id ; LIST
         List2 { id: [String; 2] },
+        /// LIST_1 -> ; LIST
         List3 { id: String },
     }
 
@@ -3855,11 +3925,14 @@ mod rules_prs_30_1 {
     pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
     pub enum CtxStruct {
+        /// STRUCT -> struct id { LIST
         Struct { id: String, list: SynList },
     }
     #[derive(Debug)]
     pub enum CtxList {
+        /// LIST -> id : id ; LIST
         List1 { list: SynList, id: [String; 2] },
+        /// LIST -> }
         List2 { list: SynList },
     }
 
@@ -4012,8 +4085,11 @@ mod rules_rts_26_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_2
         A1 { a: String },
+        /// A_2 -> A_1 b A_2
         A2 { a: SynA, star: SynA1, b: String },
+        /// A_2 -> ε
         A3 { a: SynA },
     }
 
@@ -4175,8 +4251,11 @@ mod rules_rts_16_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> a A_2
         A1 { a: String },
+        /// A_2 -> A_1 b A_2
         A2 { a: SynA, plus: SynA1, b: String },
+        /// A_2 -> ε
         A3 { a: SynA },
     }
 
@@ -4334,8 +4413,11 @@ mod rules_prs_35_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A_1 -> b b
         A1 { a: String, b: [String; 2] },
+        /// A_1 -> c c
         A2 { a: String, c: [String; 2] },
+        /// A_1 -> ε
         A3 { a: String },
     }
 
@@ -4453,11 +4535,14 @@ mod rules_rts_33_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
+        /// A -> A_1 b
         A1 { star: SynA1, b: String },
+        /// A -> a
         A2 { a: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
+        /// B -> b
         B { b: String },
     }
 
