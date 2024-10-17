@@ -715,11 +715,11 @@ impl ParserBuilder {
                 }
             }
             println!();
+            // println!("nt_name: {nt_name:?}");
+            // println!("factor_info: {factor_info:?}");
+            // println!("item_info: {item_info:?}");
+            // println!("nt_repeat: {nt_repeat:?}");
         }
-        println!("nt_name: {nt_name:?}");
-        println!("factor_info: {factor_info:?}");
-        println!("item_info: {item_info:?}");
-        println!("nt_repeat: {nt_repeat:?}");
         (nt_name, factor_info, item_info, nt_repeat)
     }
 
