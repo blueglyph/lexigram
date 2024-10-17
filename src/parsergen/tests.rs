@@ -37,7 +37,7 @@ mod gen_integration {
     }
 
     fn get_integration_source(tag: &str) -> String {
-        const FILENAME: &str = "tests/integration/main.rs";
+        const FILENAME: &str = "tests/integration/parsergen.rs";
         let file_tag = format!("[{tag}]");
         let mut file = File::open(FILENAME).expect("Couldn't open source file");
         let mut buffer = String::new();
@@ -501,7 +501,7 @@ mod wrapper_source {
         }
     }
 
-    const FILENAME: &str = "data/test/wrapper_source.out.rs";
+    const FILENAME: &str = "tests/gen/wrapper_source.rs";
 
     fn get_wrapper_source(tag: &str) -> Option<String> {
         let file_tag = format!("[{tag}]");
