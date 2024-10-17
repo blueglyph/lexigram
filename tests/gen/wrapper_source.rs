@@ -723,7 +723,7 @@ mod rules_rts_32_1 {
     // [wrapper source for rule RTS(32) #1, start A]
 
     use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
+    use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
@@ -762,7 +762,9 @@ mod rules_rts_32_1 {
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_a_iter(&mut self) -> SynAIter;
+        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -800,11 +802,11 @@ mod rules_rts_32_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        3 |                                         // A_2 -> a A_1 c
+                        4 => self.exit_a(factor_id),                // A_2 -> c A_1 c
+                        1 => self.exit_a_iter(),                    // A_1 -> b A_1
+                        2 => {}                                     // A_1 -> ε
                      /* 0 */                                        // A -> a A_2 (never called)
-                        1 => {}                                     // A_1 -> b A_1 (not used)
-                        2 => {}                                     // A_1 -> ε (not used)
-                        3 => {}                                     // A_2 -> a A_1 c (not used)
-                        4 => {}                                     // A_2 -> c A_1 c (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -825,8 +827,35 @@ mod rules_rts_32_1 {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
+        fn exit_a(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                3 => {
+                    let c = self.stack_t.pop().unwrap();
+                    let star = self.stack.pop().unwrap().get_a_iter();
+                    let a_2 = self.stack_t.pop().unwrap();
+                    let a_1 = self.stack_t.pop().unwrap();
+                    CtxA::A1 { a: [a_1, a_2], star, c }
+                }
+                4 => {
+                    let c_2 = self.stack_t.pop().unwrap();
+                    let star = self.stack.pop().unwrap().get_a_iter();
+                    let c_1 = self.stack_t.pop().unwrap();
+                    let a = self.stack_t.pop().unwrap();
+                    CtxA::A2 { a, c: [c_1, c_2], star }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
+        }
         fn init_a_iter(&mut self) {
             let val = self.listener.init_a_iter();
+            self.stack.push(SynValue::AIter(val));
+        }
+        fn exit_a_iter(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let star_it = self.stack.pop().unwrap().get_a_iter();
+            let val = self.listener.exit_a_iter(CtxAIter::A1 { star_it, b });
             self.stack.push(SynValue::AIter(val));
         }
     }
@@ -2569,7 +2598,7 @@ mod rules_prs_28_1 {
     // [wrapper source for rule PRS(28) #1, start A]
 
     use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
+    use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
@@ -2605,6 +2634,7 @@ mod rules_prs_28_1 {
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
     struct ListenerWrapper<T> {
@@ -2642,13 +2672,13 @@ mod rules_prs_28_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 |                                         // A -> e
+                        3 |                                         // A_1 -> ε
+                        4 |                                         // A_2 -> c
+                        5 |                                         // A_2 -> d
+                        6 => self.exit_a(factor_id),                // A_2 -> ε
                      /* 0 */                                        // A -> a A_1 (never called)
-                        1 => {}                                     // A -> e (not used)
                      /* 2 */                                        // A_1 -> b A_2 (never called)
-                        3 => {}                                     // A_1 -> ε (not used)
-                        4 => {}                                     // A_2 -> c (not used)
-                        5 => {}                                     // A_2 -> d (not used)
-                        6 => {}                                     // A_2 -> ε (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2668,6 +2698,38 @@ mod rules_prs_28_1 {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn exit_a(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let e = self.stack_t.pop().unwrap();
+                    CtxA::A1 { e }
+                }
+                3 => {
+                    let a = self.stack_t.pop().unwrap();
+                    CtxA::A2 { a }
+                }
+                4 => {
+                    let c = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    let a = self.stack_t.pop().unwrap();
+                    CtxA::A3 { a, b, c }
+                }
+                5 => {
+                    let d = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    let a = self.stack_t.pop().unwrap();
+                    CtxA::A4 { a, b, d }
+                }
+                6 => {
+                    let b = self.stack_t.pop().unwrap();
+                    let a = self.stack_t.pop().unwrap();
+                    CtxA::A5 { a, b }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
         }
     }
 
@@ -3035,7 +3097,7 @@ mod rules_prs_33_1 {
     // [wrapper source for rule PRS(33) #1, start A]
 
     use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
+    use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
@@ -3069,6 +3131,7 @@ mod rules_prs_33_1 {
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
     struct ListenerWrapper<T> {
@@ -3106,11 +3169,11 @@ mod rules_prs_33_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        3 |                                         // A_2 -> c A_1
+                        4 => self.init_a(factor_id),                // A_2 -> d A_1
+                        1 |                                         // A_1 -> a A_1
+                        2 => self.exit_a1(factor_id),               // A_1 -> ε
                      /* 0 */                                        // A -> b A_2 (never called)
-                        1 => {}                                     // A_1 -> a A_1 (not used)
-                        2 => {}                                     // A_1 -> ε (not used)
-                        3 => {}                                     // A_2 -> c A_1 (not used)
-                        4 => {}                                     // A_2 -> d A_1 (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3130,6 +3193,39 @@ mod rules_prs_33_1 {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                3 => {
+                    let c = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    CtxA::A3 { b, c }
+                }
+                4 => {
+                    let d = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    CtxA::A4 { b, d }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn init_a")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
+        }
+        fn exit_a1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let a1 = self.stack_t.pop().unwrap();
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A1 { a, a1 }
+                }
+                2 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A2 { a }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
         }
     }
 
@@ -3164,7 +3260,7 @@ mod rules_prs_38_1 {
     // [wrapper source for rule PRS(38) #1, start A]
 
     use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
+    use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
@@ -3200,6 +3296,7 @@ mod rules_prs_38_1 {
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
     struct ListenerWrapper<T> {
@@ -3237,12 +3334,12 @@ mod rules_prs_38_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        4 |                                         // A_2 -> c A_1
+                        5 => self.init_a(factor_id),                // A_2 -> d A_1
+                        1 |                                         // A_1 -> a A_1
+                        2 |                                         // A_1 -> b A_1
+                        3 => self.exit_a1(factor_id),               // A_1 -> ε
                      /* 0 */                                        // A -> b A_2 (never called)
-                        1 => {}                                     // A_1 -> a A_1 (not used)
-                        2 => {}                                     // A_1 -> b A_1 (not used)
-                        3 => {}                                     // A_1 -> ε (not used)
-                        4 => {}                                     // A_2 -> c A_1 (not used)
-                        5 => {}                                     // A_2 -> d A_1 (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3262,6 +3359,44 @@ mod rules_prs_38_1 {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn init_a(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                4 => {
+                    let c = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    CtxA::A4 { b, c }
+                }
+                5 => {
+                    let d = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    CtxA::A5 { b, d }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn init_a")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
+        }
+        fn exit_a1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let a1 = self.stack_t.pop().unwrap();
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A1 { a, a1 }
+                }
+                2 => {
+                    let b = self.stack_t.pop().unwrap();
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A2 { a, b }
+                }
+                3 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A3 { a }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
         }
     }
 
@@ -4406,7 +4541,7 @@ mod rules_prs_35_1 {
     // [wrapper source for rule PRS(35) #1, start A]
 
     use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
+    use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
@@ -4438,6 +4573,7 @@ mod rules_prs_35_1 {
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
     struct ListenerWrapper<T> {
@@ -4474,10 +4610,10 @@ mod rules_prs_35_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
+                        1 |                                         // A_1 -> b b
+                        2 |                                         // A_1 -> c c
+                        3 => self.exit_a(factor_id),                // A_1 -> ε
                      /* 0 */                                        // A -> a A_1 (never called)
-                        1 => {}                                     // A_1 -> b b (not used)
-                        2 => {}                                     // A_1 -> c c (not used)
-                        3 => {}                                     // A_1 -> ε (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -4497,6 +4633,29 @@ mod rules_prs_35_1 {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
+        }
+        fn exit_a(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let b_2 = self.stack_t.pop().unwrap();
+                    let b_1 = self.stack_t.pop().unwrap();
+                    let a = self.stack_t.pop().unwrap();
+                    CtxA::A1 { a, b: [b_1, b_2] }
+                }
+                2 => {
+                    let c_2 = self.stack_t.pop().unwrap();
+                    let c_1 = self.stack_t.pop().unwrap();
+                    let a = self.stack_t.pop().unwrap();
+                    CtxA::A2 { a, c: [c_1, c_2] }
+                }
+                3 => {
+                    let a = self.stack_t.pop().unwrap();
+                    CtxA::A3 { a }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
         }
     }
 

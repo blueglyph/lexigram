@@ -1168,7 +1168,8 @@ impl ParserBuilder {
                 // - no transformation (or only left factorization)
                 // - no ambiguity, no +, no *
                 if flags & ruleflag::CHILD_L_FACTOR == 0 &&     // already taken by self.gather_factors
-                    (flags & ruleflag::R_RECURSION != 0 || parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT == 0)
+                    (flags & ruleflag::R_RECURSION != 0 ||
+                        parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT & !ruleflag::PARENT_L_FACTOR == 0)
                 {
                     let (nu, nl) = nt_name[nt].as_ref().unwrap();
                     let (pnu, pnl) = nt_name[parent_nt].as_ref().unwrap();
