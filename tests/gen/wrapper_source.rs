@@ -1,5 +1,5 @@
 #![cfg(test)]
-#![cfg(feature = "disabled")]
+
 // ================================================================================
 // Test 0: rules PRS(34) #1, start 0:
 /*
@@ -17,23 +17,35 @@ after,  NT with value: S, VAL
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
             ], Set(symbols![nt 0, nt 1, t 0, t 1]), btreemap![0 => vec![0, 1, 2], 1 => vec![3, 4]]),
 */
-pub(super) mod rules_prs_34_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(34) #1, start S]
+mod rules_prs_34_1 {
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(34) #1, start S]
+
+    #[derive(Debug)]
     pub enum Ctx { S { s: SynS } }
+    #[derive(Debug)]
     pub enum CtxS {
         S1 { id: String, val: SynVal },
         S2,
         S3 { val: SynVal },
     }
+    #[derive(Debug)]
     pub enum CtxVal {
         Val1 { id: String },
         Val2 { num: String },
     }
 
     // User-defined: SynS, SynVal
+    #[derive(Debug)]
+    pub struct SynS();
+    #[derive(Debug)]
+    pub struct SynVal();
 
+    #[derive(Debug)]
     enum SynValue { S(SynS), Val(SynVal) }
 
     impl SynValue {
@@ -61,7 +73,7 @@ pub(super) mod rules_prs_34_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -71,7 +83,7 @@ pub(super) mod rules_prs_34_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -107,8 +119,8 @@ pub(super) mod rules_prs_34_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let s = self.stack.pop().unwrap().get_s();
             self.listener.exit(Ctx::S { s });
         }
@@ -148,8 +160,8 @@ pub(super) mod rules_prs_34_1 {
         }
     }
 
-// [wrapper source for rule PRS(34) #1, start S]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(34) #1, start S]
+    // ------------------------------------------------------------
 
 }
 
@@ -170,17 +182,27 @@ after,  NT with value: A, A_1
             ], All, btreemap![0 => vec![0]]),
 */
 mod rules_rts_21_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(21) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(21) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, star: SynA1, c: String },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<String>);
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1) }
 
     impl SynValue {
@@ -206,7 +228,7 @@ mod rules_rts_21_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -216,7 +238,7 @@ mod rules_rts_21_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -250,8 +272,8 @@ mod rules_rts_21_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -274,8 +296,8 @@ mod rules_rts_21_1 {
         }
     }
 
-// [wrapper source for rule RTS(21) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(21) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -296,16 +318,25 @@ after,  NT with value: A
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 */
 mod rules_rts_21_2 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(21) #2, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(21) #2, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, c: String },
     }
 
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA) }
 
     impl SynValue {
@@ -329,7 +360,7 @@ mod rules_rts_21_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -339,7 +370,7 @@ mod rules_rts_21_2 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -373,8 +404,8 @@ mod rules_rts_21_2 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -386,8 +417,8 @@ mod rules_rts_21_2 {
         }
     }
 
-// [wrapper source for rule RTS(21) #2, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(21) #2, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -408,19 +439,31 @@ after,  NT with value: A, A_1
             ], All, btreemap![0 => vec![0]]),
 */
 mod rules_rts_22_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(22) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(22) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, star: SynAIter, c: String },
     }
+    #[derive(Debug)]
     pub enum CtxAIter {
         A1 { star_it: SynAIter, b: String },
     }
 
     // User-defined: SynA, SynAIter
+    #[derive(Debug)]
+    pub struct SynA();
+    #[derive(Debug)]
+    pub struct SynAIter();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), AIter(SynAIter) }
 
     impl SynValue {
@@ -448,7 +491,7 @@ mod rules_rts_22_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -458,7 +501,7 @@ mod rules_rts_22_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -492,8 +535,8 @@ mod rules_rts_22_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -512,12 +555,12 @@ mod rules_rts_22_1 {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_a_iter();
             let val = self.listener.exit_a_iter(CtxAIter::A1 { star_it, b });
-            self.stack.push(SynValue::A(val));
+            self.stack.push(SynValue::AIter(val));
         }
     }
 
-// [wrapper source for rule RTS(22) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(22) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -538,16 +581,25 @@ after,  NT with value: A
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 */
 mod rules_rts_22_2 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(22) #2, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(22) #2, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, c: String },
     }
 
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA) }
 
     impl SynValue {
@@ -572,7 +624,7 @@ mod rules_rts_22_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -582,7 +634,7 @@ mod rules_rts_22_2 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -616,8 +668,8 @@ mod rules_rts_22_2 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -629,8 +681,8 @@ mod rules_rts_22_2 {
         }
     }
 
-// [wrapper source for rule RTS(22) #2, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(22) #2, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -655,20 +707,32 @@ after,  NT with value: A, A_1
             ], All, btreemap![0 => vec![3, 4]]),
 */
 mod rules_rts_32_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(32) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(32) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A1 { a: [String; 2], star: SynAIter, c: String },
         A2 { a: String, c: [String; 2], star: SynAIter },
     }
+    #[derive(Debug)]
     pub enum CtxAIter {
         A1 { star_it: SynAIter, b: String },
     }
 
     // User-defined: SynA, SynAIter
+    #[derive(Debug)]
+    pub struct SynA();
+    #[derive(Debug)]
+    pub struct SynAIter();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), AIter(SynAIter) }
 
     impl SynValue {
@@ -694,7 +758,7 @@ mod rules_rts_32_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -704,7 +768,7 @@ mod rules_rts_32_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -741,8 +805,8 @@ mod rules_rts_32_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -752,8 +816,8 @@ mod rules_rts_32_1 {
         }
     }
 
-// [wrapper source for rule RTS(32) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(32) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -774,16 +838,25 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![0]]),
 */
 mod rules_rts_25_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(25) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(25) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, c: String },
     }
 
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA) }
 
     impl SynValue {
@@ -807,7 +880,7 @@ mod rules_rts_25_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -817,7 +890,7 @@ mod rules_rts_25_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -851,8 +924,8 @@ mod rules_rts_25_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -864,8 +937,8 @@ mod rules_rts_25_1 {
         }
     }
 
-// [wrapper source for rule RTS(25) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(25) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -889,17 +962,27 @@ after,  NT with value: A, A_1
             ], All, btreemap![0 => vec![0]]),
 */
 mod rules_rts_23_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(23) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(23) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, plus: SynA1, c: String },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<String>);
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1) }
 
     impl SynValue {
@@ -925,7 +1008,7 @@ mod rules_rts_23_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -935,7 +1018,7 @@ mod rules_rts_23_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -971,8 +1054,8 @@ mod rules_rts_23_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -995,8 +1078,8 @@ mod rules_rts_23_1 {
         }
     }
 
-// [wrapper source for rule RTS(23) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(23) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -1021,21 +1104,35 @@ after,  NT with value: A, B, A_1
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_27_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(27) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(27) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, plus: SynA1, c: String },
     }
+    #[derive(Debug)]
     pub enum CtxB {
         B { b: String },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
+    #[derive(Debug)]
     pub struct SynA1Item { b: SynB }
     // User-defined: SynA, SynB
+    #[derive(Debug)]
+    pub struct SynA();
+    #[derive(Debug)]
+    pub struct SynB();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
 
     impl SynValue {
@@ -1066,7 +1163,7 @@ mod rules_rts_27_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -1076,7 +1173,7 @@ mod rules_rts_27_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1114,8 +1211,8 @@ mod rules_rts_27_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -1143,8 +1240,8 @@ mod rules_rts_27_1 {
         }
     }
 
-// [wrapper source for rule RTS(27) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(27) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -1169,21 +1266,35 @@ after,  NT with value: A, B, A_1
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_28_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(28) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(28) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { plus: SynA1, c: String },
     }
+    #[derive(Debug)]
     pub enum CtxB {
         B { b: String },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
+    #[derive(Debug)]
     pub struct SynA1Item { a: String, b: SynB }
     // User-defined: SynA, SynB
+    #[derive(Debug)]
+    pub struct SynA();
+    #[derive(Debug)]
+    pub struct SynB();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
 
     impl SynValue {
@@ -1214,7 +1325,7 @@ mod rules_rts_28_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -1224,7 +1335,7 @@ mod rules_rts_28_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1262,8 +1373,8 @@ mod rules_rts_28_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -1291,8 +1402,8 @@ mod rules_rts_28_1 {
         }
     }
 
-// [wrapper source for rule RTS(28) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(28) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -1350,23 +1461,39 @@ item_info =
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_29_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(29) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(29) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, star: SynA2, d: String },
     }
+    #[derive(Debug)]
     pub enum CtxB {
         B { b: String },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
+    #[derive(Debug)]
     pub struct SynA1Item { b: SynB, b1: String }
+    #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
+    #[derive(Debug)]
     pub struct SynA2Item { star: SynA1, c: String }
     // User-defined: SynA, SynB
+    #[derive(Debug)]
+    pub struct SynA();
+    #[derive(Debug)]
+    pub struct SynB();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
 
     impl SynValue {
@@ -1400,7 +1527,7 @@ mod rules_rts_29_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -1410,7 +1537,7 @@ mod rules_rts_29_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1449,8 +1576,8 @@ mod rules_rts_29_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -1490,8 +1617,8 @@ mod rules_rts_29_1 {
         }
     }
 
-// [wrapper source for rule RTS(29) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(29) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -1517,20 +1644,31 @@ after,  NT with value: A, A_2
             ], Set(symbols![nt 0, t 0, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_29_2 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(29) #2, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(29) #2, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, star: SynA2, d: String },
     }
+    #[derive(Debug)]
     pub enum CtxB {
         B,
     }
 
+    #[derive(Debug)]
     pub struct SynA2(Vec<String>);
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), A2(SynA2) }
 
     impl SynValue {
@@ -1558,7 +1696,7 @@ mod rules_rts_29_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -1568,7 +1706,7 @@ mod rules_rts_29_2 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1607,8 +1745,8 @@ mod rules_rts_29_2 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -1634,8 +1772,8 @@ mod rules_rts_29_2 {
         }
     }
 
-// [wrapper source for rule RTS(29) #2, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(29) #2, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -1661,21 +1799,35 @@ after,  NT with value: A_1, A_2
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_29_3 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(29) #3, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
-    pub enum Ctx { A { a: SynA } }
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(29) #3, start A]
+
+    #[derive(Debug)]
+    pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, star: SynA2, d: String },
     }
+    #[derive(Debug)]
     pub enum CtxB {
         B { b: String },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<String>);
+    #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
+    #[derive(Debug)]
     pub struct SynA2Item { star: SynA1, c: String }
+    // Top non-terminal A has no value:
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A1(SynA1), A2(SynA2) }
 
     impl SynValue {
@@ -1703,7 +1855,7 @@ mod rules_rts_29_3 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -1713,7 +1865,7 @@ mod rules_rts_29_3 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1752,9 +1904,9 @@ mod rules_rts_29_3 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
-            self.listener.exit(Ctx::A{ a: SynA() });
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
+            self.listener.exit(Ctx::A);
         }
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
@@ -1789,8 +1941,8 @@ mod rules_rts_29_3 {
         }
     }
 
-// [wrapper source for rule RTS(29) #3, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(29) #3, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -1864,23 +2016,39 @@ item_info =
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_30_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(30) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(30) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, plus: SynA2, d: String },
     }
+    #[derive(Debug)]
     pub enum CtxB {
         B { b: String },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
+    #[derive(Debug)]
     pub struct SynA1Item { b: SynB, b1: String }
+    #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
+    #[derive(Debug)]
     pub struct SynA2Item { plus: SynA1, c: String }
     // User-defined: SynA, SynB
+    #[derive(Debug)]
+    pub struct SynA();
+    #[derive(Debug)]
+    pub struct SynB();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
 
     impl SynValue {
@@ -1914,7 +2082,7 @@ mod rules_rts_30_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -1924,7 +2092,7 @@ mod rules_rts_30_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1967,8 +2135,8 @@ mod rules_rts_30_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -2008,8 +2176,8 @@ mod rules_rts_30_1 {
         }
     }
 
-// [wrapper source for rule RTS(30) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(30) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -2041,21 +2209,35 @@ after,  NT with value: A_1, A_2
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_30_2 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(30) #2, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
-    pub enum Ctx { A { a: SynA } }
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(30) #2, start A]
+
+    #[derive(Debug)]
+    pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, plus: SynA2, d: String },
     }
+    #[derive(Debug)]
     pub enum CtxB {
         B { b: String },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<String>);
+    #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
+    #[derive(Debug)]
     pub struct SynA2Item { plus: SynA1, c: String }
+    // Top non-terminal A has no value:
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A1(SynA1), A2(SynA2) }
 
     impl SynValue {
@@ -2083,7 +2265,7 @@ mod rules_rts_30_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -2093,7 +2275,7 @@ mod rules_rts_30_2 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2136,9 +2318,9 @@ mod rules_rts_30_2 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
-            self.listener.exit(Ctx::A{ a: SynA() });
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
+            self.listener.exit(Ctx::A);
         }
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
@@ -2173,8 +2355,8 @@ mod rules_rts_30_2 {
         }
     }
 
-// [wrapper source for rule RTS(30) #2, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(30) #2, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -2198,20 +2380,32 @@ after,  NT with value: A, A_1
             ], Default, btreemap![0 => vec![0]]),
 */
 mod rules_rts_24_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(24) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(24) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A { a: String, plus: SynAIter, c: String },
     }
+    #[derive(Debug)]
     pub enum CtxAIter {
         A1_1 { plus_it: SynAIter, b: String },
         A1_2 { plus_it: SynAIter, b: String },
     }
 
     // User-defined: SynA, SynAIter
+    #[derive(Debug)]
+    pub struct SynA();
+    #[derive(Debug)]
+    pub struct SynAIter();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), AIter(SynAIter) }
 
     impl SynValue {
@@ -2239,7 +2433,7 @@ mod rules_rts_24_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -2249,7 +2443,7 @@ mod rules_rts_24_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2285,8 +2479,8 @@ mod rules_rts_24_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -2305,12 +2499,12 @@ mod rules_rts_24_1 {
             let b = self.stack_t.pop().unwrap();
             let plus_it = self.stack.pop().unwrap().get_a_iter();
             let val = self.listener.exit_a_iter(CtxAIter::A1_1 { plus_it, b });
-            self.stack.push(SynValue::A(val));
+            self.stack.push(SynValue::AIter(val));
         }
     }
 
-// [wrapper source for rule RTS(24) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(24) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -2337,10 +2531,16 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![1, 3, 4, 5, 6]]),
 */
 mod rules_prs_28_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(28) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(28) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A1 { e: String },
         A2 { a: String },
@@ -2350,7 +2550,10 @@ mod rules_prs_28_1 {
     }
 
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA) }
 
     impl SynValue {
@@ -2373,7 +2576,7 @@ mod rules_prs_28_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -2383,7 +2586,7 @@ mod rules_prs_28_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2422,15 +2625,15 @@ mod rules_prs_28_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
     }
 
-// [wrapper source for rule PRS(28) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(28) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -2452,21 +2655,33 @@ after,  NT with value: E, F
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_prs_31_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(31) #1, start E]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(31) #1, start E]
+
+    #[derive(Debug)]
     pub enum Ctx { E { e: SynE } }
+    #[derive(Debug)]
     pub enum CtxE {
         E1 { f: SynF },
         E2 { e: SynE, id: String },
         E3 { e: SynE },
     }
+    #[derive(Debug)]
     pub enum CtxF {
         F { id: String },
     }
 
     // User-defined: SynE, SynF
+    #[derive(Debug)]
+    pub struct SynE();
+    #[derive(Debug)]
+    pub struct SynF();
 
+    #[derive(Debug)]
     enum SynValue { E(SynE), F(SynF) }
 
     impl SynValue {
@@ -2494,7 +2709,7 @@ mod rules_prs_31_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -2504,7 +2719,7 @@ mod rules_prs_31_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2540,8 +2755,8 @@ mod rules_prs_31_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(Ctx::E { e });
         }
@@ -2573,8 +2788,8 @@ mod rules_prs_31_1 {
         }
     }
 
-// [wrapper source for rule PRS(31) #1, start E]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(31) #1, start E]
+    // ------------------------------------------------------------
 
 }
 
@@ -2597,22 +2812,34 @@ after,  NT with value: E, F
             ], Default, btreemap![0 => vec![0, 1], 1 => vec![2]]),
 */
 mod rules_prs_36_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(36) #1, start E]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(36) #1, start E]
+
+    #[derive(Debug)]
     pub enum Ctx { E { e: SynE } }
+    #[derive(Debug)]
     pub enum CtxE {
         E1 { f: SynF },
         E2 { num: String },
         E3 { e: SynE, id: String },
         E4 { e: SynE },
     }
+    #[derive(Debug)]
     pub enum CtxF {
         F { id: String },
     }
 
     // User-defined: SynE, SynF
+    #[derive(Debug)]
+    pub struct SynE();
+    #[derive(Debug)]
+    pub struct SynF();
 
+    #[derive(Debug)]
     enum SynValue { E(SynE), F(SynF) }
 
     impl SynValue {
@@ -2640,7 +2867,7 @@ mod rules_prs_36_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -2650,7 +2877,7 @@ mod rules_prs_36_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2687,8 +2914,8 @@ mod rules_prs_36_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(Ctx::E { e });
         }
@@ -2730,8 +2957,8 @@ mod rules_prs_36_1 {
         }
     }
 
-// [wrapper source for rule PRS(36) #1, start E]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(36) #1, start E]
+    // ------------------------------------------------------------
 
 }
 
@@ -2756,10 +2983,16 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![3, 4]]),
 */
 mod rules_prs_33_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(33) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(33) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A1 { a: SynA, a1: String },
         A2 { a: SynA },
@@ -2768,7 +3001,10 @@ mod rules_prs_33_1 {
     }
 
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA) }
 
     impl SynValue {
@@ -2791,7 +3027,7 @@ mod rules_prs_33_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -2801,7 +3037,7 @@ mod rules_prs_33_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2838,15 +3074,15 @@ mod rules_prs_33_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
     }
 
-// [wrapper source for rule PRS(33) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(33) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -2872,10 +3108,16 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![4, 5]]),
 */
 mod rules_prs_38_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(38) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(38) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A1 { a: SynA, a1: String },
         A2 { a: SynA, b: String },
@@ -2885,7 +3127,10 @@ mod rules_prs_38_1 {
     }
 
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA) }
 
     impl SynValue {
@@ -2908,7 +3153,7 @@ mod rules_prs_38_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -2918,7 +3163,7 @@ mod rules_prs_38_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2956,15 +3201,15 @@ mod rules_prs_38_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
     }
 
-// [wrapper source for rule PRS(38) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(38) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -2990,22 +3235,34 @@ after,  NT with value: E, F
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_prs_32_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(32) #1, start E]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(32) #1, start E]
+
+    #[derive(Debug)]
     pub enum Ctx { E { e: SynE } }
+    #[derive(Debug)]
     pub enum CtxE {
         E1 { f: SynF },
         E2 { e: SynE },
         E3 { e: SynE, id: String },
         E4 { e: SynE, id: String },
     }
+    #[derive(Debug)]
     pub enum CtxF {
         F { id: String },
     }
 
     // User-defined: SynE, SynF
+    #[derive(Debug)]
+    pub struct SynE();
+    #[derive(Debug)]
+    pub struct SynF();
 
+    #[derive(Debug)]
     enum SynValue { E(SynE), F(SynF) }
 
     impl SynValue {
@@ -3033,7 +3290,7 @@ mod rules_prs_32_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -3043,7 +3300,7 @@ mod rules_prs_32_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3082,8 +3339,8 @@ mod rules_prs_32_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(Ctx::E { e });
         }
@@ -3120,8 +3377,8 @@ mod rules_prs_32_1 {
         }
     }
 
-// [wrapper source for rule PRS(32) #1, start E]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(32) #1, start E]
+    // ------------------------------------------------------------
 
 }
 
@@ -3141,20 +3398,32 @@ after,  NT with value: STRUCT, LIST
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
 */
 mod rules_prs_20_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(20) #1, start STRUCT]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(20) #1, start STRUCT]
+
+    #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
+    #[derive(Debug)]
     pub enum CtxStruct {
         Struct { id: String, list: SynList },
     }
+    #[derive(Debug)]
     pub enum CtxList {
         List1 { id: [String; 2], list: SynList },
         List2,
     }
 
     // User-defined: SynStruct, SynList
+    #[derive(Debug)]
+    pub struct SynStruct();
+    #[derive(Debug)]
+    pub struct SynList();
 
+    #[derive(Debug)]
     enum SynValue { Struct(SynStruct), List(SynList) }
 
     impl SynValue {
@@ -3182,7 +3451,7 @@ mod rules_prs_20_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -3192,7 +3461,7 @@ mod rules_prs_20_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3226,8 +3495,8 @@ mod rules_prs_20_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
         }
@@ -3255,8 +3524,8 @@ mod rules_prs_20_1 {
         }
     }
 
-// [wrapper source for rule PRS(20) #1, start STRUCT]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(20) #1, start STRUCT]
+    // ------------------------------------------------------------
 
 }
 
@@ -3276,20 +3545,30 @@ after,  NT with value: STRUCT
             ], Set(symbols![nt 0, t 5]), btreemap![0 => vec![0], 1 => vec![1, 2]]),
 */
 mod rules_prs_20_2 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(20) #2, start STRUCT]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(20) #2, start STRUCT]
+
+    #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
+    #[derive(Debug)]
     pub enum CtxStruct {
         Struct { id: String },
     }
+    #[derive(Debug)]
     pub enum CtxList {
         List1 { id: [String; 2] },
         List2,
     }
 
     // User-defined: SynStruct
+    #[derive(Debug)]
+    pub struct SynStruct();
 
+    #[derive(Debug)]
     enum SynValue { Struct(SynStruct) }
 
     impl SynValue {
@@ -3315,7 +3594,7 @@ mod rules_prs_20_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -3325,7 +3604,7 @@ mod rules_prs_20_2 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3359,8 +3638,8 @@ mod rules_prs_20_2 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
         }
@@ -3385,8 +3664,8 @@ mod rules_prs_20_2 {
         }
     }
 
-// [wrapper source for rule PRS(20) #2, start STRUCT]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(20) #2, start STRUCT]
+    // ------------------------------------------------------------
 
 }
 
@@ -3409,13 +3688,20 @@ after,  NT with value: STRUCT, LIST
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 3, 4]]),
 */
 mod rules_prs_37_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(37) #1, start STRUCT]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(37) #1, start STRUCT]
+
+    #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
+    #[derive(Debug)]
     pub enum CtxStruct {
         Struct { id: String, list: SynList },
     }
+    #[derive(Debug)]
     pub enum CtxList {
         List1,
         List2 { id: [String; 2] },
@@ -3423,7 +3709,12 @@ mod rules_prs_37_1 {
     }
 
     // User-defined: SynStruct, SynList
+    #[derive(Debug)]
+    pub struct SynStruct();
+    #[derive(Debug)]
+    pub struct SynList();
 
+    #[derive(Debug)]
     enum SynValue { Struct(SynStruct), List(SynList) }
 
     impl SynValue {
@@ -3451,7 +3742,7 @@ mod rules_prs_37_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -3461,7 +3752,7 @@ mod rules_prs_37_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3498,8 +3789,8 @@ mod rules_prs_37_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
         }
@@ -3530,8 +3821,8 @@ mod rules_prs_37_1 {
         }
     }
 
-// [wrapper source for rule PRS(37) #1, start STRUCT]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(37) #1, start STRUCT]
+    // ------------------------------------------------------------
 
 }
 
@@ -3551,20 +3842,32 @@ after,  NT with value: STRUCT, LIST
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
 */
 mod rules_prs_30_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(30) #1, start STRUCT]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(30) #1, start STRUCT]
+
+    #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
+    #[derive(Debug)]
     pub enum CtxStruct {
         Struct { id: String, list: SynList },
     }
+    #[derive(Debug)]
     pub enum CtxList {
         List1 { list: SynList, id: [String; 2] },
         List2 { list: SynList },
     }
 
     // User-defined: SynStruct, SynList
+    #[derive(Debug)]
+    pub struct SynStruct();
+    #[derive(Debug)]
+    pub struct SynList();
 
+    #[derive(Debug)]
     enum SynValue { Struct(SynStruct), List(SynList) }
 
     impl SynValue {
@@ -3592,7 +3895,7 @@ mod rules_prs_30_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -3602,7 +3905,7 @@ mod rules_prs_30_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3636,8 +3939,8 @@ mod rules_prs_30_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(Ctx::Struct { struct1 });
         }
@@ -3670,8 +3973,8 @@ mod rules_prs_30_1 {
         }
     }
 
-// [wrapper source for rule PRS(30) #1, start STRUCT]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(30) #1, start STRUCT]
+    // ------------------------------------------------------------
 
 }
 
@@ -3696,19 +3999,29 @@ after,  NT with value: A, A_1
             ], Default, btreemap![0 => vec![0]]),
 */
 mod rules_rts_26_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(26) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(26) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A1 { a: String },
         A2 { a: SynA, star: SynA1, b: String },
         A3 { a: SynA },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<String>);
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1) }
 
     impl SynValue {
@@ -3734,7 +4047,7 @@ mod rules_rts_26_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -3744,7 +4057,7 @@ mod rules_rts_26_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3781,8 +4094,8 @@ mod rules_rts_26_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -3820,8 +4133,8 @@ mod rules_rts_26_1 {
         }
     }
 
-// [wrapper source for rule RTS(26) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(26) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -3849,19 +4162,29 @@ after,  NT with value: A, A_1
             ], Default, btreemap![0 => vec![0]]),
 */
 mod rules_rts_16_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(16) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(16) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A1 { a: String },
         A2 { a: SynA, plus: SynA1, b: String },
         A3 { a: SynA },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<String>);
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1) }
 
     impl SynValue {
@@ -3887,7 +4210,7 @@ mod rules_rts_16_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -3897,7 +4220,7 @@ mod rules_rts_16_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3936,8 +4259,8 @@ mod rules_rts_16_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -3975,8 +4298,8 @@ mod rules_rts_16_1 {
         }
     }
 
-// [wrapper source for rule RTS(16) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(16) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -3990,7 +4313,7 @@ after,  NT with value: A
             //  - A_1: child_left_fact (64)
             // parents:
             //  - A_1 -> A
-            (PRS(35), 0, btreemap![                     /// A -> a | a b b | a c c
+            (PRS(35), 0, btreemap![
                 0 => symbols![],                        //  0: A -> a A_1 | ►A_1 a!  |
                 1 => symbols![t 0, t 1, t 1],           //  1: A_1 -> b b | ◄1 b! b! | a b b
                 2 => symbols![t 0, t 2, t 2],           //  2: A_1 -> c c | ◄2 c! c! | a c c
@@ -3998,10 +4321,16 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![1, 2, 3]]),
 */
 mod rules_prs_35_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule PRS(35) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(35) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A1 { a: String, b: [String; 2] },
         A2 { a: String, c: [String; 2] },
@@ -4009,7 +4338,10 @@ mod rules_prs_35_1 {
     }
 
     // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA) }
 
     impl SynValue {
@@ -4032,7 +4364,7 @@ mod rules_prs_35_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -4042,7 +4374,7 @@ mod rules_prs_35_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -4077,15 +4409,15 @@ mod rules_prs_35_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
     }
 
-// [wrapper source for rule PRS(35) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule PRS(35) #1, start A]
+    // ------------------------------------------------------------
 
 }
 
@@ -4108,22 +4440,36 @@ after,  NT with value: A, B, A_1
             ], All, btreemap![0 => vec![0, 1], 1 => vec![2]]),
 */
 mod rules_rts_33_1 {
-// ------------------------------------------------------------
-// [wrapper source for rule RTS(33) #1, start A]
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
 
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(33) #1, start A]
+
+    #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
     pub enum CtxA {
         A1 { star: SynA1, b: String },
         A2 { a: String },
     }
+    #[derive(Debug)]
     pub enum CtxB {
         B { b: String },
     }
 
+    #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
+    #[derive(Debug)]
     pub struct SynA1Item { b: SynB, c: String }
     // User-defined: SynA, SynB
+    #[derive(Debug)]
+    pub struct SynA();
+    #[derive(Debug)]
+    pub struct SynB();
 
+    #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
 
     impl SynValue {
@@ -4154,7 +4500,7 @@ mod rules_rts_33_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
@@ -4164,7 +4510,7 @@ mod rules_rts_33_1 {
         }
     }
 
-    impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -4201,8 +4547,8 @@ mod rules_rts_33_1 {
         }
     }
 
-    impl<T: LeftRecListener> ListenerWrapper<T> {
-        fn exit(&mut self, _ctx: Ctx) {
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(Ctx::A { a });
         }
@@ -4240,7 +4586,7 @@ mod rules_rts_33_1 {
         }
     }
 
-// [wrapper source for rule RTS(33) #1, start A]
-// ------------------------------------------------------------
+    // [wrapper source for rule RTS(33) #1, start A]
+    // ------------------------------------------------------------
 
 }

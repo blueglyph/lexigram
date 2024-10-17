@@ -864,7 +864,12 @@ impl ParserBuilder {
 
         // Writes contexts
         if let Some((nu, nl)) = &nt_name[self.start as usize] {
-            src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: Syn{nu} }} }}"));
+            src.push(format!("#[derive(Debug)]"));
+            if self.nt_value[self.start as usize] {
+                src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: Syn{nu} }} }}"));
+            } else {
+                src.push(format!("pub enum Ctx {{ {nu} }} // {nu} has no value: nothing returned from the top non-terminal"));
+            }
         } else {
             panic!("{} has no name", Symbol::NT(self.start).to_str(self.get_symbol_table()));
         }
@@ -883,6 +888,7 @@ impl ParserBuilder {
             }
             for &nt in group {
                 if let Some(factors) = group_names.get(&nt) {
+                    src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].as_ref().unwrap().0));
                     for &f_id in factors {
                         let ctx_content = Self::source_infos(&item_info[f_id as usize], &nt_name);
@@ -907,10 +913,13 @@ impl ParserBuilder {
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                 if let Some(infos) = nt_repeat.get(&(v as VarId)) {
                     // complex + * items; for ex. A -> (B b)+
+                    src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
+                    src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
                 } else {
                     // + * item is only a terminal
+                    src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<String>);"));
                 }
             } else {
@@ -920,11 +929,22 @@ impl ParserBuilder {
         }
         if !user_names.is_empty() {
             src.push(format!("// User-defined: {}", user_names.join(", ")));
+            for type_name in &user_names {
+                src.push(format!("#[derive(Debug)]"));
+                src.push(format!("pub struct {type_name}();"));
+            }
+        }
+        if !self.nt_value[self.start as usize] {
+            let (nu, _) = nt_name[self.start as usize].as_ref().unwrap();
+            src.push(format!("// Top non-terminal {nu} has no value:"));
+            src.push(format!("#[derive(Debug)]"));
+            src.push(format!("pub struct Syn{nu}();"))
         }
 
         // Writes SynValue type and implementation
         src.add_space();
         // SynValue type
+        src.push(format!("#[derive(Debug)]"));
         src.push(format!("enum SynValue {{ {} }}", syns.iter().map(|(nu, _)| format!("{nu}(Syn{nu})")).join(", ")));
         if !syns.is_empty() {
             // SynValue getters
@@ -1142,7 +1162,7 @@ impl ParserBuilder {
                                 };
                                 src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}({ctx});", if parent_has_value { "let val = " } else { "" }));
                                 if parent_has_value {
-                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{pnu}(val));"));
+                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                                 }
                             } else {
                                 let var_name = non_indices.pop().unwrap();
@@ -1256,7 +1276,7 @@ impl ParserBuilder {
         src.push(format!("    stack_t: Vec<String>,"));
         src.push(format!("}}"));
         src.push(format!(""));
-        src.push(format!("impl<T: LeftRecListener> ListenerWrapper<T> {{"));
+        src.push(format!("impl<T: {}Listener> ListenerWrapper<T> {{", self.name));
         src.push(format!("    pub fn new(listener: T, verbose: bool) -> Self {{"));
         src.push(format!("        ListenerWrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
         src.push(format!("    }}"));
@@ -1266,7 +1286,7 @@ impl ParserBuilder {
         src.push(format!("    }}"));
         src.push(format!("}}"));
         src.push(format!(""));
-        src.push(format!("impl<T: LeftRecListener> Listener for ListenerWrapper<T> {{"));
+        src.push(format!("impl<T: {}Listener> Listener for ListenerWrapper<T> {{", self.name));
         src.push(format!("    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {{"));
         src.push(format!("        if let Some(mut t_data) = t_data {{"));
         src.push(format!("            self.stack_t.append(&mut t_data);"));
@@ -1310,14 +1330,14 @@ impl ParserBuilder {
         src.push(format!("}}"));
 
         src.add_space();
-        src.push(format!("impl<T: LeftRecListener> ListenerWrapper<T> {{"));
-        src.push(format!("    fn exit(&mut self, _ctx: Ctx) {{"));
+        src.push(format!("impl<T: {}Listener> ListenerWrapper<T> {{", self.name));
+        src.push(format!("    fn exit(&mut self) {{"));
         if let Some((nu, nl)) = &nt_name[self.start as usize] {
             if self.nt_value[self.start as usize] {
                 src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{nl}();"));
                 src.push(format!("        self.listener.exit(Ctx::{nu} {{ {nl} }});"));
             } else {
-                src.push(format!("        self.listener.exit(Ctx::{nu}{{ {nl}: Syn{nu}() }});"));
+                src.push(format!("        self.listener.exit(Ctx::{nu});"));
             }
         }
         src.push(format!("    }}"));

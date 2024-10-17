@@ -1021,8 +1021,11 @@ mod wrapper_source {
                     PRS(n) => format!("prs_{n}"),
                 };
                 println!("mod rules_{rule_name}_{rule_iter} {{");
-                println!("// {0:-<60}\n// [{test_name}]\n\n{result_src}// [{test_name}]\n// {:-<60}\n", "");
-                println!("}}");
+                println!("    use rlexer::CollectJoin;");
+                println!("    use rlexer::grammar::{{FactorId, VarId}};");
+                println!("    use rlexer::parser::{{Call, Listener}};\n");
+                println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}    // [{test_name}]\n    // {:-<60}\n", "");
+                println!("}}\n");
             }
             let expected_src = get_wrapper_source(&test_name);
             let err_msg = format!("test {test_id} {rule_id:?} #{rule_iter} failed ");
