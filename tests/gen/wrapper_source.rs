@@ -1,4 +1,6 @@
 #![cfg(test)]
+#![allow(non_camel_case_types)]
+#![allow(dead_code)]
 
 // ================================================================================
 // Test 0: rules PRS(34) #1, start 0:
@@ -18,12 +20,12 @@ after,  NT with value: S, VAL
             ], Set(symbols![nt 0, nt 1, t 0, t 1]), btreemap![0 => vec![0, 1, 2], 1 => vec![3, 4]]),
 */
 mod rules_prs_34_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(34) #1, start S]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(34) #1, start S]
 
     #[derive(Debug)]
     pub enum Ctx { S { s: SynS } }
@@ -182,12 +184,12 @@ after,  NT with value: A, A_1
             ], All, btreemap![0 => vec![0]]),
 */
 mod rules_rts_21_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -318,12 +320,12 @@ after,  NT with value: A
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 */
 mod rules_rts_21_2 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #2, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -439,12 +441,12 @@ after,  NT with value: A, A_1
             ], All, btreemap![0 => vec![0]]),
 */
 mod rules_rts_22_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -581,12 +583,12 @@ after,  NT with value: A
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 */
 mod rules_rts_22_2 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #2, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -707,12 +709,12 @@ after,  NT with value: A, A_1
             ], All, btreemap![0 => vec![3, 4]]),
 */
 mod rules_rts_32_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(32) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -838,12 +840,12 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![0]]),
 */
 mod rules_rts_25_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(25) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -962,12 +964,12 @@ after,  NT with value: A, A_1
             ], All, btreemap![0 => vec![0]]),
 */
 mod rules_rts_23_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(23) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -1104,12 +1106,12 @@ after,  NT with value: A, B, A_1
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_27_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(27) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -1266,12 +1268,12 @@ after,  NT with value: A, B, A_1
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_28_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(28) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -1461,12 +1463,12 @@ item_info =
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_29_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -1644,12 +1646,12 @@ after,  NT with value: A, A_2
             ], Set(symbols![nt 0, t 0, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_29_2 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #2, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -1799,12 +1801,12 @@ after,  NT with value: A_1, A_2
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_29_3 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #3, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
@@ -2016,12 +2018,12 @@ item_info =
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_30_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -2209,12 +2211,12 @@ after,  NT with value: A_1, A_2
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_rts_30_2 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #2, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
@@ -2380,12 +2382,12 @@ after,  NT with value: A, A_1
             ], Default, btreemap![0 => vec![0]]),
 */
 mod rules_rts_24_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -2531,12 +2533,12 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![1, 3, 4, 5, 6]]),
 */
 mod rules_prs_28_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(28) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -2655,12 +2657,12 @@ after,  NT with value: E, F
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_prs_31_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(31) #1, start E]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(31) #1, start E]
 
     #[derive(Debug)]
     pub enum Ctx { E { e: SynE } }
@@ -2812,12 +2814,12 @@ after,  NT with value: E, F
             ], Default, btreemap![0 => vec![0, 1], 1 => vec![2]]),
 */
 mod rules_prs_36_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(36) #1, start E]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(36) #1, start E]
 
     #[derive(Debug)]
     pub enum Ctx { E { e: SynE } }
@@ -2983,12 +2985,12 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![3, 4]]),
 */
 mod rules_prs_33_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(33) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -3108,12 +3110,12 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![4, 5]]),
 */
 mod rules_prs_38_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(38) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -3235,12 +3237,12 @@ after,  NT with value: E, F
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 mod rules_prs_32_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(32) #1, start E]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(32) #1, start E]
 
     #[derive(Debug)]
     pub enum Ctx { E { e: SynE } }
@@ -3398,12 +3400,12 @@ after,  NT with value: STRUCT, LIST
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
 */
 mod rules_prs_20_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(20) #1, start STRUCT]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(20) #1, start STRUCT]
 
     #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
@@ -3545,12 +3547,12 @@ after,  NT with value: STRUCT
             ], Set(symbols![nt 0, t 5]), btreemap![0 => vec![0], 1 => vec![1, 2]]),
 */
 mod rules_prs_20_2 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(20) #2, start STRUCT]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(20) #2, start STRUCT]
 
     #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
@@ -3688,12 +3690,12 @@ after,  NT with value: STRUCT, LIST
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 3, 4]]),
 */
 mod rules_prs_37_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(37) #1, start STRUCT]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(37) #1, start STRUCT]
 
     #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
@@ -3842,12 +3844,12 @@ after,  NT with value: STRUCT, LIST
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
 */
 mod rules_prs_30_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(30) #1, start STRUCT]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(30) #1, start STRUCT]
 
     #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
@@ -3999,12 +4001,12 @@ after,  NT with value: A, A_1
             ], Default, btreemap![0 => vec![0]]),
 */
 mod rules_rts_26_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(26) #1, start A]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule RTS(26) #1, start A]
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -4162,12 +4164,12 @@ after,  NT with value: A, A_1
             ], Default, btreemap![0 => vec![0]]),
 */
 mod rules_rts_16_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(16) #1, start A]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule RTS(16) #1, start A]
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -4321,12 +4323,12 @@ after,  NT with value: A
             ], Default, btreemap![0 => vec![1, 2, 3]]),
 */
 mod rules_prs_35_1 {
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
-
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(35) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -4440,12 +4442,12 @@ after,  NT with value: A, B, A_1
             ], All, btreemap![0 => vec![0, 1], 1 => vec![2]]),
 */
 mod rules_rts_33_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(33) #1, start A]
+
     use rlexer::CollectJoin;
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
-
-    // ------------------------------------------------------------
-    // [wrapper source for rule RTS(33) #1, start A]
 
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
@@ -4588,5 +4590,4 @@ mod rules_rts_33_1 {
 
     // [wrapper source for rule RTS(33) #1, start A]
     // ------------------------------------------------------------
-
 }

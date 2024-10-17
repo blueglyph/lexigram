@@ -419,7 +419,7 @@ mod wrapper_source {
     use std::io::{BufRead, BufReader, BufWriter, Read, Seek, Write};
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
-    use crate::{btreemap, CollectJoin, symbols, columns_to_str};
+    use crate::{btreemap, CollectJoin, symbols, columns_to_str, SourceSpacer};
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::ParserBuilder;
     use crate::dfa::TokenId;
@@ -997,7 +997,10 @@ mod wrapper_source {
             let result_factors = (0..builder.parsing_table.num_nt).filter_map(|v|
                 if builder.parsing_table.parent[v].is_none() { Some((v as VarId, builder.gather_factors(v as VarId))) } else { None }
             ).collect::<BTreeMap<_, _>>();
-            let src = builder.source_wrapper();
+            let src_wrapper = builder.source_wrapper();
+            let mut src = builder.source_use();
+            src.add_space();
+            src.extend(src_wrapper);
             let test_name = format!("wrapper source for rule {rule_id:?} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
             if VERBOSE {
                 print_flags(&builder, 12);
@@ -1021,9 +1024,6 @@ mod wrapper_source {
                     PRS(n) => format!("prs_{n}"),
                 };
                 println!("mod rules_{rule_name}_{rule_iter} {{");
-                println!("    use rlexer::CollectJoin;");
-                println!("    use rlexer::grammar::{{FactorId, VarId}};");
-                println!("    use rlexer::parser::{{Call, Listener}};\n");
                 println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}    // [{test_name}]\n    // {:-<60}\n", "");
                 println!("}}\n");
             }
