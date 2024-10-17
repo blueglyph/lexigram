@@ -137,7 +137,8 @@ pub struct ParserBuilder {
     var_factors: Vec<Vec<FactorId>>,
     item_ops: HashMap<FactorId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
-    start: VarId
+    start: VarId,
+    used_libs: BTreeSet<(String, String)>
 }
 
 impl ParserBuilder {
@@ -174,7 +175,8 @@ impl ParserBuilder {
             var_factors,
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
-            start
+            start,
+            used_libs: BTreeSet::new()
         };
         builder.build_opcodes();
         builder
@@ -750,11 +752,13 @@ impl ParserBuilder {
             "// -------------------------------------------------------------------------".to_string(),
             "// Automatically generated".to_string(),
         ]);
-        parts.push(self.source_build_parser());
+        let mut tmp_parts = vec![self.source_build_parser()];
         if wrapper {
             self.build_item_ops();
-            parts.push(self.source_wrapper());
+            tmp_parts.push(self.source_wrapper());
         }
+        parts.push(self.source_use());
+        parts.extend(tmp_parts);
         parts.push(vec![
             "// -------------------------------------------------------------------------".to_string(),
         ]);
@@ -775,16 +779,56 @@ impl ParserBuilder {
         source
     }
 
-    fn source_build_parser(&self) -> Vec<String> {
+    fn source_use(&self) -> Vec<String> {
+        fn push_use(src: &mut Vec<String>, a: &str, names: &mut BTreeSet<String>) {
+            match names.len() {
+                0 => src.push(format!("use rlexer::{a};")),
+                1 => src.push(format!("use rlexer::{a}::{};", names.first().unwrap())),
+                _ => src.push(format!("use rlexer::{a}::{{{}}};", names.iter().join(", "))),
+            }
+            names.clear();
+        }
+        let mut src = Vec::<String>::new();
+        let mut last: Option<&str> = None;
+        let mut names = BTreeSet::<String>::new();
+        for (a, b) in &self.used_libs {
+            if let Some(last_a) = last {
+                if *a != *last_a {
+                    push_use(&mut src, last_a, &mut names);
+                    names.clear();
+                }
+            }
+            if !b.is_empty() {
+                names.insert(b.clone());
+            }
+            last = Some(&a);
+        }
+        if !names.is_empty() {
+            if let Some(last_a) = last {
+                push_use(&mut src, last_a, &mut names);
+            }
+        }
+        src
+    }
+
+    fn source_build_parser(&mut self) -> Vec<String> {
         let num_nt = self.symbol_table.get_non_terminals().len();
         let num_t = self.symbol_table.get_terminals().len();
         let mut symbol_names = self.symbol_table.get_names().to_vec(); // hashmap: we want predictable outcome, so we sort names
+        for (a, b) in [
+            ("grammar",      "ProdFactor"),
+            ("grammar",      "Symbol"),
+            ("grammar",      "VarId"),
+            ("grammar",      "FactorId"),
+            ("parser",       "OpCode"),
+            ("parser",       "Parser"),
+            ("symbol_table", "SymbolTable"),
+        ] {
+            self.used_libs.insert((a.to_string(), b.to_string()));
+        }
+
         symbol_names.sort();
         vec![
-            format!("use rlexer::grammar::{{ProdFactor, Symbol, VarId, FactorId}};"),
-            format!("use rlexer::parser::{{OpCode, Parser}};"),
-            format!("use rlexer::symbol_table::SymbolTable;\n"),
-
             format!("const PARSER_NUM_T: usize = {num_t};"),
             format!("const PARSER_NUM_NT: usize = {num_nt};"),
             format!("const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [{}];",
@@ -856,6 +900,10 @@ impl ParserBuilder {
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
+
+        for (a, b) in [("CollectJoin", ""), ("grammar", "VarId"), ("parser", "Call"), ("parser", "Listener")] {
+            self.used_libs.insert((a.to_string(), b.to_string()));
+        }
 
         let (nt_name, factor_info, item_info, nt_repeat) = self.get_type_info();
         let pinfo = &self.parsing_table;
@@ -1120,6 +1168,9 @@ impl ParserBuilder {
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
                     if !no_method {
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor { ", factor_id: FactorId" } else { "" }));
+                        if is_factor {
+                            self.used_libs.insert(("grammar".to_string(), "FactorId".to_string()));
+                        }
                     }
                     if flags & ruleflag::CHILD_REPEAT != 0 {
                         assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {}",
