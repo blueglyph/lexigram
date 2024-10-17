@@ -730,9 +730,9 @@ mod rules_rts_32_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
-        /// A_2 -> a A_1 c
+        /// A -> a a A_1 c
         A1 { a: [String; 2], star: SynAIter, c: String },
-        /// A_2 -> c A_1 c
+        /// A -> a c A_1 c
         A2 { a: String, c: [String; 2], star: SynAIter },
     }
     #[derive(Debug)]
@@ -2427,9 +2427,9 @@ mod rules_rts_24_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// A_2 -> A_1
+        /// A_1 -> b A_1
         A1_1 { plus_it: SynAIter, b: String },
-        /// A_2 -> ε
+        /// A_1 -> b
         A1_2 { plus_it: SynAIter, b: String },
     }
 
@@ -2578,13 +2578,13 @@ mod rules_prs_28_1 {
     pub enum CtxA {
         /// A -> e
         A1 { e: String },
-        /// A_1 -> ε
+        /// A -> a
         A2 { a: String },
-        /// A_2 -> c
+        /// A -> a b c
         A3 { a: String, b: String, c: String },
-        /// A_2 -> d
+        /// A -> a b d
         A4 { a: String, b: String, d: String },
-        /// A_2 -> ε
+        /// A -> a b
         A5 { a: String, b: String },
     }
 
@@ -3046,9 +3046,9 @@ mod rules_prs_33_1 {
         A1 { a: SynA, a1: String },
         /// A_1 -> ε
         A2 { a: SynA },
-        /// A_2 -> c A_1
+        /// A -> b c A_1
         A3 { b: String, c: String },
-        /// A_2 -> d A_1
+        /// A -> b d A_1
         A4 { b: String, d: String },
     }
 
@@ -3177,9 +3177,9 @@ mod rules_prs_38_1 {
         A2 { a: SynA, b: String },
         /// A_1 -> ε
         A3 { a: SynA },
-        /// A_2 -> c A_1
+        /// A -> b c A_1
         A4 { b: String, c: String },
-        /// A_2 -> d A_1
+        /// A -> b d A_1
         A5 { b: String, d: String },
     }
 
@@ -3307,9 +3307,9 @@ mod rules_prs_32_1 {
         E1 { f: SynF },
         /// E_1 -> ε
         E2 { e: SynE },
-        /// E_2 -> ( ) E_1
+        /// E_1 -> . id ( ) E_1
         E3 { e: SynE, id: String },
-        /// E_2 -> E_1
+        /// E_1 -> . id E_1
         E4 { e: SynE, id: String },
     }
     #[derive(Debug)]
@@ -3774,9 +3774,9 @@ mod rules_prs_37_1 {
     pub enum CtxList {
         /// LIST -> }
         List1,
-        /// LIST_1 -> : id ; LIST
+        /// LIST -> id : id ; LIST
         List2 { id: [String; 2] },
-        /// LIST_1 -> ; LIST
+        /// LIST -> id ; LIST
         List3 { id: String },
     }
 
@@ -4413,11 +4413,11 @@ mod rules_prs_35_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
-        /// A_1 -> b b
+        /// A -> a b b
         A1 { a: String, b: [String; 2] },
-        /// A_1 -> c c
+        /// A -> a c c
         A2 { a: String, c: [String; 2] },
-        /// A_1 -> ε
+        /// A -> a
         A3 { a: String },
     }
 

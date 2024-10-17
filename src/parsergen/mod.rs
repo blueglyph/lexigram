@@ -205,6 +205,33 @@ impl ParserBuilder {
         Some(&self.symbol_table)
     }
 
+    pub fn full_factor_str(&self, f_id: FactorId) -> String {
+        const VERBOSE: bool = false;
+        let (mut v, pf) = &self.parsing_table.factors[f_id as usize];
+        let mut syms = pf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();
+        'up: while self.nt_has_flags(v, ruleflag::CHILD_L_FACTOR) {
+            let parent_v = self.parsing_table.parent[v as usize].unwrap();
+            for parent_f_id in &self.var_factors[parent_v as usize] {
+                let (_, parent_pf) = &self.parsing_table.factors[*parent_f_id as usize];
+                if let Some(idx) = parent_pf.iter().position(|sym| sym == &Symbol::NT(v)) {
+                    if VERBOSE { print!("UN-FACT: {:?}: {:?} into {:?}", Symbol::NT(v), syms, parent_pf.symbols()); }
+                    let mut new_syms = parent_pf.symbols()[..idx].to_vec();
+                    new_syms.extend(syms);
+                    new_syms.extend(&parent_pf.symbols()[idx + 1..]);
+                    if VERBOSE { println!(" => {:?}", new_syms); }
+                    syms = new_syms;
+                    v = parent_v;
+                    continue 'up;
+                }
+            }
+            panic!("factor not found");
+        }
+        if syms.is_empty() {
+            syms.push(Symbol::Empty);
+        }
+        format!("{} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), syms.iter().map(|symbol| symbol.to_str(self.get_symbol_table())).join(" "))
+    }
+
     fn build_opcodes(&mut self) {
         const VERBOSE: bool = false;
         for (factor_id, (var_id, factor)) in self.parsing_table.factors.iter().enumerate() {
@@ -712,8 +739,6 @@ impl ParserBuilder {
             for factor_names in &factor_info {
                 if let Some((v, name)) = factor_names {
                     println!("- {}: {name}", Symbol::NT(*v).to_str(self.get_symbol_table()));
-                    // TODO: - fetch all parents' information to rebuild after factorization
-                    //       - process other transformations
                 }
             }
             println!();
@@ -940,7 +965,8 @@ impl ParserBuilder {
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].as_ref().unwrap().0));
                     for &f_id in factors {
                         let (v, pf) = &self.parsing_table.factors[f_id as usize];
-                        src.push(format!("    /// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table())));
+                        //src.push(format!("    /// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table())));
+                        src.push(format!("    /// {}", self.full_factor_str(f_id)));
                         let ctx_content = Self::source_infos(&item_info[f_id as usize], &nt_name);
                         let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
                         if ctx_content.is_empty() {
