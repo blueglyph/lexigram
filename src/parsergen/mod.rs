@@ -1192,7 +1192,7 @@ impl ParserBuilder {
                     if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {
                         let (v, pf) = &self.parsing_table.factors[*f as usize];
-                        format!("// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table()))
+                        format!("// {}", self.full_factor_str(*f))
                     }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
                     if !no_method {
@@ -1325,9 +1325,7 @@ impl ParserBuilder {
             for (f, _) in exit_factor_done.iter().filter(|(_, done)| !**done) {
                 let is_called = self.opcodes[*f as usize].iter().any(|o| *o == OpCode::Exit(*f));
                 let (v, pf) = &self.parsing_table.factors[*f as usize];
-                let comment = format!("// {} -> {} ({})",
-                                      Symbol::NT(*v).to_str(self.get_symbol_table()),
-                                      pf.to_str(self.get_symbol_table()),
+                let comment = format!("// {} ({})", self.full_factor_str(*f),
                                       if is_called { "not used" } else { "never called" });
                 if is_called {
                     src_exit.push(vec![format!("                    {f} => {{}}"), comment]);
