@@ -209,6 +209,8 @@ impl ParserBuilder {
         const VERBOSE: bool = false;
         let (mut v, pf) = &self.parsing_table.factors[f_id as usize];
         let mut syms = pf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();
+
+        // if it's a child of left factorization, gathers the front symbols from the parents
         'up: while self.nt_has_flags(v, ruleflag::CHILD_L_FACTOR) {
             let parent_v = self.parsing_table.parent[v as usize].unwrap();
             for parent_f_id in &self.var_factors[parent_v as usize] {
@@ -217,7 +219,6 @@ impl ParserBuilder {
                     if VERBOSE { print!("UN-FACT: {:?}: {:?} into {:?}", Symbol::NT(v), syms, parent_pf.symbols()); }
                     let mut new_syms = parent_pf.symbols()[..idx].to_vec();
                     new_syms.extend(syms);
-                    new_syms.extend(&parent_pf.symbols()[idx + 1..]);
                     if VERBOSE { println!(" => {:?}", new_syms); }
                     syms = new_syms;
                     v = parent_v;
