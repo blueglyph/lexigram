@@ -214,14 +214,11 @@ impl ParserBuilder {
     }
 
     fn expand_lfact(&self, factors: &mut Vec<Vec<Symbol>>) {
-        const VERBOSE: bool = false;
         let mut change = true;
         while change {
             change = false;
             let mut extra = Vec::<Vec<Symbol>>::new();
-            if VERBOSE { println!("factors:"); }
             for f in &mut *factors {
-                if VERBOSE { println!("- {}", self.factor_to_str(f)); }
                 // we have to complicate in order to please the borrow checker:
                 if matches!(f.last(), Some(Symbol::NT(v)) if self.parsing_table.flags[*v as usize] & ruleflag::CHILD_L_FACTOR != 0) {
                     let Symbol::NT(child) = f.pop().unwrap() else { panic!() };
@@ -232,7 +229,6 @@ impl ParserBuilder {
                     }).to_vec();
                     *f = exp.pop().unwrap();
                     extra.extend(exp);
-                    if VERBOSE { println!("  => {}, extra: {}", self.factor_to_str(f), extra.iter().map(|fe| self.factor_to_str(fe)).join(" | ")); }
                     change = true;
                 }
             }
@@ -246,12 +242,6 @@ impl ParserBuilder {
             }
         }
         factors.sort();
-        if VERBOSE {
-            println!("result:");
-            for f in factors {
-                println!("  {}", self.factor_to_str(f));
-            }
-        }
     }
 
     pub fn full_factor_str(&self, f_id: FactorId) -> String {
