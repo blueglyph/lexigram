@@ -807,7 +807,7 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A
-            (PRS(38), 0, btreemap![                     // A -> A a | A b | b c | b d
+            (PRS(38), 0, btreemap![                     /// A -> A a | A b | b c | b d
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                 2 => symbols![nt 0, t 1],               //  2: A_1 -> b A_1 | ●A_1 ◄2 b! | A b
@@ -815,6 +815,25 @@ mod wrapper_source {
                 4 => symbols![t 1, t 2],                //  4: A_2 -> c A_1 | ►A_1 ◄4 c! | b c
                 5 => symbols![t 1, t 3],                //  5: A_2 -> d A_1 | ►A_1 ◄5 d! | b d
             ], Default, btreemap![0 => vec![4, 5]]),
+            // NT flags:
+            //  - A: parent_left_fact | parent_left_rec (544)
+            //  - A_1: child_left_rec | parent_left_fact (36)
+            //  - A_2: child_left_fact (64)
+            //  - A_3: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            //  - A_3 -> A_1
+            (PRS(39), 0, btreemap![                     /// A -> A a b | A a c | b c | b d
+                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
+                1 => symbols![],                        //  1: A_1 -> a A_3 | ►A_3 a!    |
+                2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
+                3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
+                4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
+                5 => symbols![nt 0, t 0, t 1],          //  5: A_3 -> b A_1 | ●A_1 ◄5 b! | A a b
+                6 => symbols![nt 0, t 0, t 2],          //  6: A_3 -> c A_1 | ●A_1 ◄6 c! | A a c
+            ], Default, btreemap![0 => vec![3, 4]]),
+
             // NT flags:
             //  - E: parent_left_rec (512)
             //  - E_1: child_left_rec | parent_left_fact (36)

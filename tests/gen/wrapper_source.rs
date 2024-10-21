@@ -3406,6 +3406,184 @@ mod rules_prs_38_1 {
 }
 
 // ================================================================================
+// Test 21: rules PRS(39) #1, start 0:
+/*
+before, NT with value: A
+after,  NT with value: A
+            // NT flags:
+            //  - A: parent_left_fact | parent_left_rec (544)
+            //  - A_1: child_left_rec | parent_left_fact (36)
+            //  - A_2: child_left_fact (64)
+            //  - A_3: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            //  - A_3 -> A_1
+            (PRS(39), 0, btreemap![                     /// A -> A a b | A a c | b c | b d
+                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
+                1 => symbols![],                        //  1: A_1 -> a A_3 | ►A_3 a!    |
+                2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
+                3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
+                4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
+                5 => symbols![nt 0, t 0, t 1],          //  5: A_3 -> b A_1 | ●A_1 ◄5 b! | A a b
+                6 => symbols![nt 0, t 0, t 2],          //  6: A_3 -> c A_1 | ●A_1 ◄6 c! | A a c
+            ], Default, btreemap![0 => vec![3, 4]]),
+*/
+mod rules_prs_39_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(39) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::{FactorId, VarId};
+    use rlexer::parser::{Call, Listener};
+
+    #[derive(Debug)]
+    pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// A_1 -> ε
+        A1 { a: SynA },
+        /// A -> b c A_1
+        A2 { b: String, c: String },
+        /// A -> b d A_1
+        A3 { b: String, d: String },
+        /// A_1 -> a b A_1
+        A4 { a: SynA, a1: String, b: String },
+        /// A_1 -> a c A_1
+        A5 { a: SynA, a1: String, c: String },
+    }
+
+    // User-defined: SynA
+    #[derive(Debug)]
+    pub struct SynA();
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            let SynValue::A(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => {}                                     // A_1
+                        2 => {}                                     // A_2
+                        3 => {}                                     // A_3
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        3 |                                         // A -> b c A_1
+                        4 => self.init_a(factor_id),                // A -> b d A_1
+                        2 |                                         // A_1 -> ε
+                        5 |                                         // A_1 -> a b A_1
+                        6 => self.exit_a1(factor_id),               // A_1 -> a c A_1
+                     /* 0 */                                        // A -> b A_2 (never called)
+                     /* 1 */                                        // A_1 -> a A_3 (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(Ctx::A { a });
+        }
+        fn init_a(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                3 => {
+                    let c = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    CtxA::A2 { b, c }
+                }
+                4 => {
+                    let d = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    CtxA::A3 { b, d }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn init_a")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
+        }
+        fn exit_a1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                2 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A1 { a }
+                }
+                5 => {
+                    let b = self.stack_t.pop().unwrap();
+                    let a1 = self.stack_t.pop().unwrap();
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A4 { a, a1, b }
+                }
+                6 => {
+                    let c = self.stack_t.pop().unwrap();
+                    let a1 = self.stack_t.pop().unwrap();
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A5 { a, a1, c }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
+        }
+    }
+
+    // [wrapper source for rule PRS(39) #1, start A]
+    // ------------------------------------------------------------
+
+}
+
+// ================================================================================
 // Test 21: rules PRS(32) #1, start 0:
 /*
 before, NT with value: E, F
