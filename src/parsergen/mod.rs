@@ -205,23 +205,73 @@ impl ParserBuilder {
         Some(&self.symbol_table)
     }
 
+    fn factor_to_str(&self, f: &Vec<Symbol>) -> String {
+        f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")
+    }
+
+    fn ntfactor_to_str(&self, nt: VarId, f: &Vec<Symbol>) -> String {
+        format!("{} -> {}", Symbol::NT(nt).to_str(self.get_symbol_table()), self.factor_to_str(f))
+    }
+
+    fn expand_lfact(&self, factors: &mut Vec<Vec<Symbol>>) {
+        const VERBOSE: bool = false;
+        let mut change = true;
+        while change {
+            change = false;
+            let mut extra = Vec::<Vec<Symbol>>::new();
+            if VERBOSE { println!("factors:"); }
+            for f in &mut *factors {
+                if VERBOSE { println!("- {}", self.factor_to_str(f)); }
+                // we have to complicate in order to please the borrow checker:
+                if matches!(f.last(), Some(Symbol::NT(v)) if self.parsing_table.flags[*v as usize] & ruleflag::CHILD_L_FACTOR != 0) {
+                    let Symbol::NT(child) = f.pop().unwrap() else { panic!() };
+                    let mut exp = self.var_factors[child as usize].iter().map(|child_f| {
+                        let mut new = f.clone();
+                        new.extend(self.parsing_table.factors[*child_f as usize].1.symbols());
+                        new
+                    }).to_vec();
+                    *f = exp.pop().unwrap();
+                    extra.extend(exp);
+                    if VERBOSE { println!("  => {}, extra: {}", self.factor_to_str(f), extra.iter().map(|fe| self.factor_to_str(fe)).join(" | ")); }
+                    change = true;
+                }
+            }
+            if change {
+                factors.extend(extra);
+            }
+        }
+        for f in &mut *factors {
+            if matches!(f.last(), Some(Symbol::Empty)) && f.len() > 1 {
+                f.pop();
+            }
+        }
+        factors.sort();
+        if VERBOSE {
+            println!("result:");
+            for f in factors {
+                println!("  {}", self.factor_to_str(f));
+            }
+        }
+    }
+
     pub fn full_factor_str(&self, f_id: FactorId) -> String {
         const VERBOSE: bool = false;
-        let (mut v, pf) = &self.parsing_table.factors[f_id as usize];
-        let mut syms = pf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();
+        let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
+        let mut v_par_lf =  *v_f;
+        let mut syms = prodf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();
 
         // if it's a child of left factorization, gathers the front symbols from the parents
-        'up: while self.nt_has_flags(v, ruleflag::CHILD_L_FACTOR) {
-            let parent_v = self.parsing_table.parent[v as usize].unwrap();
+        'up: while self.nt_has_flags(v_par_lf, ruleflag::CHILD_L_FACTOR) {
+            let parent_v = self.parsing_table.parent[v_par_lf as usize].unwrap();
             for parent_f_id in &self.var_factors[parent_v as usize] {
                 let (_, parent_pf) = &self.parsing_table.factors[*parent_f_id as usize];
-                if let Some(idx) = parent_pf.iter().position(|sym| sym == &Symbol::NT(v)) {
-                    if VERBOSE { print!("UN-FACT: {:?}: {:?} into {:?}", Symbol::NT(v), syms, parent_pf.symbols()); }
+                if let Some(idx) = parent_pf.iter().position(|sym| sym == &Symbol::NT(v_par_lf)) {
+                    if VERBOSE { print!("UN-FACT: {:?}: {:?} into {:?}", Symbol::NT(v_par_lf), syms, parent_pf.symbols()); }
                     let mut new_syms = parent_pf.symbols()[..idx].to_vec();
                     new_syms.extend(syms);
                     if VERBOSE { println!(" => {:?}", new_syms); }
                     syms = new_syms;
-                    v = parent_v;
+                    v_par_lf = parent_v;
                     continue 'up;
                 }
             }
@@ -230,7 +280,11 @@ impl ParserBuilder {
         if syms.is_empty() {
             syms.push(Symbol::Empty);
         }
-        format!("{} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), syms.iter().map(|symbol| symbol.to_str(self.get_symbol_table())).join(" "))
+
+        // left recursion
+
+
+        format!("{}", self.ntfactor_to_str(v_par_lf, &syms))
     }
 
     fn build_opcodes(&mut self) {
@@ -239,7 +293,7 @@ impl ParserBuilder {
             if VERBOSE {
                 println!("{} -> {}",
                          Symbol::NT(*var_id).to_str(self.get_symbol_table()),
-                         factor.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "));
+                         self.factor_to_str(factor));
             }
             let factor_id = factor_id as FactorId;
             let flags = self.parsing_table.flags[*var_id as usize];

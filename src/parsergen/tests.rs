@@ -1075,4 +1075,85 @@ mod wrapper_source {
             assert_eq!(num_errors, 0, "{num_errors} tests have failed");
         }
     }
+
+    #[test]
+    fn expand_lfact() {
+        let tests: Vec<(T, Vec<&str>)> = vec![
+            // A -> a | a b | a b c | a b d | e
+            (PRS(28), vec![
+                "A -> a | a b | a b c | a b d",         // A -> a A_1
+                "A -> e",                               // A -> e
+                "A_1 -> b | b c | b d",                 // A_1 -> b A_2
+                "A_1 -> ε",                             // A_1 -> ε
+                "A_2 -> c",                             // A_2 -> c
+                "A_2 -> d",                             // A_2 -> d
+                "A_2 -> ε",                             // A_2 -> ε
+            ]),
+            // E -> F | E . id ; F -> id
+            (PRS(31), vec![
+                "E -> F E_1",                           // E -> F E_1
+                "F -> id",                              // F -> id
+                "E_1 -> . id E_1",                      // E_1 -> . id E_1
+                "E_1 -> ε",                             // E_1 -> ε
+            ]),
+            // A -> A a | b c | b d
+            (PRS(33), vec![
+                "A -> b c A_1 | b d A_1",               // A -> b A_2
+                "A_1 -> a A_1",                         // A_1 -> a A_1
+                "A_1 -> ε",                             // A_1 -> ε
+                "A_2 -> c A_1",                         // A_2 -> c A_1
+                "A_2 -> d A_1",                         // A_2 -> d A_1
+            ]),
+            // A -> A a | A b | b c | b d
+            (PRS(38), vec![
+                "A -> b c A_1 | b d A_1",               // A -> b A_2
+                "A_1 -> a A_1",                         // A_1 -> a A_1
+                "A_1 -> b A_1",                         // A_1 -> b A_1
+                "A_1 -> ε",                             // A_1 -> ε
+                "A_2 -> c A_1",                         // A_2 -> c A_1
+                "A_2 -> d A_1",                         // A_2 -> d A_1
+            ]),
+            // A -> A a b | A a c | b c | b d
+            (PRS(39), vec![
+                "A -> b c A_1 | b d A_1",               // A -> b A_2
+                "A_1 -> a b A_1 | a c A_1",             // A_1 -> a A_3
+                "A_1 -> ε",                             // A_1 -> ε
+                "A_2 -> c A_1",                         // A_2 -> c A_1
+                "A_2 -> d A_1",                         // A_2 -> d A_1
+                "A_3 -> b A_1",                         // A_3 -> b A_1
+                "A_3 -> c A_1",                         // A_3 -> c A_1
+            ]),
+        ];
+        const VERBOSE: bool = false;
+        for (test_id, (rule_id, expected_expanded)) in tests.into_iter().enumerate() {
+            let ll1 = rule_id.get_prs(test_id, 0, true);
+            let builder = ParserBuilder::from_rules(ll1, "Test".to_string());
+            let mut result_expanded = vec![];
+            for (v, prod) in builder.parsing_table.factors.iter() {
+                let mut expanded = vec![prod.symbols().clone()];
+                builder.expand_lfact(&mut expanded);
+                result_expanded.push(format!("{} -> {}",
+                                             Symbol::NT(*v).to_str(builder.get_symbol_table()),
+                                             expanded.iter().map(|fact| builder.factor_to_str(fact)).join(" | ")));
+            }
+            if VERBOSE {
+                println!("            ({rule_id:?}, vec![", );
+                let cols = result_expanded.iter().enumerate()
+                    .map(|(i, s)| {
+                        let (v, prod) = &builder.parsing_table.factors[i];
+                        vec![
+                            "".to_string(),
+                            format!("\"{s}\","),
+                            format!("// {}", builder.ntfactor_to_str(*v, prod))
+                        ]
+                    })
+                    .to_vec();
+                let lines = columns_to_str(cols, Some(vec![16, 40, 0]));
+                println!("{}", lines.join("\n"));
+                println!("            ]),");
+            }
+            let expected_expanded = expected_expanded.into_iter().map(|s| s.to_string()).to_vec();
+            assert_eq!(result_expanded, expected_expanded, "Test {test_id}: {rule_id:?} failed");
+        }
+    }
 }
