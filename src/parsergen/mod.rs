@@ -249,6 +249,7 @@ impl ParserBuilder {
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
         let mut v_par_lf =  *v_f;
         let mut syms = prodf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();
+        let mut left = *v_f;
 
         // if it's a child of left factorization, gathers the front symbols from the parents
         'up: while self.nt_has_flags(v_par_lf, ruleflag::CHILD_L_FACTOR) {
@@ -262,6 +263,7 @@ impl ParserBuilder {
                     if VERBOSE { println!(" => {:?}", new_syms); }
                     syms = new_syms;
                     v_par_lf = parent_v;
+                    left = v_par_lf;
                     continue 'up;
                 }
             }
@@ -270,11 +272,34 @@ impl ParserBuilder {
         if syms.is_empty() {
             syms.push(Symbol::Empty);
         }
+        let mut facts = vec![syms];
+        self.expand_lfact(&mut facts);
+        let mut comment = String::new();
 
         // left recursion
-
-
-        format!("{}", self.ntfactor_to_str(v_par_lf, &syms))
+        if self.nt_has_flags(v_par_lf, ruleflag::PARENT_L_RECURSION) {
+            // initial value of left recusion loop
+            for f in facts.iter_mut() {
+                f.pop();
+            }
+            while let Some(parent) = self.parsing_table.parent[left as usize] {
+                left = parent;
+            }
+        } else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_L_RECURSION) {
+            // loop
+            while let Some(parent) = self.parsing_table.parent[left as usize] {
+                left = parent;
+            }
+            for f in facts.iter_mut() {
+                if !matches!(f.first(), Some(Symbol::Empty)) {
+                    f.pop();
+                    f.insert(0, Symbol::NT(left));
+                } else {
+                    comment.push_str(" (end of loop)");
+                }
+            }
+        }
+        format!("{} -> {}{}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "), comment)
     }
 
     fn build_opcodes(&mut self) {

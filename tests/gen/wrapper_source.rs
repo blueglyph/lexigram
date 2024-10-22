@@ -806,7 +806,7 @@ mod rules_rts_32_1 {
                         4 => self.exit_a(factor_id),                // A -> a c A_1 c
                         1 => self.exit_a_iter(),                    // A_1 -> b A_1
                         2 => {}                                     // A_1 -> ε
-                     /* 0 */                                        // A -> a A_2 (never called)
+                     /* 0 */                                        // A -> a a A_1 c | a c A_1 c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1084,7 +1084,7 @@ mod rules_rts_23_1 {
                         0 => self.exit_a(),                         // A -> a A_1 c
                         2 |                                         // A_1 -> b A_1
                         3 => self.exit_a1(),                        // A_1 -> b
-                     /* 1 */                                        // A_1 -> b A_2 (never called)
+                     /* 1 */                                        // A_1 -> b | b A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1242,7 +1242,7 @@ mod rules_rts_27_1 {
                         0 => self.exit_a(),                         // A -> a A_1 c
                         3 |                                         // A_1 -> B A_1
                         4 => self.exit_a1(),                        // A_1 -> B
-                     /* 2 */                                        // A_1 -> B A_2 (never called)
+                     /* 2 */                                        // A_1 -> B | B A_1 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1406,7 +1406,7 @@ mod rules_rts_28_1 {
                         0 => self.exit_a(),                         // A -> A_1 c
                         3 |                                         // A_1 -> a B A_1
                         4 => self.exit_a1(),                        // A_1 -> a B
-                     /* 2 */                                        // A_1 -> a B A_2 (never called)
+                     /* 2 */                                        // A_1 -> a B | a B A_1 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2175,8 +2175,8 @@ mod rules_rts_30_1 {
                         5 => self.exit_a1(),                        // A_1 -> B b
                         6 |                                         // A_2 -> A_1 c A_2
                         7 => self.exit_a2(),                        // A_2 -> A_1 c
-                     /* 2 */                                        // A_1 -> B b A_3 (never called)
-                     /* 3 */                                        // A_2 -> A_1 c A_4 (never called)
+                     /* 2 */                                        // A_1 -> B b | B b A_1 (never called)
+                     /* 3 */                                        // A_2 -> A_1 c | A_1 c A_2 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2360,8 +2360,8 @@ mod rules_rts_30_2 {
                         5 => self.exit_a1(),                        // A_1 -> B b
                         6 |                                         // A_2 -> A_1 c A_2
                         7 => self.exit_a2(),                        // A_2 -> A_1 c
-                     /* 2 */                                        // A_1 -> B b A_3 (never called)
-                     /* 3 */                                        // A_2 -> A_1 c A_4 (never called)
+                     /* 2 */                                        // A_1 -> B b | B b A_1 (never called)
+                     /* 3 */                                        // A_2 -> A_1 c | A_1 c A_2 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2526,7 +2526,7 @@ mod rules_rts_24_1 {
                         0 => self.exit_a(),                         // A -> a A_1 c
                         2 |                                         // A_1 -> b A_1
                         3 => self.exit_a_iter(),                    // A_1 -> b
-                     /* 1 */                                        // A_1 -> b A_2 (never called)
+                     /* 1 */                                        // A_1 -> b | b A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2677,8 +2677,8 @@ mod rules_prs_28_1 {
                         4 |                                         // A -> a b c
                         5 |                                         // A -> a b d
                         6 => self.exit_a(factor_id),                // A -> a b
-                     /* 0 */                                        // A -> a A_1 (never called)
-                     /* 2 */                                        // A -> a b A_2 (never called)
+                     /* 0 */                                        // A -> a | a b | a b c | a b d (never called)
+                     /* 2 */                                        // A -> a b | a b c | a b d (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2767,11 +2767,11 @@ mod rules_prs_31_1 {
     pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
     pub enum CtxE {
-        /// E -> F E_1
+        /// E -> F
         E1 { f: SynF },
-        /// E_1 -> . id E_1
+        /// E -> E . id
         E2 { e: SynE, id: String },
-        /// E_1 -> ε
+        /// E -> ε (end of loop)
         E3 { e: SynE },
     }
     #[derive(Debug)]
@@ -2841,9 +2841,9 @@ mod rules_prs_31_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.init_e(),                         // E -> F E_1
-                        2 |                                         // E_1 -> . id E_1
-                        3 => self.exit_e1(factor_id),               // E_1 -> ε
+                        0 => self.init_e(),                         // E -> F
+                        2 |                                         // E -> E . id
+                        3 => self.exit_e1(factor_id),               // E -> ε (end of loop)
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2928,13 +2928,13 @@ mod rules_prs_36_1 {
     pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
     pub enum CtxE {
-        /// E -> F E_1
+        /// E -> F
         E1 { f: SynF },
-        /// E -> num E_1
+        /// E -> num
         E2 { num: String },
-        /// E_1 -> . id E_1
+        /// E -> E . id
         E3 { e: SynE, id: String },
-        /// E_1 -> ε
+        /// E -> ε (end of loop)
         E4 { e: SynE },
     }
     #[derive(Debug)]
@@ -3004,10 +3004,10 @@ mod rules_prs_36_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 |                                         // E -> F E_1
-                        1 => self.init_e(factor_id),                // E -> num E_1
-                        3 |                                         // E_1 -> . id E_1
-                        4 => self.exit_e1(factor_id),               // E_1 -> ε
+                        0 |                                         // E -> F
+                        1 => self.init_e(factor_id),                // E -> num
+                        3 |                                         // E -> E . id
+                        4 => self.exit_e1(factor_id),               // E -> ε (end of loop)
                         2 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -3104,13 +3104,13 @@ mod rules_prs_33_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
-        /// A_1 -> a A_1
+        /// A -> A a
         A1 { a: SynA, a1: String },
-        /// A_1 -> ε
+        /// A -> ε (end of loop)
         A2 { a: SynA },
-        /// A -> b c A_1
+        /// A -> b c
         A3 { b: String, c: String },
-        /// A -> b d A_1
+        /// A -> b d
         A4 { b: String, d: String },
     }
 
@@ -3169,11 +3169,11 @@ mod rules_prs_33_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        3 |                                         // A -> b c A_1
-                        4 => self.init_a(factor_id),                // A -> b d A_1
-                        1 |                                         // A_1 -> a A_1
-                        2 => self.exit_a1(factor_id),               // A_1 -> ε
-                     /* 0 */                                        // A -> b A_2 (never called)
+                        3 |                                         // A -> b c
+                        4 => self.init_a(factor_id),                // A -> b d
+                        1 |                                         // A -> A a
+                        2 => self.exit_a1(factor_id),               // A -> ε (end of loop)
+                     /* 0 */                                        // A -> b c | b d (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3267,15 +3267,15 @@ mod rules_prs_38_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
-        /// A_1 -> a A_1
+        /// A -> A a
         A1 { a: SynA, a1: String },
-        /// A_1 -> b A_1
+        /// A -> A b
         A2 { a: SynA, b: String },
-        /// A_1 -> ε
+        /// A -> ε (end of loop)
         A3 { a: SynA },
-        /// A -> b c A_1
+        /// A -> b c
         A4 { b: String, c: String },
-        /// A -> b d A_1
+        /// A -> b d
         A5 { b: String, d: String },
     }
 
@@ -3334,12 +3334,12 @@ mod rules_prs_38_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        4 |                                         // A -> b c A_1
-                        5 => self.init_a(factor_id),                // A -> b d A_1
-                        1 |                                         // A_1 -> a A_1
-                        2 |                                         // A_1 -> b A_1
-                        3 => self.exit_a1(factor_id),               // A_1 -> ε
-                     /* 0 */                                        // A -> b A_2 (never called)
+                        4 |                                         // A -> b c
+                        5 => self.init_a(factor_id),                // A -> b d
+                        1 |                                         // A -> A a
+                        2 |                                         // A -> A b
+                        3 => self.exit_a1(factor_id),               // A -> ε (end of loop)
+                     /* 0 */                                        // A -> b c | b d (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3441,15 +3441,15 @@ mod rules_prs_39_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
-        /// A_1 -> ε
+        /// A -> ε (end of loop)
         A1 { a: SynA },
-        /// A -> b c A_1
+        /// A -> b c
         A2 { b: String, c: String },
-        /// A -> b d A_1
+        /// A -> b d
         A3 { b: String, d: String },
-        /// A_1 -> a b A_1
+        /// A -> A a b
         A4 { a: SynA, a1: String, b: String },
-        /// A_1 -> a c A_1
+        /// A -> A a c
         A5 { a: SynA, a1: String, c: String },
     }
 
@@ -3509,13 +3509,13 @@ mod rules_prs_39_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        3 |                                         // A -> b c A_1
-                        4 => self.init_a(factor_id),                // A -> b d A_1
-                        2 |                                         // A_1 -> ε
-                        5 |                                         // A_1 -> a b A_1
-                        6 => self.exit_a1(factor_id),               // A_1 -> a c A_1
-                     /* 0 */                                        // A -> b A_2 (never called)
-                     /* 1 */                                        // A_1 -> a A_3 (never called)
+                        3 |                                         // A -> b c
+                        4 => self.init_a(factor_id),                // A -> b d
+                        2 |                                         // A -> ε (end of loop)
+                        5 |                                         // A -> A a b
+                        6 => self.exit_a1(factor_id),               // A -> A a c
+                     /* 0 */                                        // A -> b c | b d (never called)
+                     /* 1 */                                        // A -> A a b | A a c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3616,13 +3616,13 @@ mod rules_prs_32_1 {
     pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
     pub enum CtxE {
-        /// E -> F E_1
+        /// E -> F
         E1 { f: SynF },
-        /// E_1 -> ε
+        /// E -> ε (end of loop)
         E2 { e: SynE },
-        /// E_1 -> . id ( ) E_1
+        /// E -> E . id ( )
         E3 { e: SynE, id: String },
-        /// E_1 -> . id E_1
+        /// E -> E . id
         E4 { e: SynE, id: String },
     }
     #[derive(Debug)]
@@ -3693,11 +3693,11 @@ mod rules_prs_32_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.init_e(),                         // E -> F E_1
-                        3 |                                         // E_1 -> ε
-                        4 |                                         // E_1 -> . id ( ) E_1
-                        5 => self.exit_e1(factor_id),               // E_1 -> . id E_1
-                     /* 2 */                                        // E_1 -> . id E_2 (never called)
+                        0 => self.init_e(),                         // E -> F
+                        3 |                                         // E -> ε (end of loop)
+                        4 |                                         // E -> E . id ( )
+                        5 => self.exit_e1(factor_id),               // E -> E . id
+                     /* 2 */                                        // E -> E . id ( ) | E . id (never called)
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -4158,7 +4158,7 @@ mod rules_prs_37_1 {
                         1 |                                         // LIST -> }
                         3 |                                         // LIST -> id : id ; LIST
                         4 => self.exit_list(factor_id),             // LIST -> id ; LIST
-                     /* 2 */                                        // LIST -> id LIST_1 (never called)
+                     /* 2 */                                        // LIST -> id : id ; LIST | id ; LIST (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -4398,11 +4398,11 @@ mod rules_rts_26_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
-        /// A -> a A_2
+        /// A -> a
         A1 { a: String },
-        /// A_2 -> A_1 b A_2
+        /// A -> A A_1 b
         A2 { a: SynA, star: SynA1, b: String },
-        /// A_2 -> ε
+        /// A -> ε (end of loop)
         A3 { a: SynA },
     }
 
@@ -4465,11 +4465,11 @@ mod rules_rts_26_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.init_a(),                         // A -> a A_2
+                        0 => self.init_a(),                         // A -> a
                         1 => self.exit_a1(),                        // A_1 -> c A_1
                         2 => {}                                     // A_1 -> ε
-                        3 |                                         // A_2 -> A_1 b A_2
-                        4 => self.exit_a2(factor_id),               // A_2 -> ε
+                        3 |                                         // A -> A A_1 b
+                        4 => self.exit_a2(factor_id),               // A -> ε (end of loop)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -4564,11 +4564,11 @@ mod rules_rts_16_1 {
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
-        /// A -> a A_2
+        /// A -> a
         A1 { a: String },
-        /// A_2 -> A_1 b A_2
+        /// A -> A A_1 b
         A2 { a: SynA, plus: SynA1, b: String },
-        /// A_2 -> ε
+        /// A -> ε (end of loop)
         A3 { a: SynA },
     }
 
@@ -4632,12 +4632,12 @@ mod rules_rts_16_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.init_a(),                         // A -> a A_2
+                        0 => self.init_a(),                         // A -> a
                         4 |                                         // A_1 -> c A_1
                         5 => self.exit_a1(),                        // A_1 -> c
-                        2 |                                         // A_2 -> A_1 b A_2
-                        3 => self.exit_a2(factor_id),               // A_2 -> ε
-                     /* 1 */                                        // A_1 -> c A_3 (never called)
+                        2 |                                         // A -> A A_1 b
+                        3 => self.exit_a2(factor_id),               // A -> ε (end of loop)
+                     /* 1 */                                        // A_1 -> c | c A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -4791,7 +4791,7 @@ mod rules_prs_35_1 {
                         1 |                                         // A -> a b b
                         2 |                                         // A -> a c c
                         3 => self.exit_a(factor_id),                // A -> a
-                     /* 0 */                                        // A -> a A_1 (never called)
+                     /* 0 */                                        // A -> a | a b b | a c c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
