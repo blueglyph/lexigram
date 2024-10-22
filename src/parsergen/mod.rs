@@ -276,20 +276,21 @@ impl ParserBuilder {
         self.expand_lfact(&mut facts);
         let mut comment = String::new();
 
+        let mut parent = v_par_lf;
+        while let Some(new_parent) = self.parsing_table.parent[parent as usize] {
+            parent = new_parent;
+        }
+
         // left recursion
         if self.nt_has_flags(v_par_lf, ruleflag::PARENT_L_RECURSION) {
             // initial value of left recusion loop
+            left = parent;
             for f in facts.iter_mut() {
                 f.pop();
             }
-            while let Some(parent) = self.parsing_table.parent[left as usize] {
-                left = parent;
-            }
         } else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_L_RECURSION) {
             // loop
-            while let Some(parent) = self.parsing_table.parent[left as usize] {
-                left = parent;
-            }
+            left = parent;
             for f in facts.iter_mut() {
                 if !matches!(f.first(), Some(Symbol::Empty)) {
                     f.pop();
@@ -299,7 +300,31 @@ impl ParserBuilder {
                 }
             }
         }
-        format!("{} -> {}{}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "), comment)
+        if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
+            format!("{} -> {}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.repeat_factor_to_str(&f)).join(" | "))
+        }/* else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
+            format!("{} -> {}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.repeat_factor_to_str(&f)).join(" | "))
+        }*/ else {
+            format!("{} -> {}{}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "), comment)
+        }
+    }
+
+    fn repeat_factor_to_str(&self, f: &Vec<Symbol>) -> String {
+        f.iter().map(|s| {
+            if let Symbol::NT(v) = s {
+                if self.nt_has_flags(*v, ruleflag::CHILD_REPEAT) {
+                    let repeat_sym = if self.nt_has_flags(*v, ruleflag::REPEAT_PLUS) { '+' } else { '*' };
+                    let lform = if self.nt_has_flags(*v, ruleflag::L_FORM) { " <L>" } else { "" };
+                    let mut fact = self.parsing_table.factors[self.var_factors[*v as usize][0] as usize].1.symbols().to_vec();
+                    fact.pop(); // remove the loop NT
+                    format!("[{}{}]{}", self.repeat_factor_to_str(&fact), lform, repeat_sym)
+                } else {
+                    s.to_str(self.get_symbol_table())
+                }
+            } else {
+                s.to_str(self.get_symbol_table())
+            }
+        }).join(" ")
     }
 
     fn build_opcodes(&mut self) {
@@ -1008,6 +1033,7 @@ impl ParserBuilder {
         // Writes contexts
         if let Some((nu, nl)) = &nt_name[self.start as usize] {
             src.push(format!("#[derive(Debug)]"));
+            // TODO: doc comment
             if self.nt_value[self.start as usize] {
                 src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: Syn{nu} }} }}"));
             } else {
@@ -1057,14 +1083,41 @@ impl ParserBuilder {
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
+                let mut parent = v as VarId;
+                while let Some(v) = pinfo.parent[parent as usize] {
+                    parent = v;
+                }
+                let facts = self.get_group_factors(&self.nt_parent[parent as usize]);
+                let (v_id, f) = facts.iter()
+                    .filter(|(v_id, _)| *v_id != v as VarId)
+                    .find_map(|(v_id, f_id)| {
+                        let fact = pinfo.factors[*f_id as usize].1.symbols();
+                        if fact.iter().any(|s| *s == Symbol::NT(v as VarId)) {
+                            let mut fact = fact.clone();
+                            if fact.last() == Some(&Symbol::NT(*v_id)) { fact.pop(); };
+                            Some((*v_id, fact))
+                        } else {
+                            None
+                        }
+                    }).unwrap();
+                let comment = if pinfo.parent[v_id as usize].is_none() {
+                    format!("(in: {} -> {})", Symbol::NT(v_id).to_str(self.get_symbol_table()), self.repeat_factor_to_str(&f))
+                } else {
+                    format!("(in rule {}: {})", Symbol::NT(parent).to_str(self.get_symbol_table()), self.repeat_factor_to_str(&f))
+                };
                 if let Some(infos) = nt_repeat.get(&(v as VarId)) {
                     // complex + * items; for ex. A -> (B b)+
+                    src.push(format!("/// {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)])));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
+                    let mut fact = self.parsing_table.factors[self.var_factors[v][0] as usize].1.symbols().to_vec();
+                    fact.pop();
+                    src.push(format!("/// {} {comment}", self.repeat_factor_to_str(&fact)));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
                 } else {
                     // + * item is only a terminal
+                    src.push(format!("/// {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)])));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<String>);"));
                 }
