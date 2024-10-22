@@ -747,6 +747,54 @@ mod wrapper_source {
                 6 => symbols![nt 3, nt 2, t 2],         //  6: A_4 -> A_2       | ●A_2 ◄6       | A_2 A_1 c
                 7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_3: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
+            //  - A_4: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_5: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_6: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
+            //  - A_7: child_left_fact (64)
+            //  - A_8: child_left_fact (64)
+            //  - A_9: child_left_fact (64)
+            //  - A_10: child_left_fact (64)
+            //  - A_11: child_left_fact (64)
+            //  - A_12: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A_3
+            //  - A_2 -> A
+            //  - A_3 -> A
+            //  - A_4 -> A_6
+            //  - A_5 -> A
+            //  - A_6 -> A
+            //  - A_7 -> A_1
+            //  - A_8 -> A_2
+            //  - A_9 -> A_3
+            //  - A_10 -> A_4
+            //  - A_11 -> A_5
+            //  - A_12 -> A_6
+            (RTS(34), 0, btreemap![                     // A -> a ( (b)+ (b)+ )+ c ( (b)+ (b)+ )+ d
+                0 => symbols![t 0, nt 3, t 2, nt 6, t 3], //  0: A -> a A_3 c A_6 d  | ◄0 d! ►A_6 c! ►A_3 a! | a A_3 c A_6 d
+                1 => symbols![],                          //  1: A_1 -> b A_7        | ►A_7 b!               |
+                2 => symbols![],                          //  2: A_2 -> b A_8        | ►A_8 b!               |
+                3 => symbols![],                          //  3: A_3 -> A_1 A_2 A_9  | ►A_9 ►A_2 ►A_1        |
+                4 => symbols![],                          //  4: A_4 -> b A_10       | ►A_10 b!              |
+                5 => symbols![],                          //  5: A_5 -> b A_11       | ►A_11 b!              |
+                6 => symbols![],                          //  6: A_6 -> A_4 A_5 A_12 | ►A_12 ►A_5 ►A_4       |
+                7 => symbols![nt 1, t 1],                 //  7: A_7 -> A_1          | ●A_1 ◄7               | A_1 b
+                8 => symbols![nt 1, t 1],                 //  8: A_7 -> ε            | ◄8                    | A_1 b
+                9 => symbols![nt 2, t 1],                 //  9: A_8 -> A_2          | ●A_2 ◄9               | A_2 b
+                10 => symbols![nt 2, t 1],                // 10: A_8 -> ε            | ◄10                   | A_2 b
+                11 => symbols![nt 3, nt 1, nt 2],         // 11: A_9 -> A_3          | ●A_3 ◄11              | A_3 A_1 A_2
+                12 => symbols![nt 3, nt 1, nt 2],         // 12: A_9 -> ε            | ◄12                   | A_3 A_1 A_2
+                13 => symbols![nt 4, t 1],                // 13: A_10 -> A_4         | ●A_4 ◄13              | A_4 b
+                14 => symbols![nt 4, t 1],                // 14: A_10 -> ε           | ◄14                   | A_4 b
+                15 => symbols![nt 5, t 1],                // 15: A_11 -> A_5         | ●A_5 ◄15              | A_5 b
+                16 => symbols![nt 5, t 1],                // 16: A_11 -> ε           | ◄16                   | A_5 b
+                17 => symbols![nt 6, nt 4, nt 5],         // 17: A_12 -> A_6         | ●A_6 ◄17              | A_6 A_4 A_5
+                18 => symbols![nt 6, nt 4, nt 5],         // 18: A_12 -> ε           | ◄18                   | A_6 A_4 A_5
+            ], Default, btreemap![0 => vec![0]]),
             // --------------------------------------------------------------------------- left_fact
             // NT flags:
             //  - A: parent_left_fact (32)
@@ -983,12 +1031,12 @@ mod wrapper_source {
             */
         ];
         const VERBOSE: bool = true;
-        const PRINT_SOURCE: bool = false;
+        const PRINT_SOURCE: bool = true;
         const TEST_SOURCE: bool = true;
-        const TESTS_ALL: bool = false;
+        const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = false;
+        const REPLACE_SOURCE: bool = true;
         //
 
         let mut num_errors = 0;
