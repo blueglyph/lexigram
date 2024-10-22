@@ -1464,42 +1464,161 @@ mod rules_rts_28_1 {
 }
 
 // ================================================================================
-// Test 10: rules RTS(29) #1, start 0:
+// Test 10: rules RTS(24) #1, start 0:
+/*
+before, NT with value: A
+after,  NT with value: A, A_1
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            (RTS(24), 0, btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
+                1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
+                2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
+                3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
+            ], Default, btreemap![0 => vec![0]]),
+*/
+mod rules_rts_24_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(24) #1, start A]
+
+    use rlexer::CollectJoin;
+    use rlexer::grammar::VarId;
+    use rlexer::parser::{Call, Listener};
+
+    #[derive(Debug)]
+    pub enum Ctx { A { a: SynA } }
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// A -> a [b <L>]+ c
+        A { a: String, plus: SynAIter, c: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxAIter {
+        /// A_1 -> b A_1
+        A1_1 { plus_it: SynAIter, b: String },
+        /// A_1 -> b
+        A1_2 { plus_it: SynAIter, b: String },
+    }
+
+    // User-defined: SynA, SynAIter
+    #[derive(Debug)]
+    pub struct SynA();
+    #[derive(Debug)]
+    pub struct SynAIter();
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA), AIter(SynAIter) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_a_iter(self) -> SynAIter {
+            if let SynValue::AIter(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _ctx: Ctx) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn init_a_iter(&mut self) -> SynAIter;
+        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => self.init_a_iter(),                    // A_1
+                        2 => {}                                     // A_2
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.exit_a(),                         // A -> a [b <L>]+ c
+                        2 |                                         // A_1 -> b A_1
+                        3 => self.exit_a_iter(),                    // A_1 -> b
+                     /* 1 */                                        // A_1 -> b | b A_1 (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(Ctx::A { a });
+        }
+        fn exit_a(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let plus = self.stack.pop().unwrap().get_a_iter();
+            let a = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_a(CtxA::A { a, plus, c });
+            self.stack.push(SynValue::A(val));
+        }
+        fn init_a_iter(&mut self) {
+            let val = self.listener.init_a_iter();
+            self.stack.push(SynValue::AIter(val));
+        }
+        fn exit_a_iter(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let plus_it = self.stack.pop().unwrap().get_a_iter();
+            let val = self.listener.exit_a_iter(CtxAIter::A1_1 { plus_it, b });
+            self.stack.push(SynValue::AIter(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(24) #1, start A]
+    // ------------------------------------------------------------
+
+}
+
+// ================================================================================
+// Test 11: rules RTS(29) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
-
-// A -> a ( (B b)* c)* d
-
-item_info =
-[
-  //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
-  [
-    ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None },
-    ItemInfo { name: "star", sym: NT(3), owner: 0, is_vec: false, index: None },
-    ItemInfo { name: "d", sym: T(3), owner: 0, is_vec: false, index: None }
-  ],
-  //  1: B -> b           | ◄1 b!           | b
-  [
-    ItemInfo { name: "b", sym: T(1), owner: 1, is_vec: false, index: None }
-  ],
-  //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 B b
-  [
-    ItemInfo { name: "star_it", sym: NT(2), owner: 2, is_vec: false, index: None },
-    ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None },
-    ItemInfo { name: "b1", sym: T(1), owner: 2, is_vec: false, index: None }
-  ],
-  //  3: A_1 -> ε         | ◄3              |
-  [],
-  //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
-  [
-    ItemInfo { name: "star_it", sym: NT(3), owner: 3, is_vec: false, index: None },
-    ItemInfo { name: "star", sym: NT(2), owner: 3, is_vec: false, index: None },
-    ItemInfo { name: "c", sym: T(2), owner: 3, is_vec: false, index: None }
-  ],
-  //  5: A_2 -> ε         | ◄5              |
-  []
-]
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -1685,7 +1804,7 @@ mod rules_rts_29_1 {
 }
 
 // ================================================================================
-// Test 11: rules RTS(29) #2, start 0:
+// Test 12: rules RTS(29) #2, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_2
@@ -1843,7 +1962,7 @@ mod rules_rts_29_2 {
 }
 
 // ================================================================================
-// Test 12: rules RTS(29) #3, start 0:
+// Test 13: rules RTS(29) #3, start 0:
 /*
 before, NT with value:
 after,  NT with value: A_1, A_2
@@ -2017,52 +2136,10 @@ mod rules_rts_29_3 {
 }
 
 // ================================================================================
-// Test 13: rules RTS(30) #1, start 0:
+// Test 14: rules RTS(30) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
-nt_name = [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1")), Some(("A2", "a2")), None, None]
-item_info =
-[
-  //  0: A -> a A_2 d     | ◄0 d! ►A_2 a! | a A_2 d
-  [
-    ItemInfo { name: "a", sym: T(0), owner: 0, is_vec: false, index: None },
-    ItemInfo { name: "plus", sym: NT(3), owner: 0, is_vec: false, index: None },
-    ItemInfo { name: "d", sym: T(3), owner: 0, is_vec: false, index: None }
-  ],
-  //  1: B -> b           | ◄1 b!         | b
-  [
-    ItemInfo { name: "b", sym: T(1), owner: 1, is_vec: false, index: None }
-  ],
-  //  2: A_1 -> B b A_3   | ►A_3 b! ►B    |
-  [],
-  //  3: A_2 -> A_1 c A_4 | ►A_4 c! ►A_1  |
-  [],
-  //  4: A_3 -> A_1       | ●A_1 ◄4       | A_1 B b
-  [
-    ItemInfo { name: "plus_it", sym: NT(2), owner: 2 (A_1), is_vec: false, index: None },
-    ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None },
-    ItemInfo { name: "b1", sym: T(1), owner: 2, is_vec: false, index: None }
-  ],
-  //  5: A_3 -> ε         | ◄5            | A_1 B b
-  [
-    ItemInfo { name: "plus_it", sym: NT(2), owner: 2, is_vec: false, index: None },
-    ItemInfo { name: "b", sym: NT(1), owner: 2, is_vec: false, index: None },
-    ItemInfo { name: "b1", sym: T(1), owner: 2, is_vec: false, index: None }
-  ],
-  //  6: A_4 -> A_2       | ●A_2 ◄6       | A_2 A_1 c
-  [
-    ItemInfo { name: "plus_it", sym: NT(3), owner: 3 (A_2), is_vec: false, index: None },
-    ItemInfo { name: "plus", sym: NT(2), owner: 3, is_vec: false, index: None },
-    ItemInfo { name: "c", sym: T(2), owner: 3, is_vec: false, index: None }
-  ],
-  //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
-  [
-    ItemInfo { name: "plus", sym: NT(3), owner: 3, is_vec: false, index: None },
-    ItemInfo { name: "plus1", sym: NT(2), owner: 3, is_vec: false, index: None },
-    ItemInfo { name: "c", sym: T(2), owner: 3, is_vec: false, index: None }
-  ]
-]
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
@@ -2258,7 +2335,7 @@ mod rules_rts_30_1 {
 }
 
 // ================================================================================
-// Test 14: rules RTS(30) #2, start 0:
+// Test 15: rules RTS(30) #2, start 0:
 /*
 before, NT with value:
 after,  NT with value: A_1, A_2
@@ -2437,157 +2514,6 @@ mod rules_rts_30_2 {
     }
 
     // [wrapper source for rule RTS(30) #2, start A]
-    // ------------------------------------------------------------
-
-}
-
-// ================================================================================
-// Test 15: rules RTS(24) #1, start 0:
-/*
-before, NT with value: A
-after,  NT with value: A, A_1
-            // NT flags:
-            //  - A: parent_+_or_* | plus (6144)
-            //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
-            //  - A_2: child_left_fact (64)
-            // parents:
-            //  - A_1 -> A
-            //  - A_2 -> A_1
-            (RTS(24), 0, btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
-                1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
-                2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
-                3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
-            ], Default, btreemap![0 => vec![0]]),
-*/
-mod rules_rts_24_1 {
-    // ------------------------------------------------------------
-    // [wrapper source for rule RTS(24) #1, start A]
-
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
-
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
-    #[derive(Debug)]
-    pub enum CtxA {
-        /// A -> a [b <L>]+ c
-        A { a: String, plus: SynAIter, c: String },
-    }
-    #[derive(Debug)]
-    pub enum CtxAIter {
-        /// A_1 -> b A_1
-        A1_1 { plus_it: SynAIter, b: String },
-        /// A_1 -> b
-        A1_2 { plus_it: SynAIter, b: String },
-    }
-
-    // User-defined: SynA, SynAIter
-    #[derive(Debug)]
-    pub struct SynA();
-    #[derive(Debug)]
-    pub struct SynAIter();
-
-    #[derive(Debug)]
-    enum SynValue { A(SynA), AIter(SynAIter) }
-
-    impl SynValue {
-        fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
-        }
-        fn get_a_iter(self) -> SynAIter {
-            if let SynValue::AIter(val) = self { val } else { panic!() }
-        }
-    }
-
-    pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
-        fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_a_iter(&mut self) -> SynAIter;
-        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
-    }
-
-    struct ListenerWrapper<T> {
-        verbose: bool,
-        listener: T,
-        stack: Vec<SynValue>,
-        max_stack: usize,
-        stack_t: Vec<String>,
-    }
-
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
-            if let Some(mut t_data) = t_data {
-                self.stack_t.append(&mut t_data);
-            }
-            match call {
-                Call::Enter => {
-                    match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 => self.init_a_iter(),                    // A_1
-                        2 => {}                                     // A_2
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
-                Call::Exit => {
-                    match factor_id {
-                        0 => self.exit_a(),                         // A -> a [b <L>]+ c
-                        2 |                                         // A_1 -> b A_1
-                        3 => self.exit_a_iter(),                    // A_1 -> b
-                     /* 1 */                                        // A_1 -> b | b A_1 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
-                    }
-                }
-                Call::End => {
-                    self.exit();
-                }
-            }
-            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-            }
-        }
-    }
-
-    impl<T: TestListener> ListenerWrapper<T> {
-        fn exit(&mut self) {
-            let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
-        }
-        fn exit_a(&mut self) {
-            let c = self.stack_t.pop().unwrap();
-            let plus = self.stack.pop().unwrap().get_a_iter();
-            let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, plus, c });
-            self.stack.push(SynValue::A(val));
-        }
-        fn init_a_iter(&mut self) {
-            let val = self.listener.init_a_iter();
-            self.stack.push(SynValue::AIter(val));
-        }
-        fn exit_a_iter(&mut self) {
-            let b = self.stack_t.pop().unwrap();
-            let plus_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::A1_1 { plus_it, b });
-            self.stack.push(SynValue::AIter(val));
-        }
-    }
-
-    // [wrapper source for rule RTS(24) #1, start A]
     // ------------------------------------------------------------
 
 }
@@ -3440,7 +3366,7 @@ after,  NT with value: A
             //  - A_1 -> A
             //  - A_2 -> A
             //  - A_3 -> A_1
-            (PRS(39), 0, btreemap![                     /// A -> A a b | A a c | b c | b d
+            (PRS(39), 0, btreemap![
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![],                        //  1: A_1 -> a A_3 | ►A_3 a!    |
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
@@ -3605,7 +3531,7 @@ mod rules_prs_39_1 {
 }
 
 // ================================================================================
-// Test 21: rules PRS(32) #1, start 0:
+// Test 22: rules PRS(32) #1, start 0:
 /*
 before, NT with value: E, F
 after,  NT with value: E, F
@@ -3779,7 +3705,7 @@ mod rules_prs_32_1 {
 }
 
 // ================================================================================
-// Test 22: rules PRS(20) #1, start 0:
+// Test 23: rules PRS(20) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -3929,7 +3855,7 @@ mod rules_prs_20_1 {
 }
 
 // ================================================================================
-// Test 23: rules PRS(20) #2, start 0:
+// Test 24: rules PRS(20) #2, start 0:
 /*
 before, NT with value: STRUCT
 after,  NT with value: STRUCT
@@ -4072,7 +3998,7 @@ mod rules_prs_20_2 {
 }
 
 // ================================================================================
-// Test 24: rules PRS(37) #1, start 0:
+// Test 25: rules PRS(37) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -4233,7 +4159,7 @@ mod rules_prs_37_1 {
 }
 
 // ================================================================================
-// Test 25: rules PRS(30) #1, start 0:
+// Test 26: rules PRS(30) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -4388,7 +4314,7 @@ mod rules_prs_30_1 {
 }
 
 // ================================================================================
-// Test 26: rules RTS(26) #1, start 0:
+// Test 27: rules RTS(26) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -4552,7 +4478,7 @@ mod rules_rts_26_1 {
 }
 
 // ================================================================================
-// Test 27: rules RTS(16) #1, start 0:
+// Test 28: rules RTS(16) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -4721,7 +4647,7 @@ mod rules_rts_16_1 {
 }
 
 // ================================================================================
-// Test 28: rules PRS(35) #1, start 0:
+// Test 29: rules PRS(35) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4866,7 +4792,7 @@ mod rules_prs_35_1 {
 }
 
 // ================================================================================
-// Test 29: rules RTS(33) #1, start 0:
+// Test 30: rules RTS(33) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
@@ -5037,4 +4963,5 @@ mod rules_rts_33_1 {
 
     // [wrapper source for rule RTS(33) #1, start A]
     // ------------------------------------------------------------
+
 }
