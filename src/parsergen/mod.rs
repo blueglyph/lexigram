@@ -301,10 +301,17 @@ impl ParserBuilder {
             }
         }
         if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
-            format!("{} -> {}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.repeat_factor_to_str(&f)).join(" | "))
-        }/* else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
-            format!("{} -> {}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.repeat_factor_to_str(&f)).join(" | "))
-        }*/ else {
+            format!("{} -> {} ({})",
+                    Symbol::NT(left).to_str(self.get_symbol_table()),
+                    facts.into_iter().map(|f| self.repeat_factor_to_str(&f)).join(" | "),
+                    Symbol::NT(*v_f).to_str(self.get_symbol_table()))
+        } else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
+            //format!("{} -> {}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.repeat_factor_to_str(&f)).join(" | "))
+            format!("{} -> {} ({})",
+                    Symbol::NT(left).to_str(self.get_symbol_table()),
+                    facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "),
+                    Symbol::NT(*v_f).to_str(self.get_symbol_table()))
+        } else {
             format!("{} -> {}{}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "), comment)
         }
     }
