@@ -1105,19 +1105,20 @@ impl ParserBuilder {
                 } else {
                     format!("(in rule {}: {})", Symbol::NT(parent).to_str(self.get_symbol_table()), self.repeat_factor_to_str(&f))
                 };
+                let current = Symbol::NT(v as VarId).to_str(self.get_symbol_table());
                 if let Some(infos) = nt_repeat.get(&(v as VarId)) {
                     // complex + * items; for ex. A -> (B b)+
-                    src.push(format!("/// {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)])));
+                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)])));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
                     let mut fact = self.parsing_table.factors[self.var_factors[v][0] as usize].1.symbols().to_vec();
                     fact.pop();
-                    src.push(format!("/// {} {comment}", self.repeat_factor_to_str(&fact)));
+                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&fact)));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
                 } else {
                     // + * item is only a terminal
-                    src.push(format!("/// {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)])));
+                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)])));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<String>);"));
                 }
