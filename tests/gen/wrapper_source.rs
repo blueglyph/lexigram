@@ -204,7 +204,7 @@ mod rules_rts_21_1 {
         A { a: String, star: SynA1, c: String },
     }
 
-    /// (A_1) [b]* (in: A -> a [b]* c)
+    /// (A_1) [b]* in A -> a >>>[b]*<<< c (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
     // User-defined: SynA
@@ -264,7 +264,7 @@ mod rules_rts_21_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b]* c (A)
-                        1 => self.exit_a1(),                        // A_1 ->  (A_1)
+                        1 => self.exit_a1(),                        // A_1 -> b A_1 (A_1)
                         2 => {}                                     // A_1 -> ε (A_1)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -397,7 +397,7 @@ mod rules_rts_21_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b]* c (A)
-                        1 |                                         // A_1 ->  (A_1)
+                        1 |                                         // A_1 -> b A_1 (A_1)
                         2 => {}                                     // A_1 -> ε (A_1)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -465,7 +465,7 @@ mod rules_rts_22_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// A_1 ->  (A_1)
+        /// A_1 -> b A_1 (A_1)
         A1 { star_it: SynAIter, b: String },
     }
 
@@ -530,7 +530,7 @@ mod rules_rts_22_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b <L>]* c (A)
-                        1 => self.exit_a_iter(),                    // A_1 ->  (A_1)
+                        1 => self.exit_a_iter(),                    // A_1 -> b A_1 (A_1)
                         2 => {}                                     // A_1 -> ε (A_1)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -664,7 +664,7 @@ mod rules_rts_22_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b <L>]* c (A)
-                        1 |                                         // A_1 ->  (A_1)
+                        1 |                                         // A_1 -> b A_1 (A_1)
                         2 => {}                                     // A_1 -> ε (A_1)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -738,7 +738,7 @@ mod rules_rts_32_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// A_1 ->  (A_1)
+        /// A_1 -> b A_1 (A_1)
         A1 { star_it: SynAIter, b: String },
     }
 
@@ -805,7 +805,7 @@ mod rules_rts_32_1 {
                     match factor_id {
                         3 |                                         // A -> a a [b <L>]* c (A_2)
                         4 => self.exit_a(factor_id),                // A -> a c [b <L>]* c (A_2)
-                        1 => self.exit_a_iter(),                    // A_1 ->  (A_1)
+                        1 => self.exit_a_iter(),                    // A_1 -> b A_1 (A_1)
                         2 => {}                                     // A_1 -> ε (A_1)
                      /* 0 */                                        // A -> a a [b <L>]* c | a c [b <L>]* c (A) (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -953,7 +953,7 @@ mod rules_rts_25_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [#]* c (A)
-                        1 |                                         // A_1 ->  (A_1)
+                        1 |                                         // A_1 -> # A_1 (A_1)
                         2 => {}                                     // A_1 -> ε (A_1)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1023,7 +1023,7 @@ mod rules_rts_23_1 {
         A { a: String, plus: SynA1, c: String },
     }
 
-    /// (A_1) [b]+ (in: A -> a [b]+ c)
+    /// (A_1) [b]+ in A -> a >>>[b]+<<< c (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
     // User-defined: SynA
@@ -1084,7 +1084,7 @@ mod rules_rts_23_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b]+ c (A)
-                        2 |                                         // A_1 ->  (A_2)
+                        2 |                                         // A_1 -> b A_1 (A_2)
                         3 => self.exit_a1(),                        // A_1 -> b (A_2)
                      /* 1 */                                        // A_1 -> b | b A_1 (A_1) (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -1172,10 +1172,10 @@ mod rules_rts_27_1 {
         B { b: String },
     }
 
-    /// (A_1) [B]+ (in: A -> a [B]+ c)
+    /// (A_1) [B]+ in A -> a >>>[B]+<<< c (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) B (in: A -> a [B]+ c)
+    /// (A_1) B in A -> a >>>[B]+<<< c (A)
     #[derive(Debug)]
     pub struct SynA1Item { b: SynB }
     // User-defined: SynA, SynB
@@ -1244,7 +1244,7 @@ mod rules_rts_27_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [B]+ c (A)
-                        3 |                                         // A_1 ->  (A_2)
+                        3 |                                         // A_1 -> B A_1 (A_2)
                         4 => self.exit_a1(),                        // A_1 -> B (A_2)
                      /* 2 */                                        // A_1 -> B | B A_1 (A_1) (never called)
                         1 => self.exit_b(),                         // B -> b
@@ -1338,10 +1338,10 @@ mod rules_rts_28_1 {
         B { b: String },
     }
 
-    /// (A_1) [a B]+ (in: A -> [a B]+ c)
+    /// (A_1) [a B]+ in A -> >>>[a B]+<<< c (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) a B (in: A -> [a B]+ c)
+    /// (A_1) a B in A -> >>>[a B]+<<< c (A)
     #[derive(Debug)]
     pub struct SynA1Item { a: String, b: SynB }
     // User-defined: SynA, SynB
@@ -1410,7 +1410,7 @@ mod rules_rts_28_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> [a B]+ c (A)
-                        3 |                                         // A_1 ->  (A_2)
+                        3 |                                         // A_1 -> a B A_1 (A_2)
                         4 => self.exit_a1(),                        // A_1 -> a B (A_2)
                      /* 2 */                                        // A_1 -> a B | a B A_1 (A_1) (never called)
                         1 => self.exit_b(),                         // B -> b
@@ -1499,7 +1499,7 @@ mod rules_rts_24_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// A_1 ->  (A_2)
+        /// A_1 -> b A_1 (A_2)
         A1_1 { plus_it: SynAIter, b: String },
         /// A_1 -> b (A_2)
         A1_2 { plus_it: SynAIter, b: String },
@@ -1567,7 +1567,7 @@ mod rules_rts_24_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b <L>]+ c (A)
-                        2 |                                         // A_1 ->  (A_2)
+                        2 |                                         // A_1 -> b A_1 (A_2)
                         3 => self.exit_a_iter(),                    // A_1 -> b (A_2)
                      /* 1 */                                        // A_1 -> b | b A_1 (A_1) (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -1656,16 +1656,16 @@ mod rules_rts_29_1 {
         B { b: String },
     }
 
-    /// (A_1) [B b]* (in rule A: [B b]* c)
+    /// (A_1) [B b]* in A -> a [>>>[B b]*<<< c]* d (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) B b (in rule A: [B b]* c)
+    /// (A_1) B b in A -> a [>>>[B b]*<<< c]* d (A)
     #[derive(Debug)]
     pub struct SynA1Item { b: SynB, b1: String }
-    /// (A_2) [[B b]* c]* (in: A -> a [[B b]* c]* d)
+    /// (A_2) [[B b]* c]* in A -> a >>>[[B b]* c]*<<< d (A)
     #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
-    /// (A_2) [B b]* c (in: A -> a [[B b]* c]* d)
+    /// (A_2) [B b]* c in A -> a >>>[[B b]* c]*<<< d (A)
     #[derive(Debug)]
     pub struct SynA2Item { star: SynA1, c: String }
     // User-defined: SynA, SynB
@@ -1737,7 +1737,7 @@ mod rules_rts_29_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]* c]* d (A)
-                        2 => self.exit_a1(),                        // A_1 ->  (A_1)
+                        2 => self.exit_a1(),                        // A_1 -> B b A_1 (A_1)
                         3 => {}                                     // A_1 -> ε (A_1)
                         4 => self.exit_a2(),                        // A_2 -> [B b]* c [[B b]* c]* (A_2)
                         5 => {}                                     // A_2 -> ε (A_2)
@@ -1845,7 +1845,7 @@ mod rules_rts_29_2 {
         B,
     }
 
-    /// (A_2) [[B b]* c]* (in: A -> a [[B b]* c]* d)
+    /// (A_2) [[B b]* c]* in A -> a >>>[[B b]* c]*<<< d (A)
     #[derive(Debug)]
     pub struct SynA2(Vec<String>);
     // User-defined: SynA
@@ -1909,7 +1909,7 @@ mod rules_rts_29_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]* c]* d (A)
-                        2 |                                         // A_1 ->  (A_1)
+                        2 |                                         // A_1 -> B b A_1 (A_1)
                         3 => {}                                     // A_1 -> ε (A_1)
                         4 => self.exit_a2(),                        // A_2 -> [B b]* c [[B b]* c]* (A_2)
                         5 => {}                                     // A_2 -> ε (A_2)
@@ -2003,13 +2003,13 @@ mod rules_rts_29_3 {
         B { b: String },
     }
 
-    /// (A_1) [B b]* (in rule A: [B b]* c)
+    /// (A_1) [B b]* in A -> a [>>>[B b]*<<< c]* d (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// (A_2) [[B b]* c]* (in: A -> a [[B b]* c]* d)
+    /// (A_2) [[B b]* c]* in A -> a >>>[[B b]* c]*<<< d (A)
     #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
-    /// (A_2) [B b]* c (in: A -> a [[B b]* c]* d)
+    /// (A_2) [B b]* c in A -> a >>>[[B b]* c]*<<< d (A)
     #[derive(Debug)]
     pub struct SynA2Item { star: SynA1, c: String }
     // Top non-terminal A has no value:
@@ -2073,7 +2073,7 @@ mod rules_rts_29_3 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]* c]* d (A)
-                        2 => self.exit_a1(),                        // A_1 ->  (A_1)
+                        2 => self.exit_a1(),                        // A_1 -> B b A_1 (A_1)
                         3 => {}                                     // A_1 -> ε (A_1)
                         4 => self.exit_a2(),                        // A_2 -> [B b]* c [[B b]* c]* (A_2)
                         5 => {}                                     // A_2 -> ε (A_2)
@@ -2183,16 +2183,16 @@ mod rules_rts_30_1 {
         B { b: String },
     }
 
-    /// (A_1) [B b]+ (in rule A: [B b]+ c A_4)
+    /// (A_1) [B b]+ in A -> a [>>>[B b]+<<< c]+ d (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) B b (in rule A: [B b]+ c A_4)
+    /// (A_1) B b in A -> a [>>>[B b]+<<< c]+ d (A)
     #[derive(Debug)]
     pub struct SynA1Item { b: SynB, b1: String }
-    /// (A_2) [[B b]+ c]+ (in: A -> a [[B b]+ c]+ d)
+    /// (A_2) [[B b]+ c]+ in A -> a >>>[[B b]+ c]+<<< d (A)
     #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
-    /// (A_2) [B b]+ c (in: A -> a [[B b]+ c]+ d)
+    /// (A_2) [B b]+ c in A -> a >>>[[B b]+ c]+<<< d (A)
     #[derive(Debug)]
     pub struct SynA2Item { plus: SynA1, c: String }
     // User-defined: SynA, SynB
@@ -2266,7 +2266,7 @@ mod rules_rts_30_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]+ c]+ d (A)
-                        4 |                                         // A_1 ->  (A_3)
+                        4 |                                         // A_1 -> B b A_1 (A_3)
                         5 => self.exit_a1(),                        // A_1 -> B b (A_3)
                         6 |                                         // A_2 -> [B b]+ c [[B b]+ c]+ (A_4)
                         7 => self.exit_a2(),                        // A_2 -> [B b]+ c (A_4)
@@ -2382,13 +2382,13 @@ mod rules_rts_30_2 {
         B { b: String },
     }
 
-    /// (A_1) [B b]+ (in rule A: [B b]+ c A_4)
+    /// (A_1) [B b]+ in A -> a [>>>[B b]+<<< c]+ d (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// (A_2) [[B b]+ c]+ (in: A -> a [[B b]+ c]+ d)
+    /// (A_2) [[B b]+ c]+ in A -> a >>>[[B b]+ c]+<<< d (A)
     #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
-    /// (A_2) [B b]+ c (in: A -> a [[B b]+ c]+ d)
+    /// (A_2) [B b]+ c in A -> a >>>[[B b]+ c]+<<< d (A)
     #[derive(Debug)]
     pub struct SynA2Item { plus: SynA1, c: String }
     // Top non-terminal A has no value:
@@ -2454,7 +2454,7 @@ mod rules_rts_30_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]+ c]+ d (A)
-                        4 |                                         // A_1 ->  (A_3)
+                        4 |                                         // A_1 -> B b A_1 (A_3)
                         5 => self.exit_a1(),                        // A_1 -> B b (A_3)
                         6 |                                         // A_2 -> [B b]+ c [[B b]+ c]+ (A_4)
                         7 => self.exit_a2(),                        // A_2 -> [B b]+ c (A_4)
@@ -2588,28 +2588,28 @@ mod rules_rts_34_1 {
         A { a: String, plus: SynA3, c: String, plus1: SynA6, d: String },
     }
 
-    /// (A_1) [b]+ (in rule A: [b]+ [b]+ A_9)
+    /// (A_1) [b]+ in A -> a [>>>[b]+<<< [b]+]+ c [[b]+ [b]+]+ d (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// (A_2) [b]+ (in rule A: [b]+ [b]+ A_9)
+    /// (A_2) [b]+ in A -> a [[b]+ >>>[b]+<<<]+ c [[b]+ [b]+]+ d (A)
     #[derive(Debug)]
     pub struct SynA2(Vec<String>);
-    /// (A_3) [[b]+ [b]+]+ (in: A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d)
+    /// (A_3) [[b]+ [b]+]+ in A -> a >>>[[b]+ [b]+]+<<< c [[b]+ [b]+]+ d (A)
     #[derive(Debug)]
     pub struct SynA3(Vec<SynA3Item>);
-    /// (A_3) [b]+ [b]+ (in: A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d)
+    /// (A_3) [b]+ [b]+ in A -> a >>>[[b]+ [b]+]+<<< c [[b]+ [b]+]+ d (A)
     #[derive(Debug)]
     pub struct SynA3Item { plus: SynA1, plus1: SynA2 }
-    /// (A_4) [b]+ (in rule A: [b]+ [b]+ A_12)
+    /// (A_4) [b]+ in A -> a [[b]+ [b]+]+ c [>>>[b]+<<< [b]+]+ d (A)
     #[derive(Debug)]
     pub struct SynA4(Vec<String>);
-    /// (A_5) [b]+ (in rule A: [b]+ [b]+ A_12)
+    /// (A_5) [b]+ in A -> a [[b]+ [b]+]+ c [[b]+ >>>[b]+<<<]+ d (A)
     #[derive(Debug)]
     pub struct SynA5(Vec<String>);
-    /// (A_6) [[b]+ [b]+]+ (in: A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d)
+    /// (A_6) [[b]+ [b]+]+ in A -> a [[b]+ [b]+]+ c >>>[[b]+ [b]+]+<<< d (A)
     #[derive(Debug)]
     pub struct SynA6(Vec<SynA6Item>);
-    /// (A_6) [b]+ [b]+ (in: A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d)
+    /// (A_6) [b]+ [b]+ in A -> a [[b]+ [b]+]+ c >>>[[b]+ [b]+]+<<< d (A)
     #[derive(Debug)]
     pub struct SynA6Item { plus: SynA4, plus1: SynA5 }
     // User-defined: SynA
@@ -2695,15 +2695,15 @@ mod rules_rts_34_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d (A)
-                        7 |                                         // A_1 ->  (A_7)
+                        7 |                                         // A_1 -> b A_1 (A_7)
                         8 => self.exit_a1(),                        // A_1 -> b (A_7)
-                        9 |                                         // A_2 ->  (A_8)
+                        9 |                                         // A_2 -> b A_2 (A_8)
                         10 => self.exit_a2(),                       // A_2 -> b (A_8)
                         11 |                                        // A_3 -> [b]+ [b]+ [[b]+ [b]+]+ (A_9)
                         12 => self.exit_a3(),                       // A_3 -> [b]+ [b]+ (A_9)
-                        13 |                                        // A_4 ->  (A_10)
+                        13 |                                        // A_4 -> b A_4 (A_10)
                         14 => self.exit_a4(),                       // A_4 -> b (A_10)
-                        15 |                                        // A_5 ->  (A_11)
+                        15 |                                        // A_5 -> b A_5 (A_11)
                         16 => self.exit_a5(),                       // A_5 -> b (A_11)
                         17 |                                        // A_6 -> [b]+ [b]+ [[b]+ [b]+]+ (A_12)
                         18 => self.exit_a6(),                       // A_6 -> [b]+ [b]+ (A_12)
@@ -4646,7 +4646,7 @@ mod rules_rts_26_1 {
         A3 { a: SynA },
     }
 
-    /// (A_1) [c]* (in rule A: [c]* b)
+    /// (A_1) [c]* in A -> a (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
     // User-defined: SynA
@@ -4707,7 +4707,7 @@ mod rules_rts_26_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_a(),                         // A -> a (A)
-                        1 => self.exit_a1(),                        // A_1 ->  (A_1)
+                        1 => self.exit_a1(),                        // A_1 -> c A_1 (A_1)
                         2 => {}                                     // A_1 -> ε (A_1)
                         3 |                                         // A -> A A_1 b
                         4 => self.exit_a2(factor_id),               // A -> ε (end of loop)
@@ -4813,7 +4813,7 @@ mod rules_rts_16_1 {
         A3 { a: SynA },
     }
 
-    /// (A_1) [c]+ (in rule A: [c]+ b)
+    /// (A_1) [c]+ in A -> a (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
     // User-defined: SynA
@@ -4875,7 +4875,7 @@ mod rules_rts_16_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_a(),                         // A -> a (A)
-                        4 |                                         // A_1 ->  (A_3)
+                        4 |                                         // A_1 -> c A_1 (A_3)
                         5 => self.exit_a1(),                        // A_1 -> c (A_3)
                         2 |                                         // A -> A A_1 b
                         3 => self.exit_a2(factor_id),               // A -> ε (end of loop)
@@ -5125,10 +5125,10 @@ mod rules_rts_33_1 {
         B { b: String },
     }
 
-    /// (A_1) [B c]* (in: A -> [B c]* b)
+    /// (A_1) [B c]* in A -> >>>[B c]*<<< b (A)
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) B c (in: A -> [B c]* b)
+    /// (A_1) B c in A -> >>>[B c]*<<< b (A)
     #[derive(Debug)]
     pub struct SynA1Item { b: SynB, c: String }
     // User-defined: SynA, SynB
@@ -5197,7 +5197,7 @@ mod rules_rts_33_1 {
                     match factor_id {
                         0 |                                         // A -> [B c]* b (A)
                         1 => self.exit_a(factor_id),                // A -> a (A)
-                        3 => self.exit_a1(),                        // A_1 ->  (A_1)
+                        3 => self.exit_a1(),                        // A_1 -> B c A_1 (A_1)
                         4 => {}                                     // A_1 -> ε (A_1)
                         2 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")

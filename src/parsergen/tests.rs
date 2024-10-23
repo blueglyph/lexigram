@@ -1127,7 +1127,20 @@ mod wrapper_source {
 
     #[test]
     fn expand_lfact() {
-        let tests: Vec<(T, Vec<&str>)> = vec![
+        let tests: Vec<(T, Vec<&str>, BTreeMap<VarId, Vec<(VarId, FactorId)>>)> = vec![
+            // A -> (B c)* b | a
+            // B -> b
+            (RTS(33), vec![
+                "A -> A_1 b",                           // A -> A_1 b
+                "A -> a",                               // A -> a
+                "B -> b",                               // B -> b
+                "A_1 -> B c A_1",                       // A_1 -> B c A_1
+                "A_1 -> ε",                             // A_1 -> ε
+            ], btreemap![
+                0 => vec![],
+                1 => vec![],
+                2 => vec![(2, 0)],
+            ]),
             // A -> a | a b | a b c | a b d | e
             (PRS(28), vec![
                 "A -> a | a b | a b c | a b d",         // A -> a A_1
@@ -1137,6 +1150,10 @@ mod wrapper_source {
                 "A_2 -> c",                             // A_2 -> c
                 "A_2 -> d",                             // A_2 -> d
                 "A_2 -> ε",                             // A_2 -> ε
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(1, 0)],
+                2 => vec![(1, 0)],
             ]),
             // E -> F | E . id ; F -> id
             (PRS(31), vec![
@@ -1144,6 +1161,10 @@ mod wrapper_source {
                 "F -> id",                              // F -> id
                 "E_1 -> . id E_1",                      // E_1 -> . id E_1
                 "E_1 -> ε",                             // E_1 -> ε
+            ], btreemap![
+                0 => vec![],
+                1 => vec![],
+                2 => vec![(2, 0)],
             ]),
             // A -> A a | b c | b d
             (PRS(33), vec![
@@ -1152,6 +1173,10 @@ mod wrapper_source {
                 "A_1 -> ε",                             // A_1 -> ε
                 "A_2 -> c A_1",                         // A_2 -> c A_1
                 "A_2 -> d A_1",                         // A_2 -> d A_1
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(2, 0)],
+                2 => vec![(2, 0)],
             ]),
             // A -> A a | A b | b c | b d
             (PRS(38), vec![
@@ -1161,6 +1186,10 @@ mod wrapper_source {
                 "A_1 -> ε",                             // A_1 -> ε
                 "A_2 -> c A_1",                         // A_2 -> c A_1
                 "A_2 -> d A_1",                         // A_2 -> d A_1
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(2, 0)],
+                2 => vec![(2, 0)],
             ]),
             // A -> A a b | A a c | b c | b d
             (PRS(39), vec![
@@ -1171,10 +1200,15 @@ mod wrapper_source {
                 "A_2 -> d A_1",                         // A_2 -> d A_1
                 "A_3 -> b A_1",                         // A_3 -> b A_1
                 "A_3 -> c A_1",                         // A_3 -> c A_1
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(2, 0)],
+                2 => vec![(2, 0)],
+                3 => vec![(2, 0)],
             ]),
         ];
-        const VERBOSE: bool = false;
-        for (test_id, (rule_id, expected_expanded)) in tests.into_iter().enumerate() {
+        const VERBOSE: bool = true;
+        for (test_id, (rule_id, expected_expanded, expected_top_factors)) in tests.into_iter().enumerate() {
             let ll1 = rule_id.get_prs(test_id, 0, true);
             let builder = ParserBuilder::from_rules(ll1, "Test".to_string());
             let mut result_expanded = vec![];
@@ -1184,6 +1218,14 @@ mod wrapper_source {
                 result_expanded.push(format!("{} -> {}",
                                              Symbol::NT(*v).to_str(builder.get_symbol_table()),
                                              expanded.iter().map(|fact| builder.factor_to_str(fact)).join(" | ")));
+            }
+            let mut result_top_factors = BTreeMap::<VarId, Vec<(VarId, FactorId)>>::new();
+            for group in builder.nt_parent.iter().filter(|v| !v.is_empty()) {
+                for v in group {
+                    let mut top_factors = builder.get_top_factors(*v);
+                    top_factors.sort();
+                    result_top_factors.insert(*v, top_factors);
+                }
             }
             if VERBOSE {
                 println!("            ({rule_id:?}, vec![", );
@@ -1199,10 +1241,15 @@ mod wrapper_source {
                     .to_vec();
                 let lines = columns_to_str(cols, Some(vec![16, 40, 0]));
                 println!("{}", lines.join("\n"));
+                println!("            ], btreemap![");
+                for (v, s) in &result_top_factors {
+                    println!("                {v} => vec![{}],", s.iter().map(|&x| format!("{x:?}")).join(", "));
+                }
                 println!("            ]),");
             }
             let expected_expanded = expected_expanded.into_iter().map(|s| s.to_string()).to_vec();
             assert_eq!(result_expanded, expected_expanded, "Test {test_id}: {rule_id:?} failed");
+            assert_eq!(result_top_factors, expected_top_factors, "Test {test_id}: {rule_id:?} failed");
         }
     }
 }

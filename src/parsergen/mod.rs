@@ -241,7 +241,57 @@ impl ParserBuilder {
         factors.sort();
     }
 
-    pub fn full_factor_str(&self, f_id: FactorId) -> String {
+    /// Finds the factors, in the group parent, that reference the variable `nt`, directly or through intermediate children variables.
+    ///
+    /// Return `(nt_id, factor_id)` couples, where
+    /// - `factor_id` is the factor in the group's parent
+    /// - `nt_id` is the intermediate variable, in that factor, which depends on `nt`.
+    fn get_top_factors(&self, nt: VarId) -> Vec<(VarId, FactorId)> {
+        const VERBOSE: bool = false;
+        let parent = self.parsing_table.get_top_parent(nt);
+        let group_facts = self.get_group_factors(&self.nt_parent[parent as usize]);
+        let mut result = Vec::<(VarId, FactorId)>::new();
+        let mut new = vec![nt];
+        let mut old = HashSet::<VarId>::new();
+        if VERBOSE {
+            println!("get_top_factors({nt}:{})", Symbol::NT(nt).to_str(self.get_symbol_table()));
+            println!("group_facts = {group_facts:?}");
+        }
+        while !new.is_empty() {
+            if VERBOSE {
+                print!("new = [{}]", new.iter().map(|x| format!("{x}:{}", Symbol::NT(*x).to_str(self.get_symbol_table()))).join(", "));
+                print!(", old = [{}]", old.iter().map(|x| format!("{x}:{}", Symbol::NT(*x).to_str(self.get_symbol_table()))).join(", "));
+            }
+            let goal = new.pop().unwrap();
+            if VERBOSE { println!(" => testing {goal}:{}", Symbol::NT(goal).to_str(self.get_symbol_table())); }
+            for (v, f) in group_facts.iter().filter(|(v, _)| *v != goal && *v != nt) {
+                if VERBOSE { print!("- {f}: {}: ", self.ntfactor_to_str(*v, self.parsing_table.factors[*f as usize].1.symbols())); }
+                if old.contains(v) || new.contains(v) {
+                    if VERBOSE { println!(" {} {}", if old.contains(v) { "already visited" } else { "" }, if new.contains(v) { "already in stack" } else { "" })}
+                    continue
+                }
+                if self.parsing_table.factors[*f as usize].1.symbols().iter().any(|s| *s == Symbol::NT(goal)) {
+                    if *v == parent {
+                        if VERBOSE { println!("found top ({goal}, {f})"); }
+                        result.push((goal, *f));
+                        old.insert(goal);
+                    } else {
+                        if !old.contains(v) {
+                            if VERBOSE { println!("found intermediate {v}"); }
+                            new.push(*v);
+                        }
+                    }
+                } else {
+                    if VERBOSE { println!("/"); }
+                }
+            }
+            old.insert(goal);
+        }
+        if VERBOSE { println!("=> result = {result:?}"); }
+        result
+    }
+
+    pub fn full_factor_str(&self, f_id: FactorId, emphasis: Option<VarId>) -> String {
         const VERBOSE: bool = false;
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
         let mut v_par_lf =  *v_f;
@@ -272,7 +322,7 @@ impl ParserBuilder {
         let mut facts = vec![syms];
         self.expand_lfact(&mut facts);
         let mut comment = String::new();
-        let mut parent = self.parsing_table.get_top_parent(v_par_lf);
+        let parent = self.parsing_table.get_top_parent(v_par_lf);
 
         // left recursion
         if self.nt_has_flags(v_par_lf, ruleflag::PARENT_L_RECURSION) {
@@ -296,7 +346,7 @@ impl ParserBuilder {
         if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
             format!("{} -> {} ({})",
                     Symbol::NT(left).to_str(self.get_symbol_table()),
-                    facts.into_iter().map(|f| self.repeat_factor_to_str(&f)).join(" | "),
+                    facts.into_iter().map(|f| self.repeat_factor_to_str(&f, emphasis)).join(" | "),
                     Symbol::NT(*v_f).to_str(self.get_symbol_table()))
         } else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
             //format!("{} -> {}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.repeat_factor_to_str(&f)).join(" | "))
@@ -309,7 +359,7 @@ impl ParserBuilder {
         }
     }
 
-    fn repeat_factor_to_str(&self, f: &Vec<Symbol>) -> String {
+    fn repeat_factor_to_str(&self, f: &Vec<Symbol>, emphasis: Option<VarId>) -> String {
         f.iter().map(|s| {
             if let Symbol::NT(v) = s {
                 if self.nt_has_flags(*v, ruleflag::CHILD_REPEAT) {
@@ -317,7 +367,10 @@ impl ParserBuilder {
                     let lform = if self.nt_has_flags(*v, ruleflag::L_FORM) { " <L>" } else { "" };
                     let mut fact = self.parsing_table.factors[self.var_factors[*v as usize][0] as usize].1.symbols().to_vec();
                     fact.pop(); // remove the loop NT
-                    format!("[{}{}]{}", self.repeat_factor_to_str(&fact), lform, repeat_sym)
+                    format!("{}[{}{}]{}{}",
+                            if emphasis == Some(*v) { ">>>" } else { "" },
+                            self.repeat_factor_to_str(&fact, emphasis), lform, repeat_sym,
+                            if emphasis == Some(*v) { "<<<" } else { "" })
                 } else {
                     s.to_str(self.get_symbol_table())
                 }
@@ -1059,7 +1112,7 @@ impl ParserBuilder {
                     for &f_id in factors {
                         let (v, pf) = &self.parsing_table.factors[f_id as usize];
                         //src.push(format!("    /// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table())));
-                        src.push(format!("    /// {}", self.full_factor_str(f_id)));
+                        src.push(format!("    /// {}", self.full_factor_str(f_id, None)));
                         let ctx_content = Self::source_infos(&item_info[f_id as usize], &nt_name);
                         let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
                         if ctx_content.is_empty() {
@@ -1082,6 +1135,8 @@ impl ParserBuilder {
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                 let parent = pinfo.get_top_parent(v as VarId);
                 let facts = self.get_group_factors(&self.nt_parent[parent as usize]);
+
+                /*
                 let (v_id, f) = facts.iter()
                     .filter(|(v_id, _)| *v_id != v as VarId)
                     .find_map(|(v_id, f_id)| {
@@ -1095,24 +1150,31 @@ impl ParserBuilder {
                         }
                     }).unwrap();
                 let comment = if pinfo.parent[v_id as usize].is_none() {
-                    format!("(in: {} -> {})", Symbol::NT(v_id).to_str(self.get_symbol_table()), self.repeat_factor_to_str(&f))
+                    format!("(in: {} -> {})", Symbol::NT(v_id).to_str(self.get_symbol_table()), self.repeat_factor_to_str(&f, Some(v as VarId)))
                 } else {
-                    format!("(in rule {}: {})", Symbol::NT(parent).to_str(self.get_symbol_table()), self.repeat_factor_to_str(&f))
+                    format!("(in rule {}: {})", Symbol::NT(parent).to_str(self.get_symbol_table()), self.repeat_factor_to_str(&f, Some(v as VarId)))
                 };
+                */
+                let tf = self.get_top_factors(v as VarId);
+                println!("// ## {}: tf = {tf:?}", Symbol::NT(v as VarId).to_str(self.get_symbol_table()));
+                let comment = tf.into_iter().map(|(var, f_id)| {
+                    format!("in {}", self.full_factor_str(f_id, Some(v as VarId)))
+                }).join(", ");
+
                 let current = Symbol::NT(v as VarId).to_str(self.get_symbol_table());
                 if let Some(infos) = nt_repeat.get(&(v as VarId)) {
                     // complex + * items; for ex. A -> (B b)+
-                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)])));
+                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)], None)));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
                     let mut fact = self.parsing_table.factors[self.var_factors[v][0] as usize].1.symbols().to_vec();
                     fact.pop();
-                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&fact)));
+                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&fact, None)));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
                 } else {
                     // + * item is only a terminal
-                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)])));
+                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)], None)));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<String>);"));
                 }
@@ -1310,7 +1372,7 @@ impl ParserBuilder {
                     if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {
                         let (v, pf) = &self.parsing_table.factors[*f as usize];
-                        format!("// {}", self.full_factor_str(*f))
+                        format!("// {}", self.full_factor_str(*f, None))
                     }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
                     if !no_method {
@@ -1443,7 +1505,7 @@ impl ParserBuilder {
             for (f, _) in exit_factor_done.iter().filter(|(_, done)| !**done) {
                 let is_called = self.opcodes[*f as usize].iter().any(|o| *o == OpCode::Exit(*f));
                 let (v, pf) = &self.parsing_table.factors[*f as usize];
-                let comment = format!("// {} ({})", self.full_factor_str(*f),
+                let comment = format!("// {} ({})", self.full_factor_str(*f, None),
                                       if is_called { "not used" } else { "never called" });
                 if is_called {
                     src_exit.push(vec![format!("                    {f} => {{}}"), comment]);
