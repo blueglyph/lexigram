@@ -160,10 +160,7 @@ impl ParserBuilder {
         }
         let mut nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
         for var_id in 0..num_nt {
-            let mut top_var_id = var_id;
-            while let Some(parent) = parsing_table.parent[top_var_id] {
-                top_var_id = parent as usize;
-            }
+            let top_var_id = parsing_table.get_top_parent(var_id as VarId) as usize;
             nt_parent[top_var_id].push(var_id as VarId);
         }
         let mut builder = ParserBuilder {
@@ -275,11 +272,7 @@ impl ParserBuilder {
         let mut facts = vec![syms];
         self.expand_lfact(&mut facts);
         let mut comment = String::new();
-
-        let mut parent = v_par_lf;
-        while let Some(new_parent) = self.parsing_table.parent[parent as usize] {
-            parent = new_parent;
-        }
+        let mut parent = self.parsing_table.get_top_parent(v_par_lf);
 
         // left recursion
         if self.nt_has_flags(v_par_lf, ruleflag::PARENT_L_RECURSION) {
@@ -387,10 +380,7 @@ impl ParserBuilder {
             }
             if flags & ruleflag::CHILD_L_FACTOR != 0 {
                 if opcode.len() >= 2 {
-                    let mut fact_top = *var_id;
-                    while let Some(parent) = self.parsing_table.parent[fact_top as usize] {
-                        fact_top = parent;
-                    }
+                    let fact_top = self.parsing_table.get_top_parent(*var_id);
                     if VERBOSE {
                         println!("  - check for initial exit swap: opcode = [{}], daddy = {}",
                                  opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
@@ -1090,10 +1080,7 @@ impl ParserBuilder {
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
-                let mut parent = v as VarId;
-                while let Some(v) = pinfo.parent[parent as usize] {
-                    parent = v;
-                }
+                let parent = pinfo.get_top_parent(v as VarId);
                 let facts = self.get_group_factors(&self.nt_parent[parent as usize]);
                 let (v_id, f) = facts.iter()
                     .filter(|(v_id, _)| *v_id != v as VarId)

@@ -844,6 +844,16 @@ pub struct LLParsingTable {
     pub parent: Vec<Option<VarId>>, // NT -> parent NT
 }
 
+impl LLParsingTable {
+    pub fn get_top_parent(&self, nt: VarId) -> VarId {
+        let mut var = nt;
+        while let Some(parent) = self.parent[var as usize] {
+            var = parent;
+        }
+        var
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
