@@ -1127,15 +1127,27 @@ mod wrapper_source {
 
     #[test]
     fn expand_lfact() {
-        let tests: Vec<(T, Vec<&str>, BTreeMap<VarId, Vec<(VarId, FactorId)>>)> = vec![
+        let tests: Vec<(T, Vec<(&str, &str)>, BTreeMap<VarId, Vec<(VarId, FactorId)>>)> = vec![
+            // A -> A (c)* b | c
+            (RTS(26), vec![
+                ("A -> a A_2",                      "A -> a"),                  // A -> a A_2
+                ("A_1 -> c A_1",                    "A_1 -> c A_1"),            // A_1 -> c A_1
+                ("A_1 -> ε",                        "A_1 -> ε"),                // A_1 -> ε
+                ("A_2 -> A_1 b A_2",                "A -> A [c]* b"),           // A_2 -> A_1 b A_2
+                ("A_2 -> ε",                        "A -> ε (end of loop)"),    // A_2 -> ε
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(2, 0)],
+                2 => vec![(2, 0)],
+            ]),
             // A -> (B c)* b | a
             // B -> b
             (RTS(33), vec![
-                "A -> A_1 b",                           // A -> A_1 b
-                "A -> a",                               // A -> a
-                "B -> b",                               // B -> b
-                "A_1 -> B c A_1",                       // A_1 -> B c A_1
-                "A_1 -> ε",                             // A_1 -> ε
+                ("A -> A_1 b",                      "A -> [B c]* b"),           // A -> A_1 b
+                ("A -> a",                          "A -> a"),                  // A -> a
+                ("B -> b",                          "B -> b"),                  // B -> b
+                ("A_1 -> B c A_1",                  "A_1 -> B c A_1"),          // A_1 -> B c A_1
+                ("A_1 -> ε",                        "A_1 -> ε"),                // A_1 -> ε
             ], btreemap![
                 0 => vec![],
                 1 => vec![],
@@ -1143,13 +1155,13 @@ mod wrapper_source {
             ]),
             // A -> a | a b | a b c | a b d | e
             (PRS(28), vec![
-                "A -> a | a b | a b c | a b d",         // A -> a A_1
-                "A -> e",                               // A -> e
-                "A_1 -> b | b c | b d",                 // A_1 -> b A_2
-                "A_1 -> ε",                             // A_1 -> ε
-                "A_2 -> c",                             // A_2 -> c
-                "A_2 -> d",                             // A_2 -> d
-                "A_2 -> ε",                             // A_2 -> ε
+                ("A -> a | a b | a b c | a b d",    "A -> a | a b | a b c | a b d"), // A -> a A_1
+                ("A -> e",                          "A -> e"),                       // A -> e
+                ("A_1 -> b | b c | b d",            "A -> a b | a b c | a b d"),     // A_1 -> b A_2
+                ("A_1 -> ε",                        "A -> a"),                       // A_1 -> ε
+                ("A_2 -> c",                        "A -> a b c"),                   // A_2 -> c
+                ("A_2 -> d",                        "A -> a b d"),                   // A_2 -> d
+                ("A_2 -> ε",                        "A -> a b"),                     // A_2 -> ε
             ], btreemap![
                 0 => vec![],
                 1 => vec![(1, 0)],
@@ -1157,10 +1169,10 @@ mod wrapper_source {
             ]),
             // E -> F | E . id ; F -> id
             (PRS(31), vec![
-                "E -> F E_1",                           // E -> F E_1
-                "F -> id",                              // F -> id
-                "E_1 -> . id E_1",                      // E_1 -> . id E_1
-                "E_1 -> ε",                             // E_1 -> ε
+                ("E -> F E_1",                      "E -> F"),                  // E -> F E_1
+                ("F -> id",                         "F -> id"),                 // F -> id
+                ("E_1 -> . id E_1",                 "E -> E . id"),             // E_1 -> . id E_1
+                ("E_1 -> ε",                        "E -> ε (end of loop)"),    // E_1 -> ε
             ], btreemap![
                 0 => vec![],
                 1 => vec![],
@@ -1168,11 +1180,11 @@ mod wrapper_source {
             ]),
             // A -> A a | b c | b d
             (PRS(33), vec![
-                "A -> b c A_1 | b d A_1",               // A -> b A_2
-                "A_1 -> a A_1",                         // A_1 -> a A_1
-                "A_1 -> ε",                             // A_1 -> ε
-                "A_2 -> c A_1",                         // A_2 -> c A_1
-                "A_2 -> d A_1",                         // A_2 -> d A_1
+                ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),          // A -> b A_2
+                ("A_1 -> a A_1",                    "A -> A a"),                // A_1 -> a A_1
+                ("A_1 -> ε",                        "A -> ε (end of loop)"),    // A_1 -> ε
+                ("A_2 -> c A_1",                    "A -> b c"),                // A_2 -> c A_1
+                ("A_2 -> d A_1",                    "A -> b d"),                // A_2 -> d A_1
             ], btreemap![
                 0 => vec![],
                 1 => vec![(2, 0)],
@@ -1180,12 +1192,12 @@ mod wrapper_source {
             ]),
             // A -> A a | A b | b c | b d
             (PRS(38), vec![
-                "A -> b c A_1 | b d A_1",               // A -> b A_2
-                "A_1 -> a A_1",                         // A_1 -> a A_1
-                "A_1 -> b A_1",                         // A_1 -> b A_1
-                "A_1 -> ε",                             // A_1 -> ε
-                "A_2 -> c A_1",                         // A_2 -> c A_1
-                "A_2 -> d A_1",                         // A_2 -> d A_1
+                ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),          // A -> b A_2
+                ("A_1 -> a A_1",                    "A -> A a"),                // A_1 -> a A_1
+                ("A_1 -> b A_1",                    "A -> A b"),                // A_1 -> b A_1
+                ("A_1 -> ε",                        "A -> ε (end of loop)"),    // A_1 -> ε
+                ("A_2 -> c A_1",                    "A -> b c"),                // A_2 -> c A_1
+                ("A_2 -> d A_1",                    "A -> b d"),                // A_2 -> d A_1
             ], btreemap![
                 0 => vec![],
                 1 => vec![(2, 0)],
@@ -1193,13 +1205,13 @@ mod wrapper_source {
             ]),
             // A -> A a b | A a c | b c | b d
             (PRS(39), vec![
-                "A -> b c A_1 | b d A_1",               // A -> b A_2
-                "A_1 -> a b A_1 | a c A_1",             // A_1 -> a A_3
-                "A_1 -> ε",                             // A_1 -> ε
-                "A_2 -> c A_1",                         // A_2 -> c A_1
-                "A_2 -> d A_1",                         // A_2 -> d A_1
-                "A_3 -> b A_1",                         // A_3 -> b A_1
-                "A_3 -> c A_1",                         // A_3 -> c A_1
+                ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),          // A -> b A_2
+                ("A_1 -> a b A_1 | a c A_1",        "A -> A a b | A a c"),      // A_1 -> a A_3
+                ("A_1 -> ε",                        "A -> ε (end of loop)"),    // A_1 -> ε
+                ("A_2 -> c A_1",                    "A -> b c"),                // A_2 -> c A_1
+                ("A_2 -> d A_1",                    "A -> b d"),                // A_2 -> d A_1
+                ("A_3 -> b A_1",                    "A -> A a b"),              // A_3 -> b A_1
+                ("A_3 -> c A_1",                    "A -> A a c"),              // A_3 -> c A_1
             ], btreemap![
                 0 => vec![],
                 1 => vec![(2, 0)],
@@ -1208,16 +1220,20 @@ mod wrapper_source {
             ]),
         ];
         const VERBOSE: bool = true;
-        for (test_id, (rule_id, expected_expanded, expected_top_factors)) in tests.into_iter().enumerate() {
+        for (test_id, (rule_id, expected_expanded_full, expected_top_factors)) in tests.into_iter().enumerate() {
+            let expected_expanded = expected_expanded_full.iter().map(|(a, _)| a.to_string()).to_vec();
+            let expected_full = expected_expanded_full.iter().map(|(_, b)| b.to_string()).to_vec();
             let ll1 = rule_id.get_prs(test_id, 0, true);
             let builder = ParserBuilder::from_rules(ll1, "Test".to_string());
             let mut result_expanded = vec![];
-            for (v, prod) in builder.parsing_table.factors.iter() {
+            let mut result_full = vec![];
+            for (f_id, (v, prod)) in builder.parsing_table.factors.iter().enumerate() {
                 let mut expanded = vec![prod.symbols().clone()];
                 builder.expand_lfact(&mut expanded);
                 result_expanded.push(format!("{} -> {}",
                                              Symbol::NT(*v).to_str(builder.get_symbol_table()),
                                              expanded.iter().map(|fact| builder.factor_to_str(fact)).join(" | ")));
+                result_full.push(format!("{}", builder.full_factor_str(f_id as FactorId, None)));
             }
             let mut result_top_factors = BTreeMap::<VarId, Vec<(VarId, FactorId)>>::new();
             for group in builder.nt_parent.iter().filter(|v| !v.is_empty()) {
@@ -1229,17 +1245,26 @@ mod wrapper_source {
             }
             if VERBOSE {
                 println!("            ({rule_id:?}, vec![", );
-                let cols = result_expanded.iter().enumerate()
-                    .map(|(i, s)| {
-                        let (v, prod) = &builder.parsing_table.factors[i];
+                let cols = result_expanded.iter().zip(&result_full).enumerate()
+                    .map(|(_i, (s, s_full))| {
+                        // let (v, prod) = &builder.parsing_table.factors[i];
                         vec![
                             "".to_string(),
-                            format!("\"{s}\","),
-                            format!("// {}", builder.ntfactor_to_str(*v, prod))
+                            format!("(\"{s}\","),
+                            format!("  \"{s_full}\"),"),
+                            // format!("// {}", builder.ntfactor_to_str(*v, prod)),
                         ]
                     })
                     .to_vec();
-                let lines = columns_to_str(cols, Some(vec![16, 40, 0]));
+                let lines = columns_to_str(cols, Some(vec![16, 34, 0]));
+                let cols = lines.into_iter().enumerate().map(|(i, s)| {
+                    let (v, prod) = &builder.parsing_table.factors[i];
+                    vec![
+                        s,
+                        format!("// {}", builder.ntfactor_to_str(*v, prod)),
+                    ]
+                }).to_vec();
+                let lines = columns_to_str(cols, Some(vec![80, 0]));
                 println!("{}", lines.join("\n"));
                 println!("            ], btreemap![");
                 for (v, s) in &result_top_factors {
@@ -1249,6 +1274,7 @@ mod wrapper_source {
             }
             let expected_expanded = expected_expanded.into_iter().map(|s| s.to_string()).to_vec();
             assert_eq!(result_expanded, expected_expanded, "Test {test_id}: {rule_id:?} failed");
+            assert_eq!(result_full, expected_full, "Test {test_id}: {rule_id:?} failed");
             assert_eq!(result_top_factors, expected_top_factors, "Test {test_id}: {rule_id:?} failed");
         }
     }
