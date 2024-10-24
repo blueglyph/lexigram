@@ -4654,7 +4654,7 @@ mod rules_rts_26_1 {
     pub enum CtxA {
         /// `A -> a`
         A1 { a: String },
-        /// `A -> A A_1 b`
+        /// `A -> A [c]* b`
         A2 { a: SynA, star: SynA1, b: String },
         /// `A -> ε (end of loop)`
         A3 { a: SynA },
@@ -4723,7 +4723,7 @@ mod rules_rts_26_1 {
                         0 => self.init_a(),                         // A -> a
                         1 => self.exit_a1(),                        // A_1 -> c A_1
                         2 => {}                                     // A_1 -> ε
-                        3 |                                         // A -> A A_1 b
+                        3 |                                         // A -> A [c]* b
                         4 => self.exit_a2(factor_id),               // A -> ε (end of loop)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -4821,7 +4821,7 @@ mod rules_rts_16_1 {
     pub enum CtxA {
         /// `A -> a`
         A1 { a: String },
-        /// `A -> A A_1 b`
+        /// `A -> A [c]+ b`
         A2 { a: SynA, plus: SynA1, b: String },
         /// `A -> ε (end of loop)`
         A3 { a: SynA },
@@ -4891,7 +4891,7 @@ mod rules_rts_16_1 {
                         0 => self.init_a(),                         // A -> a
                         4 |                                         // A_1 -> c A_1
                         5 => self.exit_a1(),                        // A_1 -> c
-                        2 |                                         // A -> A A_1 b
+                        2 |                                         // A -> A [c]+ b
                         3 => self.exit_a2(factor_id),               // A -> ε (end of loop)
                      /* 1 */                                        // A_1 -> c | c A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")

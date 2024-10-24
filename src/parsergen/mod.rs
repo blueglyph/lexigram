@@ -352,7 +352,10 @@ impl ParserBuilder {
                     Symbol::NT(left).to_str(self.get_symbol_table()),
                     facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "))
         } else {
-            format!("{} -> {}{}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "), comment)
+            // format!("{} -> {}{}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "), comment)
+            format!("{} -> {}{}",
+                    Symbol::NT(left).to_str(self.get_symbol_table()),
+                    facts.into_iter().map(|f| self.repeat_factor_str(&f, None)).join(" | "), comment)
         }
     }
 
