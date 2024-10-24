@@ -344,33 +344,40 @@ impl ParserBuilder {
             }
         }
         if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
-            format!("{} -> {} ({})",
+            format!("{} -> {}",
                     Symbol::NT(left).to_str(self.get_symbol_table()),
-                    facts.into_iter().map(|f| self.repeat_factor_to_str(&f, emphasis)).join(" | "),
-                    Symbol::NT(*v_f).to_str(self.get_symbol_table()))
+                    facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
         } else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
-            //format!("{} -> {}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.repeat_factor_to_str(&f)).join(" | "))
-            format!("{} -> {} ({})",
+            format!("{} -> {}",
                     Symbol::NT(left).to_str(self.get_symbol_table()),
-                    facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "),
-                    Symbol::NT(*v_f).to_str(self.get_symbol_table()))
+                    facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "))
         } else {
             format!("{} -> {}{}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "), comment)
         }
     }
 
-    fn repeat_factor_to_str(&self, f: &Vec<Symbol>, emphasis: Option<VarId>) -> String {
+    fn repeat_factor_str(&self, f: &Vec<Symbol>, emphasis: Option<VarId>) -> String {
         f.iter().map(|s| {
             if let Symbol::NT(v) = s {
                 if self.nt_has_flags(*v, ruleflag::CHILD_REPEAT) {
                     let repeat_sym = if self.nt_has_flags(*v, ruleflag::REPEAT_PLUS) { '+' } else { '*' };
-                    let lform = if self.nt_has_flags(*v, ruleflag::L_FORM) { " <L>" } else { "" };
+                    let is_lform = self.nt_has_flags(*v, ruleflag::L_FORM);
                     let mut fact = self.parsing_table.factors[self.var_factors[*v as usize][0] as usize].1.symbols().to_vec();
                     fact.pop(); // remove the loop NT
-                    format!("{}[{}{}]{}{}",
-                            if emphasis == Some(*v) { ">>>" } else { "" },
-                            self.repeat_factor_to_str(&fact, emphasis), lform, repeat_sym,
-                            if emphasis == Some(*v) { "<<<" } else { "" })
+                    if is_lform {
+                        format!("{}({} <L>){}{}",
+                                if emphasis == Some(*v) { " ►" } else { "" },
+                                //self.repeat_factor_to_str(&fact, emphasis),
+                                fact.into_iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                                repeat_sym,
+                                if emphasis == Some(*v) { "◄ " } else { "" })
+                    } else {
+                        format!("{}[{}]{}{}",
+                                if emphasis == Some(*v) { " ►" } else { "" },
+                                self.repeat_factor_str(&fact, emphasis),
+                                repeat_sym,
+                                if emphasis == Some(*v) { "◄ " } else { "" })
+                    }
                 } else {
                     s.to_str(self.get_symbol_table())
                 }
@@ -1111,8 +1118,7 @@ impl ParserBuilder {
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].as_ref().unwrap().0));
                     for &f_id in factors {
                         let (v, pf) = &self.parsing_table.factors[f_id as usize];
-                        //src.push(format!("    /// {} -> {}", Symbol::NT(*v).to_str(self.get_symbol_table()), pf.to_str(self.get_symbol_table())));
-                        src.push(format!("    /// {}", self.full_factor_str(f_id, None)));
+                        src.push(format!("    /// `{}`", self.full_factor_str(f_id, None)));
                         let ctx_content = Self::source_infos(&item_info[f_id as usize], &nt_name);
                         let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
                         if ctx_content.is_empty() {
@@ -1132,62 +1138,44 @@ impl ParserBuilder {
         let mut syns = Vec::<(&str, &str)>::new();
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
-            if pinfo.flags[v] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
+            if pinfo.flags[v] & (ruleflag::CHILD_REPEAT /*| ruleflag::L_FORM*/) == ruleflag::CHILD_REPEAT {
                 let parent = pinfo.get_top_parent(v as VarId);
                 let facts = self.get_group_factors(&self.nt_parent[parent as usize]);
-
-                /*
-                let (v_id, f) = facts.iter()
-                    .filter(|(v_id, _)| *v_id != v as VarId)
-                    .find_map(|(v_id, f_id)| {
-                        let fact = pinfo.factors[*f_id as usize].1.symbols();
-                        if fact.iter().any(|s| *s == Symbol::NT(v as VarId)) {
-                            let mut fact = fact.clone();
-                            if fact.last() == Some(&Symbol::NT(*v_id)) { fact.pop(); };
-                            Some((*v_id, fact))
-                        } else {
-                            None
-                        }
-                    }).unwrap();
-                let comment = if pinfo.parent[v_id as usize].is_none() {
-                    format!("(in: {} -> {})", Symbol::NT(v_id).to_str(self.get_symbol_table()), self.repeat_factor_to_str(&f, Some(v as VarId)))
-                } else {
-                    format!("(in rule {}: {})", Symbol::NT(parent).to_str(self.get_symbol_table()), self.repeat_factor_to_str(&f, Some(v as VarId)))
-                };
-                */
                 let tf = self.get_top_factors(v as VarId);
-                println!("// ## {}: tf = {tf:?}", Symbol::NT(v as VarId).to_str(self.get_symbol_table()));
-                let comment = tf.into_iter().map(|(var, f_id)| {
-                    format!("in {}", self.full_factor_str(f_id, Some(v as VarId)))
+                let is_lform = self.nt_has_flags(v as VarId, ruleflag::L_FORM);
+                let comment1 = tf.iter().map(|(var, f_id)| {
+                    format!("{}in `{}`", if is_lform { "iteration " } else { "array " }, self.full_factor_str(*f_id, Some(v as VarId)))
                 }).join(", ");
-
+                let comment2 = tf.iter().map(|(var, f_id)| {
+                    format!("{}in `{}`", if is_lform { "iteration " } else { "item " }, self.full_factor_str(*f_id, Some(v as VarId)))
+                }).join(", ");
                 let current = Symbol::NT(v as VarId).to_str(self.get_symbol_table());
                 if let Some(infos) = nt_repeat.get(&(v as VarId)) {
                     // complex + * items; for ex. A -> (B b)+
-                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)], None)));
+                    src.push(format!("/// Computed ({current}) `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
                     let mut fact = self.parsing_table.factors[self.var_factors[v][0] as usize].1.symbols().to_vec();
                     fact.pop();
-                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&fact, None)));
+                    src.push(format!("/// ({current}) `{}` {comment2}", self.repeat_factor_str(&fact, None)));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
                 } else {
                     // + * item is only a terminal
-                    src.push(format!("/// ({current}) {} {comment}", self.repeat_factor_to_str(&vec![Symbol::NT(v as VarId)], None)));
+                    src.push(format!("/// Computed ({current}) `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub struct Syn{nu}(Vec<String>);"));
                 }
             } else {
-                user_names.push(format!("Syn{nu}"));
+                user_names.push((v, format!("Syn{nu}")));
             }
             syns.push((nu, nl));
         }
         if !user_names.is_empty() {
-            src.push(format!("// User-defined: {}", user_names.join(", ")));
-            for type_name in &user_names {
+            for (v, type_name) in user_names {
+                src.push(format!("/// User-defined type for {}", Symbol::NT(v as VarId).to_str(self.get_symbol_table())));
                 src.push(format!("#[derive(Debug)]"));
-                src.push(format!("pub struct {type_name}();"));
+                src.push(format!("pub struct {type_name}();")); // TODO: must be defined in object field
             }
         }
         if !self.nt_value[self.start as usize] {
