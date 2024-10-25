@@ -1129,25 +1129,57 @@ mod wrapper_source {
     fn expand_lfact() {
         let tests: Vec<(T, Vec<(&str, &str)>, BTreeMap<VarId, Vec<(VarId, FactorId)>>)> = vec![
             // A -> A (c)* b | c
+            // NT flags:
+            //  - A: parent_left_rec | parent_+_or_* (2560)
+            //  - A_1: child_+_or_* (1)
+            //  - A_2: child_left_rec (4)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
             (RTS(26), vec![
-                ("A -> a A_2",                      "A -> a"),                  // A -> a A_2
-                ("A_1 -> c A_1",                    "A_1 -> c A_1"),            // A_1 -> c A_1
-                ("A_1 -> ε",                        "A_1 -> ε"),                // A_1 -> ε
-                ("A_2 -> A_1 b A_2",                "A -> A [c]* b"),           // A_2 -> A_1 b A_2
-                ("A_2 -> ε",                        "A -> ε (end of loop)"),    // A_2 -> ε
+                // ParserBuilder::expand_lfact()    // ParserBuilder::full_factor_str()
+                ("A -> a A_2",                      "A -> a"),                            // 0: A -> a A_2
+                ("A_1 -> c A_1",                    "[c]* item in A -> A  ►[c]*◄  b"),    // 1: A_1 -> c A_1
+                ("A_1 -> ε",                        "end of items in A -> A  ►[c]*◄  b"), // 2: A_1 -> ε
+                ("A_2 -> A_1 b A_2",                "A -> A [c]* b"),                     // 3: A_2 -> A_1 b A_2
+                ("A_2 -> ε",                        "A -> ε (end of loop)"),              // 4: A_2 -> ε
             ], btreemap![
+                // ParserBuilder::get_top_factors()
                 0 => vec![],
                 1 => vec![(2, 0)],
                 2 => vec![(2, 0)],
             ]),
+            // A -> A (c)+ b | c
+            // NT flags:
+            //  - A: parent_left_rec | parent_+_or_* | plus (6656)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_left_rec (4)
+            //  - A_3: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            //  - A_3 -> A_1
+            (RTS(16), vec![
+                ("A -> a A_2",                      "A -> a"),                            // 0: A -> a A_2
+                ("A_1 -> c | c A_1",                "[c]+ item in A -> A  ►[c]+◄  b"),    // 1: A_1 -> c A_3
+                ("A_2 -> A_1 b A_2",                "A -> A [c]+ b"),                     // 2: A_2 -> A_1 b A_2
+                ("A_2 -> ε",                        "A -> ε (end of loop)"),              // 3: A_2 -> ε
+                ("A_3 -> A_1",                      "[c]+ item in A -> A  ►[c]+◄  b"),    // 4: A_3 -> A_1
+                ("A_3 -> ε",                        "end of items in A -> A  ►[c]+◄  b"), // 5: A_3 -> ε
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(2, 0)],
+                2 => vec![(2, 0)],
+                3 => vec![(2, 0)],
+            ]),
             // A -> (B c)* b | a
             // B -> b
             (RTS(33), vec![
-                ("A -> A_1 b",                      "A -> [B c]* b"),           // A -> A_1 b
-                ("A -> a",                          "A -> a"),                  // A -> a
-                ("B -> b",                          "B -> b"),                  // B -> b
-                ("A_1 -> B c A_1",                  "A_1 -> B c A_1"),          // A_1 -> B c A_1
-                ("A_1 -> ε",                        "A_1 -> ε"),                // A_1 -> ε
+                ("A -> A_1 b",                      "A -> [B c]* b"),                     // 0: A -> A_1 b
+                ("A -> a",                          "A -> a"),                            // 1: A -> a
+                ("B -> b",                          "B -> b"),                            // 2: B -> b
+                ("A_1 -> B c A_1",                  "[B c]* item in A ->  ►[B c]*◄  b"),  // 3: A_1 -> B c A_1
+                ("A_1 -> ε",                        "end of items in A ->  ►[B c]*◄  b"), // 4: A_1 -> ε
             ], btreemap![
                 0 => vec![],
                 1 => vec![],
@@ -1261,7 +1293,7 @@ mod wrapper_source {
                     let (v, prod) = &builder.parsing_table.factors[i];
                     vec![
                         s,
-                        format!("// {}", builder.ntfactor_to_str(*v, prod)),
+                        format!("// {i}: {}", builder.ntfactor_to_str(*v, prod)),
                     ]
                 }).to_vec();
                 let lines = columns_to_str(cols, Some(vec![80, 0]));

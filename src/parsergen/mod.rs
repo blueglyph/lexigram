@@ -343,20 +343,43 @@ impl ParserBuilder {
                 }
             }
         }
-        if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
-            format!("{} -> {}",
+        let result = if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
+            // println!("full_factor_str({f_id}): P+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+            format!("{} -> {}{comment}",
                     Symbol::NT(left).to_str(self.get_symbol_table()),
                     facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
         } else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
-            format!("{} -> {}",
-                    Symbol::NT(left).to_str(self.get_symbol_table()),
-                    facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "))
+            // let is_empty = facts.len() == 1 && facts[0].first() == Some(&Symbol::Empty);
+            let is_empty = self.parsing_table.factors[f_id as usize].1.symbols().first() == Some(&Symbol::Empty);
+            //let v_id = self.parsing_table.factors[f_id as usize].0;
+            let v_id = v_par_lf;
+            let top_parent = self.parsing_table.get_top_parent(v_id);
+            // let parent = self.parsing_table.parent[v_id as usize].unwrap();
+            // let tf = self.get_top_factors(v as VarId);
+            let (_var_using_v, fact_using_v) = self.get_group_factors(&self.nt_parent[top_parent as usize]).iter()
+                .filter(|(v, _)| *v != v_id)
+                .find_map(|(v, f)| if self.parsing_table.factors[*f as usize].1.symbols().iter().any(|s| *s == Symbol::NT(v_id)) { Some((*v, *f)) } else { None })
+                .unwrap();
+            let is_lform = self.nt_has_flags(v_id as VarId, ruleflag::L_FORM);
+            // println!("full_factor_str({f_id}): C+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+            if is_empty {
+                format!("end of {}s in {}",
+                        if is_lform { "iteration" } else { "item" },
+                        self.full_factor_str(fact_using_v, Some(v_par_lf as VarId)))
+            } else {
+                format!("{} {} in {}",
+                        self.repeat_factor_str(&vec![Symbol::NT(v_par_lf)], None),
+                        if is_lform { "iteration" } else { "item" },
+                        self.full_factor_str(fact_using_v, Some(v_id as VarId)))
+            }
         } else {
-            // format!("{} -> {}{}", Symbol::NT(left).to_str(self.get_symbol_table()), facts.into_iter().map(|f| self.factor_to_str(&f)).join(" | "), comment)
-            format!("{} -> {}{}",
+            // println!("full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+            format!("{} -> {}{comment}",
                     Symbol::NT(left).to_str(self.get_symbol_table()),
-                    facts.into_iter().map(|f| self.repeat_factor_str(&f, None)).join(" | "), comment)
-        }
+                    facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
+        };
+        // println!(" => {result}");
+        result
     }
 
     fn repeat_factor_str(&self, f: &Vec<Symbol>, emphasis: Option<VarId>) -> String {
@@ -1143,7 +1166,7 @@ impl ParserBuilder {
             let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
             if pinfo.flags[v] & (ruleflag::CHILD_REPEAT /*| ruleflag::L_FORM*/) == ruleflag::CHILD_REPEAT {
                 let parent = pinfo.get_top_parent(v as VarId);
-                let facts = self.get_group_factors(&self.nt_parent[parent as usize]);
+                // let facts = self.get_group_factors(&self.nt_parent[parent as usize]);
                 let tf = self.get_top_factors(v as VarId);
                 let is_lform = self.nt_has_flags(v as VarId, ruleflag::L_FORM);
                 let comment1 = tf.iter().map(|(var, f_id)| {
