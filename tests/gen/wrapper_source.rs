@@ -27,6 +27,7 @@ mod rules_prs_34_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `S -> id = VAL | exit | return VAL`
     #[derive(Debug)]
     pub enum Ctx { S { s: SynS } }
     #[derive(Debug)]
@@ -46,10 +47,10 @@ mod rules_prs_34_1 {
         Val2 { num: String },
     }
 
-    /// User-defined type for S
+    /// User-defined type for `S`
     #[derive(Debug)]
     pub struct SynS();
-    /// User-defined type for VAL
+    /// User-defined type for `VAL`
     #[derive(Debug)]
     pub struct SynVal();
 
@@ -197,6 +198,7 @@ mod rules_rts_21_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [b]* c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -205,10 +207,10 @@ mod rules_rts_21_1 {
         A { a: String, star: SynA1, c: String },
     }
 
-    /// Computed (A_1) `[b]*` array in `A -> a  ►[b]*◄  c`
+    /// Computed `[b]*` array in `A -> a  ► [b]* ◄  c`
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -265,8 +267,8 @@ mod rules_rts_21_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b]* c
-                        1 => self.exit_a1(),                        // A_1 -> b A_1
-                        2 => {}                                     // A_1 -> ε
+                        1 => self.exit_a1(),                        // [b]* item in A -> a  ► [b]* ◄  c
+                        2 => {}                                     // end of [b]* items in A -> a  ► [b]* ◄  c
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -335,6 +337,7 @@ mod rules_rts_21_2 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [b]* c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -343,7 +346,7 @@ mod rules_rts_21_2 {
         A { a: String, c: String },
     }
 
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -398,8 +401,8 @@ mod rules_rts_21_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b]* c
-                        1 |                                         // A_1 -> b A_1
-                        2 => {}                                     // A_1 -> ε
+                        1 |                                         // [b]* item in A -> a  ► [b]* ◄  c
+                        2 => {}                                     // end of [b]* items in A -> a  ► [b]* ◄  c
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -457,6 +460,7 @@ mod rules_rts_22_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a (b <L>)* c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -466,14 +470,14 @@ mod rules_rts_22_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// `A_1 -> b A_1`
+        /// `(b <L>)* iteration in A -> a  ► (b <L>)* ◄  c`
         A1 { star_it: SynAIter, b: String },
     }
 
-    /// Computed (A_1) `(b <L>)*` iteration in `A -> a  ►(b <L>)*◄  c`
+    /// Computed `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
     #[derive(Debug)]
     pub struct SynAIter(Vec<String>);
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -532,8 +536,8 @@ mod rules_rts_22_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a (b <L>)* c
-                        1 => self.exit_a_iter(),                    // A_1 -> b A_1
-                        2 => {}                                     // A_1 -> ε
+                        1 => self.exit_a_iter(),                    // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
+                        2 => {}                                     // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -602,6 +606,7 @@ mod rules_rts_22_2 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a (b <L>)* c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -610,7 +615,7 @@ mod rules_rts_22_2 {
         A { a: String, c: String },
     }
 
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -666,8 +671,8 @@ mod rules_rts_22_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a (b <L>)* c
-                        1 |                                         // A_1 -> b A_1
-                        2 => {}                                     // A_1 -> ε
+                        1 |                                         // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
+                        2 => {}                                     // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -729,6 +734,7 @@ mod rules_rts_32_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a a (b <L>)* c | a c (b <L>)* c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -740,14 +746,14 @@ mod rules_rts_32_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// `A_1 -> b A_1`
+        /// `(b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c`
         A1 { star_it: SynAIter, b: String },
     }
 
-    /// Computed (A_1) `(b <L>)*` iteration in `A -> a a  ►(b <L>)*◄  c | a c  ►(b <L>)*◄  c`
+    /// Computed `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | a c  ► (b <L>)* ◄  c`
     #[derive(Debug)]
     pub struct SynAIter(Vec<String>);
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -808,8 +814,8 @@ mod rules_rts_32_1 {
                     match factor_id {
                         3 |                                         // A -> a a (b <L>)* c
                         4 => self.exit_a(factor_id),                // A -> a c (b <L>)* c
-                        1 => self.exit_a_iter(),                    // A_1 -> b A_1
-                        2 => {}                                     // A_1 -> ε
+                        1 => self.exit_a_iter(),                    // (b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c
+                        2 => {}                                     // end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c
                      /* 0 */                                        // A -> a a (b <L>)* c | a c (b <L>)* c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -893,6 +899,7 @@ mod rules_rts_25_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [#]* c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -901,7 +908,7 @@ mod rules_rts_25_1 {
         A { a: String, c: String },
     }
 
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -956,8 +963,8 @@ mod rules_rts_25_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [#]* c
-                        1 |                                         // A_1 -> # A_1
-                        2 => {}                                     // A_1 -> ε
+                        1 |                                         // [#]* item in A -> a  ► [#]* ◄  c
+                        2 => {}                                     // end of [#]* items in A -> a  ► [#]* ◄  c
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1018,6 +1025,7 @@ mod rules_rts_23_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [b]+ c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -1026,10 +1034,10 @@ mod rules_rts_23_1 {
         A { a: String, plus: SynA1, c: String },
     }
 
-    /// Computed (A_1) `[b]+` array in `A -> a  ►[b]+◄  c`
+    /// Computed `[b]+` array in `A -> a  ► [b]+ ◄  c`
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -1087,9 +1095,9 @@ mod rules_rts_23_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b]+ c
-                        2 |                                         // A_1 -> b A_1
-                        3 => self.exit_a1(),                        // A_1 -> b
-                     /* 1 */                                        // A_1 -> b | b A_1 (never called)
+                        2 |                                         // [b]+ item in A -> a  ► [b]+ ◄  c
+                        3 => self.exit_a1(),                        // end of [b]+ items in A -> a  ► [b]+ ◄  c
+                     /* 1 */                                        // [b]+ item in A -> a  ► [b]+ ◄  c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1162,6 +1170,7 @@ mod rules_rts_27_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [B]+ c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -1175,16 +1184,16 @@ mod rules_rts_27_1 {
         B { b: String },
     }
 
-    /// Computed (A_1) `[B]+` array in `A -> a  ►[B]+◄  c`
+    /// Computed `[B]+` array in `A -> a  ► [B]+ ◄  c`
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) `B` item in `A -> a  ►[B]+◄  c`
+    /// `B` item in `A -> a  ► [B]+ ◄  c`
     #[derive(Debug)]
     pub struct SynA1Item { b: SynB }
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
-    /// User-defined type for B
+    /// User-defined type for `B`
     #[derive(Debug)]
     pub struct SynB();
 
@@ -1248,9 +1257,9 @@ mod rules_rts_27_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [B]+ c
-                        3 |                                         // A_1 -> B A_1
-                        4 => self.exit_a1(),                        // A_1 -> B
-                     /* 2 */                                        // A_1 -> B | B A_1 (never called)
+                        3 |                                         // [B]+ item in A -> a  ► [B]+ ◄  c
+                        4 => self.exit_a1(),                        // end of [B]+ items in A -> a  ► [B]+ ◄  c
+                     /* 2 */                                        // [B]+ item in A -> a  ► [B]+ ◄  c (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1329,6 +1338,7 @@ mod rules_rts_28_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> [a B]+ c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -1342,16 +1352,16 @@ mod rules_rts_28_1 {
         B { b: String },
     }
 
-    /// Computed (A_1) `[a B]+` array in `A ->  ►[a B]+◄  c`
+    /// Computed `[a B]+` array in `A ->  ► [a B]+ ◄  c`
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) `a B` item in `A ->  ►[a B]+◄  c`
+    /// `a B` item in `A ->  ► [a B]+ ◄  c`
     #[derive(Debug)]
     pub struct SynA1Item { a: String, b: SynB }
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
-    /// User-defined type for B
+    /// User-defined type for `B`
     #[derive(Debug)]
     pub struct SynB();
 
@@ -1415,9 +1425,9 @@ mod rules_rts_28_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> [a B]+ c
-                        3 |                                         // A_1 -> a B A_1
-                        4 => self.exit_a1(),                        // A_1 -> a B
-                     /* 2 */                                        // A_1 -> a B | a B A_1 (never called)
+                        3 |                                         // [a B]+ item in A ->  ► [a B]+ ◄  c
+                        4 => self.exit_a1(),                        // end of [a B]+ items in A ->  ► [a B]+ ◄  c
+                     /* 2 */                                        // [a B]+ item in A ->  ► [a B]+ ◄  c (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1495,6 +1505,7 @@ mod rules_rts_24_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a (b <L>)+ c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -1504,16 +1515,16 @@ mod rules_rts_24_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// `A_1 -> b A_1`
+        /// `(b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c`
         A1_1 { plus_it: SynAIter, b: String },
-        /// `A_1 -> b`
+        /// `end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c`
         A1_2 { plus_it: SynAIter, b: String },
     }
 
-    /// Computed (A_1) `(b <L>)+` iteration in `A -> a  ►(b <L>)+◄  c`
+    /// Computed `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
     #[derive(Debug)]
     pub struct SynAIter(Vec<String>);
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -1573,9 +1584,9 @@ mod rules_rts_24_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a (b <L>)+ c
-                        2 |                                         // A_1 -> b A_1
-                        3 => self.exit_a_iter(),                    // A_1 -> b
-                     /* 1 */                                        // A_1 -> b | b A_1 (never called)
+                        2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
+                        3 => self.exit_a_iter(),                    // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
+                     /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1649,6 +1660,7 @@ mod rules_rts_29_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [[B b]* c]* d`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -1662,22 +1674,22 @@ mod rules_rts_29_1 {
         B { b: String },
     }
 
-    /// Computed (A_1) `[B b]*` array in `A -> a [ ►[B b]*◄  c]* d`
+    /// Computed `[B b]*` array in `A -> a [ ► [B b]* ◄  c]* d`
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) `B b` item in `A -> a [ ►[B b]*◄  c]* d`
+    /// `B b` item in `A -> a [ ► [B b]* ◄  c]* d`
     #[derive(Debug)]
     pub struct SynA1Item { b: SynB, b1: String }
-    /// Computed (A_2) `[[B b]* c]*` array in `A -> a  ►[[B b]* c]*◄  d`
+    /// Computed `[[B b]* c]*` array in `A -> a  ► [[B b]* c]* ◄  d`
     #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
-    /// (A_2) `[B b]* c` item in `A -> a  ►[[B b]* c]*◄  d`
+    /// `[B b]* c` item in `A -> a  ► [[B b]* c]* ◄  d`
     #[derive(Debug)]
     pub struct SynA2Item { star: SynA1, c: String }
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
-    /// User-defined type for B
+    /// User-defined type for `B`
     #[derive(Debug)]
     pub struct SynB();
 
@@ -1744,8 +1756,8 @@ mod rules_rts_29_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]* c]* d
-                        2 => self.exit_a1(),                        // A_1 -> B b A_1
-                        3 => {}                                     // A_1 -> ε
+                        2 => self.exit_a1(),                        // [B b]* item in A_2 ->  ► [B b]* ◄  c [ ► [B b]* ◄  c]*
+                        3 => {}                                     // end of [B b]* items in A_2 ->  ► [B b]* ◄  c [ ► [B b]* ◄  c]*
                         4 => self.exit_a2(),                        // A_2 -> [B b]* c [[B b]* c]*
                         5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
@@ -1839,6 +1851,7 @@ mod rules_rts_29_2 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [[B b]* c]* d`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -1852,10 +1865,10 @@ mod rules_rts_29_2 {
         B,
     }
 
-    /// Computed (A_2) `[[B b]* c]*` array in `A -> a  ►[[B b]* c]*◄  d`
+    /// Computed `[[B b]* c]*` array in `A -> a  ► [[B b]* c]* ◄  d`
     #[derive(Debug)]
     pub struct SynA2(Vec<String>);
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -1916,8 +1929,8 @@ mod rules_rts_29_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]* c]* d
-                        2 |                                         // A_1 -> B b A_1
-                        3 => {}                                     // A_1 -> ε
+                        2 |                                         // [B b]* item in A_2 ->  ► [B b]* ◄  c [ ► [B b]* ◄  c]*
+                        3 => {}                                     // end of [B b]* items in A_2 ->  ► [B b]* ◄  c [ ► [B b]* ◄  c]*
                         4 => self.exit_a2(),                        // A_2 -> [B b]* c [[B b]* c]*
                         5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
@@ -1997,6 +2010,7 @@ mod rules_rts_29_3 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [[B b]* c]* d`
     #[derive(Debug)]
     pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
     #[derive(Debug)]
@@ -2010,13 +2024,13 @@ mod rules_rts_29_3 {
         B { b: String },
     }
 
-    /// Computed (A_1) `[B b]*` array in `A -> a [ ►[B b]*◄  c]* d`
+    /// Computed `[B b]*` array in `A -> a [ ► [B b]* ◄  c]* d`
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// Computed (A_2) `[[B b]* c]*` array in `A -> a  ►[[B b]* c]*◄  d`
+    /// Computed `[[B b]* c]*` array in `A -> a  ► [[B b]* c]* ◄  d`
     #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
-    /// (A_2) `[B b]* c` item in `A -> a  ►[[B b]* c]*◄  d`
+    /// `[B b]* c` item in `A -> a  ► [[B b]* c]* ◄  d`
     #[derive(Debug)]
     pub struct SynA2Item { star: SynA1, c: String }
     // Top non-terminal A has no value:
@@ -2080,8 +2094,8 @@ mod rules_rts_29_3 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]* c]* d
-                        2 => self.exit_a1(),                        // A_1 -> B b A_1
-                        3 => {}                                     // A_1 -> ε
+                        2 => self.exit_a1(),                        // [B b]* item in A_2 ->  ► [B b]* ◄  c [ ► [B b]* ◄  c]*
+                        3 => {}                                     // end of [B b]* items in A_2 ->  ► [B b]* ◄  c [ ► [B b]* ◄  c]*
                         4 => self.exit_a2(),                        // A_2 -> [B b]* c [[B b]* c]*
                         5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
@@ -2177,6 +2191,7 @@ mod rules_rts_30_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [[B b]+ c]+ d`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -2190,22 +2205,22 @@ mod rules_rts_30_1 {
         B { b: String },
     }
 
-    /// Computed (A_1) `[B b]+` array in `A -> a [ ►[B b]+◄  c]+ d`
+    /// Computed `[B b]+` array in `A -> a [ ► [B b]+ ◄  c]+ d`
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) `B b` item in `A -> a [ ►[B b]+◄  c]+ d`
+    /// `B b` item in `A -> a [ ► [B b]+ ◄  c]+ d`
     #[derive(Debug)]
     pub struct SynA1Item { b: SynB, b1: String }
-    /// Computed (A_2) `[[B b]+ c]+` array in `A -> a  ►[[B b]+ c]+◄  d`
+    /// Computed `[[B b]+ c]+` array in `A -> a  ► [[B b]+ c]+ ◄  d`
     #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
-    /// (A_2) `[B b]+ c` item in `A -> a  ►[[B b]+ c]+◄  d`
+    /// `[B b]+ c` item in `A -> a  ► [[B b]+ c]+ ◄  d`
     #[derive(Debug)]
     pub struct SynA2Item { plus: SynA1, c: String }
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
-    /// User-defined type for B
+    /// User-defined type for `B`
     #[derive(Debug)]
     pub struct SynB();
 
@@ -2274,11 +2289,11 @@ mod rules_rts_30_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]+ c]+ d
-                        4 |                                         // A_1 -> B b A_1
-                        5 => self.exit_a1(),                        // A_1 -> B b
+                        4 |                                         // [B b]+ item in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
+                        5 => self.exit_a1(),                        // end of [B b]+ items in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
                         6 |                                         // A_2 -> [B b]+ c [[B b]+ c]+
                         7 => self.exit_a2(),                        // A_2 -> [B b]+ c
-                     /* 2 */                                        // A_1 -> B b | B b A_1 (never called)
+                     /* 2 */                                        // [B b]+ item in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+ (never called)
                      /* 3 */                                        // A_2 -> [B b]+ c | [B b]+ c [[B b]+ c]+ (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -2377,6 +2392,7 @@ mod rules_rts_30_2 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [[B b]+ c]+ d`
     #[derive(Debug)]
     pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
     #[derive(Debug)]
@@ -2390,13 +2406,13 @@ mod rules_rts_30_2 {
         B { b: String },
     }
 
-    /// Computed (A_1) `[B b]+` array in `A -> a [ ►[B b]+◄  c]+ d`
+    /// Computed `[B b]+` array in `A -> a [ ► [B b]+ ◄  c]+ d`
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// Computed (A_2) `[[B b]+ c]+` array in `A -> a  ►[[B b]+ c]+◄  d`
+    /// Computed `[[B b]+ c]+` array in `A -> a  ► [[B b]+ c]+ ◄  d`
     #[derive(Debug)]
     pub struct SynA2(Vec<SynA2Item>);
-    /// (A_2) `[B b]+ c` item in `A -> a  ►[[B b]+ c]+◄  d`
+    /// `[B b]+ c` item in `A -> a  ► [[B b]+ c]+ ◄  d`
     #[derive(Debug)]
     pub struct SynA2Item { plus: SynA1, c: String }
     // Top non-terminal A has no value:
@@ -2462,11 +2478,11 @@ mod rules_rts_30_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]+ c]+ d
-                        4 |                                         // A_1 -> B b A_1
-                        5 => self.exit_a1(),                        // A_1 -> B b
+                        4 |                                         // [B b]+ item in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
+                        5 => self.exit_a1(),                        // end of [B b]+ items in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
                         6 |                                         // A_2 -> [B b]+ c [[B b]+ c]+
                         7 => self.exit_a2(),                        // A_2 -> [B b]+ c
-                     /* 2 */                                        // A_1 -> B b | B b A_1 (never called)
+                     /* 2 */                                        // [B b]+ item in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+ (never called)
                      /* 3 */                                        // A_2 -> [B b]+ c | [B b]+ c [[B b]+ c]+ (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -2588,6 +2604,7 @@ mod rules_rts_34_1 {
     use rlexer::grammar::VarId;
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -2596,31 +2613,31 @@ mod rules_rts_34_1 {
         A { a: String, plus: SynA3, c: String, plus1: SynA6, d: String },
     }
 
-    /// Computed (A_1) `[b]+` array in `A -> a [ ►[b]+◄  [b]+]+ c [[b]+ [b]+]+ d`
+    /// Computed `[b]+` array in `A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d`
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// Computed (A_2) `[b]+` array in `A -> a [[b]+  ►[b]+◄ ]+ c [[b]+ [b]+]+ d`
+    /// Computed `[b]+` array in `A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d`
     #[derive(Debug)]
     pub struct SynA2(Vec<String>);
-    /// Computed (A_3) `[[b]+ [b]+]+` array in `A -> a  ►[[b]+ [b]+]+◄  c [[b]+ [b]+]+ d`
+    /// Computed `[[b]+ [b]+]+` array in `A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d`
     #[derive(Debug)]
     pub struct SynA3(Vec<SynA3Item>);
-    /// (A_3) `[b]+ [b]+` item in `A -> a  ►[[b]+ [b]+]+◄  c [[b]+ [b]+]+ d`
+    /// `[b]+ [b]+` item in `A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d`
     #[derive(Debug)]
     pub struct SynA3Item { plus: SynA1, plus1: SynA2 }
-    /// Computed (A_4) `[b]+` array in `A -> a [[b]+ [b]+]+ c [ ►[b]+◄  [b]+]+ d`
+    /// Computed `[b]+` array in `A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d`
     #[derive(Debug)]
     pub struct SynA4(Vec<String>);
-    /// Computed (A_5) `[b]+` array in `A -> a [[b]+ [b]+]+ c [[b]+  ►[b]+◄ ]+ d`
+    /// Computed `[b]+` array in `A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d`
     #[derive(Debug)]
     pub struct SynA5(Vec<String>);
-    /// Computed (A_6) `[[b]+ [b]+]+` array in `A -> a [[b]+ [b]+]+ c  ►[[b]+ [b]+]+◄  d`
+    /// Computed `[[b]+ [b]+]+` array in `A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d`
     #[derive(Debug)]
     pub struct SynA6(Vec<SynA6Item>);
-    /// (A_6) `[b]+ [b]+` item in `A -> a [[b]+ [b]+]+ c  ►[[b]+ [b]+]+◄  d`
+    /// `[b]+ [b]+` item in `A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d`
     #[derive(Debug)]
     pub struct SynA6Item { plus: SynA4, plus1: SynA5 }
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -2703,23 +2720,23 @@ mod rules_rts_34_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d
-                        7 |                                         // A_1 -> b A_1
-                        8 => self.exit_a1(),                        // A_1 -> b
-                        9 |                                         // A_2 -> b A_2
-                        10 => self.exit_a2(),                       // A_2 -> b
+                        7 |                                         // [b]+ item in A_3 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
+                        8 => self.exit_a1(),                        // end of [b]+ items in A_3 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
+                        9 |                                         // [b]+ item in A_3 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
+                        10 => self.exit_a2(),                       // end of [b]+ items in A_3 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
                         11 |                                        // A_3 -> [b]+ [b]+ [[b]+ [b]+]+
                         12 => self.exit_a3(),                       // A_3 -> [b]+ [b]+
-                        13 |                                        // A_4 -> b A_4
-                        14 => self.exit_a4(),                       // A_4 -> b
-                        15 |                                        // A_5 -> b A_5
-                        16 => self.exit_a5(),                       // A_5 -> b
+                        13 |                                        // [b]+ item in A_6 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
+                        14 => self.exit_a4(),                       // end of [b]+ items in A_6 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
+                        15 |                                        // [b]+ item in A_6 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
+                        16 => self.exit_a5(),                       // end of [b]+ items in A_6 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
                         17 |                                        // A_6 -> [b]+ [b]+ [[b]+ [b]+]+
                         18 => self.exit_a6(),                       // A_6 -> [b]+ [b]+
-                     /* 1 */                                        // A_1 -> b | b A_1 (never called)
-                     /* 2 */                                        // A_2 -> b | b A_2 (never called)
+                     /* 1 */                                        // [b]+ item in A_3 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+ (never called)
+                     /* 2 */                                        // [b]+ item in A_3 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+ (never called)
                      /* 3 */                                        // A_3 -> [b]+ [b]+ | [b]+ [b]+ [[b]+ [b]+]+ (never called)
-                     /* 4 */                                        // A_4 -> b | b A_4 (never called)
-                     /* 5 */                                        // A_5 -> b | b A_5 (never called)
+                     /* 4 */                                        // [b]+ item in A_6 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+ (never called)
+                     /* 5 */                                        // [b]+ item in A_6 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+ (never called)
                      /* 6 */                                        // A_6 -> [b]+ [b]+ | [b]+ [b]+ [[b]+ [b]+]+ (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2849,6 +2866,7 @@ mod rules_prs_28_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a | a b | a b c | a b d | e`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -2865,7 +2883,7 @@ mod rules_prs_28_1 {
         A5 { a: String, b: String },
     }
 
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -3011,6 +3029,7 @@ mod rules_prs_31_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `E -> F`
     #[derive(Debug)]
     pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
@@ -3028,10 +3047,10 @@ mod rules_prs_31_1 {
         F { id: String },
     }
 
-    /// User-defined type for E
+    /// User-defined type for `E`
     #[derive(Debug)]
     pub struct SynE();
-    /// User-defined type for F
+    /// User-defined type for `F`
     #[derive(Debug)]
     pub struct SynF();
 
@@ -3173,6 +3192,7 @@ mod rules_prs_36_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `E -> F | num`
     #[derive(Debug)]
     pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
@@ -3192,10 +3212,10 @@ mod rules_prs_36_1 {
         F { id: String },
     }
 
-    /// User-defined type for E
+    /// User-defined type for `E`
     #[derive(Debug)]
     pub struct SynE();
-    /// User-defined type for F
+    /// User-defined type for `F`
     #[derive(Debug)]
     pub struct SynF();
 
@@ -3350,6 +3370,7 @@ mod rules_prs_33_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> b c | b d`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -3364,7 +3385,7 @@ mod rules_prs_33_1 {
         A4 { b: String, d: String },
     }
 
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -3513,6 +3534,7 @@ mod rules_prs_38_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> b c | b d`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -3529,7 +3551,7 @@ mod rules_prs_38_1 {
         A5 { b: String, d: String },
     }
 
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -3687,6 +3709,7 @@ mod rules_prs_39_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> b c | b d`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -3703,7 +3726,7 @@ mod rules_prs_39_1 {
         A5 { a: SynA, a1: String, c: String },
     }
 
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -3862,6 +3885,7 @@ mod rules_prs_32_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `E -> F`
     #[derive(Debug)]
     pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
@@ -3881,10 +3905,10 @@ mod rules_prs_32_1 {
         F { id: String },
     }
 
-    /// User-defined type for E
+    /// User-defined type for `E`
     #[derive(Debug)]
     pub struct SynE();
-    /// User-defined type for F
+    /// User-defined type for `F`
     #[derive(Debug)]
     pub struct SynF();
 
@@ -4031,6 +4055,7 @@ mod rules_prs_20_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
@@ -4046,10 +4071,10 @@ mod rules_prs_20_1 {
         List2,
     }
 
-    /// User-defined type for STRUCT
+    /// User-defined type for `STRUCT`
     #[derive(Debug)]
     pub struct SynStruct();
-    /// User-defined type for LIST
+    /// User-defined type for `LIST`
     #[derive(Debug)]
     pub struct SynList();
 
@@ -4182,6 +4207,7 @@ mod rules_prs_20_2 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
@@ -4197,7 +4223,7 @@ mod rules_prs_20_2 {
         List2,
     }
 
-    /// User-defined type for STRUCT
+    /// User-defined type for `STRUCT`
     #[derive(Debug)]
     pub struct SynStruct();
 
@@ -4328,6 +4354,7 @@ mod rules_prs_37_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
@@ -4345,10 +4372,10 @@ mod rules_prs_37_1 {
         List3 { id: String },
     }
 
-    /// User-defined type for STRUCT
+    /// User-defined type for `STRUCT`
     #[derive(Debug)]
     pub struct SynStruct();
-    /// User-defined type for LIST
+    /// User-defined type for `LIST`
     #[derive(Debug)]
     pub struct SynList();
 
@@ -4487,6 +4514,7 @@ mod rules_prs_30_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
     pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
@@ -4502,10 +4530,10 @@ mod rules_prs_30_1 {
         List2 { list: SynList },
     }
 
-    /// User-defined type for STRUCT
+    /// User-defined type for `STRUCT`
     #[derive(Debug)]
     pub struct SynStruct();
-    /// User-defined type for LIST
+    /// User-defined type for `LIST`
     #[derive(Debug)]
     pub struct SynList();
 
@@ -4648,6 +4676,7 @@ mod rules_rts_26_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -4660,10 +4689,10 @@ mod rules_rts_26_1 {
         A3 { a: SynA },
     }
 
-    /// Computed (A_1) `[c]*` array in `A -> a`
+    /// Computed `[c]*` array in `A -> a`
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -4721,8 +4750,8 @@ mod rules_rts_26_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_a(),                         // A -> a
-                        1 => self.exit_a1(),                        // A_1 -> c A_1
-                        2 => {}                                     // A_1 -> ε
+                        1 => self.exit_a1(),                        // [c]* item in A -> A  ► [c]* ◄  b
+                        2 => {}                                     // end of [c]* items in A -> A  ► [c]* ◄  b
                         3 |                                         // A -> A [c]* b
                         4 => self.exit_a2(factor_id),               // A -> ε (end of loop)
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -4815,6 +4844,7 @@ mod rules_rts_16_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -4827,10 +4857,10 @@ mod rules_rts_16_1 {
         A3 { a: SynA },
     }
 
-    /// Computed (A_1) `[c]+` array in `A -> a`
+    /// Computed `[c]+` array in `A -> a`
     #[derive(Debug)]
     pub struct SynA1(Vec<String>);
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -4889,11 +4919,11 @@ mod rules_rts_16_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_a(),                         // A -> a
-                        4 |                                         // A_1 -> c A_1
-                        5 => self.exit_a1(),                        // A_1 -> c
+                        4 |                                         // [c]+ item in A -> A  ► [c]+ ◄  b
+                        5 => self.exit_a1(),                        // end of [c]+ items in A -> A  ► [c]+ ◄  b
                         2 |                                         // A -> A [c]+ b
                         3 => self.exit_a2(factor_id),               // A -> ε (end of loop)
-                     /* 1 */                                        // A_1 -> c | c A_1 (never called)
+                     /* 1 */                                        // [c]+ item in A -> A  ► [c]+ ◄  b (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -4978,6 +5008,7 @@ mod rules_prs_35_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> a | a b b | a c c`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -4990,7 +5021,7 @@ mod rules_prs_35_1 {
         A3 { a: String },
     }
 
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
 
@@ -5124,6 +5155,7 @@ mod rules_rts_33_1 {
     use rlexer::grammar::{FactorId, VarId};
     use rlexer::parser::{Call, Listener};
 
+    /// Type of top rule `A -> [B c]* b | a`
     #[derive(Debug)]
     pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
@@ -5139,16 +5171,16 @@ mod rules_rts_33_1 {
         B { b: String },
     }
 
-    /// Computed (A_1) `[B c]*` array in `A ->  ►[B c]*◄  b`
+    /// Computed `[B c]*` array in `A ->  ► [B c]* ◄  b`
     #[derive(Debug)]
     pub struct SynA1(Vec<SynA1Item>);
-    /// (A_1) `B c` item in `A ->  ►[B c]*◄  b`
+    /// `B c` item in `A ->  ► [B c]* ◄  b`
     #[derive(Debug)]
     pub struct SynA1Item { b: SynB, c: String }
-    /// User-defined type for A
+    /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
-    /// User-defined type for B
+    /// User-defined type for `B`
     #[derive(Debug)]
     pub struct SynB();
 
@@ -5212,8 +5244,8 @@ mod rules_rts_33_1 {
                     match factor_id {
                         0 |                                         // A -> [B c]* b
                         1 => self.exit_a(factor_id),                // A -> a
-                        3 => self.exit_a1(),                        // A_1 -> B c A_1
-                        4 => {}                                     // A_1 -> ε
+                        3 => self.exit_a1(),                        // [B c]* item in A ->  ► [B c]* ◄  b
+                        4 => {}                                     // end of [B c]* items in A ->  ► [B c]* ◄  b
                         2 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }

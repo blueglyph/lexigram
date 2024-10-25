@@ -1138,11 +1138,11 @@ mod wrapper_source {
             //  - A_2 -> A
             (RTS(26), vec![
                 // ParserBuilder::expand_lfact()    // ParserBuilder::full_factor_str()
-                ("A -> a A_2",                      "A -> a"),                            // 0: A -> a A_2
-                ("A_1 -> c A_1",                    "[c]* item in A -> A  ►[c]*◄  b"),    // 1: A_1 -> c A_1
-                ("A_1 -> ε",                        "end of items in A -> A  ►[c]*◄  b"), // 2: A_1 -> ε
-                ("A_2 -> A_1 b A_2",                "A -> A [c]* b"),                     // 3: A_2 -> A_1 b A_2
-                ("A_2 -> ε",                        "A -> ε (end of loop)"),              // 4: A_2 -> ε
+                ("A -> a A_2",                      "A -> a"),                                   // 0: A -> a A_2
+                ("A_1 -> c A_1",                    "[c]* item in A -> A  ► [c]* ◄  b"),         // 1: A_1 -> c A_1
+                ("A_1 -> ε",                        "end of [c]* items in A -> A  ► [c]* ◄  b"), // 2: A_1 -> ε
+                ("A_2 -> A_1 b A_2",                "A -> A [c]* b"),                            // 3: A_2 -> A_1 b A_2
+                ("A_2 -> ε",                        "A -> ε (end of loop)"),                     // 4: A_2 -> ε
             ], btreemap![
                 // ParserBuilder::get_top_factors()
                 0 => vec![],
@@ -1160,12 +1160,12 @@ mod wrapper_source {
             //  - A_2 -> A
             //  - A_3 -> A_1
             (RTS(16), vec![
-                ("A -> a A_2",                      "A -> a"),                            // 0: A -> a A_2
-                ("A_1 -> c | c A_1",                "[c]+ item in A -> A  ►[c]+◄  b"),    // 1: A_1 -> c A_3
-                ("A_2 -> A_1 b A_2",                "A -> A [c]+ b"),                     // 2: A_2 -> A_1 b A_2
-                ("A_2 -> ε",                        "A -> ε (end of loop)"),              // 3: A_2 -> ε
-                ("A_3 -> A_1",                      "[c]+ item in A -> A  ►[c]+◄  b"),    // 4: A_3 -> A_1
-                ("A_3 -> ε",                        "end of items in A -> A  ►[c]+◄  b"), // 5: A_3 -> ε
+                ("A -> a A_2",                      "A -> a"),                                   // 0: A -> a A_2
+                ("A_1 -> c | c A_1",                "[c]+ item in A -> A  ► [c]+ ◄  b"),         // 1: A_1 -> c A_3
+                ("A_2 -> A_1 b A_2",                "A -> A [c]+ b"),                            // 2: A_2 -> A_1 b A_2
+                ("A_2 -> ε",                        "A -> ε (end of loop)"),                     // 3: A_2 -> ε
+                ("A_3 -> A_1",                      "[c]+ item in A -> A  ► [c]+ ◄  b"),         // 4: A_3 -> A_1
+                ("A_3 -> ε",                        "end of [c]+ items in A -> A  ► [c]+ ◄  b"), // 5: A_3 -> ε
             ], btreemap![
                 0 => vec![],
                 1 => vec![(2, 0)],
@@ -1175,14 +1175,26 @@ mod wrapper_source {
             // A -> (B c)* b | a
             // B -> b
             (RTS(33), vec![
-                ("A -> A_1 b",                      "A -> [B c]* b"),                     // 0: A -> A_1 b
-                ("A -> a",                          "A -> a"),                            // 1: A -> a
-                ("B -> b",                          "B -> b"),                            // 2: B -> b
-                ("A_1 -> B c A_1",                  "[B c]* item in A ->  ►[B c]*◄  b"),  // 3: A_1 -> B c A_1
-                ("A_1 -> ε",                        "end of items in A ->  ►[B c]*◄  b"), // 4: A_1 -> ε
+                ("A -> A_1 b",                      "A -> [B c]* b"),                              // 0: A -> A_1 b
+                ("A -> a",                          "A -> a"),                                     // 1: A -> a
+                ("B -> b",                          "B -> b"),                                     // 2: B -> b
+                ("A_1 -> B c A_1",                  "[B c]* item in A ->  ► [B c]* ◄  b"),         // 3: A_1 -> B c A_1
+                ("A_1 -> ε",                        "end of [B c]* items in A ->  ► [B c]* ◄  b"), // 4: A_1 -> ε
             ], btreemap![
                 0 => vec![],
                 1 => vec![],
+                2 => vec![(2, 0)],
+            ]),
+            // A -> a (a | c) (b <L>)* c
+            (RTS(32), vec![
+                ("A -> a a A_1 c | a c A_1 c",      "A -> a a (b <L>)* c | a c (b <L>)* c"),                    // 0: A -> a A_2
+                ("A_1 -> b A_1",                    "(b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c"),         // 1: A_1 -> b A_1
+                ("A_1 -> ε",                        "end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c"), // 2: A_1 -> ε
+                ("A_2 -> a A_1 c",                  "A -> a a (b <L>)* c"),                                     // 3: A_2 -> a A_1 c
+                ("A_2 -> c A_1 c",                  "A -> a c (b <L>)* c"),                                     // 4: A_2 -> c A_1 c
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(2, 0)],
                 2 => vec![(2, 0)],
             ]),
             // A -> a | a b | a b c | a b d | e
