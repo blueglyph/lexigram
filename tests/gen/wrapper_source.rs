@@ -746,7 +746,7 @@ mod rules_rts_32_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// `(b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c`
+        /// `(b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...`
         A1 { star_it: SynAIter, b: String },
     }
 
@@ -814,8 +814,8 @@ mod rules_rts_32_1 {
                     match factor_id {
                         3 |                                         // A -> a a (b <L>)* c
                         4 => self.exit_a(factor_id),                // A -> a c (b <L>)* c
-                        1 => self.exit_a_iter(),                    // (b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c
-                        2 => {}                                     // end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c
+                        1 => self.exit_a_iter(),                    // (b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...
+                        2 => {}                                     // end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c | ...
                      /* 0 */                                        // A -> a a (b <L>)* c | a c (b <L>)* c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }

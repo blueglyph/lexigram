@@ -1187,11 +1187,11 @@ mod wrapper_source {
             ]),
             // A -> a (a | c) (b <L>)* c
             (RTS(32), vec![
-                ("A -> a a A_1 c | a c A_1 c",      "A -> a a (b <L>)* c | a c (b <L>)* c"),                    // 0: A -> a A_2
-                ("A_1 -> b A_1",                    "(b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c"),         // 1: A_1 -> b A_1
-                ("A_1 -> ε",                        "end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c"), // 2: A_1 -> ε
-                ("A_2 -> a A_1 c",                  "A -> a a (b <L>)* c"),                                     // 3: A_2 -> a A_1 c
-                ("A_2 -> c A_1 c",                  "A -> a c (b <L>)* c"),                                     // 4: A_2 -> c A_1 c
+                ("A -> a a A_1 c | a c A_1 c",      "A -> a a (b <L>)* c | a c (b <L>)* c"),                          // 0: A -> a A_2
+                ("A_1 -> b A_1",                    "(b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ..."),         // 1: A_1 -> b A_1
+                ("A_1 -> ε",                        "end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c | ..."), // 2: A_1 -> ε
+                ("A_2 -> a A_1 c",                  "A -> a a (b <L>)* c"),                                           // 3: A_2 -> a A_1 c
+                ("A_2 -> c A_1 c",                  "A -> a c (b <L>)* c"),                                           // 4: A_2 -> c A_1 c
             ], btreemap![
                 0 => vec![],
                 1 => vec![(2, 0)],

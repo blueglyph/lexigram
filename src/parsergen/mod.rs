@@ -344,47 +344,53 @@ impl ParserBuilder {
             }
         }
         let result = if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
-            // println!("full_factor_str({f_id}): P+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+            if VERBOSE { println!("full_factor_str({f_id}): P+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
             (
                 Symbol::NT(left).to_str(self.get_symbol_table()),
                 format!("{}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
             )
         } else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
-            // let is_empty = facts.len() == 1 && facts[0].first() == Some(&Symbol::Empty);
             let is_empty = self.parsing_table.factors[f_id as usize].1.symbols().first() == Some(&Symbol::Empty);
-            //let v_id = self.parsing_table.factors[f_id as usize].0;
             let v_id = v_par_lf;
             let top_parent = self.parsing_table.get_top_parent(v_id);
-            // let parent = self.parsing_table.parent[v_id as usize].unwrap();
-            // let tf = self.get_top_factors(v as VarId);
-            // TODO: instead of `find_map`, take the first found and add "|..." if there are others (see RTS(32))
-            let (_var_using_v, fact_using_v) = self.get_group_factors(&self.nt_parent[top_parent as usize]).iter()
-                .filter(|(v, _)| *v != v_id)
-                .find_map(|(v, f)| if self.parsing_table.factors[*f as usize].1.symbols().iter().any(|s| *s == Symbol::NT(v_id)) { Some((*v, *f)) } else { None })
-                .unwrap();
+            let what_is_using_v = self.get_group_factors(&self.nt_parent[top_parent as usize]).iter()
+                // we exclude the repeat loop itself
+                // - in the case of *: *v != v_id (see RTS(26))
+                // - in the case of +: in any direct child factor, due to the left factorization of + (see RTS(16))
+                .filter(|(v, _)| *v != v_id && self.parsing_table.parent[*v as usize] != Some(v_id))
+                .filter_map(|(v, f)| if self.parsing_table.factors[*f as usize].1.symbols().iter().any(|s| *s == Symbol::NT(v_id)) { Some((*v, *f)) } else { None })
+                .to_vec();
+            let (_var_using_v, fact_using_v) = what_is_using_v[0];
+            // if there are several factors using v (see RTS(32)), we only show the first; the others are alternatives
+            // of a left factorization in earlier symbols.
+            let more_str = if what_is_using_v.len() > 1 { " | ..." } else { "" };
             let is_lform = self.nt_has_flags(v_id as VarId, ruleflag::L_FORM);
-            // println!("full_factor_str({f_id}): C+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+            if VERBOSE {
+                println!("full_factor_str({f_id}): C+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+                println!("what_is_using_v ({}) = {what_is_using_v:?}", Symbol::NT(v_id).to_str(self.get_symbol_table()));
+            }
             (
                 "".to_string(),
                 if is_empty {
-                    format!("end of {} {}s in {}",
+                    format!("end of {} {}s in {}{more_str}",
                             self.repeat_factor_str(&vec![Symbol::NT(v_par_lf)], None),
                             if is_lform { "iteration" } else { "item" },
                             self.full_factor_str(fact_using_v, Some(v_par_lf as VarId)))
                 } else {
-                    format!("{} {} in {}",
+                    format!("{} {} in {}{more_str}",
                             self.repeat_factor_str(&vec![Symbol::NT(v_par_lf)], None),
                             if is_lform { "iteration" } else { "item" },
                             self.full_factor_str(fact_using_v, Some(v_id as VarId)))
-                })
+                }
+            )
         } else {
-            // println!("full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+            if VERBOSE { println!("full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
             (
                 Symbol::NT(left).to_str(self.get_symbol_table()),
                 format!("{}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
             )
         };
-        // println!(" => {result:?}");
+        if VERBOSE { println!(" => {result:?}"); }
         result
     }
 
