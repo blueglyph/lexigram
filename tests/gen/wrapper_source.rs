@@ -474,9 +474,9 @@ mod rules_rts_22_1 {
         A1 { star_it: SynAIter, b: String },
     }
 
-    /// Computed `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+    /// User-defined `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
     #[derive(Debug)]
-    pub struct SynAIter(Vec<String>);
+    pub struct SynAIter();
     /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
@@ -750,9 +750,9 @@ mod rules_rts_32_1 {
         A1 { star_it: SynAIter, b: String },
     }
 
-    /// Computed `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | a c  ► (b <L>)* ◄  c`
+    /// User-defined `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | a c  ► (b <L>)* ◄  c`
     #[derive(Debug)]
-    pub struct SynAIter(Vec<String>);
+    pub struct SynAIter();
     /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();
@@ -1521,9 +1521,9 @@ mod rules_rts_24_1 {
         A1_2 { plus_it: SynAIter, b: String },
     }
 
-    /// Computed `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+    /// User-defined `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
     #[derive(Debug)]
-    pub struct SynAIter(Vec<String>);
+    pub struct SynAIter();
     /// User-defined type for `A`
     #[derive(Debug)]
     pub struct SynA();

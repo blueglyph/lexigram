@@ -1194,7 +1194,7 @@ impl ParserBuilder {
         let mut syns = Vec::<(&str, &str)>::new();
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
-            if pinfo.flags[v] & (ruleflag::CHILD_REPEAT /*| ruleflag::L_FORM*/) == ruleflag::CHILD_REPEAT {
+            if self.nt_has_flags(v as VarId, ruleflag::CHILD_REPEAT) {
                 let parent = pinfo.get_top_parent(v as VarId);
                 // let facts = self.get_group_factors(&self.nt_parent[parent as usize]);
                 let tf = self.get_top_factors(v as VarId);
@@ -1207,20 +1207,32 @@ impl ParserBuilder {
                 }).join(", ");
                 let current = Symbol::NT(v as VarId).to_str(self.get_symbol_table());
                 if let Some(infos) = nt_repeat.get(&(v as VarId)) {
-                    // complex + * items; for ex. A -> (B b)+
-                    src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
-                    src.push(format!("#[derive(Debug)]"));
-                    src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
-                    let mut fact = self.parsing_table.factors[self.var_factors[v][0] as usize].1.symbols().to_vec();
-                    fact.pop();
-                    src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
-                    src.push(format!("#[derive(Debug)]"));
-                    src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
+                    if is_lform {
+                        src.push(format!("/// User-defined `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
+                        src.push(format!("#[derive(Debug)]"));
+                        src.push(format!("pub struct Syn{nu}();")); // TODO: must be defined in object field
+                    } else {
+                        // complex + * items; for ex. A -> (B b)+
+                        src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
+                        src.push(format!("#[derive(Debug)]"));
+                        src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
+                        let mut fact = self.parsing_table.factors[self.var_factors[v][0] as usize].1.symbols().to_vec();
+                        fact.pop();
+                        src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
+                        src.push(format!("#[derive(Debug)]"));
+                        src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
+                    }
                 } else {
-                    // + * item is only a terminal
-                    src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
-                    src.push(format!("#[derive(Debug)]"));
-                    src.push(format!("pub struct Syn{nu}(Vec<String>);"));
+                    if is_lform {
+                        src.push(format!("/// User-defined `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
+                        src.push(format!("#[derive(Debug)]"));
+                        src.push(format!("pub struct Syn{nu}();")); // TODO: must be defined in object field
+                    } else {
+                        // + * item is only a terminal
+                        src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
+                        src.push(format!("#[derive(Debug)]"));
+                        src.push(format!("pub struct Syn{nu}(Vec<String>);"));
+                    }
                 }
             } else {
                 user_names.push((v, format!("Syn{nu}")));
