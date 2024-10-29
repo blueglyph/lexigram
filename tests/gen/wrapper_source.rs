@@ -440,16 +440,16 @@ mod rules_rts_21_2 {
 // Test 3: rules RTS(22) #1, start 0:
 /*
 before, NT with value: A
-after,  NT with value: A, A_1
+after,  NT with value: A, AIter1
             // NT flags:
             //  - A: parent_+_or_* (2048)
-            //  - A_1: child_+_or_* | L-form (129)
+            //  - AIter1: child_+_or_* | L-form (129)
             // parents:
-            //  - A_1 -> A
+            //  - AIter1 -> A
             (RTS(22), 0, btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
-                1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
-                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b!    | AIter1 b
+                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
             ], All, btreemap![0 => vec![0]]),
 */
 mod rules_rts_22_1 {
@@ -471,7 +471,7 @@ mod rules_rts_22_1 {
     #[derive(Debug)]
     pub enum CtxAIter {
         /// `(b <L>)* iteration in A -> a  ► (b <L>)* ◄  c`
-        A1 { star_it: SynAIter, b: String },
+        Aiter1 { star_it: SynAIter, b: String },
     }
 
     /// User-defined `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
@@ -528,7 +528,7 @@ mod rules_rts_22_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.init_a_iter(),                    // A_1
+                        1 => self.init_a_iter(),                    // AIter1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -572,7 +572,7 @@ mod rules_rts_22_1 {
         fn exit_a_iter(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::A1 { star_it, b });
+            let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_it, b });
             self.stack.push(SynValue::AIter(val));
         }
     }
@@ -589,13 +589,13 @@ before, NT with value: A
 after,  NT with value: A
             // NT flags:
             //  - A: parent_+_or_* (2048)
-            //  - A_1: child_+_or_* | L-form (129)
+            //  - AIter1: child_+_or_* | L-form (129)
             // parents:
-            //  - A_1 -> A
+            //  - AIter1 -> A
             (RTS(22), 0, btreemap![
-                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
-                1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
-                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+                0 => symbols![t 0, t 2],                //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a c
+                1 => symbols![],                        //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     |
+                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 */
 mod rules_rts_22_2 {
@@ -663,7 +663,7 @@ mod rules_rts_22_2 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_a_iter(),           // A_1
+                        1 => self.listener.init_a_iter(),           // AIter1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -710,20 +710,20 @@ mod rules_rts_22_2 {
 // Test 5: rules RTS(32) #1, start 0:
 /*
 before, NT with value: A
-after,  NT with value: A, A_1
+after,  NT with value: A, AIter1
             // NT flags:
             //  - A: parent_left_fact | parent_+_or_* (2080)
-            //  - A_1: child_+_or_* | L-form (129)
-            //  - A_2: child_left_fact (64)
+            //  - AIter1: child_+_or_* | L-form (129)
+            //  - A_1: child_left_fact (64)
             // parents:
+            //  - AIter1 -> A
             //  - A_1 -> A
-            //  - A_2 -> A
             (RTS(32), 0, btreemap![
-                0 => symbols![],                        //  0: A -> a A_2     | ►A_2 a!       |
-                1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1   | ●A_1 ◄1 b!    | A_1 b
-                2 => symbols![],                        //  2: A_1 -> ε       | ◄2            |
-                3 => symbols![t 0, t 0, nt 1, t 2],     //  3: A_2 -> a A_1 c | ◄3 c! ►A_1 a! | a a A_1 c
-                4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_2 -> c A_1 c | ◄4 c! ►A_1 c! | a c A_1 c
+                0 => symbols![],                        //  0: A -> a A_1         | ►A_1 a!          |
+                1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b!    | AIter1 b
+                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
+                3 => symbols![t 0, t 0, nt 1, t 2],     //  3: A_1 -> a AIter1 c  | ◄3 c! ►AIter1 a! | a a AIter1 c
+                4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_1 -> c AIter1 c  | ◄4 c! ►AIter1 c! | a c AIter1 c
             ], All, btreemap![0 => vec![3, 4]]),
 */
 mod rules_rts_32_1 {
@@ -747,7 +747,7 @@ mod rules_rts_32_1 {
     #[derive(Debug)]
     pub enum CtxAIter {
         /// `(b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...`
-        A1 { star_it: SynAIter, b: String },
+        Aiter1 { star_it: SynAIter, b: String },
     }
 
     /// User-defined `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | a c  ► (b <L>)* ◄  c`
@@ -804,8 +804,8 @@ mod rules_rts_32_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.init_a_iter(),                    // A_1
-                        2 => {}                                     // A_2
+                        1 => self.init_a_iter(),                    // AIter1
+                        2 => {}                                     // A_1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -865,7 +865,7 @@ mod rules_rts_32_1 {
         fn exit_a_iter(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::A1 { star_it, b });
+            let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_it, b });
             self.stack.push(SynValue::AIter(val));
         }
     }
@@ -1482,19 +1482,19 @@ mod rules_rts_28_1 {
 // Test 10: rules RTS(24) #1, start 0:
 /*
 before, NT with value: A
-after,  NT with value: A, A_1
+after,  NT with value: A, AIter1
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
-            //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
-            //  - A_2: child_left_fact (64)
+            //  - AIter1: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - A_1: child_left_fact (64)
             // parents:
-            //  - A_1 -> A
-            //  - A_2 -> A_1
+            //  - AIter1 -> A
+            //  - A_1 -> AIter1
             (RTS(24), 0, btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
-                1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
-                2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
-                3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b!          |
+                2 => symbols![nt 1, t 1],               //  2: A_1 -> AIter1   | ●AIter1 ◄2       | AIter1 b
+                3 => symbols![nt 1, t 1],               //  3: A_1 -> ε        | ◄3               | AIter1 b
             ], Default, btreemap![0 => vec![0]]),
 */
 mod rules_rts_24_1 {
@@ -1516,9 +1516,9 @@ mod rules_rts_24_1 {
     #[derive(Debug)]
     pub enum CtxAIter {
         /// `(b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c`
-        A1_1 { plus_it: SynAIter, b: String },
+        Aiter1_1 { plus_it: SynAIter, b: String },
         /// `end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c`
-        A1_2 { plus_it: SynAIter, b: String },
+        Aiter1_2 { plus_it: SynAIter, b: String },
     }
 
     /// User-defined `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
@@ -1575,8 +1575,8 @@ mod rules_rts_24_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.init_a_iter(),                    // A_1
-                        2 => {}                                     // A_2
+                        1 => self.init_a_iter(),                    // AIter1
+                        2 => {}                                     // A_1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -1621,7 +1621,7 @@ mod rules_rts_24_1 {
         fn exit_a_iter(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let plus_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::A1_1 { plus_it, b });
+            let val = self.listener.exit_a_iter(CtxAIter::Aiter1_1 { plus_it, b });
             self.stack.push(SynValue::AIter(val));
         }
     }

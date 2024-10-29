@@ -261,14 +261,14 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let m = tree.add(Some(cc), gnode!(?));
             tree.addc_iter(Some(m), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
         }
-        15 => { // 0(:1|:2R|:3L)0|:4
+        15 => { // 0(:1|:2R|:3L0)0|:4
             let or = tree.add_root(gnode!(|));
             let cc = tree.add(Some(or), gnode!(&));
             tree.add(Some(cc), gnode!(nt 0));
             let or2 = tree.add(Some(cc), gnode!(|));
             tree.add(Some(or2), gnode!(t 1));
             tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 2), gnode!(R)]);
-            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(L)]);
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(L 0)]);
             tree.add(Some(cc), gnode!(nt 0));
             tree.add(Some(or), gnode!(t 4));
         }
@@ -288,26 +288,25 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc2), gnode!(t 2));
             tree.add(Some(cc), gnode!(t 3));
         }
-        18 => { // a | b L | c
+        18 => { // a | b <L=A> | c
             let or = tree.add_root(gnode!(|));
             tree.add(Some(or), gnode!(t 0));
-            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 1), gnode!(L)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 1), gnode!(L 0)]);
             tree.add(Some(or), gnode!(t 2));
         }
-        19 => { // A (b <L>)* c | d
+        19 => { // A (b <L=B>)* c | d
             let or = tree.add_root(gnode!(|));
             let cc = tree.add(Some(or), gnode!(&));
             tree.add(Some(cc), gnode!(nt 0));
             let s1 = tree.add(Some(cc), gnode!(*));
-            tree.addc_iter(Some(s1), gnode!(&), [gnode!(t 1), gnode!(L)]);
+            tree.addc_iter(Some(s1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
             tree.add(Some(cc), gnode!(t 2));
             tree.add(Some(or), gnode!(t 3));
         }
-        20 => { // A <L> (b)* c | d
+        20 => { // A (b)* c | d
             let or = tree.add_root(gnode!(|));
             let cc = tree.add(Some(or), gnode!(&));
             tree.add(Some(cc), gnode!(nt 0));
-            tree.add(Some(cc), gnode!(L));
             let s1 = tree.addc(Some(cc), gnode!(*), gnode!(t 1));
             tree.add(Some(cc), gnode!(t 2));
             tree.add(Some(or), gnode!(t 3));
@@ -319,11 +318,11 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
-        22 => { // A -> a (b <L>)* c
+        22 => { // A -> a (b <L=B>)* c
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let p1 = tree.add(Some(cc), gnode!(*));
-            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L)]);
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
@@ -334,11 +333,11 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
-        24 => { // A -> a (b <L>)+ c
+        24 => { // A -> a (b <L=B>)+ c
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let p1 = tree.add(Some(cc), gnode!(+));
-            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L)]);
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
@@ -406,12 +405,12 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
         }
-        32 => { // A -> a (a | c) (b <L>)* c
+        32 => { // A -> a (a | c) (b <L=B>)* c
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             tree.addc_iter(Some(cc), gnode!(|), [gnode!(t 0), gnode!(t 2)]);
             let p1 = tree.add(Some(cc), gnode!(*));
-            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L)]);
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
@@ -441,15 +440,52 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
         }
         _ => {}
     }
-    if 21 <= id && id <= 25 || id == 27 || id == 32 {
+    if rules.symbol_table.is_none() {
+        const VERBOSE: bool = false;
         let mut table = SymbolTable::new();
-        table.extend_non_terminals(["A".to_string()]);
-        if id == 27 { table.extend_non_terminals(["B".to_string()]); }
-        table.extend_terminals([
-            ("a".to_string(), None),
-            if id != 25 { ("b".to_string(), None) } else { ("#".to_string(), Some("#".to_string())) },
-            ("c".to_string(), None),
-        ]);
+        let mut lforms = btreemap![];
+        let mut num_nt: VarId = 0;
+        let mut num_t = 0;
+        let mut num_iter = 0;
+        for (v, t) in rules.get_trees_iter() {
+            assert!(v < 26);
+            if v >= num_nt { num_nt = v + 1 }
+            for n in t.iter_depth_simple() {
+                let mut iter = 1;
+                match n.deref() {
+                    GrNode::Symbol(Symbol::NT(nt)) => {
+                        if *nt >= num_nt { num_nt = *nt + 1 }
+                    }
+                    GrNode::Symbol(Symbol::T(t)) => {
+                        if *t >= num_t { num_t = *t + 1 }
+                    }
+                    GrNode::LForm(nt) => {
+                        lforms.insert(*nt, format!("{}Iter{iter}", char::from(v as u8 + 65)));
+                        num_iter += 1;
+                        iter += 1;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        table.extend_non_terminals((0..num_nt).map(|v| char::from(v as u8 + 65).to_string()));
+        for (nt, name) in lforms {
+            if nt >= num_nt {
+                table.extend_non_terminals((num_nt..=nt).map(|v| if v < nt { "???".to_string() } else { name.clone() }));
+                num_nt = nt + 1;
+                rules.set_tree(nt, GrTree::new());
+            }
+        }
+        if 21 <= id && id <= 25 || id == 27 || id == 32 {
+            table.extend_terminals([
+                ("a".to_string(), None),
+                if id != 25 { ("b".to_string(), None) } else { ("#".to_string(), Some("#".to_string())) },
+                ("c".to_string(), None),
+            ]);
+        } else {
+            table.extend_terminals((0..num_t).map(|v| (char::from(v as u8 + 97).to_string(), None)));
+        }
+        if VERBOSE { println!("RTS({id}): num_nt = {num_nt}, num_t = {num_t}, num_iter = {num_iter}, table = {:?}", table); }
         rules.symbol_table = Some(table);
     }
     rules
@@ -473,10 +509,10 @@ fn rts_normalize() {
         (11, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, 1), ε)"]),
         (12, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), ε)"]),
         (13, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:4, 1), ε)"]),
-        (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, <L>, 0), :4)"]),
+        (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, <L=0>, 0), :4)"]),
         (17, btreemap![0 => "&(:0, 2, :3)", 1 => "|(&(:1, 1), :1)", 2 => "|(&(1, :2, 2), &(1, :2))"]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, expected) in tests {
         if VERBOSE {
             println!("test {test_id}:");
@@ -2464,7 +2500,7 @@ fn rts_prs_flags() {
         (T::RTS(19), 0, btreemap![0 => 2560, 1 => 129, 2 => 4],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
-        (T::RTS(20), 0, btreemap![0 => 2688, 1 => 1, 2 => 4],
+        (T::RTS(20), 0, btreemap![0 => 2560, 1 => 1, 2 => 4],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
         (T::RTS(29), 0, btreemap![0 => 2048, 2 => 1, 3 => 2049],

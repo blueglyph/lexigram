@@ -2472,8 +2472,8 @@ mod listener8 {
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
     const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("a", None), ("b", None), ("c", None)];
-    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["A", "A_1"];
-    const SYMBOLS_NAMES: [(&str, VarId); 1] = [("A_1", 1)];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["A", "AIter1"];
+    const SYMBOLS_NAMES: [(&str, VarId); 2] = [("1_noname", 0), ("AIter1", 1)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 3] = [(0, &[Symbol::T(0), Symbol::NT(1), Symbol::T(2)]), (1, &[Symbol::T(1), Symbol::NT(1)]), (1, &[Symbol::Empty])];
     const PARSING_TABLE: [FactorId; 8] = [0, 3, 3, 3, 3, 1, 2, 3];
     const FLAGS: [u32; 2] = [2048, 129];
@@ -2771,8 +2771,8 @@ mod listener9 {
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 4;
     const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("a", None), ("b", None), ("c", None)];
-    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["A", "B", "A_1", "B_1"];
-    const SYMBOLS_NAMES: [(&str, VarId); 2] = [("A_1", 2), ("B_1", 3)];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["A", "A_1", "A_2", "A_3"];
+    const SYMBOLS_NAMES: [(&str, VarId); 3] = [("A_1", 1), ("A_2", 2), ("A_3", 3)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 6] = [(0, &[Symbol::T(0), Symbol::NT(2)]), (1, &[Symbol::T(2), Symbol::NT(3)]), (2, &[Symbol::NT(1), Symbol::T(1), Symbol::NT(2)]), (2, &[Symbol::Empty]), (3, &[Symbol::NT(1)]), (3, &[Symbol::Empty])];
     const PARSING_TABLE: [FactorId; 16] = [0, 6, 6, 6, 6, 6, 1, 6, 6, 6, 2, 3, 6, 5, 4, 6];
     const FLAGS: [u32; 4] = [6656, 4129, 4, 64];

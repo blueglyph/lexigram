@@ -52,8 +52,8 @@ pub enum GrNode {
     Maybe,
     Plus,
     Star,
-    LForm,  // applied to NT
-    RAssoc  // applied to factor
+    LForm(VarId),   // applied to NT
+    RAssoc          // applied to factor
 }
 
 impl Display for Symbol {
@@ -76,7 +76,7 @@ impl Display for GrNode {
             GrNode::Maybe => write!(f, "?"),
             GrNode::Plus => write!(f, "+"),
             GrNode::Star => write!(f, "*"),
-            GrNode::LForm => write!(f, "<L>"),
+            GrNode::LForm(v) => write!(f, "<L={v}>"),
             GrNode::RAssoc => write!(f, "<R>")
         }
     }
@@ -102,6 +102,7 @@ impl GrNode {
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
         match self {
             GrNode::Symbol(s) => symbol_table.map(|t| t.get_name(s)).unwrap_or(s.to_string()),
+            GrNode::LForm(v) => format!("<L={}>", symbol_table.map(|t| t.get_name(&Symbol::NT(*v))).unwrap_or(v.to_string())),
             _ => self.to_string()
         }
     }
@@ -583,7 +584,6 @@ impl RuleTreeSet<General> {
                             // +(&(A,B))      -> Q    |(&(A,B,Q),&(A',B'))             ABQ|AB
                             // +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
                             if VERBOSE { print!("  +"); }
-                            self.symbol_table.as_mut().map(|st| st.add_var_prime_name(var, new_var));
                             self.normalize_plus_or_star(&mut stack, &mut new, var, &mut new_var, true);
                         }
                     }
@@ -603,7 +603,6 @@ impl RuleTreeSet<General> {
                             // *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
                             // *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
                             if VERBOSE { print!("  *"); }
-                            self.symbol_table.as_mut().map(|st| st.add_var_prime_name(var, new_var));
                             self.normalize_plus_or_star(&mut stack, &mut new, var, &mut new_var, false);
                         }
                     }
@@ -633,6 +632,7 @@ impl RuleTreeSet<General> {
         const VERBOSE: bool = false;
         let mut qtree = VecTree::<GrNode>::new();
         let child = stack.pop().unwrap();
+        let mut lform_nt = None;
         // See comments in `normalize` near the calls to this method for details about the operations below
         match new.get(child) {
             GrNode::Symbol(s) => {
@@ -647,7 +647,11 @@ impl RuleTreeSet<General> {
                 let children = new.children(child);
                 if VERBOSE { print!("({child}:&({})) ", children.iter().join(", ")); }
                 let or = qtree.add_root(gnode!(|));
-                let cc1 = qtree.add_from_tree(Some(or), new.iter_depth_at(child));
+                let cc1 = qtree.add_from_tree(Some(or), new.iter_depth_at(child).inspect(|n| {
+                    if let &GrNode::LForm(v) = n.deref() {
+                        lform_nt = Some(v);
+                    }
+                }));
                 qtree.add(Some(cc1), gnode!(nt *new_var));
                 if is_plus {
                     qtree.add_from_tree(Some(or), new.iter_depth_at(child));
@@ -669,7 +673,11 @@ impl RuleTreeSet<General> {
                             }
                         }
                         GrNode::Concat => {
-                            let cc = qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child));
+                            let cc = qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child).inspect(|n| {
+                                if let &GrNode::LForm(v) = n.deref() {
+                                    lform_nt = Some(v);
+                                }
+                            }));
                             qtree.add(Some(cc), gnode!(nt *new_var));
                             if is_plus {
                                 qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child));
@@ -684,6 +692,18 @@ impl RuleTreeSet<General> {
             }
             _ => panic!("Unexpected node type under a + node: {}", new.get(child))
         }
+        self.symbol_table.as_mut().map(|st| {
+            if let Some(v) = lform_nt {
+                let name = st.remove_nt_name(v);
+                if VERBOSE {
+                    println!("table = {st:?}");
+                    println!("L-FORM({v}) found, using name of NT({v}) = '{name}' for new NT({new_var})");
+                }
+                st.add_var_prime_name(var, *new_var, Some(name));
+            } else {
+                st.add_var_prime_name(var, *new_var, None);
+            }
+        });
         let id = new.add(None, gnode!(nt *new_var));
         assert!(*new_var as usize >= self.trees.len() || self.trees[*new_var as usize].is_empty(), "overwriting tree {new_var}");
         self.set_tree(*new_var, qtree);
@@ -1287,7 +1307,7 @@ impl<T> ProdRuleSet<T> {
                     // if more than one independent factor, moves them in a new NT to simplify the resulting rules
                     let var_ambig = new_var;
                     if let Some(table) = &mut self.symbol_table {
-                        table.add_var_prime_name(var, new_var);
+                        table.add_var_prime_name(var, new_var, None);
                     }
                     self.set_flags(var_ambig, ruleflag::CHILD_INDEPENDENT_AMBIGUITY);
                     self.set_parent(var_ambig, var);
@@ -1303,7 +1323,7 @@ impl<T> ProdRuleSet<T> {
                 self.set_flags(var, ruleflag::PARENT_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::PARENT_AMBIGUITY });
                 self.set_parent(var_prime, var);
                 if let Some(table) = &mut self.symbol_table {
-                    table.add_var_prime_name(var, var_prime);
+                    table.add_var_prime_name(var, var_prime, None);
                 }
                 let symbol_prime = Symbol::NT(var_prime);
                 if VERBOSE {
@@ -1425,7 +1445,7 @@ impl<T> ProdRuleSet<T> {
                 self.set_flags(var, ruleflag::PARENT_L_FACTOR);
                 self.set_flags(var_prime, ruleflag::CHILD_L_FACTOR);
                 if let Some(table) = &mut self.symbol_table {
-                    table.add_var_prime_name(var, var_prime);
+                    table.add_var_prime_name(var, var_prime, None);
                 }
                 self.set_parent(var_prime, var);
                 let symbol_prime = Symbol::NT(var_prime);
@@ -1560,7 +1580,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                             flags |= ruleflag::R_ASSOC;
                             false
                         }
-                        GrNode::LForm => {
+                        GrNode::LForm(_) => {
                             flags |= ruleflag::L_FORM;
                             false
                         }
@@ -1702,7 +1722,7 @@ pub mod macros {
     /// assert_eq!(gnode!(?), GrNode::Maybe);
     /// assert_eq!(gnode!(+), GrNode::Plus);
     /// assert_eq!(gnode!(*), GrNode::Star);
-    /// assert_eq!(gnode!(L), GrNode::LForm);
+    /// assert_eq!(gnode!(L 3), GrNode::LForm(3));
     /// assert_eq!(gnode!(R), GrNode::RAssoc);
     /// ```
     #[macro_export(local_inner_macros)]
@@ -1718,7 +1738,7 @@ pub mod macros {
         (?) => { GrNode::Maybe };
         (+) => { GrNode::Plus };
         (*) => { GrNode::Star };
-        (L) => { GrNode::LForm };
+        (L $id:expr) => { GrNode::LForm($id) };
         (R) => { GrNode::RAssoc };
     }
 
