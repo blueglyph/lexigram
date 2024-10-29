@@ -279,7 +279,7 @@ pub mod ruleflag {
     /// Left-factorized child NT.
     /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
     pub const CHILD_L_FACTOR: u32 = 64;
-    /// Low-latency non-terminal factor.
+    /// Low-latency non-terminal factor, used with `CHILD_REPEAT` or `R_RECURSION`.
     /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in `flags`.
     pub const L_FORM: u32 = 128;
     /// Right-associative factor.
@@ -1609,11 +1609,11 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
 
                     // We keep the L flag on the child of +* normalization if it's intended only for that normalization.
                     // For example:
-                    // - A -> A (b <L>)+ | c
-                    //   - doesn't have an l-form left recursion
+                    // - A -> (b <L>)+ A | c
+                    //   - doesn't have an l-form right recursion
                     //   - has an l-form repetition of b
-                    // - A -> A <L> (b)+ | c
-                    //   - has an l-form left recursion
+                    // - A -> <L> (b)+ A | c
+                    //   - has an l-form right recursion
                     //   - doesn't have an l-form repetition of b
                     //
                     // while let Some(parent) = prules.get_parent(nt) {
