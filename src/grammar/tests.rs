@@ -448,6 +448,17 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc(Some(cc2), gnode!(+), gnode!(t 1));
             tree.add(Some(cc), gnode!(t 3));
         }
+        35 => { // A -> a A | b
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 0), gnode!(nt 0)]);
+            tree.add(Some(or), gnode!(t 1));
+        }
+        36 => { // A -> a A <L=A> | b
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 0), gnode!(nt 0), gnode!(L 0)]);
+            tree.add(Some(or), gnode!(t 1));
+        }
+
         _ => {}
     }
     if rules.symbol_table.is_none() {
@@ -607,6 +618,12 @@ fn rts_prodrule_from() {
             1 => prod!(t 1, nt 1; t 1),
             2 => prod!(nt 1, t 2, nt 2; nt 1, t 2),
         ], vec![6144, 4097, 6145], vec![None, Some(2), Some(0)]),
+        (35, btreemap![
+            0 => prod!(t 0, nt 0; t 1),
+        ], vec![0], vec![None]), // R_RECURSION not set yet (set by ProdRuleSet<T>::remove_left_recursion())
+        (36, btreemap![
+            0 => prod!(t 0, nt 0; t 1),
+        ], vec![128], vec![None]), // R_RECURSION not set yet (set by ProdRuleSet<T>::remove_left_recursion())
     ];
     const VERBOSE: bool = false;
     for (test_id, expected, expected_flags, expected_parent) in tests {
@@ -1179,6 +1196,25 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // A -> A a b | A a c | b c | b d
             prods.extend([
                 prod!(nt 0, t 0, t 1; nt 0, t 0, t 2; t 1, t 2; t 1, t 3),
+            ]);
+        }
+        40 => {
+            // A -> a A | b
+            prods.extend([
+                prod!(t 0, nt 0; t 1),
+            ]);
+        }
+        41 => {
+            // A -> a A <L> | b (by explicitly setting the l-form flag)
+            prods.extend([
+                prod!(t 0, nt 0; t 1),
+            ]);
+            rules.set_flags(0, ruleflag::L_FORM);
+        }
+        42 => {
+            // A -> a A <L> | b (l-form set through the ProdFactor flags)
+            prods.extend([
+                prod!(#L, t 0, nt 0; t 1),
             ]);
         }
 
@@ -2516,6 +2552,12 @@ fn rts_prs_flags() {
         (T::RTS(29), 0, btreemap![0 => 2048, 2 => 1, 3 => 2049],
          btreemap![],
          btreemap![2 => 3, 3 => 0]),
+        (T::RTS(35), 0, btreemap![0 => 2],
+         btreemap![],
+         btreemap![]),
+        (T::RTS(36), 0, btreemap![0 => 130],
+         btreemap![],
+         btreemap![]),
         (T::PRS(0), 0, btreemap![0 => 544, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
@@ -2546,6 +2588,15 @@ fn rts_prs_flags() {
         (T::PRS(33), 0, btreemap![0 => 544, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0]),
+        (T::PRS(40), 0, btreemap![0 => 2],
+         btreemap![],
+         btreemap![]),
+        (T::PRS(41), 0, btreemap![0 => 130],
+         btreemap![],
+         btreemap![]),
+        (T::PRS(42), 0, btreemap![0 => 130],
+         btreemap![],
+         btreemap![]),
         /*
         (T::PRS(), 0, btreemap![], btreemap![], btreemap![]),
         */

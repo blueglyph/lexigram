@@ -273,6 +273,35 @@ mod opcodes {
                 strip![loop 1, exit 1, t 4, t 5, t 3, t 5], //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!
                 strip![exit 2, t 2],                        //  2: LIST -> }                  - ◄2 }
             ]),
+            // // A -> a A | b
+            // - NT flags:
+            //   - A: right_rec (2)
+            (T::RTS(35), 0, vec![
+                strip![exit 0, nt 0, t 0],              //  0: A -> a A - ◄0 ►A a!
+                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            ]),
+            // A -> a A <L> | b
+            // - NT flags:
+            //   - A: right_rec | L-form (130)
+            (T::RTS(36), 0, vec![
+                strip![loop 0, exit 0, t 0],            //  0: A -> a A - ●A ◄0 a!
+                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            ]),
+            // // A -> a A | b
+            (T::PRS(40), 0, vec![
+                strip![exit 0, nt 0, t 0],              //  0: A -> a A - ◄0 ►A a!
+                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            ]),
+            // A -> a A <L> | b
+            (T::PRS(41), 0, vec![
+                strip![loop 0, exit 0, t 0],            //  0: A -> a A - ●A ◄0 a!
+                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            ]),
+            // A -> a A <L> | b
+            (T::PRS(42), 0, vec![
+                strip![loop 0, exit 0, t 0],            //  0: A -> a A - ●A ◄0 a!
+                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            ]),
             // [C] left recursion ----------------------------------------------------------
             (T::PRS(26), 0, vec![                       // A -> A a | b
                 strip![nt 1, exit 0, t 1],              //  0: A -> b A_1   - ►A_1 ◄0 b
@@ -1262,6 +1291,11 @@ mod wrapper_source {
                 2 => vec![(2, 0)],
                 3 => vec![(2, 0)],
             ]),
+            /*
+            (PRS(), vec![
+            ], btreemap![
+            ]),
+            */
         ];
         const VERBOSE: bool = true;
         for (test_id, (rule_id, expected_expanded_full, expected_top_factors)) in tests.into_iter().enumerate() {

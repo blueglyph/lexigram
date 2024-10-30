@@ -1470,6 +1470,20 @@ impl<T> ProdRuleSet<T> {
     pub(crate) fn remove_ambiguity(&self) {
         todo!()
     }
+
+    /// Moves the flags of the mask from the factors to the NT flags
+    fn transfer_factor_flags(&mut self) {
+        // add other flags here if necessary:
+        const FLAG_MASK: u32 = ruleflag::L_FORM;
+
+        for (v, prod) in self.prods.iter_mut().enumerate() {
+            let flags = prod.iter().fold(0, |acc, f| acc | f.flags) & FLAG_MASK;
+            self.flags[v] |= flags;
+            for f in prod.iter_mut() {
+                f.flags &= !FLAG_MASK;
+            }
+        }
+    }
 }
 
 impl ProdRuleSet<LL1> {
@@ -1668,6 +1682,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
     fn from(mut rules: ProdRuleSet<General>) -> Self {
         rules.remove_left_recursion();
         rules.left_factorize();
+        rules.transfer_factor_flags();
         ProdRuleSet::<LL1> {
             prods: rules.prods,
             num_nt: rules.num_nt,
@@ -1686,6 +1701,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
 impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
     fn from(mut rules: ProdRuleSet<General>) -> Self {
         rules.remove_ambiguity();
+        rules.transfer_factor_flags();
         ProdRuleSet::<LR> {
             prods: rules.prods,
             num_nt: rules.num_nt,
