@@ -502,7 +502,7 @@ impl<'a, T> TreeDataIter for IterDataSimpleMut<'a, T> {
 
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
         assert!(index < self.tree.len());
-        return NodeProxySimpleMut {
+        NodeProxySimpleMut {
             index,
             depth,
             data: unsafe { NonNull::new_unchecked((*self.tree.nodes.as_ptr().add(index)).data.get()) },

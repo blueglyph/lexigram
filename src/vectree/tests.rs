@@ -71,13 +71,16 @@ mod general {
         let tree = build_tree();
         let mut result = String::new();
         let mut result_index = vec![];
+        let mut result_depth = vec![];
         for inode in tree.iter_depth_simple() {
             result.push_str(&inode.to_uppercase());
             result.push(',');
             result_index.push(inode.index);
+            result_depth.push(inode.depth);
         }
         assert_eq!(result, "A1,A2,A,B,C1,C2,C,ROOT,");
         assert_eq!(result_index, [4, 5, 1, 2, 6, 7, 3, 0]);
+        assert_eq!(result_depth, [2, 2, 1, 1, 2, 2, 1, 0]);
     }
 
     #[test]
