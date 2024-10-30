@@ -1761,6 +1761,13 @@ pub mod macros {
         (end) => { Symbol::End };
     }
 
+    #[macro_export(local_inner_macros)]
+    macro_rules! prodflag {
+        (L) => { 128 };
+        (R) => { 256 };
+        ($f:expr) => { $f };
+    }
+
     /// Generates a production rule factor. A factor is made up of symbols separated by a comma.
     /// Each symbol is either
     /// - a non-terminal: `nt` {integer}
@@ -1778,14 +1785,17 @@ pub mod macros {
     /// # use rlexer::{prodf, sym};
     /// assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
     /// assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
+    /// assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! prodf {
         () => { std::vec![] };
         ($($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![$($a $($b $(: $num)?)?),+] };
         ($($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::new(std::vec![$(sym!($a $($b $(: $num)?)?)),*]) };
-        (#$f:expr, $($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![#$f, $($a $($b $(: $num)?)?),+] };
-        (#$f:expr, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], $f) };
+        (#$f:literal, $($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![#$f, $($a $($b $(: $num)?)?),+] };
+        (#$f:literal, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], $f) };
+        (#$f:ident, $($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![#$f, $($a $($b $(: $num)?)?),+] };
+        (#$f:ident, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], prodflag!($f)) };
     }
 
     #[macro_export(local_inner_macros)]
@@ -1810,11 +1820,17 @@ pub mod macros {
     ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
     ///                 ProdFactor::with_flags(vec![sym!(nt  2)], 128),
     ///                 ProdFactor::new(vec![sym!(e)])]);
+    /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
+    ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+    ///                 ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+    ///                 ProdFactor::new(vec![sym!(e)])]);
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! prod {
         () => { std::vec![] };
-        ($($(#$f:expr,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
-        ($($(#$f:expr,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$(prodf![$(#$f,)? $($a $($b)?),+]),*]};
+        ($($(#$f:literal,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
+        ($($(#$f:literal,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$(prodf![$(#$f,)? $($a $($b)?),+]),*]};
+        ($($(#$f:ident,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
+        ($($(#$f:ident,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$(prodf![$(#$f,)? $($a $($b)?),+]),*]};
     }
 }

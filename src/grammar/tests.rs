@@ -61,9 +61,11 @@ fn gnode_macro() {
 fn prod_macros() {
     assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
     assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
+    assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
     // with extra comma:
     assert_eq!(prodf!(nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
     assert_eq!(prodf!(#128, nt 1, t 2, e,), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
+    assert_eq!(prodf!(#L, nt 1, t 2, e,), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
 
     assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
@@ -73,14 +75,22 @@ fn prod_macros() {
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
                     ProdFactor::with_flags(vec![sym!(nt  2)], 128),
                     ProdFactor::new(vec![sym!(e)])]);
+    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
+               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+                    ProdFactor::new(vec![sym!(e)])]);
     // with extra semicolon:
     assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e;),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
                     ProdFactor::new(vec![sym!(nt  2)]),
                      ProdFactor::new(vec![sym!(e)])]);
-    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #128, nt 2; e;),
+    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #R, nt 2; e;),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+                    ProdFactor::with_flags(vec![sym!(nt  2)], 256),
+                    ProdFactor::new(vec![sym!(e)])]);
+    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #256, nt 2; e;),
+               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    ProdFactor::with_flags(vec![sym!(nt  2)], 256),
                     ProdFactor::new(vec![sym!(e)])]);
 }
 
@@ -590,7 +600,7 @@ fn rts_prodrule_from() {
             0 => prod!(t 1, t 2; t 1, t 3; t 1; t 2; t 3; e)
         ], vec![0], vec![None]),
         (15, btreemap![
-            0 => prod!(nt 0, t 1, nt 0; #256, nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4)
+            0 => prod!(nt 0, t 1, nt 0; #R, nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4)
         ], vec![128], vec![None]),
         (17, btreemap![
             0 => prod!(t 0, nt 2, t 3),
@@ -746,7 +756,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                     t 1, t 1, t 2, t 3;
                     t 3, t 2, t 4;
                     t 1, t 3, t 4, t 6;
-                    #256, t 1, t 1, t 2;
+                    #R, t 1, t 1, t 2;
                     t 2, t 1;
                     t 1, t 2, t 6;
                     t 1, t 3, t 4, t 5;
@@ -1403,7 +1413,7 @@ fn prs_left_factorize() {
             0 => prod!(t 1, nt 1; t 2, t 1; t 3, t 2, nt 2),
             1 => prod!(t 1, t 2, nt 3; t 2, t 6; t 3, t 4, nt 4),
             2 => prod!(t 4; e),
-            3 => prod!(t 3; #256, e),
+            3 => prod!(t 3; #R, e),
             4 => prod!(t 5; t 6),
         ]),
         (2, btreemap![]),
