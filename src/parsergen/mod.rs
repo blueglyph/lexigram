@@ -4,12 +4,10 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use std::ops::Deref;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId};
-use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str};
+use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str, StructLibs};
 use crate::parser::{OpCode, Parser};
 use crate::symbol_table::SymbolTable;
-use crate::vectree::VecTree;
 
 mod tests;
 
@@ -1636,103 +1634,4 @@ impl ParserBuilder {
         */
         src
     }
-}
-
-struct StructLibs {
-    libs: BTreeSet<String>
-}
-
-impl StructLibs {
-    pub fn new() -> Self {
-        StructLibs { libs: BTreeSet::new() }
-    }
-
-    pub fn add(&mut self, lib: &str) {
-        self.libs.insert(lib.to_string());
-    }
-
-    pub fn extend<I: IntoIterator<Item=J>, J: ToString>(&mut self, libs: I) {
-        self.libs.extend(libs.into_iter().map(|s| s.to_string()));
-    }
-
-    #[cfg(test)]
-    fn tree_to_string(t: &VecTree<String>, idx: usize) -> String {
-        let children = t.children(idx).iter().map(|child| {
-            if t.children(*child).len() > 0 {
-                format!("{}[{}]", t.get(*child), Self::tree_to_string(t, *child))
-            } else {
-                t.get(*child).to_string()
-            }
-        }).to_vec();
-        children.join(", ")
-    }
-
-    fn to_tree(&self) -> VecTree<String> {
-        let mut tree = VecTree::new();
-        let root = tree.add_root(String::new());
-        for lib in &self.libs {
-            let mut idx = root;
-            for md in lib.split("::") {
-                idx = tree.children(idx).iter()
-                    .find_map(|&i| {
-                        if tree.get(i) == md { Some(i) } else { None }
-                    })
-                    .unwrap_or_else(|| {
-                        tree.add(Some(idx), md.to_string())
-                    });
-            }
-            tree.add(Some(idx), "self".to_string());
-        }
-        tree
-    }
-
-    pub fn build_source_code(&self) -> Vec<String> {
-        let mut stack = Vec::<Vec<String>>::new();
-        let tree = self.to_tree();
-        for node in tree.iter_depth_simple() {
-            if node.depth as usize >= stack.len() && node.depth > 0 {
-                while node.depth as usize > stack.len() {
-                    stack.push(vec![]);
-                }
-                stack.last_mut().unwrap().push(node.to_string())
-            } else if node.depth > 0 {
-                let sub = stack.pop().unwrap();
-                stack.last_mut().unwrap().push(
-                    if sub.len() > 1 {
-                        format!("{}::{{{}}}", node.deref(), sub.join(", "))
-                    } else if sub.last().unwrap() == "self" {
-                        format!("{}", node.deref())
-                    } else {
-                        format!("{}::{}", node.deref(), sub[0])
-                    });
-            }
-        }
-        stack.pop().unwrap_or(vec![]).into_iter().map(|s| format!("use {s};")).to_vec()
-    }
-}
-
-#[test]
-fn struct_libs() {
-    const VERBOSE: bool = false;
-    let mut l = StructLibs::new();
-    let l1 = ["a", "a::a1", "a::b1", "a::a1::a2", "a::a1::b2"];
-    let l2 = vec!["a::a1::a2::a3"];
-    let l3 = vec!["a::c1::a2".to_string()];
-    l.extend(l1);
-    l.add("b");
-    l.extend(l2);
-    l.extend(l3);
-    let tree = l.to_tree();
-    if VERBOSE {
-        println!("{}", tree.iter_depth_simple().map(|n| format!("({}){}", n.depth, n.deref())).join(", "));
-        println!("{}", StructLibs::tree_to_string(&tree, tree.get_root().unwrap()));
-    }
-    let src = l.build_source_code();
-    if VERBOSE {
-        println!("{}", src.join("\n"));
-    }
-    assert_eq!(src, ["use a::{self, a1::{self, a2::{self, a3}, b2}, b1, c1::a2};", "use b;"]);
-
-    let src_empty = StructLibs::new().build_source_code();
-    assert_eq!(src_empty, Vec::<String>::new());
 }
