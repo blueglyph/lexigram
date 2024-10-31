@@ -23,9 +23,7 @@ mod rules_prs_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(34) #1, start S]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `S -> id = VAL | exit | return VAL`
     #[derive(Debug)]
@@ -194,9 +192,7 @@ mod rules_rts_21_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [b]* c`
     #[derive(Debug)]
@@ -333,9 +329,7 @@ mod rules_rts_21_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #2, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [b]* c`
     #[derive(Debug)]
@@ -456,9 +450,7 @@ mod rules_rts_22_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a (b <L>)* c`
     #[derive(Debug)]
@@ -602,9 +594,7 @@ mod rules_rts_22_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #2, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a (b <L>)* c`
     #[derive(Debug)]
@@ -730,9 +720,7 @@ mod rules_rts_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(32) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a a (b <L>)* c | a c (b <L>)* c`
     #[derive(Debug)]
@@ -895,9 +883,7 @@ mod rules_rts_25_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(25) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [#]* c`
     #[derive(Debug)]
@@ -1021,9 +1007,7 @@ mod rules_rts_23_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(23) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [b]+ c`
     #[derive(Debug)]
@@ -1166,9 +1150,7 @@ mod rules_rts_27_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(27) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [B]+ c`
     #[derive(Debug)]
@@ -1334,9 +1316,7 @@ mod rules_rts_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(28) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> [a B]+ c`
     #[derive(Debug)]
@@ -1501,9 +1481,7 @@ mod rules_rts_24_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a (b <L>)+ c`
     #[derive(Debug)]
@@ -1656,9 +1634,7 @@ mod rules_rts_29_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [[B b]* c]* d`
     #[derive(Debug)]
@@ -1847,9 +1823,7 @@ mod rules_rts_29_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #2, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [[B b]* c]* d`
     #[derive(Debug)]
@@ -2006,9 +1980,7 @@ mod rules_rts_29_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #3, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [[B b]* c]* d`
     #[derive(Debug)]
@@ -2187,9 +2159,7 @@ mod rules_rts_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [[B b]+ c]+ d`
     #[derive(Debug)]
@@ -2388,9 +2358,7 @@ mod rules_rts_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #2, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [[B b]+ c]+ d`
     #[derive(Debug)]
@@ -2600,9 +2568,7 @@ mod rules_rts_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(34) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::VarId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d`
     #[derive(Debug)]
@@ -2862,9 +2828,7 @@ mod rules_prs_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(28) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a | a b | a b c | a b d | e`
     #[derive(Debug)]
@@ -3025,9 +2989,7 @@ mod rules_prs_31_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(31) #1, start E]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `E -> F`
     #[derive(Debug)]
@@ -3188,9 +3150,7 @@ mod rules_prs_36_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(36) #1, start E]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `E -> F | num`
     #[derive(Debug)]
@@ -3366,9 +3326,7 @@ mod rules_prs_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(33) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `A -> b c | b d`
     #[derive(Debug)]
@@ -3530,9 +3488,7 @@ mod rules_prs_38_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(38) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `A -> b c | b d`
     #[derive(Debug)]
@@ -3705,9 +3661,7 @@ mod rules_prs_39_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(39) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `A -> b c | b d`
     #[derive(Debug)]
@@ -3881,9 +3835,7 @@ mod rules_prs_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(32) #1, start E]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `E -> F`
     #[derive(Debug)]
@@ -4051,9 +4003,7 @@ mod rules_prs_20_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #1, start STRUCT]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
@@ -4203,9 +4153,7 @@ mod rules_prs_20_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #2, start STRUCT]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
@@ -4350,9 +4298,7 @@ mod rules_prs_37_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(37) #1, start STRUCT]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
@@ -4510,9 +4456,7 @@ mod rules_prs_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(30) #1, start STRUCT]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
@@ -4672,9 +4616,7 @@ mod rules_rts_26_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(26) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a`
     #[derive(Debug)]
@@ -4840,9 +4782,7 @@ mod rules_rts_16_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(16) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a`
     #[derive(Debug)]
@@ -5004,9 +4944,7 @@ mod rules_prs_35_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(35) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `A -> a | a b b | a c c`
     #[derive(Debug)]
@@ -5151,9 +5089,7 @@ mod rules_rts_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(33) #1, start A]
 
-    use rlexer::CollectJoin;
-    use rlexer::grammar::{FactorId, VarId};
-    use rlexer::parser::{Call, Listener};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     /// Type of top rule `A -> [B c]* b | a`
     #[derive(Debug)]

@@ -140,7 +140,7 @@ pub struct ParserBuilder {
     item_ops: HashMap<FactorId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId,
-    used_libs: BTreeSet<(String, String)>
+    used_libs: StructLibs
 }
 
 impl ParserBuilder {
@@ -175,7 +175,7 @@ impl ParserBuilder {
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
             start,
-            used_libs: BTreeSet::new()
+            used_libs: StructLibs::new()
         };
         builder.build_opcodes();
         builder
@@ -1015,51 +1015,23 @@ impl ParserBuilder {
     }
 
     fn source_use(&self) -> Vec<String> {
-        fn push_use(src: &mut Vec<String>, a: &str, names: &mut BTreeSet<String>) {
-            match names.len() {
-                0 => src.push(format!("use rlexer::{a};")),
-                1 => src.push(format!("use rlexer::{a}::{};", names.first().unwrap())),
-                _ => src.push(format!("use rlexer::{a}::{{{}}};", names.iter().join(", "))),
-            }
-            names.clear();
-        }
-        let mut src = Vec::<String>::new();
-        let mut last: Option<&str> = None;
-        let mut names = BTreeSet::<String>::new();
-        for (a, b) in &self.used_libs {
-            if let Some(last_a) = last {
-                if *a != *last_a {
-                    push_use(&mut src, last_a, &mut names);
-                    names.clear();
-                }
-            }
-            if !b.is_empty() {
-                names.insert(b.clone());
-            }
-            last = Some(&a);
-        }
-        if !names.is_empty() {
-            if let Some(last_a) = last {
-                push_use(&mut src, last_a, &mut names);
-            }
-        }
-        src
+        self.used_libs.build_source_code()
     }
 
     fn source_build_parser(&mut self) -> Vec<String> {
         let num_nt = self.symbol_table.get_non_terminals().len();
         let num_t = self.symbol_table.get_terminals().len();
         let mut symbol_names = self.symbol_table.get_names().to_vec(); // hashmap: we want predictable outcome, so we sort names
-        for (a, b) in [
-            ("grammar",      "ProdFactor"),
-            ("grammar",      "Symbol"),
-            ("grammar",      "VarId"),
-            ("grammar",      "FactorId"),
-            ("parser",       "OpCode"),
-            ("parser",       "Parser"),
-            ("symbol_table", "SymbolTable"),
+        for lib in [
+            "rlexer::grammar::ProdFactor",
+            "rlexer::grammar::Symbol",
+            "rlexer::grammar::VarId",
+            "rlexer::grammar::FactorId",
+            "rlexer::parser::OpCode",
+            "rlexer::parser::Parser",
+            "rlexer::symbol_table::SymbolTable",
         ] {
-            self.used_libs.insert((a.to_string(), b.to_string()));
+            self.used_libs.add(lib);
         }
 
         symbol_names.sort();
@@ -1136,9 +1108,7 @@ impl ParserBuilder {
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
 
-        for (a, b) in [("CollectJoin", ""), ("grammar", "VarId"), ("parser", "Call"), ("parser", "Listener")] {
-            self.used_libs.insert((a.to_string(), b.to_string()));
-        }
+        self.used_libs.extend(["rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::Listener"]);
 
         let (nt_name, factor_info, item_info, nt_repeat) = self.get_type_info();
         let pinfo = &self.parsing_table;
@@ -1436,7 +1406,7 @@ impl ParserBuilder {
                     if !no_method {
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor { ", factor_id: FactorId" } else { "" }));
                         if is_factor {
-                            self.used_libs.insert(("grammar".to_string(), "FactorId".to_string()));
+                            self.used_libs.add("rlexer::grammar::FactorId");
                         }
                     }
                     if flags & ruleflag::CHILD_REPEAT != 0 {
@@ -1685,7 +1655,7 @@ impl StructLibs {
         self.libs.extend(libs.into_iter().map(|s| s.to_string()));
     }
 
-    #[test]
+    #[cfg(test)]
     fn tree_to_string(t: &VecTree<String>, idx: usize) -> String {
         let children = t.children(idx).iter().map(|child| {
             if t.children(*child).len() > 0 {

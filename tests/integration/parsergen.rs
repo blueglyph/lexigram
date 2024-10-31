@@ -18,9 +18,7 @@ mod parser_gen {
         // -------------------------------------------------------------------------
         // Automatically generated
 
-        use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-        use rlexer::parser::{OpCode, Parser};
-        use rlexer::symbol_table::SymbolTable;
+        use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
         const PARSER_NUM_T: usize = 10;
         const PARSER_NUM_NT: usize = 3;
@@ -66,9 +64,7 @@ mod listener {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 8;
     const PARSER_NUM_NT: usize = 5;
@@ -379,9 +375,7 @@ mod listener2 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 10;
     const PARSER_NUM_NT: usize = 3;
@@ -950,9 +944,7 @@ mod listener3 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 6;
     const PARSER_NUM_NT: usize = 2;
@@ -1243,9 +1235,7 @@ mod listener4 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 6;
     const PARSER_NUM_NT: usize = 2;
@@ -1546,9 +1536,7 @@ mod listener5 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 2;
     const PARSER_NUM_NT: usize = 3;
@@ -1857,9 +1845,7 @@ mod listener6 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 4;
@@ -2187,9 +2173,7 @@ mod listener7 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
@@ -2465,9 +2449,7 @@ mod listener8 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
@@ -2764,9 +2746,7 @@ mod listener9 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 4;
@@ -3078,9 +3058,7 @@ mod listener10 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 3;
@@ -3361,9 +3339,7 @@ mod listener11 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 4;
@@ -3675,9 +3651,7 @@ mod listener12 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -3989,9 +3963,7 @@ mod listener13 {
     // -------------------------------------------------------------------------
     // Automatically generated
 
-    use rlexer::grammar::{FactorId, ProdFactor, Symbol, VarId};
-    use rlexer::parser::{OpCode, Parser};
-    use rlexer::symbol_table::SymbolTable;
+    use rlexer::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 3;
