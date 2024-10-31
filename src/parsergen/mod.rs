@@ -180,6 +180,11 @@ impl ParserBuilder {
     }
 
     #[inline]
+    pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
+        Some(&self.symbol_table)
+    }
+
+    #[inline]
     fn nt_has_flags(&self, var: VarId, flags: u32) -> bool {
         self.parsing_table.flags[var as usize] & flags == flags
     }
@@ -196,10 +201,6 @@ impl ParserBuilder {
             Symbol::NT(nt) => self.nt_value[*nt as usize],
             _ => false
         }
-    }
-
-    pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
-        Some(&self.symbol_table)
     }
 
     fn factor_to_str(&self, f: &Vec<Symbol>) -> String {
@@ -291,7 +292,7 @@ impl ParserBuilder {
         result
     }
 
-    pub fn full_factor_components(&self, f_id: FactorId, emphasis: Option<VarId>) -> (String, String) {
+    fn full_factor_components(&self, f_id: FactorId, emphasis: Option<VarId>) -> (String, String) {
         const VERBOSE: bool = false;
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
         let mut v_par_lf =  *v_f;
@@ -394,7 +395,7 @@ impl ParserBuilder {
         result
     }
 
-    pub fn full_factor_str(&self, f_id: FactorId, emphasis: Option<VarId>) -> String {
+    fn full_factor_str(&self, f_id: FactorId, emphasis: Option<VarId>) -> String {
         let (left, right) = self.full_factor_components(f_id, emphasis);
         if left.is_empty() {
             right
@@ -403,7 +404,7 @@ impl ParserBuilder {
         }
     }
 
-    pub fn full_prod_str(&self, v: VarId) -> String {
+    fn full_prod_str(&self, v: VarId) -> String {
         self.var_factors[v as usize].iter().enumerate()
             .map(|(i, f_id)| {
                 let (left, right) = self.full_factor_components(*f_id, None);
@@ -1541,12 +1542,16 @@ impl ParserBuilder {
             }
         }
 
-        // TODO: populate the src_*
-
         // Writes the listener trait declaration
         src.add_space();
         src.push(format!("pub trait {}Listener {{", self.name));
         src.push(format!("    fn exit(&mut self, _ctx: Ctx) {{}}"));
+        /*
+                              fn init_a(&mut self) {}
+                              fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+                              fn init_a_iter(&mut self) -> SynAIter;
+                              fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
+        */
         src.extend(src_listener_decl);
         src.push(format!("}}"));
 
@@ -1579,9 +1584,9 @@ impl ParserBuilder {
         src.push(format!("            Call::Enter => {{"));
         src.push(format!("                match nt {{"));
         /*
-        src.push(format!("                    0 => self.listener.init_a(),    // A"));
-        src.push(format!("                    1 => {{}}                         // A_1"));
-        src.push(format!("                    2 => {{}}                         // A_2"));
+                                              0 => self.listener.init_a(),                // A
+                                              1 => self.init_a_iter(),                    // AIter1
+                                              2 => {}                                     // A_1
         */
         src.extend(columns_to_str(src_init, Some(vec![64, 0])));
         src.push(format!("                    _ => panic!(\"unexpected enter non-terminal id: {{nt}}\")"));
@@ -1591,11 +1596,11 @@ impl ParserBuilder {
         src.push(format!("            Call::Exit => {{"));
         src.push(format!("                match factor_id {{"));
         /*
-        src.push(format!("                    0 => self.exit_a(),             //  0: A -> b A_2   | ◄0 ►A_2 b! |"));
-        src.push(format!("                    1 => self.exit_a_1(),           //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a"));
-        src.push(format!("                    2 => {{}}                         //  2: A_1 -> ε     | ◄2         |"));
-        src.push(format!("                    3 |                             //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c"));
-        src.push(format!("                    4 => self.exit_a_2(factor_id),  //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d"));
+                                              3 |                                         // A -> a a (b <L>)* c
+                                              4 => self.exit_a(factor_id),                // A -> a c (b <L>)* c
+                                              1 => self.exit_a_iter(),                    // (b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...
+                                              2 => {}                                     // end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c | ...
+                                           /* 0 */                                        // A -> a a (b <L>)* c | a c (b <L>)* c (never called)
         */
         src.extend(columns_to_str(src_exit, Some(vec![64, 0])));
         src.push(format!("                    _ => panic!(\"unexpected exit factor id: {{factor_id}}\")"));
@@ -1625,13 +1630,28 @@ impl ParserBuilder {
             }
         }
         src.push(format!("    }}"));
+/*
+                              impl<T: TestListener> ListenerWrapper<T> {
+                                  fn exit(&mut self) {
+                                      let a = self.stack.pop().unwrap().get_a();
+                                      self.listener.exit(Ctx::A { a });
+                                  }
+                                  fn init_a_iter(&mut self) {
+                                      let val = self.listener.init_a_iter();
+                                      self.stack.push(SynValue::AIter(val));
+                                  }
+                                  fn exit_a_iter(&mut self) {
+                                      let b = self.stack_t.pop().unwrap();
+                                      let star_it = self.stack.pop().unwrap().get_a_iter();
+                                      let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_it, b });
+                                      self.stack.push(SynValue::AIter(val));
+                                  }
+                                  // ...
+                              }
+*/
         src.extend(src_wrapper_impl);
         src.push(format!("}}"));
 
-        /*
-                                let a = self.stack.pop().unwrap().get_a();
-                                self.listener.exit(Ctx::A { a });
-        */
         src
     }
 }
