@@ -1685,6 +1685,7 @@ impl StructLibs {
         self.libs.extend(libs.into_iter().map(|s| s.to_string()));
     }
 
+    #[test]
     fn tree_to_string(t: &VecTree<String>, idx: usize) -> String {
         let children = t.children(idx).iter().map(|child| {
             if t.children(*child).len() > 0 {
@@ -1697,73 +1698,71 @@ impl StructLibs {
     }
 
     fn to_tree(&self) -> VecTree<String> {
-        const VERBOSE: bool = false;
         let mut tree = VecTree::new();
         let root = tree.add_root(String::new());
         for lib in &self.libs {
-            if VERBOSE { println!("lib: {lib}"); }
             let mut idx = root;
             for md in lib.split("::") {
-                if VERBOSE { print!("- {md}"); }
                 idx = tree.children(idx).iter()
                     .find_map(|&i| {
-                        if VERBOSE && tree.get(i) == md {
-                            print!(", found at idx={i}")
-                        }
                         if tree.get(i) == md { Some(i) } else { None }
                     })
                     .unwrap_or_else(|| {
-                        if VERBOSE { print!(", not found, insert under {idx}"); }
                         tree.add(Some(idx), md.to_string())
                     });
-                if VERBOSE { println!(" => idx={idx}, [{}]", Self::tree_to_string(&tree, tree.get_root().unwrap())); }
             }
+            tree.add(Some(idx), "self".to_string());
         }
         tree
     }
 
     pub fn build_source_code(&self) -> Vec<String> {
-        // (2)b1, (2)b2, (3)a3, (2)a2, (1)a, (2)a2, (1)a1, (2)a1, (1)c1, (0)
-        // a[b1, b2, a2[a3]], a1[a2], c1[a1]
-        const VERBOSE: bool = true;
         let mut stack = Vec::<Vec<String>>::new();
         let tree = self.to_tree();
         for node in tree.iter_depth_simple() {
-            if VERBOSE { print!("- ({}) {}: ", node.depth, node.deref()); }
-            if node.depth as usize >= stack.len() {
+            if node.depth as usize >= stack.len() && node.depth > 0 {
                 while node.depth as usize > stack.len() {
                     stack.push(vec![]);
                 }
                 stack.last_mut().unwrap().push(node.to_string())
             } else if node.depth > 0 {
                 let sub = stack.pop().unwrap();
-                stack.last_mut().unwrap().push(if sub.len() > 1 {
-                    format!("{}::{{{}}}", node.deref(), sub.join(", "))
-                } else {
-                    format!("{}::{}", node.deref(), sub[0])
-                });
+                stack.last_mut().unwrap().push(
+                    if sub.len() > 1 {
+                        format!("{}::{{{}}}", node.deref(), sub.join(", "))
+                    } else if sub.last().unwrap() == "self" {
+                        format!("{}", node.deref())
+                    } else {
+                        format!("{}::{}", node.deref(), sub[0])
+                    });
             }
-            if VERBOSE { println!(" => {stack:?}"); }
         }
-        if VERBOSE { println!("=> {stack:?}"); }
-        stack.pop().unwrap().into_iter().map(|s| format!("use {s};")).to_vec()
+        stack.pop().unwrap_or(vec![]).into_iter().map(|s| format!("use {s};")).to_vec()
     }
 }
 
 #[test]
 fn struct_libs() {
+    const VERBOSE: bool = false;
     let mut l = StructLibs::new();
     let l1 = ["a", "a::a1", "a::b1", "a::a1::a2", "a::a1::b2"];
     let l2 = vec!["a::a1::a2::a3"];
     let l3 = vec!["a::c1::a2".to_string()];
     l.extend(l1);
-    l.add("a::c1");
+    l.add("b");
     l.extend(l2);
     l.extend(l3);
-    // println!("{}", l.libs.iter().map(|s| format!("- {s}")).join("\n"));
     let tree = l.to_tree();
-    println!("{}", tree.iter_depth_simple().map(|n| format!("({}){}", n.depth, n.deref())).join(", "));
-    println!("{}", StructLibs::tree_to_string(&tree, tree.get_root().unwrap()));
+    if VERBOSE {
+        println!("{}", tree.iter_depth_simple().map(|n| format!("({}){}", n.depth, n.deref())).join(", "));
+        println!("{}", StructLibs::tree_to_string(&tree, tree.get_root().unwrap()));
+    }
     let src = l.build_source_code();
-    println!("{}", src.join("\n"));
+    if VERBOSE {
+        println!("{}", src.join("\n"));
+    }
+    assert_eq!(src, ["use a::{self, a1::{self, a2::{self, a3}, b2}, b1, c1::a2};", "use b;"]);
+
+    let src_empty = StructLibs::new().build_source_code();
+    assert_eq!(src_empty, Vec::<String>::new());
 }
