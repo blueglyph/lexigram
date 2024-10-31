@@ -185,6 +185,16 @@ impl ParserBuilder {
     }
 
     #[inline]
+    pub fn add_lib(&mut self, lib: &str) {
+        self.used_libs.add(lib);
+    }
+
+    #[inline]
+    pub fn extend_libs<I: IntoIterator<Item=J>, J: ToString>(&mut self, libs: I) {
+        self.used_libs.extend(libs);
+    }
+
+    #[inline]
     fn nt_has_flags(&self, var: VarId, flags: u32) -> bool {
         self.parsing_table.flags[var as usize] & flags == flags
     }
