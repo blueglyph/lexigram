@@ -10,6 +10,7 @@ use std::ops::{Deref, DerefMut};
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR};
+use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::log::Logger;
 use crate::vectree::VecTree;
 use crate::symbol_table::SymbolTable;
@@ -321,6 +322,12 @@ pub mod ruleflag {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Debug)]
+pub enum NTConversion {
+    Removed,
+    MovedTo(VarId)
+}
+
 #[derive(Clone, Debug)]
 pub struct RuleTreeSet<T> {
     trees: Vec<GrTree>,
@@ -329,6 +336,7 @@ pub struct RuleTreeSet<T> {
     flags: Vec<u32>,            // NT -> flags (+ or * normalization)
     parent: Vec<Option<VarId>>, // NT -> parent NT
     // priority: Vec<Vec<u16>>, // factor -> priority
+    nt_conversion: HashMap<VarId, NTConversion>,
     log: Logger,
     _phantom: PhantomData<T>
 }
@@ -388,6 +396,7 @@ impl RuleTreeSet<General> {
             flags: Vec::new(),
             parent: Vec::new(),
             log: Logger::new(),
+            nt_conversion: HashMap::new(),
             _phantom: PhantomData,
         }
     }
@@ -692,6 +701,10 @@ impl RuleTreeSet<General> {
             }
             _ => panic!("Unexpected node type under a + node: {}", new.get(child))
         }
+        if let Some(v) = lform_nt {
+            // `new_var` replaces `v`
+            self.nt_conversion.insert(v, MovedTo(*new_var));
+        }
         self.symbol_table.as_mut().map(|st| {
             if let Some(v) = lform_nt {
                 let name = st.remove_nt_name(v);
@@ -759,6 +772,7 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
             symbol_table: rules.symbol_table,
             flags: rules.flags,
             parent: rules.parent,
+            nt_conversion: rules.nt_conversion,
             log: rules.log,
             _phantom: PhantomData
         }
@@ -883,7 +897,7 @@ pub struct ProdRuleSet<T> {
     flags: Vec<u32>,
     parent: Vec<Option<VarId>>,
     start: Option<VarId>,
-    nt_conversion: Option<HashMap<Symbol, Symbol>>,
+    nt_conversion: HashMap<VarId, NTConversion>,
     log: Logger,
     _phantom: PhantomData<T>
 }
@@ -1032,24 +1046,36 @@ impl<T> ProdRuleSet<T> {
     /// Returns the conversion `HashMap[old symbol => new symbol]` for non-terminals.
     fn cleanup_symbols(&mut self, keep: &mut HashSet<Symbol>) {
         const VERBOSE: bool = false;
-        assert!(self.nt_conversion.is_none(), "cleanup of symbols but there's already an NT conversion table");
+        let mut nt_content = (0..self.num_nt).map(|v| if self.parent[v].is_none() { Some(v as VarId) } else { None }).to_vec();
+        for (from, cnv) in self.nt_conversion.iter() {
+            // right now, it only contains MovedTo items from the normalization
+            let MovedTo(to) = cnv else { panic!("{cnv:?} unexpected") };
+            nt_content[*from as usize] = None;
+            nt_content[*to as usize] = Some(*from);
+        }
         if VERBOSE {
             println!("Removing unused non-terminals:");
             let mut all_h = self.prods.iter().flat_map(|p| p.iter().map(|x| &x.v).flatten()).cloned().collect::<HashSet<_>>();
             all_h.extend((0..self.num_nt).map(|i| Symbol::NT(i as VarId)));
             let mut all = all_h.into_iter().collect::<Vec<_>>();
             all.sort();
-            println!("- current NT symbols: {}", all.iter().filter_map(|s|
+            println!("  current NT symbols: {}", all.iter().filter_map(|s|
                 if let Symbol::NT(v) = s { Some(format!("{}", s.to_str(self.get_symbol_table()))) } else { None }).join(", "));
-            println!("- current  T symbols: {}", all.iter().filter_map(|s|
+            println!("  current  T symbols: {}", all.iter().filter_map(|s|
                 if let Symbol::T(_) = s { Some(s.to_str(self.get_symbol_table())) } else { None }).join(" "));
             let mut used = keep.iter().collect::<Vec<_>>();
             used.sort();
-            println!("- used NT symbols:    {}", used.iter().filter_map(|s| if let Symbol::NT(v) = s { Some((v, s)) } else { None })
+            println!("  used NT symbols:    {}", used.iter().filter_map(|s| if let Symbol::NT(v) = s { Some((v, s)) } else { None })
                 .enumerate().map(|(new_id, (id, s))| format!("{}({id} -> {new_id})", s.to_str(self.get_symbol_table()))).join(", "));
-            println!("- used  T symbols:    {}", used.iter().filter_map(|s|
+            println!("  used  T symbols:    {}", used.iter().filter_map(|s|
                 if let Symbol::T(_) = s { Some(s.to_str(self.get_symbol_table())) } else { None }).join(" "));
+            println!("  nt_conversion: {:?}", self.nt_conversion);
+            println!("  nt_content: {}", nt_content.iter().enumerate()
+                .filter_map(|(v, f)| if let Some(from) = f { Some(format!("{v}:{from}")) } else { None } )
+                .join(", ")
+            );
         }
+        self.nt_conversion.clear();
         let new_num_nt = keep.iter().filter(|s| matches!(s, Symbol::NT(_))).count() as VarId;
         let mut new_v = new_num_nt;
         let mut conv = HashMap::<VarId, VarId>::new();
@@ -1058,6 +1084,10 @@ impl<T> ProdRuleSet<T> {
             let symbol = Symbol::NT(v);
             if !keep.contains(&symbol) {
                 if VERBOSE { println!("- deleting {}", symbol.to_str(self.get_symbol_table())); }
+                if self.parent[i].is_none() {
+                    self.nt_conversion.insert(v, Removed);
+                }
+                nt_content.remove(i);
                 self.prods.remove(i);
                 self.start = self.start.map(|s| if s >= v { s - 1 } else { s });
                 self.symbol_table.as_mut().map(|t| t.remove_non_terminal(v));
@@ -1070,7 +1100,7 @@ impl<T> ProdRuleSet<T> {
             } else {
                 new_v -= 1;
                 conv.insert(v, new_v);
-                if VERBOSE { println!("  {symbol:?} -> {:?}", Symbol::NT(new_v)); }
+                if VERBOSE { println!("- {symbol:?} -> {:?}", Symbol::NT(new_v)); }
             }
         }
         for p in &mut self.prods {
@@ -1094,7 +1124,25 @@ impl<T> ProdRuleSet<T> {
         keep.retain(|s| !matches!(s, Symbol::NT(_)));
         keep.extend((0..new_num_nt as VarId).map(|v| Symbol::NT(v)));
         self.num_nt = new_num_nt as usize;
-        self.nt_conversion = Some(conv.into_iter().map(|(k, v)| (Symbol::NT(k), Symbol::NT(v))).collect::<HashMap<_, _>>());
+        if VERBOSE {
+            println!("-> nt_content: {}", nt_content.iter().enumerate()
+                .filter_map(|(v, f)| if let Some(from) = f { Some(format!("{v}:{from}")) } else { None })
+                .join(", ")
+            );
+        }
+        for (to, f) in nt_content.into_iter().enumerate() {
+            let to = to as VarId;
+            if let Some(from) = f {
+                if from != to {
+                    self.nt_conversion.insert(from, MovedTo(to as VarId));
+                } else {
+                    if self.nt_conversion.get(&from) == Some(&Removed) {
+                        self.nt_conversion.remove(&from);
+                    }
+                }
+            }
+        };
+        if VERBOSE { println!("-> nt_conversion: {:?}", self.nt_conversion); }
     }
 
     pub fn calc_first(&mut self) -> HashMap<Symbol, HashSet<Symbol>> {
@@ -1231,7 +1279,7 @@ impl<T> ProdRuleSet<T> {
             flags: Vec::new(),
             parent: Vec::new(),
             start: None,
-            nt_conversion: None,
+            nt_conversion: HashMap::new(),
             log: Logger::new(),
             _phantom: PhantomData
         }
@@ -1246,7 +1294,7 @@ impl<T> ProdRuleSet<T> {
             flags: Vec::with_capacity(capacity),
             parent: Vec::with_capacity(capacity),
             start: None,
-            nt_conversion: None,
+            nt_conversion: HashMap::new(),
             log: Logger::new(),
             _phantom: PhantomData
         }
@@ -1614,6 +1662,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
         prules.symbol_table = rules.symbol_table;
         prules.flags = rules.flags;
         prules.parent = rules.parent;
+        prules.nt_conversion = rules.nt_conversion;
         prules.log = rules.log;
         for (var, tree) in rules.trees.iter().enumerate() {
             if !tree.is_empty() {

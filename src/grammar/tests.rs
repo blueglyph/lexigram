@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet, HashSet};
 use super::*;
 use crate::dfa::TokenId;
 use crate::{btreemap, gnode, hashmap, hashset, LL1, LR, prod, prodf, sym};
-
+use crate::grammar::NTConversion::Removed;
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
@@ -2523,78 +2523,103 @@ impl T {
 
 #[test]
 fn rts_prs_flags() {
-    let tests = vec![
+    let tests: Vec<(T, VarId, BTreeMap<VarId, u32>, BTreeMap<usize, u32>, BTreeMap<VarId, VarId>, BTreeMap<VarId, NTConversion>)> = vec![
         (T::RTS(9), 0,btreemap![0 => 6144, 1 => 4129, 2 => 64],     // NT flags
          btreemap![],                                               // factor flags
-         btreemap![1 => 0, 2 => 1]),                                // parents
+         btreemap![1 => 0, 2 => 1],                                 // parents
+         btreemap![]),
         (T::RTS(11), 0, btreemap![0 => 2048, 1 => 1],
          btreemap![],
-         btreemap![1 => 0]),
+         btreemap![1 => 0],
+         btreemap![]),
         (T::RTS(12), 0, btreemap![0 => 2048, 1 => 1],
          btreemap![],
-         btreemap![1 => 0]),
+         btreemap![1 => 0],
+         btreemap![]),
         (T::RTS(15), 0, btreemap![0 => 1664, 1 => 12],
          btreemap![2 => 256],
-         btreemap![1 => 0]),
+         btreemap![1 => 0],
+         btreemap![]),
         (T::RTS(16), 0, btreemap![0 => 6656, 1 => 4129, 2 => 4, 3 => 64],
          btreemap![],
-         btreemap![1 => 0, 2 => 0, 3 => 1]),
+         btreemap![1 => 0, 2 => 0, 3 => 1],
+         btreemap![]),
         (T::RTS(17), 0, btreemap![0 => 6144, 1 => 4129, 2 => 6177, 3 => 64, 4 => 64],
          btreemap![],
-         btreemap![1 => 2, 2 => 0, 3 => 1, 4 => 2]),
-        (T::RTS(18), 0, btreemap![0 => 128], btreemap![], btreemap![]),
+         btreemap![1 => 2, 2 => 0, 3 => 1, 4 => 2],
+         btreemap![]),
+        (T::RTS(18), 0, btreemap![0 => 128], btreemap![], btreemap![],
+         btreemap![]),
         (T::RTS(19), 0, btreemap![0 => 2560, 1 => 129, 2 => 4],
          btreemap![],
-         btreemap![1 => 0, 2 => 0]),
+         btreemap![1 => 0, 2 => 0],
+         btreemap![]),
         (T::RTS(20), 0, btreemap![0 => 2560, 1 => 1, 2 => 4],
          btreemap![],
-         btreemap![1 => 0, 2 => 0]),
+         btreemap![1 => 0, 2 => 0],
+         btreemap![]),
         (T::RTS(29), 0, btreemap![0 => 2048, 2 => 1, 3 => 2049],
          btreemap![],
-         btreemap![2 => 3, 3 => 0]),
+         btreemap![2 => 3, 3 => 0],
+         btreemap![]),
         (T::RTS(35), 0, btreemap![0 => 2],
+         btreemap![],
          btreemap![],
          btreemap![]),
         (T::RTS(36), 0, btreemap![0 => 130],
          btreemap![],
+         btreemap![],
          btreemap![]),
         (T::PRS(0), 0, btreemap![0 => 544, 1 => 4, 2 => 64],
          btreemap![],
-         btreemap![1 => 0, 2 => 0]),
+         btreemap![1 => 0, 2 => 0],
+         btreemap![1 => Removed]),
         (T::PRS(1), 0, btreemap![0 => 32, 1 => 96, 2 => 64, 3 => 64, 4 => 64],
          btreemap![9 => 256],
-         btreemap![1 => 0, 2 => 0, 3 => 1, 4 => 1]),
+         btreemap![1 => 0, 2 => 0, 3 => 1, 4 => 1],
+         btreemap![]),
         (T::PRS(22), 0, btreemap![0 => 1536, 1 => 44, 2 => 64],
          btreemap![],
-         btreemap![1 => 0, 2 => 1]),
+         btreemap![1 => 0, 2 => 1],
+         btreemap![]),
         (T::PRS(25), 0, btreemap![0 => 512, 1 => 36, 2 => 96, 3 => 64],
          btreemap![],
-         btreemap![1 => 0, 2 => 1, 3 => 2]),
+         btreemap![1 => 0, 2 => 1, 3 => 2],
+         btreemap![]),
         (T::PRS(26), 0, btreemap![0 => 512, 1 => 4],
          btreemap![],
-         btreemap![1 => 0]),
+         btreemap![1 => 0],
+         btreemap![1 => Removed]),
         (T::PRS(26), 1, btreemap![0 => 1536, 1 => 12],
          btreemap![],
-         btreemap![1 => 0]),
+         btreemap![1 => 0],
+         btreemap![0 => Removed, 1 => MovedTo(0)]),
         (T::PRS(28), 0, btreemap![0 => 32, 1 => 96, 2 => 64],
          btreemap![],
-         btreemap![1 => 0, 2 => 1]),
+         btreemap![1 => 0, 2 => 1],
+         btreemap![]),
         (T::PRS(31), 0, btreemap![0 => 512, 2 => 4],
          btreemap![],
-         btreemap![2 => 0]),
+         btreemap![2 => 0],
+         btreemap![]),
         (T::PRS(32), 0, btreemap![0 => 512, 2 => 36, 3 => 64],
          btreemap![],
-         btreemap![2 => 0, 3 => 2]),
+         btreemap![2 => 0, 3 => 2],
+         btreemap![]),
         (T::PRS(33), 0, btreemap![0 => 544, 1 => 4, 2 => 64],
          btreemap![],
-         btreemap![1 => 0, 2 => 0]),
+         btreemap![1 => 0, 2 => 0],
+         btreemap![]),
         (T::PRS(40), 0, btreemap![0 => 2],
+         btreemap![],
          btreemap![],
          btreemap![]),
         (T::PRS(41), 0, btreemap![0 => 130],
          btreemap![],
+         btreemap![],
          btreemap![]),
         (T::PRS(42), 0, btreemap![0 => 130],
+         btreemap![],
          btreemap![],
          btreemap![]),
         /*
@@ -2603,14 +2628,13 @@ fn rts_prs_flags() {
     ];
     const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
-    for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent)) in tests.into_iter().enumerate() {
+    for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent, expected_nt_conversion)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
         let mut ll1 = rule_id.get_prs(test_id, start_nt, true);
         if VERBOSE && VERBOSE_DETAILS {
             print!("Before table creation:\n- ");
             print_prs_summary(&ll1);
         }
-        // ll1.set_start(start_nt);
         let start = ll1.get_start().unwrap();
         let parsing_table = ll1.create_parsing_table();
         if VERBOSE && (ll1.log.num_warnings() > 0) || (ll1.log.num_notes() > 0) {
@@ -2619,16 +2643,19 @@ fn rts_prs_flags() {
         let result_flags = ll1.flags.iter().enumerate().filter_map(|(v, &f)| if f != 0 { Some((v as VarId, f)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_parent = ll1.parent.iter().enumerate().filter_map(|(v, &par)| if let Some(p) = par { Some((v as VarId, p)) } else { None }).collect::<BTreeMap<_, _>>();
+        let result_nt_conversion = ll1.nt_conversion.iter().map(|(v1, v2)| (*v1, *v2)).collect::<BTreeMap<_, _>>();
         if VERBOSE {
             print!("- ");
             print_prs_summary(&ll1);
             println!("=>");
             println!("        (T::{rule_id:?}, {start_nt}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
             println!("         btreemap![{}],", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
-            println!("         btreemap![{}]),", result_parent.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+            println!("         btreemap![{}],", result_parent.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
+            println!("         btreemap![{}]),", result_nt_conversion.iter().map(|(v1, v2)| format!("{v1} => {v2:?}")).join(", "));
         }
         assert_eq!(result_flags, expected_flags, "test {test_id}/{rule_id:?}/{start_nt} failed");
         assert_eq!(result_fflags, expected_fflags, "test {test_id}/{rule_id:?}/{start_nt} failed");
         assert_eq!(result_parent, expected_parent, "test {test_id}/{rule_id:?}/{start_nt} failed");
+        assert_eq!(result_nt_conversion, expected_nt_conversion, "test {test_id}/{rule_id:?}/{start_nt} failed");
     }
 }

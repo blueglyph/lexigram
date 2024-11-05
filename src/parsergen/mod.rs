@@ -138,7 +138,8 @@ pub struct ParserBuilder {
     item_ops: HashMap<FactorId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId,
-    used_libs: StructLibs
+    used_libs: StructLibs,
+    nt_type: HashMap<VarId, String>
 }
 
 impl ParserBuilder {
@@ -173,7 +174,8 @@ impl ParserBuilder {
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
             start,
-            used_libs: StructLibs::new()
+            used_libs: StructLibs::new(),
+            nt_type: HashMap::new()
         };
         builder.build_opcodes();
         builder
@@ -192,6 +194,11 @@ impl ParserBuilder {
     #[inline]
     pub fn extend_libs<I: IntoIterator<Item=J>, J: ToString>(&mut self, libs: I) {
         self.used_libs.extend(libs);
+    }
+
+    #[inline]
+    pub fn add_nt_type<T: ToString>(&mut self, var: VarId, var_type: T) {
+        self.nt_type.insert(var, var_type.to_string());
     }
 
     #[inline]
