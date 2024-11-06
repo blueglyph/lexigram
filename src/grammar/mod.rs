@@ -1091,12 +1091,8 @@ impl<T> ProdRuleSet<T> {
                 self.prods.remove(i);
                 self.start = self.start.map(|s| if s >= v { s - 1 } else { s });
                 self.symbol_table.as_mut().map(|t| t.remove_non_terminal(v));
-                if i < self.flags.len() {
-                    self.flags.remove(i);
-                }
-                if i < self.parent.len() {
-                    self.parent.remove(i);
-                }
+                self.flags.remove(i);
+                self.parent.remove(i);
             } else {
                 new_v -= 1;
                 conv.insert(v, new_v);
