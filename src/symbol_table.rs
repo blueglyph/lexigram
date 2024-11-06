@@ -165,6 +165,10 @@ impl SymbolTable {
         self.nt[var as usize].clone()
     }
 
+    pub fn set_nt_name(&mut self, var: VarId, name: String) {
+        self.nt[var as usize] = name;
+    }
+
     pub fn get_name(&self, symbol: &Symbol) -> String {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),

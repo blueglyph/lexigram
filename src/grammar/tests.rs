@@ -458,6 +458,16 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(t 0), gnode!(nt 0), gnode!(L 0)]);
             tree.add(Some(or), gnode!(t 1));
         }
+        37 => { // A -> a (b <L=B>)* C; C -> c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let s1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(s1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
+            tree.add(Some(cc), gnode!(nt 2));
+            let _b_tree = rules.get_tree_mut(1);
+            let c_tree = rules.get_tree_mut(2);
+            c_tree.add_root(gnode!(t 2));
+        }
 
         _ => {}
     }
@@ -495,6 +505,8 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
                 table.extend_non_terminals((num_nt..=nt).map(|v| if v < nt { "???".to_string() } else { name.clone() }));
                 num_nt = nt + 1;
                 rules.set_tree(nt, GrTree::new());
+            } else {
+                table.set_nt_name(nt, name);
             }
         }
         if 21 <= id && id <= 25 || id == 27 || id == 32 {
@@ -2550,6 +2562,16 @@ fn rts_prs_flags() {
          btreemap![]),
         (T::RTS(18), 0, btreemap![0 => 128], btreemap![], btreemap![],
          btreemap![]),
+        // 0: A (b <L=B>)* c | d       0: A -> d A_1
+        // 1: (B)                  ->  1: AIter1 -> b AIter1 | ε
+        // 2:                          2: A_1 -> AIter1 c A_1 | ε
+        // - NT flags:
+        //   - A: parent_left_rec | parent_+_or_* (2560)
+        //   - AIter1: child_+_or_* | L-form (129)
+        //   - A_1: child_left_rec (4)
+        // - parents:
+        //   - AIter1 -> A
+        //   - A_1 -> A
         (T::RTS(19), 0, btreemap![0 => 2560, 1 => 129, 2 => 4],
          btreemap![],
          btreemap![1 => 0, 2 => 0],
@@ -2570,6 +2592,18 @@ fn rts_prs_flags() {
          btreemap![],
          btreemap![],
          btreemap![]),
+        // 0: A -> a (b <L=AIter1>)* C      0: A -> a AIter1 C
+        // 1: (AIter1)                  ->  1: C -> c
+        // 2: C -> c                        2: AIter1 -> b AIter1 | ε
+        // - NT flags:
+        //   - A: parent_+_or_* (2048)
+        //   - AIter1: child_+_or_* | L-form (129)
+        // - parents:
+        //   - AIter1 -> A
+        (T::RTS(37), 0, btreemap![0 => 2048, 2 => 129],
+         btreemap![],
+         btreemap![2 => 0],
+         btreemap![1 => MovedTo(2), 2 => MovedTo(1)]),
         (T::PRS(0), 0, btreemap![0 => 544, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0],
@@ -2626,7 +2660,7 @@ fn rts_prs_flags() {
         (T::PRS(), 0, btreemap![], btreemap![], btreemap![]),
         */
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     const VERBOSE_DETAILS: bool = false;
     for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent, expected_nt_conversion)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
