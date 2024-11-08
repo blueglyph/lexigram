@@ -940,10 +940,6 @@ impl<T> ProdRuleSet<T> {
         self.symbol_table.as_ref()
     }
 
-    pub fn symbol_table(self) -> Option<SymbolTable> {
-        self.symbol_table
-    }
-
     pub fn get_num_nt(&self) -> usize {
         self.num_nt
     }
@@ -954,6 +950,14 @@ impl<T> ProdRuleSet<T> {
 
     pub fn get_log(&self) -> &Logger {
         &self.log
+    }
+
+    pub fn give_symbol_table(&mut self) -> Option<SymbolTable> {
+        std::mem::take(&mut self.symbol_table)
+    }
+
+    pub fn give_nt_conversion(&mut self) -> HashMap<VarId, NTConversion> {
+        std::mem::take(&mut self.nt_conversion)
     }
 
     /// Adds new flags to `flags[nt]` by or'ing them.

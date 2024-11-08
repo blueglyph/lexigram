@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId};
+use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str, StructLibs};
 use crate::parser::{OpCode, Parser};
 use crate::symbol_table::SymbolTable;
@@ -138,6 +138,7 @@ pub struct ParserBuilder {
     item_ops: HashMap<FactorId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId,
+    nt_conversion: HashMap<VarId, NTConversion>,
     used_libs: StructLibs,
     nt_type: HashMap<VarId, String>
 }
@@ -154,7 +155,8 @@ impl ParserBuilder {
         let parsing_table = ll1_rules.create_parsing_table();
         let num_nt = ll1_rules.get_num_nt();
         let start = ll1_rules.get_start().unwrap();
-        let symbol_table = ll1_rules.symbol_table().expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>()));
+        let symbol_table = ll1_rules.give_symbol_table().expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>()));
+        let nt_conversion = ll1_rules.give_nt_conversion();
         let mut var_factors = vec![vec![]; num_nt];
         for (factor_id, (var_id, _)) in parsing_table.factors.iter().enumerate() {
             var_factors[*var_id as usize].push(factor_id as FactorId);
@@ -174,6 +176,7 @@ impl ParserBuilder {
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
             start,
+            nt_conversion,
             used_libs: StructLibs::new(),
             nt_type: HashMap::new()
         };
