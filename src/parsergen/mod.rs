@@ -154,7 +154,7 @@ impl ParserBuilder {
         let parsing_table = ll1_rules.create_parsing_table();
         let num_nt = ll1_rules.get_num_nt();
         let start = ll1_rules.get_start().unwrap();
-        let symbol_table = ll1_rules.symbol_table().expect(stringify!("symbol table is requires to create a {}", std::any::type_name::<Self>()));
+        let symbol_table = ll1_rules.symbol_table().expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>()));
         let mut var_factors = vec![vec![]; num_nt];
         for (factor_id, (var_id, _)) in parsing_table.factors.iter().enumerate() {
             var_factors[*var_id as usize].push(factor_id as FactorId);

@@ -1539,7 +1539,7 @@ impl ProdRuleSet<LL1> {
     /// - `factors`, the production factors: (VarId, ProdFactor) where the first value is the non-terminal index and the second one of its factors
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production factor for
     /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `factors.len()` stands for a syntactic error.
-    pub fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>) -> LLParsingTable {
+    fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>) -> LLParsingTable {
         fn add_table(table: &mut Vec<Vec<FactorId>>, error: VarId, num_t: usize, nt_id: VarId, t_id: VarId, f_id: FactorId) {
             let pos = nt_id as usize * num_t + t_id as usize;
             table[pos].push(f_id);
