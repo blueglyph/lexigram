@@ -461,7 +461,7 @@ pub(crate) mod rules_rts_22_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// `(b <L>)* iteration in A -> a  ► (b <L>)* ◄  c`
+        /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
         Aiter1 { star_it: SynAIter, b: String },
     }
 
@@ -731,7 +731,7 @@ pub(crate) mod rules_rts_32_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// `(b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...`
+        /// `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | ...`
         Aiter1 { star_it: SynAIter, b: String },
     }
 
@@ -1484,9 +1484,9 @@ pub(crate) mod rules_rts_24_1 {
     }
     #[derive(Debug)]
     pub enum CtxAIter {
-        /// `(b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c`
+        /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
         Aiter1_1 { plus_it: SynMyAIter, b: String },
-        /// `end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c`
+        /// end of `(b <L>)+` iterations in `A -> a  ► (b <L>)+ ◄  c`
         Aiter1_2 { plus_it: SynMyAIter, b: String },
     }
 

@@ -338,7 +338,7 @@ impl ParserBuilder {
         result
     }
 
-    fn full_factor_components(&self, f_id: FactorId, emphasis: Option<VarId>) -> (String, String) {
+    fn full_factor_components(&self, f_id: FactorId, emphasis: Option<VarId>, quote: bool) -> (String, String) {
         const VERBOSE: bool = false;
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
         let mut v_par_lf =  *v_f;
@@ -419,15 +419,17 @@ impl ParserBuilder {
             (
                 "".to_string(),
                 if is_empty {
-                    format!("end of {} {}s in {}{more_str}",
+                    format!("end of {q}{}{q} {}s in {q}{}{more_str}{q}",
                             self.repeat_factor_str(&vec![Symbol::NT(v_par_lf)], None),
                             if is_lform { "iteration" } else { "item" },
-                            self.full_factor_str(fact_using_v, Some(v_par_lf as VarId)))
+                            self.full_factor_str(fact_using_v, Some(v_par_lf as VarId), false),
+                            q = if quote { "`" } else { "" })
                 } else {
-                    format!("{} {} in {}{more_str}",
+                    format!("{q}{}{q} {} in {q}{}{more_str}{q}",
                             self.repeat_factor_str(&vec![Symbol::NT(v_par_lf)], None),
                             if is_lform { "iteration" } else { "item" },
-                            self.full_factor_str(fact_using_v, Some(v_id as VarId)))
+                            self.full_factor_str(fact_using_v, Some(v_id as VarId), false),
+                            q = if quote { "`" } else { "" })
                 }
             )
         } else {
@@ -441,22 +443,25 @@ impl ParserBuilder {
         result
     }
 
-    fn full_factor_str(&self, f_id: FactorId, emphasis: Option<VarId>) -> String {
-        let (left, right) = self.full_factor_components(f_id, emphasis);
+    fn full_factor_str(&self, f_id: FactorId, emphasis: Option<VarId>, quote: bool) -> String {
+        let (left, right) = self.full_factor_components(f_id, emphasis, quote);
         if left.is_empty() {
             right
         } else {
-            format!("{left} -> {right}")
+            format!("{q}{left} -> {right}{q}", q = if quote { "`" } else { "" })
         }
     }
 
     fn full_prod_str(&self, v: VarId) -> String {
-        self.var_factors[v as usize].iter().enumerate()
+        let mut result = "`".to_string();
+        result.push_str(&self.var_factors[v as usize].iter().enumerate()
             .map(|(i, f_id)| {
-                let (left, right) = self.full_factor_components(*f_id, None);
+                let (left, right) = self.full_factor_components(*f_id, None, false);
                 if i == 0 && !left.is_empty() { format!("{left} -> {right}") } else { right }
             })
-            .join(" | ")
+            .join(" | "));
+        result.push('`');
+        result
     }
 
     fn repeat_factor_str(&self, f: &Vec<Symbol>, emphasis: Option<VarId>) -> String {
@@ -1171,7 +1176,7 @@ impl ParserBuilder {
 
         // Writes contexts
         if let Some((nu, nl)) = &nt_name[self.start as usize] {
-            src.push(format!("/// Type of top rule `{}`", self.full_prod_str(self.start)));
+            src.push(format!("/// Type of top rule {}", self.full_prod_str(self.start)));
             src.push(format!("#[derive(Debug)]"));
             if self.nt_value[self.start as usize] {
                 src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: {} }} }}", self.get_nt_type(self.start as VarId)));
@@ -1200,7 +1205,7 @@ impl ParserBuilder {
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].as_ref().unwrap().0));
                     for &f_id in factors {
                         let (v, pf) = &self.parsing_table.factors[f_id as usize];
-                        src.push(format!("    /// `{}`", self.full_factor_str(f_id, None)));
+                        src.push(format!("    /// {}", self.full_factor_str(f_id, None, true)));
                         let ctx_content = self.source_infos(&item_info[f_id as usize]);
                         let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
                         if ctx_content.is_empty() {
@@ -1226,10 +1231,10 @@ impl ParserBuilder {
                 let tf = self.get_top_factors(v);
                 let is_lform = self.nt_has_flags(v, ruleflag::L_FORM);
                 let comment1 = tf.iter().map(|(var, f_id)| {
-                    format!("{}in `{}`", if is_lform { "iteration " } else { "array " }, self.full_factor_str(*f_id, Some(v)))
+                    format!("{} in {}", if is_lform { "iteration" } else { "array" }, self.full_factor_str(*f_id, Some(v), true))
                 }).join(", ");
                 let comment2 = tf.iter().map(|(var, f_id)| {
-                    format!("{}in `{}`", if is_lform { "iteration " } else { "item " }, self.full_factor_str(*f_id, Some(v)))
+                    format!("{} in {}", if is_lform { "iteration" } else { "item" }, self.full_factor_str(*f_id, Some(v), true))
                 }).join(", ");
                 let current = Symbol::NT(v).to_str(self.get_symbol_table());
                 if let Some(infos) = nt_repeat.get(&(v)) {
@@ -1467,7 +1472,7 @@ impl ParserBuilder {
                     if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {
                         let (v, pf) = &self.parsing_table.factors[*f as usize];
-                        format!("// {}", self.full_factor_str(*f, None))
+                        format!("// {}", self.full_factor_str(*f, None, false))
                     }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
                     if !no_method {
@@ -1600,7 +1605,7 @@ impl ParserBuilder {
             for (f, _) in exit_factor_done.iter().filter(|(_, done)| !**done) {
                 let is_called = self.opcodes[*f as usize].iter().any(|o| *o == OpCode::Exit(*f));
                 let (v, pf) = &self.parsing_table.factors[*f as usize];
-                let comment = format!("// {} ({})", self.full_factor_str(*f, None),
+                let comment = format!("// {} ({})", self.full_factor_str(*f, None, false),
                                       if is_called { "not used" } else { "never called" });
                 if is_called {
                     src_exit.push(vec![format!("                    {f} => {{}}"), comment]);

@@ -1445,7 +1445,7 @@ mod wrapper_source {
                 result_expanded.push(format!("{} -> {}",
                                              Symbol::NT(*v).to_str(builder.get_symbol_table()),
                                              expanded.iter().map(|fact| builder.factor_to_str(fact)).join(" | ")));
-                result_full.push(format!("{}", builder.full_factor_str(f_id as FactorId, None)));
+                result_full.push(format!("{}", builder.full_factor_str(f_id as FactorId, None, false)));
             }
             let mut result_top_factors = BTreeMap::<VarId, Vec<(VarId, FactorId)>>::new();
             for group in builder.nt_parent.iter().filter(|v| !v.is_empty()) {
