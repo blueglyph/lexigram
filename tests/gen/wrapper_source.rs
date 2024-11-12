@@ -19,11 +19,12 @@ after,  NT with value: S, VAL
                 4 => symbols![t 1],                     //  4: VAL -> num      | ◄4 num!        | num
             ], Set(symbols![nt 0, nt 1, t 0, t 1]), btreemap![0 => vec![0, 1, 2], 1 => vec![3, 4]]),
 */
-mod rules_prs_34_1 {
+pub(crate) mod rules_prs_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(34) #1, start S]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_34_1::*;
 
     /// Type of top rule `S -> id = VAL | exit | return VAL`
     #[derive(Debug)]
@@ -45,12 +46,9 @@ mod rules_prs_34_1 {
         Val2 { num: String },
     }
 
-    /// User-defined type for `S`
-    #[derive(Debug)]
-    pub struct SynS();
-    /// User-defined type for `VAL`
-    #[derive(Debug)]
-    pub struct SynVal();
+    // NT types:
+    // SynS: User-defined type for `S`
+    // SynVal: User-defined type for `VAL`
 
     #[derive(Debug)]
     enum SynValue { S(SynS), Val(SynVal) }
@@ -188,11 +186,12 @@ after,  NT with value: A, A_1
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], All, btreemap![0 => vec![0]]),
 */
-mod rules_rts_21_1 {
+pub(crate) mod rules_rts_21_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_21_1::*;
 
     /// Type of top rule `A -> a [b]* c`
     #[derive(Debug)]
@@ -203,12 +202,11 @@ mod rules_rts_21_1 {
         A { a: String, star: SynA1, c: String },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
     /// Computed `[b]*` array in `A -> a  ► [b]* ◄  c`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<String>);
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1) }
@@ -325,11 +323,12 @@ after,  NT with value: A
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 */
-mod rules_rts_21_2 {
+pub(crate) mod rules_rts_21_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #2, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_21_2::*;
 
     /// Type of top rule `A -> a [b]* c`
     #[derive(Debug)]
@@ -340,9 +339,8 @@ mod rules_rts_21_2 {
         A { a: String, c: String },
     }
 
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -446,11 +444,12 @@ after,  NT with value: A, AIter1
                 2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
             ], All, btreemap![0 => vec![0]]),
 */
-mod rules_rts_22_1 {
+pub(crate) mod rules_rts_22_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_22_1::*;
 
     /// Type of top rule `A -> a (b <L>)* c`
     #[derive(Debug)]
@@ -466,12 +465,9 @@ mod rules_rts_22_1 {
         Aiter1 { star_it: SynAIter, b: String },
     }
 
-    /// User-defined `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
-    #[derive(Debug)]
-    pub struct SynAIter();
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynAIter: User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
 
     #[derive(Debug)]
     enum SynValue { A(SynA), AIter(SynAIter) }
@@ -590,11 +586,12 @@ after,  NT with value: A
                 2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 */
-mod rules_rts_22_2 {
+pub(crate) mod rules_rts_22_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #2, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_22_2::*;
 
     /// Type of top rule `A -> a (b <L>)* c`
     #[derive(Debug)]
@@ -605,9 +602,8 @@ mod rules_rts_22_2 {
         A { a: String, c: String },
     }
 
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -716,11 +712,12 @@ after,  NT with value: A, AIter1
                 4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_1 -> c AIter1 c  | ◄4 c! ►AIter1 c! | a c AIter1 c
             ], All, btreemap![0 => vec![3, 4]]),
 */
-mod rules_rts_32_1 {
+pub(crate) mod rules_rts_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(32) #1, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_32_1::*;
 
     /// Type of top rule `A -> a a (b <L>)* c | a c (b <L>)* c`
     #[derive(Debug)]
@@ -738,12 +735,9 @@ mod rules_rts_32_1 {
         Aiter1 { star_it: SynAIter, b: String },
     }
 
-    /// User-defined `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | a c  ► (b <L>)* ◄  c`
-    #[derive(Debug)]
-    pub struct SynAIter();
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynAIter: User-defined type for `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | a c  ► (b <L>)* ◄  c`
 
     #[derive(Debug)]
     enum SynValue { A(SynA), AIter(SynAIter) }
@@ -879,11 +873,12 @@ after,  NT with value: A
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], Default, btreemap![0 => vec![0]]),
 */
-mod rules_rts_25_1 {
+pub(crate) mod rules_rts_25_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(25) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_25_1::*;
 
     /// Type of top rule `A -> a [#]* c`
     #[derive(Debug)]
@@ -894,9 +889,8 @@ mod rules_rts_25_1 {
         A { a: String, c: String },
     }
 
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -1003,11 +997,12 @@ after,  NT with value: A, A_1
                 3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
             ], All, btreemap![0 => vec![0]]),
 */
-mod rules_rts_23_1 {
+pub(crate) mod rules_rts_23_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(23) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_23_1::*;
 
     /// Type of top rule `A -> a [b]+ c`
     #[derive(Debug)]
@@ -1018,12 +1013,11 @@ mod rules_rts_23_1 {
         A { a: String, plus: SynA1, c: String },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
     /// Computed `[b]+` array in `A -> a  ► [b]+ ◄  c`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<String>);
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1) }
@@ -1146,11 +1140,12 @@ after,  NT with value: A, B, A_1
                 4 => symbols![nt 2, nt 1],              //  4: A_2 -> ε     | ◄4            | A_1 B
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
-mod rules_rts_27_1 {
+pub(crate) mod rules_rts_27_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(27) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_27_1::*;
 
     /// Type of top rule `A -> a [B]+ c`
     #[derive(Debug)]
@@ -1166,18 +1161,15 @@ mod rules_rts_27_1 {
         B { b: String },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynB: User-defined type for `B`
     /// Computed `[B]+` array in `A -> a  ► [B]+ ◄  c`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<SynA1Item>);
     /// `B` item in `A -> a  ► [B]+ ◄  c`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1Item { b: SynB }
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
-    /// User-defined type for `B`
-    #[derive(Debug)]
-    pub struct SynB();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
@@ -1312,11 +1304,12 @@ after,  NT with value: A, B, A_1
                 4 => symbols![nt 2, t 0, nt 1],         //  4: A_2 -> ε       | ◄4         | A_1 a B
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
-mod rules_rts_28_1 {
+pub(crate) mod rules_rts_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(28) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_28_1::*;
 
     /// Type of top rule `A -> [a B]+ c`
     #[derive(Debug)]
@@ -1332,18 +1325,15 @@ mod rules_rts_28_1 {
         B { b: String },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynB: User-defined type for `B`
     /// Computed `[a B]+` array in `A ->  ► [a B]+ ◄  c`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<SynA1Item>);
     /// `a B` item in `A ->  ► [a B]+ ◄  c`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1Item { a: String, b: SynB }
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
-    /// User-defined type for `B`
-    #[derive(Debug)]
-    pub struct SynB();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
@@ -1477,11 +1467,12 @@ after,  NT with value: A, AIter1
                 3 => symbols![nt 1, t 1],               //  3: A_1 -> ε        | ◄3               | AIter1 b
             ], Default, btreemap![0 => vec![0]]),
 */
-mod rules_rts_24_1 {
+pub(crate) mod rules_rts_24_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_24_1::*;
 
     /// Type of top rule `A -> a (b <L>)+ c`
     #[derive(Debug)]
@@ -1499,12 +1490,9 @@ mod rules_rts_24_1 {
         Aiter1_2 { plus_it: SynAIter, b: String },
     }
 
-    /// User-defined `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
-    #[derive(Debug)]
-    pub struct SynAIter();
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynAIter: User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
 
     #[derive(Debug)]
     enum SynValue { A(SynA), AIter(SynAIter) }
@@ -1630,11 +1618,12 @@ after,  NT with value: A, B, A_1, A_2
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
-mod rules_rts_29_1 {
+pub(crate) mod rules_rts_29_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_29_1::*;
 
     /// Type of top rule `A -> a [[B b]* c]* d`
     #[derive(Debug)]
@@ -1650,24 +1639,21 @@ mod rules_rts_29_1 {
         B { b: String },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynB: User-defined type for `B`
     /// Computed `[B b]*` array in `A -> a [ ► [B b]* ◄  c]* d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<SynA1Item>);
     /// `B b` item in `A -> a [ ► [B b]* ◄  c]* d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1Item { b: SynB, b1: String }
     /// Computed `[[B b]* c]*` array in `A -> a  ► [[B b]* c]* ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2(Vec<SynA2Item>);
     /// `[B b]* c` item in `A -> a  ► [[B b]* c]* ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2Item { star: SynA1, c: String }
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
-    /// User-defined type for `B`
-    #[derive(Debug)]
-    pub struct SynB();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
@@ -1819,11 +1805,12 @@ after,  NT with value: A, A_2
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], Set(symbols![nt 0, t 0, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 */
-mod rules_rts_29_2 {
+pub(crate) mod rules_rts_29_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #2, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_29_2::*;
 
     /// Type of top rule `A -> a [[B b]* c]* d`
     #[derive(Debug)]
@@ -1839,12 +1826,11 @@ mod rules_rts_29_2 {
         B,
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
     /// Computed `[[B b]* c]*` array in `A -> a  ► [[B b]* c]* ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2(Vec<String>);
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), A2(SynA2) }
@@ -1976,7 +1962,7 @@ after,  NT with value: A_1, A_2
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 */
-mod rules_rts_29_3 {
+pub(crate) mod rules_rts_29_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #3, start A]
 
@@ -1996,17 +1982,18 @@ mod rules_rts_29_3 {
         B { b: String },
     }
 
+    // NT types:
     /// Computed `[B b]*` array in `A -> a [ ► [B b]* ◄  c]* d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<String>);
     /// Computed `[[B b]* c]*` array in `A -> a  ► [[B b]* c]* ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2(Vec<SynA2Item>);
     /// `[B b]* c` item in `A -> a  ► [[B b]* c]* ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2Item { star: SynA1, c: String }
     // Top non-terminal A has no value:
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA();
 
     #[derive(Debug)]
@@ -2155,11 +2142,12 @@ after,  NT with value: A, B, A_1, A_2
                 7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 */
-mod rules_rts_30_1 {
+pub(crate) mod rules_rts_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_30_1::*;
 
     /// Type of top rule `A -> a [[B b]+ c]+ d`
     #[derive(Debug)]
@@ -2175,24 +2163,21 @@ mod rules_rts_30_1 {
         B { b: String },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynB: User-defined type for `B`
     /// Computed `[B b]+` array in `A -> a [ ► [B b]+ ◄  c]+ d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<SynA1Item>);
     /// `B b` item in `A -> a [ ► [B b]+ ◄  c]+ d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1Item { b: SynB, b1: String }
     /// Computed `[[B b]+ c]+` array in `A -> a  ► [[B b]+ c]+ ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2(Vec<SynA2Item>);
     /// `[B b]+ c` item in `A -> a  ► [[B b]+ c]+ ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2Item { plus: SynA1, c: String }
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
-    /// User-defined type for `B`
-    #[derive(Debug)]
-    pub struct SynB();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1), A2(SynA2) }
@@ -2354,7 +2339,7 @@ after,  NT with value: A_1, A_2
                 7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 */
-mod rules_rts_30_2 {
+pub(crate) mod rules_rts_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #2, start A]
 
@@ -2374,17 +2359,18 @@ mod rules_rts_30_2 {
         B { b: String },
     }
 
+    // NT types:
     /// Computed `[B b]+` array in `A -> a [ ► [B b]+ ◄  c]+ d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<String>);
     /// Computed `[[B b]+ c]+` array in `A -> a  ► [[B b]+ c]+ ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2(Vec<SynA2Item>);
     /// `[B b]+ c` item in `A -> a  ► [[B b]+ c]+ ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2Item { plus: SynA1, c: String }
     // Top non-terminal A has no value:
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA();
 
     #[derive(Debug)]
@@ -2564,11 +2550,12 @@ after,  NT with value: A, A_1, A_2, A_3, A_4, A_5, A_6
                 18 => symbols![nt 6, nt 4, nt 5],         // 18: A_12 -> ε           | ◄18                   | A_6 A_4 A_5
             ], Default, btreemap![0 => vec![0]]),
 */
-mod rules_rts_34_1 {
+pub(crate) mod rules_rts_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(34) #1, start A]
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_34_1::*;
 
     /// Type of top rule `A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d`
     #[derive(Debug)]
@@ -2579,33 +2566,32 @@ mod rules_rts_34_1 {
         A { a: String, plus: SynA3, c: String, plus1: SynA6, d: String },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
     /// Computed `[b]+` array in `A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<String>);
     /// Computed `[b]+` array in `A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA2(Vec<String>);
     /// Computed `[[b]+ [b]+]+` array in `A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA3(Vec<SynA3Item>);
     /// `[b]+ [b]+` item in `A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA3Item { plus: SynA1, plus1: SynA2 }
     /// Computed `[b]+` array in `A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA4(Vec<String>);
     /// Computed `[b]+` array in `A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA5(Vec<String>);
     /// Computed `[[b]+ [b]+]+` array in `A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA6(Vec<SynA6Item>);
     /// `[b]+ [b]+` item in `A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA6Item { plus: SynA4, plus1: SynA5 }
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1), A2(SynA2), A3(SynA3), A4(SynA4), A5(SynA5), A6(SynA6) }
@@ -2824,11 +2810,12 @@ after,  NT with value: A
                 6 => symbols![t 0, t 1],                //  6: A_2 -> ε     | ◄6      | a b
             ], Default, btreemap![0 => vec![1, 3, 4, 5, 6]]),
 */
-mod rules_prs_28_1 {
+pub(crate) mod rules_prs_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(28) #1, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_28_1::*;
 
     /// Type of top rule `A -> a | a b | a b c | a b d | e`
     #[derive(Debug)]
@@ -2847,9 +2834,8 @@ mod rules_prs_28_1 {
         A5 { a: String, b: String },
     }
 
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -2985,11 +2971,12 @@ after,  NT with value: E, F
                 3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 */
-mod rules_prs_31_1 {
+pub(crate) mod rules_prs_31_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(31) #1, start E]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_31_1::*;
 
     /// Type of top rule `E -> F`
     #[derive(Debug)]
@@ -3009,12 +2996,9 @@ mod rules_prs_31_1 {
         F { id: String },
     }
 
-    /// User-defined type for `E`
-    #[derive(Debug)]
-    pub struct SynE();
-    /// User-defined type for `F`
-    #[derive(Debug)]
-    pub struct SynF();
+    // NT types:
+    // SynE: User-defined type for `E`
+    // SynF: User-defined type for `F`
 
     #[derive(Debug)]
     enum SynValue { E(SynE), F(SynF) }
@@ -3146,11 +3130,12 @@ after,  NT with value: E, F
                 4 => symbols![],                        //  4: E_1 -> ε        | ◄4            |
             ], Default, btreemap![0 => vec![0, 1], 1 => vec![2]]),
 */
-mod rules_prs_36_1 {
+pub(crate) mod rules_prs_36_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(36) #1, start E]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_36_1::*;
 
     /// Type of top rule `E -> F | num`
     #[derive(Debug)]
@@ -3172,12 +3157,9 @@ mod rules_prs_36_1 {
         F { id: String },
     }
 
-    /// User-defined type for `E`
-    #[derive(Debug)]
-    pub struct SynE();
-    /// User-defined type for `F`
-    #[derive(Debug)]
-    pub struct SynF();
+    // NT types:
+    // SynE: User-defined type for `E`
+    // SynF: User-defined type for `F`
 
     #[derive(Debug)]
     enum SynValue { E(SynE), F(SynF) }
@@ -3322,11 +3304,12 @@ after,  NT with value: A
                 4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
             ], Default, btreemap![0 => vec![3, 4]]),
 */
-mod rules_prs_33_1 {
+pub(crate) mod rules_prs_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(33) #1, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_33_1::*;
 
     /// Type of top rule `A -> b c | b d`
     #[derive(Debug)]
@@ -3343,9 +3326,8 @@ mod rules_prs_33_1 {
         A4 { b: String, d: String },
     }
 
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -3484,11 +3466,12 @@ after,  NT with value: A
                 5 => symbols![t 1, t 3],                //  5: A_2 -> d A_1 | ►A_1 ◄5 d! | b d
             ], Default, btreemap![0 => vec![4, 5]]),
 */
-mod rules_prs_38_1 {
+pub(crate) mod rules_prs_38_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(38) #1, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_38_1::*;
 
     /// Type of top rule `A -> b c | b d`
     #[derive(Debug)]
@@ -3507,9 +3490,8 @@ mod rules_prs_38_1 {
         A5 { b: String, d: String },
     }
 
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -3657,11 +3639,12 @@ after,  NT with value: A
                 6 => symbols![nt 0, t 0, t 2],          //  6: A_3 -> c A_1 | ●A_1 ◄6 c! | A a c
             ], Default, btreemap![0 => vec![3, 4]]),
 */
-mod rules_prs_39_1 {
+pub(crate) mod rules_prs_39_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(39) #1, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_39_1::*;
 
     /// Type of top rule `A -> b c | b d`
     #[derive(Debug)]
@@ -3680,9 +3663,8 @@ mod rules_prs_39_1 {
         A5 { a: SynA, a1: String, c: String },
     }
 
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -3831,11 +3813,12 @@ after,  NT with value: E, F
                 5 => symbols![nt 0, t 1],               //  5: E_2 -> E_1      | ●E_1 ◄5     | E id
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 */
-mod rules_prs_32_1 {
+pub(crate) mod rules_prs_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(32) #1, start E]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_32_1::*;
 
     /// Type of top rule `E -> F`
     #[derive(Debug)]
@@ -3857,12 +3840,9 @@ mod rules_prs_32_1 {
         F { id: String },
     }
 
-    /// User-defined type for `E`
-    #[derive(Debug)]
-    pub struct SynE();
-    /// User-defined type for `F`
-    #[derive(Debug)]
-    pub struct SynF();
+    // NT types:
+    // SynE: User-defined type for `E`
+    // SynF: User-defined type for `F`
 
     #[derive(Debug)]
     enum SynValue { E(SynE), F(SynF) }
@@ -3999,11 +3979,12 @@ after,  NT with value: STRUCT, LIST
                 2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
 */
-mod rules_prs_20_1 {
+pub(crate) mod rules_prs_20_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #1, start STRUCT]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_20_1::*;
 
     /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
@@ -4021,12 +4002,9 @@ mod rules_prs_20_1 {
         List2,
     }
 
-    /// User-defined type for `STRUCT`
-    #[derive(Debug)]
-    pub struct SynStruct();
-    /// User-defined type for `LIST`
-    #[derive(Debug)]
-    pub struct SynList();
+    // NT types:
+    // SynStruct: User-defined type for `STRUCT`
+    // SynList: User-defined type for `LIST`
 
     #[derive(Debug)]
     enum SynValue { Struct(SynStruct), List(SynList) }
@@ -4149,11 +4127,12 @@ after,  NT with value: STRUCT
                 2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
             ], Set(symbols![nt 0, t 5]), btreemap![0 => vec![0], 1 => vec![1, 2]]),
 */
-mod rules_prs_20_2 {
+pub(crate) mod rules_prs_20_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #2, start STRUCT]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_20_2::*;
 
     /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
@@ -4171,9 +4150,8 @@ mod rules_prs_20_2 {
         List2,
     }
 
-    /// User-defined type for `STRUCT`
-    #[derive(Debug)]
-    pub struct SynStruct();
+    // NT types:
+    // SynStruct: User-defined type for `STRUCT`
 
     #[derive(Debug)]
     enum SynValue { Struct(SynStruct) }
@@ -4294,11 +4272,12 @@ after,  NT with value: STRUCT, LIST
                 4 => symbols![t 5],                     //  4: LIST_1 -> ; LIST           | ●LIST ◄4 ;            | id
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 3, 4]]),
 */
-mod rules_prs_37_1 {
+pub(crate) mod rules_prs_37_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(37) #1, start STRUCT]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_37_1::*;
 
     /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
@@ -4318,12 +4297,9 @@ mod rules_prs_37_1 {
         List3 { id: String },
     }
 
-    /// User-defined type for `STRUCT`
-    #[derive(Debug)]
-    pub struct SynStruct();
-    /// User-defined type for `LIST`
-    #[derive(Debug)]
-    pub struct SynList();
+    // NT types:
+    // SynStruct: User-defined type for `STRUCT`
+    // SynList: User-defined type for `LIST`
 
     #[derive(Debug)]
     enum SynValue { Struct(SynStruct), List(SynList) }
@@ -4452,11 +4428,12 @@ after,  NT with value: STRUCT, LIST
                 2 => symbols![nt 1],                    //  2: LIST -> }                  | ◄2 }                  | LIST
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
 */
-mod rules_prs_30_1 {
+pub(crate) mod rules_prs_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(30) #1, start STRUCT]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_30_1::*;
 
     /// Type of top rule `STRUCT -> struct id { LIST`
     #[derive(Debug)]
@@ -4474,12 +4451,9 @@ mod rules_prs_30_1 {
         List2 { list: SynList },
     }
 
-    /// User-defined type for `STRUCT`
-    #[derive(Debug)]
-    pub struct SynStruct();
-    /// User-defined type for `LIST`
-    #[derive(Debug)]
-    pub struct SynList();
+    // NT types:
+    // SynStruct: User-defined type for `STRUCT`
+    // SynList: User-defined type for `LIST`
 
     #[derive(Debug)]
     enum SynValue { Struct(SynStruct), List(SynList) }
@@ -4612,11 +4586,12 @@ after,  NT with value: A, A_1
                 4 => symbols![],                        //  4: A_2 -> ε         | ◄4              |
             ], Default, btreemap![0 => vec![0]]),
 */
-mod rules_rts_26_1 {
+pub(crate) mod rules_rts_26_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(26) #1, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_26_1::*;
 
     /// Type of top rule `A -> a`
     #[derive(Debug)]
@@ -4631,12 +4606,11 @@ mod rules_rts_26_1 {
         A3 { a: SynA },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
     /// Computed `[c]*` array in `A -> a`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<String>);
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1) }
@@ -4778,11 +4752,12 @@ after,  NT with value: A, A_1
                 5 => symbols![nt 1, t 2],               //  5: A_3 -> ε         | ◄5              | A_1 c
             ], Default, btreemap![0 => vec![0]]),
 */
-mod rules_rts_16_1 {
+pub(crate) mod rules_rts_16_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(16) #1, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_16_1::*;
 
     /// Type of top rule `A -> a`
     #[derive(Debug)]
@@ -4797,12 +4772,11 @@ mod rules_rts_16_1 {
         A3 { a: SynA },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
     /// Computed `[c]+` array in `A -> a`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<String>);
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), A1(SynA1) }
@@ -4940,11 +4914,12 @@ after,  NT with value: A
                 3 => symbols![t 0],                     //  3: A_1 -> ε   | ◄3       | a
             ], Default, btreemap![0 => vec![1, 2, 3]]),
 */
-mod rules_prs_35_1 {
+pub(crate) mod rules_prs_35_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(35) #1, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_35_1::*;
 
     /// Type of top rule `A -> a | a b b | a c c`
     #[derive(Debug)]
@@ -4959,9 +4934,8 @@ mod rules_prs_35_1 {
         A3 { a: String },
     }
 
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
+    // NT types:
+    // SynA: User-defined type for `A`
 
     #[derive(Debug)]
     enum SynValue { A(SynA) }
@@ -5085,11 +5059,12 @@ after,  NT with value: A, B, A_1
                 4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
             ], All, btreemap![0 => vec![0, 1], 1 => vec![2]]),
 */
-mod rules_rts_33_1 {
+pub(crate) mod rules_rts_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(33) #1, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_33_1::*;
 
     /// Type of top rule `A -> [B c]* b | a`
     #[derive(Debug)]
@@ -5107,18 +5082,15 @@ mod rules_rts_33_1 {
         B { b: String },
     }
 
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynB: User-defined type for `B`
     /// Computed `[B c]*` array in `A ->  ► [B c]* ◄  b`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1(Vec<SynA1Item>);
     /// `B c` item in `A ->  ► [B c]* ◄  b`
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct SynA1Item { b: SynB, c: String }
-    /// User-defined type for `A`
-    #[derive(Debug)]
-    pub struct SynA();
-    /// User-defined type for `B`
-    #[derive(Debug)]
-    pub struct SynB();
 
     #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }

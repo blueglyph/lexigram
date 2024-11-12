@@ -448,7 +448,7 @@ mod wrapper_source {
     use std::io::{BufRead, BufReader, BufWriter, Read, Seek, Write};
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
-    use crate::{btreemap, CollectJoin, symbols, columns_to_str, SourceSpacer};
+    use crate::{btreemap, CollectJoin, symbols, columns_to_str, SourceSpacer, hashset};
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::ParserBuilder;
     use crate::dfa::TokenId;
@@ -585,13 +585,23 @@ mod wrapper_source {
     #[test]
     #[allow(unused_doc_comments)]
     fn build_items() {
-        let tests: Vec<(T, u16, BTreeMap<u16, Vec<Symbol>>, HasValue, BTreeMap<VarId, Vec<FactorId>>)> = vec![
+        let tests: Vec<(
+            T,                              // rule (PRS or RTS)
+            u16,                            // start NT
+            BTreeMap<VarId, String>,        // NT types
+            BTreeMap<u16, Vec<Symbol>>,     // expected items
+            HasValue,                       // which symbols have a value
+            BTreeMap<VarId, Vec<FactorId>>, // expected factor groups
+        )> = vec![
             // --------------------------------------------------------------------------- NT/T simple mix
             // NT flags:
             //  - (nothing)
             // parents:
             //  - (nothing)
             (PRS(34), 0, btreemap![
+                0 => "SynS".to_string(),
+                1 => "SynVal".to_string(),
+            ], btreemap![
                 0 => symbols![t 0, nt 1],               //  0: S -> id = VAL   | ◄0 ►VAL = id!  | id VAL
                 1 => symbols![],                        //  1: S -> exit       | ◄1 exit        |
                 2 => symbols![nt 1],                    //  2: S -> return VAL | ◄2 ►VAL return | VAL
@@ -604,12 +614,17 @@ mod wrapper_source {
             //  - A_1: child_+_or_* (1)
             // parents:
             //  - A_1 -> A
-            (RTS(21), 0, btreemap![                     /// A -> a (b)* c
+            (RTS(21), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynA1".to_string(),
+            ], btreemap![                     /// A -> a (b)* c
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], All, btreemap![0 => vec![0]]),
-            (RTS(21), 0, btreemap![                     /// A -> a (b)* c
+            (RTS(21), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![                     /// A -> a (b)* c
                 0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
                 1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
@@ -620,12 +635,17 @@ mod wrapper_source {
             //  - A_1: child_+_or_* | L-form (129)
             // parents:
             //  - A_1 -> A
-            (RTS(22), 0, btreemap![                     /// A -> a (b <L>)* c
+            (RTS(22), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynAIter".to_string(),
+            ], btreemap![                     /// A -> a (b <L>)* c
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], All, btreemap![0 => vec![0]]),
             (RTS(22), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![
                 0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
                 1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
@@ -637,7 +657,10 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A
-            (RTS(32), 0, btreemap![                     /// A -> a (a | c) (b <L>)* c
+            (RTS(32), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynAIter".to_string(),
+            ], btreemap![                     /// A -> a (a | c) (b <L>)* c
                 0 => symbols![],                        //  0: A -> a A_2     | ►A_2 a!       |
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1   | ●A_1 ◄1 b!    | A_1 b
                 2 => symbols![],                        //  2: A_1 -> ε       | ◄2            |
@@ -654,6 +677,8 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             (RTS(25), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![
                 0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
                 1 => symbols![],                        //  1: A_1 -> # A_1 | ●A_1 ◄1 #     |
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
@@ -666,7 +691,10 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A_1
-            (RTS(23), 0, btreemap![                     /// A -> a (b)+ c
+            (RTS(23), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynA1".to_string(),
+            ], btreemap![                     /// A -> a (b)+ c
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
                 2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
@@ -679,7 +707,11 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A_1
-            (RTS(27), 0, btreemap![                     /// A -> a (B)+ c; B -> b
+            (RTS(27), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+                2 => "SynA1".to_string(),
+            ], btreemap![                     /// A -> a (B)+ c; B -> b
                 0 => symbols![t 0, nt 2, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![t 1],                     //  1: B -> b       | ◄1 b!         | b
                 2 => symbols![],                        //  2: A_1 -> B A_2 | ►A_2 ►B       |
@@ -693,7 +725,11 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A_1
-            (RTS(28), 0, btreemap![                     /// A -> (a B)+ c; B -> b
+            (RTS(28), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+                2 => "SynA1".to_string(),
+            ], btreemap![                     /// A -> (a B)+ c; B -> b
                 0 => symbols![nt 2, t 2],               //  0: A -> A_1 c     | ◄0 c! ►A_1 | A_1 c
                 1 => symbols![t 1],                     //  1: B -> b         | ◄1 b!      | b
                 2 => symbols![],                        //  2: A_1 -> a B A_2 | ►A_2 ►B a! |
@@ -707,7 +743,10 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A_1
-            (RTS(24), 0, btreemap![                     /// A -> a (b <L>)+ c
+            (RTS(24), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynAIter".to_string(),
+            ], btreemap![                     /// A -> a (b <L>)+ c
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
                 2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
@@ -721,7 +760,12 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A_2
             //  - A_2 -> A
-            (RTS(29), 0, btreemap![                     /// A -> a ( (B b)* c)* d
+            (RTS(29), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+                2 => "SynA1".to_string(),
+                3 => "SynA2".to_string(),
+            ], btreemap![                     /// A -> a ( (B b)* c)* d
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
                 1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!           | b
                 2 => symbols![nt 2, nt 1, t 1],         //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 B b
@@ -729,7 +773,10 @@ mod wrapper_source {
                 4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
-            (RTS(29), 0, btreemap![                     /// A -> a ( (B b)* c)* d
+            (RTS(29), 0, btreemap![
+                0 => "SynA".to_string(),
+                3 => "SynA2".to_string(),
+            ], btreemap![                     /// A -> a ( (B b)* c)* d
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
                 1 => symbols![],                        //  1: B -> b           | ◄1 b            |
                 2 => symbols![],                        //  2: A_1 -> B b A_1   | ●A_1 ◄2 b ►B    |
@@ -737,7 +784,10 @@ mod wrapper_source {
                 4 => symbols![nt 3, t 2],               //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 c
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], Set(symbols![nt 0, t 0, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
-            (RTS(29), 0, btreemap![                     /// A -> a ( (B b)* c)* d
+            (RTS(29), 0, btreemap![
+                2 => "SynA1".to_string(),
+                3 => "SynA2".to_string(),
+            ], btreemap![                     /// A -> a ( (B b)* c)* d
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
                 1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!           | b
                 2 => symbols![nt 2, t 1],               //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 b
@@ -756,7 +806,12 @@ mod wrapper_source {
             //  - A_2 -> A
             //  - A_3 -> A_1
             //  - A_4 -> A_2
-            (RTS(30), 0, btreemap![                     /// A -> a ( (B b)+ c)+ d
+            (RTS(30), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+                2 => "SynA1".to_string(),
+                3 => "SynA2".to_string(),
+            ], btreemap![                     /// A -> a ( (B b)+ c)+ d
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a! | a A_2 d
                 1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!         | b
                 2 => symbols![],                        //  2: A_1 -> B b A_3   | ►A_3 b! ►B    |
@@ -766,7 +821,10 @@ mod wrapper_source {
                 6 => symbols![nt 3, nt 2, t 2],         //  6: A_4 -> A_2       | ●A_2 ◄6       | A_2 A_1 c
                 7 => symbols![nt 3, nt 2, t 2],         //  7: A_4 -> ε         | ◄7            | A_2 A_1 c
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
-            (RTS(30), 0, btreemap![                     /// A -> a ( (B b)+ c)+ d
+            (RTS(30), 0,btreemap![
+                2 => "SynA1".to_string(),
+                3 => "SynA2".to_string(),
+            ], btreemap![                     /// A -> a ( (B b)+ c)+ d
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a! | a A_2 d
                 1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!         | b
                 2 => symbols![],                        //  2: A_1 -> B b A_3   | ►A_3 b! ►B    |
@@ -803,7 +861,15 @@ mod wrapper_source {
             //  - A_10 -> A_4
             //  - A_11 -> A_5
             //  - A_12 -> A_6
-            (RTS(34), 0, btreemap![                     // A -> a ( (b)+ (b)+ )+ c ( (b)+ (b)+ )+ d
+            (RTS(34), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynA1".to_string(),
+                2 => "SynA2".to_string(),
+                3 => "SynA3".to_string(),
+                4 => "SynA4".to_string(),
+                5 => "SynA5".to_string(),
+                6 => "SynA6".to_string(),
+            ], btreemap![                     // A -> a ( (b)+ (b)+ )+ c ( (b)+ (b)+ )+ d
                 0 => symbols![t 0, nt 3, t 2, nt 6, t 3], //  0: A -> a A_3 c A_6 d  | ◄0 d! ►A_6 c! ►A_3 a! | a A_3 c A_6 d
                 1 => symbols![],                          //  1: A_1 -> b A_7        | ►A_7 b!               |
                 2 => symbols![],                          //  2: A_2 -> b A_8        | ►A_8 b!               |
@@ -832,7 +898,9 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A_1
-            (PRS(28), 0, btreemap![                     /// A -> a | a b | a b c | a b d | e
+            (PRS(28), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![                     /// A -> a | a b | a b c | a b d | e
                 0 => symbols![],                        //  0: A -> a A_1   | ►A_1 a! |
                 1 => symbols![t 4],                     //  1: A -> e       | ◄1 e!   | e
                 2 => symbols![],                        //  2: A_1 -> b A_2 | ►A_2 b! |
@@ -847,7 +915,10 @@ mod wrapper_source {
             //  - E_1: child_left_rec (4)
             // parents:
             //  - E_1 -> E
-            (PRS(31), 0, btreemap![                     /// E -> F | E . id ; F -> id
+            (PRS(31), 0, btreemap![
+                0 => "SynE".to_string(),
+                1 => "SynF".to_string(),
+            ], btreemap![                     /// E -> F | E . id ; F -> id
                 0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
                 2 => symbols![nt 0, t 1],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
@@ -858,7 +929,10 @@ mod wrapper_source {
             //  - E_1: child_left_rec (4)
             // parents:
             //  - E_1 -> E
-            (PRS(36), 0, btreemap![                     /// E -> F | num | E . id ; F -> id
+            (PRS(36), 0, btreemap![
+                0 => "SynE".to_string(),
+                1 => "SynF".to_string(),
+            ], btreemap![                     /// E -> F | num | E . id ; F -> id
                 0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
                 1 => symbols![t 2],                     //  1: E -> num E_1    | ◄1 ►E_1 num!  | num
                 2 => symbols![t 1],                     //  2: F -> id         | ◄2 id!        | id
@@ -872,7 +946,9 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A
-            (PRS(33), 0, btreemap![                     /// A -> A a | b c | b d
+            (PRS(33), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![                     /// A -> A a | b c | b d
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
@@ -885,7 +961,9 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A
-            (PRS(38), 0, btreemap![                     /// A -> A a | A b | b c | b d
+            (PRS(38), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![                     /// A -> A a | A b | b c | b d
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                 2 => symbols![nt 0, t 1],               //  2: A_1 -> b A_1 | ●A_1 ◄2 b! | A b
@@ -902,7 +980,9 @@ mod wrapper_source {
             //  - A_1 -> A
             //  - A_2 -> A
             //  - A_3 -> A_1
-            (PRS(39), 0, btreemap![                     /// A -> A a b | A a c | b c | b d
+            (PRS(39), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![                     /// A -> A a b | A a c | b c | b d
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![],                        //  1: A_1 -> a A_3 | ►A_3 a!    |
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
@@ -919,7 +999,10 @@ mod wrapper_source {
             // parents:
             //  - E_1 -> E
             //  - E_2 -> E_1
-            (PRS(32), 0, btreemap![                     /// E -> F | E . id | E . id ( )
+            (PRS(32), 0, btreemap![
+                0 => "SynE".to_string(),
+                1 => "SynF".to_string(),
+            ], btreemap![                               /// E -> F | E . id | E . id ( )
                                                         /// F -> id
                 0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F  | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!      | id
@@ -936,11 +1019,16 @@ mod wrapper_source {
             // parents:
             //  - (nothing)
             (PRS(20), 0, btreemap![
+                0 => "SynStruct".to_string(),
+                1 => "SynList".to_string(),
+            ], btreemap![
                 0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
                 1 => symbols![t 5, t 5, nt 1],          //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id LIST
                 2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
             (PRS(20), 0, btreemap![
+                0 => "SynStruct".to_string(),
+            ], btreemap![
                 0 => symbols![t 5],                     //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id
                 1 => symbols![t 5, t 5],                //  1: LIST -> id : id ; LIST     | ◄1 ►LIST ; id! : id!  | id id
                 2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
@@ -953,6 +1041,9 @@ mod wrapper_source {
             // parents:
             //  - LIST_1 -> LIST
             (PRS(37), 0, btreemap![
+                0 => "SynStruct".to_string(),
+                1 => "SynList".to_string(),
+            ], btreemap![
                 0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
                 1 => symbols![],                        //  1: LIST -> }                  | ◄1 }                  |
                 2 => symbols![],                        //  2: LIST -> id LIST_1          | ►LIST_1 id!           |
@@ -966,6 +1057,9 @@ mod wrapper_source {
             // parents:
             //  - (nothing)
             (PRS(30), 0, btreemap![
+                0 => "SynStruct".to_string(),
+                1 => "SynList".to_string(),
+            ], btreemap![
                 0 => symbols![t 5, nt 1],               //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id LIST
                 1 => symbols![nt 1, t 5, t 5],          //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | LIST id id
                 2 => symbols![nt 1],                    //  2: LIST -> }                  | ◄2 }                  | LIST
@@ -978,7 +1072,10 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A
-            (RTS(26), 0, btreemap![                     /// A -> A (c)* b | a
+            (RTS(26), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynA1".to_string(),
+            ], btreemap![                     /// A -> A (c)* b | a
                 0 => symbols![t 0],                     //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                 1 => symbols![nt 1, t 2],               //  1: A_1 -> c A_1     | ●A_1 ◄1 c!      | A_1 c
                 2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
@@ -994,7 +1091,10 @@ mod wrapper_source {
             //  - A_1 -> A
             //  - A_2 -> A
             //  - A_3 -> A_1
-            (RTS(16), 0, btreemap![                     /// A -> A (c)+ b | a
+            (RTS(16), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynA1".to_string(),
+            ], btreemap![                     /// A -> A (c)+ b | a
                 0 => symbols![t 0],                     //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                 1 => symbols![],                        //  1: A_1 -> c A_3     | ►A_3 c!         |
                 2 => symbols![nt 0, nt 1, t 1],         //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b
@@ -1009,7 +1109,9 @@ mod wrapper_source {
             //  - A_1: child_left_fact (64)
             // parents:
             //  - A_1 -> A
-            (PRS(35), 0, btreemap![                     /// A -> a | a b b | a c c
+            (PRS(35), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![                     /// A -> a | a b b | a c c
                 0 => symbols![],                        //  0: A -> a A_1 | ►A_1 a!  |
                 1 => symbols![t 0, t 1, t 1],           //  1: A_1 -> b b | ◄1 b! b! | a b b
                 2 => symbols![t 0, t 2, t 2],           //  2: A_1 -> c c | ◄2 c! c! | a c c
@@ -1020,7 +1122,11 @@ mod wrapper_source {
             //  - A_1: child_+_or_* (1)
             // parents:
             //  - A_1 -> A
-            (RTS(33), 0, btreemap![                     /// A -> (B c)* b | a; B -> b
+            (RTS(33), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+                2 => "SynA1".to_string(),
+            ], btreemap![                     /// A -> (B c)* b | a; B -> b
                 0 => symbols![nt 2, t 1],               //  0: A -> A_1 b     | ◄0 b! ►A_1    | A_1 b
                 1 => symbols![t 0],                     //  1: A -> a         | ◄1 a!         | a
                 2 => symbols![t 1],                     //  2: B -> b         | ◄2 b!         | b
@@ -1055,22 +1161,26 @@ mod wrapper_source {
             // (RTS(31), 0, btreemap![], Default),  // TODO: reports error, not supported, user must create NT for OR under + or *
             // ---------------------------------------------------------------------------
             /*
-            (PRS(), 0, btreemap![], Default, btreemap![]),
-            (RTS(), 0, btreemap![], Default, btreemap![]),
+            (PRS(), 0, btreemap![], btreemap![], Default, btreemap![]),
+            (RTS(), 0, btreemap![], btreemap![], Default, btreemap![]),
             */
         ];
-        const VERBOSE: bool = true;
-        const PRINT_SOURCE: bool = true;
+
+        // print sources
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
+
+        // test options
         const TEST_SOURCE: bool = true;
         const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
-        //
+        const REPLACE_SOURCE: bool = false;
 
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
-        for (test_id, (rule_id, start_nt, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
+        for (test_id, (rule_id, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
@@ -1094,14 +1204,38 @@ mod wrapper_source {
             let result_factors = (0..builder.parsing_table.num_nt).filter_map(|v|
                 if builder.parsing_table.parent[v].is_none() { Some((v as VarId, builder.gather_factors(v as VarId))) } else { None }
             ).collect::<BTreeMap<_, _>>();
+            let test_name = format!("wrapper source for rule {rule_id:?} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
+            let rule_name = match rule_id {
+                RTS(n) => format!("rts_{n}_{rule_iter}"),
+                PRS(n) => format!("prs_{n}_{rule_iter}"),
+            };
+            if !hashset!["rts_29_3", "rts_30_2"].contains(rule_name.as_str()) {
+                builder.add_lib(&format!("super::super::wrapper_code::code_{rule_name}::*"));
+            }
             let src_wrapper = builder.source_wrapper();
             let mut src = builder.source_use();
             src.add_space();
             src.extend(src_wrapper);
-            let test_name = format!("wrapper source for rule {rule_id:?} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
+            if VERBOSE_TYPE {
+                println!("pub(crate) mod code_{rule_name} {{");
+                println!("    // {0:-<60}\n    // {test_name}", "");
+                let pt: &crate::symbol_table::SymbolTable = builder.get_symbol_table().unwrap();
+                for v in 0..(pt.get_num_nt() as VarId) {
+                    if let Some((_s, src)) = builder.get_nt_extra_info(v) {
+                        println!();
+                        println!("{}", src.into_iter().map(|line| format!("    {line}")).join("\n"));
+                    }
+                }
+                println!("}}\n");
+            }
+            let result_nt_type = builder.nt_type.iter().map(|(v, s)| (*v, s.clone())).collect::<BTreeMap<_, _>>();
             if VERBOSE {
                 print_flags(&builder, 12);
                 println!("            ({rule_id:?}, {start_nt}, btreemap![", );
+                if !result_nt_type.is_empty() {
+                    println!("{}", result_nt_type.iter().map(|(v, s)| format!("                {v} => \"{s}\".to_string(),")).join("\n"));
+                }
+                println!("            ], btreemap![");
                 print_items(&builder, &result_items, 16);
                 let has_value_str = match &has_value {
                     Set(s) => format!("Set(symbols![{}])", s.iter().map(|s| symbol_to_macro(s)).join(", ")),
@@ -1116,18 +1250,14 @@ mod wrapper_source {
             let result_src = result.clone() + "\n\n";
             if PRINT_SOURCE {
                 println!("*/");
-                let rule_name = match rule_id {
-                    RTS(n) => format!("rts_{n}"),
-                    PRS(n) => format!("prs_{n}"),
-                };
-                println!("mod rules_{rule_name}_{rule_iter} {{");
+                println!("pub(crate) mod rules_{rule_name} {{");
                 println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}    // [{test_name}]\n    // {:-<60}\n", "");
                 println!("}}\n");
             }
             let expected_src = get_wrapper_source(&test_name);
             let err_msg = format!("test {test_id} {rule_id:?} #{rule_iter} failed ");
             if TESTS_ALL {
-                if result_items != expected_items || result_factors != expected_factors {
+                if result_items != expected_items || result_factors != expected_factors || result_nt_type != nt_type {
                     num_errors += 1;
                     println!("## ERROR: {err_msg}");
                 }
@@ -1141,6 +1271,7 @@ mod wrapper_source {
             } else {
                 assert_eq!(result_items, expected_items, "{err_msg}");
                 assert_eq!(result_factors, expected_factors, "{err_msg}");
+                assert_eq!(result_nt_type, nt_type, "{err_msg}");
                 if TEST_SOURCE {
                     if REPLACE_SOURCE && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() {
                         replace_wrapper_source(&test_name, &result).expect("replacement failed");

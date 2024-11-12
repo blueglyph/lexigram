@@ -140,7 +140,8 @@ pub struct ParserBuilder {
     start: VarId,
     nt_conversion: HashMap<VarId, NTConversion>,
     used_libs: StructLibs,
-    nt_type: HashMap<VarId, String>
+    nt_type: HashMap<VarId, String>,
+    nt_extra_info: HashMap<VarId, (String, Vec<String>)>,
 }
 
 impl ParserBuilder {
@@ -178,7 +179,8 @@ impl ParserBuilder {
             start,
             nt_conversion,
             used_libs: StructLibs::new(),
-            nt_type: HashMap::new()
+            nt_type: HashMap::new(),
+            nt_extra_info: HashMap::new(),
         };
         builder.build_opcodes();
         builder
@@ -200,8 +202,32 @@ impl ParserBuilder {
     }
 
     #[inline]
-    pub fn add_nt_type<T: ToString>(&mut self, var: VarId, var_type: T) {
+    /// Declares the type of a non-terminal. The index of the NT, `org_var`, is the original index
+    /// in the ruletree set, which is the index originally assigned when parsing the grammar file.
+    pub fn add_nt_type<T: ToString>(&mut self, org_var: VarId, var_type: T) {
+        let var = self.conv_nt(org_var).expect("var {var} doesn't exist");
         self.nt_type.insert(var, var_type.to_string());
+    }
+
+    fn get_nt_type(&self, v: VarId) -> &str {
+        self.nt_type.get(&v).unwrap().as_str()
+    }
+
+    pub fn get_nt_extra_info(&self, nt: VarId) -> Option<&(String, Vec<String>)> {
+        self.nt_extra_info.get(&nt)
+    }
+
+    /// Converts the original index of an NT to its current index.
+    ///
+    /// The original index is the NT's index of a general (non-normalized) ruletree set, as parsed from
+    /// a grammar file. The current index may differ if NTs were removed during the analysis of the
+    /// production rules or if <L> low-latency labels were declared.
+    fn conv_nt(&self, org_var: VarId) -> Option<VarId> {
+        match self.nt_conversion.get(&org_var) {
+            None => if (org_var as usize) < self.parsing_table.num_nt { Some(org_var) } else { None },
+            Some(NTConversion::MovedTo(new)) => Some(*new),
+            Some(NTConversion::Removed) => None
+        }
     }
 
     #[inline]
@@ -1134,6 +1160,15 @@ impl ParserBuilder {
 
         let mut src = vec![];
 
+        // Defines missing type names
+        for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
+            let v = v as VarId;
+            if !self.nt_type.contains_key(&v) {
+                let (nu, _nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
+                self.nt_type.insert(v, format!("Syn{nu}"));
+            }
+        }
+
         // Writes contexts
         if let Some((nu, nl)) = &nt_name[self.start as usize] {
             src.push(format!("/// Type of top rule `{}`", self.full_prod_str(self.start)));
@@ -1181,66 +1216,79 @@ impl ParserBuilder {
 
         // Writes intermediate Syn types
         src.add_space();
-        let mut user_names = vec![];
+        src.push("// NT types:".to_string());
         let mut syns = Vec::<(&str, &str)>::new();
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
+            let v = v as VarId;
             let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
-            if self.nt_has_flags(v as VarId, ruleflag::CHILD_REPEAT) {
-                let parent = pinfo.get_top_parent(v as VarId);
-                // let facts = self.get_group_factors(&self.nt_parent[parent as usize]);
-                let tf = self.get_top_factors(v as VarId);
-                let is_lform = self.nt_has_flags(v as VarId, ruleflag::L_FORM);
+            if self.nt_has_flags(v, ruleflag::CHILD_REPEAT) {
+                let parent = pinfo.get_top_parent(v);
+                let tf = self.get_top_factors(v);
+                let is_lform = self.nt_has_flags(v, ruleflag::L_FORM);
                 let comment1 = tf.iter().map(|(var, f_id)| {
-                    format!("{}in `{}`", if is_lform { "iteration " } else { "array " }, self.full_factor_str(*f_id, Some(v as VarId)))
+                    format!("{}in `{}`", if is_lform { "iteration " } else { "array " }, self.full_factor_str(*f_id, Some(v)))
                 }).join(", ");
                 let comment2 = tf.iter().map(|(var, f_id)| {
-                    format!("{}in `{}`", if is_lform { "iteration " } else { "item " }, self.full_factor_str(*f_id, Some(v as VarId)))
+                    format!("{}in `{}`", if is_lform { "iteration " } else { "item " }, self.full_factor_str(*f_id, Some(v)))
                 }).join(", ");
-                let current = Symbol::NT(v as VarId).to_str(self.get_symbol_table());
-                if let Some(infos) = nt_repeat.get(&(v as VarId)) {
+                let current = Symbol::NT(v).to_str(self.get_symbol_table());
+                if let Some(infos) = nt_repeat.get(&(v)) {
                     if is_lform {
-                        src.push(format!("/// User-defined `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
-                        src.push(format!("#[derive(Debug)]"));
-                        src.push(format!("pub struct Syn{nu}();")); // TODO: must be defined in object field
+                        src.push(format!("// {}: User-defined type for `{}` {comment1}",
+                                         self.get_nt_type(v),
+                                         self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                        let extra_src = vec![
+                            format!("/// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
+                            format!("#[derive(Debug, PartialEq)]"),
+                            format!("pub struct Syn{nu}();"),
+                        ];
+                        self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
                     } else {
                         // complex + * items; for ex. A -> (B b)+
-                        src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
-                        src.push(format!("#[derive(Debug)]"));
+                        src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                        src.push(format!("#[derive(Debug, PartialEq)]"));
                         src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
-                        let mut fact = self.parsing_table.factors[self.var_factors[v][0] as usize].1.symbols().to_vec();
+                        let mut fact = self.parsing_table.factors[self.var_factors[v as usize][0] as usize].1.symbols().to_vec();
                         fact.pop();
                         src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
-                        src.push(format!("#[derive(Debug)]"));
+                        src.push(format!("#[derive(Debug, PartialEq)]"));
                         src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
                     }
                 } else {
                     if is_lform {
-                        src.push(format!("/// User-defined `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
-                        src.push(format!("#[derive(Debug)]"));
-                        src.push(format!("pub struct Syn{nu}();")); // TODO: must be defined in object field
+                        src.push(format!("// {}: User-defined type for `{}` {comment1}",
+                                         self.get_nt_type(v),
+                                         self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                        let extra_src = vec![
+                            format!("/// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
+                            format!("#[derive(Debug, PartialEq)]"),
+                            format!("pub struct Syn{nu}();"),
+                        ];
+                        self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
                     } else {
                         // + * item is only a terminal
-                        src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v as VarId)], None)));
-                        src.push(format!("#[derive(Debug)]"));
+                        src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                        src.push(format!("#[derive(Debug, PartialEq)]"));
                         src.push(format!("pub struct Syn{nu}(Vec<String>);"));
                     }
                 }
             } else {
-                user_names.push((v, format!("Syn{nu}")));
+                src.push(format!("// {}: User-defined type for `{}`",
+                                 self.get_nt_type(v),
+                                 Symbol::NT(v).to_str(self.get_symbol_table())));
+                let extra_src = vec![
+                    format!("/// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())),
+                    format!("#[derive(Debug, PartialEq)]"),
+                    format!("pub struct {}();", self.get_nt_type(v)),
+                ];
+                self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
             }
             syns.push((nu, nl));
-        }
-        if !user_names.is_empty() {
-            for (v, type_name) in user_names {
-                src.push(format!("/// User-defined type for `{}`", Symbol::NT(v as VarId).to_str(self.get_symbol_table())));
-                src.push(format!("#[derive(Debug)]"));
-                src.push(format!("pub struct {type_name}();")); // TODO: must be defined in object field
-            }
         }
         if !self.nt_value[self.start as usize] {
             let (nu, _) = nt_name[self.start as usize].as_ref().unwrap();
             src.push(format!("// Top non-terminal {nu} has no value:"));
-            src.push(format!("#[derive(Debug)]"));
+            src.push(format!("#[derive(Debug, PartialEq)]"));
             src.push(format!("pub struct Syn{nu}();"))
         }
 

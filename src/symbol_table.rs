@@ -86,6 +86,10 @@ impl SymbolTable {
         &self.nt
     }
 
+    pub fn get_num_nt(&self) -> usize {
+        self.nt.len()
+    }
+
     pub fn extend_non_terminals<I: IntoIterator<Item=String>>(&mut self, iter: I) {
         self.nt.extend(iter);
     }
