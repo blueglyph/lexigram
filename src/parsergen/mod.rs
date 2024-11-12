@@ -1126,12 +1126,12 @@ impl ParserBuilder {
     }
 
     /// Structure elements used in a context or in a +* child type
-    fn source_infos(infos: &Vec<ItemInfo>, nt_name: &Vec<Option<(String, String)>>) -> String {
+    fn source_infos(&self, infos: &Vec<ItemInfo>) -> String {
         infos.iter().filter_map(|info| {
             if info.index.is_none() || info.index == Some(0) {
                 let type_name_base = match info.sym {
                     Symbol::T(_) => "String".to_string(),
-                    Symbol::NT(vs) => format!("Syn{}", nt_name[vs as usize].clone().unwrap().0),
+                    Symbol::NT(vs) => self.get_nt_type(vs).to_string(), //format!("Syn{}", nt_name[vs as usize].clone().unwrap().0),
                     _ => panic!("unexpected symbol {}", info.sym)
                 };
                 let type_name = if info.index.is_some() {
@@ -1174,7 +1174,7 @@ impl ParserBuilder {
             src.push(format!("/// Type of top rule `{}`", self.full_prod_str(self.start)));
             src.push(format!("#[derive(Debug)]"));
             if self.nt_value[self.start as usize] {
-                src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: Syn{nu} }} }}"));
+                src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: {} }} }}", self.get_nt_type(self.start as VarId)));
             } else {
                 src.push(format!("pub enum Ctx {{ {nu} }} // {nu} has no value: nothing returned from the top non-terminal"));
             }
@@ -1201,7 +1201,7 @@ impl ParserBuilder {
                     for &f_id in factors {
                         let (v, pf) = &self.parsing_table.factors[f_id as usize];
                         src.push(format!("    /// `{}`", self.full_factor_str(f_id, None)));
-                        let ctx_content = Self::source_infos(&item_info[f_id as usize], &nt_name);
+                        let ctx_content = self.source_infos(&item_info[f_id as usize]);
                         let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
                         if ctx_content.is_empty() {
                             src.push(format!("    {f_name},", ))
@@ -1217,7 +1217,7 @@ impl ParserBuilder {
         // Writes intermediate Syn types
         src.add_space();
         src.push("// NT types:".to_string());
-        let mut syns = Vec::<(&str, &str)>::new();
+        let mut syns = Vec::<(&str, &str, String)>::new();
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let v = v as VarId;
             let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
@@ -1252,7 +1252,7 @@ impl ParserBuilder {
                         fact.pop();
                         src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
                         src.push(format!("#[derive(Debug, PartialEq)]"));
-                        src.push(format!("pub struct Syn{nu}Item {{ {} }}", Self::source_infos(&infos, &nt_name)));
+                        src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos)));
                     }
                 } else {
                     if is_lform {
@@ -1283,7 +1283,7 @@ impl ParserBuilder {
                 ];
                 self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
             }
-            syns.push((nu, nl));
+            syns.push((nu, nl, self.get_nt_type(v).to_string()));
         }
         if !self.nt_value[self.start as usize] {
             let (nu, _) = nt_name[self.start as usize].as_ref().unwrap();
@@ -1296,13 +1296,13 @@ impl ParserBuilder {
         src.add_space();
         // SynValue type
         src.push(format!("#[derive(Debug)]"));
-        src.push(format!("enum SynValue {{ {} }}", syns.iter().map(|(nu, _)| format!("{nu}(Syn{nu})")).join(", ")));
+        src.push(format!("enum SynValue {{ {} }}", syns.iter().map(|(nu, _, nt_type)| format!("{nu}({nt_type})")).join(", ")));
         if !syns.is_empty() {
             // SynValue getters
             src.add_space();
             src.push("impl SynValue {".to_string());
-            for (nu, nl) in &syns {
-                src.push(format!("    fn get_{nl}(self) -> Syn{nu} {{"));
+            for (nu, nl, nt_type) in &syns {
+                src.push(format!("    fn get_{nl}(self) -> {nt_type} {{"));
                 if syns.len() == 1 {
                     src.push(format!("        let SynValue::{nu}(val) = self;"));
                     src.push(format!("        val"));
@@ -1349,7 +1349,7 @@ impl ParserBuilder {
                 if self.parsing_table.parent[nt].is_none() {
                     let (nu, nl) = nt_name[nt].as_ref().unwrap();
                     if has_value && self.nt_has_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) {
-                        src_listener_decl.push(format!("    fn init_{nl}(&mut self) -> Syn{nu};"));
+                        src_listener_decl.push(format!("    fn init_{nl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
                         src_wrapper_impl.push(format!("    fn init_{nl}(&mut self) {{"));
                         src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
@@ -1367,7 +1367,7 @@ impl ParserBuilder {
                             src_wrapper_impl.push(format!("    fn init_{nl}(&mut self) {{"));
                             if flags & ruleflag::L_FORM != 0 {
                                 src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
-                                src_listener_decl.push(format!("    fn init_{nl}(&mut self) -> Syn{nu};"));
+                                src_listener_decl.push(format!("    fn init_{nl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                             } else {
                                 src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
                             }
@@ -1451,7 +1451,7 @@ impl ParserBuilder {
                     let no_method = !has_value && flags & ruleflag::CHILD_REPEAT != 0;
                     if is_parent || (is_child_repeat_lform && !no_method) {
                         if has_value {
-                            src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) -> Syn{nu};"));
+                            src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) -> {};", self.get_nt_type(nt as VarId)));
                         } else {
                             src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) {{}}"));
                         }

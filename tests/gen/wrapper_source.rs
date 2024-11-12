@@ -1476,32 +1476,32 @@ pub(crate) mod rules_rts_24_1 {
 
     /// Type of top rule `A -> a (b <L>)+ c`
     #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
+    pub enum Ctx { A { a: SynMyA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a (b <L>)+ c`
-        A { a: String, plus: SynAIter, c: String },
+        A { a: String, plus: SynMyAIter, c: String },
     }
     #[derive(Debug)]
     pub enum CtxAIter {
         /// `(b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c`
-        Aiter1_1 { plus_it: SynAIter, b: String },
+        Aiter1_1 { plus_it: SynMyAIter, b: String },
         /// `end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c`
-        Aiter1_2 { plus_it: SynAIter, b: String },
+        Aiter1_2 { plus_it: SynMyAIter, b: String },
     }
 
     // NT types:
-    // SynA: User-defined type for `A`
-    // SynAIter: User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+    // SynMyA: User-defined type for `A`
+    // SynMyAIter: User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), AIter(SynAIter) }
+    enum SynValue { A(SynMyA), AIter(SynMyAIter) }
 
     impl SynValue {
-        fn get_a(self) -> SynA {
+        fn get_a(self) -> SynMyA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
-        fn get_a_iter(self) -> SynAIter {
+        fn get_a_iter(self) -> SynMyAIter {
             if let SynValue::AIter(val) = self { val } else { panic!() }
         }
     }
@@ -1509,9 +1509,9 @@ pub(crate) mod rules_rts_24_1 {
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_a_iter(&mut self) -> SynAIter;
-        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
+        fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
+        fn init_a_iter(&mut self) -> SynMyAIter;
+        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynMyAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -5068,7 +5068,7 @@ pub(crate) mod rules_rts_33_1 {
 
     /// Type of top rule `A -> [B c]* b | a`
     #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
+    pub enum Ctx { A { a: SynMyA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> [B c]* b`
@@ -5083,7 +5083,7 @@ pub(crate) mod rules_rts_33_1 {
     }
 
     // NT types:
-    // SynA: User-defined type for `A`
+    // SynMyA: User-defined type for `A`
     // SynB: User-defined type for `B`
     /// Computed `[B c]*` array in `A ->  ► [B c]* ◄  b`
     #[derive(Debug, PartialEq)]
@@ -5093,10 +5093,10 @@ pub(crate) mod rules_rts_33_1 {
     pub struct SynA1Item { b: SynB, c: String }
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), B(SynB), A1(SynA1) }
+    enum SynValue { A(SynMyA), B(SynB), A1(SynA1) }
 
     impl SynValue {
-        fn get_a(self) -> SynA {
+        fn get_a(self) -> SynMyA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
         fn get_b(self) -> SynB {
@@ -5110,7 +5110,7 @@ pub(crate) mod rules_rts_33_1 {
     pub trait TestListener {
         fn exit(&mut self, _ctx: Ctx) {}
         fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
         fn init_b(&mut self) {}
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }

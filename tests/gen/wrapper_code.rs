@@ -114,11 +114,11 @@ pub(crate) mod code_rts_24_1 {
 
     /// User-defined type for `A`
     #[derive(Debug, PartialEq)]
-    pub struct SynA();
+    pub struct SynMyA();
 
     /// User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
     #[derive(Debug, PartialEq)]
-    pub struct SynAIter();
+    pub struct SynMyAIter();
 }
 
 pub(crate) mod code_rts_29_1 {
@@ -331,7 +331,7 @@ pub(crate) mod code_rts_33_1 {
 
     /// User-defined type for `A`
     #[derive(Debug, PartialEq)]
-    pub struct SynA();
+    pub struct SynMyA();
 
     /// User-defined type for `B`
     #[derive(Debug, PartialEq)]

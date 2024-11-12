@@ -744,8 +744,8 @@ mod wrapper_source {
             //  - A_1 -> A
             //  - A_2 -> A_1
             (RTS(24), 0, btreemap![
-                0 => "SynA".to_string(),
-                1 => "SynAIter".to_string(),
+                0 => "SynMyA".to_string(),
+                1 => "SynMyAIter".to_string(),
             ], btreemap![                     /// A -> a (b <L>)+ c
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
@@ -1123,7 +1123,7 @@ mod wrapper_source {
             // parents:
             //  - A_1 -> A
             (RTS(33), 0, btreemap![
-                0 => "SynA".to_string(),
+                0 => "SynMyA".to_string(),
                 1 => "SynB".to_string(),
                 2 => "SynA1".to_string(),
             ], btreemap![                     /// A -> (B c)* b | a; B -> b
@@ -1167,7 +1167,7 @@ mod wrapper_source {
         ];
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -1176,7 +1176,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = false;
+        const REPLACE_SOURCE: bool = true;
 
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
@@ -1211,6 +1211,9 @@ mod wrapper_source {
             };
             if !hashset!["rts_29_3", "rts_30_2"].contains(rule_name.as_str()) {
                 builder.add_lib(&format!("super::super::wrapper_code::code_{rule_name}::*"));
+            }
+            for (v, s) in nt_type.clone() {
+                builder.add_nt_type(v, s);
             }
             let src_wrapper = builder.source_wrapper();
             let mut src = builder.source_use();
