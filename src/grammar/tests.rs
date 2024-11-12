@@ -545,7 +545,7 @@ fn rts_normalize() {
         (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, <L=0>, 0), :4)"]),
         (17, btreemap![0 => "&(:0, 2, :3)", 1 => "|(&(:1, 1), :1)", 2 => "|(&(1, :2, 2), &(1, :2))"]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, expected) in tests {
         if VERBOSE {
             println!("test {test_id}:");
@@ -2660,7 +2660,7 @@ fn rts_prs_flags() {
         (T::PRS(), 0, btreemap![], btreemap![], btreemap![]),
         */
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
     for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent, expected_nt_conversion)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }

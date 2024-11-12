@@ -411,7 +411,7 @@ mod opcodes {
             ]),
             */
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const TESTS_ALL: bool = false;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
@@ -1428,7 +1428,7 @@ mod wrapper_source {
             ]),
             */
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         for (test_id, (rule_id, expected_expanded_full, expected_top_factors)) in tests.into_iter().enumerate() {
             let expected_expanded = expected_expanded_full.iter().map(|(a, _)| a.to_string()).to_vec();
             let expected_full = expected_expanded_full.iter().map(|(_, b)| b.to_string()).to_vec();
