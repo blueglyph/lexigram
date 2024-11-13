@@ -1342,6 +1342,7 @@ impl ParserBuilder {
                 if self.parsing_table.parent[nt].is_none() {
                     let (nu, nl) = nt_name[nt].as_ref().unwrap();
                     if has_value && self.nt_has_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) {
+                        src_wrapper_impl.push(String::new());
                         src_listener_decl.push(format!("    fn init_{nl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
                         src_wrapper_impl.push(format!("    fn init_{nl}(&mut self) {{"));
@@ -1355,6 +1356,7 @@ impl ParserBuilder {
                 } else {
                     if flags & ruleflag::CHILD_REPEAT != 0 {
                         if has_value {
+                            src_wrapper_impl.push(String::new());
                             let (nu, nl) = nt_name[nt].as_ref().unwrap();
                             src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
                             src_wrapper_impl.push(format!("    fn init_{nl}(&mut self) {{"));
@@ -1464,6 +1466,7 @@ impl ParserBuilder {
                     }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
                     if !no_method {
+                        src_wrapper_impl.push(String::new());
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor { ", factor_id: FactorId" } else { "" }));
                         if is_factor {
                             self.used_libs.add("rlexer::grammar::FactorId");
@@ -1630,16 +1633,6 @@ impl ParserBuilder {
         src.push(format!("    stack_t: Vec<String>,"));
         src.push(format!("}}"));
         src.push(format!(""));
-        src.push(format!("impl<T: {}Listener> ListenerWrapper<T> {{", self.name));
-        src.push(format!("    pub fn new(listener: T, verbose: bool) -> Self {{"));
-        src.push(format!("        ListenerWrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
-        src.push(format!("    }}"));
-        src.push(format!(""));
-        src.push(format!("    pub fn listener(self) -> T {{"));
-        src.push(format!("        self.listener"));
-        src.push(format!("    }}"));
-        src.push(format!("}}"));
-        src.push(format!(""));
         src.push(format!("impl<T: {}Listener> Listener for ListenerWrapper<T> {{", self.name));
         src.push(format!("    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {{"));
         src.push(format!("        if let Some(mut t_data) = t_data {{"));
@@ -1689,7 +1682,15 @@ impl ParserBuilder {
 
         src.add_space();
         src.push(format!("impl<T: {}Listener> ListenerWrapper<T> {{", self.name));
+        src.push(format!("    pub fn new(listener: T, verbose: bool) -> Self {{"));
+        src.push(format!("        ListenerWrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
+        src.push(format!("    }}"));
+        src.push(format!(""));
+        src.push(format!("    pub fn listener(self) -> T {{"));
+        src.push(format!("        self.listener"));
+        src.push(format!("    }}"));
         if self.nt_value[self.start as usize] {
+            src.push(format!(""));
             src.push(format!("    fn exit(&mut self) {{"));
             if let Some((nu, nl)) = &nt_name[self.start as usize] {
                 src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{nl}();"));

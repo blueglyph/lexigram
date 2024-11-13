@@ -75,16 +75,6 @@ pub(crate) mod rules_prs_34_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -122,10 +112,19 @@ pub(crate) mod rules_prs_34_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let s = self.stack.pop().unwrap().get_s();
             self.listener.exit(s);
         }
+
         fn exit_s(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 0 => {
@@ -145,6 +144,7 @@ pub(crate) mod rules_prs_34_1 {
             let val = self.listener.exit_s(ctx);
             self.stack.push(SynValue::S(val));
         }
+
         fn exit_val(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 3 => {
@@ -228,16 +228,6 @@ pub(crate) mod rules_rts_21_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -273,10 +263,19 @@ pub(crate) mod rules_rts_21_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
@@ -284,10 +283,12 @@ pub(crate) mod rules_rts_21_1 {
             let val = self.listener.exit_a(CtxA::A { a, star, c });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut star_it = self.stack.pop().unwrap().get_a1();
@@ -357,16 +358,6 @@ pub(crate) mod rules_rts_21_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -402,10 +393,19 @@ pub(crate) mod rules_rts_21_2 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
@@ -485,16 +485,6 @@ pub(crate) mod rules_rts_22_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -530,10 +520,19 @@ pub(crate) mod rules_rts_22_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a_iter();
@@ -541,10 +540,12 @@ pub(crate) mod rules_rts_22_1 {
             let val = self.listener.exit_a(CtxA::A { a, star, c });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a_iter(&mut self) {
             let val = self.listener.init_a_iter();
             self.stack.push(SynValue::AIter(val));
         }
+
         fn exit_a_iter(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_a_iter();
@@ -615,16 +616,6 @@ pub(crate) mod rules_rts_22_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -660,10 +651,19 @@ pub(crate) mod rules_rts_22_2 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
@@ -749,16 +749,6 @@ pub(crate) mod rules_rts_32_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -797,10 +787,19 @@ pub(crate) mod rules_rts_32_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 3 => {
@@ -822,10 +821,12 @@ pub(crate) mod rules_rts_32_1 {
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a_iter(&mut self) {
             let val = self.listener.init_a_iter();
             self.stack.push(SynValue::AIter(val));
         }
+
         fn exit_a_iter(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_a_iter();
@@ -895,16 +896,6 @@ pub(crate) mod rules_rts_25_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -940,10 +931,19 @@ pub(crate) mod rules_rts_25_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let a = self.stack_t.pop().unwrap();
@@ -1021,16 +1021,6 @@ pub(crate) mod rules_rts_23_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -1068,10 +1058,19 @@ pub(crate) mod rules_rts_23_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
@@ -1079,10 +1078,12 @@ pub(crate) mod rules_rts_23_1 {
             let val = self.listener.exit_a(CtxA::A { a, plus, c });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
@@ -1175,16 +1176,6 @@ pub(crate) mod rules_rts_27_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -1224,10 +1215,19 @@ pub(crate) mod rules_rts_27_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
@@ -1235,16 +1235,19 @@ pub(crate) mod rules_rts_27_1 {
             let val = self.listener.exit_a(CtxA::A { a, plus, c });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
             plus_it.0.push(SynA1Item { b });
             self.stack.push(SynValue::A1(plus_it));
         }
+
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let val = self.listener.exit_b(CtxB::B { b });
@@ -1336,16 +1339,6 @@ pub(crate) mod rules_rts_28_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -1385,20 +1378,31 @@ pub(crate) mod rules_rts_28_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let val = self.listener.exit_a(CtxA::A { plus, c });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
             let a = self.stack_t.pop().unwrap();
@@ -1406,6 +1410,7 @@ pub(crate) mod rules_rts_28_1 {
             plus_it.0.push(SynA1Item { a, b });
             self.stack.push(SynValue::A1(plus_it));
         }
+
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let val = self.listener.exit_b(CtxB::B { b });
@@ -1489,16 +1494,6 @@ pub(crate) mod rules_rts_24_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -1536,10 +1531,19 @@ pub(crate) mod rules_rts_24_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a_iter();
@@ -1547,10 +1551,12 @@ pub(crate) mod rules_rts_24_1 {
             let val = self.listener.exit_a(CtxA::A { a, plus, c });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a_iter(&mut self) {
             let val = self.listener.init_a_iter();
             self.stack.push(SynValue::AIter(val));
         }
+
         fn exit_a_iter(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let plus_it = self.stack.pop().unwrap().get_a_iter();
@@ -1653,16 +1659,6 @@ pub(crate) mod rules_rts_29_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -1703,10 +1699,19 @@ pub(crate) mod rules_rts_29_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
@@ -1714,10 +1719,12 @@ pub(crate) mod rules_rts_29_1 {
             let val = self.listener.exit_a(CtxA::A { a, star, d });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let b1 = self.stack_t.pop().unwrap();
             let b = self.stack.pop().unwrap().get_b();
@@ -1725,10 +1732,12 @@ pub(crate) mod rules_rts_29_1 {
             star_it.0.push(SynA1Item { b, b1 });
             self.stack.push(SynValue::A1(star_it));
         }
+
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
+
         fn exit_a2(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
@@ -1736,6 +1745,7 @@ pub(crate) mod rules_rts_29_1 {
             star_it.0.push(SynA2Item { star, c });
             self.stack.push(SynValue::A2(star_it));
         }
+
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let val = self.listener.exit_b(CtxB::B { b });
@@ -1821,16 +1831,6 @@ pub(crate) mod rules_rts_29_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -1871,10 +1871,19 @@ pub(crate) mod rules_rts_29_2 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
@@ -1882,16 +1891,19 @@ pub(crate) mod rules_rts_29_2 {
             let val = self.listener.exit_a(CtxA::A { a, star, d });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
+
         fn exit_a2(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let mut star_it = self.stack.pop().unwrap().get_a2();
             star_it.0.push(c);
             self.stack.push(SynValue::A2(star_it));
         }
+
         fn exit_b(&mut self) {
             self.listener.exit_b(CtxB::B);
         }
@@ -1982,16 +1994,6 @@ pub(crate) mod rules_rts_29_3 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -2032,26 +2034,38 @@ pub(crate) mod rules_rts_29_3 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
             let a = self.stack_t.pop().unwrap();
             self.listener.exit_a(CtxA::A { a, star, d });
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut star_it = self.stack.pop().unwrap().get_a1();
             star_it.0.push(b);
             self.stack.push(SynValue::A1(star_it));
         }
+
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
+
         fn exit_a2(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a1();
@@ -2059,6 +2073,7 @@ pub(crate) mod rules_rts_29_3 {
             star_it.0.push(SynA2Item { star, c });
             self.stack.push(SynValue::A2(star_it));
         }
+
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
             self.listener.exit_b(CtxB::B { b });
@@ -2165,16 +2180,6 @@ pub(crate) mod rules_rts_30_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -2219,10 +2224,19 @@ pub(crate) mod rules_rts_30_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a2();
@@ -2230,10 +2244,12 @@ pub(crate) mod rules_rts_30_1 {
             let val = self.listener.exit_a(CtxA::A { a, plus, d });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let b1 = self.stack_t.pop().unwrap();
             let b = self.stack.pop().unwrap().get_b();
@@ -2241,10 +2257,12 @@ pub(crate) mod rules_rts_30_1 {
             plus_it.0.push(SynA1Item { b, b1 });
             self.stack.push(SynValue::A1(plus_it));
         }
+
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
+
         fn exit_a2(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
@@ -2252,6 +2270,7 @@ pub(crate) mod rules_rts_30_1 {
             plus_it.0.push(SynA2Item { plus, c });
             self.stack.push(SynValue::A2(plus_it));
         }
+
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let val = self.listener.exit_b(CtxB::B { b });
@@ -2350,16 +2369,6 @@ pub(crate) mod rules_rts_30_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -2404,26 +2413,38 @@ pub(crate) mod rules_rts_30_2 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a2();
             let a = self.stack_t.pop().unwrap();
             self.listener.exit_a(CtxA::A { a, plus, d });
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
             plus_it.0.push(b);
             self.stack.push(SynValue::A1(plus_it));
         }
+
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
+
         fn exit_a2(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
@@ -2431,6 +2452,7 @@ pub(crate) mod rules_rts_30_2 {
             plus_it.0.push(SynA2Item { plus, c });
             self.stack.push(SynValue::A2(plus_it));
         }
+
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
             self.listener.exit_b(CtxB::B { b });
@@ -2577,16 +2599,6 @@ pub(crate) mod rules_rts_34_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -2649,10 +2661,19 @@ pub(crate) mod rules_rts_34_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
             let plus1 = self.stack.pop().unwrap().get_a6();
@@ -2662,30 +2683,36 @@ pub(crate) mod rules_rts_34_1 {
             let val = self.listener.exit_a(CtxA::A { a, plus, c, plus1, d });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
             plus_it.0.push(b);
             self.stack.push(SynValue::A1(plus_it));
         }
+
         fn init_a2(&mut self) {
             let val = SynA2(Vec::new());
             self.stack.push(SynValue::A2(val));
         }
+
         fn exit_a2(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a2();
             plus_it.0.push(b);
             self.stack.push(SynValue::A2(plus_it));
         }
+
         fn init_a3(&mut self) {
             let val = SynA3(Vec::new());
             self.stack.push(SynValue::A3(val));
         }
+
         fn exit_a3(&mut self) {
             let plus1 = self.stack.pop().unwrap().get_a2();
             let plus = self.stack.pop().unwrap().get_a1();
@@ -2693,30 +2720,36 @@ pub(crate) mod rules_rts_34_1 {
             plus_it.0.push(SynA3Item { plus, plus1 });
             self.stack.push(SynValue::A3(plus_it));
         }
+
         fn init_a4(&mut self) {
             let val = SynA4(Vec::new());
             self.stack.push(SynValue::A4(val));
         }
+
         fn exit_a4(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a4();
             plus_it.0.push(b);
             self.stack.push(SynValue::A4(plus_it));
         }
+
         fn init_a5(&mut self) {
             let val = SynA5(Vec::new());
             self.stack.push(SynValue::A5(val));
         }
+
         fn exit_a5(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a5();
             plus_it.0.push(b);
             self.stack.push(SynValue::A5(plus_it));
         }
+
         fn init_a6(&mut self) {
             let val = SynA6(Vec::new());
             self.stack.push(SynValue::A6(val));
         }
+
         fn exit_a6(&mut self) {
             let plus1 = self.stack.pop().unwrap().get_a5();
             let plus = self.stack.pop().unwrap().get_a4();
@@ -2801,16 +2834,6 @@ pub(crate) mod rules_prs_28_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -2851,10 +2874,19 @@ pub(crate) mod rules_prs_28_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
@@ -2965,16 +2997,6 @@ pub(crate) mod rules_prs_31_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -3012,15 +3034,25 @@ pub(crate) mod rules_prs_31_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(e);
         }
+
         fn init_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
             let val = self.listener.exit_e(CtxE::E1 { f });
             self.stack.push(SynValue::E(val));
         }
+
         fn exit_e1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 2 => {
@@ -3037,6 +3069,7 @@ pub(crate) mod rules_prs_31_1 {
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
+
         fn exit_f(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let val = self.listener.exit_f(CtxF::F { id });
@@ -3123,16 +3156,6 @@ pub(crate) mod rules_prs_36_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -3171,10 +3194,19 @@ pub(crate) mod rules_prs_36_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(e);
         }
+
         fn init_e(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 0 => {
@@ -3190,6 +3222,7 @@ pub(crate) mod rules_prs_36_1 {
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
+
         fn exit_e1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 3 => {
@@ -3206,6 +3239,7 @@ pub(crate) mod rules_prs_36_1 {
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
+
         fn exit_f(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let val = self.listener.exit_f(CtxF::F { id });
@@ -3284,16 +3318,6 @@ pub(crate) mod rules_prs_33_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -3332,10 +3356,19 @@ pub(crate) mod rules_prs_33_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn init_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 3 => {
@@ -3353,6 +3386,7 @@ pub(crate) mod rules_prs_33_1 {
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
         }
+
         fn exit_a1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
@@ -3445,16 +3479,6 @@ pub(crate) mod rules_prs_38_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -3494,10 +3518,19 @@ pub(crate) mod rules_prs_38_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn init_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 4 => {
@@ -3515,6 +3548,7 @@ pub(crate) mod rules_prs_38_1 {
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
         }
+
         fn exit_a1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
@@ -3615,16 +3649,6 @@ pub(crate) mod rules_prs_39_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -3666,10 +3690,19 @@ pub(crate) mod rules_prs_39_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn init_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 3 => {
@@ -3687,6 +3720,7 @@ pub(crate) mod rules_prs_39_1 {
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
         }
+
         fn exit_a1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 2 => {
@@ -3794,16 +3828,6 @@ pub(crate) mod rules_prs_32_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -3844,15 +3868,25 @@ pub(crate) mod rules_prs_32_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(e);
         }
+
         fn init_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
             let val = self.listener.exit_e(CtxE::E1 { f });
             self.stack.push(SynValue::E(val));
         }
+
         fn exit_e1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 3 => {
@@ -3874,6 +3908,7 @@ pub(crate) mod rules_prs_32_1 {
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
+
         fn exit_f(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let val = self.listener.exit_f(CtxF::F { id });
@@ -3953,16 +3988,6 @@ pub(crate) mod rules_prs_20_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -3998,16 +4023,26 @@ pub(crate) mod rules_prs_20_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(struct1);
         }
+
         fn exit_struct1(&mut self) {
             let list = self.stack.pop().unwrap().get_list();
             let id = self.stack_t.pop().unwrap();
             let val = self.listener.exit_struct1(CtxStruct::Struct { id, list });
             self.stack.push(SynValue::Struct(val));
         }
+
         fn exit_list(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
@@ -4095,16 +4130,6 @@ pub(crate) mod rules_prs_20_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -4140,15 +4165,25 @@ pub(crate) mod rules_prs_20_2 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(struct1);
         }
+
         fn exit_struct1(&mut self) {
             let id = self.stack_t.pop().unwrap();
             let val = self.listener.exit_struct1(CtxStruct::Struct { id });
             self.stack.push(SynValue::Struct(val));
         }
+
         fn exit_list(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
@@ -4242,16 +4277,6 @@ pub(crate) mod rules_prs_37_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -4290,16 +4315,26 @@ pub(crate) mod rules_prs_37_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(struct1);
         }
+
         fn exit_struct1(&mut self) {
             let list = self.stack.pop().unwrap().get_list();
             let id = self.stack_t.pop().unwrap();
             let val = self.listener.exit_struct1(CtxStruct::Struct { id, list });
             self.stack.push(SynValue::Struct(val));
         }
+
         fn exit_list(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
@@ -4393,16 +4428,6 @@ pub(crate) mod rules_prs_30_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -4438,20 +4463,31 @@ pub(crate) mod rules_prs_30_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
             self.listener.exit(struct1);
         }
+
         fn exit_struct1(&mut self) {
             let list = self.stack.pop().unwrap().get_list();
             let id = self.stack_t.pop().unwrap();
             let val = self.listener.exit_struct1(CtxStruct::Struct { id, list });
             self.stack.push(SynValue::Struct(val));
         }
+
         fn init_list(&mut self) {
             let val = self.listener.init_list();
             self.stack.push(SynValue::List(val));
         }
+
         fn exit_list(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
@@ -4545,16 +4581,6 @@ pub(crate) mod rules_rts_26_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -4593,25 +4619,37 @@ pub(crate) mod rules_rts_26_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn init_a(&mut self) {
             let a = self.stack_t.pop().unwrap();
             let val = self.listener.exit_a(CtxA::A1 { a });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let mut star_it = self.stack.pop().unwrap().get_a1();
             star_it.0.push(c);
             self.stack.push(SynValue::A1(star_it));
         }
+
         fn exit_a2(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 3 => {
@@ -4708,16 +4746,6 @@ pub(crate) mod rules_rts_16_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -4758,25 +4786,37 @@ pub(crate) mod rules_rts_16_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn init_a(&mut self) {
             let a = self.stack_t.pop().unwrap();
             let val = self.listener.exit_a(CtxA::A1 { a });
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
             plus_it.0.push(c);
             self.stack.push(SynValue::A1(plus_it));
         }
+
         fn exit_a2(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 2 => {
@@ -4862,16 +4902,6 @@ pub(crate) mod rules_prs_35_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -4908,10 +4938,19 @@ pub(crate) mod rules_prs_35_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 1 => {
@@ -5021,16 +5060,6 @@ pub(crate) mod rules_rts_33_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-    }
-
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
@@ -5069,10 +5098,19 @@ pub(crate) mod rules_rts_33_1 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
             self.listener.exit(a);
         }
+
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 0 => {
@@ -5089,10 +5127,12 @@ pub(crate) mod rules_rts_33_1 {
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
         }
+
         fn init_a1(&mut self) {
             let val = SynA1(Vec::new());
             self.stack.push(SynValue::A1(val));
         }
+
         fn exit_a1(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let b = self.stack.pop().unwrap().get_b();
@@ -5100,6 +5140,7 @@ pub(crate) mod rules_rts_33_1 {
             star_it.0.push(SynA1Item { b, c });
             self.stack.push(SynValue::A1(star_it));
         }
+
         fn exit_b(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let val = self.listener.exit_b(CtxB::B { b });
