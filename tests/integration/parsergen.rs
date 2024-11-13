@@ -1001,8 +1001,6 @@ mod listener3 {
         //   - (nothing)
 
         #[derive(Debug)]
-        pub enum Ctx { Struct(SynStruct) }
-        #[derive(Debug)]
         pub enum CtxStruct { Struct { id: String, list: SynList } }
         #[derive(Debug)]
         pub enum CtxList { List1 { id: [String; 2], list: SynList }, List2 }
@@ -1023,7 +1021,7 @@ mod listener3 {
         }
 
         pub trait StructListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _str: SynStruct) {}
             fn init_struct(&mut self) {}
             fn init_list(&mut self) {}
             fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
@@ -1085,7 +1083,7 @@ mod listener3 {
         impl<T: StructListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let val = self.stack.pop().unwrap().get_struct();
-                self.listener.exit(Ctx::Struct(val));
+                self.listener.exit(val);
             }
 
             fn exit_struct(&mut self) {
@@ -1126,9 +1124,9 @@ mod listener3 {
         }
 
         impl StructListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::Struct((struct_name, list)) = ctx;
+            fn exit(&mut self, str: SynStruct) {
+                if self.verbose { println!("◄ (str = {str:?})"); }
+                let (struct_name, list) = str;
                 self.result.insert(struct_name, list);
             }
 
@@ -1292,8 +1290,6 @@ mod listener4 {
         //   - (nothing)
 
         #[derive(Debug)]
-        pub enum Ctx { Struct(SynStruct) }
-        #[derive(Debug)]
         pub enum CtxStruct { Struct { id: String, list: SynList } }
         #[derive(Debug)]
         pub enum CtxList { List1 { id: [String; 2], list: SynList }, List2 { list: SynList } }
@@ -1313,7 +1309,7 @@ mod listener4 {
         }
 
         pub trait StructListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, str: SynStruct) {}
             fn init_struct(&mut self) {}
             fn init_list(&mut self) -> SynList;
             fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
@@ -1375,7 +1371,7 @@ mod listener4 {
         impl<T: StructListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let val = self.stack.pop().unwrap().get_struct();
-                self.listener.exit(Ctx::Struct(val));
+                self.listener.exit(val);
             }
 
             fn init_list(&mut self)  {
@@ -1425,7 +1421,7 @@ mod listener4 {
         }
 
         impl StructListener for TestListener {
-            fn exit(&mut self, _ctx: Ctx) {
+            fn exit(&mut self, str: SynStruct) {
                 self.max_list_length = self.result.iter().map(|x| x.1.len() as u32).max();
             }
 
@@ -1595,8 +1591,6 @@ mod listener5 {
         //  - E_1 -> E
 
         #[derive(Debug)]
-        pub enum Ctx { E { e: SynE } }
-        #[derive(Debug)]
         pub enum CtxE { E_Id { e: SynE, id: String }, F { f: SynF }, E { e: SynE } }
         #[derive(Debug)]
         pub enum CtxF { F { id: String } }
@@ -1616,7 +1610,7 @@ mod listener5 {
         }
 
         pub trait ExprListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _e: SynE) {}
             fn init_e(&mut self) {}
             fn init_f(&mut self) {}
             fn exit_e(&mut self, _ctx: CtxE) -> SynE;
@@ -1681,7 +1675,7 @@ mod listener5 {
         impl<T: ExprListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let e = self.stack.pop().unwrap().get_e();
-                self.listener.exit(Ctx::E { e });
+                self.listener.exit(e);
             }
 
             fn init_e_1(&mut self) {
@@ -1733,13 +1727,10 @@ mod listener5 {
         }
 
         impl ExprListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                if let Ctx::E { e: SynE::Final(e) } = ctx {
-                    self.result = Some(e);
-                } else {
-                    panic!("unexpected final context {ctx:?}");
-                }
+            fn exit(&mut self, e: SynE) {
+                if self.verbose { println!("◄ (e = {e:?})"); }
+                let SynE::Final(e) = e else { panic!("unexpected final context {e:?}") };
+                self.result = Some(e);
             }
 
             fn init_e(&mut self) {
@@ -1908,11 +1899,6 @@ mod listener6 {
         //  - E_2 -> E_1
 
         #[derive(Debug)]
-        pub enum Ctx {
-            /// Rule `E -> F | E . id | E . id ( )`
-            E { e: SynE }
-        }
-        #[derive(Debug)]
         pub enum CtxE {
             /// Factor `E -> E . id`
             E_Id { e: SynE, id: String },
@@ -1944,7 +1930,7 @@ mod listener6 {
         }
 
         pub trait ExprListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _e: SynE) {}
             fn init_e(&mut self) {}
             fn init_f(&mut self) {}
             fn exit_e(&mut self, _ctx: CtxE) -> SynE;
@@ -2011,7 +1997,7 @@ mod listener6 {
         impl<T: ExprListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let e = self.stack.pop().unwrap().get_e();
-                self.listener.exit(Ctx::E { e });
+                self.listener.exit(e);
             }
 
             fn init_e_1(&mut self) {
@@ -2064,9 +2050,8 @@ mod listener6 {
         }
 
         impl ExprListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::E { e } = ctx;
+            fn exit(&mut self, e: SynE) {
+                if self.verbose { println!("◄ (e = {e:?})"); }
                 self.result = Some(e.0);
             }
 
@@ -2230,11 +2215,6 @@ mod listener7 {
         //  - A_1 -> A
 
         #[derive(Debug)]
-        pub enum Ctx {
-            A(SynA)
-        }
-
-        #[derive(Debug)]
         pub enum CtxA {
             /// Factor `A -> a (b)* c`
             A { a: String, b: Vec<String>, c: String },
@@ -2258,7 +2238,7 @@ mod listener7 {
         }
 
         pub trait StarListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _a: SynA) {}
             fn init_a(&mut self) {}
             fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         }
@@ -2318,7 +2298,7 @@ mod listener7 {
         impl<T: StarListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let a = self.stack.pop().unwrap().get_a();
-                self.listener.exit(Ctx::A(a));
+                self.listener.exit(a);
             }
 
             fn init_a_1(&mut self) {
@@ -2359,9 +2339,8 @@ mod listener7 {
         }
 
         impl StarListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::A(a) = ctx;
+            fn exit(&mut self, a: SynA) {
+                if self.verbose { println!("◄ (a = {a:?})"); }
                 self.result = Some(a);
             }
 
@@ -2506,11 +2485,6 @@ mod listener8 {
         //  - A_1 -> A
 
         #[derive(Debug)]
-        pub enum Ctx {
-            A(SynA)
-        }
-
-        #[derive(Debug)]
         pub enum CtxA {
             /// Factor `A -> a (b)* c`
             A { a: String, a_star: SynAStar, c: String },
@@ -2537,7 +2511,7 @@ mod listener8 {
         }
 
         pub trait StarListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _a: SynA) {}
             fn init_a(&mut self) {}
             fn init_a_iter(&mut self) -> SynAStar;
             fn iter_a(&mut self, _ctx: CtxAStar) -> SynAStar;
@@ -2599,7 +2573,7 @@ mod listener8 {
         impl<T: StarListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let a = self.stack.pop().unwrap().get_a();
-                self.listener.exit(Ctx::A(a));
+                self.listener.exit(a);
             }
 
             fn init_a_1(&mut self) {
@@ -2644,9 +2618,8 @@ mod listener8 {
         }
 
         impl StarListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::A(a) = ctx;
+            fn exit(&mut self, a: SynA) {
+                if self.verbose { println!("◄ (a = {a:?})"); }
                 self.result = Some(a);
             }
 
@@ -2809,11 +2782,6 @@ mod listener9 {
         //  - A_3 -> A_1
 
         #[derive(Debug)]
-        pub enum Ctx {
-            A { a: SynA }
-        }
-
-        #[derive(Debug)]
         pub enum CtxA {
             /// Factor `A -> a` (init)
             A1 { a: String },
@@ -2841,7 +2809,7 @@ mod listener9 {
         }
 
         pub trait StarListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _a: SynA) {}
             fn init_a(&mut self) {}
             fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         }
@@ -2906,7 +2874,7 @@ mod listener9 {
         impl<T: StarListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let a = self.stack.pop().unwrap().get_a();
-                self.listener.exit(Ctx::A { a });
+                self.listener.exit(a);
             }
 
             fn init_a_1(&mut self) {
@@ -2959,9 +2927,8 @@ mod listener9 {
         }
 
         impl StarListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::A { a } = ctx;
+            fn exit(&mut self, a: SynA) {
+                if self.verbose { println!("◄ (a = {a:?})"); }
                 self.result = Some(a.0);
             }
 
@@ -3118,11 +3085,6 @@ mod listener10 {
         //  - A_2 -> A_1
 
         #[derive(Debug)]
-        pub enum Ctx {
-            A(SynA)
-        }
-
-        #[derive(Debug)]
         pub enum CtxA {
             /// Factor `A -> a (b)+ c`
             A { a: String, b: Vec<String>, c: String },
@@ -3146,7 +3108,7 @@ mod listener10 {
         }
 
         pub trait StarListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _a: SynA) {}
             fn init_a(&mut self) {}
             fn exit_a(&mut self, ctx: CtxA) -> SynA;
         }
@@ -3208,7 +3170,7 @@ mod listener10 {
         impl<T: StarListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let a = self.stack.pop().unwrap().get_a();
-                self.listener.exit(Ctx::A(a));
+                self.listener.exit(a);
             }
 
             fn init_a_1(&mut self) {
@@ -3249,9 +3211,8 @@ mod listener10 {
         }
 
         impl StarListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::A(a) = ctx;
+            fn exit(&mut self, a: SynA) {
+                if self.verbose { println!("◄ (a = {a:?})"); }
                 self.result = Some(a);
             }
 
@@ -3401,11 +3362,6 @@ mod listener11 {
         //  - A_2 -> A_1
 
         #[derive(Debug)]
-        pub enum Ctx {
-            A(SynA)
-        }
-
-        #[derive(Debug)]
         pub enum CtxA {
             /// Factor `A -> a (B)+ c`
             A { a: String, b: Vec<String>, c: String },
@@ -3436,7 +3392,7 @@ mod listener11 {
         }
 
         pub trait StarListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _a: SynA) {}
             fn init_a(&mut self) {}
             fn init_b(&mut self) {}
             fn exit_a(&mut self, ctx: CtxA) -> SynA;
@@ -3502,7 +3458,7 @@ mod listener11 {
         impl<T: StarListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let a = self.stack.pop().unwrap().get_a();
-                self.listener.exit(Ctx::A(a));
+                self.listener.exit(a);
             }
 
             fn init_a_1(&mut self) {
@@ -3551,9 +3507,8 @@ mod listener11 {
         }
 
         impl StarListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::A(a) = ctx;
+            fn exit(&mut self, a: SynA) {
+                if self.verbose { println!("◄ (a = {a:?})"); }
                 self.result = Some(a);
             }
 
@@ -3712,8 +3667,6 @@ mod listener12 {
         //  - A_2 -> A
 
         #[derive(Debug)]
-        pub enum Ctx { A { a: SynA } }
-        #[derive(Debug)]
         pub enum CtxA {
             A1 { a: SynA, a1: String },
             A2 { a: SynA },
@@ -3734,7 +3687,7 @@ mod listener12 {
         }
 
         pub trait LeftRecListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _a: SynA) {}
             fn init_a(&mut self) {}
             fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         }
@@ -3797,7 +3750,7 @@ mod listener12 {
         impl<T: LeftRecListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let a = self.stack.pop().unwrap().get_a();
-                self.listener.exit(Ctx::A { a });
+                self.listener.exit(a);
             }
 
             fn exit_a(&mut self) {
@@ -3857,9 +3810,8 @@ mod listener12 {
         }
 
         impl LeftRecListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                let Ctx::A { a } = ctx;
+            fn exit(&mut self, a: SynA) {
+                if self.verbose { println!("◄ (a = {a:?})"); }
                 self.result = Some(match a.choice {
                     Bcbd::Bc(s) | Bcbd::Bd(s) => s
                 } + &a.count_a.to_string());
@@ -4023,8 +3975,6 @@ mod listener13 {
         //  - E_1 -> E
 
         #[derive(Debug)]
-        pub enum Ctx { E { e: SynE } }
-        #[derive(Debug)]
         pub enum CtxE { F { f: SynF }, Num { num: String }, E_Id { e: SynE, id: String }, E { e: SynE } }
         #[derive(Debug)]
         pub enum CtxF { F { id: String } }
@@ -4044,7 +3994,7 @@ mod listener13 {
         }
 
         pub trait ExprListener {
-            fn exit(&mut self, _ctx: Ctx) {}
+            fn exit(&mut self, _e: SynE) {}
             fn init_e(&mut self) {}
             fn init_f(&mut self) {}
             fn exit_e(&mut self, _ctx: CtxE) -> SynE;
@@ -4110,7 +4060,7 @@ mod listener13 {
         impl<T: ExprListener> ListenerWrapper<T> {
             fn exit(&mut self) {
                 let e = self.stack.pop().unwrap().get_e();
-                self.listener.exit(Ctx::E { e });
+                self.listener.exit(e);
             }
 
             fn init_e_1(&mut self, factor_id: VarId) {
@@ -4172,13 +4122,10 @@ mod listener13 {
         }
 
         impl ExprListener for TestListener {
-            fn exit(&mut self, ctx: Ctx) {
-                if self.verbose { println!("◄ (ctx = {ctx:?})"); }
-                if let Ctx::E { e: SynE::Final(e) } = ctx {
-                    self.result = Some(e);
-                } else {
-                    panic!("unexpected final context {ctx:?}");
-                }
+            fn exit(&mut self, e: SynE) {
+                if self.verbose { println!("◄ (e = {e:?})"); }
+                let SynE::Final(e) = e else { panic!("unexpected final value {e:?}") };
+                self.result = Some(e);
             }
 
             fn init_e(&mut self) {
