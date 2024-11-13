@@ -26,9 +26,6 @@ pub(crate) mod rules_prs_34_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_34_1::*;
 
-    /// Type of top rule `S -> id = VAL | exit | return VAL`
-    #[derive(Debug)]
-    pub enum Ctx { S { s: SynS } }
     #[derive(Debug)]
     pub enum CtxS {
         /// `S -> id = VAL`
@@ -63,7 +60,7 @@ pub(crate) mod rules_prs_34_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _s: SynS) {}
         fn init_s(&mut self) {}
         fn exit_s(&mut self, _ctx: CtxS) -> SynS;
         fn init_val(&mut self) {}
@@ -127,7 +124,7 @@ pub(crate) mod rules_prs_34_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let s = self.stack.pop().unwrap().get_s();
-            self.listener.exit(Ctx::S { s });
+            self.listener.exit(s);
         }
         fn exit_s(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -193,9 +190,6 @@ pub(crate) mod rules_rts_21_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_21_1::*;
 
-    /// Type of top rule `A -> a [b]* c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [b]* c`
@@ -221,7 +215,7 @@ pub(crate) mod rules_rts_21_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -281,7 +275,7 @@ pub(crate) mod rules_rts_21_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
@@ -330,9 +324,6 @@ pub(crate) mod rules_rts_21_2 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_21_2::*;
 
-    /// Type of top rule `A -> a [b]* c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [b]* c`
@@ -353,7 +344,7 @@ pub(crate) mod rules_rts_21_2 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -413,7 +404,7 @@ pub(crate) mod rules_rts_21_2 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
@@ -451,9 +442,6 @@ pub(crate) mod rules_rts_22_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_22_1::*;
 
-    /// Type of top rule `A -> a (b <L>)* c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a (b <L>)* c`
@@ -482,7 +470,7 @@ pub(crate) mod rules_rts_22_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_a_iter(&mut self) -> SynAIter;
@@ -544,7 +532,7 @@ pub(crate) mod rules_rts_22_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
@@ -593,9 +581,6 @@ pub(crate) mod rules_rts_22_2 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_22_2::*;
 
-    /// Type of top rule `A -> a (b <L>)* c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a (b <L>)* c`
@@ -616,7 +601,7 @@ pub(crate) mod rules_rts_22_2 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_a_iter(&mut self) {}
@@ -677,7 +662,7 @@ pub(crate) mod rules_rts_22_2 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
@@ -719,9 +704,6 @@ pub(crate) mod rules_rts_32_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_32_1::*;
 
-    /// Type of top rule `A -> a a (b <L>)* c | a c (b <L>)* c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a a (b <L>)* c`
@@ -752,7 +734,7 @@ pub(crate) mod rules_rts_32_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_a_iter(&mut self) -> SynAIter;
@@ -817,7 +799,7 @@ pub(crate) mod rules_rts_32_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -880,9 +862,6 @@ pub(crate) mod rules_rts_25_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_25_1::*;
 
-    /// Type of top rule `A -> a [#]* c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [#]* c`
@@ -903,7 +882,7 @@ pub(crate) mod rules_rts_25_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -963,7 +942,7 @@ pub(crate) mod rules_rts_25_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
@@ -1004,9 +983,6 @@ pub(crate) mod rules_rts_23_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_23_1::*;
 
-    /// Type of top rule `A -> a [b]+ c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [b]+ c`
@@ -1032,7 +1008,7 @@ pub(crate) mod rules_rts_23_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -1094,7 +1070,7 @@ pub(crate) mod rules_rts_23_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
@@ -1147,9 +1123,6 @@ pub(crate) mod rules_rts_27_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_27_1::*;
 
-    /// Type of top rule `A -> a [B]+ c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [B]+ c`
@@ -1187,7 +1160,7 @@ pub(crate) mod rules_rts_27_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -1253,7 +1226,7 @@ pub(crate) mod rules_rts_27_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
@@ -1311,9 +1284,6 @@ pub(crate) mod rules_rts_28_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_28_1::*;
 
-    /// Type of top rule `A -> [a B]+ c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> [a B]+ c`
@@ -1351,7 +1321,7 @@ pub(crate) mod rules_rts_28_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -1417,7 +1387,7 @@ pub(crate) mod rules_rts_28_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
@@ -1474,9 +1444,6 @@ pub(crate) mod rules_rts_24_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_24_1::*;
 
-    /// Type of top rule `A -> a (b <L>)+ c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynMyA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a (b <L>)+ c`
@@ -1507,7 +1474,7 @@ pub(crate) mod rules_rts_24_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
         fn init_a_iter(&mut self) -> SynMyAIter;
@@ -1571,7 +1538,7 @@ pub(crate) mod rules_rts_24_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
@@ -1625,9 +1592,6 @@ pub(crate) mod rules_rts_29_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_29_1::*;
 
-    /// Type of top rule `A -> a [[B b]* c]* d`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [[B b]* c]* d`
@@ -1674,7 +1638,7 @@ pub(crate) mod rules_rts_29_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -1741,7 +1705,7 @@ pub(crate) mod rules_rts_29_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
@@ -1812,9 +1776,6 @@ pub(crate) mod rules_rts_29_2 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_29_2::*;
 
-    /// Type of top rule `A -> a [[B b]* c]* d`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [[B b]* c]* d`
@@ -1845,7 +1806,7 @@ pub(crate) mod rules_rts_29_2 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -1912,7 +1873,7 @@ pub(crate) mod rules_rts_29_2 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
@@ -1968,9 +1929,6 @@ pub(crate) mod rules_rts_29_3 {
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
-    /// Type of top rule `A -> a [[B b]* c]* d`
-    #[derive(Debug)]
-    pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [[B b]* c]* d`
@@ -2009,7 +1967,7 @@ pub(crate) mod rules_rts_29_3 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) {}
         fn init_b(&mut self) {}
@@ -2062,7 +2020,7 @@ pub(crate) mod rules_rts_29_3 {
                     }
                 }
                 Call::End => {
-                    self.exit();
+                    self.listener.exit();
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -2074,9 +2032,6 @@ pub(crate) mod rules_rts_29_3 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
-        fn exit(&mut self) {
-            self.listener.exit(Ctx::A);
-        }
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
             let star = self.stack.pop().unwrap().get_a2();
@@ -2149,9 +2104,6 @@ pub(crate) mod rules_rts_30_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_30_1::*;
 
-    /// Type of top rule `A -> a [[B b]+ c]+ d`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [[B b]+ c]+ d`
@@ -2198,7 +2150,7 @@ pub(crate) mod rules_rts_30_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_b(&mut self) {}
@@ -2269,7 +2221,7 @@ pub(crate) mod rules_rts_30_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
@@ -2345,9 +2297,6 @@ pub(crate) mod rules_rts_30_2 {
 
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
-    /// Type of top rule `A -> a [[B b]+ c]+ d`
-    #[derive(Debug)]
-    pub enum Ctx { A } // A has no value: nothing returned from the top non-terminal
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [[B b]+ c]+ d`
@@ -2386,7 +2335,7 @@ pub(crate) mod rules_rts_30_2 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) {}
         fn init_b(&mut self) {}
@@ -2443,7 +2392,7 @@ pub(crate) mod rules_rts_30_2 {
                     }
                 }
                 Call::End => {
-                    self.exit();
+                    self.listener.exit();
                 }
             }
             self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
@@ -2455,9 +2404,6 @@ pub(crate) mod rules_rts_30_2 {
     }
 
     impl<T: TestListener> ListenerWrapper<T> {
-        fn exit(&mut self) {
-            self.listener.exit(Ctx::A);
-        }
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a2();
@@ -2557,9 +2503,6 @@ pub(crate) mod rules_rts_34_1 {
     use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_34_1::*;
 
-    /// Type of top rule `A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d`
@@ -2621,7 +2564,7 @@ pub(crate) mod rules_rts_34_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -2708,7 +2651,7 @@ pub(crate) mod rules_rts_34_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
@@ -2817,9 +2760,6 @@ pub(crate) mod rules_prs_28_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_28_1::*;
 
-    /// Type of top rule `A -> a | a b | a b c | a b d | e`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> e`
@@ -2848,7 +2788,7 @@ pub(crate) mod rules_prs_28_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -2913,7 +2853,7 @@ pub(crate) mod rules_prs_28_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -2978,9 +2918,6 @@ pub(crate) mod rules_prs_31_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_31_1::*;
 
-    /// Type of top rule `E -> F`
-    #[derive(Debug)]
-    pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
     pub enum CtxE {
         /// `E -> F`
@@ -3013,7 +2950,7 @@ pub(crate) mod rules_prs_31_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
         fn init_f(&mut self) {}
@@ -3077,7 +3014,7 @@ pub(crate) mod rules_prs_31_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(Ctx::E { e });
+            self.listener.exit(e);
         }
         fn init_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
@@ -3137,9 +3074,6 @@ pub(crate) mod rules_prs_36_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_36_1::*;
 
-    /// Type of top rule `E -> F | num`
-    #[derive(Debug)]
-    pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
     pub enum CtxE {
         /// `E -> F`
@@ -3174,7 +3108,7 @@ pub(crate) mod rules_prs_36_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
         fn init_f(&mut self) {}
@@ -3239,7 +3173,7 @@ pub(crate) mod rules_prs_36_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(Ctx::E { e });
+            self.listener.exit(e);
         }
         fn init_e(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -3311,9 +3245,6 @@ pub(crate) mod rules_prs_33_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_33_1::*;
 
-    /// Type of top rule `A -> b c | b d`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> A a`
@@ -3340,7 +3271,7 @@ pub(crate) mod rules_prs_33_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -3403,7 +3334,7 @@ pub(crate) mod rules_prs_33_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn init_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -3473,9 +3404,6 @@ pub(crate) mod rules_prs_38_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_38_1::*;
 
-    /// Type of top rule `A -> b c | b d`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> A a`
@@ -3504,7 +3432,7 @@ pub(crate) mod rules_prs_38_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -3568,7 +3496,7 @@ pub(crate) mod rules_prs_38_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn init_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -3646,9 +3574,6 @@ pub(crate) mod rules_prs_39_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_39_1::*;
 
-    /// Type of top rule `A -> b c | b d`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> ε (end of loop)`
@@ -3677,7 +3602,7 @@ pub(crate) mod rules_prs_39_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -3743,7 +3668,7 @@ pub(crate) mod rules_prs_39_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn init_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -3820,9 +3745,6 @@ pub(crate) mod rules_prs_32_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_32_1::*;
 
-    /// Type of top rule `E -> F`
-    #[derive(Debug)]
-    pub enum Ctx { E { e: SynE } }
     #[derive(Debug)]
     pub enum CtxE {
         /// `E -> F`
@@ -3857,7 +3779,7 @@ pub(crate) mod rules_prs_32_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
         fn init_f(&mut self) {}
@@ -3924,7 +3846,7 @@ pub(crate) mod rules_prs_32_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
-            self.listener.exit(Ctx::E { e });
+            self.listener.exit(e);
         }
         fn init_e(&mut self) {
             let f = self.stack.pop().unwrap().get_f();
@@ -3986,9 +3908,6 @@ pub(crate) mod rules_prs_20_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_20_1::*;
 
-    /// Type of top rule `STRUCT -> struct id { LIST`
-    #[derive(Debug)]
-    pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
     pub enum CtxStruct {
         /// `STRUCT -> struct id { LIST`
@@ -4019,7 +3938,7 @@ pub(crate) mod rules_prs_20_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _struct1: SynStruct) {}
         fn init_struct1(&mut self) {}
         fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
@@ -4081,7 +4000,7 @@ pub(crate) mod rules_prs_20_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
-            self.listener.exit(Ctx::Struct { struct1 });
+            self.listener.exit(struct1);
         }
         fn exit_struct1(&mut self) {
             let list = self.stack.pop().unwrap().get_list();
@@ -4134,9 +4053,6 @@ pub(crate) mod rules_prs_20_2 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_20_2::*;
 
-    /// Type of top rule `STRUCT -> struct id { LIST`
-    #[derive(Debug)]
-    pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
     pub enum CtxStruct {
         /// `STRUCT -> struct id { LIST`
@@ -4164,7 +4080,7 @@ pub(crate) mod rules_prs_20_2 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _struct1: SynStruct) {}
         fn init_struct1(&mut self) {}
         fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
@@ -4226,7 +4142,7 @@ pub(crate) mod rules_prs_20_2 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
-            self.listener.exit(Ctx::Struct { struct1 });
+            self.listener.exit(struct1);
         }
         fn exit_struct1(&mut self) {
             let id = self.stack_t.pop().unwrap();
@@ -4279,9 +4195,6 @@ pub(crate) mod rules_prs_37_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_37_1::*;
 
-    /// Type of top rule `STRUCT -> struct id { LIST`
-    #[derive(Debug)]
-    pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
     pub enum CtxStruct {
         /// `STRUCT -> struct id { LIST`
@@ -4314,7 +4227,7 @@ pub(crate) mod rules_prs_37_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _struct1: SynStruct) {}
         fn init_struct1(&mut self) {}
         fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
@@ -4379,7 +4292,7 @@ pub(crate) mod rules_prs_37_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
-            self.listener.exit(Ctx::Struct { struct1 });
+            self.listener.exit(struct1);
         }
         fn exit_struct1(&mut self) {
             let list = self.stack.pop().unwrap().get_list();
@@ -4435,9 +4348,6 @@ pub(crate) mod rules_prs_30_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_30_1::*;
 
-    /// Type of top rule `STRUCT -> struct id { LIST`
-    #[derive(Debug)]
-    pub enum Ctx { Struct { struct1: SynStruct } }
     #[derive(Debug)]
     pub enum CtxStruct {
         /// `STRUCT -> struct id { LIST`
@@ -4468,7 +4378,7 @@ pub(crate) mod rules_prs_30_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _struct1: SynStruct) {}
         fn init_struct1(&mut self) {}
         fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) -> SynList;
@@ -4530,7 +4440,7 @@ pub(crate) mod rules_prs_30_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let struct1 = self.stack.pop().unwrap().get_struct1();
-            self.listener.exit(Ctx::Struct { struct1 });
+            self.listener.exit(struct1);
         }
         fn exit_struct1(&mut self) {
             let list = self.stack.pop().unwrap().get_list();
@@ -4593,9 +4503,6 @@ pub(crate) mod rules_rts_26_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_26_1::*;
 
-    /// Type of top rule `A -> a`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a`
@@ -4625,7 +4532,7 @@ pub(crate) mod rules_rts_26_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -4688,7 +4595,7 @@ pub(crate) mod rules_rts_26_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn init_a(&mut self) {
             let a = self.stack_t.pop().unwrap();
@@ -4759,9 +4666,6 @@ pub(crate) mod rules_rts_16_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_16_1::*;
 
-    /// Type of top rule `A -> a`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a`
@@ -4791,7 +4695,7 @@ pub(crate) mod rules_rts_16_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -4856,7 +4760,7 @@ pub(crate) mod rules_rts_16_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn init_a(&mut self) {
             let a = self.stack_t.pop().unwrap();
@@ -4921,9 +4825,6 @@ pub(crate) mod rules_prs_35_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_prs_35_1::*;
 
-    /// Type of top rule `A -> a | a b b | a c c`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a b b`
@@ -4948,7 +4849,7 @@ pub(crate) mod rules_prs_35_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
@@ -5009,7 +4910,7 @@ pub(crate) mod rules_prs_35_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
@@ -5066,9 +4967,6 @@ pub(crate) mod rules_rts_33_1 {
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_33_1::*;
 
-    /// Type of top rule `A -> [B c]* b | a`
-    #[derive(Debug)]
-    pub enum Ctx { A { a: SynMyA } }
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> [B c]* b`
@@ -5108,7 +5006,7 @@ pub(crate) mod rules_rts_33_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _ctx: Ctx) {}
+        fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
         fn init_b(&mut self) {}
@@ -5173,7 +5071,7 @@ pub(crate) mod rules_rts_33_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         fn exit(&mut self) {
             let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(Ctx::A { a });
+            self.listener.exit(a);
         }
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {

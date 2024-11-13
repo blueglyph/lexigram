@@ -1175,18 +1175,6 @@ impl ParserBuilder {
         }
 
         // Writes contexts
-        if let Some((nu, nl)) = &nt_name[self.start as usize] {
-            src.push(format!("/// Type of top rule {}", self.full_prod_str(self.start)));
-            src.push(format!("#[derive(Debug)]"));
-            if self.nt_value[self.start as usize] {
-                src.push(format!("pub enum Ctx {{ {nu} {{ {nl}: {} }} }}", self.get_nt_type(self.start as VarId)));
-            } else {
-                src.push(format!("pub enum Ctx {{ {nu} }} // {nu} has no value: nothing returned from the top non-terminal"));
-            }
-        } else {
-            panic!("{} has no name", Symbol::NT(self.start).to_str(self.get_symbol_table()));
-        }
-
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let mut group_names = HashMap::<VarId, Vec<FactorId>>::new();
             // fetches the NT that have factor data
@@ -1618,7 +1606,11 @@ impl ParserBuilder {
         // Writes the listener trait declaration
         src.add_space();
         src.push(format!("pub trait {}Listener {{", self.name));
-        src.push(format!("    fn exit(&mut self, _ctx: Ctx) {{}}"));
+        if self.nt_value[self.start as usize] {
+            src.push(format!("    fn exit(&mut self, _{}: {}) {{}}", nt_name[self.start as usize].as_ref().unwrap().1, self.get_nt_type(self.start)));
+        } else {
+            src.push(format!("    fn exit(&mut self) {{}}"));
+        }
         /*
                               fn init_a(&mut self) {}
                               fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -1680,7 +1672,11 @@ impl ParserBuilder {
         src.push(format!("                }}"));
         src.push(format!("            }}"));
         src.push(format!("            Call::End => {{"));
-        src.push(format!("                self.exit();"));
+        if self.nt_value[self.start as usize] {
+            src.push(format!("                self.exit();"));
+        } else {
+            src.push(format!("                self.listener.exit();"));
+        }
         src.push(format!("            }}"));
         src.push(format!("        }}"));
         src.push(format!("        self.max_stack = std::cmp::max(self.max_stack, self.stack.len());"));
@@ -1693,16 +1689,14 @@ impl ParserBuilder {
 
         src.add_space();
         src.push(format!("impl<T: {}Listener> ListenerWrapper<T> {{", self.name));
-        src.push(format!("    fn exit(&mut self) {{"));
-        if let Some((nu, nl)) = &nt_name[self.start as usize] {
-            if self.nt_value[self.start as usize] {
+        if self.nt_value[self.start as usize] {
+            src.push(format!("    fn exit(&mut self) {{"));
+            if let Some((nu, nl)) = &nt_name[self.start as usize] {
                 src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{nl}();"));
-                src.push(format!("        self.listener.exit(Ctx::{nu} {{ {nl} }});"));
-            } else {
-                src.push(format!("        self.listener.exit(Ctx::{nu});"));
+                src.push(format!("        self.listener.exit({nl});"));
             }
+            src.push(format!("    }}"));
         }
-        src.push(format!("    }}"));
 /*
                               impl<T: TestListener> ListenerWrapper<T> {
                                   fn exit(&mut self) {
