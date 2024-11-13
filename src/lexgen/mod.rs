@@ -168,7 +168,8 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
     writeln!(out, "use crate::dfa::{{StateId, Terminal}};")?;
     writeln!(out, "use crate::lexer::Lexer;")?;
     writeln!(out, "use crate::lexgen::GroupId;")?;
-    writeln!(out, "use crate::segments::{{Seg, SegMap}};\n")?;
+    writeln!(out, "use crate::segments::{{Seg, SegMap}};")?;
+    writeln!(out)?;
     writeln!(out, "const NBR_GROUPS: u32 = {};", lexgen.nbr_groups)?;
     writeln!(out, "const INITIAL_STATE: StateId = {};", lexgen.initial_state)?;
     writeln!(out, "const FIRST_END_STATE: StateId = {};", lexgen.first_end_state)?;
@@ -207,9 +208,9 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
         lexgen.seg_to_group.len(),
         lexgen.seg_to_group.iter().map(|(s, g)| format!("\n    (Seg({}, {}), {}),", s.0, s.1, g)).collect::<String>()
     )?;
-    writeln!(out, "const TERMINAL_TABLE: [Terminal;{}] = {:?};",
-             lexgen.terminal_table.len(),
-             lexgen.terminal_table /*.terminal_table.iter().map(|t| t.to_string()).join()*/)?;
+    writeln!(out, "const TERMINAL_TABLE: [Terminal;{}] = [", lexgen.terminal_table.len())?;
+    writeln!(out, "{}", lexgen.terminal_table.iter().map(|t| format!("    {:?},", t)).join("\n"))?;
+    writeln!(out, "];")?;
     writeln!(out, "const STATE_TABLE: [StateId; {}] = [", lexgen.state_table.len() - 1)?;
     for i in 0..lexgen.nbr_states as usize {
         writeln!(out, "    {}, // state {}{}",
@@ -219,6 +220,7 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
         )?;
     }
     writeln!(out, "];\n")?;
+    writeln!(out)?;
     writeln!(out, "pub(super) fn build_lexer<R: Read>() -> Lexer<R> {{")?;
     writeln!(out, "    Lexer::new(")?;
     writeln!(out, "        // parameters")?;
@@ -235,7 +237,7 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
     writeln!(out, "    )")?;
     writeln!(out, "}}")?;
     writeln!(out, "// -------------------------------------------------------------------------")?;
-    return Ok(());
+    Ok(())
 }
 
 #[cfg(test)]
