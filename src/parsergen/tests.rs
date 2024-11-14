@@ -444,8 +444,6 @@ mod opcodes {
 
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
-    use std::fs::{File, OpenOptions};
-    use std::io::{BufRead, BufReader, BufWriter, Read, Seek, Write};
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, SourceSpacer, hashset};
@@ -453,6 +451,7 @@ mod wrapper_source {
     use crate::parsergen::ParserBuilder;
     use crate::dfa::TokenId;
     use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
+    use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
     #[derive(Clone)]
     enum HasValue { Set(Vec<Symbol>), All, Default }
@@ -528,58 +527,6 @@ mod wrapper_source {
                 }
             }
         }
-    }
-
-    const FILENAME: &str = "tests/gen/wrapper_source.rs";
-
-    fn get_wrapper_source(tag: &str) -> Option<String> {
-        let file_tag = format!("[{tag}]");
-        let file = File::open(FILENAME).ok()?;
-        let mut result = BufReader::new(file).lines()
-            .filter_map(|l| l.ok())
-            .skip_while(|l| !l.contains(&file_tag))
-            .skip(2)
-            .take_while(|l| !l.contains(&file_tag))
-            .join("\n");
-        result.push('\n');
-        Some(result)
-    }
-
-    fn replace_wrapper_source(tag: &str, new_src: &str) -> std::io::Result<()> {
-        let file_tag = format!("[{tag}]");
-        let file = File::open(FILENAME)?;
-        let mut buf = BufReader::new(file);
-        let mut count = 0;
-        let mut line = String::new();
-        let mut after = String::new();
-        let mut position = 0;
-        loop {
-            line.clear();
-            match buf.read_line(&mut line) {
-                Ok(n) => if n == 0 { return Err(std::io::Error::new(std::io::ErrorKind::NotFound, format!("tag {file_tag} not found"))); }
-                Err(e) => return Err(e),
-            }
-            if line.contains(&file_tag) {
-                count += 1;
-                match count {
-                    1 => {
-                        position = buf.stream_position()?;
-                    }
-                    2 => {
-                        after.push_str(&line);
-                        buf.read_to_string(&mut after)?;
-                        break;
-                    }
-                    _ => panic!()
-                }
-            }
-        }
-        let file = OpenOptions::new().write(true).open(FILENAME)?;
-        file.set_len(position)?;
-        let mut buf = BufWriter::new(file);
-        buf.seek(std::io::SeekFrom::End(0))?;
-        write!(&mut buf, "\n{new_src}\n\n{after}")?;
-        Ok(())
     }
 
     #[test]
@@ -1166,6 +1113,8 @@ mod wrapper_source {
             */
         ];
 
+        const WRAPPER_FILENAME: &str = "tests/gen/wrapper_source.rs";
+
         // print sources
         const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
@@ -1257,7 +1206,7 @@ mod wrapper_source {
                 println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}    // [{test_name}]\n    // {:-<60}\n", "");
                 println!("}}\n");
             }
-            let expected_src = get_wrapper_source(&test_name);
+            let expected_src = get_tagged_source(WRAPPER_FILENAME, &test_name);
             let err_msg = format!("test {test_id} {rule_id:?} #{rule_iter} failed ");
             if TESTS_ALL {
                 if result_items != expected_items || result_factors != expected_factors || result_nt_type != nt_type {
@@ -1266,7 +1215,7 @@ mod wrapper_source {
                 }
                 if TEST_SOURCE && Some(result_src) != expected_src {
                     if REPLACE_SOURCE {
-                        replace_wrapper_source(&test_name, &result).expect("replacement failed");
+                        replace_tagged_source(WRAPPER_FILENAME, &test_name, &result).expect("replacement failed");
                     }
                     num_errors += 1;
                     println!("## SOURCE MISMATCH: {err_msg}");
@@ -1277,7 +1226,7 @@ mod wrapper_source {
                 assert_eq!(result_nt_type, nt_type, "{err_msg}");
                 if TEST_SOURCE {
                     if REPLACE_SOURCE && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() {
-                        replace_wrapper_source(&test_name, &result).expect("replacement failed");
+                        replace_tagged_source(WRAPPER_FILENAME, &test_name, &result).expect("replacement failed");
                     }
                     assert_eq!(Some(result_src), expected_src, "{err_msg}");
                 }
