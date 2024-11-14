@@ -1033,10 +1033,6 @@ impl ParserBuilder {
     fn build_source_code(&mut self, indent: usize, wrapper: bool) -> String {
         let s = String::from_utf8(vec![32; indent]).unwrap();
         let mut parts = vec![];
-        parts.push(vec![
-            "// -------------------------------------------------------------------------".to_string(),
-            "// Automatically generated".to_string(),
-        ]);
         let mut tmp_parts = vec![self.source_build_parser()];
         if wrapper {
             self.build_item_ops();
@@ -1044,9 +1040,6 @@ impl ParserBuilder {
         }
         parts.push(self.source_use());
         parts.extend(tmp_parts);
-        parts.push(vec![
-            "// -------------------------------------------------------------------------".to_string(),
-        ]);
         // Create source code:
         let mut source = String::new();
         let mut first = true;

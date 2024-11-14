@@ -1106,11 +1106,11 @@ mod wrapper_source {
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
-        const TEST_SOURCE: bool = true;
-        const TESTS_ALL: bool = true;
+        const TEST_SOURCE: bool = false;
+        const TESTS_ALL: bool = false;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
+        const REPLACE_SOURCE: bool = false;
 
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();

@@ -9,13 +9,12 @@ use crate::CollectJoin;
 pub(crate) fn get_tagged_source(filename: &str, tag: &str) -> Option<String> {
     let file_tag = format!("[{tag}]");
     let file = File::open(filename).ok()?;
-    let mut result = BufReader::new(file).lines()
+    let result = BufReader::new(file).lines()
         .filter_map(|l| l.ok())
         .skip_while(|l| !l.contains(&file_tag))
         .skip(2)
         .take_while(|l| !l.contains(&file_tag))
         .join("\n");
-    result.push('\n');
     Some(result)
 }
 
