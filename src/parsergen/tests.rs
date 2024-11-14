@@ -1,14 +1,13 @@
 #![cfg(test)]
 
 mod gen_integration {
-    use std::fs::File;
-    use std::io::Read;
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
     use crate::{CollectJoin, LL1};
     use crate::parsergen::ParserBuilder;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
     use crate::symbol_table::SymbolTable;
+    use crate::test_tools::get_tagged_source;
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub(crate) enum T { RTS(u32), PRS(u32) }
@@ -36,21 +35,6 @@ mod gen_integration {
         builder.build_source_code(indent, false)
     }
 
-    fn get_integration_source(tag: &str) -> String {
-        const FILENAME: &str = "tests/integration/parsergen.rs";
-        let file_tag = format!("[{tag}]");
-        let mut file = File::open(FILENAME).expect("Couldn't open source file");
-        let mut buffer = String::new();
-        file.read_to_string(&mut buffer).expect("Couldn't read source file");
-        let mut result = buffer.lines()
-            .skip_while(|l| !l.contains(&file_tag))
-            .skip(1)
-            .take_while(|l| !l.contains(&file_tag))
-            .join("\n");
-        result.push('\n');
-        result
-    }
-
     fn get_test_data<'a>(id: u32) -> Option<(T, usize, bool, &'a str, &'a str)> {
         match id {
             //         rules   indent  t_data   tag name                                      listener name
@@ -73,13 +57,14 @@ mod gen_integration {
     }
 
     fn do_test(id: u32, verbose: bool) -> bool {
+        const FILENAME: &str = "tests/integration/parser_examples.rs";
         if let Some((rule_id, indent, is_t_data, tag, name)) = get_test_data(id) {
             let expected = get_source(rule_id, indent, is_t_data, name.to_string());
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
                 println!("{s}// [{tag}]\n{expected}{s}// [{tag}]");
             }
-            let result = get_integration_source(tag);
+            let result = get_tagged_source(FILENAME, tag).expect("");
             assert_eq!(result, expected, "test failed for {id} / {rule_id:?} / {tag} ({name})");
             true
         } else {
