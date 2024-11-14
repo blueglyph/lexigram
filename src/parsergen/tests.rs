@@ -4,7 +4,7 @@ mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
     use crate::{CollectJoin, LL1};
-    use crate::parsergen::ParserBuilder;
+    use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
     use crate::symbol_table::SymbolTable;
     use crate::test_tools::get_tagged_source;
@@ -31,7 +31,7 @@ mod gen_integration {
         };
         assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let ll1 = ProdRuleSet::<LL1>::from(rules);
-        let mut builder = ParserBuilder::from_rules(ll1, name);
+        let mut builder = ParserGen::from_rules(ll1, name);
         builder.build_source_code(indent, false)
     }
 
@@ -170,7 +170,7 @@ mod opcodes {
     use crate::grammar::tests::{print_prs_summary, T};
     use crate::{CollectJoin, strip, columns_to_str};
     use crate::parser::{OpCode, Parser};
-    use crate::parsergen::ParserBuilder;
+    use crate::parsergen::ParserGen;
     use crate::dfa::TokenId;
 
     fn get_factors_str(parser: &Parser) -> Vec<String> {
@@ -406,7 +406,7 @@ mod opcodes {
                 print!("- ");
                 print_prs_summary(&ll1);
             }
-            let parser = ParserBuilder::from_rules(ll1, "Test".to_string()).make_parser();
+            let parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
             if VERBOSE {
                 println!("Final factors and opcodes:");
                 print_opcodes(&parser);
@@ -433,7 +433,7 @@ mod wrapper_source {
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, SourceSpacer, hashset};
     use crate::grammar::tests::T::{PRS, RTS};
-    use crate::parsergen::ParserBuilder;
+    use crate::parsergen::ParserGen;
     use crate::dfa::TokenId;
     use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
@@ -441,7 +441,7 @@ mod wrapper_source {
     #[derive(Clone)]
     enum HasValue { Set(Vec<Symbol>), All, Default }
 
-    fn print_flags(builder: &ParserBuilder, indent: usize) {
+    fn print_flags(builder: &ParserGen, indent: usize) {
         let tbl = builder.get_symbol_table();
         let prefix = format!("{:width$}//", "", width=indent);
         let nt_flags = builder.parsing_table.flags.iter().enumerate().filter_map(|(nt, &f)|
@@ -454,7 +454,7 @@ mod wrapper_source {
         println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
     }
 
-    fn print_items(builder: &ParserBuilder, result_items: &BTreeMap<FactorId, Vec<Symbol>>, indent: usize) {
+    fn print_items(builder: &ParserGen, result_items: &BTreeMap<FactorId, Vec<Symbol>>, indent: usize) {
         let tbl = builder.get_symbol_table();
         let fields = (0..builder.parsing_table.factors.len())
             .filter_map(|f| {
@@ -477,7 +477,7 @@ mod wrapper_source {
         }
     }
 
-    fn set_has_value(builder: &mut ParserBuilder, has_value: HasValue) {
+    fn set_has_value(builder: &mut ParserGen, has_value: HasValue) {
         let mut valuables = HashSet::<TokenId>::new();
         let num_t = builder.parsing_table.num_t as TokenId - 1;    // excluding the end symbol
         match has_value {
@@ -1118,7 +1118,7 @@ mod wrapper_source {
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
-            let mut builder = ParserBuilder::from_rules(ll1, "Test".to_string());
+            let mut builder = ParserGen::from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
             if VERBOSE {
                 println!("/*");
@@ -1370,7 +1370,7 @@ mod wrapper_source {
             let expected_expanded = expected_expanded_full.iter().map(|(a, _)| a.to_string()).to_vec();
             let expected_full = expected_expanded_full.iter().map(|(_, b)| b.to_string()).to_vec();
             let ll1 = rule_id.get_prs(test_id, 0, true);
-            let builder = ParserBuilder::from_rules(ll1, "Test".to_string());
+            let builder = ParserGen::from_rules(ll1, "Test".to_string());
             let mut result_expanded = vec![];
             let mut result_full = vec![];
             for (f_id, (v, prod)) in builder.parsing_table.factors.iter().enumerate() {

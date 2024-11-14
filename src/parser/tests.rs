@@ -6,7 +6,7 @@ use crate::dfa::TokenId;
 use crate::grammar::{ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, T};
 use crate::parser::Listener;
-use crate::parsergen::ParserBuilder;
+use crate::parsergen::ParserGen;
 use crate::symbol_table::SymbolTable;
 
 // ---------------------------------------------------------------------------------------------
@@ -115,7 +115,7 @@ fn parser_parse_stream() {
             .map(|t| Symbol::T(t))
             .map(|s| (s.to_str(ll1.get_symbol_table()), s))
             .collect::<HashMap<_, _>>();
-        let mut parser = ParserBuilder::from_rules(ll1, "Test".to_string()).make_parser();
+        let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
         for (input, expected_success) in sequences {
             if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
             let mut stream = input.chars().into_iter().filter_map(|c| {
@@ -212,7 +212,7 @@ fn parser_parse_stream_id() {
             .map(|t| Symbol::T(t))
             .map(|s| (s.to_str(ll1.get_symbol_table()), s))
             .collect::<HashMap<_, _>>();
-        let mut parser = ParserBuilder::from_rules(ll1, "Test".to_string()).make_parser();
+        let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
         for (input, expected_success) in sequences {
             if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
             let stream = input.split_ascii_whitespace().map(|w| {
@@ -455,7 +455,7 @@ mod listener {
                 .map(|t| Symbol::T(t))
                 .map(|s| (s.to_str(ll1.get_symbol_table()), s))
                 .collect::<HashMap<_, _>>();
-            let mut parser = ParserBuilder::from_rules(ll1, "Test".to_string()).make_parser();
+            let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
             for (input, expected_success, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
                 let mut stream = input.chars().into_iter().filter_map(|c| {

@@ -128,7 +128,7 @@ impl ItemInfo {
 // ---------------------------------------------------------------------------------------------
 
 #[allow(unused)]
-pub struct ParserBuilder {
+pub struct ParserGen {
     parsing_table: LLParsingTable,
     symbol_table: SymbolTable,
     name: String,
@@ -144,7 +144,7 @@ pub struct ParserBuilder {
     nt_extra_info: HashMap<VarId, (String, Vec<String>)>,
 }
 
-impl ParserBuilder {
+impl ParserGen {
     pub fn from_tree(tree: RuleTreeSet<General>, name: String) -> Self {
         let normalized = RuleTreeSet::<Normalized>::from(tree);
         let lr_rules = ProdRuleSet::from(normalized);
@@ -167,7 +167,7 @@ impl ParserBuilder {
             let top_var_id = parsing_table.get_top_parent(var_id as VarId) as usize;
             nt_parent[top_var_id].push(var_id as VarId);
         }
-        let mut builder = ParserBuilder {
+        let mut builder = ParserGen {
             parsing_table,
             symbol_table,
             name,
