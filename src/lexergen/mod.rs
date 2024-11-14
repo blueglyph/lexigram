@@ -13,7 +13,7 @@ use super::dfa::*;
 
 pub type GroupId = u32;
 
-pub struct LexGen {
+pub struct LexerGen {
     // parameters:
     pub max_utf8_chars: u32,
     pub nbr_groups: u32,
@@ -30,9 +30,9 @@ pub struct LexGen {
     group_partition: Segments,   // for optimization
 }
 
-impl LexGen {
+impl LexerGen {
     pub fn new() -> Self {
-        LexGen {
+        LexerGen {
             max_utf8_chars: 128,
             nbr_groups: 0,
             initial_state: 0,
@@ -48,7 +48,7 @@ impl LexGen {
     }
 
     pub fn from_dfa(dfa: &Dfa<Normalized>) -> Self {
-        let mut lexgen = LexGen::new();
+        let mut lexgen = LexerGen::new();
         lexgen.build_tables(dfa);
         lexgen
     }
@@ -154,7 +154,7 @@ impl LexGen {
     }
 }
 
-pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std::io::Error> {
+pub fn write_source_code(lexgen: &LexerGen, file: Option<File>) -> Result<(), std::io::Error> {
     let mut out: BufWriter<Box<dyn Write>> = match file {
         Some(file) => BufWriter::new(Box::new(file)),
         None => BufWriter::new(Box::new(stdout().lock()))
@@ -167,7 +167,7 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
     writeln!(out, "use std::io::Read;")?;
     writeln!(out, "use crate::dfa::{{StateId, Terminal}};")?;
     writeln!(out, "use crate::lexer::Lexer;")?;
-    writeln!(out, "use crate::lexgen::GroupId;")?;
+    writeln!(out, "use crate::lexergen::GroupId;")?;
     writeln!(out, "use crate::segments::{{Seg, SegMap}};")?;
     writeln!(out)?;
     writeln!(out, "const NBR_GROUPS: u32 = {};", lexgen.nbr_groups)?;
@@ -194,7 +194,7 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
              lexgen.utf8_to_group.iter().map(|(c, g)| format!("('{}', {}),", escape_char(*c), g)).collect::<String>()
     )?;
     /*
-    for (c, g) in lexgen.utf8_to_group.iter() {
+    for (c, g) in lexergen.utf8_to_group.iter() {
         groups[*g as usize].insert(*c);
     }
     for (g, chars) in groups.iter().enumerate() {
@@ -241,7 +241,7 @@ pub fn write_source_code(lexgen: &LexGen, file: Option<File>) -> Result<(), std:
 }
 
 #[cfg(test)]
-pub(crate) fn print_source_code(lexgen: &LexGen) {
+pub(crate) fn print_source_code(lexgen: &LexerGen) {
     write_source_code(lexgen, None).expect("Couldn't display the source code");
 }
 

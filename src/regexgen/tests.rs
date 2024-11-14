@@ -8,10 +8,10 @@ use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string};
 use crate::{escape_string, General};
 use crate::io::CharReader;
 use crate::lexer::Lexer;
-use crate::lexgen::LexGen;
+use crate::lexergen::LexerGen;
 use super::*;
 use crate::dfa::tests::print_dfa;
-use crate::lexgen::{print_source_code, write_source_code};
+use crate::lexergen::{print_source_code, write_source_code};
 
 #[derive(Debug, Clone, Copy)]
 enum LexerType { Normalized, Optimized, Generated }
@@ -40,7 +40,7 @@ fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
                 dfa.optimize()
             };
             if VERBOSE { print_dfa(&dfa); }
-            let lexgen = LexGen::from_dfa(&dfa);
+            let lexgen = LexerGen::from_dfa(&dfa);
             if VERBOSE { println!("Sources:"); print_source_code(&lexgen); }
             lexgen.make_lexer()
         }
@@ -63,7 +63,7 @@ fn gen_lexer_source() {
     const FILENAME: &str = "src/regexgen/gen.rs";
     let dfa = make_dfa();
     let dfa = dfa.optimize();
-    let mut lexgen = LexGen::new();
+    let mut lexgen = LexerGen::new();
     lexgen.max_utf8_chars = 0;
     lexgen.build_tables(&dfa);
     let mut file = File::create(FILENAME).expect("Couldn't create output source file");
@@ -150,7 +150,7 @@ fn regexgen_optimize() {
                  dfa.get_end_states().len()
         );
         if VERBOSE { print_dfa(&dfa); }
-        let mut lexgen = LexGen::new();
+        let mut lexgen = LexerGen::new();
         lexgen.max_utf8_chars = 0;
         lexgen.build_tables(&dfa);
         let size_tables = size_of_val(lexgen.state_table.as_ref()) +

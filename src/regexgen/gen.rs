@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use crate::dfa::{StateId, Terminal};
 use crate::lexer::Lexer;
-use crate::lexgen::GroupId;
+use crate::lexergen::GroupId;
 use crate::segments::{Seg, SegMap};
 
 const NBR_GROUPS: u32 = 51;

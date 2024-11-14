@@ -68,7 +68,7 @@ fn lexgen_symbol_tables() {
         let dfa = dfa_builder.build_from_graph(g, 0, btreemap![3 => term![=0], 4 => term![=0], 5 => term![=1], 6 => term![=2]])
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
         let dfa = dfa.normalize();
-        let lexgen = LexGen::from_dfa(&dfa);
+        let lexgen = LexerGen::from_dfa(&dfa);
         let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups as usize];
         for i in 0..128_u8 {
             let c = char::from(i);
@@ -83,7 +83,7 @@ fn lexgen_symbol_tables() {
         let ascii_set = BTreeSet::from_iter(ascii_vec.iter().map(|s| chars_to_string(s, false)));
         let expected_set = expected_set.iter().map(|s| s.to_string()).collect();
         assert_eq!(ascii_set, expected_set, "test {test_id} failed");
-        // print_source_code(&lexgen);
+        // print_source_code(&lexergen);
     }
 }
 
@@ -119,7 +119,7 @@ fn lexgen_symbol_tables_corner() {
         let dfa = dfa_builder.build_from_graph(g, 0, end_states.iter().map(|s| (*s, term!(=0))).collect::<BTreeMap<StateId, Terminal>>())
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
         let dfa = dfa.normalize();
-        let mut lexgen = LexGen::new();
+        let mut lexgen = LexerGen::new();
         lexgen.max_utf8_chars = left;
         lexgen.build_tables(&dfa);
         let error_id = lexgen.nbr_groups as GroupId;
@@ -136,8 +136,8 @@ fn lexgen_symbol_tables_corner() {
             }
         }
         if VERBOSE {
-            println!("LexGen: {}", std::mem::size_of::<LexGen>());
-            println!("lexgen: {}", std::mem::size_of_val(&lexgen));
+            println!("LexGen: {}", std::mem::size_of::<LexerGen>());
+            println!("lexergen: {}", std::mem::size_of_val(&lexgen));
             println!("ascii_to_group: {}", std::mem::size_of_val(&lexgen.ascii_to_group));
             println!("utf8_to_group:  {}", std::mem::size_of_val(&lexgen.utf8_to_group));
             println!("seg_to_group:   {}", std::mem::size_of_val(&lexgen.seg_to_group));
@@ -165,7 +165,7 @@ fn lexgen_build() {
                 let mut dfa_builder = DfaBuilder::from_re(re);
                 let dfa = dfa_builder.build();
                 let dfa = dfa.normalize();
-                lexgen = LexGen::from_dfa(&dfa);
+                lexgen = LexerGen::from_dfa(&dfa);
                 if VERBOSE { print!("- {test_id:2}: "); }
             }
         }
@@ -204,7 +204,7 @@ pub mod segments {
 #[cfg(test)]
 pub mod segments_alt {
     use std::collections::BTreeMap;
-    use crate::lexgen::GroupId;
+    use crate::lexergen::GroupId;
 
     #[derive(Debug, Clone, PartialOrd, PartialEq, Eq, Ord)]
     pub struct Seg(u32, u32);

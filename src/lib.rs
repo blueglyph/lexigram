@@ -11,7 +11,7 @@ mod vectree;
 pub mod segments;
 pub mod io;
 pub mod dfa;
-pub mod lexgen;
+pub mod lexergen;
 pub mod lexer;
 pub mod regexgen;
 pub mod grammar;

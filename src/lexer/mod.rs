@@ -7,7 +7,7 @@ use crate::dfa::{ChannelId, StateId, Terminal, TokenId};
 use crate::escape_char;
 use crate::segments::SegMap;
 use crate::io::{CharReader};
-use crate::lexgen::{char_to_group, GroupId};
+use crate::lexergen::{char_to_group, GroupId};
 
 // ---------------------------------------------------------------------------------------------
 // Table-based lexer interpreter
