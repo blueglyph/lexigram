@@ -141,7 +141,7 @@ fn lexgen_symbol_tables_corner() {
             println!("ascii_to_group: {}", std::mem::size_of_val(&lexgen.ascii_to_group));
             println!("utf8_to_group:  {}", std::mem::size_of_val(&lexgen.utf8_to_group));
             println!("seg_to_group:   {}", std::mem::size_of_val(&lexgen.seg_to_group));
-            print_source_code(&lexgen);
+            lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
         }
         let exp_seg = SegMap::from_iter(seg.into_iter());
         assert_eq!(lexgen.ascii_to_group, exp_ascii, "test {test_id} failed");

@@ -20,6 +20,7 @@ pub mod parsergen;
 pub mod parser;
 pub mod log;
 mod test_tools;
+
 // Regular expressions / DFA, See:
 // - https://blog.burntsushi.net/regex-internals/
 // - https://en.wikipedia.org/wiki/Tagged_Deterministic_Finite_Automaton
@@ -82,7 +83,10 @@ pub(crate) fn escape_char(c: char) -> String {
     }
 }
 
-pub(crate) fn escape_string(s: &str) -> String {
+// TODO: We must make it public because it's used in the integration tests.
+//       Using #cfg(test) to guard the public declaration doesn't seem to work as expected
+//       (fails to compile where it's also used with the same guard). Other solution?
+pub fn escape_string(s: &str) -> String {
     s.chars().map(|c| escape_char(c)).collect::<String>()
 }
 

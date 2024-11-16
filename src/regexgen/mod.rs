@@ -1,8 +1,7 @@
-mod tests;
-mod gen;
+pub(super) mod tests;
 
-use crate::dfa::{ReNode, ReType, TokenId, Terminal};
-use crate::segments::{Segments, Seg};
+use crate::dfa::{ReNode, ReType, Terminal, TokenId};
+use crate::segments::{Seg, Segments};
 use crate::{node, term};
 use crate::vectree::VecTree;
 
@@ -181,11 +180,15 @@ pub fn build_re() -> VecTree<ReNode> {
     re
 }
 
-#[cfg(test)]
+// TODO: We must make a few constants public because they're used in the integration tests.
+//       Using #cfg(test) to guard the public declaration doesn't seem to work as expected
+//       (fails to compile where it's also used with the same guard). Other solution?
+//       We could write them into the generated source file as a last resort.
+
 /// The lexicon of the lexer's regular expression implemented manually above.
 /// It's also used in the tests to see if it can scan itself (hence the dummy lines).
 /// The expected results are defined in `LEXICON_TOKENS` and `LEXICON_TEXT` below.
-const LEXICON: &str = r#"
+pub const LEXICON: &str = r#"
 lexer grammar RLLexer;
 channels { CH_WHITESPACE, CH_COMMENTS }	// dummy
 
@@ -245,8 +248,7 @@ CHAR_SET		: '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
 STR_LIT			: StrLiteral;
 "#;
 
-#[cfg(test)]
-const LEXICON_TOKENS: [TokenId; 266] = [
+pub const LEXICON_TOKENS: [TokenId; 266] = [
     17, 16, 24,                                         // lexer grammar RLLexer;
     12, 14, 4, 24, 2, 24, 10,                           // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
     15, 24, 1, 27, 26, 13, 9, 27, 12,                   // fragment BlockComment   : '/*' .*? '*/';
@@ -297,8 +299,7 @@ const LEXICON_TOKENS: [TokenId; 266] = [
     24, 1, 24, 12,                                      // STR_LIT     : StrLiteral;
 ];
 
-#[cfg(test)]
-const LEXICON_TEXT: [&str; 266] = [
+pub const LEXICON_TEXT: [&str; 266] = [
     "lexer", "grammar", "RLLexer", ";", "channels", "{", "CH_WHITESPACE", ",", "CH_COMMENTS", "}", "fragment", "BlockComment", ":", "'/*'", ".", "*", "?",
     "'*/'", ";", "fragment", "LineComment", ":", "'//'", "~", r#"[\r\n]"#, "*", ";", "fragment", "HexDigit", ":", "[0-9a-fA-F]", ";", "fragment",
     "UnicodeEsc", ":", "'u{'", "HexDigit", "+", "'}'", ";", "fragment", "EscChar", ":", r#"'\\'"#, "(", r#"[nrt'\\]"#, "|", "UnicodeEsc", ")", ";", "fragment",

@@ -3,7 +3,7 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::File;
 use std::io::Read;
-use std::io::{BufWriter, stdout, Write};
+use std::io::{BufWriter, Write};
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
 use crate::{CollectJoin, escape_char, Normalized};
@@ -152,97 +152,112 @@ impl LexerGen {
             .to_vec();
         self.terminal_table = terminal_table.into_boxed_slice();
     }
-}
-
-pub fn write_source_code(lexgen: &LexerGen, file: Option<File>) -> Result<(), std::io::Error> {
-    let mut out: BufWriter<Box<dyn Write>> = match file {
-        Some(file) => BufWriter::new(Box::new(file)),
-        None => BufWriter::new(Box::new(stdout().lock()))
-    };
-
-    // Create source code:
-    writeln!(out, "// -------------------------------------------------------------------------")?;
-    writeln!(out, "// Automatically generated\n")?;
-    writeln!(out, "use std::collections::HashMap;")?;
-    writeln!(out, "use std::io::Read;")?;
-    writeln!(out, "use crate::dfa::{{StateId, Terminal}};")?;
-    writeln!(out, "use crate::lexer::Lexer;")?;
-    writeln!(out, "use crate::lexergen::GroupId;")?;
-    writeln!(out, "use crate::segments::{{Seg, SegMap}};")?;
-    writeln!(out)?;
-    writeln!(out, "const NBR_GROUPS: u32 = {};", lexgen.nbr_groups)?;
-    writeln!(out, "const INITIAL_STATE: StateId = {};", lexgen.initial_state)?;
-    writeln!(out, "const FIRST_END_STATE: StateId = {};", lexgen.first_end_state)?;
-    writeln!(out, "const NBR_STATES: StateId = {};", lexgen.nbr_states)?;
-    let mut groups = vec![BTreeSet::new(); lexgen.nbr_groups as usize];
-    writeln!(out, "const ASCII_TO_GROUP: [GroupId; 128] = [")?;
-    for i in 0..8_usize {
-        write!(out, "    ")?;
-        for j in 0..16_usize {
-            let ascii = i * 16 + j;
-            let group = lexgen.ascii_to_group[i * 16 + j];
-            write!(out, "{:3}, ", group)?;
-            if group < lexgen.nbr_groups {
-                groups[group as usize].insert(char::from(ascii as u8));
-            }
-        }
-        writeln!(out, "  // {}-{}", i*16, i*16 + 15)?;
-    }
-    writeln!(out, "];")?;
-    writeln!(out, "const UTF8_TO_GROUP: [(char, GroupId); {}] = [{}];",
-             lexgen.utf8_to_group.len(),
-             lexgen.utf8_to_group.iter().map(|(c, g)| format!("('{}', {}),", escape_char(*c), g)).collect::<String>()
-    )?;
-    /*
-    for (c, g) in lexergen.utf8_to_group.iter() {
-        groups[*g as usize].insert(*c);
-    }
-    for (g, chars) in groups.iter().enumerate() {
-        if !chars.is_empty() {
-            let set = chars.iter().map(|c| escape_char(*c)).collect::<String>();
-            writeln!(out, "// group[{g:3}] = [{set}]")?;
+    
+    pub fn write_source_code(&self, file: Option<File>, indent: usize) -> Result<(), std::io::Error> {
+        let mut out: BufWriter<Box<dyn Write>> = match file {
+            Some(file) => BufWriter::new(Box::new(file)),
+            None => BufWriter::new(Box::new(std::io::stdout().lock()))
         };
+        let source = self.build_source_code(indent);
+        out.write(source.as_bytes())?;
+        // write!(out, "{source}");
+        Ok(())
     }
-    */
-    writeln!(out, "const SEG_TO_GROUP: [(Seg, GroupId); {}] = [{}];",
-        lexgen.seg_to_group.len(),
-        lexgen.seg_to_group.iter().map(|(s, g)| format!("\n    (Seg({}, {}), {}),", s.0, s.1, g)).collect::<String>()
-    )?;
-    writeln!(out, "const TERMINAL_TABLE: [Terminal;{}] = [", lexgen.terminal_table.len())?;
-    writeln!(out, "{}", lexgen.terminal_table.iter().map(|t| format!("    {:?},", t)).join("\n"))?;
-    writeln!(out, "];")?;
-    writeln!(out, "const STATE_TABLE: [StateId; {}] = [", lexgen.state_table.len() - 1)?;
-    for i in 0..lexgen.nbr_states as usize {
-        writeln!(out, "    {}, // state {}{}",
-            (0..lexgen.nbr_groups as usize).map(|j| format!("{:3}", lexgen.state_table[i * lexgen.nbr_groups as usize + j])).join(", "),
-            i,
-            if i >= lexgen.first_end_state { format!(" {}", lexgen.terminal_table[i - lexgen.first_end_state] ) } else { "".to_string() }
-        )?;
-    }
-    writeln!(out, "];\n")?;
-    writeln!(out)?;
-    writeln!(out, "pub(super) fn build_lexer<R: Read>() -> Lexer<R> {{")?;
-    writeln!(out, "    Lexer::new(")?;
-    writeln!(out, "        // parameters")?;
-    writeln!(out, "        NBR_GROUPS,")?;
-    writeln!(out, "        INITIAL_STATE,")?;
-    writeln!(out, "        FIRST_END_STATE,")?;
-    writeln!(out, "        NBR_STATES,")?;
-    writeln!(out, "        // tables")?;
-    writeln!(out, "        Box::new(ASCII_TO_GROUP),")?;
-    writeln!(out, "        HashMap::<char, GroupId>::from(UTF8_TO_GROUP),")?;
-    writeln!(out, "        SegMap::<GroupId>::from_iter(SEG_TO_GROUP),")?;
-    writeln!(out, "        Box::new(STATE_TABLE),")?;
-    writeln!(out, "        Box::new(TERMINAL_TABLE)")?;
-    writeln!(out, "    )")?;
-    writeln!(out, "}}")?;
-    writeln!(out, "// -------------------------------------------------------------------------")?;
-    Ok(())
-}
 
-#[cfg(test)]
-pub(crate) fn print_source_code(lexgen: &LexerGen) {
-    write_source_code(lexgen, None).expect("Couldn't display the source code");
+    pub fn build_source_code(&self, indent: usize) -> String {
+        let s = String::from_utf8(vec![32; indent]).unwrap();
+        let mut source = String::new();
+        for line in self.lexer_source_code() {
+            source.push_str(&s);
+            source.push_str(&line);
+            source.push('\n');
+        }
+        source
+    }
+
+    fn lexer_source_code(&self) -> Vec<String> {
+        let mut source = Vec::<String>::new();
+
+        // Create source code:
+        source.push(format!("use std::collections::HashMap;"));
+        source.push(format!("use std::io::Read;"));
+        source.push(format!("use crate::dfa::{{StateId, Terminal}};"));
+        source.push(format!("use crate::lexer::Lexer;"));
+        source.push(format!("use crate::lexergen::GroupId;"));
+        source.push(format!("use crate::segments::{{Seg, SegMap}};"));
+        source.push(String::new());
+        source.push(format!("const NBR_GROUPS: u32 = {};", self.nbr_groups));
+        source.push(format!("const INITIAL_STATE: StateId = {};", self.initial_state));
+        source.push(format!("const FIRST_END_STATE: StateId = {};", self.first_end_state));
+        source.push(format!("const NBR_STATES: StateId = {};", self.nbr_states));
+        let mut groups = vec![BTreeSet::new(); self.nbr_groups as usize];
+        source.push(format!("const ASCII_TO_GROUP: [GroupId; 128] = ["));
+        for i in 0..8_usize {
+            let mut s = "    ".to_string();
+            for j in 0..16_usize {
+                let ascii = i * 16 + j;
+                let group = self.ascii_to_group[i * 16 + j];
+                s.push_str(&format!("{:3}, ", group));
+                if group < self.nbr_groups {
+                    groups[group as usize].insert(char::from(ascii as u8));
+                }
+            }
+            source.push(format!("{s}  // {}-{}", i*16, i*16 + 15));
+        }
+        source.push(format!("];"));
+        source.push(format!("const UTF8_TO_GROUP: [(char, GroupId); {}] = [", self.utf8_to_group.len()));
+        for (c, g) in &self.utf8_to_group {
+            source.push(format!("('{}', {}),", escape_char(*c), g));
+        }
+        source.push(format!("];"));
+        /*
+        for (c, g) in lexergen.utf8_to_group.iter() {
+            groups[*g as usize].insert(*c);
+        }
+        for (g, chars) in groups.iter().enumerate() {
+            if !chars.is_empty() {
+                let set = chars.iter().map(|c| escape_char(*c)).collect::<String>();
+                source.push(format!("// group[{g:3}] = [{set}]"));
+            };
+        }
+        */
+        source.push(format!("const SEG_TO_GROUP: [(Seg, GroupId); {}] = [", self.seg_to_group.len()));
+        for (s, g) in &self.seg_to_group {
+            source.push(format!("    (Seg({}, {}), {}),", s.0, s.1, g));
+        }
+        source.push(format!("];"));
+        source.push(format!("const TERMINAL_TABLE: [Terminal;{}] = [", self.terminal_table.len()));
+        for t in &self.terminal_table {
+            source.push(format!("    {t:?},"));
+        }
+        source.push(format!("];"));
+        source.push(format!("const STATE_TABLE: [StateId; {}] = [", self.state_table.len() - 1));
+        for i in 0..self.nbr_states as usize {
+            source.push(format!("    {}, // state {}{}",
+                (0..self.nbr_groups as usize).map(|j| format!("{:3}", self.state_table[i * self.nbr_groups as usize + j])).join(", "),
+                i,
+                if i >= self.first_end_state { format!(" {}", self.terminal_table[i - self.first_end_state] ) } else { "".to_string() }
+            ));
+        }
+        source.push(format!("];\n"));
+        source.push(String::new());
+        source.push(format!("pub(super) fn build_lexer<R: Read>() -> Lexer<R> {{"));
+        source.push(format!("    Lexer::new("));
+        source.push(format!("        // parameters"));
+        source.push(format!("        NBR_GROUPS,"));
+        source.push(format!("        INITIAL_STATE,"));
+        source.push(format!("        FIRST_END_STATE,"));
+        source.push(format!("        NBR_STATES,"));
+        source.push(format!("        // tables"));
+        source.push(format!("        Box::new(ASCII_TO_GROUP),"));
+        source.push(format!("        HashMap::<char, GroupId>::from(UTF8_TO_GROUP),"));
+        source.push(format!("        SegMap::<GroupId>::from_iter(SEG_TO_GROUP),"));
+        source.push(format!("        Box::new(STATE_TABLE),"));
+        source.push(format!("        Box::new(TERMINAL_TABLE)"));
+        source.push(format!("    )"));
+        source.push(format!("}}"));
+        source
+    }
 }
 
 // ---------------------------------------------------------------------------------------------

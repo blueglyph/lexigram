@@ -6,7 +6,6 @@ use crate::dfa::*;
 use crate::segments::*;
 use crate::dfa::tests::{build_re, print_dfa};
 use crate::lexergen::LexerGen;
-use crate::lexergen::print_source_code;
 use crate::vectree::VecTree;
 use super::*;
 
@@ -62,7 +61,7 @@ fn lexer_simple() {
         let dfa = dfa.normalize();
         if VERBOSE { print_dfa(&dfa); }
         let lexgen = LexerGen::from_dfa(&dfa);
-        if VERBOSE { print_source_code(&lexgen); }
+        if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
         let mut lexer = lexgen.make_lexer();
         for (exp_token, (inputs, outputs)) in token_tests {
             for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
@@ -214,7 +213,7 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
     let mut lexgen = LexerGen::new();
     lexgen.build_tables(&dfa);
     if VERBOSE {
-        print_source_code(&lexgen);
+        lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
         println!("creating lexer");
     }
     lexgen.make_lexer()

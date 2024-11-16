@@ -1,8 +1,7 @@
 #![cfg(test)]
 
 use std::collections::BTreeSet;
-use std::fs::File;
-use std::io::{Cursor, Read, Write};
+use std::io::{Cursor, Read};
 use std::mem::size_of_val;
 use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string};
 use crate::{escape_string, General};
@@ -11,10 +10,10 @@ use crate::lexer::Lexer;
 use crate::lexergen::LexerGen;
 use super::*;
 use crate::dfa::tests::print_dfa;
-use crate::lexergen::{print_source_code, write_source_code};
+use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
 #[derive(Debug, Clone, Copy)]
-enum LexerType { Normalized, Optimized, Generated }
+pub enum LexerType { Normalized, Optimized }
 
 fn make_dfa() -> Dfa<General> {
     const VERBOSE: bool = false;
@@ -31,87 +30,96 @@ fn make_dfa() -> Dfa<General> {
 
 fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
     const VERBOSE: bool = false;
-    match ltype {
-        LexerType::Normalized | LexerType::Optimized => {
-            let dfa = make_dfa();
-            let dfa = if let LexerType::Normalized = ltype {
-                dfa.normalize()
-            } else {
-                dfa.optimize()
-            };
-            if VERBOSE { print_dfa(&dfa); }
-            let lexgen = LexerGen::from_dfa(&dfa);
-            if VERBOSE { println!("Sources:"); print_source_code(&lexgen); }
-            lexgen.make_lexer()
-        }
-        LexerType::Generated => {
-            gen::build_lexer()
-        }
+    let dfa = make_dfa();
+    let dfa = if let LexerType::Normalized = ltype {
+        dfa.normalize()
+    } else {
+        dfa.optimize()
+    };
+    if VERBOSE { print_dfa(&dfa); }
+    let lexgen = LexerGen::from_dfa(&dfa);
+    if VERBOSE {
+        println!("Sources:");
+        lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
     }
+    lexgen.make_lexer()
 }
 
 #[ignore]
 #[test]
 fn regexgen_re() {
     let re = build_re();
-    println!("{}", crate::dfa::tree_to_string(&re, true));
+    println!("{}", tree_to_string(&re, true));
 }
 
-#[ignore]
 #[test]
-fn gen_lexer_source() {
-    const FILENAME: &str = "src/regexgen/gen.rs";
+fn lexilexer_source() {
+    // CAUTION! Setting this to 'true' modifies the validation file with the current result
+    const REPLACE_SOURCE: bool = false;
+
+    const FILENAME: &str = "tests/gen/lexilexer.rs";
+    const TAG: &str = "lexilexer";
     let dfa = make_dfa();
     let dfa = dfa.optimize();
     let mut lexgen = LexerGen::new();
     lexgen.max_utf8_chars = 0;
     lexgen.build_tables(&dfa);
-    let mut file = File::create(FILENAME).expect("Couldn't create output source file");
-    writeln!(&mut file, "#![cfg(test)]").expect("Coulnd't write to output source file");
-    write_source_code(&lexgen, Some(file)).expect(&format!("Error while writing the source code to {FILENAME}"));
+    let source = lexgen.build_source_code(4);
+
+    let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
+    if source != expected_src {
+        if REPLACE_SOURCE {
+            replace_tagged_source(FILENAME, TAG, &source).expect("source replacement failed");
+        }
+        assert_eq!(source, expected_src, "failed");
+    }
 }
 
 #[test]
+fn lexilexer_tokens() {
+    for opt in [LexerType::Normalized, LexerType::Optimized] {
+        let mut lexer: Lexer<Cursor<&str>> = make_lexer(opt);
+        check_lexer_tokens(&mut lexer, opt);
+    }
+}
+
 /// We scan source files and check the tokens and the source text they cover.
-fn regexgen_lexer() {
+pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
     const VERBOSE: bool = false;
-    for opt in [LexerType::Normalized, LexerType::Optimized, LexerType::Generated] {
-        let mut lexer = make_lexer(opt);
-        let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
-            (1, vec![
-                // no error
-                ("-> : , .. { ( ~ + | ? } ) ; * channels fragment grammar lexer mode pop push return skip",
-                 vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
-                 vec!["->", ":", ",", "..", "{", "(", "~", "+", "|", "?", "}", ")", ";", "*",
-                      "channels", "fragment", "grammar", "lexer", "mode", "pop", "push", "return", "skip"]),
-            ]),
-            (2, vec![(LEXICON, LEXICON_TOKENS.to_vec(), LEXICON_TEXT.to_vec())]),
-        ];
-        for (test_id, inputs) in tests {
-            if VERBOSE { println!("test {test_id}, opt={opt:?}:"); }
-            for (input, expected_tokens, expected_texts) in inputs {
-                //let expected_texts = expected_texts.iter().map(|s| s.escape_default());
-                if VERBOSE { print!("\"{}\":", escape_string(input)); }
-                let stream = CharReader::new(Cursor::new(input));
-                lexer.attach_stream(stream);
-                let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text)| {
-                    assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
-                    (tok, text)
-                }).unzip();
-                assert_eq!(tokens, expected_tokens, "test {} failed for opt={opt:?}, input '{}'", test_id, escape_string(input));
-                assert_eq!(texts, expected_texts, "test {} failed for opt={opt:?}, input '{}'", test_id, escape_string(input));
-                assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for opt={opt:?}, input '{}'",
-                        test_id, escape_string(input));
-            }
-            if VERBOSE { println!("--------------------------------------\n"); }
+    let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
+        (1, vec![
+            // no error
+            ("-> : , .. { ( ~ + | ? } ) ; * channels fragment grammar lexer mode pop push return skip",
+             vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
+             vec!["->", ":", ",", "..", "{", "(", "~", "+", "|", "?", "}", ")", ";", "*",
+                  "channels", "fragment", "grammar", "lexer", "mode", "pop", "push", "return", "skip"]),
+        ]),
+        (2, vec![(LEXICON, LEXICON_TOKENS.to_vec(), LEXICON_TEXT.to_vec())]),
+    ];
+    for (test_id, inputs) in tests {
+        if VERBOSE { println!("test {test_id}, opt={opt:?}:"); }
+        for (input, expected_tokens, expected_texts) in inputs {
+            //let expected_texts = expected_texts.iter().map(|s| s.escape_default());
+            if VERBOSE { print!("\"{}\":", escape_string(input)); }
+            let stream = CharReader::new(Cursor::new(input));
+            lexer.attach_stream(stream);
+            let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text)| {
+                assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
+                (tok, text)
+            }).unzip();
+            assert_eq!(tokens, expected_tokens, "test {} failed for opt={opt:?}, input '{}'", test_id, escape_string(input));
+            assert_eq!(texts, expected_texts, "test {} failed for opt={opt:?}, input '{}'", test_id, escape_string(input));
+            assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for opt={opt:?}, input '{}'",
+                    test_id, escape_string(input));
         }
+        if VERBOSE { println!("--------------------------------------\n"); }
     }
 }
 
 #[test]
 /// We take the text output of each token and re-inject them to the lexer, then we compare both token streams.
 fn regexgen_stability() {
-    for opt in [LexerType::Normalized, LexerType::Optimized, LexerType::Generated] {
+    for opt in [LexerType::Normalized, LexerType::Optimized] {
         let mut lexer = make_lexer(opt);
         let stream = CharReader::new(Cursor::new(LEXICON));
         lexer.attach_stream(stream);
@@ -134,6 +142,7 @@ fn regexgen_stability() {
 
 #[ignore]
 #[test]
+// Not a test. Only shows the improvements in table size between the two versions.
 fn regexgen_optimize() {
     const VERBOSE: bool = false;
     for opt in [false, true] {
@@ -166,13 +175,14 @@ fn regexgen_optimize() {
                  size_tables as f64 * 0.001);
         if VERBOSE {
             println!("Sources:");
-            print_source_code(&lexgen);
+            lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
         }
     }
 }
 
 #[ignore]
 #[test]
+// Not a test. Only shows the size of a few types.
 fn type_size() {
     println!("Size of main types:");
     println!("- Terminal   : {:4} bytes", std::mem::size_of::<crate::dfa::Terminal>());
