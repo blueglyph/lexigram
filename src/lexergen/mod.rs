@@ -181,10 +181,10 @@ impl LexerGen {
         // Create source code:
         source.push(format!("use std::collections::HashMap;"));
         source.push(format!("use std::io::Read;"));
-        source.push(format!("use crate::dfa::{{StateId, Terminal}};"));
-        source.push(format!("use crate::lexer::Lexer;"));
-        source.push(format!("use crate::lexergen::GroupId;"));
-        source.push(format!("use crate::segments::{{Seg, SegMap}};"));
+        source.push(format!("use rlexer::dfa::{{StateId, Terminal}};"));
+        source.push(format!("use rlexer::lexer::Lexer;"));
+        source.push(format!("use rlexer::lexergen::GroupId;"));
+        source.push(format!("use rlexer::segments::{{Seg, SegMap}};"));
         source.push(String::new());
         source.push(format!("const NBR_GROUPS: u32 = {};", self.nbr_groups));
         source.push(format!("const INITIAL_STATE: StateId = {};", self.initial_state));
@@ -239,7 +239,7 @@ impl LexerGen {
                 if i >= self.first_end_state { format!(" {}", self.terminal_table[i - self.first_end_state] ) } else { "".to_string() }
             ));
         }
-        source.push(format!("];\n"));
+        source.push(format!("];"));
         source.push(String::new());
         source.push(format!("pub(super) fn build_lexer<R: Read>() -> Lexer<R> {{"));
         source.push(format!("    Lexer::new("));
