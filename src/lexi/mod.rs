@@ -187,7 +187,7 @@ pub fn build_re() -> VecTree<ReNode> {
 /// It's also used in the tests to see if it can scan itself (hence the dummy lines).
 /// The expected results are defined in `LEXICON_TOKENS` and `LEXICON_TEXT` below.
 pub const LEXICON: &str = r#"
-lexicon RLLexer;
+lexicon LexiLexer;
 channels { CH_WHITESPACE, CH_COMMENTS }	// dummy
 
 fragment BlockComment	: '/*' .*? '*/';
@@ -296,7 +296,7 @@ pub const LEXICON_TOKENS: [TokenId; 261] = [
 ];
 
 pub const LEXICON_TEXT: [&str; 261] = [
-    "lexicon", "RLLexer", ";", "channels", "{", "CH_WHITESPACE", ",", "CH_COMMENTS", "}", "fragment", "BlockComment", ":", "'/*'", ".", "*", "?",
+    "lexicon", "LexiLexer", ";", "channels", "{", "CH_WHITESPACE", ",", "CH_COMMENTS", "}", "fragment", "BlockComment", ":", "'/*'", ".", "*", "?",
     "'*/'", ";", "fragment", "LineComment", ":", "'//'", "~", r#"[\r\n]"#, "*", ";", "fragment", "HexDigit", ":", "[0-9a-fA-F]", ";", "fragment",
     "UnicodeEsc", ":", "'u{'", "HexDigit", "+", "'}'", ";", "fragment", "EscChar", ":", r#"'\\'"#, "(", r#"[nrt'\\]"#, "|", "UnicodeEsc", ")", ";", "fragment",
     "Char", ":", "EscChar", "|", "~", r#"[\n\r\t'\\]"#, ";", "fragment", "CharLiteral", ":", r#"'\''"#, "Char", r#"'\''"#, ";", "fragment", "StrLiteral",

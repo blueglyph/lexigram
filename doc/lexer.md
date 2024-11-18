@@ -115,13 +115,12 @@ STAR			: '*';
 
 CHANNELS		: 'channels';
 FRAGMENT		: 'fragment';
-GRAMMAR			: 'grammar';
-LEXER			: 'lexer';
+LEXICON			: 'lexicon';
 MODE			: 'mode';
 POP				: 'pop';
 PUSH			: 'push';
 RETURN			: 'return';
-SiKP			: 'skip';
+SKiP			: 'skip';
 SYM_EOF			: 'EOF';
 
 COMMENT			: BlockComment 				-> skip;
@@ -171,7 +170,7 @@ actions:
 action:
     PUSH LPAREN ID RPAREN
 |   POP
-|   SiKP
+|   SKiP
 |   RETURN
 ;
 
