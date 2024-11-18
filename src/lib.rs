@@ -125,6 +125,26 @@ pub fn columns_to_str(lines: Vec<Vec<String>>, min_widths: Option<Vec<usize>>) -
     }).collect::<String>()).collect()
 }
 
+pub(crate) fn indent_source(parts: Vec<Vec<String>>, indent: usize) -> String {
+    let s = String::from_utf8(vec![32; indent]).unwrap();
+    let mut source = String::new();
+    let mut first = true;
+    for part in parts {
+        if !first {
+            source.push('\n');
+        }
+        first = false;
+        for line in part {
+            if line.len() > 0 {
+                source.push_str(&s);
+            }
+            source.push_str(&line);
+            source.push('\n');
+        }
+    }
+    source
+}
+
 // ---------------------------------------------------------------------------------------------
 // General helper traits
 

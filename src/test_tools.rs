@@ -6,6 +6,8 @@ use crate::CollectJoin;
 
 /// Reads the file `filename` and finds the part included between two tags `tag`.
 /// Returns the text between the tags or `None` if they couldn't be found.
+///
+/// Each line is trimmed from any ending space characters and ends with `\n`.
 pub(crate) fn get_tagged_source(filename: &str, tag: &str) -> Option<String> {
     let file_tag = format!("[{tag}]");
     let file = File::open(filename).ok()?;
@@ -14,7 +16,8 @@ pub(crate) fn get_tagged_source(filename: &str, tag: &str) -> Option<String> {
         .skip_while(|l| !l.contains(&file_tag))
         .skip(2)
         .take_while(|l| !l.contains(&file_tag))
-        .join("\n");
+        .map(|s| s.trim_end().to_string())
+        .join("\n"); // the last line won't end by `\n`, which removes the last empty line
     Some(result)
 }
 
@@ -53,6 +56,6 @@ pub(crate) fn replace_tagged_source(filename: &str, tag: &str, new_src: &str) ->
     file.set_len(position)?;
     let mut buf = BufWriter::new(file);
     buf.seek(std::io::SeekFrom::End(0))?;
-    write!(&mut buf, "\n{new_src}\n\n{after}")?;
+    write!(&mut buf, "\n{new_src}\n{after}")?;
     Ok(())
 }

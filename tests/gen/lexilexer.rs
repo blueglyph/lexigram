@@ -10,7 +10,7 @@ mod lexilexer {
     use rlexer::lexer::Lexer;
     use rlexer::lexergen::GroupId;
     use rlexer::segments::{Seg, SegMap};
-    
+
     const NBR_GROUPS: u32 = 51;
     const INITIAL_STATE: StateId = 0;
     const FIRST_END_STATE: StateId = 23;
@@ -204,7 +204,7 @@ mod lexilexer {
          96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96, // state 94 <end:26>
          96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96,  96, // state 95 <end:27>
     ];
-    
+
     pub(super) fn build_lexer<R: Read>() -> Lexer<R> {
         Lexer::new(
             // parameters

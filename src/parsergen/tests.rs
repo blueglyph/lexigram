@@ -431,7 +431,7 @@ mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
-    use crate::{btreemap, CollectJoin, symbols, columns_to_str, SourceSpacer, hashset};
+    use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source};
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::ParserGen;
     use crate::dfa::TokenId;
@@ -1106,8 +1106,8 @@ mod wrapper_source {
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
-        const TEST_SOURCE: bool = false;
-        const TESTS_ALL: bool = false;
+        const TEST_SOURCE: bool = true;
+        const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
         const REPLACE_SOURCE: bool = false;
@@ -1149,10 +1149,9 @@ mod wrapper_source {
             for (v, s) in nt_type.clone() {
                 builder.add_nt_type(v, s);
             }
-            let src_wrapper = builder.source_wrapper();
-            let mut src = builder.source_use();
-            src.add_space();
-            src.extend(src_wrapper);
+            let wrapper_src = builder.source_wrapper();
+            let mut src = vec![builder.source_use()];
+            src.push(wrapper_src);
             if VERBOSE_TYPE {
                 println!("pub(crate) mod code_{rule_name} {{");
                 println!("    // {0:-<60}\n    // {test_name}", "");
@@ -1183,8 +1182,7 @@ mod wrapper_source {
                     if result_factors.is_empty() { "".to_string() } else { result_factors.iter().map(|(v, factors)| format!("{v} => vec![{}]", factors.iter().join(", "))).join(", ") }
                 );
             }
-            let result = src.into_iter().map(|s| if !s.is_empty() { format!("    {s}") } else { s }).join("\n");
-            let result_src = result.clone() + "\n\n";
+            let result_src = indent_source(src, 4);
             if PRINT_SOURCE {
                 println!("*/");
                 println!("pub(crate) mod rules_{rule_name} {{");
@@ -1198,9 +1196,9 @@ mod wrapper_source {
                     num_errors += 1;
                     println!("## ERROR: {err_msg}");
                 }
-                if TEST_SOURCE && Some(result_src) != expected_src {
+                if TEST_SOURCE && Some(&result_src) != expected_src.as_ref() {
                     if REPLACE_SOURCE {
-                        replace_tagged_source(WRAPPER_FILENAME, &test_name, &result).expect("replacement failed");
+                        replace_tagged_source(WRAPPER_FILENAME, &test_name, &result_src).expect("replacement failed");
                     }
                     num_errors += 1;
                     println!("## SOURCE MISMATCH: {err_msg}");
@@ -1211,7 +1209,7 @@ mod wrapper_source {
                 assert_eq!(result_nt_type, nt_type, "{err_msg}");
                 if TEST_SOURCE {
                     if REPLACE_SOURCE && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() {
-                        replace_tagged_source(WRAPPER_FILENAME, &test_name, &result).expect("replacement failed");
+                        replace_tagged_source(WRAPPER_FILENAME, &test_name, &result_src).expect("replacement failed");
                     }
                     assert_eq!(Some(result_src), expected_src, "{err_msg}");
                 }

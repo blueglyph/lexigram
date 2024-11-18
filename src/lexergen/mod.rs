@@ -6,7 +6,7 @@ use std::io::Read;
 use std::io::{BufWriter, Write};
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
-use crate::{CollectJoin, escape_char, Normalized};
+use crate::{CollectJoin, escape_char, Normalized, indent_source};
 use crate::lexer::Lexer;
 use crate::segments::{Segments, Seg, SegMap};
 use super::dfa::*;
@@ -165,14 +165,7 @@ impl LexerGen {
     }
 
     pub fn build_source_code(&self, indent: usize) -> String {
-        let s = String::from_utf8(vec![32; indent]).unwrap();
-        let mut source = String::new();
-        for line in self.lexer_source_code() {
-            source.push_str(&s);
-            source.push_str(&line);
-            source.push('\n');
-        }
-        source
+        indent_source(vec![self.lexer_source_code()], indent)
     }
 
     fn lexer_source_code(&self) -> Vec<String> {

@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion};
-use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str, StructLibs};
+use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
 use crate::parser::{OpCode, Parser};
 use crate::symbol_table::SymbolTable;
 
@@ -1031,7 +1031,6 @@ impl ParserGen {
     }
 
     fn build_source_code(&mut self, indent: usize, wrapper: bool) -> String {
-        let s = String::from_utf8(vec![32; indent]).unwrap();
         let mut parts = vec![];
         let mut tmp_parts = vec![self.source_build_parser()];
         if wrapper {
@@ -1041,20 +1040,7 @@ impl ParserGen {
         parts.push(self.source_use());
         parts.extend(tmp_parts);
         // Create source code:
-        let mut source = String::new();
-        let mut first = true;
-        for part in parts {
-            if !first {
-                source.push('\n');
-            }
-            first = false;
-            for line in part {
-                source.push_str(&s);
-                source.push_str(&line);
-                source.push('\n');
-            }
-        }
-        source
+        indent_source(parts, indent)
     }
 
     fn source_use(&self) -> Vec<String> {

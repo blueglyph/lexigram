@@ -64,13 +64,11 @@ fn lexilexer_source() {
     let mut lexgen = LexerGen::new();
     lexgen.max_utf8_chars = 0;
     lexgen.build_tables(&dfa);
-    let source = lexgen.build_source_code(4);
-    let result_src = source.clone();
-
+    let result_src = lexgen.build_source_code(4);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
     if result_src != expected_src {
         if REPLACE_SOURCE {
-            replace_tagged_source(FILENAME, TAG, &source).expect("source replacement failed");
+            replace_tagged_source(FILENAME, TAG, &result_src).expect("source replacement failed");
         }
         assert_eq!(result_src, expected_src, "failed");
     }
