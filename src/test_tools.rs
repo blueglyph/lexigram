@@ -16,7 +16,10 @@ pub(crate) fn get_tagged_source(filename: &str, tag: &str) -> Option<String> {
         .skip_while(|l| !l.contains(&file_tag))
         .skip(2)
         .take_while(|l| !l.contains(&file_tag))
-        .map(|s| s.trim_end().to_string())
+        .map(|mut s| {
+            s.truncate(s.trim_end().len());
+            s
+        })
         .join("\n"); // the last line won't end by `\n`, which removes the last empty line
     Some(result)
 }
