@@ -231,7 +231,7 @@ mod test {
     use rlexer::dfa::TokenId;
     use rlexer::escape_string;
     use rlexer::io::CharReader;
-    use rlexer::regexgen::{LEXICON, LEXICON_TEXT, LEXICON_TOKENS};
+    use rlexer::lexi::{LEXICON, LEXICON_TEXT, LEXICON_TOKENS};
     use crate::gen::lexilexer::lexilexer::build_lexer;
 
     #[test]

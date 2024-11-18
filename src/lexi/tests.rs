@@ -45,13 +45,6 @@ fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
     lexgen.make_lexer()
 }
 
-#[ignore]
-#[test]
-fn regexgen_re() {
-    let re = build_re();
-    println!("{}", tree_to_string(&re, true));
-}
-
 #[test]
 fn lexilexer_source() {
     // CAUTION! Setting this to 'true' modifies the validation file with the current result

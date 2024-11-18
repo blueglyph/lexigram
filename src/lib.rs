@@ -13,7 +13,7 @@ pub mod io;
 pub mod dfa;
 pub mod lexergen;
 pub mod lexer;
-pub mod regexgen;
+pub mod lexi;
 pub mod grammar;
 pub mod symbol_table;
 pub mod parsergen;
