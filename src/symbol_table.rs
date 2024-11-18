@@ -90,8 +90,8 @@ impl SymbolTable {
         self.nt.len()
     }
 
-    pub fn extend_non_terminals<I: IntoIterator<Item=String>>(&mut self, iter: I) {
-        self.nt.extend(iter);
+    pub fn extend_non_terminals<I: IntoIterator<Item=J>, J: Into<String>>(&mut self, iter: I) {
+        self.nt.extend(iter.into_iter().map(|s| s.into()));
     }
 
     pub fn remove_non_terminal(&mut self, v: VarId) {

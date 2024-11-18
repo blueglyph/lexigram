@@ -337,8 +337,8 @@ impl StructLibs {
         self.libs.insert(lib.to_string());
     }
 
-    pub fn extend<I: IntoIterator<Item=J>, J: ToString>(&mut self, libs: I) {
-        self.libs.extend(libs.into_iter().map(|s| s.to_string()));
+    pub fn extend<I: IntoIterator<Item=J>, J: Into<String>>(&mut self, libs: I) {
+        self.libs.extend(libs.into_iter().map(|s| s.into()));
     }
 
     #[cfg(test)]

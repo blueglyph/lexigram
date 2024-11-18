@@ -197,16 +197,16 @@ impl ParserGen {
     }
 
     #[inline]
-    pub fn extend_libs<I: IntoIterator<Item=J>, J: ToString>(&mut self, libs: I) {
+    pub fn extend_libs<I: IntoIterator<Item=J>, J: Into<String>>(&mut self, libs: I) {
         self.used_libs.extend(libs);
     }
 
     #[inline]
     /// Declares the type of a non-terminal. The index of the NT, `org_var`, is the original index
     /// in the ruletree set, which is the index originally assigned when parsing the grammar file.
-    pub fn add_nt_type<T: ToString>(&mut self, org_var: VarId, var_type: T) {
+    pub fn add_nt_type<T: Into<String>>(&mut self, org_var: VarId, var_type: T) {
         let var = self.conv_nt(org_var).expect("var {var} doesn't exist");
-        self.nt_type.insert(var, var_type.to_string());
+        self.nt_type.insert(var, var_type.into());
     }
 
     fn get_nt_type(&self, v: VarId) -> &str {
