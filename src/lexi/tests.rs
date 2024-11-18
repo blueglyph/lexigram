@@ -81,10 +81,10 @@ pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
     let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
         (1, vec![
             // no error
-            ("-> : , .. { ( ~ + | ? } ) ; * channels fragment grammar lexer mode pop push return skip",
-             vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22],
+            ("-> : , .. { ( ~ + | ? } ) ; * channels fragment lexicon mode pop push return skip",
+             vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21],
              vec!["->", ":", ",", "..", "{", "(", "~", "+", "|", "?", "}", ")", ";", "*",
-                  "channels", "fragment", "grammar", "lexer", "mode", "pop", "push", "return", "skip"]),
+                  "channels", "fragment", "lexicon", "mode", "pop", "push", "return", "skip"]),
         ]),
         (2, vec![(LEXICON, LEXICON_TOKENS.to_vec(), LEXICON_TEXT.to_vec())]),
     ];
