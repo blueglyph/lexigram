@@ -128,6 +128,7 @@ impl ItemInfo {
 // ---------------------------------------------------------------------------------------------
 
 #[allow(unused)]
+#[derive(Debug)]
 pub struct ParserGen {
     parsing_table: LLParsingTable,
     symbol_table: SymbolTable,
@@ -818,7 +819,7 @@ impl ParserGen {
     /// }
     /// ```
     fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -1030,7 +1031,7 @@ impl ParserGen {
         Ok(())
     }
 
-    fn build_source_code(&mut self, indent: usize, wrapper: bool) -> String {
+    pub fn build_source_code(&mut self, indent: usize, wrapper: bool) -> String {
         let mut parts = vec![];
         let mut tmp_parts = vec![self.source_build_parser()];
         if wrapper {
@@ -1135,7 +1136,7 @@ impl ParserGen {
 
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
 
         self.used_libs.extend(["rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::Listener"]);
 
@@ -1452,7 +1453,7 @@ impl ParserGen {
                         }
                     }
                     if flags & ruleflag::CHILD_REPEAT != 0 {
-                        assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {}",
+                        assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {} (+ and * don't support | children)",
                                    sym_nt.to_str(self.get_symbol_table()),
                                    exit_factors.iter().join(", "));
                         if has_value {

@@ -324,6 +324,7 @@ impl SourceSpacer for Vec<String> {
     }
 }
 
+#[derive(Debug)]
 struct StructLibs {
     libs: BTreeSet<String>
 }

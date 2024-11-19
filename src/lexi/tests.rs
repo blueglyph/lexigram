@@ -4,13 +4,19 @@ use std::collections::BTreeSet;
 use std::io::{Cursor, Read};
 use std::mem::size_of_val;
 use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string};
-use crate::{escape_string, General};
+use crate::{escape_string, CollectJoin, General, LL1};
 use crate::io::CharReader;
 use crate::lexer::Lexer;
 use crate::lexergen::LexerGen;
 use super::*;
 use crate::dfa::tests::print_dfa;
+use crate::grammar::ProdRuleSet;
+use crate::grammar::tests::print_production_rules;
+use crate::parsergen::ParserGen;
 use crate::test_tools::{get_tagged_source, replace_tagged_source};
+
+// ---------------------------------------------------------------------------------------------
+// Lexer
 
 #[derive(Debug, Clone, Copy)]
 pub enum LexerType { Normalized, Optimized }
@@ -186,4 +192,61 @@ fn type_size() {
     println!("- ChannelId  : {:4} bytes", std::mem::size_of::<crate::dfa::ChannelId>());
     println!("- Seg        : {:4} bytes", std::mem::size_of::<crate::segments::Seg>());
     println!("- Segments   : {:4} bytes", std::mem::size_of::<crate::segments::Segments>());
+}
+
+// ---------------------------------------------------------------------------------------------
+// Parser
+
+#[test]
+fn lexiparser_source() {
+    // CAUTION! Setting this to 'true' modifies the validation file with the current result
+    const REPLACE_SOURCE: bool = true;
+
+    const VERBOSE: bool = true;
+    const FILENAME: &str = "tests/gen/lexiparser.rs";
+    const TAG: &str = "lexiparser";
+    let mut rts = build_rts();
+    rts.set_start(0);
+    if VERBOSE {
+        println!("rules, num_nt = {}, NT symbols: {}", rts.get_trees_iter().count(), rts.get_symbol_table().unwrap().get_num_nt());
+        let printable = std::collections::BTreeMap::from_iter(rts.get_trees_iter().map(|(id, t)| (id, format!("{t}"))));
+        for (id, s) in printable {
+            println!("{id} => {s}");
+        }
+    }
+    let rules = ProdRuleSet::from(rts);
+    if VERBOSE {
+        let st_num_nt = rules.get_symbol_table().unwrap().get_num_nt();
+        println!("rules, num_nt = {}, NT symbols: {}", rules.get_num_nt(), st_num_nt);
+        println!("- {}", (0..st_num_nt).map(|i| rules.get_symbol_table().unwrap().get_nt_name(i as VarId)).join(", "));
+        print_production_rules(&rules, true);
+        let msg = rules.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+        if !msg.is_empty() {
+            println!("Messages:\n{msg}");
+        }
+    }
+    assert_eq!(rules.get_log().num_errors(), 0);
+    let ll1 = ProdRuleSet::<LL1>::from(rules);
+    if VERBOSE {
+        println!("LL1, num_nt = {}, NT symbols: {}", ll1.get_num_nt(), ll1.get_symbol_table().unwrap().get_num_nt());
+        print_production_rules(&ll1, true);
+        let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+        if !msg.is_empty() {
+            println!("Messages:\n{msg}");
+        }
+    }
+    assert_eq!(ll1.get_log().num_errors(), 0);
+    let mut builder = ParserGen::from_rules(ll1, "LexiParser".to_string());
+    if VERBOSE {
+        // println!("Builder:\n{builder:#?}");
+    }
+    let result_src = builder.build_source_code(4, true);
+    let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
+    if result_src != expected_src {
+        if REPLACE_SOURCE {
+            replace_tagged_source(FILENAME, TAG, &result_src).expect("source replacement failed");
+        }
+        assert_eq!(result_src, expected_src, "failed");
+    }
+
 }

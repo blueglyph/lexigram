@@ -1092,6 +1092,7 @@ mod wrapper_source {
             // (PRS(15), 0, btreemap![]),
             // (RTS(31), 0, btreemap![], Default),  // TODO: reports error, not supported, user must create NT for OR under + or *
             // ---------------------------------------------------------------------------
+            (RTS(100), 0, btreemap![], btreemap![], Default, btreemap![]),
             /*
             (PRS(), 0, btreemap![], btreemap![], Default, btreemap![]),
             (RTS(), 0, btreemap![], btreemap![], Default, btreemap![]),
@@ -1101,13 +1102,13 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/gen/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
         const TEST_SOURCE: bool = true;
-        const TESTS_ALL: bool = true;
+        const TESTS_ALL: bool = false;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
         const REPLACE_SOURCE: bool = false;

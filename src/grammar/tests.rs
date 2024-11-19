@@ -8,7 +8,7 @@ use crate::grammar::NTConversion::Removed;
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-pub(super) fn print_production_rules<T>(prods: &ProdRuleSet<T>, as_comment: bool) {
+pub(crate) fn print_production_rules<T>(prods: &ProdRuleSet<T>, as_comment: bool) {
     let prefix = if as_comment { "            // " } else { "    " };
     println!("{prefix}{}", prods.get_prods_iter().map(|(var, p)|
         format!("{} -> {}",
@@ -469,6 +469,10 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             c_tree.add_root(gnode!(t 2));
         }
 
+        100 => {
+            // lexiparser
+            rules = crate::lexi::build_rts();
+        }
         _ => {}
     }
     if rules.symbol_table.is_none() {
