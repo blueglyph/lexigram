@@ -1,5 +1,51 @@
 #![cfg(test)]
 
+use crate::{columns_to_str, CollectJoin};
+use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
+use crate::grammar::tests::symbol_to_macro;
+use crate::parsergen::ParserGen;
+
+pub(crate) fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool) {
+    let tbl = builder.get_symbol_table();
+    let fields = (0..builder.parsing_table.factors.len())
+        .filter_map(|f| {
+            let f_id = f as FactorId;
+            let (v, factor) = &builder.parsing_table.factors[f];
+            let ops = &builder.opcodes[f];
+            if let Some(it) = builder.item_ops.get(&f_id) {
+                let mut cols = vec![];
+                if show_symbols {
+                    cols.push(format!("{f_id} => symbols![{}],", it.iter().map(|s| symbol_to_macro(s)).join(", ")));
+                }
+                cols.extend([
+                    format!("// {f_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), factor.iter().map(|s| s.to_str(tbl)).join(" ")),
+                    format!("| {}", ops.into_iter().map(|s| s.to_str(tbl)).join(" ")),
+                    format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
+                ]);
+                Some(cols)
+            } else {
+                None
+            }
+        }).to_vec();
+    let widths = if show_symbols { vec![40, 0, 0, 0] } else { vec![16, 0, 0] };
+    for l in columns_to_str(fields, Some(widths)) {
+        println!("{:indent$}{l}", "", indent = indent)
+    }
+}
+
+pub(crate) fn print_flags(builder: &ParserGen, indent: usize) {
+    let tbl = builder.get_symbol_table();
+    let prefix = format!("{:width$}//", "", width=indent);
+    let nt_flags = builder.parsing_table.flags.iter().enumerate().filter_map(|(nt, &f)|
+        if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt as VarId).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
+    ).join("\n");
+    let parents = builder.parsing_table.parent.iter().enumerate().filter_map(|(c, &par)|
+        if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c as VarId).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
+    ).join("\n");
+    println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
+    println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
+}
+
 mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
@@ -429,53 +475,18 @@ mod opcodes {
 
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
-    use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
+    use crate::grammar::{FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source};
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::ParserGen;
     use crate::dfa::TokenId;
+    use crate::parsergen::tests::{print_flags, print_items};
     use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
     #[derive(Clone)]
     enum HasValue { Set(Vec<Symbol>), All, Default }
-
-    fn print_flags(builder: &ParserGen, indent: usize) {
-        let tbl = builder.get_symbol_table();
-        let prefix = format!("{:width$}//", "", width=indent);
-        let nt_flags = builder.parsing_table.flags.iter().enumerate().filter_map(|(nt, &f)|
-            if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt as VarId).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
-        ).join("\n");
-        let parents = builder.parsing_table.parent.iter().enumerate().filter_map(|(c, &par)|
-            if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c as VarId).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
-        ).join("\n");
-        println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
-        println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
-    }
-
-    fn print_items(builder: &ParserGen, result_items: &BTreeMap<FactorId, Vec<Symbol>>, indent: usize) {
-        let tbl = builder.get_symbol_table();
-        let fields = (0..builder.parsing_table.factors.len())
-            .filter_map(|f| {
-                let f_id = f as FactorId;
-                let (v, factor) = &builder.parsing_table.factors[f];
-                let ops = &builder.opcodes[f];
-                if let Some(it) = result_items.get(&f_id) {
-                    Some(vec![
-                        format!("{f_id} => symbols![{}],", it.iter().map(|s| symbol_to_macro(s)).join(", ")),
-                        format!("// {f_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), factor.iter().map(|s| s.to_str(tbl)).join(" ")),
-                        format!("| {}", ops.into_iter().map(|s| s.to_str(tbl)).join(" ")),
-                        format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
-                    ])
-                } else {
-                    None
-                }
-            }).to_vec();
-        for l in columns_to_str(fields, Some(vec![40, 0, 0, 0])) {
-            println!("{:indent$}{l}", "", indent = indent)
-        }
-    }
 
     fn set_has_value(builder: &mut ParserGen, has_value: HasValue) {
         let mut valuables = HashSet::<TokenId>::new();
@@ -1116,6 +1127,7 @@ mod wrapper_source {
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
+if rule_id != RTS(100) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
@@ -1129,6 +1141,7 @@ mod wrapper_source {
                          ).join(", "));
             }
             builder.build_item_ops();
+print_items(&builder, 0, false);
             if VERBOSE {
                 println!("after,  NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
@@ -1173,7 +1186,7 @@ mod wrapper_source {
                     println!("{}", result_nt_type.iter().map(|(v, s)| format!("                {v} => \"{s}\".to_string(),")).join("\n"));
                 }
                 println!("            ], btreemap![");
-                print_items(&builder, &result_items, 16);
+                print_items(&builder, 16, true);
                 let has_value_str = match &has_value {
                     Set(s) => format!("Set(symbols![{}])", s.iter().map(|s| symbol_to_macro(s)).join(", ")),
                     All => "All".to_string(),

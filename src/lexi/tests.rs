@@ -13,6 +13,7 @@ use crate::dfa::tests::print_dfa;
 use crate::grammar::ProdRuleSet;
 use crate::grammar::tests::print_production_rules;
 use crate::parsergen::ParserGen;
+use crate::parsergen::tests::{print_flags, print_items};
 use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
 // ---------------------------------------------------------------------------------------------
@@ -237,8 +238,19 @@ fn lexiparser_source() {
     }
     assert_eq!(ll1.get_log().num_errors(), 0);
     let mut builder = ParserGen::from_rules(ll1, "LexiParser".to_string());
+    for v in 0..builder.get_symbol_table().unwrap().get_num_nt() as VarId {
+        // print!("- {}: ", Symbol::NT(v).to_str(builder.get_symbol_table()));
+        if builder.get_nt_parent(v).is_none() {
+            builder.set_nt_has_value(v, true);
+            // println!("has no parent, has value");
+        } else {
+            // println!("has parents, has no value");
+        }
+    }
     if VERBOSE {
-        // println!("Builder:\n{builder:#?}");
+        builder.build_item_ops();
+        print_flags(&builder, 0);
+        print_items(&builder, 0, false);
     }
     let result_src = builder.build_source_code(4, true);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());

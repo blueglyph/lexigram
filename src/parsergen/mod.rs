@@ -9,7 +9,7 @@ use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer
 use crate::parser::{OpCode, Parser};
 use crate::symbol_table::SymbolTable;
 
-mod tests;
+pub(crate) mod tests;
 
 // ---------------------------------------------------------------------------------------------
 
@@ -210,12 +210,24 @@ impl ParserGen {
         self.nt_type.insert(var, var_type.into());
     }
 
-    fn get_nt_type(&self, v: VarId) -> &str {
+    #[inline]
+    pub fn get_nt_type(&self, v: VarId) -> &str {
         self.nt_type.get(&v).unwrap().as_str()
     }
 
+    #[inline]
     pub fn get_nt_extra_info(&self, nt: VarId) -> Option<&(String, Vec<String>)> {
         self.nt_extra_info.get(&nt)
+    }
+
+    #[inline]
+    pub fn set_nt_has_value(&mut self, v: VarId, has_value: bool) {
+        self.nt_value[v as usize] = has_value;
+    }
+
+    #[inline]
+    pub fn get_nt_parent(&self, v: VarId) -> Option<VarId> {
+        self.parsing_table.parent[v as usize]
     }
 
     /// Converts the original index of an NT to its current index.
@@ -617,7 +629,7 @@ impl ParserGen {
         alt
     }
 
-    fn build_item_ops(&mut self) {
+    pub(crate) fn build_item_ops(&mut self) {
         const VERBOSE: bool = false;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
