@@ -375,6 +375,26 @@ mod opcodes {
                 strip![loop 4, exit 9, nt 2, t 3],      //  9: T_1 -> * F T_1 - ●T_1 ◄9 ►F *
                 strip![exit 10],                        // 10: T_1 -> ε       - ◄10
             ]),
+            // A -> A a c? | A b c? | d
+            // - NT flags:
+            //   - A: parent_left_rec (512)
+            //   - A_1: child_left_rec | parent_left_fact (36)
+            //   - A_2: child_left_fact (64)
+            //   - A_3: child_left_fact (64)
+            // - parents:
+            //   - A_1 -> A
+            //   - A_2 -> A_1
+            //   - A_3 -> A_1
+            (T::RTS(38), 0, vec![
+                strip![nt 1, exit 0, t 3],              //  0: A -> d A_1   - ►A_1 ◄0 d!
+                strip![nt 2, t 0],                      //  1: A_1 -> a A_2 - ►A_2 a!
+                strip![nt 3, t 1],                      //  2: A_1 -> b A_3 - ►A_3 b!
+                strip![exit 3],                         //  3: A_1 -> ε     - ◄3
+                strip![loop 1, exit 4, t 2],            //  4: A_2 -> c A_1 - ●A_1 ◄4 c!
+                strip![loop 1, exit 5],                 //  5: A_2 -> A_1   - ●A_1 ◄5
+                strip![loop 1, exit 6, t 2],            //  6: A_3 -> c A_1 - ●A_1 ◄6 c!
+                strip![loop 1, exit 7],                 //  7: A_3 -> A_1   - ●A_1 ◄7
+            ]),
             // [C/amb] left recursion and ambiguity ----------------------------------------
             (T::PRS(22), 0, vec![                       // E -> E * E | E & * E | E + E | E & + E | id
                 strip![nt 1, exit 0, t 3],              //  0: E -> id E_1     - ►E_1 ◄0 id!
@@ -954,6 +974,28 @@ mod wrapper_source {
                 4 => symbols![nt 0, t 1],               //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | E id
                 5 => symbols![nt 0, t 1],               //  5: E_2 -> E_1      | ●E_1 ◄5     | E id
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+            // A -> A a c? | A b c? | d
+            // NT flags:
+            //  - A: parent_left_rec (512)
+            //  - A_1: child_left_rec | parent_left_fact (36)
+            //  - A_2: child_left_fact (64)
+            //  - A_3: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            //  - A_3 -> A_1
+            (RTS(38), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![
+                0 => symbols![t 3],                     //  0: A -> d A_1   | ►A_1 ◄0 d! | d
+                1 => symbols![],                        //  1: A_1 -> a A_2 | ►A_2 a!    |
+                2 => symbols![],                        //  2: A_1 -> b A_3 | ►A_3 b!    |
+                3 => symbols![],                        //  3: A_1 -> ε     | ◄3         |
+                4 => symbols![nt 0, t 0, t 2],          //  4: A_2 -> c A_1 | ●A_1 ◄4 c! | A a c
+                5 => symbols![nt 0, t 0],               //  5: A_2 -> A_1   | ●A_1 ◄5    | A a
+                6 => symbols![nt 0, t 1, t 2],          //  6: A_3 -> c A_1 | ●A_1 ◄6 c! | A b c
+                7 => symbols![nt 0, t 1],               //  7: A_3 -> A_1   | ●A_1 ◄7    | A b
+            ], Default, btreemap![0 => vec![0]]),
             // --------------------------------------------------------------------------- right_rec L/R
             // STRUCT -> 'struct' id '{' LIST
             // LIST -> id ':' id ';' LIST | '}'
@@ -1200,7 +1242,7 @@ print_items(&builder, 0, false);
             if PRINT_SOURCE {
                 println!("*/");
                 println!("pub(crate) mod rules_{rule_name} {{");
-                println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}    // [{test_name}]\n    // {:-<60}\n", "");
+                println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}\n    // [{test_name}]\n    // {:-<60}", "");
                 println!("}}\n");
             }
             let expected_src = get_tagged_source(WRAPPER_FILENAME, &test_name);
