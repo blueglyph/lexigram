@@ -4629,9 +4629,9 @@ pub(crate) mod rules_prs_30_1 {
     }
     #[derive(Debug)]
     pub enum CtxList {
-        /// `LIST -> id : id ; LIST`
+        /// `LIST -> id : id ; LIST <L>`
         List1 { list: SynList, id: [String; 2] },
-        /// `LIST -> }`
+        /// `LIST -> } <L>`
         List2 { list: SynList },
     }
 
@@ -4684,8 +4684,8 @@ pub(crate) mod rules_prs_30_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
-                        1 |                                         // LIST -> id : id ; LIST
-                        2 => self.exit_list(factor_id),             // LIST -> }
+                        1 |                                         // LIST -> id : id ; LIST <L>
+                        2 => self.exit_list(factor_id),             // LIST -> } <L>
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
