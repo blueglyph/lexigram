@@ -725,7 +725,7 @@ impl ParserGen {
                     // Loop NTs which carry values are kept on the stack, too
                     let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
                         Some(Symbol::NT(*var_id))
-                    } else if flags & ruleflag::CHILD_L_RECURSION != 0 && !values.is_empty() {
+                    } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
                         let parent = info.parent[*var_id as usize].unwrap();
                         Some(Symbol::NT(parent))
                     } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
@@ -830,7 +830,7 @@ impl ParserGen {
     /// }
     /// ```
     fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -925,24 +925,22 @@ impl ParserGen {
                                 indices.insert(*s, (fixer.get_unique_name(name), None));
                             }
                         }
-                        let has_no_exit = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 ||
-                            (pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0 &&
-                             self.opcodes[i].len() == 1 && self.opcodes[i][0] == OpCode::Exit(i as FactorId));
-                        let has_data = (!item_ops.is_empty() || (self.nt_value[nt] && pinfo.flags[nt] & ruleflag::R_RECURSION != 0)) &&
-                            pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) != ruleflag::CHILD_REPEAT
-                            || pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0;
-                        let is_fact_placeholder = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 &&
-                            self.opcodes[i].iter().any(|op| matches!(op, &OpCode::NT(child) if pinfo.flags[child as usize] & ruleflag::CHILD_L_FACTOR != 0));
-                        let has_context = (has_data && !is_fact_placeholder) || (!has_no_exit && pinfo.parent[nt].is_none());
+
+                        let has_lfact_child = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 &&
+                            pinfo.factors[i].1.symbols().iter().any(|s| matches!(s, &Symbol::NT(c) if pinfo.flags[c as usize] & ruleflag::CHILD_L_FACTOR != 0));
+                        let mut is_hidden_repeat_child = false;
+                        let mut nt_i = nt;
+                        while let Some(p) = pinfo.parent[nt_i] {
+                            if pinfo.flags[nt_i] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
+                                is_hidden_repeat_child = true;
+                                break;
+                            }
+                            nt_i = p as usize;
+                        }
+                        let has_context = !has_lfact_child && !is_hidden_repeat_child;
                         if VERBOSE {
-                            print!("NT {nt}, factor {factor_id}: has_data = {has_data} is_fact_placeholder = {is_fact_placeholder}");
-                            println!(", has_no_exit = {} = {} && {} ({}), parent_left_fact = {} => has_context = {has_context}",
-                                     has_no_exit,
-                                     pinfo.flags[nt] & (ruleflag::CHILD_REPEAT | ruleflag::CHILD_L_RECURSION) != 0,
-                                     self.opcodes[i].len() == 1 && self.opcodes[i][0] == OpCode::Exit(i as VarId),
-                                     self.opcodes[i].iter().map(|op| op.to_str(self.get_symbol_table())).join(" "),
-                                     pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0
-                            );
+                            println!("NT {nt}, factor {factor_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child} \
+                                => has_context = {has_context}");
                         }
                         if has_context {
                             let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();
@@ -963,14 +961,17 @@ impl ParserGen {
                         }
                         if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
                             // we put here the return context for the final exit of left recursive rule
-                            // let parent = pinfo.parent[nt].unwrap();
-                            vec![ItemInfo {
-                                name: nt_name[owner as usize].as_ref().map(|n| n.1.clone()).unwrap(),
-                                sym: Symbol::NT(owner as VarId),
-                                owner: owner,
-                                is_vec: false,
-                                index: None,
-                            }]
+                            if self.nt_value[owner as usize] {
+                                vec![ItemInfo {
+                                    name: nt_name[owner as usize].as_ref().map(|n| n.1.clone()).unwrap(),
+                                    sym: Symbol::NT(owner as VarId),
+                                    owner: owner,
+                                    is_vec: false,
+                                    index: None,
+                                }]
+                            } else {
+                                vec![]
+                            }
                         } else {
                             let infos = item_ops.into_iter().map(|s| {
                                 let index = if let Some((_, Some(index))) = indices.get_mut(s) {
@@ -1014,10 +1015,10 @@ impl ParserGen {
                 }
             }
             println!();
-            // println!("nt_name: {nt_name:?}");
-            // println!("factor_info: {factor_info:?}");
-            // println!("item_info: {item_info:?}");
-            // println!("nt_repeat: {nt_repeat:?}");
+            println!("nt_name: {nt_name:?}");
+            println!("factor_info: {factor_info:?}");
+            println!("item_info: {item_info:?}");
+            println!("nt_repeat: {nt_repeat:?}");
         }
         (nt_name, factor_info, item_info, nt_repeat)
     }
@@ -1147,7 +1148,7 @@ impl ParserGen {
 
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         self.used_libs.extend(["rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::Listener"]);
 
@@ -1205,6 +1206,7 @@ impl ParserGen {
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let v = v as VarId;
             let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
+            let nt_type = self.get_nt_type(v);
             if self.nt_has_flags(v, ruleflag::CHILD_REPEAT) {
                 let parent = pinfo.get_top_parent(v);
                 let tf = self.get_top_factors(v);
@@ -1224,14 +1226,14 @@ impl ParserGen {
                         let extra_src = vec![
                             format!("/// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
                             format!("#[derive(Debug, PartialEq)]"),
-                            format!("pub struct Syn{nu}();"),
+                            format!("pub struct {nt_type}();"),
                         ];
                         self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
                     } else {
                         // complex + * items; for ex. A -> (B b)+
                         src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
                         src.push(format!("#[derive(Debug, PartialEq)]"));
-                        src.push(format!("pub struct Syn{nu}(Vec<Syn{nu}Item>);"));
+                        src.push(format!("pub struct {nt_type}(Vec<Syn{nu}Item>);"));
                         let mut fact = self.parsing_table.factors[self.var_factors[v as usize][0] as usize].1.symbols().to_vec();
                         fact.pop();
                         src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
@@ -1246,14 +1248,14 @@ impl ParserGen {
                         let extra_src = vec![
                             format!("/// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
                             format!("#[derive(Debug, PartialEq)]"),
-                            format!("pub struct Syn{nu}();"),
+                            format!("pub struct {nt_type}();"),
                         ];
                         self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
                     } else {
                         // + * item is only a terminal
                         src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
                         src.push(format!("#[derive(Debug, PartialEq)]"));
-                        src.push(format!("pub struct Syn{nu}(Vec<String>);"));
+                        src.push(format!("pub struct {nt_type}(Vec<String>);"));
                     }
                 }
             } else {

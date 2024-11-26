@@ -261,6 +261,20 @@ pub(crate) mod code_rts_38_1 {
     pub struct SynA();
 }
 
+pub(crate) mod code_rts_38_2 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(38) #2, start A
+
+    /// User-defined type for `A`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA();
+}
+
+pub(crate) mod code_rts_38_3 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(38) #3, start A
+}
+
 pub(crate) mod code_prs_20_1 {
     // ------------------------------------------------------------
     // wrapper source for rule PRS(20) #1, start STRUCT

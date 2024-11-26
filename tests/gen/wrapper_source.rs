@@ -460,7 +460,9 @@ pub(crate) mod rules_rts_22_1 {
     #[derive(Debug)]
     pub enum CtxAIter {
         /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1 { star_it: SynAIter, b: String },
+        Aiter1_1 { star_it: SynAIter, b: String },
+        /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
+        Aiter1_2,
     }
 
     // NT types:
@@ -559,7 +561,7 @@ pub(crate) mod rules_rts_22_1 {
         fn exit_a_iter(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_it, b });
+            let val = self.listener.exit_a_iter(CtxAIter::Aiter1_1 { star_it, b });
             self.stack.push(SynValue::AIter(val));
         }
     }
@@ -597,6 +599,13 @@ pub(crate) mod rules_rts_22_2 {
     pub enum CtxA {
         /// `A -> a (b <L>)* c`
         A { a: String, c: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxAIter {
+        /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+        Aiter1_1,
+        /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
+        Aiter1_2,
     }
 
     // NT types:
@@ -727,7 +736,9 @@ pub(crate) mod rules_rts_32_1 {
     #[derive(Debug)]
     pub enum CtxAIter {
         /// `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | ...`
-        Aiter1 { star_it: SynAIter, b: String },
+        Aiter1_1 { star_it: SynAIter, b: String },
+        /// end of `(b <L>)*` iterations in `A -> a a  ► (b <L>)* ◄  c | ...`
+        Aiter1_2,
     }
 
     // NT types:
@@ -843,7 +854,7 @@ pub(crate) mod rules_rts_32_1 {
         fn exit_a_iter(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let star_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::Aiter1 { star_it, b });
+            let val = self.listener.exit_a_iter(CtxAIter::Aiter1_1 { star_it, b });
             self.stack.push(SynValue::AIter(val));
         }
     }
@@ -2988,7 +2999,7 @@ after,  NT with value: E, F
                 0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
                 2 => symbols![nt 0, t 1],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
-                3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
+                3 => symbols![nt 0],                    //  3: E_1 -> ε        | ◄3            | E
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 */
 pub(crate) mod rules_prs_31_1 {
@@ -3147,7 +3158,7 @@ after,  NT with value: E, F
                 1 => symbols![t 2],                     //  1: E -> num E_1    | ►E_1 ◄1 num!  | num
                 2 => symbols![t 1],                     //  2: F -> id         | ◄2 id!        | id
                 3 => symbols![nt 0, t 1],               //  3: E_1 -> . id E_1 | ●E_1 ◄3 id! . | E id
-                4 => symbols![],                        //  4: E_1 -> ε        | ◄4            |
+                4 => symbols![nt 0],                    //  4: E_1 -> ε        | ◄4            | E
             ], Default, btreemap![0 => vec![0, 1], 1 => vec![2]]),
 */
 pub(crate) mod rules_prs_36_1 {
@@ -3318,7 +3329,7 @@ after,  NT with value: A
             ], btreemap![
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
-                2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
+                2 => symbols![nt 0],                    //  2: A_1 -> ε     | ◄2         | A
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
                 4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
             ], Default, btreemap![0 => vec![3, 4]]),
@@ -3478,7 +3489,7 @@ after,  NT with value: A
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
                 2 => symbols![nt 0, t 1],               //  2: A_1 -> b A_1 | ●A_1 ◄2 b! | A b
-                3 => symbols![],                        //  3: A_1 -> ε     | ◄3         |
+                3 => symbols![nt 0],                    //  3: A_1 -> ε     | ◄3         | A
                 4 => symbols![t 1, t 2],                //  4: A_2 -> c A_1 | ►A_1 ◄4 c! | b c
                 5 => symbols![t 1, t 3],                //  5: A_2 -> d A_1 | ►A_1 ◄5 d! | b d
             ], Default, btreemap![0 => vec![4, 5]]),
@@ -3647,7 +3658,7 @@ after,  NT with value: A
             ], btreemap![
                 0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
                 1 => symbols![],                        //  1: A_1 -> a A_3 | ►A_3 a!    |
-                2 => symbols![],                        //  2: A_1 -> ε     | ◄2         |
+                2 => symbols![nt 0],                    //  2: A_1 -> ε     | ◄2         | A
                 3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
                 4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
                 5 => symbols![nt 0, t 0, t 1],          //  5: A_3 -> b A_1 | ●A_1 ◄5 b! | A a b
@@ -3822,7 +3833,7 @@ after,  NT with value: E, F
                 0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F  | F
                 1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!      | id
                 2 => symbols![],                        //  2: E_1 -> . id E_2 | ►E_2 id! .  |
-                3 => symbols![],                        //  3: E_1 -> ε        | ◄3          |
+                3 => symbols![nt 0],                    //  3: E_1 -> ε        | ◄3          | E
                 4 => symbols![nt 0, t 1],               //  4: E_2 -> ( ) E_1  | ●E_1 ◄4 ) ( | E id
                 5 => symbols![nt 0, t 1],               //  5: E_2 -> E_1      | ●E_1 ◄5     | E id
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
@@ -3995,7 +4006,7 @@ after,  NT with value: A
                 0 => symbols![t 3],                     //  0: A -> d A_1   | ►A_1 ◄0 d! | d
                 1 => symbols![],                        //  1: A_1 -> a A_2 | ►A_2 a!    |
                 2 => symbols![],                        //  2: A_1 -> b A_3 | ►A_3 b!    |
-                3 => symbols![],                        //  3: A_1 -> ε     | ◄3         |
+                3 => symbols![nt 0],                    //  3: A_1 -> ε     | ◄3         | A
                 4 => symbols![nt 0, t 0, t 2],          //  4: A_2 -> c A_1 | ●A_1 ◄4 c! | A a c
                 5 => symbols![nt 0, t 0],               //  5: A_2 -> A_1   | ●A_1 ◄5    | A a
                 6 => symbols![nt 0, t 1, t 2],          //  6: A_3 -> c A_1 | ●A_1 ◄6 c! | A b c
@@ -4153,7 +4164,330 @@ pub(crate) mod rules_rts_38_1 {
 }
 
 // ================================================================================
-// Test 25: rules PRS(20) #1, start 0:
+// Test 25: rules RTS(38) #2, start 0:
+/*
+before, NT with value: A
+after,  NT with value: A
+            // NT flags:
+            //  - A: parent_left_rec (512)
+            //  - A_1: child_left_rec | parent_left_fact (36)
+            //  - A_2: child_left_fact (64)
+            //  - A_3: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            //  - A_3 -> A_1
+            (RTS(38), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![
+                0 => symbols![t 3],                     //  0: A -> d A_1   | ►A_1 ◄0 d! | d
+                1 => symbols![],                        //  1: A_1 -> a A_2 | ►A_2 a     |
+                2 => symbols![],                        //  2: A_1 -> b A_3 | ►A_3 b     |
+                3 => symbols![nt 0],                    //  3: A_1 -> ε     | ◄3         | A
+                4 => symbols![nt 0],                    //  4: A_2 -> c A_1 | ●A_1 ◄4 c  | A
+                5 => symbols![nt 0],                    //  5: A_2 -> A_1   | ●A_1 ◄5    | A
+                6 => symbols![nt 0],                    //  6: A_3 -> c A_1 | ●A_1 ◄6 c  | A
+                7 => symbols![nt 0],                    //  7: A_3 -> A_1   | ●A_1 ◄7    | A
+            ], Set(symbols![nt 0, t 3]), btreemap![0 => vec![0]]),
+*/
+pub(crate) mod rules_rts_38_2 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(38) #2, start A]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_38_2::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> d`
+        A1 { d: String },
+        /// `A -> ε (end of loop)`
+        A2 { a: SynA },
+        /// `A -> A a c`
+        A3 { a: SynA },
+        /// `A -> A a`
+        A4 { a: SynA },
+        /// `A -> A b c`
+        A5 { a: SynA },
+        /// `A -> A b`
+        A6 { a: SynA },
+    }
+
+    // NT types:
+    // SynA: User-defined type for `A`
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            let SynValue::A(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _a: SynA) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => {}                                     // A_1
+                        2 => {}                                     // A_2
+                        3 => {}                                     // A_3
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.init_a(),                         // A -> d
+                        3 |                                         // A -> ε (end of loop)
+                        4 |                                         // A -> A a c
+                        5 |                                         // A -> A a
+                        6 |                                         // A -> A b c
+                        7 => self.exit_a1(factor_id),               // A -> A b
+                     /* 1 */                                        // A -> A a c | A a (never called)
+                     /* 2 */                                        // A -> A b c | A b (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(a);
+        }
+
+        fn init_a(&mut self) {
+            let d = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_a(CtxA::A1 { d });
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn exit_a1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                3 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A2 { a }
+                }
+                4 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A3 { a }
+                }
+                5 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A4 { a }
+                }
+                6 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A5 { a }
+                }
+                7 => {
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A6 { a }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(38) #2, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 26: rules RTS(38) #3, start 0:
+/*
+before, NT with value:
+after,  NT with value:
+            // NT flags:
+            //  - A: parent_left_rec (512)
+            //  - A_1: child_left_rec | parent_left_fact (36)
+            //  - A_2: child_left_fact (64)
+            //  - A_3: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            //  - A_3 -> A_1
+            (RTS(38), 0, btreemap![
+            ], btreemap![
+                0 => symbols![],                        //  0: A -> d A_1   | ►A_1 ◄0 d |
+                1 => symbols![],                        //  1: A_1 -> a A_2 | ►A_2 a    |
+                2 => symbols![],                        //  2: A_1 -> b A_3 | ►A_3 b    |
+                3 => symbols![],                        //  3: A_1 -> ε     | ◄3        |
+                4 => symbols![],                        //  4: A_2 -> c A_1 | ●A_1 ◄4 c |
+                5 => symbols![],                        //  5: A_2 -> A_1   | ●A_1 ◄5   |
+                6 => symbols![],                        //  6: A_3 -> c A_1 | ●A_1 ◄6 c |
+                7 => symbols![],                        //  7: A_3 -> A_1   | ●A_1 ◄7   |
+            ], Set(symbols![]), btreemap![0 => vec![0]]),
+*/
+pub(crate) mod rules_rts_38_3 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(38) #3, start A]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_38_3::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> d`
+        A1,
+        /// `A -> ε (end of loop)`
+        A2,
+        /// `A -> A a c`
+        A3,
+        /// `A -> A a`
+        A4,
+        /// `A -> A b c`
+        A5,
+        /// `A -> A b`
+        A6,
+    }
+
+    // NT types:
+    // Top non-terminal A has no value:
+    #[derive(Debug, PartialEq)]
+    pub struct SynA();
+
+    #[derive(Debug)]
+    enum SynValue {  }
+
+    pub trait TestListener {
+        fn exit(&mut self) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => {}                                     // A_1
+                        2 => {}                                     // A_2
+                        3 => {}                                     // A_3
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.init_a(),                         // A -> d
+                        3 |                                         // A -> ε (end of loop)
+                        4 |                                         // A -> A a c
+                        5 |                                         // A -> A a
+                        6 |                                         // A -> A b c
+                        7 => self.exit_a1(factor_id),               // A -> A b
+                     /* 1 */                                        // A -> A a c | A a (never called)
+                     /* 2 */                                        // A -> A b c | A b (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.listener.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn init_a(&mut self) {
+            self.listener.exit_a(CtxA::A1);
+        }
+
+        fn exit_a1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                3 => {
+                    CtxA::A2
+                }
+                4 => {
+                    CtxA::A3
+                }
+                5 => {
+                    CtxA::A4
+                }
+                6 => {
+                    CtxA::A5
+                }
+                7 => {
+                    CtxA::A6
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+            };
+            self.listener.exit_a(ctx);
+        }
+    }
+
+    // [wrapper source for rule RTS(38) #3, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 27: rules PRS(20) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -4300,7 +4634,7 @@ pub(crate) mod rules_prs_20_1 {
 }
 
 // ================================================================================
-// Test 26: rules PRS(20) #2, start 0:
+// Test 28: rules PRS(20) #2, start 0:
 /*
 before, NT with value: STRUCT
 after,  NT with value: STRUCT
@@ -4440,7 +4774,7 @@ pub(crate) mod rules_prs_20_2 {
 }
 
 // ================================================================================
-// Test 27: rules PRS(37) #1, start 0:
+// Test 29: rules PRS(37) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -4598,7 +4932,7 @@ pub(crate) mod rules_prs_37_1 {
 }
 
 // ================================================================================
-// Test 28: rules PRS(30) #1, start 0:
+// Test 30: rules PRS(30) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -4751,7 +5085,7 @@ pub(crate) mod rules_prs_30_1 {
 }
 
 // ================================================================================
-// Test 29: rules RTS(26) #1, start 0:
+// Test 31: rules RTS(26) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -4770,7 +5104,7 @@ after,  NT with value: A, A_1
                 1 => symbols![nt 1, t 2],               //  1: A_1 -> c A_1     | ●A_1 ◄1 c!      | A_1 c
                 2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
                 3 => symbols![nt 0, nt 1, t 1],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A A_1 b
-                4 => symbols![],                        //  4: A_2 -> ε         | ◄4              |
+                4 => symbols![nt 0],                    //  4: A_2 -> ε         | ◄4              | A
             ], Default, btreemap![0 => vec![0]]),
 */
 pub(crate) mod rules_rts_26_1 {
@@ -4915,7 +5249,7 @@ pub(crate) mod rules_rts_26_1 {
 }
 
 // ================================================================================
-// Test 30: rules RTS(16) #1, start 0:
+// Test 32: rules RTS(16) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -4935,7 +5269,7 @@ after,  NT with value: A, A_1
                 0 => symbols![t 0],                     //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                 1 => symbols![],                        //  1: A_1 -> c A_3     | ►A_3 c!         |
                 2 => symbols![nt 0, nt 1, t 1],         //  2: A_2 -> A_1 b A_2 | ●A_2 ◄2 b! ►A_1 | A A_1 b
-                3 => symbols![],                        //  3: A_2 -> ε         | ◄3              |
+                3 => symbols![nt 0],                    //  3: A_2 -> ε         | ◄3              | A
                 4 => symbols![nt 1, t 2],               //  4: A_3 -> A_1       | ●A_1 ◄4         | A_1 c
                 5 => symbols![nt 1, t 2],               //  5: A_3 -> ε         | ◄5              | A_1 c
             ], Default, btreemap![0 => vec![0]]),
@@ -5084,7 +5418,7 @@ pub(crate) mod rules_rts_16_1 {
 }
 
 // ================================================================================
-// Test 31: rules PRS(35) #1, start 0:
+// Test 33: rules PRS(35) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -5225,7 +5559,7 @@ pub(crate) mod rules_prs_35_1 {
 }
 
 // ================================================================================
-// Test 32: rules RTS(33) #1, start 0:
+// Test 34: rules RTS(33) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
