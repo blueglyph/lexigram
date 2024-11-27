@@ -458,7 +458,7 @@ pub(crate) mod rules_rts_22_1 {
         A { a: String, star: SynAIter, c: String },
     }
     #[derive(Debug)]
-    pub enum CtxAIter {
+    pub enum CtxAiter1 {
         /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
         Aiter1_1 { star_it: SynAIter, b: String },
         /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
@@ -470,14 +470,14 @@ pub(crate) mod rules_rts_22_1 {
     // SynAIter: User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), AIter(SynAIter) }
+    enum SynValue { A(SynA), Aiter1(SynAIter) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
-        fn get_a_iter(self) -> SynAIter {
-            if let SynValue::AIter(val) = self { val } else { panic!() }
+        fn get_aiter1(self) -> SynAIter {
+            if let SynValue::Aiter1(val) = self { val } else { panic!() }
         }
     }
 
@@ -485,8 +485,8 @@ pub(crate) mod rules_rts_22_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_a_iter(&mut self) -> SynAIter;
-        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
+        fn init_aiter1(&mut self) -> SynAIter;
+        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -506,7 +506,7 @@ pub(crate) mod rules_rts_22_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.init_a_iter(),                    // AIter1
+                        1 => self.init_aiter1(),                    // AIter1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -514,7 +514,7 @@ pub(crate) mod rules_rts_22_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a (b <L>)* c
-                        1 => self.exit_a_iter(),                    // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
+                        1 => self.exit_aiter1(),                    // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
                         2 => {}                                     // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -547,22 +547,22 @@ pub(crate) mod rules_rts_22_1 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_a_iter();
+            let star = self.stack.pop().unwrap().get_aiter1();
             let a = self.stack_t.pop().unwrap();
             let val = self.listener.exit_a(CtxA::A { a, star, c });
             self.stack.push(SynValue::A(val));
         }
 
-        fn init_a_iter(&mut self) {
-            let val = self.listener.init_a_iter();
-            self.stack.push(SynValue::AIter(val));
+        fn init_aiter1(&mut self) {
+            let val = self.listener.init_aiter1();
+            self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_a_iter(&mut self) {
+        fn exit_aiter1(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::Aiter1_1 { star_it, b });
-            self.stack.push(SynValue::AIter(val));
+            let star_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1_1 { star_it, b });
+            self.stack.push(SynValue::Aiter1(val));
         }
     }
 
@@ -601,7 +601,7 @@ pub(crate) mod rules_rts_22_2 {
         A { a: String, c: String },
     }
     #[derive(Debug)]
-    pub enum CtxAIter {
+    pub enum CtxAiter1 {
         /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
         Aiter1_1,
         /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
@@ -625,7 +625,7 @@ pub(crate) mod rules_rts_22_2 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_a_iter(&mut self) {}
+        fn init_aiter1(&mut self) {}
     }
 
     struct ListenerWrapper<T> {
@@ -645,7 +645,7 @@ pub(crate) mod rules_rts_22_2 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_a_iter(),           // AIter1
+                        1 => self.listener.init_aiter1(),           // AIter1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -734,7 +734,7 @@ pub(crate) mod rules_rts_32_1 {
         A2 { a: String, c: [String; 2], star: SynAIter },
     }
     #[derive(Debug)]
-    pub enum CtxAIter {
+    pub enum CtxAiter1 {
         /// `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | ...`
         Aiter1_1 { star_it: SynAIter, b: String },
         /// end of `(b <L>)*` iterations in `A -> a a  ► (b <L>)* ◄  c | ...`
@@ -746,14 +746,14 @@ pub(crate) mod rules_rts_32_1 {
     // SynAIter: User-defined type for `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | a c  ► (b <L>)* ◄  c`
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), AIter(SynAIter) }
+    enum SynValue { A(SynA), Aiter1(SynAIter) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
-        fn get_a_iter(self) -> SynAIter {
-            if let SynValue::AIter(val) = self { val } else { panic!() }
+        fn get_aiter1(self) -> SynAIter {
+            if let SynValue::Aiter1(val) = self { val } else { panic!() }
         }
     }
 
@@ -761,8 +761,8 @@ pub(crate) mod rules_rts_32_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_a_iter(&mut self) -> SynAIter;
-        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter;
+        fn init_aiter1(&mut self) -> SynAIter;
+        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -782,7 +782,7 @@ pub(crate) mod rules_rts_32_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.init_a_iter(),                    // AIter1
+                        1 => self.init_aiter1(),                    // AIter1
                         2 => {}                                     // A_1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -792,7 +792,7 @@ pub(crate) mod rules_rts_32_1 {
                     match factor_id {
                         3 |                                         // A -> a a (b <L>)* c
                         4 => self.exit_a(factor_id),                // A -> a c (b <L>)* c
-                        1 => self.exit_a_iter(),                    // (b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...
+                        1 => self.exit_aiter1(),                    // (b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...
                         2 => {}                                     // end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c | ...
                      /* 0 */                                        // A -> a a (b <L>)* c | a c (b <L>)* c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -828,14 +828,14 @@ pub(crate) mod rules_rts_32_1 {
             let ctx = match factor_id {
                 3 => {
                     let c = self.stack_t.pop().unwrap();
-                    let star = self.stack.pop().unwrap().get_a_iter();
+                    let star = self.stack.pop().unwrap().get_aiter1();
                     let a_2 = self.stack_t.pop().unwrap();
                     let a_1 = self.stack_t.pop().unwrap();
                     CtxA::A1 { a: [a_1, a_2], star, c }
                 }
                 4 => {
                     let c_2 = self.stack_t.pop().unwrap();
-                    let star = self.stack.pop().unwrap().get_a_iter();
+                    let star = self.stack.pop().unwrap().get_aiter1();
                     let c_1 = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
                     CtxA::A2 { a, c: [c_1, c_2], star }
@@ -846,16 +846,16 @@ pub(crate) mod rules_rts_32_1 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn init_a_iter(&mut self) {
-            let val = self.listener.init_a_iter();
-            self.stack.push(SynValue::AIter(val));
+        fn init_aiter1(&mut self) {
+            let val = self.listener.init_aiter1();
+            self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_a_iter(&mut self) {
+        fn exit_aiter1(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::Aiter1_1 { star_it, b });
-            self.stack.push(SynValue::AIter(val));
+            let star_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1_1 { star_it, b });
+            self.stack.push(SynValue::Aiter1(val));
         }
     }
 
@@ -1490,7 +1490,7 @@ pub(crate) mod rules_rts_24_1 {
         A { a: String, plus: SynMyAIter, c: String },
     }
     #[derive(Debug)]
-    pub enum CtxAIter {
+    pub enum CtxAiter1 {
         /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
         Aiter1_1 { plus_it: SynMyAIter, b: String },
         /// end of `(b <L>)+` iterations in `A -> a  ► (b <L>)+ ◄  c`
@@ -1502,14 +1502,14 @@ pub(crate) mod rules_rts_24_1 {
     // SynMyAIter: User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
 
     #[derive(Debug)]
-    enum SynValue { A(SynMyA), AIter(SynMyAIter) }
+    enum SynValue { A(SynMyA), Aiter1(SynMyAIter) }
 
     impl SynValue {
         fn get_a(self) -> SynMyA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
-        fn get_a_iter(self) -> SynMyAIter {
-            if let SynValue::AIter(val) = self { val } else { panic!() }
+        fn get_aiter1(self) -> SynMyAIter {
+            if let SynValue::Aiter1(val) = self { val } else { panic!() }
         }
     }
 
@@ -1517,8 +1517,8 @@ pub(crate) mod rules_rts_24_1 {
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
-        fn init_a_iter(&mut self) -> SynMyAIter;
-        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynMyAIter;
+        fn init_aiter1(&mut self) -> SynMyAIter;
+        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynMyAIter;
     }
 
     struct ListenerWrapper<T> {
@@ -1538,7 +1538,7 @@ pub(crate) mod rules_rts_24_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.init_a_iter(),                    // AIter1
+                        1 => self.init_aiter1(),                    // AIter1
                         2 => {}                                     // A_1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -1548,7 +1548,7 @@ pub(crate) mod rules_rts_24_1 {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a (b <L>)+ c
                         2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
-                        3 => self.exit_a_iter(),                    // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
+                        3 => self.exit_aiter1(),                    // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
                      /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1581,22 +1581,22 @@ pub(crate) mod rules_rts_24_1 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let plus = self.stack.pop().unwrap().get_a_iter();
+            let plus = self.stack.pop().unwrap().get_aiter1();
             let a = self.stack_t.pop().unwrap();
             let val = self.listener.exit_a(CtxA::A { a, plus, c });
             self.stack.push(SynValue::A(val));
         }
 
-        fn init_a_iter(&mut self) {
-            let val = self.listener.init_a_iter();
-            self.stack.push(SynValue::AIter(val));
+        fn init_aiter1(&mut self) {
+            let val = self.listener.init_aiter1();
+            self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_a_iter(&mut self) {
+        fn exit_aiter1(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let plus_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::Aiter1_1 { plus_it, b });
-            self.stack.push(SynValue::AIter(val));
+            let plus_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1_1 { plus_it, b });
+            self.stack.push(SynValue::Aiter1(val));
         }
     }
 
@@ -2141,8 +2141,8 @@ after,  NT with value: A, AIter2, AIter1
             //  - AIter1 -> A
             (RTS(39), 0, btreemap![
                 0 => "SynA".to_string(),
-                1 => "SynAIter2".to_string(),
-                2 => "SynAIter1".to_string(),
+                1 => "SynAiter2".to_string(),
+                2 => "SynAiter1".to_string(),
             ], btreemap![
                 0 => symbols![t 0, nt 2, t 3],          //  0: A -> a AIter1 d           | ◄0 d! ►AIter1 a!      | a AIter1 d
                 1 => symbols![nt 1, t 1],               //  1: AIter2 -> b AIter2        | ●AIter2 ◄1 b!         | AIter2 b
@@ -2161,40 +2161,40 @@ pub(crate) mod rules_rts_39_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> a (AIter2 c <L>)* d`
-        A { a: String, star: SynAIter1, d: String },
+        A { a: String, star: SynAiter1, d: String },
     }
     #[derive(Debug)]
-    pub enum CtxAIter2 {
-        /// `(b <L>)*` iteration in `AIter1 -> (  ► (b <L>)* ◄  c <L>)*`
-        Aiter2_1 { star_it: SynAIter2, b: String },
-        /// end of `(b <L>)*` iterations in `AIter1 -> (  ► (b <L>)* ◄  c <L>)*`
+    pub enum CtxAiter2 {
+        /// `(b <L>)*` iteration in `AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*`
+        Aiter2_1 { star_it: SynAiter2, b: String },
+        /// end of `(b <L>)*` iterations in `AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*`
         Aiter2_2,
     }
     #[derive(Debug)]
-    pub enum CtxAIter {
+    pub enum CtxAiter1 {
         /// `AIter1 -> (b <L>)* c (AIter2 c <L>)*`
-        Aiter1_1 { star_it: SynAIter1, star: SynAIter2, c: String },
+        Aiter1_1 { star_it: SynAiter1, star: SynAiter2, c: String },
         /// `AIter1 -> ε`
         Aiter1_2,
     }
 
     // NT types:
     // SynA: User-defined type for `A`
-    // SynAIter2: User-defined type for `(b <L>)*` iteration in `A -> a (AIter2 c <L>)* d`
-    // SynAIter: User-defined type for `(AIter2 c <L>)*` iteration in `A -> a  ► (AIter2 c <L>)* ◄  d`
+    // SynAiter2: User-defined type for `(b <L>)*` iteration in `A -> a (AIter2 c <L>)* d`
+    // SynAiter1: User-defined type for `(AIter2 c <L>)*` iteration in `A -> a  ► (AIter2 c <L>)* ◄  d`
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), AIter2(SynAIter2), AIter(SynAIter1) }
+    enum SynValue { A(SynA), Aiter2(SynAiter2), Aiter1(SynAiter1) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
-        fn get_a_iter2(self) -> SynAIter2 {
-            if let SynValue::AIter2(val) = self { val } else { panic!() }
+        fn get_aiter2(self) -> SynAiter2 {
+            if let SynValue::Aiter2(val) = self { val } else { panic!() }
         }
-        fn get_a_iter(self) -> SynAIter1 {
-            if let SynValue::AIter(val) = self { val } else { panic!() }
+        fn get_aiter1(self) -> SynAiter1 {
+            if let SynValue::Aiter1(val) = self { val } else { panic!() }
         }
     }
 
@@ -2202,10 +2202,10 @@ pub(crate) mod rules_rts_39_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_a_iter2(&mut self) -> SynAIter2;
-        fn exit_a_iter2(&mut self, _ctx: CtxAIter2) -> SynAIter2;
-        fn init_a_iter(&mut self) -> SynAIter1;
-        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter1;
+        fn init_aiter2(&mut self) -> SynAiter2;
+        fn exit_aiter2(&mut self, _ctx: CtxAiter2) -> SynAiter2;
+        fn init_aiter1(&mut self) -> SynAiter1;
+        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAiter1;
     }
 
     struct ListenerWrapper<T> {
@@ -2225,8 +2225,8 @@ pub(crate) mod rules_rts_39_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => self.init_a_iter2(),                   // AIter2
-                        2 => self.init_a_iter(),                    // AIter1
+                        1 => self.init_aiter2(),                    // AIter2
+                        2 => self.init_aiter1(),                    // AIter1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -2234,9 +2234,9 @@ pub(crate) mod rules_rts_39_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a (AIter2 c <L>)* d
-                        1 => self.exit_a_iter2(),                   // (b <L>)* iteration in AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*
-                        2 => {}                                     // end of (b <L>)* iterations in AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*
-                        3 => self.exit_a_iter(),                    // AIter1 -> (b <L>)* c (AIter2 c <L>)*
+                        1 => self.exit_aiter2(),                    // (b <L>)* iteration in AIter1 -> (  ► (b <L>)* ◄  c <L>)*
+                        2 => {}                                     // end of (b <L>)* iterations in AIter1 -> (  ► (b <L>)* ◄  c <L>)*
+                        3 => self.exit_aiter1(),                    // AIter1 -> (b <L>)* c (AIter2 c <L>)*
                         4 => {}                                     // AIter1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2269,35 +2269,35 @@ pub(crate) mod rules_rts_39_1 {
 
         fn exit_a(&mut self) {
             let d = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_a_iter();
+            let star = self.stack.pop().unwrap().get_aiter1();
             let a = self.stack_t.pop().unwrap();
             let val = self.listener.exit_a(CtxA::A { a, star, d });
             self.stack.push(SynValue::A(val));
         }
 
-        fn init_a_iter2(&mut self) {
-            let val = self.listener.init_a_iter2();
-            self.stack.push(SynValue::AIter2(val));
+        fn init_aiter2(&mut self) {
+            let val = self.listener.init_aiter2();
+            self.stack.push(SynValue::Aiter2(val));
         }
 
-        fn exit_a_iter2(&mut self) {
+        fn exit_aiter2(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_a_iter2();
-            let val = self.listener.exit_a_iter2(CtxAIter2::Aiter2_1 { star_it, b });
-            self.stack.push(SynValue::AIter2(val));
+            let star_it = self.stack.pop().unwrap().get_aiter2();
+            let val = self.listener.exit_aiter2(CtxAiter2::Aiter2_1 { star_it, b });
+            self.stack.push(SynValue::Aiter2(val));
         }
 
-        fn init_a_iter(&mut self) {
-            let val = self.listener.init_a_iter();
-            self.stack.push(SynValue::AIter(val));
+        fn init_aiter1(&mut self) {
+            let val = self.listener.init_aiter1();
+            self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_a_iter(&mut self) {
+        fn exit_aiter1(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_a_iter2();
-            let star_it = self.stack.pop().unwrap().get_a_iter();
-            let val = self.listener.exit_a_iter(CtxAIter::Aiter1_1 { star_it, star, c });
-            self.stack.push(SynValue::AIter(val));
+            let star = self.stack.pop().unwrap().get_aiter2();
+            let star_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1_1 { star_it, star, c });
+            self.stack.push(SynValue::Aiter1(val));
         }
     }
 

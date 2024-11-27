@@ -160,11 +160,11 @@ pub(crate) mod code_rts_39_1 {
 
     /// User-defined type for `(b <L>)*` iteration in `A -> a (AIter2 c <L>)* d`
     #[derive(Debug, PartialEq)]
-    pub struct SynAIter2();
+    pub struct SynAiter2();
 
     /// User-defined type for `(AIter2 c <L>)*` iteration in `A -> a  ► (AIter2 c <L>)* ◄  d`
     #[derive(Debug, PartialEq)]
-    pub struct SynAIter1();
+    pub struct SynAiter1();
 }
 
 pub(crate) mod code_rts_30_1 {

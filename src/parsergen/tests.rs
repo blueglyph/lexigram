@@ -785,8 +785,8 @@ mod wrapper_source {
             //  - AIter1 -> A
             (RTS(39), 0, btreemap![
                 0 => "SynA".to_string(),
-                1 => "SynAIter2".to_string(),
-                2 => "SynAIter1".to_string(),
+                1 => "SynAiter2".to_string(),
+                2 => "SynAiter1".to_string(),
             ], btreemap![
                 0 => symbols![t 0, nt 2, t 3],          //  0: A -> a AIter1 d           | ◄0 d! ►AIter1 a!      | a AIter1 d
                 1 => symbols![nt 1, t 1],               //  1: AIter2 -> b AIter2        | ●AIter2 ◄1 b!         | AIter2 b
@@ -1246,7 +1246,7 @@ mod wrapper_source {
 
         // print sources
         const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
-        const VERBOSE_TYPE: bool = true;   // prints the code module skeleton (easier to set the other constants to false)
+        const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options

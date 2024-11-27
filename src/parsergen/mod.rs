@@ -836,27 +836,10 @@ impl ParserGen {
         let mut nt_upper_fixer = NameFixer::new();
         let mut nt_lower_fixer = NameFixer::new();
         let mut nt_name: Vec<Option<(String, String)>> = (0..pinfo.num_nt).map(|v| {
-            let iter = self.nt_has_flags(v as VarId, ruleflag::CHILD_REPEAT | ruleflag::L_FORM);
-            // we take all the NTs, now:
-            // if self.nt_value[v] || pinfo.parent[v].is_none() || iter
-            {
-                let name = if iter {
-                    // use the name "<parent>_iter" for +* + l-form children
-                    let mut top_var_id = v;
-                    let mut n = 0;
-                    while let Some(parent) = pinfo.parent[top_var_id] {
-                        top_var_id = parent as usize;
-                        n += 1;
-                    }
-                    format!("{}_iter{}", self.symbol_table.get_nt_name(top_var_id as VarId), if n > 1 { n.to_string() } else { "".to_string() })
-                } else {
-                    // normal NT name
-                    self.symbol_table.get_nt_name(v as VarId)
-                };
-                let nu = nt_upper_fixer.get_unique_name(name.to_camelcase());
-                let nl = nt_lower_fixer.get_unique_name(nu.to_underscore_lowercase());
-                Some((nu, nl))
-            } // else { None }
+            let name = self.symbol_table.get_nt_name(v as VarId);
+            let nu = nt_upper_fixer.get_unique_name(name.to_camelcase());
+            let nl = nt_lower_fixer.get_unique_name(nu.to_underscore_lowercase());
+            Some((nu, nl))
         }).to_vec();
 
         let mut factor_info: Vec<Option<(VarId, String)>> = vec![None; pinfo.factors.len()];
