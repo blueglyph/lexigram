@@ -2128,7 +2128,185 @@ pub(crate) mod rules_rts_29_3 {
 }
 
 // ================================================================================
-// Test 14: rules RTS(30) #1, start 0:
+// Test 14: rules RTS(39) #1, start 0:
+/*
+before, NT with value: A
+after,  NT with value: A, AIter2, AIter1
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - AIter2: child_+_or_* | L-form (129)
+            //  - AIter1: child_+_or_* | L-form | parent_+_or_* (2177)
+            // parents:
+            //  - AIter2 -> AIter1
+            //  - AIter1 -> A
+            (RTS(39), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynAIter2".to_string(),
+                2 => "SynAIter1".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 2, t 3],          //  0: A -> a AIter1 d           | ◄0 d! ►AIter1 a!      | a AIter1 d
+                1 => symbols![nt 1, t 1],               //  1: AIter2 -> b AIter2        | ●AIter2 ◄1 b!         | AIter2 b
+                2 => symbols![],                        //  2: AIter2 -> ε               | ◄2                    |
+                3 => symbols![nt 2, nt 1, t 2],         //  3: AIter1 -> AIter2 c AIter1 | ●AIter1 ◄3 c! ►AIter2 | AIter1 AIter2 c
+                4 => symbols![],                        //  4: AIter1 -> ε               | ◄4                    |
+            ], Default, btreemap![0 => vec![0]]),
+*/
+pub(crate) mod rules_rts_39_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(39) #1, start A]
+
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_39_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> a (AIter2 c <L>)* d`
+        A { a: String, star: SynAIter1, d: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxAIter2 {
+        /// `(b <L>)*` iteration in `AIter1 -> (  ► (b <L>)* ◄  c <L>)*`
+        Aiter2_1 { star_it: SynAIter2, b: String },
+        /// end of `(b <L>)*` iterations in `AIter1 -> (  ► (b <L>)* ◄  c <L>)*`
+        Aiter2_2,
+    }
+    #[derive(Debug)]
+    pub enum CtxAIter {
+        /// `AIter1 -> (b <L>)* c (AIter2 c <L>)*`
+        Aiter1_1 { star_it: SynAIter1, star: SynAIter2, c: String },
+        /// `AIter1 -> ε`
+        Aiter1_2,
+    }
+
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynAIter2: User-defined type for `(b <L>)*` iteration in `A -> a (AIter2 c <L>)* d`
+    // SynAIter: User-defined type for `(AIter2 c <L>)*` iteration in `A -> a  ► (AIter2 c <L>)* ◄  d`
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA), AIter2(SynAIter2), AIter(SynAIter1) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_a_iter2(self) -> SynAIter2 {
+            if let SynValue::AIter2(val) = self { val } else { panic!() }
+        }
+        fn get_a_iter(self) -> SynAIter1 {
+            if let SynValue::AIter(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _a: SynA) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn init_a_iter2(&mut self) -> SynAIter2;
+        fn exit_a_iter2(&mut self, _ctx: CtxAIter2) -> SynAIter2;
+        fn init_a_iter(&mut self) -> SynAIter1;
+        fn exit_a_iter(&mut self, _ctx: CtxAIter) -> SynAIter1;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => self.init_a_iter2(),                   // AIter2
+                        2 => self.init_a_iter(),                    // AIter1
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.exit_a(),                         // A -> a (AIter2 c <L>)* d
+                        1 => self.exit_a_iter2(),                   // (b <L>)* iteration in AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*
+                        2 => {}                                     // end of (b <L>)* iterations in AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*
+                        3 => self.exit_a_iter(),                    // AIter1 -> (b <L>)* c (AIter2 c <L>)*
+                        4 => {}                                     // AIter1 -> ε
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(a);
+        }
+
+        fn exit_a(&mut self) {
+            let d = self.stack_t.pop().unwrap();
+            let star = self.stack.pop().unwrap().get_a_iter();
+            let a = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_a(CtxA::A { a, star, d });
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn init_a_iter2(&mut self) {
+            let val = self.listener.init_a_iter2();
+            self.stack.push(SynValue::AIter2(val));
+        }
+
+        fn exit_a_iter2(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let star_it = self.stack.pop().unwrap().get_a_iter2();
+            let val = self.listener.exit_a_iter2(CtxAIter2::Aiter2_1 { star_it, b });
+            self.stack.push(SynValue::AIter2(val));
+        }
+
+        fn init_a_iter(&mut self) {
+            let val = self.listener.init_a_iter();
+            self.stack.push(SynValue::AIter(val));
+        }
+
+        fn exit_a_iter(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let star = self.stack.pop().unwrap().get_a_iter2();
+            let star_it = self.stack.pop().unwrap().get_a_iter();
+            let val = self.listener.exit_a_iter(CtxAIter::Aiter1_1 { star_it, star, c });
+            self.stack.push(SynValue::AIter(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(39) #1, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 16: rules RTS(30) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
@@ -2330,7 +2508,7 @@ pub(crate) mod rules_rts_30_1 {
 }
 
 // ================================================================================
-// Test 15: rules RTS(30) #2, start 0:
+// Test 17: rules RTS(30) #2, start 0:
 /*
 before, NT with value:
 after,  NT with value: A_1, A_2
@@ -2513,7 +2691,7 @@ pub(crate) mod rules_rts_30_2 {
 }
 
 // ================================================================================
-// Test 16: rules RTS(34) #1, start 0:
+// Test 18: rules RTS(34) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1, A_2, A_3, A_4, A_5, A_6
@@ -2820,7 +2998,7 @@ pub(crate) mod rules_rts_34_1 {
 }
 
 // ================================================================================
-// Test 17: rules PRS(28) #1, start 0:
+// Test 19: rules PRS(28) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -2983,7 +3161,7 @@ pub(crate) mod rules_prs_28_1 {
 }
 
 // ================================================================================
-// Test 18: rules PRS(31) #1, start 0:
+// Test 20: rules PRS(31) #1, start 0:
 /*
 before, NT with value: E, F
 after,  NT with value: E, F
@@ -3141,7 +3319,7 @@ pub(crate) mod rules_prs_31_1 {
 }
 
 // ================================================================================
-// Test 19: rules PRS(36) #1, start 0:
+// Test 21: rules PRS(36) #1, start 0:
 /*
 before, NT with value: E, F
 after,  NT with value: E, F
@@ -3313,7 +3491,7 @@ pub(crate) mod rules_prs_36_1 {
 }
 
 // ================================================================================
-// Test 20: rules PRS(33) #1, start 0:
+// Test 22: rules PRS(33) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -3472,7 +3650,7 @@ pub(crate) mod rules_prs_33_1 {
 }
 
 // ================================================================================
-// Test 21: rules PRS(38) #1, start 0:
+// Test 23: rules PRS(38) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -3640,7 +3818,7 @@ pub(crate) mod rules_prs_38_1 {
 }
 
 // ================================================================================
-// Test 22: rules PRS(39) #1, start 0:
+// Test 24: rules PRS(39) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -3815,7 +3993,7 @@ pub(crate) mod rules_prs_39_1 {
 }
 
 // ================================================================================
-// Test 23: rules PRS(32) #1, start 0:
+// Test 25: rules PRS(32) #1, start 0:
 /*
 before, NT with value: E, F
 after,  NT with value: E, F
@@ -3987,7 +4165,7 @@ pub(crate) mod rules_prs_32_1 {
 }
 
 // ================================================================================
-// Test 24: rules RTS(38) #1, start 0:
+// Test 26: rules RTS(38) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4164,7 +4342,7 @@ pub(crate) mod rules_rts_38_1 {
 }
 
 // ================================================================================
-// Test 25: rules RTS(38) #2, start 0:
+// Test 27: rules RTS(38) #2, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4335,7 +4513,7 @@ pub(crate) mod rules_rts_38_2 {
 }
 
 // ================================================================================
-// Test 26: rules RTS(38) #3, start 0:
+// Test 28: rules RTS(38) #3, start 0:
 /*
 before, NT with value:
 after,  NT with value:
@@ -4487,7 +4665,7 @@ pub(crate) mod rules_rts_38_3 {
 }
 
 // ================================================================================
-// Test 27: rules PRS(20) #1, start 0:
+// Test 29: rules PRS(20) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -4634,7 +4812,7 @@ pub(crate) mod rules_prs_20_1 {
 }
 
 // ================================================================================
-// Test 28: rules PRS(20) #2, start 0:
+// Test 30: rules PRS(20) #2, start 0:
 /*
 before, NT with value: STRUCT
 after,  NT with value: STRUCT
@@ -4774,7 +4952,7 @@ pub(crate) mod rules_prs_20_2 {
 }
 
 // ================================================================================
-// Test 29: rules PRS(37) #1, start 0:
+// Test 31: rules PRS(37) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -4932,7 +5110,7 @@ pub(crate) mod rules_prs_37_1 {
 }
 
 // ================================================================================
-// Test 30: rules PRS(30) #1, start 0:
+// Test 32: rules PRS(30) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -5085,7 +5263,7 @@ pub(crate) mod rules_prs_30_1 {
 }
 
 // ================================================================================
-// Test 31: rules RTS(26) #1, start 0:
+// Test 33: rules RTS(26) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -5249,7 +5427,7 @@ pub(crate) mod rules_rts_26_1 {
 }
 
 // ================================================================================
-// Test 32: rules RTS(16) #1, start 0:
+// Test 34: rules RTS(16) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -5418,7 +5596,7 @@ pub(crate) mod rules_rts_16_1 {
 }
 
 // ================================================================================
-// Test 33: rules PRS(35) #1, start 0:
+// Test 35: rules PRS(35) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -5559,7 +5737,7 @@ pub(crate) mod rules_prs_35_1 {
 }
 
 // ================================================================================
-// Test 34: rules RTS(33) #1, start 0:
+// Test 36: rules RTS(33) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1

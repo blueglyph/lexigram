@@ -150,6 +150,23 @@ pub(crate) mod code_rts_29_3 {
     // wrapper source for rule RTS(29) #3, start A
 }
 
+pub(crate) mod code_rts_39_1 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(39) #1, start A
+
+    /// User-defined type for `A`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA();
+
+    /// User-defined type for `(b <L>)*` iteration in `A -> a (AIter2 c <L>)* d`
+    #[derive(Debug, PartialEq)]
+    pub struct SynAIter2();
+
+    /// User-defined type for `(AIter2 c <L>)*` iteration in `A -> a  ► (AIter2 c <L>)* ◄  d`
+    #[derive(Debug, PartialEq)]
+    pub struct SynAIter1();
+}
+
 pub(crate) mod code_rts_30_1 {
     // ------------------------------------------------------------
     // wrapper source for rule RTS(30) #1, start A

@@ -334,6 +334,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let p1 = tree.add(Some(cc), gnode!(*));
             tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
             tree.add(Some(cc), gnode!(t 2));
+            let _b_tree = rules.get_tree_mut(1);
             // symbol table defined below
         }
         23 => { // A -> a (b)+ c
@@ -477,6 +478,30 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc(Some(cc1), gnode!(?), gnode!(t 2));
             tree.add(Some(or), gnode!(t 3));
         }
+        39 => { // a (<L=AIter1> (<L=AIter2> b)* c)* d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            tree.add(Some(cc2), gnode!(L 2));
+            let p2 = tree.add(Some(cc2), gnode!(*));
+            tree.addc_iter(Some(p2), gnode!(&), [gnode!(L 1), gnode!(t 1)]);
+            tree.add(Some(cc2), gnode!(t 2));
+            tree.add(Some(cc), gnode!(t 3));
+            let _b_tree = rules.get_tree_mut(1);
+            let _c_tree = rules.get_tree_mut(2);
+        }
+        40 => { // a ( (<L=AIter1> b)* c)* d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            let p2 = tree.add(Some(cc2), gnode!(*));
+            tree.addc_iter(Some(p2), gnode!(&), [gnode!(L 1), gnode!(t 1)]);
+            tree.add(Some(cc2), gnode!(t 2));
+            tree.add(Some(cc), gnode!(t 3));
+            let _b_tree = rules.get_tree_mut(1);
+        }
 
         100 => {
             // lexiparser
@@ -494,8 +519,8 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
         for (v, t) in rules.get_trees_iter() {
             assert!(v < 26);
             if v >= num_nt { num_nt = v + 1 }
+            let mut iter = 1;
             for n in t.iter_depth_simple() {
-                let mut iter = 1;
                 match n.deref() {
                     GrNode::Symbol(Symbol::NT(nt)) => {
                         if *nt >= num_nt { num_nt = *nt + 1 }

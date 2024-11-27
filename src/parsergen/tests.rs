@@ -594,7 +594,9 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 
-            // A -> a (b <L>)* c
+            // TODO: check - with only nt 0, - with nothing
+
+            // A -> a (b <L=AIter1>)* c
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - AIter1: child_+_or_* | L-form (129)
@@ -616,7 +618,7 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 
-            // A -> a (a | c) (b <L>)* c
+            // A -> a (a | c) (b <L=AIter1>)* c
             // NT flags:
             //  - A: parent_left_fact | parent_+_or_* (2080)
             //  - AIter1: child_+_or_* | L-form (129)
@@ -711,7 +713,7 @@ mod wrapper_source {
                 4 => symbols![nt 2, t 0, nt 1],         //  4: A_2 -> ε       | ◄4         | A_1 a B
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
 
-            // A -> a (b <L>)+ c
+            // A -> a (b <L=AIter1>)+ c
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - AIter1: child_+_or_* | parent_left_fact | L-form | plus (4257)
@@ -772,6 +774,29 @@ mod wrapper_source {
                 4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
+
+            // a (<L=AIter1> (<L=AIter2> b)* c)* d
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - AIter2: child_+_or_* | L-form (129)
+            //  - AIter1: child_+_or_* | L-form | parent_+_or_* (2177)
+            // parents:
+            //  - AIter2 -> AIter1
+            //  - AIter1 -> A
+            (RTS(39), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynAIter2".to_string(),
+                2 => "SynAIter1".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 2, t 3],          //  0: A -> a AIter1 d           | ◄0 d! ►AIter1 a!      | a AIter1 d
+                1 => symbols![nt 1, t 1],               //  1: AIter2 -> b AIter2        | ●AIter2 ◄1 b!         | AIter2 b
+                2 => symbols![],                        //  2: AIter2 -> ε               | ◄2                    |
+                3 => symbols![nt 2, nt 1, t 2],         //  3: AIter1 -> AIter2 c AIter1 | ●AIter1 ◄3 c! ►AIter2 | AIter1 AIter2 c
+                4 => symbols![],                        //  4: AIter1 -> ε               | ◄4                    |
+            ], Default, btreemap![0 => vec![0]]),
+
+            // a ( (<L=AIter1> b)* c)* d
+            (RTS(40), 0, btreemap![], btreemap![], Default, btreemap![]),
 
             // A -> a ( (B b)+ c)+ d
             // NT flags:
@@ -1221,7 +1246,7 @@ mod wrapper_source {
 
         // print sources
         const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
-        const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
+        const VERBOSE_TYPE: bool = true;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
@@ -1235,10 +1260,13 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
 // if rule_id != RTS(24) { continue }
-// if rule_id != RTS(22) && rule_id != RTS(24) { continue }
-// if rule_id != RTS(38) { continue }
+// if rule_id != RTS(22) { continue }
+// if rule_id != RTS(39) { continue }
 // if rule_id != RTS(100) { continue }
 // if rule_id == RTS(38) || rule_id == RTS(100) { continue }
+
+if rule_id == RTS(40) { continue }
+
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
