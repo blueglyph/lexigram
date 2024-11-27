@@ -53,6 +53,33 @@ pub enum GrNode {
     Maybe,
     Plus,
     Star,
+    /// L-form attribute of a factor or a `+` / `*` repetition expression.
+    /// - `+` and `*` expressions are either folded or iterative (also called "low latency", since the listener is
+    ///   called back immediately after parsing each item, whereas the folded form is only called once all the
+    ///   items have been parsed and gathered).
+    ///   - The default form is folded. With that form, the items of the repetitions are automatically gathered and handed
+    ///     to the listener callback as an array (if the items have a value) once all items have been parsed. For example,
+    ///     `A -> a (b)* c` gives a context with the values of a, b, c as variant
+    ///     `enum CtxA { A { a: String, b: Vec<String>, c: String } }`.
+    ///   - If the L-form is specified, the listener callback is called at each iteration, with a context giving the parsed
+    ///     items of that iteration which have a value. The NT used in that loop is defined with the L-form (`LForm(VarId)`),
+    ///     and its value serves as accumulator to fold all the successive items into a single value presented in the context
+    ///     of the factor that includes the `+` or `*` repetition. For example, `A -> a (<L=AIter> b)* c` uses `AIter`,
+    ///     and each time a `b` value is parsed, the listener callback receives a context variant
+    ///     `enum CtxAIter { AIter1 { iter: SynAIter, b: String } }`. The callback must return the new `SynAIter` value.
+    ///     Once all the iterations are parsed, `c` is parsed, and the listener callback receives the context for `A`:
+    ///     `CtxA { A { a: String, star: SynAIter, c: String } }`.
+    /// - Right-recursive rules are either stacked or "low-latency".
+    ///   - The default form is stacked. A rule `A -> id A | stop` parsing "id1 id2 id3 stop1" yields a sequence
+    ///     - `A -> id1 A(1)`, `A(1) -> id2 A(2)`, `A(2) -> id3 A(3)`, `A(3) -> stop1`
+    ///
+    ///     Since it's recursive, the listener callback is first called for A(3), then A(2), A(1), and finally A. The parser
+    ///     puts the intermediate values of `id` on the stack, and once `stop1` is reached, it calls the callback with it,
+    ///     then unstacks all the `id` values for the successive callbacks with `id = id3`, `id2`, and finally `id1`,
+    ///     together with the loop value `A`, which is updated each time by the callback.
+    ///   - The low-latency form, whose `VarId` points to its own NT, calls the listener callback at each iteration and
+    ///     doesn't accumulate values on the stack. In the example above, it's first called with `id = id1`, `id2`, `id3`,
+    ///     and finally `stop = stop1`, together with the loop value `A`, which is updated each time by the callback.
     LForm(VarId),   // applied to NT
     RAssoc          // applied to factor
 }

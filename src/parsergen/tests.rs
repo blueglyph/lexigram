@@ -597,42 +597,42 @@ mod wrapper_source {
             // A -> a (b <L>)* c
             // NT flags:
             //  - A: parent_+_or_* (2048)
-            //  - A_1: child_+_or_* | L-form (129)
+            //  - AIter1: child_+_or_* | L-form (129)
             // parents:
-            //  - A_1 -> A
+            //  - AIter1 -> A
             (RTS(22), 0, btreemap![
                 0 => "SynA".to_string(),
                 1 => "SynAIter".to_string(),
             ], btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
-                1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
-                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b!    | AIter1 b
+                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
             ], All, btreemap![0 => vec![0]]),
             (RTS(22), 0, btreemap![
                 0 => "SynA".to_string(),
             ], btreemap![
-                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
-                1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
-                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+                0 => symbols![t 0, t 2],                //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a c
+                1 => symbols![],                        //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     |
+                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 
             // A -> a (a | c) (b <L>)* c
             // NT flags:
             //  - A: parent_left_fact | parent_+_or_* (2080)
-            //  - A_1: child_+_or_* | L-form (129)
-            //  - A_2: child_left_fact (64)
+            //  - AIter1: child_+_or_* | L-form (129)
+            //  - A_1: child_left_fact (64)
             // parents:
+            //  - AIter1 -> A
             //  - A_1 -> A
-            //  - A_2 -> A
             (RTS(32), 0, btreemap![
                 0 => "SynA".to_string(),
                 1 => "SynAIter".to_string(),
             ], btreemap![
-                0 => symbols![],                        //  0: A -> a A_2     | ►A_2 a!       |
-                1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1   | ●A_1 ◄1 b!    | A_1 b
-                2 => symbols![],                        //  2: A_1 -> ε       | ◄2            |
-                3 => symbols![t 0, t 0, nt 1, t 2],     //  3: A_2 -> a A_1 c | ◄3 c! ►A_1 a! | a a A_1 c
-                4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_2 -> c A_1 c | ◄4 c! ►A_1 c! | a c A_1 c
+                0 => symbols![],                        //  0: A -> a A_1         | ►A_1 a!          |
+                1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b!    | AIter1 b
+                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
+                3 => symbols![t 0, t 0, nt 1, t 2],     //  3: A_1 -> a AIter1 c  | ◄3 c! ►AIter1 a! | a a AIter1 c
+                4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_1 -> c AIter1 c  | ◄4 c! ►AIter1 c! | a c AIter1 c
             ], All, btreemap![0 => vec![3, 4]]),
 
             // When the repeated item has no data:
@@ -714,19 +714,19 @@ mod wrapper_source {
             // A -> a (b <L>)+ c
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
-            //  - A_1: child_+_or_* | parent_left_fact | L-form | plus (4257)
-            //  - A_2: child_left_fact (64)
+            //  - AIter1: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - A_1: child_left_fact (64)
             // parents:
-            //  - A_1 -> A
-            //  - A_2 -> A_1
+            //  - AIter1 -> A
+            //  - A_1 -> AIter1
             (RTS(24), 0, btreemap![
                 0 => "SynMyA".to_string(),
                 1 => "SynMyAIter".to_string(),
             ], btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
-                1 => symbols![],                        //  1: A_1 -> b A_2 | ►A_2 b!       |
-                2 => symbols![nt 1, t 1],               //  2: A_2 -> A_1   | ●A_1 ◄2       | A_1 b
-                3 => symbols![nt 1, t 1],               //  3: A_2 -> ε     | ◄3            | A_1 b
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b!          |
+                2 => symbols![nt 1, t 1],               //  2: A_1 -> AIter1   | ●AIter1 ◄2       | AIter1 b
+                3 => symbols![nt 1, t 1],               //  3: A_1 -> ε        | ◄3               | AIter1 b
             ], Default, btreemap![0 => vec![0]]),
             // --------------------------------------------------------------------------- norm+/* 2 levels
             // A -> a ( (B b)* c)* d

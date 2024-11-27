@@ -601,7 +601,7 @@ impl ParserGen {
         ).collect::<Vec<_>>()
     }
 
-    /// Gathers all the alternatives in NT, and if some of them are parent_l_fact, search the
+    /// Gathers all the alternatives in NT, and if some of them are parent_l_fact, searches the
     /// terminal child_l_fact instead. The result is the set of contexts that are used to
     /// call self.listener.exit_<NT>(ctx) for a right-rec, a left-rec parent, a left-rec child, ...
     fn gather_factors(&self, nt: VarId) -> Vec<FactorId> {
