@@ -167,6 +167,19 @@ pub(crate) mod code_rts_39_1 {
     pub struct SynAiter1();
 }
 
+pub(crate) mod code_rts_40_1 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(40) #1, start A
+
+    /// User-defined type for `A`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA();
+
+    /// User-defined type for `(b <L>)*` iteration in `A -> a [ ► (b <L>)* ◄  c]* d`
+    #[derive(Debug, PartialEq)]
+    pub struct SynAiter1();
+}
+
 pub(crate) mod code_rts_30_1 {
     // ------------------------------------------------------------
     // wrapper source for rule RTS(30) #1, start A

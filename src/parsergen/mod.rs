@@ -910,17 +910,15 @@ impl ParserGen {
                             }
                         }
 
+                        // A parent of left factorization has no context, but we must check the factors that are the actual parents.
+                        // The flag test is optional, but it serves to gate the more complex parental test.
                         let has_lfact_child = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 &&
                             pinfo.factors[i].1.symbols().iter().any(|s| matches!(s, &Symbol::NT(c) if pinfo.flags[c as usize] & ruleflag::CHILD_L_FACTOR != 0));
-                        let mut is_hidden_repeat_child = false;
-                        let mut nt_i = nt;
-                        while let Some(p) = pinfo.parent[nt_i] {
-                            if pinfo.flags[nt_i] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
-                                is_hidden_repeat_child = true;
-                                break;
-                            }
-                            nt_i = p as usize;
-                        }
+
+                        // (α)* doesn't call the listener for each α, unless it's l-form. We say it's a hidden child_repeat, and it doesn't need a context.
+                        // The only children a child_repeat can have is due to left factorization in (α)+, so we check `owner` rather than `nt`.
+                        let is_hidden_repeat_child = pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
+
                         let has_context = !has_lfact_child && !is_hidden_repeat_child;
                         if VERBOSE {
                             println!("NT {nt}, factor {factor_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child} \
@@ -1001,7 +999,11 @@ impl ParserGen {
             println!();
             println!("nt_name: {nt_name:?}");
             println!("factor_info: {factor_info:?}");
-            println!("item_info: {item_info:?}");
+            println!("item_info:");
+            for (i, item) in item_info.iter().enumerate().filter(|(_, item)| !item.is_empty()) {
+                println!("- {i}: {{ {} }}", item.iter().map(|ii| format!("{} ({})", ii.name, ii.sym.to_str(self.get_symbol_table()))).join(", "));
+            }
+            // println!("item_info: {item_info:?}");
             println!("nt_repeat: {nt_repeat:?}");
         }
         (nt_name, factor_info, item_info, nt_repeat)

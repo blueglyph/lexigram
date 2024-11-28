@@ -796,7 +796,24 @@ mod wrapper_source {
             ], Default, btreemap![0 => vec![0]]),
 
             // a ( (<L=AIter1> b)* c)* d
-            (RTS(40), 0, btreemap![], btreemap![], Default, btreemap![]),
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - AIter1: child_+_or_* | L-form (129)
+            //  - A_1: child_+_or_* | parent_+_or_* (2049)
+            // parents:
+            //  - AIter1 -> A_1
+            //  - A_1 -> A
+            (RTS(40), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynAiter1".to_string(),
+                2 => "SynA1".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 2, t 3],          //  0: A -> a A_1 d        | ◄0 d! ►A_1 a!      | a A_1 d
+                1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1  | ●AIter1 ◄1 b!      | AIter1 b
+                2 => symbols![],                        //  2: AIter1 -> ε         | ◄2                 |
+                3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> AIter1 c A_1 | ●A_1 ◄3 c! ►AIter1 | A_1 AIter1 c
+                4 => symbols![],                        //  4: A_1 -> ε            | ◄4                 |
+            ], Default, btreemap![0 => vec![0]]),
 
             // A -> a ( (B b)+ c)+ d
             // NT flags:
@@ -1259,13 +1276,9 @@ mod wrapper_source {
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-// if rule_id != RTS(24) { continue }
-// if rule_id != RTS(22) { continue }
-if rule_id != RTS(39) { continue }
-// if rule_id != RTS(100) { continue }
-// if rule_id == RTS(38) || rule_id == RTS(100) { continue }
 
-if rule_id == RTS(40) { continue }
+// if rule_id != RTS(39) { continue }
+if rule_id != RTS(40) { continue }
 
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
@@ -1280,7 +1293,6 @@ if rule_id == RTS(40) { continue }
                          ).join(", "));
             }
             builder.build_item_ops();
-// print_items(&builder, 0, false);
             if VERBOSE {
                 println!("after,  NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
