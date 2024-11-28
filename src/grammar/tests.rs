@@ -478,7 +478,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc(Some(cc1), gnode!(?), gnode!(t 2));
             tree.add(Some(or), gnode!(t 3));
         }
-        39 => { // a (<L=AIter1> (<L=AIter2> b)* c)* d
+        39 => { // A -> a (<L=AIter1> (<L=AIter2> b)* c)* d
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let p1 = tree.add(Some(cc), gnode!(*));
@@ -491,7 +491,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let _b_tree = rules.get_tree_mut(1);
             let _c_tree = rules.get_tree_mut(2);
         }
-        40 => { // a ( (<L=AIter1> b)* c)* d
+        40 => { // A -> a ( (<L=AIter1> b)* c)* d
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let p1 = tree.add(Some(cc), gnode!(*));

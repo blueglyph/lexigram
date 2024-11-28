@@ -775,7 +775,7 @@ mod wrapper_source {
                 5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 
-            // a (<L=AIter1> (<L=AIter2> b)* c)* d
+            // A -> a (<L=AIter1> (<L=AIter2> b)* c)* d
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - AIter2: child_+_or_* | L-form (129)
@@ -1261,7 +1261,7 @@ mod wrapper_source {
         for (test_id, (rule_id, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
 // if rule_id != RTS(24) { continue }
 // if rule_id != RTS(22) { continue }
-// if rule_id != RTS(39) { continue }
+if rule_id != RTS(39) { continue }
 // if rule_id != RTS(100) { continue }
 // if rule_id == RTS(38) || rule_id == RTS(100) { continue }
 
@@ -1376,6 +1376,33 @@ if rule_id == RTS(40) { continue }
     #[test]
     fn expand_lfact() {
         let tests: Vec<(T, Vec<(&str, &str)>, BTreeMap<VarId, Vec<(VarId, FactorId)>>)> = vec![
+            // A -> a (<L=AIter1> (<L=AIter2> b)* c)* d
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - AIter2: child_+_or_* | L-form (129)
+            //  - AIter1: child_+_or_* | L-form | parent_+_or_* (2177)
+            // parents:
+            //  - AIter2 -> AIter1
+            //  - AIter1 -> A
+            (RTS(39), vec![
+                // now:
+                // ("A -> a AIter1 d",           "A -> a (AIter2 c <L>)* d"),                                                 // 0: A -> a AIter1 d
+                // ("AIter2 -> b AIter2",        "(b <L>)* iteration in AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*"),         // 1: AIter2 -> b AIter2
+                // ("AIter2 -> ε",               "end of (b <L>)* iterations in AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*"), // 2: AIter2 -> ε
+                // ("AIter1 -> AIter2 c AIter1", "AIter1 -> (b <L>)* c (AIter2 c <L>)*"),                                     // 3: AIter1 -> AIter2 c AIter1
+                // ("AIter1 -> ε",               "AIter1 -> ε"),                                                              // 4: AIter1 -> ε
+
+                // should be:
+                ("A -> a AIter1 d",                 "A -> a (AIter2 c <L>)* d"),                                 // 0: A -> a AIter1 d
+                ("AIter2 -> b AIter2",              "(b <L>)* iteration in ( (b <L>)* c <L>)*"),                 // 1: AIter2 -> b AIter2
+                ("AIter2 -> ε",                     "end of (b <L>)* iterations in ( (b <L>)* c <L>)*"),         // 2: AIter2 -> ε
+                ("AIter1 -> AIter2 c AIter1",       "(AIter2 c <L>)* iteration in a (AIter2 c <L>)* d"),         // 3: AIter1 -> AIter2 c AIter1
+                ("AIter1 -> ε",                     "end of (AIter2 c <L>)* iterations in a (AIter2 c <L>)* d"), // 4: AIter1 -> ε
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(2, 0)],
+                2 => vec![(2, 0)],
+            ]),
             // A -> A (c)* b | c
             // NT flags:
             //  - A: parent_left_rec | parent_+_or_* (2560)
@@ -1496,6 +1523,15 @@ if rule_id == RTS(40) { continue }
                 2 => vec![(2, 0)],
             ]),
             // A -> A a b | A a c | b c | b d
+            // NT flags:
+            //  - A: parent_left_fact | parent_left_rec (544)
+            //  - A_1: child_left_rec | parent_left_fact (36)
+            //  - A_2: child_left_fact (64)
+            //  - A_3: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            //  - A_3 -> A_1
             (PRS(39), vec![
                 ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),          // A -> b A_2
                 ("A_1 -> a b A_1 | a c A_1",        "A -> A a b | A a c"),      // A_1 -> a A_3
@@ -1516,7 +1552,7 @@ if rule_id == RTS(40) { continue }
             ]),
             */
         ];
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         for (test_id, (rule_id, expected_expanded_full, expected_top_factors)) in tests.into_iter().enumerate() {
             let expected_expanded = expected_expanded_full.iter().map(|(a, _)| a.to_string()).to_vec();
             let expected_full = expected_expanded_full.iter().map(|(_, b)| b.to_string()).to_vec();

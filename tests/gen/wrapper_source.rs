@@ -2165,16 +2165,16 @@ pub(crate) mod rules_rts_39_1 {
     }
     #[derive(Debug)]
     pub enum CtxAiter2 {
-        /// `(b <L>)*` iteration in `AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*`
+        /// `(b <L>)*` iteration in `AIter1 -> (  ► (b <L>)* ◄  c <L>)*`
         Aiter2_1 { star_it: SynAiter2, b: String },
-        /// end of `(b <L>)*` iterations in `AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*`
+        /// end of `(b <L>)*` iterations in `AIter1 -> (  ► (b <L>)* ◄  c <L>)*`
         Aiter2_2,
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `AIter1 -> (b <L>)* c (AIter2 c <L>)*`
+        /// iteration in ...
         Aiter1_1 { star_it: SynAiter1, star: SynAiter2, c: String },
-        /// `AIter1 -> ε`
+        /// end of ...
         Aiter1_2,
     }
 

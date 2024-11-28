@@ -353,6 +353,7 @@ impl ParserGen {
 
     fn full_factor_components(&self, f_id: FactorId, emphasis: Option<VarId>, quote: bool) -> (String, String) {
         const VERBOSE: bool = false;
+        if VERBOSE { println!("full_factor_components(f_id = {f_id}):"); }
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
         let mut v_par_lf =  *v_f;
         let mut syms = prodf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();
