@@ -1276,11 +1276,10 @@ mod wrapper_source {
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-
-// if rule_id != RTS(39) { continue }
-if rule_id != RTS(40) { continue }
-
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
+
+// if !hashset![RTS(22), RTS(24)].contains(&rule_id) || *rule_iter != 1 { continue }
+
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserGen::from_rules(ll1, "Test".to_string());

@@ -919,10 +919,14 @@ impl ParserGen {
                         // The only children a child_repeat can have is due to left factorization in (α)+, so we check `owner` rather than `nt`.
                         let is_hidden_repeat_child = pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
 
-                        let has_context = !has_lfact_child && !is_hidden_repeat_child;
+                        // (α <L>)+ have two similar factors with the same data on the stack, one that loops and the last iteration. We only keep one context.
+                        let is_duplicate = i > 0 && self.nt_has_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
+                            factor_info[i - 1].as_ref().map(|fi| fi.0) == Some(owner);
+
+                        let has_context = !has_lfact_child && !is_hidden_repeat_child && !is_duplicate;
                         if VERBOSE {
-                            println!("NT {nt}, factor {factor_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child} \
-                                => has_context = {has_context}");
+                            println!("NT {nt}, factor {factor_id}: has_lfact_child = {has_lfact_child}, is_hidden_repeat_child = {is_hidden_repeat_child}, \
+                                is_duplicate = {is_duplicate} => has_context = {has_context}");
                         }
                         if has_context {
                             let mut name = Symbol::NT(owner).to_str(self.get_symbol_table()).to_camelcase();

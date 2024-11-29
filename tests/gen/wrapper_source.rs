@@ -1492,9 +1492,7 @@ pub(crate) mod rules_rts_24_1 {
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
-        Aiter1_1 { plus_it: SynMyAIter, b: String },
-        /// end of `(b <L>)+` iterations in `A -> a  ► (b <L>)+ ◄  c`
-        Aiter1_2 { plus_it: SynMyAIter, b: String },
+        Aiter1 { plus_it: SynMyAIter, b: String },
     }
 
     // NT types:
@@ -1595,7 +1593,7 @@ pub(crate) mod rules_rts_24_1 {
         fn exit_aiter1(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let plus_it = self.stack.pop().unwrap().get_aiter1();
-            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1_1 { plus_it, b });
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { plus_it, b });
             self.stack.push(SynValue::Aiter1(val));
         }
     }
