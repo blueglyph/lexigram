@@ -831,7 +831,7 @@ impl ParserGen {
     /// }
     /// ```
     fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -1138,7 +1138,7 @@ impl ParserGen {
 
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
 
         self.used_libs.extend(["rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::Listener"]);
 
@@ -1372,8 +1372,9 @@ impl ParserGen {
                     // if + or * child, the last factor is always empty (end of loop),
                     // it must be used if + child, but discarded if * child
                     let mut factors = factors.clone();
-                    let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
-                    let is_factor = factors.len() - discarded > 1 && flags & ruleflag::CHILD_REPEAT == 0;
+                    // let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
+                    let discarded = 0;
+                    let is_factor = factors.len() - discarded > 1 /*&& flags & ruleflag::CHILD_REPEAT == 0*/;
                     let mut choices = Vec::<String>::new();
                     if factors.len() - discarded == 1 {
                         if no_method {
@@ -1436,7 +1437,7 @@ impl ParserGen {
                         }
                     }
                     let exit_factors = self.gather_factors(nt as VarId);
-                    if VERBOSE { println!("    exit factors: {}", exit_factors.iter().join(", ")); }
+                    if VERBOSE { println!("    no_method: {no_method}, exit factors: {}", exit_factors.iter().join(", ")); }
                     for f in &exit_factors {
                         exit_factor_done.insert(*f, true);
                     }
