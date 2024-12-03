@@ -1385,26 +1385,31 @@ impl ParserGen {
                     // If + <L> child, the two factors are identical. We keep the two factors anyway because it's more coherent
                     // for the rest of the flow. At the end, when we generate the wrapper method, we'll discard the 2nd factor and use
                     // the `factor_id` parameter to determine whether it's the last iteration or not.
+                    // We do discard the 2nd, empty factor immediately for a non-<L> * child because there's no associated context.
+                    let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
                     let mut factors = factors.clone();
-                    let is_factor = factors.len() > 1;
+                    let is_factor_id = factors.len() - discarded > 1;
                     let mut choices = Vec::<String>::new();
-                    if factors.len() == 1 {
+                    if factors.len() - discarded == 1 {
                         if no_method {
                             choices.push(format!("                    {} => {{}}", factors[0]));
                         } else {
                             choices.push(format!("                    {} => self.{name}(),", factors[0]));
                         }
                     } else {
-                        choices.extend((0..factors.len() - 1).map(|i| format!("                    {} |", factors[i])));
+                        choices.extend((0..factors.len() - 1 - discarded).map(|i| format!("                    {} |", factors[i])));
                         if no_method {
                             choices.push(format!("                    {} => {{}}", factors.last().unwrap()));
                         } else {
                             choices.push(format!("                    {} => self.{name}({}),",
                                                  factors.last().unwrap(),
-                                                 if is_factor { "factor_id" } else { "" }));
+                                                 if is_factor_id { "factor_id" } else { "" }));
                         }
                     }
-                    (is_factor, choices)
+                    if discarded == 1 {
+                        choices.push(format!("                    {} => {{}}", factors.last().unwrap()));
+                    }
+                    (is_factor_id, choices)
                 }
 
                 fn get_var_params(item_info: &Vec<ItemInfo>, skip: usize, indices: HashMap<Symbol, Vec<String>>, mut non_indices: Vec<String>) -> String {
@@ -1437,7 +1442,7 @@ impl ParserGen {
                     let (nu, nl) = nt_name[nt].as_ref().unwrap();
                     let (pnu, pnl) = nt_name[parent_nt].as_ref().unwrap();
                     if VERBOSE { println!("    {nu} (parent {pnu})"); }
-                    let no_method = !has_value && flags & ruleflag::CHILD_REPEAT != 0;
+                    let no_method = !has_value && flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
                     if is_parent || (is_child_repeat_lform && !no_method) {
                         if has_value {
                             src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) -> {};", self.get_nt_type(nt as VarId)));
@@ -1452,7 +1457,7 @@ impl ParserGen {
                     }
                     let init_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("init_{nl}") } else { format!("exit_{nl}") };
                     let fn_name = exit_fixer.get_unique_name(init_or_exit_name.clone());
-                    let (is_factor, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method);
+                    let (is_factor_id, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method);
                     if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {
                         let (v, pf) = &self.parsing_table.factors[*f as usize];
@@ -1461,8 +1466,8 @@ impl ParserGen {
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
                     if !no_method {
                         src_wrapper_impl.push(String::new());
-                        src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor { ", factor_id: FactorId" } else { "" }));
-                        if is_factor {
+                        src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor_id { ", factor_id: FactorId" } else { "" }));
+                        if is_factor_id {
                             self.used_libs.add("rlexer::grammar::FactorId");
                         }
                     }
