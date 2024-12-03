@@ -449,7 +449,7 @@ pub(crate) mod rules_rts_22_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_22_1::*;
 
     #[derive(Debug)]
@@ -514,8 +514,8 @@ pub(crate) mod rules_rts_22_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a (b <L>)* c
-                        1 => self.exit_aiter1(),                    // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
-                        2 => {}                                     // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
+                        1 |                                         // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
+                        2 => self.exit_aiter1(factor_id),           // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -558,10 +558,19 @@ pub(crate) mod rules_rts_22_1 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self) {
-            let b = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_aiter1();
-            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1_1 { star_it, b });
+        fn exit_aiter1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let b = self.stack_t.pop().unwrap();
+                    let star_it = self.stack.pop().unwrap().get_aiter1();
+                    CtxAiter1::Aiter1_1 { star_it, b }
+                }
+                2 => {
+                    CtxAiter1::Aiter1_2
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
+            };
+            let val = self.listener.exit_aiter1(ctx);
             self.stack.push(SynValue::Aiter1(val));
         }
     }
@@ -1481,7 +1490,7 @@ pub(crate) mod rules_rts_24_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_24_1::*;
 
     #[derive(Debug)]
@@ -1492,7 +1501,7 @@ pub(crate) mod rules_rts_24_1 {
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
-        Aiter1 { plus_it: SynMyAIter, b: String },
+        Aiter1 { plus_it: SynMyAIter, b: String, last_iteration: bool },
     }
 
     // NT types:
@@ -1546,7 +1555,7 @@ pub(crate) mod rules_rts_24_1 {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a (b <L>)+ c
                         2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
-                        3 => self.exit_aiter1(),                    // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
+                        3 => self.exit_aiter1(factor_id),           // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
                      /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1590,10 +1599,11 @@ pub(crate) mod rules_rts_24_1 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self) {
+        fn exit_aiter1(&mut self, factor_id: FactorId) {
+            let last_iteration = factor_id == 3;
             let b = self.stack_t.pop().unwrap();
             let plus_it = self.stack.pop().unwrap().get_aiter1();
-            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { plus_it, b });
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { plus_it, b, last_iteration });
             self.stack.push(SynValue::Aiter1(val));
         }
     }

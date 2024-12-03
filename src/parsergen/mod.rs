@@ -831,7 +831,7 @@ impl ParserGen {
     /// }
     /// ```
     fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -919,7 +919,8 @@ impl ParserGen {
                         // The only children a child_repeat can have is due to left factorization in (α)+, so we check `owner` rather than `nt`.
                         let is_hidden_repeat_child = pinfo.flags[owner as usize] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
 
-                        // (α <L>)+ have two similar factors with the same data on the stack, one that loops and the last iteration. We only keep one context.
+                        // (α <L>)+ have two similar factors with the same data on the stack, one that loops and the last iteration. We only keep one context
+                        // because we use a flag to tell the listener when it's the last iteration (more convenient).
                         let is_duplicate = i > 0 && self.nt_has_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) &&
                             factor_info[i - 1].as_ref().map(|fi| fi.0) == Some(owner);
 
@@ -950,7 +951,7 @@ impl ParserGen {
                             if self.nt_value[owner as usize] {
                                 vec![ItemInfo {
                                     name: nt_name[owner as usize].as_ref().map(|n| n.1.clone()).unwrap(),
-                                    sym: Symbol::NT(owner as VarId),
+                                    sym: Symbol::NT(owner),
                                     owner: owner,
                                     is_vec: false,
                                     index: None,
@@ -959,7 +960,7 @@ impl ParserGen {
                                 vec![]
                             }
                         } else {
-                            let infos = item_ops.into_iter().map(|s| {
+                            let mut infos = item_ops.into_iter().map(|s| {
                                 let index = if let Some((_, Some(index))) = indices.get_mut(s) {
                                     let idx = *index;
                                     *index += 1;
@@ -975,6 +976,17 @@ impl ParserGen {
                                     index,
                                 }
                             }).to_vec();
+                            if self.nt_has_flags(owner, ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) {
+                                // we add the flag telling the listener whether it's the last iteration or not
+                                let last_name = fixer.get_unique_name("last_iteration".to_string());
+                                infos.push(ItemInfo {
+                                    name: last_name,
+                                    sym: Symbol::Empty, // this marks the special flag variable
+                                    owner,
+                                    is_vec: false,
+                                    index: None,
+                                });
+                            };
                             if is_nt_repeat && infos.len() > 1 && !nt_repeat.contains_key(&owner) {
                                 let iter = infos.iter().skip(1).cloned().to_vec();
                                 if iter.len() > 1 || !iter[0].sym.is_t() {
@@ -1119,6 +1131,7 @@ impl ParserGen {
                 let type_name_base = match info.sym {
                     Symbol::T(_) => "String".to_string(),
                     Symbol::NT(vs) => self.get_nt_type(vs).to_string(), //format!("Syn{}", nt_name[vs as usize].clone().unwrap().0),
+                    Symbol::Empty => "bool".to_string(),
                     _ => panic!("unexpected symbol {}", info.sym)
                 };
                 let type_name = if info.index.is_some() {
@@ -1138,11 +1151,11 @@ impl ParserGen {
 
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         self.used_libs.extend(["rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::Listener"]);
 
-        let (nt_name, factor_info, item_info, nt_repeat) = self.get_type_info();
+        let (nt_name, factor_info, mut item_info, nt_repeat) = self.get_type_info();
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
@@ -1369,21 +1382,20 @@ impl ParserGen {
 
                 fn make_match_choices(factors: &Vec<FactorId>, name: &str, flags: u32, no_method: bool) -> (bool, Vec<String>) {
                     assert!(!factors.is_empty(), "factors cannot be empty");
-                    // if + or * child, the last factor is always empty (end of loop),
-                    // it must be used if + child, but discarded if * child
+                    // If + <L> child, the two factors are identical. We keep the two factors anyway because it's more coherent
+                    // for the rest of the flow. At the end, when we generate the wrapper method, we'll discard the 2nd factor and use
+                    // the `factor_id` parameter to determine whether it's the last iteration or not.
                     let mut factors = factors.clone();
-                    // let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
-                    let discarded = 0;
-                    let is_factor = factors.len() - discarded > 1 /*&& flags & ruleflag::CHILD_REPEAT == 0*/;
+                    let is_factor = factors.len() > 1;
                     let mut choices = Vec::<String>::new();
-                    if factors.len() - discarded == 1 {
+                    if factors.len() == 1 {
                         if no_method {
                             choices.push(format!("                    {} => {{}}", factors[0]));
                         } else {
                             choices.push(format!("                    {} => self.{name}(),", factors[0]));
                         }
                     } else {
-                        choices.extend( (0..factors.len() - 1 - discarded).map(|i| format!("                    {} |", factors[i])));
+                        choices.extend((0..factors.len() - 1).map(|i| format!("                    {} |", factors[i])));
                         if no_method {
                             choices.push(format!("                    {} => {{}}", factors.last().unwrap()));
                         } else {
@@ -1391,9 +1403,6 @@ impl ParserGen {
                                                  factors.last().unwrap(),
                                                  if is_factor { "factor_id" } else { "" }));
                         }
-                    }
-                    if discarded == 1 {
-                        choices.push(format!("                    {} => {{}}", factors.last().unwrap()));
                     }
                     (is_factor, choices)
                 }
@@ -1436,7 +1445,7 @@ impl ParserGen {
                             src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) {{}}"));
                         }
                     }
-                    let exit_factors = self.gather_factors(nt as VarId);
+                    let mut exit_factors = self.gather_factors(nt as VarId);
                     if VERBOSE { println!("    no_method: {no_method}, exit factors: {}", exit_factors.iter().join(", ")); }
                     for f in &exit_factors {
                         exit_factor_done.insert(*f, true);
@@ -1457,7 +1466,7 @@ impl ParserGen {
                             self.used_libs.add("rlexer::grammar::FactorId");
                         }
                     }
-                    if flags & ruleflag::CHILD_REPEAT != 0 {
+                    if !is_child_repeat_lform && flags & ruleflag::CHILD_REPEAT != 0 {
                         assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {} (+ and * don't support | children)",
                                    sym_nt.to_str(self.get_symbol_table()),
                                    exit_factors.iter().join(", "));
@@ -1515,7 +1524,15 @@ impl ParserGen {
                     } else {
                         // no_method is irrelevant here
                         assert!(!no_method);
-                        let is_single = exit_factors.len() == 1;
+                        let has_last_flag = is_child_repeat_lform && flags & ruleflag::REPEAT_PLUS != 0; // special last flag
+                        let last_factor_id = if has_last_flag {
+                            exit_factors.pop() // removes the duplicate and only leaves one factor
+                        } else {
+                            None
+                        };
+                        let fnu = if is_child_repeat_lform { nu } else { pnu }; // +* <L> use the loop variable, the other factors use the parent
+                        let fnl = if is_child_repeat_lform { nl } else { pnl }; // +* <L> use the loop variable, the other factors use the parent
+                        let is_single = has_last_flag || exit_factors.len() == 1;
                         let indent = if is_single { "        " } else { "                " };
                         if !is_single {
                             src_wrapper_impl.push(format!("        let ctx = match factor_id {{"));
@@ -1542,7 +1559,10 @@ impl ParserGen {
                                     non_indices.push(name.clone());
                                     name
                                 };
-                                if let Symbol::NT(v) = item.sym {
+                                if item.sym.is_empty() {
+                                    assert!(has_last_flag);
+                                    src_wrapper_impl.push(format!("{indent}let {varname} = factor_id == {};", last_factor_id.unwrap()));
+                                } else if let Symbol::NT(v) = item.sym {
                                     src_wrapper_impl.push(format!("{indent}let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].as_ref().unwrap().1));
                                 } else {
                                     src_wrapper_impl.push(format!("{indent}let {varname} = self.stack_t.pop().unwrap();"));
@@ -1550,14 +1570,14 @@ impl ParserGen {
                             }
                             let ctx_params = get_var_params(&item_info[f as usize], 0, indices, non_indices);
                             let ctx = if ctx_params.is_empty() {
-                                format!("Ctx{pnu}::{}", factor_info[f as usize].as_ref().unwrap().1)
+                                format!("Ctx{fnu}::{}", factor_info[f as usize].as_ref().unwrap().1)
                             } else {
-                                format!("Ctx{pnu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
+                                format!("Ctx{fnu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
                             };
                             if is_single {
-                                src_wrapper_impl.push(format!("        {}self.listener.exit_{pnl}({ctx});", if parent_has_value { "let val = " } else { "" }));
+                                src_wrapper_impl.push(format!("        {}self.listener.exit_{fnl}({ctx});", if parent_has_value { "let val = " } else { "" }));
                                 if parent_has_value {
-                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{pnu}(val));"));
+                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
                                 }
                             } else {
                                 src_wrapper_impl.push(format!("{indent}{ctx}"));
@@ -1567,9 +1587,9 @@ impl ParserGen {
                         if !is_single {
                             src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {fn_name}\")"));
                             src_wrapper_impl.push(format!("        }};"));
-                            src_wrapper_impl.push(format!("        {}self.listener.exit_{pnl}(ctx);", if parent_has_value { "let val = " } else { "" }));
+                            src_wrapper_impl.push(format!("        {}self.listener.exit_{fnl}(ctx);", if parent_has_value { "let val = " } else { "" }));
                             if parent_has_value {
-                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{pnu}(val));"));
+                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
                             }
                         }
                     }

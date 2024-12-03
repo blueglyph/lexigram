@@ -1271,7 +1271,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = false;
+        const REPLACE_SOURCE: bool = true;
 
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
