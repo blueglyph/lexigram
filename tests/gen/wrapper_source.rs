@@ -429,7 +429,7 @@ pub(crate) mod rules_rts_21_2 {
 // ================================================================================
 // Test 3: rules RTS(22) #1, start 0:
 /*
-before, NT with value: A
+before, NT with value: A, AIter1
 after,  NT with value: A, AIter1
             // NT flags:
             //  - A: parent_+_or_* (2048)
@@ -442,7 +442,7 @@ after,  NT with value: A, AIter1
             ], btreemap![
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
                 1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b!    | AIter1 b
-                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
             ], All, btreemap![0 => vec![0]]),
 */
 pub(crate) mod rules_rts_22_1 {
@@ -462,7 +462,7 @@ pub(crate) mod rules_rts_22_1 {
         /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
         Aiter1_1 { star_it: SynAIter, b: String },
         /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1_2,
+        Aiter1_2 { star_it: SynAIter },
     }
 
     // NT types:
@@ -566,7 +566,8 @@ pub(crate) mod rules_rts_22_1 {
                     CtxAiter1::Aiter1_1 { star_it, b }
                 }
                 2 => {
-                    CtxAiter1::Aiter1_2
+                    let star_it = self.stack.pop().unwrap().get_aiter1();
+                    CtxAiter1::Aiter1_2 { star_it }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
             };
@@ -711,8 +712,7 @@ pub(crate) mod rules_rts_22_2 {
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
             };
-            let val = self.listener.exit_aiter1(ctx);
-            self.stack.push(SynValue::Aiter1(val));
+            self.listener.exit_aiter1(ctx);
         }
     }
 
@@ -721,9 +721,308 @@ pub(crate) mod rules_rts_22_2 {
 }
 
 // ================================================================================
-// Test 5: rules RTS(32) #1, start 0:
+// Test 5: rules RTS(22) #3, start 0:
 /*
-before, NT with value: A
+before, NT with value: A, AIter1
+after,  NT with value: A, AIter1
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - AIter1: child_+_or_* | L-form (129)
+            // parents:
+            //  - AIter1 -> A
+            (RTS(22), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynAIter".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![nt 1],                    //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     | AIter1
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
+            ], Set(symbols![nt 0, nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
+*/
+pub(crate) mod rules_rts_22_3 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(22) #3, start A]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_22_3::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> a (b <L>)* c`
+        A { a: String, star: SynAIter, c: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxAiter1 {
+        /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+        Aiter1_1 { star_it: SynAIter },
+        /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
+        Aiter1_2 { star_it: SynAIter },
+    }
+
+    // NT types:
+    // SynA: User-defined type for `A`
+    // SynAIter: User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA), Aiter1(SynAIter) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_aiter1(self) -> SynAIter {
+            if let SynValue::Aiter1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _a: SynA) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn init_aiter1(&mut self) -> SynAIter;
+        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => self.init_aiter1(),                    // AIter1
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.exit_a(),                         // A -> a (b <L>)* c
+                        1 |                                         // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
+                        2 => self.exit_aiter1(factor_id),           // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(a);
+        }
+
+        fn exit_a(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let star = self.stack.pop().unwrap().get_aiter1();
+            let a = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_a(CtxA::A { a, star, c });
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn init_aiter1(&mut self) {
+            let val = self.listener.init_aiter1();
+            self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exit_aiter1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let star_it = self.stack.pop().unwrap().get_aiter1();
+                    CtxAiter1::Aiter1_1 { star_it }
+                }
+                2 => {
+                    let star_it = self.stack.pop().unwrap().get_aiter1();
+                    CtxAiter1::Aiter1_2 { star_it }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
+            };
+            let val = self.listener.exit_aiter1(ctx);
+            self.stack.push(SynValue::Aiter1(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(22) #3, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 6: rules RTS(22) #4, start 0:
+/*
+before, NT with value: AIter1
+after,  NT with value: AIter1
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - AIter1: child_+_or_* | L-form (129)
+            // parents:
+            //  - AIter1 -> A
+            (RTS(22), 0, btreemap![
+                1 => "SynAIter".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![nt 1],                    //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     | AIter1
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
+            ], Set(symbols![nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
+*/
+pub(crate) mod rules_rts_22_4 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(22) #4, start A]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_22_4::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> a (b <L>)* c`
+        A { a: String, star: SynAIter, c: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxAiter1 {
+        /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+        Aiter1_1 { star_it: SynAIter },
+        /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
+        Aiter1_2 { star_it: SynAIter },
+    }
+
+    // NT types:
+    // SynAIter: User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+    // Top non-terminal A has no value:
+    #[derive(Debug, PartialEq)]
+    pub struct SynA();
+
+    #[derive(Debug)]
+    enum SynValue { Aiter1(SynAIter) }
+
+    impl SynValue {
+        fn get_aiter1(self) -> SynAIter {
+            let SynValue::Aiter1(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) {}
+        fn init_aiter1(&mut self) -> SynAIter;
+        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => self.init_aiter1(),                    // AIter1
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.exit_a(),                         // A -> a (b <L>)* c
+                        1 |                                         // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
+                        2 => self.exit_aiter1(factor_id),           // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.listener.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn exit_a(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let star = self.stack.pop().unwrap().get_aiter1();
+            let a = self.stack_t.pop().unwrap();
+            self.listener.exit_a(CtxA::A { a, star, c });
+        }
+
+        fn init_aiter1(&mut self) {
+            let val = self.listener.init_aiter1();
+            self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exit_aiter1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let star_it = self.stack.pop().unwrap().get_aiter1();
+                    CtxAiter1::Aiter1_1 { star_it }
+                }
+                2 => {
+                    let star_it = self.stack.pop().unwrap().get_aiter1();
+                    CtxAiter1::Aiter1_2 { star_it }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
+            };
+            let val = self.listener.exit_aiter1(ctx);
+            self.stack.push(SynValue::Aiter1(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(22) #4, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 7: rules RTS(32) #1, start 0:
+/*
+before, NT with value: A, AIter1
 after,  NT with value: A, AIter1
             // NT flags:
             //  - A: parent_left_fact | parent_+_or_* (2080)
@@ -738,7 +1037,7 @@ after,  NT with value: A, AIter1
             ], btreemap![
                 0 => symbols![],                        //  0: A -> a A_1         | ►A_1 a!          |
                 1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b!    | AIter1 b
-                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
                 3 => symbols![t 0, t 0, nt 1, t 2],     //  3: A_1 -> a AIter1 c  | ◄3 c! ►AIter1 a! | a a AIter1 c
                 4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_1 -> c AIter1 c  | ◄4 c! ►AIter1 c! | a c AIter1 c
             ], All, btreemap![0 => vec![3, 4]]),
@@ -762,7 +1061,7 @@ pub(crate) mod rules_rts_32_1 {
         /// `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | ...`
         Aiter1_1 { star_it: SynAIter, b: String },
         /// end of `(b <L>)*` iterations in `A -> a a  ► (b <L>)* ◄  c | ...`
-        Aiter1_2,
+        Aiter1_2 { star_it: SynAIter },
     }
 
     // NT types:
@@ -883,7 +1182,8 @@ pub(crate) mod rules_rts_32_1 {
                     CtxAiter1::Aiter1_1 { star_it, b }
                 }
                 2 => {
-                    CtxAiter1::Aiter1_2
+                    let star_it = self.stack.pop().unwrap().get_aiter1();
+                    CtxAiter1::Aiter1_2 { star_it }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
             };
@@ -897,7 +1197,7 @@ pub(crate) mod rules_rts_32_1 {
 }
 
 // ================================================================================
-// Test 6: rules RTS(25) #1, start 0:
+// Test 8: rules RTS(25) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -1015,7 +1315,7 @@ pub(crate) mod rules_rts_25_1 {
 }
 
 // ================================================================================
-// Test 7: rules RTS(23) #1, start 0:
+// Test 9: rules RTS(23) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -1157,7 +1457,7 @@ pub(crate) mod rules_rts_23_1 {
 }
 
 // ================================================================================
-// Test 8: rules RTS(27) #1, start 0:
+// Test 10: rules RTS(27) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
@@ -1323,7 +1623,7 @@ pub(crate) mod rules_rts_27_1 {
 }
 
 // ================================================================================
-// Test 9: rules RTS(28) #1, start 0:
+// Test 11: rules RTS(28) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1
@@ -1489,9 +1789,9 @@ pub(crate) mod rules_rts_28_1 {
 }
 
 // ================================================================================
-// Test 10: rules RTS(24) #1, start 0:
+// Test 12: rules RTS(24) #1, start 0:
 /*
-before, NT with value: A
+before, NT with value: A, AIter1
 after,  NT with value: A, AIter1
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
@@ -1508,7 +1808,7 @@ after,  NT with value: A, AIter1
                 1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b!          |
                 2 => symbols![nt 1, t 1],               //  2: A_1 -> AIter1   | ●AIter1 ◄2       | AIter1 b
                 3 => symbols![nt 1, t 1],               //  3: A_1 -> ε        | ◄3               | AIter1 b
-            ], Default, btreemap![0 => vec![0]]),
+            ], All, btreemap![0 => vec![0]]),
 */
 pub(crate) mod rules_rts_24_1 {
     // ------------------------------------------------------------
@@ -1637,7 +1937,430 @@ pub(crate) mod rules_rts_24_1 {
 }
 
 // ================================================================================
-// Test 11: rules RTS(29) #1, start 0:
+// Test 13: rules RTS(24) #2, start 0:
+/*
+before, NT with value: A
+after,  NT with value: A
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - AIter1: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - A_1: child_left_fact (64)
+            // parents:
+            //  - AIter1 -> A
+            //  - A_1 -> AIter1
+            (RTS(24), 0, btreemap![
+                0 => "SynMyA".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, t 2],                //  0: A -> a AIter1 c | ◄0 c! ►AIter1 a! | a c
+                1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b           |
+                2 => symbols![],                        //  2: A_1 -> AIter1   | ●AIter1 ◄2       |
+                3 => symbols![],                        //  3: A_1 -> ε        | ◄3               |
+            ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
+*/
+pub(crate) mod rules_rts_24_2 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(24) #2, start A]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_24_2::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> a (b <L>)+ c`
+        A { a: String, c: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxAiter1 {
+        /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+        Aiter1 { last_iteration: bool },
+    }
+
+    // NT types:
+    // SynMyA: User-defined type for `A`
+
+    #[derive(Debug)]
+    enum SynValue { A(SynMyA) }
+
+    impl SynValue {
+        fn get_a(self) -> SynMyA {
+            let SynValue::A(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _a: SynMyA) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
+        fn init_aiter1(&mut self) {}
+        fn exit_aiter1(&mut self, _ctx: CtxAiter1) {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => self.listener.init_aiter1(),           // AIter1
+                        2 => {}                                     // A_1
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.exit_a(),                         // A -> a (b <L>)+ c
+                        2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
+                        3 => self.exit_aiter1(factor_id),           // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
+                     /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(a);
+        }
+
+        fn exit_a(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let a = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_a(CtxA::A { a, c });
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn exit_aiter1(&mut self, factor_id: FactorId) {
+            let last_iteration = factor_id == 3;
+            self.listener.exit_aiter1(CtxAiter1::Aiter1 { last_iteration });
+        }
+    }
+
+    // [wrapper source for rule RTS(24) #2, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 14: rules RTS(24) #3, start 0:
+/*
+before, NT with value: A, AIter1
+after,  NT with value: A, AIter1
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - AIter1: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - A_1: child_left_fact (64)
+            // parents:
+            //  - AIter1 -> A
+            //  - A_1 -> AIter1
+            (RTS(24), 0, btreemap![
+                0 => "SynMyA".to_string(),
+                1 => "SynMyAIter".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b           |
+                2 => symbols![nt 1],                    //  2: A_1 -> AIter1   | ●AIter1 ◄2       | AIter1
+                3 => symbols![nt 1],                    //  3: A_1 -> ε        | ◄3               | AIter1
+            ], Set(symbols![nt 0, nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
+*/
+pub(crate) mod rules_rts_24_3 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(24) #3, start A]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_24_3::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> a (b <L>)+ c`
+        A { a: String, plus: SynMyAIter, c: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxAiter1 {
+        /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+        Aiter1 { plus_it: SynMyAIter, last_iteration: bool },
+    }
+
+    // NT types:
+    // SynMyA: User-defined type for `A`
+    // SynMyAIter: User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+
+    #[derive(Debug)]
+    enum SynValue { A(SynMyA), Aiter1(SynMyAIter) }
+
+    impl SynValue {
+        fn get_a(self) -> SynMyA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_aiter1(self) -> SynMyAIter {
+            if let SynValue::Aiter1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _a: SynMyA) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
+        fn init_aiter1(&mut self) -> SynMyAIter;
+        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynMyAIter;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => self.init_aiter1(),                    // AIter1
+                        2 => {}                                     // A_1
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.exit_a(),                         // A -> a (b <L>)+ c
+                        2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
+                        3 => self.exit_aiter1(factor_id),           // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
+                     /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(a);
+        }
+
+        fn exit_a(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let plus = self.stack.pop().unwrap().get_aiter1();
+            let a = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_a(CtxA::A { a, plus, c });
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn init_aiter1(&mut self) {
+            let val = self.listener.init_aiter1();
+            self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exit_aiter1(&mut self, factor_id: FactorId) {
+            let last_iteration = factor_id == 3;
+            let plus_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { plus_it, last_iteration });
+            self.stack.push(SynValue::Aiter1(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(24) #3, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 15: rules RTS(24) #4, start 0:
+/*
+before, NT with value: AIter1
+after,  NT with value: AIter1
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - AIter1: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - A_1: child_left_fact (64)
+            // parents:
+            //  - AIter1 -> A
+            //  - A_1 -> AIter1
+            (RTS(24), 0, btreemap![
+                0 => "SynMyA".to_string(),
+                1 => "SynMyAIter".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b           |
+                2 => symbols![nt 1],                    //  2: A_1 -> AIter1   | ●AIter1 ◄2       | AIter1
+                3 => symbols![nt 1],                    //  3: A_1 -> ε        | ◄3               | AIter1
+            ], Set(symbols![nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
+*/
+pub(crate) mod rules_rts_24_4 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(24) #4, start A]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_24_4::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> a (b <L>)+ c`
+        A { a: String, plus: SynMyAIter, c: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxAiter1 {
+        /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+        Aiter1 { plus_it: SynMyAIter, last_iteration: bool },
+    }
+
+    // NT types:
+    // SynMyAIter: User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+    // Top non-terminal A has no value:
+    #[derive(Debug, PartialEq)]
+    pub struct SynA();
+
+    #[derive(Debug)]
+    enum SynValue { Aiter1(SynMyAIter) }
+
+    impl SynValue {
+        fn get_aiter1(self) -> SynMyAIter {
+            let SynValue::Aiter1(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) {}
+        fn init_aiter1(&mut self) -> SynMyAIter;
+        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynMyAIter;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 => self.init_aiter1(),                    // AIter1
+                        2 => {}                                     // A_1
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.exit_a(),                         // A -> a (b <L>)+ c
+                        2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
+                        3 => self.exit_aiter1(factor_id),           // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
+                     /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.listener.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn exit_a(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let plus = self.stack.pop().unwrap().get_aiter1();
+            let a = self.stack_t.pop().unwrap();
+            self.listener.exit_a(CtxA::A { a, plus, c });
+        }
+
+        fn init_aiter1(&mut self) {
+            let val = self.listener.init_aiter1();
+            self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exit_aiter1(&mut self, factor_id: FactorId) {
+            let last_iteration = factor_id == 3;
+            let plus_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { plus_it, last_iteration });
+            self.stack.push(SynValue::Aiter1(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(24) #4, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 16: rules RTS(29) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
@@ -1829,7 +2552,7 @@ pub(crate) mod rules_rts_29_1 {
 }
 
 // ================================================================================
-// Test 12: rules RTS(29) #2, start 0:
+// Test 17: rules RTS(29) #2, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_2
@@ -1987,7 +2710,7 @@ pub(crate) mod rules_rts_29_2 {
 }
 
 // ================================================================================
-// Test 13: rules RTS(29) #3, start 0:
+// Test 18: rules RTS(29) #3, start 0:
 /*
 before, NT with value:
 after,  NT with value: A_1, A_2
@@ -2160,9 +2883,9 @@ pub(crate) mod rules_rts_29_3 {
 }
 
 // ================================================================================
-// Test 14: rules RTS(39) #1, start 0:
+// Test 19: rules RTS(39) #1, start 0:
 /*
-before, NT with value: A
+before, NT with value: A, AIter2, AIter1
 after,  NT with value: A, AIter2, AIter1
             // NT flags:
             //  - A: parent_+_or_* (2048)
@@ -2178,9 +2901,9 @@ after,  NT with value: A, AIter2, AIter1
             ], btreemap![
                 0 => symbols![t 0, nt 2, t 3],          //  0: A -> a AIter1 d           | ◄0 d! ►AIter1 a!      | a AIter1 d
                 1 => symbols![nt 1, t 1],               //  1: AIter2 -> b AIter2        | ●AIter2 ◄1 b!         | AIter2 b
-                2 => symbols![],                        //  2: AIter2 -> ε               | ◄2                    |
+                2 => symbols![nt 1],                    //  2: AIter2 -> ε               | ◄2                    | AIter2
                 3 => symbols![nt 2, nt 1, t 2],         //  3: AIter1 -> AIter2 c AIter1 | ●AIter1 ◄3 c! ►AIter2 | AIter1 AIter2 c
-                4 => symbols![],                        //  4: AIter1 -> ε               | ◄4                    |
+                4 => symbols![nt 2],                    //  4: AIter1 -> ε               | ◄4                    | AIter1
             ], Default, btreemap![0 => vec![0]]),
 */
 pub(crate) mod rules_rts_39_1 {
@@ -2200,14 +2923,14 @@ pub(crate) mod rules_rts_39_1 {
         /// `(b <L>)*` iteration in `AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*`
         Aiter2_1 { star_it: SynAiter2, b: String },
         /// end of `(b <L>)*` iterations in `AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*`
-        Aiter2_2,
+        Aiter2_2 { star_it: SynAiter2 },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `AIter1 -> (b <L>)* c (AIter2 c <L>)*`
         Aiter1_1 { star_it: SynAiter1, star: SynAiter2, c: String },
         /// `AIter1 -> ε`
-        Aiter1_2,
+        Aiter1_2 { star_it: SynAiter1 },
     }
 
     // NT types:
@@ -2320,7 +3043,8 @@ pub(crate) mod rules_rts_39_1 {
                     CtxAiter2::Aiter2_1 { star_it, b }
                 }
                 2 => {
-                    CtxAiter2::Aiter2_2
+                    let star_it = self.stack.pop().unwrap().get_aiter2();
+                    CtxAiter2::Aiter2_2 { star_it }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_aiter2")
             };
@@ -2342,7 +3066,8 @@ pub(crate) mod rules_rts_39_1 {
                     CtxAiter1::Aiter1_1 { star_it, star, c }
                 }
                 4 => {
-                    CtxAiter1::Aiter1_2
+                    let star_it = self.stack.pop().unwrap().get_aiter1();
+                    CtxAiter1::Aiter1_2 { star_it }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
             };
@@ -2356,9 +3081,9 @@ pub(crate) mod rules_rts_39_1 {
 }
 
 // ================================================================================
-// Test 15: rules RTS(40) #1, start 0:
+// Test 20: rules RTS(40) #1, start 0:
 /*
-before, NT with value: A
+before, NT with value: A, AIter1
 after,  NT with value: A, AIter1, A_1
             // NT flags:
             //  - A: parent_+_or_* (2048)
@@ -2374,7 +3099,7 @@ after,  NT with value: A, AIter1, A_1
             ], btreemap![
                 0 => symbols![t 0, nt 2, t 3],          //  0: A -> a A_1 d        | ◄0 d! ►A_1 a!      | a A_1 d
                 1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1  | ●AIter1 ◄1 b!      | AIter1 b
-                2 => symbols![],                        //  2: AIter1 -> ε         | ◄2                 |
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε         | ◄2                 | AIter1
                 3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> AIter1 c A_1 | ●A_1 ◄3 c! ►AIter1 | A_1 AIter1 c
                 4 => symbols![],                        //  4: A_1 -> ε            | ◄4                 |
             ], Default, btreemap![0 => vec![0]]),
@@ -2396,7 +3121,7 @@ pub(crate) mod rules_rts_40_1 {
         /// `(b <L>)*` iteration in `A_1 ->  ► (b <L>)* ◄  c [ ► (b <L>)* ◄  c]*`
         Aiter1_1 { star_it: SynAiter1, b: String },
         /// end of `(b <L>)*` iterations in `A_1 ->  ► (b <L>)* ◄  c [ ► (b <L>)* ◄  c]*`
-        Aiter1_2,
+        Aiter1_2 { star_it: SynAiter1 },
     }
 
     // NT types:
@@ -2512,7 +3237,8 @@ pub(crate) mod rules_rts_40_1 {
                     CtxAiter1::Aiter1_1 { star_it, b }
                 }
                 2 => {
-                    CtxAiter1::Aiter1_2
+                    let star_it = self.stack.pop().unwrap().get_aiter1();
+                    CtxAiter1::Aiter1_2 { star_it }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
             };
@@ -2539,7 +3265,7 @@ pub(crate) mod rules_rts_40_1 {
 }
 
 // ================================================================================
-// Test 16: rules RTS(30) #1, start 0:
+// Test 21: rules RTS(30) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1, A_2
@@ -2741,7 +3467,7 @@ pub(crate) mod rules_rts_30_1 {
 }
 
 // ================================================================================
-// Test 17: rules RTS(30) #2, start 0:
+// Test 22: rules RTS(30) #2, start 0:
 /*
 before, NT with value:
 after,  NT with value: A_1, A_2
@@ -2924,7 +3650,7 @@ pub(crate) mod rules_rts_30_2 {
 }
 
 // ================================================================================
-// Test 18: rules RTS(34) #1, start 0:
+// Test 23: rules RTS(34) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1, A_2, A_3, A_4, A_5, A_6
@@ -3231,7 +3957,7 @@ pub(crate) mod rules_rts_34_1 {
 }
 
 // ================================================================================
-// Test 19: rules PRS(28) #1, start 0:
+// Test 24: rules PRS(28) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -3394,7 +4120,7 @@ pub(crate) mod rules_prs_28_1 {
 }
 
 // ================================================================================
-// Test 20: rules PRS(31) #1, start 0:
+// Test 25: rules PRS(31) #1, start 0:
 /*
 before, NT with value: E, F
 after,  NT with value: E, F
@@ -3552,7 +4278,7 @@ pub(crate) mod rules_prs_31_1 {
 }
 
 // ================================================================================
-// Test 21: rules PRS(36) #1, start 0:
+// Test 26: rules PRS(36) #1, start 0:
 /*
 before, NT with value: E, F
 after,  NT with value: E, F
@@ -3724,7 +4450,7 @@ pub(crate) mod rules_prs_36_1 {
 }
 
 // ================================================================================
-// Test 22: rules PRS(33) #1, start 0:
+// Test 27: rules PRS(33) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -3883,7 +4609,7 @@ pub(crate) mod rules_prs_33_1 {
 }
 
 // ================================================================================
-// Test 23: rules PRS(38) #1, start 0:
+// Test 28: rules PRS(38) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4051,7 +4777,7 @@ pub(crate) mod rules_prs_38_1 {
 }
 
 // ================================================================================
-// Test 24: rules PRS(39) #1, start 0:
+// Test 29: rules PRS(39) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4226,7 +4952,7 @@ pub(crate) mod rules_prs_39_1 {
 }
 
 // ================================================================================
-// Test 25: rules PRS(32) #1, start 0:
+// Test 30: rules PRS(32) #1, start 0:
 /*
 before, NT with value: E, F
 after,  NT with value: E, F
@@ -4398,7 +5124,7 @@ pub(crate) mod rules_prs_32_1 {
 }
 
 // ================================================================================
-// Test 26: rules RTS(38) #1, start 0:
+// Test 31: rules RTS(38) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4575,7 +5301,7 @@ pub(crate) mod rules_rts_38_1 {
 }
 
 // ================================================================================
-// Test 27: rules RTS(38) #2, start 0:
+// Test 32: rules RTS(38) #2, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4746,7 +5472,7 @@ pub(crate) mod rules_rts_38_2 {
 }
 
 // ================================================================================
-// Test 28: rules RTS(38) #3, start 0:
+// Test 33: rules RTS(38) #3, start 0:
 /*
 before, NT with value:
 after,  NT with value:
@@ -4898,7 +5624,7 @@ pub(crate) mod rules_rts_38_3 {
 }
 
 // ================================================================================
-// Test 29: rules PRS(20) #1, start 0:
+// Test 34: rules PRS(20) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -5045,7 +5771,7 @@ pub(crate) mod rules_prs_20_1 {
 }
 
 // ================================================================================
-// Test 30: rules PRS(20) #2, start 0:
+// Test 35: rules PRS(20) #2, start 0:
 /*
 before, NT with value: STRUCT
 after,  NT with value: STRUCT
@@ -5185,7 +5911,7 @@ pub(crate) mod rules_prs_20_2 {
 }
 
 // ================================================================================
-// Test 31: rules PRS(37) #1, start 0:
+// Test 36: rules PRS(37) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -5343,7 +6069,7 @@ pub(crate) mod rules_prs_37_1 {
 }
 
 // ================================================================================
-// Test 32: rules PRS(30) #1, start 0:
+// Test 37: rules PRS(30) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -5496,7 +6222,7 @@ pub(crate) mod rules_prs_30_1 {
 }
 
 // ================================================================================
-// Test 33: rules RTS(26) #1, start 0:
+// Test 38: rules RTS(26) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -5660,7 +6386,7 @@ pub(crate) mod rules_rts_26_1 {
 }
 
 // ================================================================================
-// Test 34: rules RTS(16) #1, start 0:
+// Test 39: rules RTS(16) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -5829,7 +6555,7 @@ pub(crate) mod rules_rts_16_1 {
 }
 
 // ================================================================================
-// Test 35: rules PRS(35) #1, start 0:
+// Test 40: rules PRS(35) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -5970,7 +6696,7 @@ pub(crate) mod rules_prs_35_1 {
 }
 
 // ================================================================================
-// Test 36: rules RTS(33) #1, start 0:
+// Test 41: rules RTS(33) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1

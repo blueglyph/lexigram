@@ -495,7 +495,7 @@ mod opcodes {
 
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
-    use crate::grammar::{FactorId, Symbol, VarId};
+    use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source};
     use crate::grammar::tests::T::{PRS, RTS};
@@ -523,7 +523,9 @@ mod wrapper_source {
             },
             All | Default => {
                 for v in 0..builder.parsing_table.num_nt {
-                    if builder.parsing_table.parent[v].is_none() { builder.nt_value[v] = true }
+                    if builder.parsing_table.parent[v].is_none() || builder.nt_has_flags(v as VarId, ruleflag::CHILD_REPEAT | ruleflag::L_FORM) {
+                        builder.nt_value[v] = true
+                    }
                 }
                 if let All = has_value {
                     valuables.extend(0..num_t);
@@ -608,7 +610,7 @@ mod wrapper_source {
             ], btreemap![
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
                 1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b!    | AIter1 b
-                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
             ], All, btreemap![0 => vec![0]]),
             (RTS(22), 0, btreemap![
                 0 => "SynA".to_string(),
@@ -617,6 +619,21 @@ mod wrapper_source {
                 1 => symbols![],                        //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     |
                 2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
+            (RTS(22), 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynAIter".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![nt 1],                    //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     | AIter1
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
+            ], Set(symbols![nt 0, nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
+            (RTS(22), 0, btreemap![
+                1 => "SynAIter".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![nt 1],                    //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     | AIter1
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
+            ], Set(symbols![nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
 
             // A -> a (a | c) (b <L=AIter1>)* c
             // NT flags:
@@ -632,7 +649,7 @@ mod wrapper_source {
             ], btreemap![
                 0 => symbols![],                        //  0: A -> a A_1         | ►A_1 a!          |
                 1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b!    | AIter1 b
-                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
                 3 => symbols![t 0, t 0, nt 1, t 2],     //  3: A_1 -> a AIter1 c  | ◄3 c! ►AIter1 a! | a a AIter1 c
                 4 => symbols![t 0, t 2, nt 1, t 2],     //  4: A_1 -> c AIter1 c  | ◄4 c! ►AIter1 c! | a c AIter1 c
             ], All, btreemap![0 => vec![3, 4]]),
@@ -729,7 +746,34 @@ mod wrapper_source {
                 1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b!          |
                 2 => symbols![nt 1, t 1],               //  2: A_1 -> AIter1   | ●AIter1 ◄2       | AIter1 b
                 3 => symbols![nt 1, t 1],               //  3: A_1 -> ε        | ◄3               | AIter1 b
-            ], Default, btreemap![0 => vec![0]]),
+            ], All, btreemap![0 => vec![0]]),
+            (RTS(24), 0, btreemap![
+                0 => "SynMyA".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, t 2],                //  0: A -> a AIter1 c | ◄0 c! ►AIter1 a! | a c
+                1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b           |
+                2 => symbols![],                        //  2: A_1 -> AIter1   | ●AIter1 ◄2       |
+                3 => symbols![],                        //  3: A_1 -> ε        | ◄3               |
+            ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
+            (RTS(24), 0, btreemap![
+                0 => "SynMyA".to_string(),
+                1 => "SynMyAIter".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b           |
+                2 => symbols![nt 1],                    //  2: A_1 -> AIter1   | ●AIter1 ◄2       | AIter1
+                3 => symbols![nt 1],                    //  3: A_1 -> ε        | ◄3               | AIter1
+            ], Set(symbols![nt 0, nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
+            (RTS(24), 0, btreemap![
+                0 => "SynMyA".to_string(),
+                1 => "SynMyAIter".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c | ◄0 c! ►AIter1 a! | a AIter1 c
+                1 => symbols![],                        //  1: AIter1 -> b A_1 | ►A_1 b           |
+                2 => symbols![nt 1],                    //  2: A_1 -> AIter1   | ●AIter1 ◄2       | AIter1
+                3 => symbols![nt 1],                    //  3: A_1 -> ε        | ◄3               | AIter1
+            ], Set(symbols![nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
+
             // --------------------------------------------------------------------------- norm+/* 2 levels
             // A -> a ( (B b)* c)* d
             // NT flags:
@@ -790,9 +834,9 @@ mod wrapper_source {
             ], btreemap![
                 0 => symbols![t 0, nt 2, t 3],          //  0: A -> a AIter1 d           | ◄0 d! ►AIter1 a!      | a AIter1 d
                 1 => symbols![nt 1, t 1],               //  1: AIter2 -> b AIter2        | ●AIter2 ◄1 b!         | AIter2 b
-                2 => symbols![],                        //  2: AIter2 -> ε               | ◄2                    |
+                2 => symbols![nt 1],                    //  2: AIter2 -> ε               | ◄2                    | AIter2
                 3 => symbols![nt 2, nt 1, t 2],         //  3: AIter1 -> AIter2 c AIter1 | ●AIter1 ◄3 c! ►AIter2 | AIter1 AIter2 c
-                4 => symbols![],                        //  4: AIter1 -> ε               | ◄4                    |
+                4 => symbols![nt 2],                    //  4: AIter1 -> ε               | ◄4                    | AIter1
             ], Default, btreemap![0 => vec![0]]),
 
             // a ( (<L=AIter1> b)* c)* d
@@ -810,7 +854,7 @@ mod wrapper_source {
             ], btreemap![
                 0 => symbols![t 0, nt 2, t 3],          //  0: A -> a A_1 d        | ◄0 d! ►A_1 a!      | a A_1 d
                 1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1  | ●AIter1 ◄1 b!      | AIter1 b
-                2 => symbols![],                        //  2: AIter1 -> ε         | ◄2                 |
+                2 => symbols![nt 1],                    //  2: AIter1 -> ε         | ◄2                 | AIter1
                 3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> AIter1 c A_1 | ●A_1 ◄3 c! ►AIter1 | A_1 AIter1 c
                 4 => symbols![],                        //  4: A_1 -> ε            | ◄4                 |
             ], Default, btreemap![0 => vec![0]]),
@@ -1271,14 +1315,14 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
+        const REPLACE_SOURCE: bool = false;
 
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
 
-// if !hashset![RTS(22), RTS(24)].contains(&rule_id) || *rule_iter != 1 { continue }
+//if !hashset![RTS(22), RTS(24)].contains(&rule_id) { continue }
 
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);

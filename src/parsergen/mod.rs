@@ -705,7 +705,8 @@ impl ParserGen {
                                 break;
                             }
                         }
-                        if self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT != 0 {
+                        // +* non-lform children have the same value as their parent, but +* lform children's "valueness" is independent from their parent's
+                        if self.parsing_table.flags[top_nt] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                             if VERBOSE && !self.nt_value[top_nt] {
                                 print!(" | {} is now valued {}",
                                        Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()),
@@ -724,7 +725,7 @@ impl ParserGen {
                     }
 
                     // Loop NTs which carry values are kept on the stack, too
-                    let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && !values.is_empty() {
+                    let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (!values.is_empty() || flags & ruleflag::L_FORM != 0) {
                         Some(Symbol::NT(*var_id))
                     } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
                         let parent = info.parent[*var_id as usize].unwrap();
@@ -1537,6 +1538,7 @@ impl ParserGen {
                         };
                         let fnu = if is_child_repeat_lform { nu } else { pnu }; // +* <L> use the loop variable, the other factors use the parent
                         let fnl = if is_child_repeat_lform { nl } else { pnl }; // +* <L> use the loop variable, the other factors use the parent
+                        let f_has_value = if is_child_repeat_lform { has_value } else { parent_has_value };
                         let is_single = has_last_flag || exit_factors.len() == 1;
                         let indent = if is_single { "        " } else { "                " };
                         if !is_single {
@@ -1580,8 +1582,8 @@ impl ParserGen {
                                 format!("Ctx{fnu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
                             };
                             if is_single {
-                                src_wrapper_impl.push(format!("        {}self.listener.exit_{fnl}({ctx});", if parent_has_value { "let val = " } else { "" }));
-                                if parent_has_value {
+                                src_wrapper_impl.push(format!("        {}self.listener.exit_{fnl}({ctx});", if f_has_value { "let val = " } else { "" }));
+                                if f_has_value {
                                     src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
                                 }
                             } else {
@@ -1592,8 +1594,8 @@ impl ParserGen {
                         if !is_single {
                             src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {fn_name}\")"));
                             src_wrapper_impl.push(format!("        }};"));
-                            src_wrapper_impl.push(format!("        {}self.listener.exit_{fnl}(ctx);", if parent_has_value { "let val = " } else { "" }));
-                            if parent_has_value {
+                            src_wrapper_impl.push(format!("        {}self.listener.exit_{fnl}(ctx);", if f_has_value { "let val = " } else { "" }));
+                            if f_has_value {
                                 src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
                             }
                         }

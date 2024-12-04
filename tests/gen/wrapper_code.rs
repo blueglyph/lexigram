@@ -53,6 +53,28 @@ pub(crate) mod code_rts_22_2 {
     pub struct SynA();
 }
 
+pub(crate) mod code_rts_22_3 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(22) #3, start A
+
+    /// User-defined type for `A`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA();
+
+    /// User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+    #[derive(Debug, PartialEq)]
+    pub struct SynAIter();
+}
+
+pub(crate) mod code_rts_22_4 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(22) #4, start A
+
+    /// User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+    #[derive(Debug, PartialEq)]
+    pub struct SynAIter();
+}
+
 pub(crate) mod code_rts_32_1 {
     // ------------------------------------------------------------
     // wrapper source for rule RTS(32) #1, start A
@@ -117,6 +139,37 @@ pub(crate) mod code_rts_24_1 {
     /// User-defined type for `A`
     #[derive(Debug, PartialEq)]
     pub struct SynMyA();
+
+    /// User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+    #[derive(Debug, PartialEq)]
+    pub struct SynMyAIter();
+}
+
+pub(crate) mod code_rts_24_2 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(24) #2, start A
+
+    /// User-defined type for `A`
+    #[derive(Debug, PartialEq)]
+    pub struct SynMyA();
+}
+
+pub(crate) mod code_rts_24_3 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(24) #3, start A
+
+    /// User-defined type for `A`
+    #[derive(Debug, PartialEq)]
+    pub struct SynMyA();
+
+    /// User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+    #[derive(Debug, PartialEq)]
+    pub struct SynMyAIter();
+}
+
+pub(crate) mod code_rts_24_4 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(24) #4, start A
 
     /// User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
     #[derive(Debug, PartialEq)]
