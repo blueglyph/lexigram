@@ -1389,7 +1389,11 @@ impl ParserGen {
                     // We do discard the 2nd, empty factor immediately for a non-<L> * child because there's no associated context.
                     let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
                     let mut factors = factors.clone();
-                    let is_factor_id = factors.len() - discarded > 1;
+                    // + children always have 2 left-factorized children with identical item_ops (one for the loop, one for the last iteration).
+                    // There are two factors in the switch statement that call the wrapper method, but the factor_id is not required in non-<L> form because
+                    // the data are the same and there's no context, hence the 2nd term of the following condition:
+                    let is_factor_id = factors.len() - discarded > 1 &&
+                        flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) != (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS);
                     let mut choices = Vec::<String>::new();
                     if factors.len() - discarded == 1 {
                         if no_method {

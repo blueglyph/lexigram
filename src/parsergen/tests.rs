@@ -596,8 +596,6 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
 
-            // TODO: check - with only nt 0, - with nothing
-
             // A -> a (b <L=AIter1>)* c
             // NT flags:
             //  - A: parent_+_or_* (2048)
@@ -1321,9 +1319,6 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
-
-//if !hashset![RTS(22), RTS(24)].contains(&rule_id) { continue }
-
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
             let mut builder = ParserGen::from_rules(ll1, "Test".to_string());

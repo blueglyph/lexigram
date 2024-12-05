@@ -1340,7 +1340,7 @@ pub(crate) mod rules_rts_23_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(23) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_23_1::*;
 
     #[derive(Debug)]
@@ -1400,7 +1400,7 @@ pub(crate) mod rules_rts_23_1 {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [b]+ c
                         2 |                                         // [b]+ item in A -> a  ► [b]+ ◄  c
-                        3 => self.exit_a1(factor_id),               // end of [b]+ items in A -> a  ► [b]+ ◄  c
+                        3 => self.exit_a1(),                        // end of [b]+ items in A -> a  ► [b]+ ◄  c
                      /* 1 */                                        // [b]+ item in A -> a  ► [b]+ ◄  c (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1444,7 +1444,7 @@ pub(crate) mod rules_rts_23_1 {
             self.stack.push(SynValue::A1(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
             plus_it.0.push(b);
@@ -1484,7 +1484,7 @@ pub(crate) mod rules_rts_27_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(27) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_27_1::*;
 
     #[derive(Debug)]
@@ -1559,7 +1559,7 @@ pub(crate) mod rules_rts_27_1 {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [B]+ c
                         3 |                                         // [B]+ item in A -> a  ► [B]+ ◄  c
-                        4 => self.exit_a1(factor_id),               // end of [B]+ items in A -> a  ► [B]+ ◄  c
+                        4 => self.exit_a1(),                        // end of [B]+ items in A -> a  ► [B]+ ◄  c
                      /* 2 */                                        // [B]+ item in A -> a  ► [B]+ ◄  c (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -1604,7 +1604,7 @@ pub(crate) mod rules_rts_27_1 {
             self.stack.push(SynValue::A1(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
             plus_it.0.push(SynA1Item { b });
@@ -1650,7 +1650,7 @@ pub(crate) mod rules_rts_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(28) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_28_1::*;
 
     #[derive(Debug)]
@@ -1725,7 +1725,7 @@ pub(crate) mod rules_rts_28_1 {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> [a B]+ c
                         3 |                                         // [a B]+ item in A ->  ► [a B]+ ◄  c
-                        4 => self.exit_a1(factor_id),               // end of [a B]+ items in A ->  ► [a B]+ ◄  c
+                        4 => self.exit_a1(),                        // end of [a B]+ items in A ->  ► [a B]+ ◄  c
                      /* 2 */                                        // [a B]+ item in A ->  ► [a B]+ ◄  c (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -1769,7 +1769,7 @@ pub(crate) mod rules_rts_28_1 {
             self.stack.push(SynValue::A1(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
             let a = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
@@ -3300,7 +3300,7 @@ pub(crate) mod rules_rts_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_30_1::*;
 
     #[derive(Debug)]
@@ -3386,9 +3386,9 @@ pub(crate) mod rules_rts_30_1 {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]+ c]+ d
                         4 |                                         // [B b]+ item in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
-                        5 => self.exit_a1(factor_id),               // end of [B b]+ items in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
+                        5 => self.exit_a1(),                        // end of [B b]+ items in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
                         6 |                                         // A_2 -> [B b]+ c [[B b]+ c]+
-                        7 => self.exit_a2(factor_id),               // A_2 -> [B b]+ c
+                        7 => self.exit_a2(),                        // A_2 -> [B b]+ c
                      /* 2 */                                        // [B b]+ item in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+ (never called)
                      /* 3 */                                        // A_2 -> [B b]+ c | [B b]+ c [[B b]+ c]+ (never called)
                         1 => self.exit_b(),                         // B -> b
@@ -3434,7 +3434,7 @@ pub(crate) mod rules_rts_30_1 {
             self.stack.push(SynValue::A1(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self) {
             let b1 = self.stack_t.pop().unwrap();
             let b = self.stack.pop().unwrap().get_b();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
@@ -3447,7 +3447,7 @@ pub(crate) mod rules_rts_30_1 {
             self.stack.push(SynValue::A2(val));
         }
 
-        fn exit_a2(&mut self, factor_id: FactorId) {
+        fn exit_a2(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let mut plus_it = self.stack.pop().unwrap().get_a2();
@@ -3500,7 +3500,7 @@ pub(crate) mod rules_rts_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3577,9 +3577,9 @@ pub(crate) mod rules_rts_30_2 {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[B b]+ c]+ d
                         4 |                                         // [B b]+ item in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
-                        5 => self.exit_a1(factor_id),               // end of [B b]+ items in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
+                        5 => self.exit_a1(),                        // end of [B b]+ items in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+
                         6 |                                         // A_2 -> [B b]+ c [[B b]+ c]+
-                        7 => self.exit_a2(factor_id),               // A_2 -> [B b]+ c
+                        7 => self.exit_a2(),                        // A_2 -> [B b]+ c
                      /* 2 */                                        // [B b]+ item in A_2 ->  ► [B b]+ ◄  c |  ► [B b]+ ◄  c [ ► [B b]+ ◄  c]+ (never called)
                      /* 3 */                                        // A_2 -> [B b]+ c | [B b]+ c [[B b]+ c]+ (never called)
                         1 => self.exit_b(),                         // B -> b
@@ -3619,7 +3619,7 @@ pub(crate) mod rules_rts_30_2 {
             self.stack.push(SynValue::A1(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
             plus_it.0.push(b);
@@ -3631,7 +3631,7 @@ pub(crate) mod rules_rts_30_2 {
             self.stack.push(SynValue::A2(val));
         }
 
-        fn exit_a2(&mut self, factor_id: FactorId) {
+        fn exit_a2(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let plus = self.stack.pop().unwrap().get_a1();
             let mut plus_it = self.stack.pop().unwrap().get_a2();
@@ -3715,7 +3715,7 @@ pub(crate) mod rules_rts_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(34) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_34_1::*;
 
     #[derive(Debug)]
@@ -3821,17 +3821,17 @@ pub(crate) mod rules_rts_34_1 {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d
                         7 |                                         // [b]+ item in A_3 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
-                        8 => self.exit_a1(factor_id),               // end of [b]+ items in A_3 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
+                        8 => self.exit_a1(),                        // end of [b]+ items in A_3 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
                         9 |                                         // [b]+ item in A_3 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
-                        10 => self.exit_a2(factor_id),              // end of [b]+ items in A_3 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
+                        10 => self.exit_a2(),                       // end of [b]+ items in A_3 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
                         11 |                                        // A_3 -> [b]+ [b]+ [[b]+ [b]+]+
-                        12 => self.exit_a3(factor_id),              // A_3 -> [b]+ [b]+
+                        12 => self.exit_a3(),                       // A_3 -> [b]+ [b]+
                         13 |                                        // [b]+ item in A_6 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
-                        14 => self.exit_a4(factor_id),              // end of [b]+ items in A_6 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
+                        14 => self.exit_a4(),                       // end of [b]+ items in A_6 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+
                         15 |                                        // [b]+ item in A_6 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
-                        16 => self.exit_a5(factor_id),              // end of [b]+ items in A_6 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
+                        16 => self.exit_a5(),                       // end of [b]+ items in A_6 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+
                         17 |                                        // A_6 -> [b]+ [b]+ [[b]+ [b]+]+
-                        18 => self.exit_a6(factor_id),              // A_6 -> [b]+ [b]+
+                        18 => self.exit_a6(),                       // A_6 -> [b]+ [b]+
                      /* 1 */                                        // [b]+ item in A_3 ->  ► [b]+ ◄  [b]+ |  ► [b]+ ◄  [b]+ [ ► [b]+ ◄  [b]+]+ (never called)
                      /* 2 */                                        // [b]+ item in A_3 -> [b]+  ► [b]+ ◄  | [b]+  ► [b]+ ◄  [[b]+  ► [b]+ ◄ ]+ (never called)
                      /* 3 */                                        // A_3 -> [b]+ [b]+ | [b]+ [b]+ [[b]+ [b]+]+ (never called)
@@ -3882,7 +3882,7 @@ pub(crate) mod rules_rts_34_1 {
             self.stack.push(SynValue::A1(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
             plus_it.0.push(b);
@@ -3894,7 +3894,7 @@ pub(crate) mod rules_rts_34_1 {
             self.stack.push(SynValue::A2(val));
         }
 
-        fn exit_a2(&mut self, factor_id: FactorId) {
+        fn exit_a2(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a2();
             plus_it.0.push(b);
@@ -3906,7 +3906,7 @@ pub(crate) mod rules_rts_34_1 {
             self.stack.push(SynValue::A3(val));
         }
 
-        fn exit_a3(&mut self, factor_id: FactorId) {
+        fn exit_a3(&mut self) {
             let plus1 = self.stack.pop().unwrap().get_a2();
             let plus = self.stack.pop().unwrap().get_a1();
             let mut plus_it = self.stack.pop().unwrap().get_a3();
@@ -3919,7 +3919,7 @@ pub(crate) mod rules_rts_34_1 {
             self.stack.push(SynValue::A4(val));
         }
 
-        fn exit_a4(&mut self, factor_id: FactorId) {
+        fn exit_a4(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a4();
             plus_it.0.push(b);
@@ -3931,7 +3931,7 @@ pub(crate) mod rules_rts_34_1 {
             self.stack.push(SynValue::A5(val));
         }
 
-        fn exit_a5(&mut self, factor_id: FactorId) {
+        fn exit_a5(&mut self) {
             let b = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a5();
             plus_it.0.push(b);
@@ -3943,7 +3943,7 @@ pub(crate) mod rules_rts_34_1 {
             self.stack.push(SynValue::A6(val));
         }
 
-        fn exit_a6(&mut self, factor_id: FactorId) {
+        fn exit_a6(&mut self) {
             let plus1 = self.stack.pop().unwrap().get_a5();
             let plus = self.stack.pop().unwrap().get_a4();
             let mut plus_it = self.stack.pop().unwrap().get_a6();
@@ -6480,7 +6480,7 @@ pub(crate) mod rules_rts_16_1 {
                     match factor_id {
                         0 => self.init_a(),                         // A -> a
                         4 |                                         // [c]+ item in A -> A  ► [c]+ ◄  b
-                        5 => self.exit_a1(factor_id),               // end of [c]+ items in A -> A  ► [c]+ ◄  b
+                        5 => self.exit_a1(),                        // end of [c]+ items in A -> A  ► [c]+ ◄  b
                         2 |                                         // A -> A [c]+ b
                         3 => self.exit_a2(factor_id),               // A -> ε (end of loop)
                      /* 1 */                                        // [c]+ item in A -> A  ► [c]+ ◄  b (never called)
@@ -6524,7 +6524,7 @@ pub(crate) mod rules_rts_16_1 {
             self.stack.push(SynValue::A1(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self) {
             let c = self.stack_t.pop().unwrap();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
             plus_it.0.push(c);
