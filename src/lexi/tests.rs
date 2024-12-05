@@ -247,6 +247,7 @@ fn lexiparser_source() {
             // println!("has parents, has no value");
         }
     }
+    builder.add_lib("super::lexiparser_types::*");
     if VERBOSE {
         builder.build_item_ops();
         print_flags(&builder, 0);
