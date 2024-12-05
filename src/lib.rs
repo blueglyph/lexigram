@@ -134,12 +134,15 @@ pub(crate) fn indent_source(parts: Vec<Vec<String>>, indent: usize) -> String {
             source.push('\n');
         }
         first = false;
-        for line in part {
-            if line.len() > 0 {
-                source.push_str(&s);
+        for string in part {
+            for line in string.split("\n") {
+                let cured_line = line.trim_end();
+                if cured_line.len() > 0 {
+                    source.push_str(&s);
+                }
+                source.push_str(cured_line);
+                source.push('\n');
             }
-            source.push_str(&line);
-            source.push('\n');
         }
     }
     source
