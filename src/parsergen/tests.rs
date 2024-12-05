@@ -992,6 +992,14 @@ mod wrapper_source {
                 2 => symbols![nt 0, t 1],               //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | E id
                 3 => symbols![nt 0],                    //  3: E_1 -> ε        | ◄3            | E
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+            (PRS(31), 0, btreemap![
+                1 => "SynF".to_string(),
+            ], btreemap![
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
+                1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
+                2 => symbols![t 1],                     //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | id
+                3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
+            ], Set(symbols![nt 1, t 1]), btreemap![0 => vec![0], 1 => vec![1]]),
 
             // E -> F | num | E . id
             // F -> id
@@ -1123,7 +1131,7 @@ mod wrapper_source {
                 5 => symbols![nt 0],                    //  5: A_2 -> A_1   | ●A_1 ◄5    | A
                 6 => symbols![nt 0],                    //  6: A_3 -> c A_1 | ●A_1 ◄6 c  | A
                 7 => symbols![nt 0],                    //  7: A_3 -> A_1   | ●A_1 ◄7    | A
-            ], Set(symbols!(nt 0, t 3)), btreemap![0 => vec![0]]),
+            ], Set(symbols![nt 0, t 3]), btreemap![0 => vec![0]]),
             (RTS(38), 0, btreemap![
             ], btreemap![
                 0 => symbols![],                        //  0: A -> d A_1   | ►A_1 ◄0 d  |
@@ -1134,7 +1142,7 @@ mod wrapper_source {
                 5 => symbols![],                        //  5: A_2 -> A_1   | ●A_1 ◄5    |
                 6 => symbols![],                        //  6: A_3 -> c A_1 | ●A_1 ◄6 c  |
                 7 => symbols![],                        //  7: A_3 -> A_1   | ●A_1 ◄7    |
-            ], Set(symbols!()), btreemap![0 => vec![0]]),
+            ], Set(symbols![]), btreemap![0 => vec![0]]),
             // --------------------------------------------------------------------------- right_rec L/R
             // STRUCT -> 'struct' id '{' LIST
             // LIST -> id ':' id ';' LIST | '}'
@@ -1190,6 +1198,13 @@ mod wrapper_source {
                 1 => symbols![nt 1, t 5, t 5],          //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | LIST id id
                 2 => symbols![nt 1],                    //  2: LIST -> }                  | ◄2 }                  | LIST
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
+            (PRS(30), 0, btreemap![
+                0 => "SynStruct".to_string(),
+            ], btreemap![
+                0 => symbols![t 5],                     //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id
+                1 => symbols![t 5, t 5],                //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id
+                2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
+            ], Set(symbols![nt 0, t 5]), btreemap![0 => vec![0], 1 => vec![1, 2]]),
             // ---------------------------------------------------------------------------
             // A -> A (c)* b | a
             // NT flags:
@@ -1304,9 +1319,9 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/gen/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
         const TEST_SOURCE: bool = true;

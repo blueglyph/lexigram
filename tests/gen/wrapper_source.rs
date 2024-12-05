@@ -4278,7 +4278,155 @@ pub(crate) mod rules_prs_31_1 {
 }
 
 // ================================================================================
-// Test 26: rules PRS(36) #1, start 0:
+// Test 26: rules PRS(31) #2, start 0:
+/*
+before, NT with value: F
+after,  NT with value: F
+            // NT flags:
+            //  - E: parent_left_rec (512)
+            //  - E_1: child_left_rec (4)
+            // parents:
+            //  - E_1 -> E
+            (PRS(31), 0, btreemap![
+                1 => "SynF".to_string(),
+            ], btreemap![
+                0 => symbols![nt 1],                    //  0: E -> F E_1      | ►E_1 ◄0 ►F    | F
+                1 => symbols![t 1],                     //  1: F -> id         | ◄1 id!        | id
+                2 => symbols![t 1],                     //  2: E_1 -> . id E_1 | ●E_1 ◄2 id! . | id
+                3 => symbols![],                        //  3: E_1 -> ε        | ◄3            |
+            ], Set(symbols![nt 1, t 1]), btreemap![0 => vec![0], 1 => vec![1]]),
+*/
+pub(crate) mod rules_prs_31_2 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(31) #2, start E]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_31_2::*;
+
+    #[derive(Debug)]
+    pub enum CtxE {
+        /// `E -> F`
+        E1 { f: SynF },
+        /// `E -> E . id`
+        E2 { id: String },
+        /// `E -> ε (end of loop)`
+        E3,
+    }
+    #[derive(Debug)]
+    pub enum CtxF {
+        /// `F -> id`
+        F { id: String },
+    }
+
+    // NT types:
+    // SynF: User-defined type for `F`
+    // Top non-terminal E has no value:
+    #[derive(Debug, PartialEq)]
+    pub struct SynE();
+
+    #[derive(Debug)]
+    enum SynValue { F(SynF) }
+
+    impl SynValue {
+        fn get_f(self) -> SynF {
+            let SynValue::F(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self) {}
+        fn init_e(&mut self) {}
+        fn exit_e(&mut self, _ctx: CtxE) {}
+        fn init_f(&mut self) {}
+        fn exit_f(&mut self, _ctx: CtxF) -> SynF;
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_e(),                // E
+                        2 => {}                                     // E_1
+                        1 => self.listener.init_f(),                // F
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.init_e(),                         // E -> F
+                        2 |                                         // E -> E . id
+                        3 => self.exit_e1(factor_id),               // E -> ε (end of loop)
+                        1 => self.exit_f(),                         // F -> id
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.listener.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn init_e(&mut self) {
+            let f = self.stack.pop().unwrap().get_f();
+            self.listener.exit_e(CtxE::E1 { f });
+        }
+
+        fn exit_e1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                2 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxE::E2 { id }
+                }
+                3 => {
+                    CtxE::E3
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+            };
+            self.listener.exit_e(ctx);
+        }
+
+        fn exit_f(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_f(CtxF::F { id });
+            self.stack.push(SynValue::F(val));
+        }
+    }
+
+    // [wrapper source for rule PRS(31) #2, start E]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 27: rules PRS(36) #1, start 0:
 /*
 before, NT with value: E, F
 after,  NT with value: E, F
@@ -4450,7 +4598,7 @@ pub(crate) mod rules_prs_36_1 {
 }
 
 // ================================================================================
-// Test 27: rules PRS(33) #1, start 0:
+// Test 28: rules PRS(33) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4609,7 +4757,7 @@ pub(crate) mod rules_prs_33_1 {
 }
 
 // ================================================================================
-// Test 28: rules PRS(38) #1, start 0:
+// Test 29: rules PRS(38) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4777,7 +4925,7 @@ pub(crate) mod rules_prs_38_1 {
 }
 
 // ================================================================================
-// Test 29: rules PRS(39) #1, start 0:
+// Test 30: rules PRS(39) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -4952,7 +5100,7 @@ pub(crate) mod rules_prs_39_1 {
 }
 
 // ================================================================================
-// Test 30: rules PRS(32) #1, start 0:
+// Test 31: rules PRS(32) #1, start 0:
 /*
 before, NT with value: E, F
 after,  NT with value: E, F
@@ -5124,7 +5272,7 @@ pub(crate) mod rules_prs_32_1 {
 }
 
 // ================================================================================
-// Test 31: rules RTS(38) #1, start 0:
+// Test 32: rules RTS(38) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -5301,7 +5449,7 @@ pub(crate) mod rules_rts_38_1 {
 }
 
 // ================================================================================
-// Test 32: rules RTS(38) #2, start 0:
+// Test 33: rules RTS(38) #2, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -5472,7 +5620,7 @@ pub(crate) mod rules_rts_38_2 {
 }
 
 // ================================================================================
-// Test 33: rules RTS(38) #3, start 0:
+// Test 34: rules RTS(38) #3, start 0:
 /*
 before, NT with value:
 after,  NT with value:
@@ -5624,7 +5772,7 @@ pub(crate) mod rules_rts_38_3 {
 }
 
 // ================================================================================
-// Test 34: rules PRS(20) #1, start 0:
+// Test 35: rules PRS(20) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -5771,7 +5919,7 @@ pub(crate) mod rules_prs_20_1 {
 }
 
 // ================================================================================
-// Test 35: rules PRS(20) #2, start 0:
+// Test 36: rules PRS(20) #2, start 0:
 /*
 before, NT with value: STRUCT
 after,  NT with value: STRUCT
@@ -5911,7 +6059,7 @@ pub(crate) mod rules_prs_20_2 {
 }
 
 // ================================================================================
-// Test 36: rules PRS(37) #1, start 0:
+// Test 37: rules PRS(37) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -6069,7 +6217,7 @@ pub(crate) mod rules_prs_37_1 {
 }
 
 // ================================================================================
-// Test 37: rules PRS(30) #1, start 0:
+// Test 38: rules PRS(30) #1, start 0:
 /*
 before, NT with value: STRUCT, LIST
 after,  NT with value: STRUCT, LIST
@@ -6222,7 +6370,147 @@ pub(crate) mod rules_prs_30_1 {
 }
 
 // ================================================================================
-// Test 38: rules RTS(26) #1, start 0:
+// Test 39: rules PRS(30) #2, start 0:
+/*
+before, NT with value: STRUCT
+after,  NT with value: STRUCT
+            // NT flags:
+            //  - LIST: right_rec | L-form (130)
+            // parents:
+            //  - (nothing)
+            (PRS(30), 0, btreemap![
+                0 => "SynStruct".to_string(),
+            ], btreemap![
+                0 => symbols![t 5],                     //  0: STRUCT -> struct id { LIST | ◄0 ►LIST { id! struct | id
+                1 => symbols![t 5, t 5],                //  1: LIST -> id : id ; LIST     | ●LIST ◄1 ; id! : id!  | id id
+                2 => symbols![],                        //  2: LIST -> }                  | ◄2 }                  |
+            ], Set(symbols![nt 0, t 5]), btreemap![0 => vec![0], 1 => vec![1, 2]]),
+*/
+pub(crate) mod rules_prs_30_2 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(30) #2, start STRUCT]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_prs_30_2::*;
+
+    #[derive(Debug)]
+    pub enum CtxStruct {
+        /// `STRUCT -> struct id { LIST`
+        Struct { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxList {
+        /// `LIST -> id : id ; LIST <L>`
+        List1 { id: [String; 2] },
+        /// `LIST -> } <L>`
+        List2,
+    }
+
+    // NT types:
+    // SynStruct: User-defined type for `STRUCT`
+
+    #[derive(Debug)]
+    enum SynValue { Struct(SynStruct) }
+
+    impl SynValue {
+        fn get_struct1(self) -> SynStruct {
+            let SynValue::Struct(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _struct1: SynStruct) {}
+        fn init_struct1(&mut self) {}
+        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
+        fn init_list(&mut self) {}
+        fn exit_list(&mut self, _ctx: CtxList) {}
+    }
+
+    struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_struct1(),          // STRUCT
+                        1 => self.listener.init_list(),             // LIST
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
+                        1 |                                         // LIST -> id : id ; LIST <L>
+                        2 => self.exit_list(factor_id),             // LIST -> } <L>
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        fn exit(&mut self) {
+            let struct1 = self.stack.pop().unwrap().get_struct1();
+            self.listener.exit(struct1);
+        }
+
+        fn exit_struct1(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_struct1(CtxStruct::Struct { id });
+            self.stack.push(SynValue::Struct(val));
+        }
+
+        fn exit_list(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let id_2 = self.stack_t.pop().unwrap();
+                    let id_1 = self.stack_t.pop().unwrap();
+                    CtxList::List1 { id: [id_1, id_2] }
+                }
+                2 => {
+                    CtxList::List2
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
+            };
+            self.listener.exit_list(ctx);
+        }
+    }
+
+    // [wrapper source for rule PRS(30) #2, start STRUCT]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 40: rules RTS(26) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -6386,7 +6674,7 @@ pub(crate) mod rules_rts_26_1 {
 }
 
 // ================================================================================
-// Test 39: rules RTS(16) #1, start 0:
+// Test 41: rules RTS(16) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A, A_1
@@ -6555,7 +6843,7 @@ pub(crate) mod rules_rts_16_1 {
 }
 
 // ================================================================================
-// Test 40: rules PRS(35) #1, start 0:
+// Test 42: rules PRS(35) #1, start 0:
 /*
 before, NT with value: A
 after,  NT with value: A
@@ -6696,7 +6984,7 @@ pub(crate) mod rules_prs_35_1 {
 }
 
 // ================================================================================
-// Test 41: rules RTS(33) #1, start 0:
+// Test 43: rules RTS(33) #1, start 0:
 /*
 before, NT with value: A, B
 after,  NT with value: A, B, A_1

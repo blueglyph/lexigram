@@ -282,6 +282,15 @@ pub(crate) mod code_prs_31_1 {
     pub struct SynF();
 }
 
+pub(crate) mod code_prs_31_2 {
+    // ------------------------------------------------------------
+    // wrapper source for rule PRS(31) #2, start E
+
+    /// User-defined type for `F`
+    #[derive(Debug, PartialEq)]
+    pub struct SynF();
+}
+
 pub(crate) mod code_prs_36_1 {
     // ------------------------------------------------------------
     // wrapper source for rule PRS(36) #1, start E
@@ -404,6 +413,15 @@ pub(crate) mod code_prs_30_1 {
     /// User-defined type for `LIST`
     #[derive(Debug, PartialEq)]
     pub struct SynList();
+}
+
+pub(crate) mod code_prs_30_2 {
+    // ------------------------------------------------------------
+    // wrapper source for rule PRS(30) #1, start STRUCT
+
+    /// User-defined type for `STRUCT`
+    #[derive(Debug, PartialEq)]
+    pub struct SynStruct();
 }
 
 pub(crate) mod code_rts_26_1 {
