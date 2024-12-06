@@ -1458,11 +1458,11 @@ mod wrapper_source {
                 // ("AIter1 -> ε",               "AIter1 -> ε"),                                                              // 4: AIter1 -> ε
 
                 // should be:
-                ("A -> a AIter1 d",                 "A -> a (AIter2 c <L>)* d"),                                 // 0: A -> a AIter1 d
-                ("AIter2 -> b AIter2",              "(b <L>)* iteration in ( (b <L>)* c <L>)*"),                 // 1: AIter2 -> b AIter2
-                ("AIter2 -> ε",                     "end of (b <L>)* iterations in ( (b <L>)* c <L>)*"),         // 2: AIter2 -> ε
-                ("AIter1 -> AIter2 c AIter1",       "(AIter2 c <L>)* iteration in a (AIter2 c <L>)* d"),         // 3: AIter1 -> AIter2 c AIter1
-                ("AIter1 -> ε",                     "end of (AIter2 c <L>)* iterations in a (AIter2 c <L>)* d"), // 4: AIter1 -> ε
+                ("A -> a AIter1 d",                 "A -> a ((b <L>)* c <L>)* d"),                                              // 0: A -> a AIter1 d
+                ("AIter2 -> b AIter2",              "(b <L>)* iteration in A -> (  ► (b <L>)* ◄  c <L>)*"),                     // 1: AIter2 -> b AIter2
+                ("AIter2 -> ε",                     "end of (b <L>)* iterations in A -> (  ► (b <L>)* ◄  c <L>)*"),             // 2: AIter2 -> ε
+                ("AIter1 -> AIter2 c AIter1",       "((b <L>)* c <L>)* iteration in A -> a  ► ((b <L>)* c <L>)* ◄  d"),         // 3: AIter1 -> AIter2 c AIter1
+                ("AIter1 -> ε",                     "end of ((b <L>)* c <L>)* iterations in A -> a  ► ((b <L>)* c <L>)* ◄  d"), // 4: AIter1 -> ε
             ], btreemap![
                 0 => vec![],
                 1 => vec![(2, 0)],
