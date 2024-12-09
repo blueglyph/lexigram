@@ -270,6 +270,22 @@ impl ParserGen {
         format!("{} -> {}", Symbol::NT(nt).to_str(self.get_symbol_table()), self.factor_to_str(f))
     }
 
+    /// Expands all the parents of left factorization by replacing the NTs on the right that are CHILD_L_FACTOR
+    /// with their factors. Proceeds until there are no more substitutions. Removes the empty symbols unless
+    /// they're alone in a factor.
+    ///
+    /// Example:
+    /// ```text
+    /// - A -> a A_1
+    /// - A -> e
+    /// - A_1 -> b A_2
+    /// - A_1 -> ε
+    /// - A_2 -> c
+    /// - A_2 -> d
+    /// - A_2 -> ε
+    ///
+    /// expand_lfact(a b A_2) -> a b | a b c | a b d
+    /// ```
     fn expand_lfact(&self, factors: &mut Vec<Vec<Symbol>>) {
         let mut change = true;
         while change {
@@ -359,13 +375,13 @@ impl ParserGen {
         let mut syms = prodf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();
         let mut left = *v_f;
         let lfact_str = if self.nt_has_flags(left, ruleflag::R_RECURSION | ruleflag::L_FORM) { " <L>" } else { "" };
-        // if it's a child of left factorization, gathers the front symbols from the parents
+        // if it's a child of left factorization, gathers the front symbols from the parents (going up)
         'up: while self.nt_has_flags(v_par_lf, ruleflag::CHILD_L_FACTOR) {
             let parent_v = self.parsing_table.parent[v_par_lf as usize].unwrap();
             for parent_f_id in &self.var_factors[parent_v as usize] {
                 let (_, parent_pf) = &self.parsing_table.factors[*parent_f_id as usize];
                 if let Some(idx) = parent_pf.iter().position(|sym| sym == &Symbol::NT(v_par_lf)) {
-                    if VERBOSE { print!("UN-FACT: {:?}: {:?} into {:?}", Symbol::NT(v_par_lf), syms, parent_pf.symbols()); }
+                    if VERBOSE { print!("  UN-FACT: {:?}: {:?} into {:?}", Symbol::NT(v_par_lf), syms, parent_pf.symbols()); }
                     let mut new_syms = parent_pf.symbols()[..idx].to_vec();
                     new_syms.extend(syms);
                     if VERBOSE { println!(" => {:?}", new_syms); }
@@ -381,13 +397,14 @@ impl ParserGen {
             syms.push(Symbol::Empty);
         }
         let mut facts = vec![syms];
+        // expands any left factorization in the factor (going down)
         self.expand_lfact(&mut facts);
         let mut comment = String::new();
         let parent = self.parsing_table.get_top_parent(v_par_lf);
 
         // left recursion
         if self.nt_has_flags(v_par_lf, ruleflag::PARENT_L_RECURSION) {
-            // initial value of left recusion loop
+            // initial value of left recursion loop
             left = parent;
             for f in facts.iter_mut() {
                 f.pop();
@@ -406,7 +423,7 @@ impl ParserGen {
         }
         let q = if quote { "`" } else { "" };
         let result = if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
-            if VERBOSE { println!("full_factor_str({f_id}): P+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
+            if VERBOSE { println!("  full_factor_str({f_id}): P+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
             (
                 Symbol::NT(left).to_str(self.get_symbol_table()),
                 format!("{}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
@@ -428,8 +445,8 @@ impl ParserGen {
             let more_str = if what_is_using_v.len() > 1 { " | ..." } else { "" };
             let is_lform = self.nt_has_flags(v_id as VarId, ruleflag::L_FORM);
             if VERBOSE {
-                println!("full_factor_str({f_id}): C+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
-                println!("what_is_using_v ({}) = {what_is_using_v:?}", Symbol::NT(v_id).to_str(self.get_symbol_table()));
+                println!("  full_factor_str({f_id}): C+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+                println!("  what_is_using_v ({}) = {what_is_using_v:?}", Symbol::NT(v_id).to_str(self.get_symbol_table()));
             }
             (
                 "".to_string(),
@@ -446,13 +463,13 @@ impl ParserGen {
                 }
             )
         } else {
-            if VERBOSE { println!("full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
+            if VERBOSE { println!("  full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
             (
                 Symbol::NT(left).to_str(self.get_symbol_table()),
                 format!("{}{lfact_str}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
             )
         };
-        if VERBOSE { println!(" => {result:?}"); }
+        if VERBOSE { println!("=> {result:?}"); }
         result
     }
 
