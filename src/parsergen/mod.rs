@@ -134,6 +134,7 @@ pub struct ParserGen {
     symbol_table: SymbolTable,
     name: String,
     nt_value: Vec<bool>,
+    /// `nt_parent[v]` is the vector of all variables having `v` has top parent (including `v` itself)
     nt_parent: Vec<Vec<VarId>>,
     var_factors: Vec<Vec<FactorId>>,
     item_ops: HashMap<FactorId, Vec<Symbol>>,
@@ -368,7 +369,7 @@ impl ParserGen {
     }
 
     fn full_factor_components(&self, f_id: FactorId, emphasis: Option<VarId>, quote: bool) -> (String, String) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         if VERBOSE { println!("full_factor_components(f_id = {f_id}):"); }
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
         let mut v_par_lf =  *v_f;
@@ -422,22 +423,16 @@ impl ParserGen {
             }
         }
         let q = if quote { "`" } else { "" };
-        let result = if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
-            if VERBOSE { println!("  full_factor_str({f_id}): P+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
-            (
-                Symbol::NT(left).to_str(self.get_symbol_table()),
-                format!("{}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
-            )
-        } else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
+        let result = if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
             let is_empty = self.parsing_table.factors[f_id as usize].1.symbols().first() == Some(&Symbol::Empty);
             let v_id = v_par_lf;
-            let top_parent = self.parsing_table.get_top_parent(v_id);
-            let what_is_using_v = self.get_group_factors(&self.nt_parent[top_parent as usize]).iter()
+            let what_is_using_v = self.get_group_factors(&self.nt_parent[parent as usize]).iter()
                 // we exclude the repeat loop itself
                 // - in the case of *: *v != v_id (see RTS(26))
                 // - in the case of +: in any direct child factor, due to the left factorization of + (see RTS(16))
                 .filter(|(v, _)| *v != v_id && self.parsing_table.parent[*v as usize] != Some(v_id))
-                .filter_map(|(v, f)| if self.parsing_table.factors[*f as usize].1.symbols().iter().any(|s| *s == Symbol::NT(v_id)) { Some((*v, *f)) } else { None })
+                .filter_map(|(v, f)|
+                    if self.parsing_table.factors[*f as usize].1.symbols().iter().any(|s| *s == Symbol::NT(v_id)) { Some((*v, *f)) } else { None })
                 .to_vec();
             let (_var_using_v, fact_using_v) = what_is_using_v[0];
             // if there are several factors using v (see RTS(32)), we only show the first; the others are alternatives
@@ -445,8 +440,11 @@ impl ParserGen {
             let more_str = if what_is_using_v.len() > 1 { " | ..." } else { "" };
             let is_lform = self.nt_has_flags(v_id as VarId, ruleflag::L_FORM);
             if VERBOSE {
-                println!("  full_factor_str({f_id}): C+*, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+                println!("  full_factor_str({f_id}): C+*, v_par_lf={v_par_lf}, facts={}",
+                         facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
                 println!("  what_is_using_v ({}) = {what_is_using_v:?}", Symbol::NT(v_id).to_str(self.get_symbol_table()));
+                println!("  self.repeat_factor_str(&vec![{}], None) = {}",
+                         Symbol::NT(v_par_lf).to_str(self.get_symbol_table()), self.full_factor_str(fact_using_v, Some(v_par_lf as VarId), false));
             }
             (
                 "".to_string(),
@@ -462,8 +460,18 @@ impl ParserGen {
                             self.full_factor_str(fact_using_v, Some(v_id as VarId), false))
                 }
             )
+        } else if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
+            if VERBOSE {
+                println!("  full_factor_str({f_id}): P+*, v_par_lf={v_par_lf}, facts={}",
+                         facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+            }
+            (
+                Symbol::NT(left).to_str(self.get_symbol_table()),
+                format!("{}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
+            )
         } else {
-            if VERBOSE { println!("  full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}", facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
+            if VERBOSE { println!("  full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}",
+                                  facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
             (
                 Symbol::NT(left).to_str(self.get_symbol_table()),
                 format!("{}{lfact_str}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
@@ -480,18 +488,6 @@ impl ParserGen {
         } else {
             format!("{q}{left} -> {right}{q}", q = if quote { "`" } else { "" })
         }
-    }
-
-    fn full_prod_str(&self, v: VarId) -> String {
-        let mut result = "`".to_string();
-        result.push_str(&self.var_factors[v as usize].iter().enumerate()
-            .map(|(i, f_id)| {
-                let (left, right) = self.full_factor_components(*f_id, None, false);
-                if i == 0 && !left.is_empty() { format!("{left} -> {right}") } else { right }
-            })
-            .join(" | "));
-        result.push('`');
-        result
     }
 
     fn repeat_factor_str(&self, f: &Vec<Symbol>, emphasis: Option<VarId>) -> String {
