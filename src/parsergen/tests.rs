@@ -1450,25 +1450,11 @@ mod wrapper_source {
             //  - AIter2 -> AIter1
             //  - AIter1 -> A
             (RTS(39), vec![
-                // now:
-                // ("A -> a AIter1 d",           "A -> a (AIter2 c <L>)* d"),                                                 // 0: A -> a AIter1 d
-                // ("AIter2 -> b AIter2",        "(b <L>)* iteration in AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*"),         // 1: AIter2 -> b AIter2
-                // ("AIter2 -> ε",               "end of (b <L>)* iterations in AIter1 ->  ► (b <L>)* ◄  c (AIter2 c <L>)*"), // 2: AIter2 -> ε
-                // ("AIter1 -> AIter2 c AIter1", "AIter1 -> (b <L>)* c (AIter2 c <L>)*"),                                     // 3: AIter1 -> AIter2 c AIter1
-                // ("AIter1 -> ε",               "AIter1 -> ε"),                                                              // 4: AIter1 -> ε
-
-                ("A -> a AIter1 d",                 "A -> a ((b <L>)* c <L>)* d"),                                                                          // 0: A -> a AIter1 d
-                ("AIter2 -> b AIter2",              "(b <L>)* iteration in ( ► (b <L>)* ◄  c <L>)* iteration in A -> a  ► ((b <L>)* c <L>)* ◄  d"),         // 1: AIter2 -> b AIter2
-                ("AIter2 -> ε",                     "end of (b <L>)* iterations in ( ► (b <L>)* ◄  c <L>)* iteration in A -> a  ► ((b <L>)* c <L>)* ◄  d"), // 2: AIter2 -> ε
-                ("AIter1 -> AIter2 c AIter1",       "((b <L>)* c <L>)* iteration in A -> a  ► ((b <L>)* c <L>)* ◄  d"),                                     // 3: AIter1 -> AIter2 c AIter1
-                ("AIter1 -> ε",                     "end of ((b <L>)* c <L>)* iterations in A -> a  ► ((b <L>)* c <L>)* ◄  d"),                             // 4: AIter1 -> ε
-
-                // should be:
-                // ("A -> a AIter1 d",                 "A -> a ((b <L>)* c <L>)* d"),                                              // 0: A -> a AIter1 d
-                // ("AIter2 -> b AIter2",              "(b <L>)* iteration in A -> (  ► (b <L>)* ◄  c <L>)*"),                     // 1: AIter2 -> b AIter2
-                // ("AIter2 -> ε",                     "end of (b <L>)* iterations in A -> (  ► (b <L>)* ◄  c <L>)*"),             // 2: AIter2 -> ε
-                // ("AIter1 -> AIter2 c AIter1",       "((b <L>)* c <L>)* iteration in A -> a  ► ((b <L>)* c <L>)* ◄  d"),         // 3: AIter1 -> AIter2 c AIter1
-                // ("AIter1 -> ε",                     "end of ((b <L>)* c <L>)* iterations in A -> a  ► ((b <L>)* c <L>)* ◄  d"), // 4: AIter1 -> ε
+                ("A -> a AIter1 d",                 "A -> a ((b <L>)* c <L>)* d"),                                              // 0: A -> a AIter1 d
+                ("AIter2 -> b AIter2",              "(b <L>)* iteration in A -> a ( ► (b <L>)* ◄  c <L>)* d"),                  // 1: AIter2 -> b AIter2
+                ("AIter2 -> ε",                     "end of (b <L>)* iterations in A -> a ( ► (b <L>)* ◄  c <L>)* d"),          // 2: AIter2 -> ε
+                ("AIter1 -> AIter2 c AIter1",       "((b <L>)* c <L>)* iteration in A -> a  ► ((b <L>)* c <L>)* ◄  d"),         // 3: AIter1 -> AIter2 c AIter1
+                ("AIter1 -> ε",                     "end of ((b <L>)* c <L>)* iterations in A -> a  ► ((b <L>)* c <L>)* ◄  d"), // 4: AIter1 -> ε
             ], btreemap![
                 0 => vec![],
                 1 => vec![(2, 0)],
@@ -1617,18 +1603,78 @@ mod wrapper_source {
                 2 => vec![(2, 0)],
                 3 => vec![(2, 0)],
             ]),
+            // A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_3: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
+            //  - A_4: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_5: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_6: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
+            //  - A_7: child_left_fact (64)
+            //  - A_8: child_left_fact (64)
+            //  - A_9: child_left_fact (64)
+            //  - A_10: child_left_fact (64)
+            //  - A_11: child_left_fact (64)
+            //  - A_12: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A_3
+            //  - A_2 -> A
+            //  - A_3 -> A
+            //  - A_4 -> A_6
+            //  - A_5 -> A
+            //  - A_6 -> A
+            //  - A_7 -> A_1
+            //  - A_8 -> A_2
+            //  - A_9 -> A_3
+            //  - A_10 -> A_4
+            //  - A_11 -> A_5
+            //  - A_12 -> A_6
+            (RTS(34), vec![
+                ("A -> a A_3 c A_6 d",              "A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d"),                                    // 0: A -> a A_3 c A_6 d
+                ("A_1 -> b | b A_1",                "[b]+ item in A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d"),                 // 1: A_1 -> b A_7
+                ("A_2 -> b | b A_2",                "[b]+ item in A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d"),                 // 2: A_2 -> b A_8
+                ("A_3 -> A_1 A_2 | A_1 A_2 A_3",    "[[b]+ [b]+]+ item in A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d"),         // 3: A_3 -> A_1 A_2 A_9
+                ("A_4 -> b | b A_4",                "[b]+ item in A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d"),                 // 4: A_4 -> b A_10
+                ("A_5 -> b | b A_5",                "[b]+ item in A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d"),                 // 5: A_5 -> b A_11
+                ("A_6 -> A_4 A_5 | A_4 A_5 A_6",    "[[b]+ [b]+]+ item in A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d"),         // 6: A_6 -> A_4 A_5 A_12
+                ("A_7 -> A_1",                      "[b]+ item in A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d"),                 // 7: A_7 -> A_1
+                ("A_7 -> ε",                        "end of [b]+ items in A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d"),         // 8: A_7 -> ε
+                ("A_8 -> A_2",                      "[b]+ item in A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d"),                 // 9: A_8 -> A_2
+                ("A_8 -> ε",                        "end of [b]+ items in A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d"),         // 10: A_8 -> ε
+                ("A_9 -> A_3",                      "[[b]+ [b]+]+ item in A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d"),         // 11: A_9 -> A_3
+                ("A_9 -> ε",                        "end of [[b]+ [b]+]+ items in A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d"), // 12: A_9 -> ε
+                ("A_10 -> A_4",                     "[b]+ item in A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d"),                 // 13: A_10 -> A_4
+                ("A_10 -> ε",                       "end of [b]+ items in A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d"),         // 14: A_10 -> ε
+                ("A_11 -> A_5",                     "[b]+ item in A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d"),                 // 15: A_11 -> A_5
+                ("A_11 -> ε",                       "end of [b]+ items in A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d"),         // 16: A_11 -> ε
+                ("A_12 -> A_6",                     "[[b]+ [b]+]+ item in A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d"),         // 17: A_12 -> A_6
+                ("A_12 -> ε",                       "end of [[b]+ [b]+]+ items in A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d"), // 18: A_12 -> ε
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(3, 0)],
+                2 => vec![(3, 0)],
+                3 => vec![(3, 0)],
+                4 => vec![(6, 0)],
+                5 => vec![(6, 0)],
+                6 => vec![(6, 0)],
+                7 => vec![(3, 0)],
+                8 => vec![(3, 0)],
+                9 => vec![(3, 0)],
+                10 => vec![(6, 0)],
+                11 => vec![(6, 0)],
+                12 => vec![(6, 0)],
+            ]),
             /*
             (PRS(), vec![
             ], btreemap![
             ]),
             */
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, expected_expanded_full, expected_top_factors)) in tests.into_iter().enumerate() {
-
-//if hashset![RTS(39)].contains(&rule_id) { continue; }
-
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}:", ""); }
 
@@ -1644,7 +1690,7 @@ mod wrapper_source {
                 result_expanded.push(format!("{} -> {}",
                                              Symbol::NT(*v).to_str(builder.get_symbol_table()),
                                              expanded.iter().map(|fact| builder.factor_to_str(fact)).join(" | ")));
-                result_full.push(format!("{}", builder.full_factor_str::<true>(f_id as FactorId, None, false)));
+                result_full.push(format!("{}", builder.full_factor_str::<false>(f_id as FactorId, None, false)));
             }
             let mut result_top_factors = BTreeMap::<VarId, Vec<(VarId, FactorId)>>::new();
             for group in builder.nt_parent.iter().filter(|v| !v.is_empty()) {
@@ -1685,9 +1731,6 @@ mod wrapper_source {
             }
             let expected_expanded = expected_expanded.into_iter().map(|s| s.to_string()).to_vec();
             assert_eq!(result_expanded, expected_expanded, "Test {test_id}: {rule_id:?} failed");
-
-// if hashset![RTS(39)].contains(&rule_id) { continue; }
-
             assert_eq!(result_full, expected_full, "Test {test_id}: {rule_id:?} failed");
             assert_eq!(result_top_factors, expected_top_factors, "Test {test_id}: {rule_id:?} failed");
         }

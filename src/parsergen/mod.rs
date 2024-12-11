@@ -425,25 +425,37 @@ impl ParserGen {
         let q = if quote { "`" } else { "" };
         let result = if self.nt_has_flags(v_par_lf, ruleflag::CHILD_REPEAT) {
             let is_empty = self.parsing_table.factors[f_id as usize].1.symbols().first() == Some(&Symbol::Empty);
-            let v_id = v_par_lf;
-            let what_is_using_v = self.get_group_factors(&self.nt_parent[parent as usize]).iter()
-                // we exclude the repeat loop itself
-                // - in the case of *: *v != v_id (see RTS(26))
-                // - in the case of +: in any direct child factor, due to the left factorization of + (see RTS(16))
-                .filter(|(v, _)| *v != v_id && self.parsing_table.parent[*v as usize] != Some(v_id))
-                .filter_map(|(v, f)|
-                    if self.parsing_table.factors[*f as usize].1.symbols().iter().any(|s| *s == Symbol::NT(v_id)) { Some((*v, *f)) } else { None })
-                .to_vec();
-            let (_var_using_v, fact_using_v) = what_is_using_v[0];
+            // let v_id = v_par_lf;
+            let mut what_is_using_v: Vec<(VarId, FactorId)>;
+            let mut fact_using_v: FactorId;
+            let mut v_top = v_par_lf;
+            loop {
+                what_is_using_v = self.get_group_factors(&self.nt_parent[parent as usize]).iter()
+                    // we exclude the repeat loop itself
+                    // - in the case of *: *v != v_id (see RTS(26))
+                    // - in the case of +: in any direct child factor, due to the left factorization of + (see RTS(16))
+                    .filter(|(v, _)| *v != v_top && self.parsing_table.parent[*v as usize] != Some(v_top))
+                    .filter_map(|(v, f)|
+                        if self.parsing_table.factors[*f as usize].1.symbols().iter().any(|s| *s == Symbol::NT(v_top)) { Some((*v, *f)) } else { None })
+                    .to_vec();
+                fact_using_v = what_is_using_v[0].1;
+                let nt_using_v = what_is_using_v[0].0;
+                // if the child+* is used in another child+*, continue to go up in order to avoid a long chain of
+                // ... iteration in ... in iteration ... etc.
+                if !self.nt_has_flags(nt_using_v, ruleflag::CHILD_REPEAT) {
+                    break;
+                }
+                v_top = nt_using_v;
+            }
             // if there are several factors using v (see RTS(32)), we only show the first; the others are alternatives
             // of a left factorization in earlier symbols.
             let more_str = if what_is_using_v.len() > 1 { " | ..." } else { "" };
-            let is_lform = self.nt_has_flags(v_id as VarId, ruleflag::L_FORM);
+            let is_lform = self.nt_has_flags(v_par_lf, ruleflag::L_FORM);
             let emphasis_maybe = emphasis;
             if VERBOSE {
                 println!("  full_factor_str({f_id}): C+*, v_par_lf={v_par_lf}, facts={}",
                          facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
-                println!("  what_is_using_v ({}) = {what_is_using_v:?}", Symbol::NT(v_id).to_str(self.get_symbol_table()));
+                println!("  what_is_using_v ({}) = {what_is_using_v:?}", Symbol::NT(v_par_lf).to_str(self.get_symbol_table()));
                 println!("  self.repeat_factor_str(&vec![{}], None) = '{}'",
                          Symbol::NT(v_par_lf).to_str(self.get_symbol_table()),
                          self.repeat_factor_str(&vec![Symbol::NT(v_par_lf)], emphasis_maybe));
@@ -463,7 +475,7 @@ impl ParserGen {
                     format!("{q}{}{q} {} in {q}{}{more_str}{q}",
                             self.repeat_factor_str(&vec![Symbol::NT(v_par_lf)], emphasis_maybe),
                             if is_lform { "iteration" } else { "item" },
-                            self.full_factor_str::<false>(fact_using_v, Some(v_id as VarId), false))
+                            self.full_factor_str::<false>(fact_using_v, Some(v_par_lf), false))
                 }
             )
         } else if self.nt_has_flags(v_par_lf, ruleflag::PARENT_REPEAT) {
