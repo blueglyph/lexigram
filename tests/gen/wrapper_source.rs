@@ -4152,7 +4152,7 @@ pub(crate) mod rules_prs_31_1 {
         E1 { f: SynF },
         /// `E -> E . id`
         E2 { e: SynE, id: String },
-        /// `E -> ε (end of loop)`
+        /// end of iterations in E -> E . id
         E3 { e: SynE },
     }
     #[derive(Debug)]
@@ -4212,7 +4212,7 @@ pub(crate) mod rules_prs_31_1 {
                     match factor_id {
                         0 => self.init_e(),                         // E -> F
                         2 |                                         // E -> E . id
-                        3 => self.exit_e1(factor_id),               // E -> ε (end of loop)
+                        3 => self.exit_e1(factor_id),               // end of iterations in E -> E . id
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -4309,7 +4309,7 @@ pub(crate) mod rules_prs_31_2 {
         E1 { f: SynF },
         /// `E -> E . id`
         E2 { id: String },
-        /// `E -> ε (end of loop)`
+        /// end of iterations in E -> E . id
         E3,
     }
     #[derive(Debug)]
@@ -4369,7 +4369,7 @@ pub(crate) mod rules_prs_31_2 {
                     match factor_id {
                         0 => self.init_e(),                         // E -> F
                         2 |                                         // E -> E . id
-                        3 => self.exit_e1(factor_id),               // E -> ε (end of loop)
+                        3 => self.exit_e1(factor_id),               // end of iterations in E -> E . id
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -4461,7 +4461,7 @@ pub(crate) mod rules_prs_36_1 {
         E2 { num: String },
         /// `E -> E . id`
         E3 { e: SynE, id: String },
-        /// `E -> ε (end of loop)`
+        /// end of iterations in E -> E . id
         E4 { e: SynE },
     }
     #[derive(Debug)]
@@ -4522,7 +4522,7 @@ pub(crate) mod rules_prs_36_1 {
                         0 |                                         // E -> F
                         1 => self.init_e(factor_id),                // E -> num
                         3 |                                         // E -> E . id
-                        4 => self.exit_e1(factor_id),               // E -> ε (end of loop)
+                        4 => self.exit_e1(factor_id),               // end of iterations in E -> E . id
                         2 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -4630,7 +4630,7 @@ pub(crate) mod rules_prs_33_1 {
     pub enum CtxA {
         /// `A -> A a`
         A1 { a: SynA, a1: String },
-        /// `A -> ε (end of loop)`
+        /// end of iterations in A -> A a
         A2 { a: SynA },
         /// `A -> b c`
         A3 { b: String, c: String },
@@ -4685,7 +4685,7 @@ pub(crate) mod rules_prs_33_1 {
                         3 |                                         // A -> b c
                         4 => self.init_a(factor_id),                // A -> b d
                         1 |                                         // A -> A a
-                        2 => self.exit_a1(factor_id),               // A -> ε (end of loop)
+                        2 => self.exit_a1(factor_id),               // end of iterations in A -> A a
                      /* 0 */                                        // A -> b c | b d (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -4792,7 +4792,7 @@ pub(crate) mod rules_prs_38_1 {
         A1 { a: SynA, a1: String },
         /// `A -> A b`
         A2 { a: SynA, b: String },
-        /// `A -> ε (end of loop)`
+        /// end of iterations in A -> A a | A b
         A3 { a: SynA },
         /// `A -> b c`
         A4 { b: String, c: String },
@@ -4848,7 +4848,7 @@ pub(crate) mod rules_prs_38_1 {
                         5 => self.init_a(factor_id),                // A -> b d
                         1 |                                         // A -> A a
                         2 |                                         // A -> A b
-                        3 => self.exit_a1(factor_id),               // A -> ε (end of loop)
+                        3 => self.exit_a1(factor_id),               // end of iterations in A -> A a | A b
                      /* 0 */                                        // A -> b c | b d (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -4959,7 +4959,7 @@ pub(crate) mod rules_prs_39_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> ε (end of loop)`
+        /// end of iterations in A -> A a b | A a c
         A1 { a: SynA },
         /// `A -> b c`
         A2 { b: String, c: String },
@@ -5018,7 +5018,7 @@ pub(crate) mod rules_prs_39_1 {
                     match factor_id {
                         3 |                                         // A -> b c
                         4 => self.init_a(factor_id),                // A -> b d
-                        2 |                                         // A -> ε (end of loop)
+                        2 |                                         // end of iterations in A -> A a b | A a c
                         5 |                                         // A -> A a b
                         6 => self.exit_a1(factor_id),               // A -> A a c
                      /* 0 */                                        // A -> b c | b d (never called)
@@ -5134,7 +5134,7 @@ pub(crate) mod rules_prs_32_1 {
     pub enum CtxE {
         /// `E -> F`
         E1 { f: SynF },
-        /// `E -> ε (end of loop)`
+        /// end of iterations in E -> E . id ( ) | E . id
         E2 { e: SynE },
         /// `E -> E . id ( )`
         E3 { e: SynE, id: String },
@@ -5198,7 +5198,7 @@ pub(crate) mod rules_prs_32_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_e(),                         // E -> F
-                        3 |                                         // E -> ε (end of loop)
+                        3 |                                         // end of iterations in E -> E . id ( ) | E . id
                         4 |                                         // E -> E . id ( )
                         5 => self.exit_e1(factor_id),               // E -> E . id
                      /* 2 */                                        // E -> E . id ( ) | E . id (never called)
@@ -5309,7 +5309,7 @@ pub(crate) mod rules_rts_38_1 {
     pub enum CtxA {
         /// `A -> d`
         A1 { d: String },
-        /// `A -> ε (end of loop)`
+        /// end of iterations in A -> A a c | A a | A b c | A b
         A2 { a: SynA },
         /// `A -> A a c`
         A3 { a: SynA, a1: String, c: String },
@@ -5367,7 +5367,7 @@ pub(crate) mod rules_rts_38_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_a(),                         // A -> d
-                        3 |                                         // A -> ε (end of loop)
+                        3 |                                         // end of iterations in A -> A a c | A a | A b c | A b
                         4 |                                         // A -> A a c
                         5 |                                         // A -> A a
                         6 |                                         // A -> A b c
@@ -5486,7 +5486,7 @@ pub(crate) mod rules_rts_38_2 {
     pub enum CtxA {
         /// `A -> d`
         A1 { d: String },
-        /// `A -> ε (end of loop)`
+        /// end of iterations in A -> A a c | A a | A b c | A b
         A2 { a: SynA },
         /// `A -> A a c`
         A3 { a: SynA },
@@ -5544,7 +5544,7 @@ pub(crate) mod rules_rts_38_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_a(),                         // A -> d
-                        3 |                                         // A -> ε (end of loop)
+                        3 |                                         // end of iterations in A -> A a c | A a | A b c | A b
                         4 |                                         // A -> A a c
                         5 |                                         // A -> A a
                         6 |                                         // A -> A b c
@@ -5656,7 +5656,7 @@ pub(crate) mod rules_rts_38_3 {
     pub enum CtxA {
         /// `A -> d`
         A1,
-        /// `A -> ε (end of loop)`
+        /// end of iterations in A -> A a c | A a | A b c | A b
         A2,
         /// `A -> A a c`
         A3,
@@ -5709,7 +5709,7 @@ pub(crate) mod rules_rts_38_3 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.init_a(),                         // A -> d
-                        3 |                                         // A -> ε (end of loop)
+                        3 |                                         // end of iterations in A -> A a c | A a | A b c | A b
                         4 |                                         // A -> A a c
                         5 |                                         // A -> A a
                         6 |                                         // A -> A b c
@@ -6545,7 +6545,7 @@ pub(crate) mod rules_rts_26_1 {
         A1 { a: String },
         /// `A -> A [c]* b`
         A2 { a: SynA, star: SynA1, b: String },
-        /// `A -> ε (end of loop)`
+        /// end of iterations in A -> A [c]* b
         A3 { a: SynA },
     }
 
@@ -6602,7 +6602,7 @@ pub(crate) mod rules_rts_26_1 {
                         1 => self.exit_a1(),                        // [c]* item in A -> A  ► [c]* ◄  b
                         2 => {}                                     // end of [c]* items in A -> A  ► [c]* ◄  b
                         3 |                                         // A -> A [c]* b
-                        4 => self.exit_a2(factor_id),               // A -> ε (end of loop)
+                        4 => self.exit_a2(factor_id),               // end of iterations in A -> A [c]* b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -6712,7 +6712,7 @@ pub(crate) mod rules_rts_16_1 {
         A1 { a: String },
         /// `A -> A [c]+ b`
         A2 { a: SynA, plus: SynA1, b: String },
-        /// `A -> ε (end of loop)`
+        /// end of iterations in A -> A [c]+ b
         A3 { a: SynA },
     }
 
@@ -6770,7 +6770,7 @@ pub(crate) mod rules_rts_16_1 {
                         4 |                                         // [c]+ item in A -> A  ► [c]+ ◄  b
                         5 => self.exit_a1(),                        // end of [c]+ items in A -> A  ► [c]+ ◄  b
                         2 |                                         // A -> A [c]+ b
-                        3 => self.exit_a2(factor_id),               // A -> ε (end of loop)
+                        3 => self.exit_a2(factor_id),               // end of iterations in A -> A [c]+ b
                      /* 1 */                                        // [c]+ item in A -> A  ► [c]+ ◄  b (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }

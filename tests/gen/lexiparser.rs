@@ -102,7 +102,7 @@ mod lexiparser {
         AltItems1 { alt_item: SynAltItem },
         /// `alt_items -> alt_items | alt_item`
         AltItems2 { alt_items: SynAltItems, alt_item: SynAltItem },
-        /// `alt_items -> ε (end of loop)`
+        /// end of iterations in alt_items -> alt_items | alt_item
         AltItems3 { alt_items: SynAltItems },
     }
     #[derive(Debug)]
@@ -114,7 +114,7 @@ mod lexiparser {
     pub enum CtxRepeatItem {
         /// `repeat_item -> item`
         RepeatItem1 { item: SynItem },
-        /// `repeat_item -> ε (end of loop)`
+        /// end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
         RepeatItem2 { repeat_item: SynRepeatItem },
         /// `repeat_item -> repeat_item + ?`
         RepeatItem3 { repeat_item: SynRepeatItem },
@@ -141,7 +141,7 @@ mod lexiparser {
         Item6 { strlit: String },
         /// `item -> item ?`
         Item7 { item: SynItem },
-        /// `item -> ε (end of loop)`
+        /// end of iterations in item -> item ?
         Item8 { item: SynItem },
         /// `item -> CharLit .. CharLit`
         Item9 { charlit: [String; 2] },
@@ -345,13 +345,13 @@ mod lexiparser {
                         15 => self.exit_match1(),                   // match -> alt_items
                         16 => self.init_alt_items(),                // alt_items -> alt_item
                         33 |                                        // alt_items -> alt_items | alt_item
-                        34 => self.exit_alt_items1(factor_id),      // alt_items -> ε (end of loop)
+                        34 => self.exit_alt_items1(factor_id),      // end of iterations in alt_items -> alt_items | alt_item
                         17 => self.exit_alt_item(),                 // alt_item -> [repeat_item]+
                         44 |                                        // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄
                         45 => self.exit_alt_item1(),                // end of [repeat_item]+ items in alt_item ->  ► [repeat_item]+ ◄
                      /* 32 */                                       // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄  (never called)
                         18 => self.init_repeat_item(),              // repeat_item -> item
-                        37 |                                        // repeat_item -> ε (end of loop)
+                        37 |                                        // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
                         46 |                                        // repeat_item -> repeat_item + ?
                         47 |                                        // repeat_item -> repeat_item +
                         48 |                                        // repeat_item -> repeat_item * ?
@@ -367,7 +367,7 @@ mod lexiparser {
                         42 |                                        // item -> CharLit .. CharLit
                         43 => self.init_item(factor_id),            // item -> CharLit
                         38 |                                        // item -> item ?
-                        39 => self.exit_item1(factor_id),           // item -> ε (end of loop)
+                        39 => self.exit_item1(factor_id),           // end of iterations in item -> item ?
                      /* 23 */                                       // item -> CharLit .. CharLit | CharLit (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }

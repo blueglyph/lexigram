@@ -400,7 +400,7 @@ impl ParserGen {
         let mut facts = vec![syms];
         // expands any left factorization in the factor (going down)
         self.expand_lfact(&mut facts);
-        let mut comment = String::new();
+        // let  comment = String::new();
         let parent = self.parsing_table.get_top_parent(v_par_lf);
 
         // left recursion
@@ -417,9 +417,9 @@ impl ParserGen {
                 if !matches!(f.first(), Some(Symbol::Empty)) {
                     f.pop();
                     f.insert(0, Symbol::NT(left));
-                } else {
+                }/* else {
                     comment.push_str(" (end of loop)");
-                }
+                }*/
             }
         }
         let q = if quote { "`" } else { "" };
@@ -485,17 +485,30 @@ impl ParserGen {
             }
             (
                 Symbol::NT(left).to_str(self.get_symbol_table()),
-                format!("{}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
+                format!("{}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
             )
         } else {
             if VERBOSE {
                 println!("  full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}",
                          facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
             }
-            (
-                Symbol::NT(left).to_str(self.get_symbol_table()),
-                format!("{}{lfact_str}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
-            )
+            if self.nt_has_flags(v_par_lf, ruleflag::CHILD_L_RECURSION) && facts.len() == 1 && facts[0].first() == Some(&Symbol::Empty) {
+                let lrec_facts = self.var_factors[v_par_lf as usize].iter()
+                    .cloned()
+                    .filter(|lrec_fid| self.parsing_table.factors[*lrec_fid as usize].1.first() != Some(&Symbol::Empty))
+                    .to_vec();
+                (
+                    String::new(),
+                    format!("end of iterations in {} -> {}",
+                            Symbol::NT(parent).to_str(self.get_symbol_table()),
+                            lrec_facts.into_iter().map(|lrec_fid| self.full_factor_components::<false>(lrec_fid, None, false).1).join(" | "))
+                )
+            } else {
+                (
+                    Symbol::NT(left).to_str(self.get_symbol_table()),
+                    format!("{}{lfact_str}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
+                )
+            }
         };
         if VERBOSE { println!("=> {result:?}"); }
         result

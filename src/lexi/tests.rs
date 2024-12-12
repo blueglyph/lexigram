@@ -203,7 +203,7 @@ fn lexiparser_source() {
     // CAUTION! Setting this to 'true' modifies the validation file with the current result
     const REPLACE_SOURCE: bool = false;
 
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const FILENAME: &str = "tests/gen/lexiparser.rs";
     const TAG: &str = "lexiparser";
     let mut rts = build_rts();
