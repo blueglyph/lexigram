@@ -81,7 +81,7 @@ pub(crate) mod rules_prs_34_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -194,7 +194,7 @@ pub(crate) mod rules_rts_21_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_21_1::*;
 
     #[derive(Debug)]
@@ -236,7 +236,7 @@ pub(crate) mod rules_rts_21_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -330,7 +330,7 @@ pub(crate) mod rules_rts_21_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_21_2::*;
 
     #[derive(Debug)]
@@ -367,7 +367,7 @@ pub(crate) mod rules_rts_21_2 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -498,7 +498,7 @@ pub(crate) mod rules_rts_22_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -648,7 +648,7 @@ pub(crate) mod rules_rts_22_2 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -792,7 +792,7 @@ pub(crate) mod rules_rts_22_3 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -944,7 +944,7 @@ pub(crate) mod rules_rts_22_4 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1097,7 +1097,7 @@ pub(crate) mod rules_rts_32_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1218,7 +1218,7 @@ pub(crate) mod rules_rts_25_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(25) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_25_1::*;
 
     #[derive(Debug)]
@@ -1255,7 +1255,7 @@ pub(crate) mod rules_rts_25_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1340,7 +1340,7 @@ pub(crate) mod rules_rts_23_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(23) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_23_1::*;
 
     #[derive(Debug)]
@@ -1382,7 +1382,7 @@ pub(crate) mod rules_rts_23_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1484,7 +1484,7 @@ pub(crate) mod rules_rts_27_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(27) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_27_1::*;
 
     #[derive(Debug)]
@@ -1540,7 +1540,7 @@ pub(crate) mod rules_rts_27_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1650,7 +1650,7 @@ pub(crate) mod rules_rts_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(28) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_28_1::*;
 
     #[derive(Debug)]
@@ -1706,7 +1706,7 @@ pub(crate) mod rules_rts_28_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1861,7 +1861,7 @@ pub(crate) mod rules_rts_24_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2005,7 +2005,7 @@ pub(crate) mod rules_rts_24_2 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2144,7 +2144,7 @@ pub(crate) mod rules_rts_24_3 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2291,7 +2291,7 @@ pub(crate) mod rules_rts_24_4 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2389,7 +2389,7 @@ pub(crate) mod rules_rts_29_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_29_1::*;
 
     #[derive(Debug)]
@@ -2454,7 +2454,7 @@ pub(crate) mod rules_rts_29_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2579,7 +2579,7 @@ pub(crate) mod rules_rts_29_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_29_2::*;
 
     #[derive(Debug)]
@@ -2628,7 +2628,7 @@ pub(crate) mod rules_rts_29_2 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2737,7 +2737,7 @@ pub(crate) mod rules_rts_29_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #3, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -2793,7 +2793,7 @@ pub(crate) mod rules_rts_29_3 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2972,7 +2972,7 @@ pub(crate) mod rules_rts_39_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -3166,7 +3166,7 @@ pub(crate) mod rules_rts_40_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -3300,7 +3300,7 @@ pub(crate) mod rules_rts_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_30_1::*;
 
     #[derive(Debug)]
@@ -3365,7 +3365,7 @@ pub(crate) mod rules_rts_30_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -3500,7 +3500,7 @@ pub(crate) mod rules_rts_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3556,7 +3556,7 @@ pub(crate) mod rules_rts_30_2 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -3715,7 +3715,7 @@ pub(crate) mod rules_rts_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(34) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::VarId, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
     use super::super::wrapper_code::code_rts_34_1::*;
 
     #[derive(Debug)]
@@ -3793,7 +3793,7 @@ pub(crate) mod rules_rts_34_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4029,7 +4029,7 @@ pub(crate) mod rules_prs_28_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4194,7 +4194,7 @@ pub(crate) mod rules_prs_31_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4351,7 +4351,7 @@ pub(crate) mod rules_prs_31_2 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4503,7 +4503,7 @@ pub(crate) mod rules_prs_36_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4666,7 +4666,7 @@ pub(crate) mod rules_prs_33_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4828,7 +4828,7 @@ pub(crate) mod rules_prs_38_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4999,7 +4999,7 @@ pub(crate) mod rules_prs_39_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5180,7 +5180,7 @@ pub(crate) mod rules_prs_32_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5349,7 +5349,7 @@ pub(crate) mod rules_rts_38_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5526,7 +5526,7 @@ pub(crate) mod rules_rts_38_2 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5691,7 +5691,7 @@ pub(crate) mod rules_rts_38_3 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5842,7 +5842,7 @@ pub(crate) mod rules_prs_20_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5985,7 +5985,7 @@ pub(crate) mod rules_prs_20_2 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6134,7 +6134,7 @@ pub(crate) mod rules_prs_37_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6287,7 +6287,7 @@ pub(crate) mod rules_prs_30_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6436,7 +6436,7 @@ pub(crate) mod rules_prs_30_2 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6582,7 +6582,7 @@ pub(crate) mod rules_rts_26_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6749,7 +6749,7 @@ pub(crate) mod rules_rts_16_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6906,7 +6906,7 @@ pub(crate) mod rules_prs_35_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -7067,7 +7067,7 @@ pub(crate) mod rules_rts_33_1 {
     }
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }

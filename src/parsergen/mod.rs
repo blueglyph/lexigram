@@ -1210,7 +1210,9 @@ impl ParserGen {
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
 
-        self.used_libs.extend(["rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::Listener"]);
+        self.used_libs.extend([
+            "rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::Listener", "rlexer::grammar::FactorId"
+        ]);
 
         let (nt_name, factor_info, mut item_info, nt_repeat) = self.get_type_info();
         let pinfo = &self.parsing_table;
@@ -1528,9 +1530,6 @@ impl ParserGen {
                     if !no_method {
                         src_wrapper_impl.push(String::new());
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor_id { ", factor_id: FactorId" } else { "" }));
-                        if is_factor_id {
-                            self.used_libs.add("rlexer::grammar::FactorId");
-                        }
                     }
                     if !is_child_repeat_lform && flags & ruleflag::CHILD_REPEAT != 0 {
                         assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {} (+ and * don't support | children)",
@@ -1706,7 +1705,7 @@ impl ParserGen {
         src.push(format!("}}"));
         src.push(format!(""));
         src.push(format!("impl<T: {}Listener> Listener for ListenerWrapper<T> {{", self.name));
-        src.push(format!("    fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {{"));
+        src.push(format!("    fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {{"));
         src.push(format!("        if let Some(mut t_data) = t_data {{"));
         src.push(format!("            self.stack_t.append(&mut t_data);"));
         src.push(format!("        }}"));

@@ -281,7 +281,7 @@ mod lexiparser {
     }
 
     impl<T: LexiParserListener> Listener for ListenerWrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: VarId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
