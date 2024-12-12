@@ -465,7 +465,7 @@ impl ParserGen {
                          self.full_factor_str::<false>(fact_using_v, Some(v_par_lf as VarId), false));
             }
             (
-                "".to_string(),
+                String::new(),
                 if is_empty {
                     format!("end of {q}{}{q} {}s in {q}{}{more_str}{q}",
                             self.repeat_factor_str(&vec![Symbol::NT(v_par_lf)], emphasis_maybe),
@@ -488,8 +488,10 @@ impl ParserGen {
                 format!("{}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
             )
         } else {
-            if VERBOSE { println!("  full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}",
-                                  facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | ")); }
+            if VERBOSE {
+                println!("  full_factor_str({f_id}): std, v_par_lf={v_par_lf}, facts={}",
+                         facts.iter().map(|f| f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).join(" | "));
+            }
             (
                 Symbol::NT(left).to_str(self.get_symbol_table()),
                 format!("{}{lfact_str}{comment}", facts.into_iter().map(|f| self.repeat_factor_str(&f, emphasis)).join(" | "))
