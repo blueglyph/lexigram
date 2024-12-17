@@ -3,7 +3,7 @@
 - basic rlexer
   - [x] ~~create regex for rlexer's lexicon (manually)~~
   - [x] ~~replace struct Token(pub TokenId) by just a TokenId~~
-  - [ ] create simple top-down parser for rlexer's grammar (manually)
+  - [x] ~~create simple top-down parser for rlexer's grammar (manually)~~
   - [ ] transform regex AST to vectree
   - [ ] make binary application (lexicon file -> AST -> vectree -> dfa -> lexgen -> sources)
 - [ ] don't pour big ranges (.) into utf8 table
@@ -57,6 +57,11 @@
       - [ ] left/right-associativity
       - [x] ~~opcode builder based on flags~~
       - [ ] add option for loop value/end-of-loop call (+, *, r-rec)
+    - [ ] attach token information (text, line / col) to context items
+      - [ ] replace SynVal by CtxVal in wrapper, with struct CtxVal { val: SynVal, text: String, line: usize, col: usize, .. }?
+      - [ ] adapt lexer
+      - [ ] adapt parser
+      - [ ] adapt parser code generation
     - [ ] check if LL(1)
       - [ ] check indirect left recursion
     - [x] ~~build parsing table~~
@@ -72,11 +77,11 @@
     - [ ] generate code
       - [x] ~~context~~
       - [x] ~~SynValue~~
-      - [ ] trait
-      - [ ] switch
-      - [ ] impl wrapper
+      - [x] ~~trait~~
+      - [x] ~~switch~~
+      - [x] ~~impl wrapper~~
       - [ ] special case of ambiguous left recursions (A α A)
-      - [ ] NT whose nt_value is false but which carry other valuable NTs or T data must have an internal Syn type
+      - [x] ~~NT whose nt_value is false but which carry other valuable NTs or T data must have an internal Syn type~~ 
     - [ ] loose ends / to check
       - [ ] name fixer / ...: prevent reserved words ("type", "const", ...) 
       - [ ] name fixer when creating children NTs (grammar/symbol_table) 
