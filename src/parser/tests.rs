@@ -112,8 +112,7 @@ fn parser_parse_stream() {
         let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id, false));
         ll1.set_start(start);
         let symbols = (0..ll1.get_num_t() as TokenId)
-            .map(|t| Symbol::T(t))
-            .map(|s| (s.to_str(ll1.get_symbol_table()), s))
+            .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
         let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
         for (input, expected_success) in sequences {
@@ -209,8 +208,7 @@ fn parser_parse_stream_id() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
         let mut ll1 = ll_id.get_prs(test_id, start, false);
         let symbols = (0..ll1.get_num_t() as TokenId)
-            .map(|t| Symbol::T(t))
-            .map(|s| (s.to_str(ll1.get_symbol_table()), s))
+            .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
         let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
         for (input, expected_success) in sequences {
@@ -220,9 +218,9 @@ fn parser_parse_stream_id() {
                     (*s, w.to_string() )
                 } else {
                     if w.chars().next().unwrap().is_ascii_digit() {
-                        (Symbol::T(num_id), w.to_string())
+                        (num_id, w.to_string())
                     } else {
-                        (Symbol::T(id_id), w.to_string())
+                        (id_id, w.to_string())
                     }
                 }
             });
@@ -452,8 +450,7 @@ mod listener {
             let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id, false));
             ll1.set_start(start);
             let symbols = (0..ll1.get_num_t() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(ll1.get_symbol_table()), s))
+                .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
                 .collect::<HashMap<_, _>>();
             let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
             for (input, expected_success, expected_result) in sequences {
@@ -464,8 +461,8 @@ mod listener {
                         None
                     } else {
                         Some(match c {
-                            '0'..='9' => (Symbol::T(6), c_str),
-                            'a'..='z' => (Symbol::T(7), c_str),
+                            '0'..='9' => (6, c_str),
+                            'a'..='z' => (7, c_str),
                             _ => {
                                 if let Some(s) = symbols.get(&c_str) {
                                     // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));

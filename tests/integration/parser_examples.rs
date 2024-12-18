@@ -308,8 +308,7 @@ mod listener {
         let mut symb_table = SymbolTable::new();
         symb_table.extend_terminals(SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
         let symbols = (0..SYMBOLS_T.len() as TokenId)
-            .map(|t| Symbol::T(t))
-            .map(|s| (s.to_str(Some(&symb_table)), s))
+            .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
             .collect::<HashMap<_, _>>();
         for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
@@ -319,8 +318,8 @@ mod listener {
                 } else {
                     let c_str = c.to_string();
                     Some(match c {
-                        '0'..='9' => (Symbol::T(6), c_str),
-                        'a'..='z' => (Symbol::T(7), c_str),
+                        '0'..='9' => (6, c_str),
+                        'a'..='z' => (7, c_str),
                         _ => {
                             if let Some(s) = symbols.get(&c_str) {
                                 // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
@@ -874,8 +873,7 @@ mod listener2 {
         let mut symb_table = SymbolTable::new();
         symb_table.extend_terminals(SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
         let symbols = (0..SYMBOLS_T.len() as TokenId)
-            .map(|t| Symbol::T(t))
-            .map(|s| (s.to_str(Some(&symb_table)), s))
+            .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
             .collect::<HashMap<_, _>>();
         for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
@@ -885,8 +883,8 @@ mod listener2 {
                 } else {
                     let c_str = c.to_string();
                     Some(match c {
-                        '0'..='9' => (Symbol::T(6), c_str),
-                        'a'..='z' => (Symbol::T(7), c_str),
+                        '0'..='9' => (6, c_str),
+                        'a'..='z' => (7, c_str),
                         _ => {
                             if let Some(s) = symbols.get(&c_str) {
                                 // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
@@ -1178,13 +1176,12 @@ mod listener3 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(5), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (5, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -1475,13 +1472,12 @@ mod listener4 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(5), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (5, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -1783,13 +1779,12 @@ mod listener5 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -2104,13 +2099,12 @@ mod listener6 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -2371,13 +2365,12 @@ mod listener7 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|s| (Symbol::T(s).to_str(Some(&symb_table)), s))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -2662,13 +2655,12 @@ mod listener8 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -2966,13 +2958,12 @@ mod listener9 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -3240,13 +3231,12 @@ mod listener10 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -3545,13 +3535,12 @@ mod listener11 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -3855,13 +3844,12 @@ mod listener12 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|t| (Symbol::T(t).to_str(Some(&symb_table)), t))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (Symbol::T(T_ID), w.to_string()) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
                 });
 
                 // User code under test ------------------------------
@@ -4179,8 +4167,7 @@ mod listener13 {
             let mut symb_table = SymbolTable::new();
             symb_table.extend_terminals(super::SYMBOLS_T.iter().map(|(s, ss)| (s.to_string(), ss.map(|s| s.to_string()))));
             let symbols = (0..super::SYMBOLS_T.len() as TokenId)
-                .map(|t| Symbol::T(t))
-                .map(|s| (s.to_str(Some(&symb_table)), s))
+                .map(|s| (Symbol::T(s).to_str(Some(&symb_table)), s))
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
@@ -4189,9 +4176,9 @@ mod listener13 {
                         (*s, w.to_string())
                     } else {
                         if w.chars().next().unwrap().is_digit(10) {
-                            (Symbol::T(T_NUM), w.to_string())
+                            (T_NUM, w.to_string())
                         } else {
-                            (Symbol::T(T_ID), w.to_string())
+                            (T_ID, w.to_string())
                         }
                     }
                 });
