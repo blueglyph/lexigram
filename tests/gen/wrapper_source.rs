@@ -5646,6 +5646,7 @@ after,  NT with value:
             ], Set(symbols![]), btreemap![0 => vec![0]]),
 */
 pub(crate) mod rules_rts_38_3 {
+    #![allow(unused_imports)]
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #3, start A]
 

@@ -1,3 +1,5 @@
+#![allow(unused)]
+
 pub(super) mod tests;
 
 use crate::dfa::{ReNode, ReType, Terminal, TokenId};
