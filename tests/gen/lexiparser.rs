@@ -284,6 +284,9 @@ pub(crate) mod lexiparser {
 
     impl<T: LexiParserListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -393,6 +396,10 @@ pub(crate) mod lexiparser {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {

@@ -82,6 +82,9 @@ pub(crate) mod rules_prs_34_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -123,6 +126,10 @@ pub(crate) mod rules_prs_34_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -237,6 +244,9 @@ pub(crate) mod rules_rts_21_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -276,6 +286,10 @@ pub(crate) mod rules_rts_21_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -368,6 +382,9 @@ pub(crate) mod rules_rts_21_2 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -407,6 +424,10 @@ pub(crate) mod rules_rts_21_2 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -499,6 +520,9 @@ pub(crate) mod rules_rts_22_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -538,6 +562,10 @@ pub(crate) mod rules_rts_22_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -649,6 +677,9 @@ pub(crate) mod rules_rts_22_2 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -688,6 +719,10 @@ pub(crate) mod rules_rts_22_2 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -793,6 +828,9 @@ pub(crate) mod rules_rts_22_3 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -832,6 +870,10 @@ pub(crate) mod rules_rts_22_3 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -945,6 +987,9 @@ pub(crate) mod rules_rts_22_4 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -984,6 +1029,10 @@ pub(crate) mod rules_rts_22_4 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit_a(&mut self) {
@@ -1098,6 +1147,9 @@ pub(crate) mod rules_rts_32_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1140,6 +1192,10 @@ pub(crate) mod rules_rts_32_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -1256,6 +1312,9 @@ pub(crate) mod rules_rts_25_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1295,6 +1354,10 @@ pub(crate) mod rules_rts_25_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -1383,6 +1446,9 @@ pub(crate) mod rules_rts_23_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1424,6 +1490,10 @@ pub(crate) mod rules_rts_23_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -1541,6 +1611,9 @@ pub(crate) mod rules_rts_27_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1584,6 +1657,10 @@ pub(crate) mod rules_rts_27_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -1707,6 +1784,9 @@ pub(crate) mod rules_rts_28_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1750,6 +1830,10 @@ pub(crate) mod rules_rts_28_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -1862,6 +1946,9 @@ pub(crate) mod rules_rts_24_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -1903,6 +1990,10 @@ pub(crate) mod rules_rts_24_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -2006,6 +2097,9 @@ pub(crate) mod rules_rts_24_2 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2047,6 +2141,10 @@ pub(crate) mod rules_rts_24_2 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -2145,6 +2243,9 @@ pub(crate) mod rules_rts_24_3 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2186,6 +2287,10 @@ pub(crate) mod rules_rts_24_3 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -2292,6 +2397,9 @@ pub(crate) mod rules_rts_24_4 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2333,6 +2441,10 @@ pub(crate) mod rules_rts_24_4 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit_a(&mut self) {
@@ -2455,6 +2567,9 @@ pub(crate) mod rules_rts_29_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2499,6 +2614,10 @@ pub(crate) mod rules_rts_29_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -2629,6 +2748,9 @@ pub(crate) mod rules_rts_29_2 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2673,6 +2795,10 @@ pub(crate) mod rules_rts_29_2 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -2794,6 +2920,9 @@ pub(crate) mod rules_rts_29_3 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -2838,6 +2967,10 @@ pub(crate) mod rules_rts_29_3 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit_a(&mut self) {
@@ -2973,6 +3106,9 @@ pub(crate) mod rules_rts_39_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -3015,6 +3151,10 @@ pub(crate) mod rules_rts_39_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -3167,6 +3307,9 @@ pub(crate) mod rules_rts_40_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -3209,6 +3352,10 @@ pub(crate) mod rules_rts_40_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -3366,6 +3513,9 @@ pub(crate) mod rules_rts_30_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -3414,6 +3564,10 @@ pub(crate) mod rules_rts_30_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -3557,6 +3711,9 @@ pub(crate) mod rules_rts_30_2 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -3605,6 +3762,10 @@ pub(crate) mod rules_rts_30_2 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit_a(&mut self) {
@@ -3794,6 +3955,9 @@ pub(crate) mod rules_rts_34_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -3860,6 +4024,10 @@ pub(crate) mod rules_rts_34_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -4030,6 +4198,9 @@ pub(crate) mod rules_prs_28_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4074,6 +4245,10 @@ pub(crate) mod rules_prs_28_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -4195,6 +4370,9 @@ pub(crate) mod rules_prs_31_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4236,6 +4414,10 @@ pub(crate) mod rules_prs_31_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -4352,6 +4534,9 @@ pub(crate) mod rules_prs_31_2 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4393,6 +4578,10 @@ pub(crate) mod rules_prs_31_2 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn init_e(&mut self) {
@@ -4504,6 +4693,9 @@ pub(crate) mod rules_prs_36_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4546,6 +4738,10 @@ pub(crate) mod rules_prs_36_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -4667,6 +4863,9 @@ pub(crate) mod rules_prs_33_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4709,6 +4908,10 @@ pub(crate) mod rules_prs_33_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -4829,6 +5032,9 @@ pub(crate) mod rules_prs_38_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -4872,6 +5078,10 @@ pub(crate) mod rules_prs_38_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -5000,6 +5210,9 @@ pub(crate) mod rules_prs_39_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5045,6 +5258,10 @@ pub(crate) mod rules_prs_39_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -5181,6 +5398,9 @@ pub(crate) mod rules_prs_32_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5225,6 +5445,10 @@ pub(crate) mod rules_prs_32_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -5350,6 +5574,9 @@ pub(crate) mod rules_rts_38_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5396,6 +5623,10 @@ pub(crate) mod rules_rts_38_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -5527,6 +5758,9 @@ pub(crate) mod rules_rts_38_2 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5573,6 +5807,10 @@ pub(crate) mod rules_rts_38_2 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -5646,7 +5884,6 @@ after,  NT with value:
             ], Set(symbols![]), btreemap![0 => vec![0]]),
 */
 pub(crate) mod rules_rts_38_3 {
-    #![allow(unused_imports)]
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #3, start A]
 
@@ -5693,6 +5930,9 @@ pub(crate) mod rules_rts_38_3 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5739,6 +5979,10 @@ pub(crate) mod rules_rts_38_3 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn init_a(&mut self) {
@@ -5844,6 +6088,9 @@ pub(crate) mod rules_prs_20_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -5883,6 +6130,10 @@ pub(crate) mod rules_prs_20_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -5987,6 +6238,9 @@ pub(crate) mod rules_prs_20_2 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6026,6 +6280,10 @@ pub(crate) mod rules_prs_20_2 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -6136,6 +6394,9 @@ pub(crate) mod rules_prs_37_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6178,6 +6439,10 @@ pub(crate) mod rules_prs_37_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -6289,6 +6554,9 @@ pub(crate) mod rules_prs_30_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6328,6 +6596,10 @@ pub(crate) mod rules_prs_30_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -6438,6 +6710,9 @@ pub(crate) mod rules_prs_30_2 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6477,6 +6752,10 @@ pub(crate) mod rules_prs_30_2 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -6584,6 +6863,9 @@ pub(crate) mod rules_rts_26_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6626,6 +6908,10 @@ pub(crate) mod rules_rts_26_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -6751,6 +7037,9 @@ pub(crate) mod rules_rts_16_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6795,6 +7084,10 @@ pub(crate) mod rules_rts_16_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -6908,6 +7201,9 @@ pub(crate) mod rules_prs_35_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -6948,6 +7244,10 @@ pub(crate) mod rules_prs_35_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {
@@ -7069,6 +7369,9 @@ pub(crate) mod rules_rts_33_1 {
 
     impl<T: TestListener> Listener for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -7111,6 +7414,10 @@ pub(crate) mod rules_rts_33_1 {
 
         pub fn listener(self) -> T {
             self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
         }
 
         fn exit(&mut self) {

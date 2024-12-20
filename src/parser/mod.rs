@@ -21,7 +21,7 @@ pub enum OpCode {
     End                 // end of stream
 }
 
-#[derive(PartialEq)]
+#[derive(PartialEq, Debug)]
 pub enum Call { Enter, Loop, Exit, End }
 
 pub trait Listener {

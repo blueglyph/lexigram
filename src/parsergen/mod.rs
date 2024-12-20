@@ -1706,6 +1706,9 @@ impl ParserGen {
         src.push(format!(""));
         src.push(format!("impl<T: {}Listener> Listener for ListenerWrapper<T> {{", self.name));
         src.push(format!("    fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {{"));
+        src.push(format!("        if self.verbose {{"));
+        src.push(format!("            println!(\"switch: call={{call:?}}, nt={{nt}}, factor={{factor_id}}, t_data={{t_data:?}}\");"));
+        src.push(format!("        }}"));
         src.push(format!("        if let Some(mut t_data) = t_data {{"));
         src.push(format!("            self.stack_t.append(&mut t_data);"));
         src.push(format!("        }}"));
@@ -1759,6 +1762,10 @@ impl ParserGen {
         src.push(format!(""));
         src.push(format!("    pub fn listener(self) -> T {{"));
         src.push(format!("        self.listener"));
+        src.push(format!("    }}"));
+        src.push(format!(""));
+        src.push(format!("    pub fn set_verbose(&mut self, verbose: bool) {{"));
+        src.push(format!("        self.verbose = verbose;"));
         src.push(format!("    }}"));
         if self.nt_value[self.start as usize] {
             src.push(format!(""));
