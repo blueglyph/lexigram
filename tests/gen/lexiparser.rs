@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-mod lexiparser {
+pub(super) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
@@ -19,7 +19,7 @@ mod lexiparser {
     const OPCODES: [&[OpCode]; 50] = [&[OpCode::Exit(0), OpCode::NT(13), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::NT(13)], &[OpCode::Exit(2), OpCode::NT(4)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(12), OpCode::T(23), OpCode::T(16)], &[OpCode::Exit(6), OpCode::T(12), OpCode::T(23), OpCode::T(17)], &[OpCode::Exit(7), OpCode::T(10), OpCode::NT(14), OpCode::T(23), OpCode::T(4), OpCode::T(14)], &[OpCode::Exit(8), OpCode::T(12), OpCode::NT(8), OpCode::T(1), OpCode::T(23), OpCode::T(15)], &[OpCode::NT(20), OpCode::NT(8), OpCode::T(1), OpCode::T(23)], &[OpCode::Exit(10), OpCode::NT(15), OpCode::NT(7)], &[OpCode::Exit(11), OpCode::T(11), OpCode::T(23), OpCode::T(5), OpCode::T(19)], &[OpCode::Exit(12), OpCode::T(18)], &[OpCode::Exit(13), OpCode::T(21)], &[OpCode::Exit(14), OpCode::T(20)], &[OpCode::Exit(15), OpCode::NT(9)], &[OpCode::NT(17), OpCode::Exit(16), OpCode::NT(10)], &[OpCode::Exit(17), OpCode::NT(16)], &[OpCode::NT(18), OpCode::Exit(18), OpCode::NT(12)], &[OpCode::Exit(19), OpCode::NT(19), OpCode::T(11), OpCode::Loop(12), OpCode::T(5)], &[OpCode::Exit(20), OpCode::NT(19), OpCode::Loop(12), OpCode::T(6)], &[OpCode::Exit(21), OpCode::NT(19), OpCode::T(22)], &[OpCode::Exit(22), OpCode::NT(19), OpCode::T(23)], &[OpCode::NT(21), OpCode::T(24)], &[OpCode::Exit(24), OpCode::NT(19), OpCode::T(25)], &[OpCode::Exit(25), OpCode::NT(19), OpCode::T(26)], &[OpCode::Loop(13), OpCode::Exit(26), OpCode::NT(1)], &[OpCode::Exit(27)], &[OpCode::Loop(14), OpCode::Exit(28), OpCode::T(23), OpCode::T(2)], &[OpCode::Exit(29)], &[OpCode::Loop(15), OpCode::Exit(30), OpCode::NT(7), OpCode::T(2)], &[OpCode::Exit(31)], &[OpCode::NT(22), OpCode::NT(11)], &[OpCode::Loop(17), OpCode::Exit(33), OpCode::NT(10), OpCode::T(8)], &[OpCode::Exit(34)], &[OpCode::NT(23), OpCode::T(7)], &[OpCode::NT(24), OpCode::T(13)], &[OpCode::Exit(37)], &[OpCode::Loop(19), OpCode::Exit(38), OpCode::T(9)], &[OpCode::Exit(39)], &[OpCode::Exit(40), OpCode::T(12), OpCode::NT(6), OpCode::T(0)], &[OpCode::Exit(41), OpCode::T(12)], &[OpCode::NT(19), OpCode::Exit(42), OpCode::T(24), OpCode::T(3)], &[OpCode::NT(19), OpCode::Exit(43)], &[OpCode::Loop(16), OpCode::Exit(44)], &[OpCode::Exit(45)], &[OpCode::Loop(18), OpCode::Exit(46), OpCode::T(9)], &[OpCode::Loop(18), OpCode::Exit(47)], &[OpCode::Loop(18), OpCode::Exit(48), OpCode::T(9)], &[OpCode::Loop(18), OpCode::Exit(49)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -684,7 +684,7 @@ mod lexiparser {
     // -------------------------------------------------------------------------
 }
 
-mod lexiparser_types {
+pub(super) mod lexiparser_types {
     // SynFile: User-defined type for `file`
     // SynFileItem: User-defined type for `file_item`
     // SynHeader: User-defined type for `header`

@@ -1161,7 +1161,7 @@ impl ParserGen {
                      self.opcodes.iter().map(|strip| format!("&[{}]", strip.into_iter().map(|op| format!("OpCode::{op:?}")).join(", "))).join(", ")),
             format!("const START_SYMBOL: VarId = {};\n", self.start),
 
-            format!("pub(super) fn build_parser() -> Parser {{"),
+            format!("pub fn build_parser() -> Parser {{"),
             format!("    let mut symbol_table = SymbolTable::new();"),
             format!("    symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));"),
             format!("    symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));"),

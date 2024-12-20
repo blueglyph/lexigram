@@ -31,7 +31,7 @@ mod parser_gen {
         const OPCODES: [&[OpCode]; 11] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(6)], &[OpCode::Exit(3), OpCode::T(7)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(1), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(1), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(8), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(9), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(10)]];
         const START_SYMBOL: VarId = 0;
 
-        pub(super) fn build_parser() -> Parser {
+        pub fn build_parser() -> Parser {
             let mut symbol_table = SymbolTable::new();
             symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
             symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -76,7 +76,7 @@ mod listener {
     const OPCODES: [&[OpCode]; 11] = [&[OpCode::NT(3), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(4), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(3), OpCode::T(6)], &[OpCode::Exit(4), OpCode::T(7)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(7)], &[OpCode::Loop(4), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(4), OpCode::Exit(9), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(10)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -385,7 +385,7 @@ mod listener2 {
     const OPCODES: [&[OpCode]; 11] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(6)], &[OpCode::Exit(3), OpCode::T(7)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(1), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(1), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(8), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(9), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(10)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -952,7 +952,7 @@ mod listener3 {
     const OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::NT(1), OpCode::T(1), OpCode::T(5), OpCode::T(0)], &[OpCode::Exit(1), OpCode::NT(1), OpCode::T(4), OpCode::T(5), OpCode::T(3), OpCode::T(5)], &[OpCode::Exit(2), OpCode::T(2)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -1239,7 +1239,7 @@ mod listener4 {
     const OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::NT(1), OpCode::T(1), OpCode::T(5), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(4), OpCode::T(5), OpCode::T(3), OpCode::T(5)], &[OpCode::Exit(2), OpCode::T(2)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -1536,7 +1536,7 @@ mod listener5 {
     const OPCODES: [&[OpCode]; 4] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -1838,7 +1838,7 @@ mod listener6 {
     const OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::NT(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::T(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(5)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -2158,7 +2158,7 @@ mod listener7 {
     const OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(1)], &[OpCode::Exit(2)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -2426,7 +2426,7 @@ mod listener8 {
     const OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(1)], &[OpCode::Exit(2)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -2715,7 +2715,7 @@ mod listener9 {
     const OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::T(0)], &[OpCode::NT(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::NT(1)], &[OpCode::Exit(3)], &[OpCode::Loop(1), OpCode::Exit(4)], &[OpCode::Exit(5)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -3019,7 +3019,7 @@ mod listener10 {
     const OPCODES: [&[OpCode]; 4] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(1), OpCode::T(0)], &[OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(2)], &[OpCode::Exit(3)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -3292,7 +3292,7 @@ mod listener11 {
     const OPCODES: [&[OpCode]; 5] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(2), OpCode::T(0)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::NT(3), OpCode::NT(1)], &[OpCode::Loop(2), OpCode::Exit(3)], &[OpCode::Exit(4)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -3596,7 +3596,7 @@ mod listener12 {
     const OPCODES: [&[OpCode]; 5] = [&[OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(0)], &[OpCode::Exit(2)], &[OpCode::NT(1), OpCode::Exit(3), OpCode::T(2)], &[OpCode::NT(1), OpCode::Exit(4), OpCode::T(3)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
@@ -3903,7 +3903,7 @@ mod listener13 {
     const OPCODES: [&[OpCode]; 5] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(2), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Exit(2), OpCode::T(1)], &[OpCode::Loop(2), OpCode::Exit(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(4)]];
     const START_SYMBOL: VarId = 0;
 
-    pub(super) fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
         symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
