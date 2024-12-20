@@ -108,7 +108,7 @@ pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
             }).unzip();
             assert_eq!(tokens, expected_tokens, "test {} failed for opt={opt:?}, input '{}'", test_id, escape_string(input));
             assert_eq!(texts, expected_texts, "test {} failed for opt={opt:?}, input '{}'", test_id, escape_string(input));
-            assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for opt={opt:?}, input '{}'",
+            assert!(!lexer.has_error() || lexer.is_eos(), "test {} failed for opt={opt:?}, input '{}'",
                     test_id, escape_string(input));
         }
         if VERBOSE { println!("--------------------------------------\n"); }

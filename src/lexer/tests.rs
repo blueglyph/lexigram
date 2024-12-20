@@ -11,22 +11,23 @@ use super::*;
 
 #[test]
 fn lexer_simple() {
-    fn eval(result: &Result<(TokenId, ChannelId, String), &LexerError>, verbose: bool) -> Option<(TokenId, ChannelId, String)> {
+    fn eval(result: &Result<(TokenId, ChannelId, String), LexerError>, verbose: bool) -> Option<(TokenId, ChannelId, String)> {
         match result {
             Ok(token_ch) => {
                 if verbose { println!("=> OK {}, #{}", token_ch.0, token_ch.1); }
                 Some(token_ch.clone())
             }
             Err(e) => {
-                if verbose { print!("## {e}"); }
-                if e.token_ch.is_some() {
-                    if verbose { println!(" => OK"); }
-                    panic!();
-                    // e.token_ch.clone()
-                } else {
-                    if verbose { println!(" => Error"); }
-                    None
-                }
+                if verbose { println!("## Error: {e}"); }
+                None
+                // if e.token_ch.is_some() {
+                //     if verbose { println!(" => OK"); }
+                //     panic!();
+                //     // e.token_ch.clone()
+                // } else {
+                //     if verbose { println!(" => Error"); }
+                //     None
+                // }
             }
         }
     }
@@ -82,8 +83,8 @@ fn lexer_simple() {
             let token = eval(&result, VERBOSE);
             assert_eq!(token, None, "test {} failed for input '{}'", test_id, escape_string(input));
             if let Err(e) = result {
-                assert_eq!(e.pos, expected_pos, "test {} failed for input '{}', {:?}", test_id, escape_string(input), e);
-                assert_eq!(e.is_eos, expected_eos, "test {} failed for input '{}', {:?}", test_id, escape_string(input), e);
+                assert_eq!(lexer.pos, expected_pos, "test {} failed for input '{}', {:?}", test_id, escape_string(input), e);
+                assert_eq!(lexer.is_eos(), expected_eos, "test {} failed for input '{}', {:?}", test_id, escape_string(input), e);
             }
         }
         // gathering all the tokens, one at a time:
@@ -119,7 +120,7 @@ fn lexer_simple() {
             }).to_vec();
             if VERBOSE { println!(); }
             assert_eq!(result, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
-            assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for input '{}'",
+            assert!(!lexer.has_error() || lexer.is_eos(), "test {} failed for input '{}'",
                     test_id, escape_string(input));
             // or:
             // assert!(!matches!(interpret.get_error(), Some(LexerError { is_eos: false, .. })), "test {} failed for input '{}'",
@@ -253,7 +254,7 @@ fn lexer_modes() {
             if VERBOSE { println!(); }
             assert_eq!(tokens, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
             assert_eq!(texts, expected_texts, "test {} failed for input '{}'", test_id, escape_string(input));
-            assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for input '{}'",
+            assert!(!lexer.has_error() || lexer.is_eos(), "test {} failed for input '{}'",
                     test_id, escape_string(input));
 
         }
@@ -363,7 +364,7 @@ mod lexer_source1 {
                 if VERBOSE { println!(); }
                 assert_eq!(tokens, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
                 assert_eq!(texts, expected_texts, "test {} failed for input '{}'", test_id, escape_string(input));
-                assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "test {} failed for input '{}'",
+                assert!(!lexer.has_error() || lexer.is_eos(), "test {} failed for input '{}'",
                         test_id, escape_string(input));
 
             }

@@ -252,7 +252,7 @@ mod test {
                 let err_msg = format!("test {} failed for input '{}'", test_id, escape_string(input));
                 assert_eq!(tokens, expected_tokens, "{err_msg}");
                 assert_eq!(texts, expected_texts, "{err_msg}");
-                assert!(lexer.get_error() == None || lexer.get_error().unwrap().is_eos, "{err_msg}");
+                assert!(!lexer.has_error() || lexer.is_eos(), "{err_msg}");
             }
             if VERBOSE { println!("--------------------------------------\n"); }
         }

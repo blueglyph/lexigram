@@ -12,36 +12,69 @@ use crate::lexergen::{char_to_group, GroupId};
 // ---------------------------------------------------------------------------------------------
 // Table-based lexer interpreter
 
+// #[derive(Clone, PartialEq, Debug)]
+// pub struct LexerError {
+//     pub pos: u64,
+//     pub curr_char: Option<char>,
+//     pub group: Option<GroupId>,
+//     pub token_ch: Option<(TokenId, ChannelId)>,
+//     pub state: StateId,
+//     pub is_eos: bool,
+//     pub text: String,
+//     pub msg: String
+// }
+
 #[derive(Clone, PartialEq, Debug)]
-pub struct LexerError {
+pub struct LexerErrorInfo {
     pub pos: u64,
     pub curr_char: Option<char>,
-    pub group: Option<GroupId>,
-    pub token_ch: Option<(TokenId, ChannelId)>,
+    pub group: GroupId,
     pub state: StateId,
-    pub is_eos: bool,
     pub text: String,
-    pub msg: String
+}
+
+#[derive(Clone, PartialEq, Debug)]
+pub enum LexerError {
+    None,
+    NoStreamAttached,
+    EndOfStream { info: LexerErrorInfo },
+    InvalidChar { info: LexerErrorInfo },
+    UnrecognizedChar { info: LexerErrorInfo },
+    InfiniteLoop { pos: u64 },
 }
 
 impl Display for LexerError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "pos: {}{}{}{}, state {}: {}{}",
-               self.pos,
-               if let Some(c) = self.curr_char { format!(" on '{}'", escape_char(c)) } else { "".to_string() },
-               if let Some(g) = self.group { format!(", group {g}") } else { "".to_string() },
-               if let Some(t) = self.token_ch.as_ref() { format!(", token {}, channel {}", t.0, t.1) } else { "".to_string() },
-               self.state,
-               self.msg,
-               if self.is_eos { "<END OF STREAM>" } else { "" }
-        )
+        match self {
+            LexerError::None => write!(f, "no error"),
+            LexerError::NoStreamAttached => write!(f, "no stream attached"),
+            LexerError::EndOfStream { info: LexerErrorInfo { pos, ..} } =>
+                write!(f, "end of stream, pos = {pos}"),
+            LexerError::InvalidChar { info: LexerErrorInfo { pos, curr_char, .. } } =>
+                write!(f, "invalid character, pos = {pos}, chr = '{}'", curr_char.unwrap()),
+            LexerError::UnrecognizedChar  { info: LexerErrorInfo { pos, curr_char, .. } } =>
+                write!(f, "unrecognized character, pos = {pos}, chr = '{}'", curr_char.unwrap()),
+            LexerError::InfiniteLoop { pos } =>
+                write!(f, "infinite loop, pos = {pos}"),
+        }
     }
+    // fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    //     write!(f, "pos: {}{}{}{}, state {}: {}{}",
+    //            self.pos,
+    //            if let Some(c) = self.curr_char { format!(" on '{}'", escape_char(c)) } else { "".to_string() },
+    //            if let Some(g) = self.group { format!(", group {g}") } else { "".to_string() },
+    //            if let Some(t) = self.token_ch.as_ref() { format!(", token {}, channel {}", t.0, t.1) } else { "".to_string() },
+    //            self.state,
+    //            self.msg,
+    //            if self.is_eos { "<END OF STREAM>" } else { "" }
+    //     )
+    // }
 }
 
 pub struct Lexer<R> {
     // operating variables
     input: Option<CharReader<R>>,
-    error: Option<LexerError>,     // None = OK, Some(e) = last error
+    error: LexerError,
     pos: u64,
     state_stack: Vec<StateId>,
     start_state: StateId,
@@ -74,7 +107,7 @@ impl<R: Read> Lexer<R> {
     ) -> Self {
         Lexer {
             input: None,
-            error: None,
+            error: LexerError::None,
             pos: 0,
             state_stack: Vec::new(),
             start_state: 0,
@@ -153,9 +186,9 @@ impl<R: Read> Lexer<R> {
     //              state = next_state
     //              pos++
     //
-    pub fn get_token(&mut self) -> Result<(TokenId, ChannelId, String), &LexerError> {
+    pub fn get_token(&mut self) -> Result<(TokenId, ChannelId, String), LexerError> {
         const VERBOSE: bool = false;
-        self.error = None;
+        self.error = LexerError::None;
         let mut text = String::new();
         if let Some(input) = self.input.as_mut() {
             let mut state = self.start_state;
@@ -167,18 +200,19 @@ impl<R: Read> Lexer<R> {
                 #[cfg(debug_assertions)] {
                     if last_state.map(|st| st == state).unwrap_or(false) && last_offset.map(|offset| offset == input.get_offset()).unwrap_or(false) {
                         if infinite_loop_cnt > 3 {
-                            self.error = Some(LexerError {
-                                pos: self.pos,
-                                curr_char: None,
-                                group: None,
-                                token_ch: None,
-                                state: 0,
-                                is_eos: true,
-                                text: "".to_string(),
-                                msg: "infinite loop".to_string(),
-                            });
-                            if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
-                            return Err(self.error.as_ref().unwrap());
+                            self.error = LexerError::InfiniteLoop { pos: self.pos };
+                            // self.error = Some(LexerError {
+                            //     pos: self.pos,
+                            //     curr_char: None,
+                            //     group: None,
+                            //     token_ch: None,
+                            //     state: 0,
+                            //     is_eos: true,
+                            //     text: "".to_string(),
+                            //     msg: "infinite loop".to_string(),
+                            // });
+                            if VERBOSE { println!(" => Err({})", self.error); }
+                            return Err(self.error.clone());
                         }
                         infinite_loop_cnt += 1;
                     } else {
@@ -223,18 +257,32 @@ impl<R: Read> Lexer<R> {
                         }
                     }
                     // EOF or invalid character
-                    self.error = Some(LexerError {
+                    let info = LexerErrorInfo {
                         pos: self.pos,
                         curr_char: c_opt,
-                        group: Some(group),
-                        token_ch: None,
+                        group,
                         state,
-                        is_eos,
                         text,
-                        msg: (if is_eos { "end of stream" } else { if group >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
-                    });
-                    if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
-                    return Err(self.error.as_ref().unwrap());
+                    };
+                    self.error = if is_eos {
+                        LexerError::EndOfStream { info }
+                    } else if group >= self.nbr_groups {
+                        LexerError::UnrecognizedChar { info }
+                    } else {
+                        LexerError::InvalidChar { info }
+                    };
+                    // self.error = Some(LexerError {
+                    //     pos: self.pos,
+                    //     curr_char: c_opt,
+                    //     group: Some(group),
+                    //     token_ch: None,
+                    //     state,
+                    //     is_eos,
+                    //     text,
+                    //     msg: (if is_eos { "end of stream" } else { if group >= self.nbr_groups { "unrecognized character" } else { "invalid character" }}).to_string(),
+                    // });
+                    if VERBOSE { println!(" => Err({})", self.error); }
+                    return Err(self.error.clone());
                 } else {
                     if let Some(c) = c_opt {
                         text.push(c);
@@ -245,23 +293,32 @@ impl<R: Read> Lexer<R> {
                 }
             }
         }
-        self.error = Some(LexerError {
-            pos: self.pos,
-            curr_char: None,
-            group: None,
-            token_ch: None,
-            state: 0,
-            is_eos: true,
-            text,
-            msg: "no stream attached".to_string(),
-        });
-        if VERBOSE { println!(" => Err({})", self.error.as_ref().unwrap().msg); }
+        self.error = LexerError::NoStreamAttached;
+        // self.error = Some(LexerError {
+        //     pos: self.pos,
+        //     curr_char: None,
+        //     group: None,
+        //     token_ch: None,
+        //     state: 0,
+        //     is_eos: true,
+        //     text,
+        //     msg: "no stream attached".to_string(),
+        // });
+        if VERBOSE { println!(" => Err({})", self.error); }
         // self.pos = None;
-        Err(self.error.as_ref().unwrap())
+        Err(self.error.clone())
     }
 
-    pub fn get_error(&self) -> Option<&LexerError> {
-        self.error.as_ref()
+    pub fn get_error(&self) -> &LexerError {
+        &self.error
+    }
+
+    pub fn has_error(&self) -> bool {
+        self.error != LexerError::None
+    }
+
+    pub fn is_eos(&self) -> bool {
+        matches!(self.error, LexerError::EndOfStream { .. })
     }
 }
 
@@ -276,7 +333,7 @@ impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
         let t = self.lexer.get_token();
         match t {
             Ok((token, channel, str)) => Some((token, channel, str)),
-            Err(&LexerError { token_ch: Some((ref token, channel)), ref text, .. }) => Some((*token, channel, text.clone())),
+            // Err(&LexerError { token_ch: Some((ref token, channel)), ref text, .. }) => Some((*token, channel, text.clone())),
             _ => None
         }
     }
