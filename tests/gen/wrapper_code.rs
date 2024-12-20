@@ -463,3 +463,60 @@ pub(crate) mod code_rts_33_1 {
     #[derive(Debug, PartialEq)]
     pub struct SynB();
 }
+
+pub(crate) mod code_rts_100_1 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(100) #1, start file
+
+    /// User-defined type for `file`
+    #[derive(Debug, PartialEq)]
+    pub struct SynFile();
+
+    /// User-defined type for `file_item`
+    #[derive(Debug, PartialEq)]
+    pub struct SynFileItem();
+
+    /// User-defined type for `header`
+    #[derive(Debug, PartialEq)]
+    pub struct SynHeader();
+
+    /// User-defined type for `declaration`
+    #[derive(Debug, PartialEq)]
+    pub struct SynDeclaration();
+
+    /// User-defined type for `option`
+    #[derive(Debug, PartialEq)]
+    pub struct SynOption();
+
+    /// User-defined type for `rule`
+    #[derive(Debug, PartialEq)]
+    pub struct SynRule();
+
+    /// User-defined type for `actions`
+    #[derive(Debug, PartialEq)]
+    pub struct SynActions();
+
+    /// User-defined type for `action`
+    #[derive(Debug, PartialEq)]
+    pub struct SynAction();
+
+    /// User-defined type for `match`
+    #[derive(Debug, PartialEq)]
+    pub struct SynMatch();
+
+    /// User-defined type for `alt_items`
+    #[derive(Debug, PartialEq)]
+    pub struct SynAltItems();
+
+    /// User-defined type for `alt_item`
+    #[derive(Debug, PartialEq)]
+    pub struct SynAltItem();
+
+    /// User-defined type for `repeat_item`
+    #[derive(Debug, PartialEq)]
+    pub struct SynRepeatItem();
+
+    /// User-defined type for `item`
+    #[derive(Debug, PartialEq)]
+    pub struct SynItem();
+}

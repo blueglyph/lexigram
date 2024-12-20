@@ -5888,7 +5888,6 @@ pub(crate) mod rules_rts_38_3 {
     // [wrapper source for rule RTS(38) #3, start A]
 
     use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
-    use super::super::wrapper_code::code_rts_38_3::*;
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -7463,5 +7462,776 @@ pub(crate) mod rules_rts_33_1 {
     }
 
     // [wrapper source for rule RTS(33) #1, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 44: rules RTS(100) #1, start 0:
+/*
+before, NT with value: file, file_item, header, declaration, option, rule, actions, action, match, alt_items, alt_item, repeat_item, item
+after,  NT with value: file, file_item, header, declaration, option, rule, actions, action, match, alt_items, alt_item, repeat_item, item, file_1, option_1, actions_1, alt_item_1
+            // NT flags:
+            //  - file: parent_+_or_* (2048)
+            //  - option: parent_+_or_* (2048)
+            //  - rule: parent_left_fact (32)
+            //  - actions: parent_+_or_* (2048)
+            //  - alt_items: parent_left_rec (512)
+            //  - alt_item: parent_+_or_* | plus (6144)
+            //  - repeat_item: parent_left_rec (512)
+            //  - item: parent_left_fact | parent_left_rec (544)
+            //  - file_1: child_+_or_* (1)
+            //  - option_1: child_+_or_* (1)
+            //  - actions_1: child_+_or_* (1)
+            //  - alt_item_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - alt_items_1: child_left_rec (4)
+            //  - repeat_item_1: child_left_rec | parent_left_fact (36)
+            //  - item_1: child_left_rec (4)
+            //  - rule_1: child_left_fact (64)
+            //  - item_2: child_left_fact (64)
+            //  - alt_item_2: child_left_fact (64)
+            //  - repeat_item_2: child_left_fact (64)
+            //  - repeat_item_3: child_left_fact (64)
+            // parents:
+            //  - file_1 -> file
+            //  - option_1 -> option
+            //  - actions_1 -> actions
+            //  - alt_item_1 -> alt_item
+            //  - alt_items_1 -> alt_items
+            //  - repeat_item_1 -> repeat_item
+            //  - item_1 -> item
+            //  - rule_1 -> rule
+            //  - item_2 -> item
+            //  - alt_item_2 -> alt_item_1
+            //  - repeat_item_2 -> repeat_item_1
+            //  - repeat_item_3 -> repeat_item_1
+            (RTS(100), 0, btreemap![
+                0 => "SynFile".to_string(),
+                1 => "SynFileItem".to_string(),
+                2 => "SynHeader".to_string(),
+                3 => "SynDeclaration".to_string(),
+                4 => "SynOption".to_string(),
+                5 => "SynRule".to_string(),
+                6 => "SynActions".to_string(),
+                7 => "SynAction".to_string(),
+                8 => "SynMatch".to_string(),
+                9 => "SynAltItems".to_string(),
+                10 => "SynAltItem".to_string(),
+                11 => "SynRepeatItem".to_string(),
+                12 => "SynItem".to_string(),
+                13 => "SynFile1".to_string(),
+                14 => "SynOption1".to_string(),
+                15 => "SynActions1".to_string(),
+                16 => "SynAltItem1".to_string(),
+            ], btreemap![
+                0 => symbols![nt 2, nt 13],             //  0: file -> header file_1                 | ◄0 ►file_1 ►header            | header file_1
+                1 => symbols![nt 13],                   //  1: file -> file_1                        | ◄1 ►file_1                    | file_1
+                2 => symbols![nt 4],                    //  2: file_item -> option                   | ◄2 ►option                    | option
+                3 => symbols![nt 3],                    //  3: file_item -> declaration              | ◄3 ►declaration               | declaration
+                4 => symbols![nt 5],                    //  4: file_item -> rule                     | ◄4 ►rule                      | rule
+                5 => symbols![t 23],                    //  5: header -> lexicon Id ;                | ◄5 ; Id! lexicon              | Id
+                6 => symbols![t 23],                    //  6: declaration -> mode Id ;              | ◄6 ; Id! mode                 | Id
+                7 => symbols![t 23, nt 14],             //  7: option -> channels { Id option_1 }    | ◄7 } ►option_1 Id! { channels | Id option_1
+                8 => symbols![t 23, nt 8],              //  8: rule -> fragment Id : match ;         | ◄8 ; ►match : Id! fragment    | Id match
+                9 => symbols![],                        //  9: rule -> Id : match rule_1             | ►rule_1 ►match : Id!          |
+                10 => symbols![nt 7, nt 15],            // 10: actions -> action actions_1           | ◄10 ►actions_1 ►action        | action actions_1
+                11 => symbols![t 23],                   // 11: action -> push ( Id )                 | ◄11 ) Id! ( push              | Id
+                12 => symbols![],                       // 12: action -> pop                         | ◄12 pop                       |
+                13 => symbols![],                       // 13: action -> skip                        | ◄13 skip                      |
+                14 => symbols![],                       // 14: action -> return                      | ◄14 return                    |
+                15 => symbols![nt 9],                   // 15: match -> alt_items                    | ◄15 ►alt_items                | alt_items
+                16 => symbols![nt 10],                  // 16: alt_items -> alt_item alt_items_1     | ►alt_items_1 ◄16 ►alt_item    | alt_item
+                17 => symbols![nt 16],                  // 17: alt_item -> alt_item_1                | ◄17 ►alt_item_1               | alt_item_1
+                18 => symbols![nt 12],                  // 18: repeat_item -> item repeat_item_1     | ►repeat_item_1 ◄18 ►item      | item
+                19 => symbols![],                       // 19: item -> ( item ) item_1               | ◄19 ►item_1 ) ●item (         |
+                20 => symbols![],                       // 20: item -> ~ item item_1                 | ◄20 ►item_1 ●item ~           |
+                21 => symbols![],                       // 21: item -> EOF item_1                    | ◄21 ►item_1 EOF               |
+                22 => symbols![t 23],                   // 22: item -> Id item_1                     | ◄22 ►item_1 Id!               | Id
+                23 => symbols![],                       // 23: item -> CharLit item_2                | ►item_2 CharLit!              |
+                24 => symbols![t 25],                   // 24: item -> CharSet item_1                | ◄24 ►item_1 CharSet!          | CharSet
+                25 => symbols![t 26],                   // 25: item -> StrLit item_1                 | ◄25 ►item_1 StrLit!           | StrLit
+                26 => symbols![nt 13, nt 1],            // 26: file_1 -> file_item file_1            | ●file_1 ◄26 ►file_item        | file_1 file_item
+                27 => symbols![],                       // 27: file_1 -> ε                           | ◄27                           |
+                28 => symbols![nt 14, t 23],            // 28: option_1 -> , Id option_1             | ●option_1 ◄28 Id! ,           | option_1 Id
+                29 => symbols![],                       // 29: option_1 -> ε                         | ◄29                           |
+                30 => symbols![nt 15, nt 7],            // 30: actions_1 -> , action actions_1       | ●actions_1 ◄30 ►action ,      | actions_1 action
+                31 => symbols![],                       // 31: actions_1 -> ε                        | ◄31                           |
+                32 => symbols![],                       // 32: alt_item_1 -> repeat_item alt_item_2  | ►alt_item_2 ►repeat_item      |
+                33 => symbols![nt 9, nt 10],            // 33: alt_items_1 -> | alt_item alt_items_1 | ●alt_items_1 ◄33 ►alt_item |  | alt_items alt_item
+                34 => symbols![nt 9],                   // 34: alt_items_1 -> ε                      | ◄34                           | alt_items
+                35 => symbols![],                       // 35: repeat_item_1 -> + repeat_item_2      | ►repeat_item_2 +              |
+                36 => symbols![],                       // 36: repeat_item_1 -> * repeat_item_3      | ►repeat_item_3 *              |
+                37 => symbols![nt 11],                  // 37: repeat_item_1 -> ε                    | ◄37                           | repeat_item
+                38 => symbols![nt 12],                  // 38: item_1 -> ? item_1                    | ●item_1 ◄38 ?                 | item
+                39 => symbols![nt 12],                  // 39: item_1 -> ε                           | ◄39                           | item
+                40 => symbols![t 23, nt 8, nt 6],       // 40: rule_1 -> -> actions ;                | ◄40 ; ►actions ->             | Id match actions
+                41 => symbols![t 23, nt 8],             // 41: rule_1 -> ;                           | ◄41 ;                         | Id match
+                42 => symbols![t 24, t 24],             // 42: item_2 -> .. CharLit item_1           | ►item_1 ◄42 CharLit! ..       | CharLit CharLit
+                43 => symbols![t 24],                   // 43: item_2 -> item_1                      | ►item_1 ◄43                   | CharLit
+                44 => symbols![nt 16, nt 11],           // 44: alt_item_2 -> alt_item_1              | ●alt_item_1 ◄44               | alt_item_1 repeat_item
+                45 => symbols![nt 16, nt 11],           // 45: alt_item_2 -> ε                       | ◄45                           | alt_item_1 repeat_item
+                46 => symbols![nt 11],                  // 46: repeat_item_2 -> ? repeat_item_1      | ●repeat_item_1 ◄46 ?          | repeat_item
+                47 => symbols![nt 11],                  // 47: repeat_item_2 -> repeat_item_1        | ●repeat_item_1 ◄47            | repeat_item
+                48 => symbols![nt 11],                  // 48: repeat_item_3 -> ? repeat_item_1      | ●repeat_item_1 ◄48 ?          | repeat_item
+                49 => symbols![nt 11],                  // 49: repeat_item_3 -> repeat_item_1        | ●repeat_item_1 ◄49            | repeat_item
+            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 40, 41], 6 => vec![10], 7 => vec![11, 12, 13, 14], 8 => vec![15], 9 => vec![16], 10 => vec![17], 11 => vec![18], 12 => vec![19, 20, 21, 22, 24, 25, 42, 43]]),
+*/
+pub(crate) mod rules_rts_100_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(100) #1, start file]
+
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use super::super::wrapper_code::code_rts_100_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxFile {
+        /// `file -> header [file_item]*`
+        File1 { header: SynHeader, star: SynFile1 },
+        /// `file -> [file_item]*`
+        File2 { star: SynFile1 },
+    }
+    #[derive(Debug)]
+    pub enum CtxFileItem {
+        /// `file_item -> option`
+        FileItem1 { option: SynOption },
+        /// `file_item -> declaration`
+        FileItem2 { declaration: SynDeclaration },
+        /// `file_item -> rule`
+        FileItem3 { rule: SynRule },
+    }
+    #[derive(Debug)]
+    pub enum CtxHeader {
+        /// `header -> lexicon Id ;`
+        Header { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxDeclaration {
+        /// `declaration -> mode Id ;`
+        Declaration { id: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxOption {
+        /// `option -> channels { Id [, Id]* }`
+        Option { id: String, star: SynOption1 },
+    }
+    #[derive(Debug)]
+    pub enum CtxRule {
+        /// `rule -> fragment Id : match ;`
+        Rule1 { id: String, match1: SynMatch },
+        /// `rule -> Id : match -> actions ;`
+        Rule2 { id: String, match1: SynMatch, actions: SynActions },
+        /// `rule -> Id : match ;`
+        Rule3 { id: String, match1: SynMatch },
+    }
+    #[derive(Debug)]
+    pub enum CtxActions {
+        /// `actions -> action [, action]*`
+        Actions { action: SynAction, star: SynActions1 },
+    }
+    #[derive(Debug)]
+    pub enum CtxAction {
+        /// `action -> push ( Id )`
+        Action1 { id: String },
+        /// `action -> pop`
+        Action2,
+        /// `action -> skip`
+        Action3,
+        /// `action -> return`
+        Action4,
+    }
+    #[derive(Debug)]
+    pub enum CtxMatch {
+        /// `match -> alt_items`
+        Match { alt_items: SynAltItems },
+    }
+    #[derive(Debug)]
+    pub enum CtxAltItems {
+        /// `alt_items -> alt_item`
+        AltItems1 { alt_item: SynAltItem },
+        /// `alt_items -> alt_items | alt_item`
+        AltItems2 { alt_items: SynAltItems, alt_item: SynAltItem },
+        /// end of iterations in alt_items -> alt_items | alt_item
+        AltItems3 { alt_items: SynAltItems },
+    }
+    #[derive(Debug)]
+    pub enum CtxAltItem {
+        /// `alt_item -> [repeat_item]+`
+        AltItem { plus: SynAltItem1 },
+    }
+    #[derive(Debug)]
+    pub enum CtxRepeatItem {
+        /// `repeat_item -> item`
+        RepeatItem1 { item: SynItem },
+        /// end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
+        RepeatItem2 { repeat_item: SynRepeatItem },
+        /// `repeat_item -> repeat_item + ?`
+        RepeatItem3 { repeat_item: SynRepeatItem },
+        /// `repeat_item -> repeat_item +`
+        RepeatItem4 { repeat_item: SynRepeatItem },
+        /// `repeat_item -> repeat_item * ?`
+        RepeatItem5 { repeat_item: SynRepeatItem },
+        /// `repeat_item -> repeat_item *`
+        RepeatItem6 { repeat_item: SynRepeatItem },
+    }
+    #[derive(Debug)]
+    pub enum CtxItem {
+        /// `item -> ( item )`
+        Item1,
+        /// `item -> ~ item`
+        Item2,
+        /// `item -> EOF`
+        Item3,
+        /// `item -> Id`
+        Item4 { id: String },
+        /// `item -> CharSet`
+        Item5 { charset: String },
+        /// `item -> StrLit`
+        Item6 { strlit: String },
+        /// `item -> item ?`
+        Item7 { item: SynItem },
+        /// end of iterations in item -> item ?
+        Item8 { item: SynItem },
+        /// `item -> CharLit .. CharLit`
+        Item9 { charlit: [String; 2] },
+        /// `item -> CharLit`
+        Item10 { charlit: String },
+    }
+
+    // NT types:
+    // SynFile: User-defined type for `file`
+    // SynFileItem: User-defined type for `file_item`
+    // SynHeader: User-defined type for `header`
+    // SynDeclaration: User-defined type for `declaration`
+    // SynOption: User-defined type for `option`
+    // SynRule: User-defined type for `rule`
+    // SynActions: User-defined type for `actions`
+    // SynAction: User-defined type for `action`
+    // SynMatch: User-defined type for `match`
+    // SynAltItems: User-defined type for `alt_items`
+    // SynAltItem: User-defined type for `alt_item`
+    // SynRepeatItem: User-defined type for `repeat_item`
+    // SynItem: User-defined type for `item`
+    /// Computed `[file_item]*` array in `file -> header  ► [file_item]* ◄ `, array in `file ->  ► [file_item]* ◄ `
+    #[derive(Debug, PartialEq)]
+    pub struct SynFile1(Vec<SynFile1Item>);
+    /// `file_item` item in `file -> header  ► [file_item]* ◄ `, item in `file ->  ► [file_item]* ◄ `
+    #[derive(Debug, PartialEq)]
+    pub struct SynFile1Item { file_item: SynFileItem }
+    /// Computed `[, Id]*` array in `option -> channels { Id  ► [, Id]* ◄  }`
+    #[derive(Debug, PartialEq)]
+    pub struct SynOption1(Vec<String>);
+    /// Computed `[, action]*` array in `actions -> action  ► [, action]* ◄ `
+    #[derive(Debug, PartialEq)]
+    pub struct SynActions1(Vec<SynActions1Item>);
+    /// `, action` item in `actions -> action  ► [, action]* ◄ `
+    #[derive(Debug, PartialEq)]
+    pub struct SynActions1Item { action: SynAction }
+    /// Computed `[repeat_item]+` array in `alt_item ->  ► [repeat_item]+ ◄ `
+    #[derive(Debug, PartialEq)]
+    pub struct SynAltItem1(Vec<SynAltItem1Item>);
+    /// `repeat_item` item in `alt_item ->  ► [repeat_item]+ ◄ `
+    #[derive(Debug, PartialEq)]
+    pub struct SynAltItem1Item { repeat_item: SynRepeatItem }
+
+    #[derive(Debug)]
+    enum SynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItem1(SynAltItem1) }
+
+    impl SynValue {
+        fn get_file(self) -> SynFile {
+            if let SynValue::File(val) = self { val } else { panic!() }
+        }
+        fn get_file_item(self) -> SynFileItem {
+            if let SynValue::FileItem(val) = self { val } else { panic!() }
+        }
+        fn get_header(self) -> SynHeader {
+            if let SynValue::Header(val) = self { val } else { panic!() }
+        }
+        fn get_declaration(self) -> SynDeclaration {
+            if let SynValue::Declaration(val) = self { val } else { panic!() }
+        }
+        fn get_option(self) -> SynOption {
+            if let SynValue::Option(val) = self { val } else { panic!() }
+        }
+        fn get_rule(self) -> SynRule {
+            if let SynValue::Rule(val) = self { val } else { panic!() }
+        }
+        fn get_actions(self) -> SynActions {
+            if let SynValue::Actions(val) = self { val } else { panic!() }
+        }
+        fn get_action(self) -> SynAction {
+            if let SynValue::Action(val) = self { val } else { panic!() }
+        }
+        fn get_match1(self) -> SynMatch {
+            if let SynValue::Match(val) = self { val } else { panic!() }
+        }
+        fn get_alt_items(self) -> SynAltItems {
+            if let SynValue::AltItems(val) = self { val } else { panic!() }
+        }
+        fn get_alt_item(self) -> SynAltItem {
+            if let SynValue::AltItem(val) = self { val } else { panic!() }
+        }
+        fn get_repeat_item(self) -> SynRepeatItem {
+            if let SynValue::RepeatItem(val) = self { val } else { panic!() }
+        }
+        fn get_item(self) -> SynItem {
+            if let SynValue::Item(val) = self { val } else { panic!() }
+        }
+        fn get_file1(self) -> SynFile1 {
+            if let SynValue::File1(val) = self { val } else { panic!() }
+        }
+        fn get_option1(self) -> SynOption1 {
+            if let SynValue::Option1(val) = self { val } else { panic!() }
+        }
+        fn get_actions1(self) -> SynActions1 {
+            if let SynValue::Actions1(val) = self { val } else { panic!() }
+        }
+        fn get_alt_item1(self) -> SynAltItem1 {
+            if let SynValue::AltItem1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        fn exit(&mut self, _file: SynFile) {}
+        fn init_file(&mut self) {}
+        fn exit_file(&mut self, _ctx: CtxFile) -> SynFile;
+        fn init_file_item(&mut self) {}
+        fn exit_file_item(&mut self, _ctx: CtxFileItem) -> SynFileItem;
+        fn init_header(&mut self) {}
+        fn exit_header(&mut self, _ctx: CtxHeader) -> SynHeader;
+        fn init_declaration(&mut self) {}
+        fn exit_declaration(&mut self, _ctx: CtxDeclaration) -> SynDeclaration;
+        fn init_option(&mut self) {}
+        fn exit_option(&mut self, _ctx: CtxOption) -> SynOption;
+        fn init_rule(&mut self) {}
+        fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule;
+        fn init_actions(&mut self) {}
+        fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions;
+        fn init_action(&mut self) {}
+        fn exit_action(&mut self, _ctx: CtxAction) -> SynAction;
+        fn init_match1(&mut self) {}
+        fn exit_match1(&mut self, _ctx: CtxMatch) -> SynMatch;
+        fn init_alt_items(&mut self) {}
+        fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems;
+        fn init_alt_item(&mut self) {}
+        fn exit_alt_item(&mut self, _ctx: CtxAltItem) -> SynAltItem;
+        fn init_repeat_item(&mut self) {}
+        fn exit_repeat_item(&mut self, _ctx: CtxRepeatItem) -> SynRepeatItem;
+        fn init_item(&mut self) {}
+        fn exit_item(&mut self, _ctx: CtxItem) -> SynItem;
+    }
+
+    pub struct ListenerWrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> Listener for ListenerWrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_file(),             // file
+                        13 => self.init_file1(),                    // file_1
+                        1 => self.listener.init_file_item(),        // file_item
+                        2 => self.listener.init_header(),           // header
+                        3 => self.listener.init_declaration(),      // declaration
+                        4 => self.listener.init_option(),           // option
+                        14 => self.init_option1(),                  // option_1
+                        5 => self.listener.init_rule(),             // rule
+                        20 => {}                                    // rule_1
+                        6 => self.listener.init_actions(),          // actions
+                        15 => self.init_actions1(),                 // actions_1
+                        7 => self.listener.init_action(),           // action
+                        8 => self.listener.init_match1(),           // match
+                        9 => self.listener.init_alt_items(),        // alt_items
+                        17 => {}                                    // alt_items_1
+                        10 => self.listener.init_alt_item(),        // alt_item
+                        16 => self.init_alt_item1(),                // alt_item_1
+                        22 => {}                                    // alt_item_2
+                        11 => self.listener.init_repeat_item(),     // repeat_item
+                        18 => {}                                    // repeat_item_1
+                        23 => {}                                    // repeat_item_2
+                        24 => {}                                    // repeat_item_3
+                        12 => self.listener.init_item(),            // item
+                        19 => {}                                    // item_1
+                        21 => {}                                    // item_2
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 |                                         // file -> header [file_item]*
+                        1 => self.exit_file(factor_id),             // file -> [file_item]*
+                        26 => self.exit_file1(),                    // [file_item]* item in file -> header  ► [file_item]* ◄  | ...
+                        27 => {}                                    // end of [file_item]* items in file -> header  ► [file_item]* ◄  | ...
+                        2 |                                         // file_item -> option
+                        3 |                                         // file_item -> declaration
+                        4 => self.exit_file_item(factor_id),        // file_item -> rule
+                        5 => self.exit_header(),                    // header -> lexicon Id ;
+                        6 => self.exit_declaration(),               // declaration -> mode Id ;
+                        7 => self.exit_option(),                    // option -> channels { Id [, Id]* }
+                        28 => self.exit_option1(),                  // [, Id]* item in option -> channels { Id  ► [, Id]* ◄  }
+                        29 => {}                                    // end of [, Id]* items in option -> channels { Id  ► [, Id]* ◄  }
+                        8 |                                         // rule -> fragment Id : match ;
+                        40 |                                        // rule -> Id : match -> actions ;
+                        41 => self.exit_rule(factor_id),            // rule -> Id : match ;
+                     /* 9 */                                        // rule -> Id : match -> actions ; | Id : match ; (never called)
+                        10 => self.exit_actions(),                  // actions -> action [, action]*
+                        30 => self.exit_actions1(),                 // [, action]* item in actions -> action  ► [, action]* ◄
+                        31 => {}                                    // end of [, action]* items in actions -> action  ► [, action]* ◄
+                        11 |                                        // action -> push ( Id )
+                        12 |                                        // action -> pop
+                        13 |                                        // action -> skip
+                        14 => self.exit_action(factor_id),          // action -> return
+                        15 => self.exit_match1(),                   // match -> alt_items
+                        16 => self.init_alt_items(),                // alt_items -> alt_item
+                        33 |                                        // alt_items -> alt_items | alt_item
+                        34 => self.exit_alt_items1(factor_id),      // end of iterations in alt_items -> alt_items | alt_item
+                        17 => self.exit_alt_item(),                 // alt_item -> [repeat_item]+
+                        44 |                                        // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄
+                        45 => self.exit_alt_item1(),                // end of [repeat_item]+ items in alt_item ->  ► [repeat_item]+ ◄
+                     /* 32 */                                       // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄  (never called)
+                        18 => self.init_repeat_item(),              // repeat_item -> item
+                        37 |                                        // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
+                        46 |                                        // repeat_item -> repeat_item + ?
+                        47 |                                        // repeat_item -> repeat_item +
+                        48 |                                        // repeat_item -> repeat_item * ?
+                        49 => self.exit_repeat_item1(factor_id),    // repeat_item -> repeat_item *
+                     /* 35 */                                       // repeat_item -> repeat_item + ? | repeat_item + (never called)
+                     /* 36 */                                       // repeat_item -> repeat_item * ? | repeat_item * (never called)
+                        19 |                                        // item -> ( item )
+                        20 |                                        // item -> ~ item
+                        21 |                                        // item -> EOF
+                        22 |                                        // item -> Id
+                        24 |                                        // item -> CharSet
+                        25 |                                        // item -> StrLit
+                        42 |                                        // item -> CharLit .. CharLit
+                        43 => self.init_item(factor_id),            // item -> CharLit
+                        38 |                                        // item -> item ?
+                        39 => self.exit_item1(factor_id),           // end of iterations in item -> item ?
+                     /* 23 */                                       // item -> CharLit .. CharLit | CharLit (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+    }
+
+    impl<T: TestListener> ListenerWrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let file = self.stack.pop().unwrap().get_file();
+            self.listener.exit(file);
+        }
+
+        fn exit_file(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                0 => {
+                    let star = self.stack.pop().unwrap().get_file1();
+                    let header = self.stack.pop().unwrap().get_header();
+                    CtxFile::File1 { header, star }
+                }
+                1 => {
+                    let star = self.stack.pop().unwrap().get_file1();
+                    CtxFile::File2 { star }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_file")
+            };
+            let val = self.listener.exit_file(ctx);
+            self.stack.push(SynValue::File(val));
+        }
+
+        fn init_file1(&mut self) {
+            let val = SynFile1(Vec::new());
+            self.stack.push(SynValue::File1(val));
+        }
+
+        fn exit_file1(&mut self) {
+            let file_item = self.stack.pop().unwrap().get_file_item();
+            let mut star_it = self.stack.pop().unwrap().get_file1();
+            star_it.0.push(SynFile1Item { file_item });
+            self.stack.push(SynValue::File1(star_it));
+        }
+
+        fn exit_file_item(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                2 => {
+                    let option = self.stack.pop().unwrap().get_option();
+                    CtxFileItem::FileItem1 { option }
+                }
+                3 => {
+                    let declaration = self.stack.pop().unwrap().get_declaration();
+                    CtxFileItem::FileItem2 { declaration }
+                }
+                4 => {
+                    let rule = self.stack.pop().unwrap().get_rule();
+                    CtxFileItem::FileItem3 { rule }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_file_item")
+            };
+            let val = self.listener.exit_file_item(ctx);
+            self.stack.push(SynValue::FileItem(val));
+        }
+
+        fn exit_header(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_header(CtxHeader::Header { id });
+            self.stack.push(SynValue::Header(val));
+        }
+
+        fn exit_declaration(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_declaration(CtxDeclaration::Declaration { id });
+            self.stack.push(SynValue::Declaration(val));
+        }
+
+        fn exit_option(&mut self) {
+            let star = self.stack.pop().unwrap().get_option1();
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_option(CtxOption::Option { id, star });
+            self.stack.push(SynValue::Option(val));
+        }
+
+        fn init_option1(&mut self) {
+            let val = SynOption1(Vec::new());
+            self.stack.push(SynValue::Option1(val));
+        }
+
+        fn exit_option1(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let mut star_it = self.stack.pop().unwrap().get_option1();
+            star_it.0.push(id);
+            self.stack.push(SynValue::Option1(star_it));
+        }
+
+        fn exit_rule(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                8 => {
+                    let match1 = self.stack.pop().unwrap().get_match1();
+                    let id = self.stack_t.pop().unwrap();
+                    CtxRule::Rule1 { id, match1 }
+                }
+                40 => {
+                    let actions = self.stack.pop().unwrap().get_actions();
+                    let match1 = self.stack.pop().unwrap().get_match1();
+                    let id = self.stack_t.pop().unwrap();
+                    CtxRule::Rule2 { id, match1, actions }
+                }
+                41 => {
+                    let match1 = self.stack.pop().unwrap().get_match1();
+                    let id = self.stack_t.pop().unwrap();
+                    CtxRule::Rule3 { id, match1 }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_rule")
+            };
+            let val = self.listener.exit_rule(ctx);
+            self.stack.push(SynValue::Rule(val));
+        }
+
+        fn exit_actions(&mut self) {
+            let star = self.stack.pop().unwrap().get_actions1();
+            let action = self.stack.pop().unwrap().get_action();
+            let val = self.listener.exit_actions(CtxActions::Actions { action, star });
+            self.stack.push(SynValue::Actions(val));
+        }
+
+        fn init_actions1(&mut self) {
+            let val = SynActions1(Vec::new());
+            self.stack.push(SynValue::Actions1(val));
+        }
+
+        fn exit_actions1(&mut self) {
+            let action = self.stack.pop().unwrap().get_action();
+            let mut star_it = self.stack.pop().unwrap().get_actions1();
+            star_it.0.push(SynActions1Item { action });
+            self.stack.push(SynValue::Actions1(star_it));
+        }
+
+        fn exit_action(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                11 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxAction::Action1 { id }
+                }
+                12 => {
+                    CtxAction::Action2
+                }
+                13 => {
+                    CtxAction::Action3
+                }
+                14 => {
+                    CtxAction::Action4
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_action")
+            };
+            let val = self.listener.exit_action(ctx);
+            self.stack.push(SynValue::Action(val));
+        }
+
+        fn exit_match1(&mut self) {
+            let alt_items = self.stack.pop().unwrap().get_alt_items();
+            let val = self.listener.exit_match1(CtxMatch::Match { alt_items });
+            self.stack.push(SynValue::Match(val));
+        }
+
+        fn init_alt_items(&mut self) {
+            let alt_item = self.stack.pop().unwrap().get_alt_item();
+            let val = self.listener.exit_alt_items(CtxAltItems::AltItems1 { alt_item });
+            self.stack.push(SynValue::AltItems(val));
+        }
+
+        fn exit_alt_items1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                33 => {
+                    let alt_item = self.stack.pop().unwrap().get_alt_item();
+                    let alt_items = self.stack.pop().unwrap().get_alt_items();
+                    CtxAltItems::AltItems2 { alt_items, alt_item }
+                }
+                34 => {
+                    let alt_items = self.stack.pop().unwrap().get_alt_items();
+                    CtxAltItems::AltItems3 { alt_items }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_alt_items1")
+            };
+            let val = self.listener.exit_alt_items(ctx);
+            self.stack.push(SynValue::AltItems(val));
+        }
+
+        fn exit_alt_item(&mut self) {
+            let plus = self.stack.pop().unwrap().get_alt_item1();
+            let val = self.listener.exit_alt_item(CtxAltItem::AltItem { plus });
+            self.stack.push(SynValue::AltItem(val));
+        }
+
+        fn init_alt_item1(&mut self) {
+            let val = SynAltItem1(Vec::new());
+            self.stack.push(SynValue::AltItem1(val));
+        }
+
+        fn exit_alt_item1(&mut self) {
+            let repeat_item = self.stack.pop().unwrap().get_repeat_item();
+            let mut plus_it = self.stack.pop().unwrap().get_alt_item1();
+            plus_it.0.push(SynAltItem1Item { repeat_item });
+            self.stack.push(SynValue::AltItem1(plus_it));
+        }
+
+        fn init_repeat_item(&mut self) {
+            let item = self.stack.pop().unwrap().get_item();
+            let val = self.listener.exit_repeat_item(CtxRepeatItem::RepeatItem1 { item });
+            self.stack.push(SynValue::RepeatItem(val));
+        }
+
+        fn exit_repeat_item1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                37 => {
+                    let repeat_item = self.stack.pop().unwrap().get_repeat_item();
+                    CtxRepeatItem::RepeatItem2 { repeat_item }
+                }
+                46 => {
+                    let repeat_item = self.stack.pop().unwrap().get_repeat_item();
+                    CtxRepeatItem::RepeatItem3 { repeat_item }
+                }
+                47 => {
+                    let repeat_item = self.stack.pop().unwrap().get_repeat_item();
+                    CtxRepeatItem::RepeatItem4 { repeat_item }
+                }
+                48 => {
+                    let repeat_item = self.stack.pop().unwrap().get_repeat_item();
+                    CtxRepeatItem::RepeatItem5 { repeat_item }
+                }
+                49 => {
+                    let repeat_item = self.stack.pop().unwrap().get_repeat_item();
+                    CtxRepeatItem::RepeatItem6 { repeat_item }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_repeat_item1")
+            };
+            let val = self.listener.exit_repeat_item(ctx);
+            self.stack.push(SynValue::RepeatItem(val));
+        }
+
+        fn init_item(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                19 => {
+                    CtxItem::Item1
+                }
+                20 => {
+                    CtxItem::Item2
+                }
+                21 => {
+                    CtxItem::Item3
+                }
+                22 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxItem::Item4 { id }
+                }
+                24 => {
+                    let charset = self.stack_t.pop().unwrap();
+                    CtxItem::Item5 { charset }
+                }
+                25 => {
+                    let strlit = self.stack_t.pop().unwrap();
+                    CtxItem::Item6 { strlit }
+                }
+                42 => {
+                    let charlit_2 = self.stack_t.pop().unwrap();
+                    let charlit_1 = self.stack_t.pop().unwrap();
+                    CtxItem::Item9 { charlit: [charlit_1, charlit_2] }
+                }
+                43 => {
+                    let charlit = self.stack_t.pop().unwrap();
+                    CtxItem::Item10 { charlit }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn init_item")
+            };
+            let val = self.listener.exit_item(ctx);
+            self.stack.push(SynValue::Item(val));
+        }
+
+        fn exit_item1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                38 => {
+                    let item = self.stack.pop().unwrap().get_item();
+                    CtxItem::Item7 { item }
+                }
+                39 => {
+                    let item = self.stack.pop().unwrap().get_item();
+                    CtxItem::Item8 { item }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_item1")
+            };
+            let val = self.listener.exit_item(ctx);
+            self.stack.push(SynValue::Item(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(100) #1, start file]
     // ------------------------------------------------------------
 }
