@@ -1,6 +1,6 @@
 #![allow(unused)]
 
-pub(super) mod lexiparser {
+pub(crate) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
@@ -684,7 +684,7 @@ pub(super) mod lexiparser {
     // -------------------------------------------------------------------------
 }
 
-pub(super) mod lexiparser_types {
+pub(crate) mod lexiparser_types {
     // SynFile: User-defined type for `file`
     // SynFileItem: User-defined type for `file_item`
     // SynHeader: User-defined type for `header`
