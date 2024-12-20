@@ -274,7 +274,7 @@ pub(crate) mod lexiparser {
         fn exit_item(&mut self, _ctx: CtxItem) -> SynItem;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,

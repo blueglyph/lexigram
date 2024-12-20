@@ -72,7 +72,7 @@ pub(crate) mod rules_prs_34_1 {
         fn exit_val(&mut self, _ctx: CtxVal) -> SynVal;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -227,7 +227,7 @@ pub(crate) mod rules_rts_21_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -358,7 +358,7 @@ pub(crate) mod rules_rts_21_2 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -489,7 +489,7 @@ pub(crate) mod rules_rts_22_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -639,7 +639,7 @@ pub(crate) mod rules_rts_22_2 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) {}
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -783,7 +783,7 @@ pub(crate) mod rules_rts_22_3 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -935,7 +935,7 @@ pub(crate) mod rules_rts_22_4 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1088,7 +1088,7 @@ pub(crate) mod rules_rts_32_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1246,7 +1246,7 @@ pub(crate) mod rules_rts_25_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1373,7 +1373,7 @@ pub(crate) mod rules_rts_23_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1531,7 +1531,7 @@ pub(crate) mod rules_rts_27_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1697,7 +1697,7 @@ pub(crate) mod rules_rts_28_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1852,7 +1852,7 @@ pub(crate) mod rules_rts_24_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynMyAIter;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1996,7 +1996,7 @@ pub(crate) mod rules_rts_24_2 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) {}
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2135,7 +2135,7 @@ pub(crate) mod rules_rts_24_3 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynMyAIter;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2282,7 +2282,7 @@ pub(crate) mod rules_rts_24_4 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynMyAIter;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2445,7 +2445,7 @@ pub(crate) mod rules_rts_29_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2619,7 +2619,7 @@ pub(crate) mod rules_rts_29_2 {
         fn exit_b(&mut self, _ctx: CtxB) {}
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2784,7 +2784,7 @@ pub(crate) mod rules_rts_29_3 {
         fn exit_b(&mut self, _ctx: CtxB) {}
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2963,7 +2963,7 @@ pub(crate) mod rules_rts_39_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAiter1;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -3157,7 +3157,7 @@ pub(crate) mod rules_rts_40_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAiter1;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -3356,7 +3356,7 @@ pub(crate) mod rules_rts_30_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -3547,7 +3547,7 @@ pub(crate) mod rules_rts_30_2 {
         fn exit_b(&mut self, _ctx: CtxB) {}
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -3784,7 +3784,7 @@ pub(crate) mod rules_rts_34_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4020,7 +4020,7 @@ pub(crate) mod rules_prs_28_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4185,7 +4185,7 @@ pub(crate) mod rules_prs_31_1 {
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4342,7 +4342,7 @@ pub(crate) mod rules_prs_31_2 {
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4494,7 +4494,7 @@ pub(crate) mod rules_prs_36_1 {
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4657,7 +4657,7 @@ pub(crate) mod rules_prs_33_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4819,7 +4819,7 @@ pub(crate) mod rules_prs_38_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4990,7 +4990,7 @@ pub(crate) mod rules_prs_39_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5171,7 +5171,7 @@ pub(crate) mod rules_prs_32_1 {
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5340,7 +5340,7 @@ pub(crate) mod rules_rts_38_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5517,7 +5517,7 @@ pub(crate) mod rules_rts_38_2 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5683,7 +5683,7 @@ pub(crate) mod rules_rts_38_3 {
         fn exit_a(&mut self, _ctx: CtxA) {}
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5834,7 +5834,7 @@ pub(crate) mod rules_prs_20_1 {
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5977,7 +5977,7 @@ pub(crate) mod rules_prs_20_2 {
         fn exit_list(&mut self, _ctx: CtxList) {}
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6126,7 +6126,7 @@ pub(crate) mod rules_prs_37_1 {
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6279,7 +6279,7 @@ pub(crate) mod rules_prs_30_1 {
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6428,7 +6428,7 @@ pub(crate) mod rules_prs_30_2 {
         fn exit_list(&mut self, _ctx: CtxList) {}
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6574,7 +6574,7 @@ pub(crate) mod rules_rts_26_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6741,7 +6741,7 @@ pub(crate) mod rules_rts_16_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6898,7 +6898,7 @@ pub(crate) mod rules_prs_35_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -7059,7 +7059,7 @@ pub(crate) mod rules_rts_33_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,

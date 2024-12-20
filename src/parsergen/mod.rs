@@ -1696,7 +1696,7 @@ impl ParserGen {
 
         // Writes the switch() function
         src.add_space();
-        src.push(format!("struct ListenerWrapper<T> {{"));
+        src.push(format!("pub struct ListenerWrapper<T> {{"));
         src.push(format!("    verbose: bool,"));
         src.push(format!("    listener: T,"));
         src.push(format!("    stack: Vec<SynValue>,"));

@@ -139,7 +139,7 @@ mod listener {
         fn exit_t_1(&mut self, _ctx: CtxT1) {}
     }
 
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         listener: T,
         stack_t: Vec<String>
     }
@@ -533,7 +533,7 @@ mod listener2 {
     // `Parser::parse_stream_hook` requires a type implementing `Listener`, but we can only implement
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
-    struct ListenerWrapper<T> {
+    pub struct ListenerWrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1022,7 +1022,7 @@ mod listener3 {
             fn exit_list(&mut self, _ctx: CtxList) -> SynList;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -1308,7 +1308,7 @@ mod listener4 {
             fn iter_list(&mut self, _ctx: CtxList) -> SynList;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -1607,7 +1607,7 @@ mod listener5 {
             fn exit_f(&mut self, _ctx: CtxF) -> SynF;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -1925,7 +1925,7 @@ mod listener6 {
             fn exit_f(&mut self, _ctx: CtxF) -> SynF;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -2229,7 +2229,7 @@ mod listener7 {
             fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -2502,7 +2502,7 @@ mod listener8 {
             fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -2796,7 +2796,7 @@ mod listener9 {
             fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -3093,7 +3093,7 @@ mod listener10 {
             fn exit_a(&mut self, ctx: CtxA) -> SynA;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -3377,7 +3377,7 @@ mod listener11 {
             fn exit_b(&mut self, ctx: CtxB) -> SynB;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -3668,7 +3668,7 @@ mod listener12 {
             fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
@@ -3975,7 +3975,7 @@ mod listener13 {
             fn exit_f(&mut self, _ctx: CtxF) -> SynF;
         }
 
-        struct ListenerWrapper<T> {
+        pub struct ListenerWrapper<T> {
             verbose: bool,
             listener: T,
             stack: Vec<SynValue>,
