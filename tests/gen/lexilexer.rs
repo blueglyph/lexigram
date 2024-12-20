@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-mod lexilexer {
+pub(super) mod lexilexer {
     // -------------------------------------------------------------------------
     // [lexilexer]
 
@@ -195,7 +195,7 @@ mod lexilexer {
          91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91, // state 90 <end:26>
     ];
 
-    pub(super) fn build_lexer<R: Read>() -> Lexer<R> {
+    pub fn build_lexer<R: Read>() -> Lexer<R> {
         Lexer::new(
             // parameters
             NBR_GROUPS,

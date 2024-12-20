@@ -1,4 +1,4 @@
 pub(crate) mod wrapper_source;
 pub(crate) mod wrapper_code;
-pub mod lexilexer;
-mod lexiparser;
+pub(crate) mod lexilexer;
+pub(crate) mod lexiparser;

@@ -234,7 +234,7 @@ impl LexerGen {
         }
         source.push(format!("];"));
         source.push(String::new());
-        source.push(format!("pub(super) fn build_lexer<R: Read>() -> Lexer<R> {{"));
+        source.push(format!("pub fn build_lexer<R: Read>() -> Lexer<R> {{"));
         source.push(format!("    Lexer::new("));
         source.push(format!("        // parameters"));
         source.push(format!("        NBR_GROUPS,"));
