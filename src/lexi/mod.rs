@@ -326,7 +326,7 @@ pub const LEXICON_TEXT: [&str; 261] = [
 pub const GRAMMAR: &str = r#"
 grammar LexiParser;
 
-file: header? file_item* EOF;
+file: header? file_item*;
 
 file_item:
     option | declaration | rule
