@@ -1421,6 +1421,9 @@ mod wrapper_source {
             */
         ];
 
+        // those parsers don't require type definition in wrapper_code.rs (avoids an unused_imports warning):
+        let type_gen_exclusion = hashset!["rts_29_3", "rts_30_2", "rts_38_3"];
+
         const WRAPPER_FILENAME: &str = "tests/gen/wrapper_source.rs";
 
         // print sources
@@ -1466,7 +1469,7 @@ mod wrapper_source {
                 RTS(n) => format!("rts_{n}_{rule_iter}"),
                 PRS(n) => format!("prs_{n}_{rule_iter}"),
             };
-            if !hashset!["rts_29_3", "rts_30_2"].contains(rule_name.as_str()) {
+            if !type_gen_exclusion.contains(rule_name.as_str()) {
                 builder.add_lib(&format!("super::super::wrapper_code::code_{rule_name}::*"));
             }
             for (v, s) in nt_type.clone() {
