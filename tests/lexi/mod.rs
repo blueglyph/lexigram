@@ -14,9 +14,21 @@ impl LexiListener {
 }
 
 impl LexiParserListener for LexiListener {
+    fn exit(&mut self, _file: SynFile) {
+        if self.verbose { println!("exit"); }
+    }
+
+    fn init_file(&mut self) {
+        if self.verbose { println!("init_file"); }
+    }
+
     fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
         if self.verbose { println!("exit_file"); }
         SynFile()
+    }
+
+    fn init_file_item(&mut self) {
+        if self.verbose { println!("init_file_item"); }
     }
 
     fn exit_file_item(&mut self, _ctx: CtxFileItem) -> SynFileItem {
@@ -24,9 +36,17 @@ impl LexiParserListener for LexiListener {
         SynFileItem()
     }
 
+    fn init_header(&mut self) {
+        if self.verbose { println!("init_header"); }
+    }
+
     fn exit_header(&mut self, _ctx: CtxHeader) -> SynHeader {
         if self.verbose { println!("exit_header"); }
         SynHeader()
+    }
+
+    fn init_declaration(&mut self) {
+        if self.verbose { println!("init_declaration"); }
     }
 
     fn exit_declaration(&mut self, _ctx: CtxDeclaration) -> SynDeclaration {
@@ -34,9 +54,17 @@ impl LexiParserListener for LexiListener {
         SynDeclaration()
     }
 
+    fn init_option(&mut self) {
+        if self.verbose { println!("init_option"); }
+    }
+
     fn exit_option(&mut self, _ctx: CtxOption) -> SynOption {
         if self.verbose { println!("exit_option"); }
         SynOption()
+    }
+
+    fn init_rule(&mut self) {
+        if self.verbose { println!("init_rule"); }
     }
 
     fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule {
@@ -44,9 +72,17 @@ impl LexiParserListener for LexiListener {
         SynRule()
     }
 
+    fn init_actions(&mut self) {
+        if self.verbose { println!("init_actions"); }
+    }
+
     fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions {
         if self.verbose { println!("exit_actions"); }
         SynActions()
+    }
+
+    fn init_action(&mut self) {
+        if self.verbose { println!("init_action"); }
     }
 
     fn exit_action(&mut self, _ctx: CtxAction) -> SynAction {
@@ -54,9 +90,17 @@ impl LexiParserListener for LexiListener {
         SynAction()
     }
 
+    fn init_match1(&mut self) {
+        if self.verbose { println!("init_match1"); }
+    }
+
     fn exit_match1(&mut self, _ctx: CtxMatch) -> SynMatch {
         if self.verbose { println!("exit_match1"); }
         SynMatch()
+    }
+
+    fn init_alt_items(&mut self) {
+        if self.verbose { println!("init_alt_items"); }
     }
 
     fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems {
@@ -64,9 +108,17 @@ impl LexiParserListener for LexiListener {
         SynAltItems()
     }
 
+    fn init_alt_item(&mut self) {
+        if self.verbose { println!("init_alt_item"); }
+    }
+
     fn exit_alt_item(&mut self, _ctx: CtxAltItem) -> SynAltItem {
         if self.verbose { println!("exit_alt_item"); }
         SynAltItem()
+    }
+
+    fn init_repeat_item(&mut self) {
+        if self.verbose { println!("init_repeat_item"); }
     }
 
     fn exit_repeat_item(&mut self, _ctx: CtxRepeatItem) -> SynRepeatItem {
@@ -74,10 +126,16 @@ impl LexiParserListener for LexiListener {
         SynRepeatItem()
     }
 
+    fn init_item(&mut self) {
+        if self.verbose { println!("init_item"); }
+    }
+
     fn exit_item(&mut self, _ctx: CtxItem) -> SynItem {
         if self.verbose { println!("exit_item"); }
         SynItem()
     }
+    
+    
 }
 
 #[cfg(test)]
@@ -112,6 +170,7 @@ mod tests {
 
             let tokens = lexer.tokens().filter_map(|(tok, ch, text)| if ch == 0 { Some((tok, text)) } else { None });
             let result = parser.parse_stream(&mut wrapper, tokens);
+            assert_eq!(result, Ok(()));
         }
     }
 }

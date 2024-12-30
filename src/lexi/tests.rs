@@ -216,6 +216,7 @@ fn lexiparser_source() {
         }
     }
     let rules = ProdRuleSet::from(rts);
+    println!("messages PRS<General>: {}", rules.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
     if VERBOSE {
         let st_num_nt = rules.get_symbol_table().unwrap().get_num_nt();
         println!("rules, num_nt = {}, NT symbols: {}", rules.get_num_nt(), st_num_nt);
@@ -228,6 +229,7 @@ fn lexiparser_source() {
     }
     assert_eq!(rules.get_log().num_errors(), 0);
     let ll1 = ProdRuleSet::<LL1>::from(rules);
+    println!("messages PRS<LL1>: {}", ll1.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
     if VERBOSE {
         println!("LL1, num_nt = {}, NT symbols: {}", ll1.get_num_nt(), ll1.get_symbol_table().unwrap().get_num_nt());
         print_production_rules(&ll1, true);

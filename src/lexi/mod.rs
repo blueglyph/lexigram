@@ -376,7 +376,7 @@ alt_item:
 repeat_item:
     repeat_item STAR QUESTION?
 |   repeat_item PLUS QUESTION?
-|   item
+|   item QUESTION?
 ;
 
 item:
@@ -387,7 +387,6 @@ item:
 |   CHAR_SET
 |   LPAREN alt_items RPAREN
 |   NEGATE item
-|   item QUESTION
 ;
 "#;
 
@@ -537,7 +536,7 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     // repeat_item:
     //     repeat_item STAR QUESTION?
     // |   repeat_item PLUS QUESTION?
-    // |   item
+    // |   item QUESTION?
     // ;
     let tree = rules.get_tree_mut(NT::RepeatItem as VarId);
     let or = tree.add_root(gnode!(|));
@@ -545,7 +544,8 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     tree.addc(Some(cc1), gnode!(?), gnode!(t T::Question));
     let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::RepeatItem), gnode!(t T::Plus)]);
     tree.addc(Some(cc1), gnode!(?), gnode!(t T::Question));
-    tree.add(Some(or), gnode!(nt NT::Item));
+    let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::Item)]);
+    tree.addc(Some(cc1), gnode!(?), gnode!(t T::Question));
 
     //
     // item:
@@ -556,7 +556,6 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     // |   CHAR_SET
     // |   LPAREN alt_item RPAREN
     // |   NEGATE item
-    // |   item QUESTION
     // ;
     let tree = rules.get_tree_mut(NT::Item as VarId);
     let or = tree.add_root(gnode!(|));
@@ -568,14 +567,12 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
         gnode!(t T::CharSet),   // 4: CHAR_SET
         gnode!(&),              // 5: LPAREN alt_item RPAREN
         gnode!(&),              // 6: NEGATE item
-        gnode!(&)               // 7: item QUESTION
     ]);
     tree.add(Some(cc1s[2]), gnode!(t T::CharLit));
     let maybe2 = tree.add(Some(cc1s[2]), gnode!(?));
     tree.addc_iter(Some(maybe2), gnode!(&), [gnode!(t T::Ellipsis), gnode!(t T::CharLit)]);
-    tree.add_iter(Some(cc1s[5]), [gnode!(t T::Lparen), gnode!(nt NT::Item), gnode!(t T::Rparen)]);
+    tree.add_iter(Some(cc1s[5]), [gnode!(t T::Lparen), gnode!(nt NT::AltItem), gnode!(t T::Rparen)]);
     tree.add_iter(Some(cc1s[6]), [gnode!(t T::Negate), gnode!(nt NT::Item)]);
-    tree.add_iter(Some(cc1s[7]), [gnode!(nt NT::Item), gnode!(t T::Question)]);
 
     rules
 }
