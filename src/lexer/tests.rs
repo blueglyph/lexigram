@@ -237,15 +237,15 @@ fn lexer_modes() {
     let tests = vec![
         (1, vec![
             // no error
-            (" 10 20 30", vec![0, 0, 0], vec!["10", "20", "30"]),
-            (" 10 20 ", vec![0, 0], vec!["10", "20"]),
-            (" 5 /* bla bla */ 6", vec![0, 0], vec!["5", "6"]),
+            (" 10 20 30", vec![(0, 2, 1), (0, 5, 1), (0, 8, 1)], vec!["10", "20", "30"]),
+            (" 10 20 ", vec![(0, 2, 1), (0, 5, 1)], vec!["10", "20"]),
+            (" 5 /* bla bla */ 6\n \n 7", vec![(0, 2, 1), (0, 18, 1), (0, 2, 3)], vec!["5", "6", "7"]),
         ]),
         (2, vec![
             // no error
-            (" 10 20 30", vec![0, 0, 0], vec!["10", "20", "30"]),
-            (" 10 20 ", vec![0, 0], vec!["10", "20"]),
-            (" 5 /* bla bla */ 6", vec![0, 0], vec!["5", "6"]),
+            (" 10 20 30", vec![(0, 2, 1), (0, 5, 1), (0, 8, 1)], vec!["10", "20", "30"]),
+            (" 10 20 ", vec![(0, 2, 1), (0, 5, 1)], vec!["10", "20"]),
+            (" 5 /* bla bla */ 6\n \n 7", vec![(0, 2, 1), (0, 18, 1), (0, 2, 3)], vec!["5", "6", "7"]),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -256,10 +256,10 @@ fn lexer_modes() {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
             lexer.attach_stream(stream);
-            let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, _col, _line)| {
-                if VERBOSE { print!(" ({tok}, \"{text}\")")}
+            let (tokens, texts): (Vec<(TokenId, i32, i32)>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, col, line)| {
+                if VERBOSE { print!(" ({tok}, \"{text}\")") }
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
-                (tok, text)
+                ((tok, col as i32, line as i32), text, )
             }).unzip();
             if VERBOSE { println!(); }
             assert_eq!(tokens, expected_tokens, "test {} failed for input '{}'", test_id, escape_string(input));
