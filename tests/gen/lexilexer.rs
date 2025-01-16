@@ -245,7 +245,7 @@ mod test {
                 if VERBOSE { print!("\"{}\":", escape_string(input)); }
                 let stream = CharReader::new(Cursor::new(input));
                 lexer.attach_stream(stream);
-                let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text)| {
+                let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer.tokens().map(|(tok, ch, text, _col, _line)| {
                     assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
                     (tok, text)
                 }).unzip();
