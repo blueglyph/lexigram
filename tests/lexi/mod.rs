@@ -160,6 +160,7 @@ mod tests {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
             let mut lexer = build_lexer();
+            lexer.set_tab_width(4);
             lexer.attach_stream(stream);
 
             let mut parser = build_parser();
