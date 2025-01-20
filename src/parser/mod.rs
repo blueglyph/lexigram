@@ -81,7 +81,7 @@ impl Parser {
         where I: Iterator<Item=ParserToken>,
               L: Listener,
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<OpCode>::new();
         let mut stack_t = Vec::<String>::new();

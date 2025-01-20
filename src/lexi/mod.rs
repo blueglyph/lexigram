@@ -565,13 +565,13 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
         gnode!(&),              // 2: CHAR_LIT (ELLIPSIS CHAR_LIT)?
         gnode!(t T::StrLit),    // 3: STR_LIT
         gnode!(t T::CharSet),   // 4: CHAR_SET
-        gnode!(&),              // 5: LPAREN alt_item RPAREN
+        gnode!(&),              // 5: LPAREN alt_items RPAREN
         gnode!(&),              // 6: NEGATE item
     ]);
     tree.add(Some(cc1s[2]), gnode!(t T::CharLit));
     let maybe2 = tree.add(Some(cc1s[2]), gnode!(?));
     tree.addc_iter(Some(maybe2), gnode!(&), [gnode!(t T::Ellipsis), gnode!(t T::CharLit)]);
-    tree.add_iter(Some(cc1s[5]), [gnode!(t T::Lparen), gnode!(nt NT::AltItem), gnode!(t T::Rparen)]);
+    tree.add_iter(Some(cc1s[5]), [gnode!(t T::Lparen), gnode!(nt NT::AltItems), gnode!(t T::Rparen)]);
     tree.add_iter(Some(cc1s[6]), [gnode!(t T::Negate), gnode!(nt NT::Item)]);
 
     rules

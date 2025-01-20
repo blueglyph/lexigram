@@ -154,7 +154,9 @@ mod tests {
             "lexicon LexiLexer;",
             LEXICON,
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
+        const VERBOSE_DETAILS: bool = false;
+        const VERBOSE_LISTENER: bool = false;
 
         for (test_id, input) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
@@ -165,16 +167,16 @@ mod tests {
 
             let mut parser = build_parser();
             let mut listener = LexiListener::new();
-            listener.verbose = VERBOSE;
+            listener.verbose = VERBOSE_LISTENER;
             let mut wrapper = ListenerWrapper::new(listener, false);
             wrapper.set_verbose(VERBOSE);
 
             let tokens = lexer.tokens().filter_map(|(tok, ch, text, line, col)| {
                 if ch == 0 {
-                    if VERBOSE { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
+                    if VERBOSE_DETAILS { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
                     Some((tok, text, line, col))
                 } else {
-                    if VERBOSE { println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")}
+                    if VERBOSE_DETAILS { println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")}
                     None
                 }
             });
