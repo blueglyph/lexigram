@@ -139,7 +139,6 @@ impl<R: Read> Lexer<R> {
         self.pos = 0;
         self.col = 1;
         self.line = 1;
-        self.tab_width = 8;
         self.state_stack.clear();
         self.start_state = self.initial_state;
     }
