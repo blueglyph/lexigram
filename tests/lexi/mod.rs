@@ -168,7 +168,7 @@ mod tests {
             let mut wrapper = ListenerWrapper::new(listener, false);
             wrapper.set_verbose(VERBOSE);
 
-            let tokens = lexer.tokens().filter_map(|(tok, ch, text, _col, _line)| if ch == 0 { Some((tok, text)) } else { None });
+            let tokens = lexer.tokens().filter_map(|(tok, ch, text, col, line)| if ch == 0 { Some((tok, text, col, line)) } else { None });
             let result = parser.parse_stream(&mut wrapper, tokens);
             assert_eq!(result, Ok(()));
         }

@@ -56,8 +56,10 @@ mod parser_gen {
 
 mod listener {
     use std::collections::HashMap;
+    use iter_index::IndexerIterator;
     use rlexer::dfa::TokenId;
     use rlexer::parser::{Call, Listener};
+    use rlexer::lexer::CaretCol;
 
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener]
@@ -312,18 +314,18 @@ mod listener {
             .collect::<HashMap<_, _>>();
         for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-            let stream = input.chars().into_iter().filter_map(|c| {
+            let stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {
                 if c.is_ascii_whitespace() {
                     None
                 } else {
                     let c_str = c.to_string();
                     Some(match c {
-                        '0'..='9' => (6, c_str),
-                        'a'..='z' => (7, c_str),
+                        '0'..='9' => (6, c_str, i, 1),
+                        'a'..='z' => (7, c_str, i, 1),
                         _ => {
                             if let Some(s) = symbols.get(&c_str) {
                                 // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                                (*s, c_str)
+                                (*s, c_str, i, 1)
                             } else {
                                 panic!("unrecognized test input '{c}' in test {test_id}, input {input}");
                             }
@@ -364,9 +366,11 @@ mod listener {
 mod listener2 {
     use std::collections::HashMap;
     use std::str::FromStr;
+    use iter_index::IndexerIterator;
     use rlexer::dfa::TokenId;
     use rlexer::parser::{Call, Listener};
     use rlexer::CollectJoin;
+    use rlexer::lexer::CaretCol;
 
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener2]
@@ -877,18 +881,18 @@ mod listener2 {
             .collect::<HashMap<_, _>>();
         for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-            let stream = input.chars().into_iter().filter_map(|c| {
+            let stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {
                 if c.is_ascii_whitespace() {
                     None
                 } else {
                     let c_str = c.to_string();
                     Some(match c {
-                        '0'..='9' => (6, c_str),
-                        'a'..='z' => (7, c_str),
+                        '0'..='9' => (6, c_str, i, 1),
+                        'a'..='z' => (7, c_str, i, 1),
                         _ => {
                             if let Some(s) = symbols.get(&c_str) {
                                 // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                                (*s, c_str)
+                                (*s, c_str, i, 1)
                             } else {
                                 panic!("unrecognized test input '{c}' in test {test_id}, input {input}");
                             }
@@ -975,13 +979,14 @@ mod listener3 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // STRUCT -> 'struct' id '{' LIST
         // LIST -> id ':' id ';' LIST | '}'
         //
@@ -1180,8 +1185,9 @@ mod listener3 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (5, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (5, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -1262,13 +1268,14 @@ mod listener4 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // STRUCT -> 'struct' id '{' LIST
         // LIST -> <L> id ':' id ';' LIST | '}'
         //
@@ -1476,8 +1483,9 @@ mod listener4 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (5, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (5, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -1559,13 +1567,14 @@ mod listener5 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // E -> F | E . id
         // F -> id
         //
@@ -1783,8 +1792,9 @@ mod listener5 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -1861,13 +1871,14 @@ mod listener6 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // E -> F | E . id | E . id ( )
         // F -> id
         //
@@ -2103,8 +2114,9 @@ mod listener6 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -2181,13 +2193,14 @@ mod listener7 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // A -> a (b)* c
         //
         //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c   // !
@@ -2369,8 +2382,9 @@ mod listener7 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -2449,13 +2463,14 @@ mod listener8 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // A -> a (b <L>)* c
         //
         //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
@@ -2659,8 +2674,9 @@ mod listener8 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -2738,12 +2754,14 @@ mod listener9 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
+        use rlexer::lexer::CaretCol;
 
         /// A -> A (c)+ b | a
         //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
@@ -2962,8 +2980,9 @@ mod listener9 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -3042,13 +3061,14 @@ mod listener10 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // A -> a (b)+ c
         //
         //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
@@ -3235,8 +3255,9 @@ mod listener10 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -3315,13 +3336,14 @@ mod listener11 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // A -> a (B)+ c
         // B -> b
         //
@@ -3539,8 +3561,9 @@ mod listener11 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -3619,13 +3642,14 @@ mod listener12 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // A -> A a | b c | b d
         //
         //  0: A -> b A_2   | ►A_2 b!    |
@@ -3848,8 +3872,9 @@ mod listener12 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string()) } else { (T_ID, w.to_string()) }
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
                 });
 
                 // User code under test ------------------------------
@@ -3926,13 +3951,14 @@ mod listener13 {
 
     mod test {
         use std::collections::HashMap;
+        use iter_index::IndexerIterator;
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
         use rlexer::parser::{Call, Listener};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
-
+        use rlexer::lexer::CaretCol;
         // E -> F | num | E . id
         // F -> id
         //
@@ -4171,14 +4197,15 @@ mod listener13 {
                 .collect::<HashMap<_, _>>();
             for (test_id, (input, expected_success, expected_result)) in tests.into_iter().enumerate() {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
-                let stream = input.split_ascii_whitespace().map(|w| {
+                // (we pretend the symbols are on col 1, 11, 21, ...)
+                let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
                     if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string())
+                        (*s, w.to_string(), i, 1)
                     } else {
                         if w.chars().next().unwrap().is_digit(10) {
-                            (T_NUM, w.to_string())
+                            (T_NUM, w.to_string(), i, 1)
                         } else {
-                            (T_ID, w.to_string())
+                            (T_ID, w.to_string(), i, 1)
                         }
                     }
                 });

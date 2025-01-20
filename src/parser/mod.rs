@@ -5,6 +5,7 @@ use std::fmt::{Display, Formatter};
 use crate::CollectJoin;
 use crate::dfa::TokenId;
 use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId, FactorId};
+use crate::lexer::{CaretCol, CaretLine};
 use crate::symbol_table::SymbolTable;
 
 mod tests;
@@ -34,6 +35,8 @@ pub trait Listener {
 }
 
 // ---------------------------------------------------------------------------------------------
+
+pub type ParserToken = (TokenId, String, CaretCol, CaretLine);
 
 pub struct Parser {
     num_nt: usize,
@@ -75,7 +78,7 @@ impl Parser {
     }
 
     pub fn parse_stream<I, L>(&mut self, listener: &mut L, mut stream: I) -> Result<(), String>
-        where I: Iterator<Item=(TokenId, String)>,
+        where I: Iterator<Item=ParserToken>,
               L: Listener,
     {
         const VERBOSE: bool = false;
@@ -88,7 +91,7 @@ impl Parser {
         stack.push(OpCode::NT(self.start));
         let mut stack_sym = stack.pop().unwrap();
         let mut stream_n = 1;
-        let (mut stream_sym, mut stream_str) = stream.next().map(|(t, s)| (Symbol::T(t), s)).unwrap_or((Symbol::End, "".to_string()));
+        let (mut stream_sym, mut stream_str) = stream.next().map(|(t, s, _col, _line)| (Symbol::T(t), s)).unwrap_or((Symbol::End, "".to_string()));
         loop {
             if VERBOSE {
                 println!("{:-<40}", "");
@@ -146,7 +149,7 @@ impl Parser {
                     }
                     stack_sym = stack.pop().unwrap();
                     stream_n += 1;
-                    (stream_sym, stream_str) = stream.next().map(|(t, s)| (Symbol::T(t), s)).unwrap_or((Symbol::End, "".to_string()));
+                    (stream_sym, stream_str) = stream.next().map(|(t, s, _col, _line)| (Symbol::T(t), s)).unwrap_or((Symbol::End, "".to_string()));
                 }
                 (OpCode::End, Symbol::End) => {
                     listener.switch(Call::End, 0, 0, None);

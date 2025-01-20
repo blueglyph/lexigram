@@ -74,6 +74,8 @@ impl Display for LexerError {
 pub type CaretCol = u64;
 pub type CaretLine = u64;
 
+pub type LexerToken = (TokenId, ChannelId, String, CaretCol, CaretLine);
+
 pub struct Lexer<R> {
     // operating variables
     input: Option<CharReader<R>>,
@@ -209,7 +211,7 @@ impl<R: Read> Lexer<R> {
     //              state = next_state
     //              pos++
     //
-    pub fn get_token(&mut self) -> Result<(TokenId, ChannelId, String, CaretCol, CaretLine), LexerError> {
+    pub fn get_token(&mut self) -> Result<LexerToken, LexerError> {
         const VERBOSE: bool = false;
         self.error = LexerError::None;
         let mut text = String::new();

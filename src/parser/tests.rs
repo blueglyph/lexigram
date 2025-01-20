@@ -1,10 +1,12 @@
 #![cfg(test)]
 
 use std::collections::HashMap;
+use iter_index::IndexerIterator;
 use crate::{CollectJoin, LL1};
 use crate::dfa::TokenId;
 use crate::grammar::{ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, T};
+use crate::lexer::{CaretCol, LexerToken};
 use crate::parser::Listener;
 use crate::parsergen::ParserGen;
 use crate::symbol_table::SymbolTable;
@@ -117,14 +119,14 @@ fn parser_parse_stream() {
         let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
         for (input, expected_success) in sequences {
             if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
-            let mut stream = input.chars().into_iter().filter_map(|c| {
+            let mut stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {
                 if c.is_ascii_whitespace() {
                     None
                 } else {
                     let c_str = c.to_string();
                     if let Some(s) = symbols.get(&c_str) {
                         // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                        Some((*s, c_str))
+                        Some((*s, c_str, i, 1))
                     } else {
                         panic!("unrecognized test input '{c}' in test {test_id}/{ll_id}/{start}, input {input}");
                     }
@@ -213,14 +215,14 @@ fn parser_parse_stream_id() {
         let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
         for (input, expected_success) in sequences {
             if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
-            let stream = input.split_ascii_whitespace().map(|w| {
+            let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
                 if let Some(s) = symbols.get(w) {
-                    (*s, w.to_string() )
+                    (*s, w.to_string(), i, 1)
                 } else {
                     if w.chars().next().unwrap().is_ascii_digit() {
-                        (num_id, w.to_string())
+                        (num_id, w.to_string(), i, 1)
                     } else {
-                        (id_id, w.to_string())
+                        (id_id, w.to_string(), i, 1)
                     }
                 }
             });
@@ -242,6 +244,7 @@ fn parser_parse_stream_id() {
 mod listener {
     use crate::grammar::tests::build_prs;
     use crate::grammar::{FactorId, VarId};
+    use crate::lexer::{CaretCol, LexerToken};
     use crate::parser::{Call, Listener};
     use super::*;
 
@@ -455,18 +458,18 @@ mod listener {
             let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
             for (input, expected_success, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
-                let mut stream = input.chars().into_iter().filter_map(|c| {
+                let mut stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {
                     let c_str = c.to_string();
                     if c.is_ascii_whitespace() {
                         None
                     } else {
                         Some(match c {
-                            '0'..='9' => (6, c_str),
-                            'a'..='z' => (7, c_str),
+                            '0'..='9' => (6, c_str, i, 1),
+                            'a'..='z' => (7, c_str, i, 1),
                             _ => {
                                 if let Some(s) = symbols.get(&c_str) {
                                     // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                                    (*s, c_str)
+                                    (*s, c_str, i, 1)
                                 } else {
                                     panic!("unrecognized test input '{c}' in test {test_id}/{ll_id}/{start}, input {input}");
                                 }
