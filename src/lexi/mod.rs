@@ -2,6 +2,7 @@
 
 pub(super) mod tests;
 
+use iter_index::IndexerIterator;
 use crate::dfa::{ReNode, ReType, Terminal, TokenId};
 use crate::segments::{Seg, Segments};
 use crate::{gnode, node, term, General};
@@ -78,9 +79,9 @@ pub fn build_re() -> VecTree<ReNode> {
     let top = re.add_root(node!(|));
 
     // All symbols
-    for (id, (_, text_op)) in TERMINALS.iter().enumerate() {
+    for (id, (_, text_op)) in TERMINALS.iter().index() {
         if let Some(text) = text_op {
-            re.addc_iter(Some(top), node!(&), [node!(str *text), node!(=id as TokenId)]);
+            re.addc_iter(Some(top), node!(&), [node!(str *text), node!(=id)]);
         }
     }
 

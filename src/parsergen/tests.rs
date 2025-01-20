@@ -1,7 +1,8 @@
 #![cfg(test)]
 
+use iter_index::IndexerIterator;
 use crate::{columns_to_str, CollectJoin};
-use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
+use crate::grammar::{ruleflag, FactorId, Symbol};
 use crate::grammar::tests::symbol_to_macro;
 use crate::parsergen::ParserGen;
 
@@ -36,11 +37,11 @@ pub(crate) fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool
 pub(crate) fn print_flags(builder: &ParserGen, indent: usize) {
     let tbl = builder.get_symbol_table();
     let prefix = format!("{:width$}//", "", width=indent);
-    let nt_flags = builder.parsing_table.flags.iter().enumerate().filter_map(|(nt, &f)|
-        if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt as VarId).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
+    let nt_flags = builder.parsing_table.flags.iter().index().filter_map(|(nt, &f)|
+        if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
     ).join("\n");
-    let parents = builder.parsing_table.parent.iter().enumerate().filter_map(|(c, &par)|
-        if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c as VarId).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
+    let parents = builder.parsing_table.parent.iter().index().filter_map(|(c, &par)|
+        if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
     ).join("\n");
     println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
     println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
@@ -495,6 +496,7 @@ mod opcodes {
 
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
+    use iter_index::IndexerIterator;
     use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{symbol_to_macro, T};
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source};
@@ -1790,13 +1792,13 @@ mod wrapper_source {
             let builder = ParserGen::from_rules(ll1, "Test".to_string());
             let mut result_expanded = vec![];
             let mut result_full = vec![];
-            for (f_id, (v, prod)) in builder.parsing_table.factors.iter().enumerate() {
+            for (f_id, (v, prod)) in builder.parsing_table.factors.iter().index() {
                 let mut expanded = vec![prod.symbols().clone()];
                 builder.expand_lfact(&mut expanded);
                 result_expanded.push(format!("{} -> {}",
                                              Symbol::NT(*v).to_str(builder.get_symbol_table()),
                                              expanded.iter().map(|fact| builder.factor_to_str(fact)).join(" | ")));
-                result_full.push(format!("{}", builder.full_factor_str::<false>(f_id as FactorId, None, false)));
+                result_full.push(format!("{}", builder.full_factor_str::<false>(f_id, None, false)));
             }
             let mut result_top_factors = BTreeMap::<VarId, Vec<(VarId, FactorId)>>::new();
             for group in builder.nt_parent.iter().filter(|v| !v.is_empty()) {
@@ -1808,8 +1810,8 @@ mod wrapper_source {
             }
             if VERBOSE {
                 println!("            ({rule_id:?}, vec![", );
-                let cols = result_expanded.iter().zip(&result_full).enumerate()
-                    .map(|(_i, (s, s_full))| {
+                let cols = result_expanded.iter().zip(&result_full)
+                    .map(|(s, s_full)| {
                         // let (v, prod) = &builder.parsing_table.factors[i];
                         vec![
                             "".to_string(),

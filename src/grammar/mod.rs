@@ -7,6 +7,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
+use iter_index::IndexerIterator;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR};
@@ -377,7 +378,7 @@ impl<T> RuleTreeSet<T> {
 
     /// Returns all the non-empty trees
     pub fn get_trees_iter(&self) -> impl Iterator<Item=(VarId, &GrTree)> {
-        self.trees.iter().enumerate().filter_map(|(id, t)| if t.is_empty() { None } else { Some((id as VarId, t)) })
+        self.trees.iter().index().filter_map(|(id, t)| if t.is_empty() { None } else { Some((id, t)) })
     }
 
     /// Returns all the variables corresponding to a non-empty tree
@@ -947,7 +948,7 @@ impl<T> ProdRuleSet<T> {
 
     /// Returns all the non-empty prods
     pub fn get_prods_iter(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
-        self.prods.iter().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
+        self.prods.iter().index().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id, p)) })
     }
 
     pub fn get_prods_iter_mut(&mut self) -> impl Iterator<Item=(VarId, &mut ProdRule)> {
@@ -1157,8 +1158,7 @@ impl<T> ProdRuleSet<T> {
                 .join(", ")
             );
         }
-        for (to, f) in nt_content.into_iter().enumerate() {
-            let to = to as VarId;
+        for (to, f) in nt_content.into_iter().index() {
             if let Some(from) = f {
                 if from != to {
                     self.nt_conversion.insert(from, MovedTo(to as VarId));
@@ -1268,7 +1268,7 @@ impl<T> ProdRuleSet<T> {
                 for factor in prod {
                     if VERBOSE { println!("  - {}", factor.to_str(self.symbol_table.as_ref())); }
                     let mut trail = follow.get(&symbol).unwrap().clone();
-                    for (i, sym_i) in factor.iter().enumerate().rev() {
+                    for sym_i in factor.iter().rev() {
                         if let Symbol::NT(v) = sym_i {
                             let num_items = follow.get(sym_i).unwrap().len();
                             follow.get_mut(sym_i).unwrap().extend(&trail);
@@ -1353,8 +1353,7 @@ impl<T> ProdRuleSet<T> {
         let mut new_var = self.get_next_available_var();
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
         let mut prods = std::mem::take(&mut self.prods);
-        for (i, prod) in prods.iter_mut().enumerate() {
-            let var = i as VarId;
+        for (var, prod) in prods.iter_mut().index() {
             let symbol = Symbol::NT(var);
             if prod.iter().any(|p| *p.first().unwrap() == symbol) {
                 if VERBOSE {
@@ -1577,17 +1576,16 @@ impl ProdRuleSet<LL1> {
         }
         const VERBOSE: bool = false;
         const DISABLE_FILTER: bool = false;
-        let factors = self.prods.iter().enumerate().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v as VarId)))
-            .flat_map(|(v, x)| x.iter().map(move |f| (v as VarId, f.clone() as ProdFactor))).to_vec();
+        let factors = self.prods.iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
+            .flat_map(|(v, x)| x.iter().map(move |f| (v, f.clone()))).to_vec();
         let error = factors.len() as FactorId; // table entry for syntactic error
         let num_nt = self.num_nt;
         let num_t = self.num_t + 1;
         let end = (num_t - 1) as VarId; // index of end symbol
         let mut used_t = HashSet::<Symbol>::new();
         let mut table: Vec<Vec<FactorId>> = vec![vec![]; num_nt * num_t];
-        for (f_id, (nt_id, factor)) in factors.iter().enumerate() {
+        for (f_id, (nt_id, factor)) in factors.iter().index() {
             used_t.extend(factor.iter().filter(|s| s.is_t()));
-            let f_id = f_id as FactorId;
             if VERBOSE { println!("- {f_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
                                   factor.to_str(self.get_symbol_table()),
                                   factor.factor_first(first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
@@ -1691,7 +1689,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
         prules.parent = rules.parent;
         prules.nt_conversion = rules.nt_conversion;
         prules.log = rules.log;
-        for (var, tree) in rules.trees.iter().enumerate() {
+        for (var, tree) in rules.trees.iter().index() {
             if !tree.is_empty() {
                 let root = tree.get_root().expect("tree {var} has no root");
                 let root_sym = tree.get(root);
@@ -1712,10 +1710,10 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                                 children_to_vec(tree, *id)
                             }
                         }).to_vec(),
-                    s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var as VarId).to_str(prules.get_symbol_table()))
+                    s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var).to_str(prules.get_symbol_table()))
                 };
                 if prod.iter().any(|f| f.flags & ruleflag::L_FORM != 0) {
-                    let mut nt = var as VarId;
+                    let mut nt = var;
 
                     // We keep the L flag on the child of +* normalization if it's intended only for that normalization.
                     // For example:

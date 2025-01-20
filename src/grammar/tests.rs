@@ -2446,8 +2446,8 @@ fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
         _ => {}
     }
     let num_nt = tree.len();
-    for (i, t) in tree.into_iter().enumerate() {
-        rts.set_tree(i as VarId, t);
+    for (i, t) in tree.into_iter().index() {
+        rts.set_tree(i, t);
     }
     let num_t = rts.get_terminals().iter().max().map(|n| *n + 1).unwrap_or(0);
     if symbol_table.get_terminals().is_empty() {
@@ -2521,11 +2521,11 @@ fn rts_prs() {
 pub(crate) fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
     let factors = rules.get_factors().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
     print_factors(&rules, &factors);
-    let nt_flags = rules.flags.iter().enumerate().filter_map(|(nt, &f)|
-        if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt as VarId).to_str(rules.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
+    let nt_flags = rules.flags.iter().index().filter_map(|(nt, &f)|
+        if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt).to_str(rules.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
     ).join("\n");
-    let parents = rules.parent.iter().enumerate().filter_map(|(c, &par)|
-        if let Some(p) = par { Some(format!("  - {} -> {}", Symbol::NT(c as VarId).to_str(rules.get_symbol_table()), Symbol::NT(p).to_str(rules.get_symbol_table()))) } else { None }
+    let parents = rules.parent.iter().index().filter_map(|(c, &par)|
+        if let Some(p) = par { Some(format!("  - {} -> {}", Symbol::NT(c).to_str(rules.get_symbol_table()), Symbol::NT(p).to_str(rules.get_symbol_table()))) } else { None }
     ).join("\n");
     println!("- NT flags:\n{}", if nt_flags.is_empty() { "  - (nothing)".to_string() } else { nt_flags });
     println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
@@ -2712,9 +2712,9 @@ fn rts_prs_flags() {
         if VERBOSE && (ll1.log.num_warnings() > 0) || (ll1.log.num_notes() > 0) {
             print_logs(&ll1);
         }
-        let result_flags = ll1.flags.iter().enumerate().filter_map(|(v, &f)| if f != 0 { Some((v as VarId, f)) } else { None }).collect::<BTreeMap<_, _>>();
+        let result_flags = ll1.flags.iter().index().filter_map(|(v, &f)| if f != 0 { Some((v, f)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
-        let result_parent = ll1.parent.iter().enumerate().filter_map(|(v, &par)| if let Some(p) = par { Some((v as VarId, p)) } else { None }).collect::<BTreeMap<_, _>>();
+        let result_parent = ll1.parent.iter().index().filter_map(|(v, &par)| if let Some(p) = par { Some((v, p)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_nt_conversion = ll1.nt_conversion.iter().map(|(v1, v2)| (*v1, *v2)).collect::<BTreeMap<_, _>>();
         if VERBOSE {
             print!("- ");

@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
+use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
 use crate::parser::{OpCode, Parser};
@@ -161,8 +162,8 @@ impl ParserGen {
         let symbol_table = ll1_rules.give_symbol_table().expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>()));
         let nt_conversion = ll1_rules.give_nt_conversion();
         let mut var_factors = vec![vec![]; num_nt];
-        for (factor_id, (var_id, _)) in parsing_table.factors.iter().enumerate() {
-            var_factors[*var_id as usize].push(factor_id as FactorId);
+        for (factor_id, (var_id, _)) in parsing_table.factors.iter().index() {
+            var_factors[*var_id as usize].push(factor_id);
         }
         let mut nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
         for var_id in 0..num_nt {
@@ -566,13 +567,12 @@ impl ParserGen {
 
     fn build_opcodes(&mut self) {
         const VERBOSE: bool = false;
-        for (factor_id, (var_id, factor)) in self.parsing_table.factors.iter().enumerate() {
+        for (factor_id, (var_id, factor)) in self.parsing_table.factors.iter().index() {
             if VERBOSE {
                 println!("{} -> {}",
                          Symbol::NT(*var_id).to_str(self.get_symbol_table()),
                          self.factor_to_str(factor));
             }
-            let factor_id = factor_id as FactorId;
             let flags = self.parsing_table.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);
             let mut new = self.parsing_table.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
@@ -1545,7 +1545,7 @@ impl ParserGen {
                             let mut var_fixer = NameFixer::new();
                             let mut indices = HashMap::<Symbol, Vec<String>>::new();
                             let mut non_indices = Vec::<String>::new();
-                            for (i, item) in item_info[f as usize].iter().rev().enumerate() {
+                            for item in item_info[f as usize].iter().rev() {
                                 let varname = if let Some(index) = item.index {
                                     let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
                                     indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);
@@ -1615,7 +1615,7 @@ impl ParserGen {
                             if !is_single {
                                 src_wrapper_impl.push(format!("            {f} => {{"));
                             }
-                            for (i, item) in item_info[f as usize].iter().rev().enumerate() {
+                            for item in item_info[f as usize].iter().rev() {
                                 let varname = if let Some(index) = item.index {
                                     let name = var_fixer.get_unique_name(format!("{}_{}", item.name, index + 1));
                                     indices.entry(item.sym).and_modify(|v| v.push(name.clone())).or_insert(vec![name.clone()]);

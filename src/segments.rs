@@ -667,6 +667,7 @@ pub mod macros {
 
 #[cfg(test)]
 mod tests {
+    use iter_index::IndexerIterator;
     use crate::segments;
     use super::*;
 
@@ -708,8 +709,8 @@ mod tests {
             let mut ab = Segments::empty();
             let mut cd = Segments::empty();
             let mut expected_cmp = SegmentsCmp::empty();
-            for (idx, (Seg(a, b), Seg(c, d), cmp)) in iv.into_iter().enumerate() {
-                let offset = scale * idx as u32;
+            for (idx, (Seg(a, b), Seg(c, d), cmp)) in iv.into_iter().index::<u32>() {
+                let offset = scale * idx;
                 ab.insert(Seg(a + offset, b + offset));
                 cd.insert(Seg(c + offset, d + offset));
                 expected_cmp.common.extend(cmp.common.iter().map(|Seg(a, b)| Seg(*a + offset, *b + offset)));

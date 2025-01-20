@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::File;
 use std::io::Read;
 use std::io::{BufWriter, Write};
+use iter_index::IndexerIterator;
 #[cfg(test)]
 use crate::dfa::tests::print_graph;
 use crate::{CollectJoin, escape_char, Normalized, indent_source};
@@ -77,7 +78,7 @@ impl LexerGen {
         const VERBOSE: bool = false;
         let symbol_part = partition_symbols(dfa.get_state_graph());
         let symbol_to_group = SegMap::from_iter(
-            symbol_part.iter().enumerate().flat_map(|(id, i)| i.iter().map(move |ab| (*ab, id as GroupId)))
+            symbol_part.iter().index().flat_map(|(id, i)| i.iter().map(move |ab| (*ab, id)))
         );
         self.group_partition = Segments(BTreeSet::from_iter(symbol_to_group.keys().cloned()));
 
