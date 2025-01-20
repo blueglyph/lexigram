@@ -92,15 +92,15 @@ impl Parser {
         let mut stack_sym = stack.pop().unwrap();
         let mut stream_n = 1;
         let mut stream_pos = None;
-        let (mut stream_sym, mut stream_str) = stream.next().map(|(t, s, col, line)| {
-            stream_pos = Some((col, line));
+        let (mut stream_sym, mut stream_str) = stream.next().map(|(t, s, line, col)| {
+            stream_pos = Some((line, col));
             (Symbol::T(t), s)
         }).unwrap_or((Symbol::End, "".to_string()));
         loop {
             if VERBOSE {
                 println!("{:-<40}", "");
                 println!("input ({stream_n}{}): {}   stack_t: [{}]   stack: [{}]   current: {}",
-                         if let Some((col, line)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() },
+                         if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() },
                          stream_sym.to_str_ext(sym_table, &stream_str),
                          stack_t.join(", "),
                          stack.iter().map(|s| s.to_str(sym_table)).join(" "),
@@ -122,7 +122,7 @@ impl Parser {
                     if factor_id >= error {
                         return Err(format!("syntax error on input '{}' while parsing '{}'{}",
                                            stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                           if let Some((col, line)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                                           if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
                     }
                     let call = if stack_sym.is_loop() { Call::Loop } else { Call::Enter };
                     let t_data = std::mem::take(&mut stack_t);
@@ -147,7 +147,7 @@ impl Parser {
                 (OpCode::T(sk), Symbol::T(sr)) => {
                     if sk != sr {
                         return Err(format!("unexpected character: '{}' instead of '{}'{}", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                           if let Some((col, line)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                                           if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
                     }
                     if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
                     if self.symbol_table.is_t_data(sk) {
@@ -155,8 +155,8 @@ impl Parser {
                     }
                     stack_sym = stack.pop().unwrap();
                     stream_n += 1;
-                    (stream_sym, stream_str) = stream.next().map(|(t, s, col, line)| {
-                        stream_pos = Some((col, line));
+                    (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| {
+                        stream_pos = Some((line, col));
                         (Symbol::T(t), s)
                     }).unwrap_or((Symbol::End, "".to_string()));
                 }
@@ -173,7 +173,7 @@ impl Parser {
                 (_, _) => {
                     return Err(format!("unexpected situation: input '{}' while expecting '{}'{}",
                                        stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                       if let Some((col, line)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                                       if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
                 }
             }
         }

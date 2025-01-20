@@ -320,12 +320,12 @@ mod listener {
                 } else {
                     let c_str = c.to_string();
                     Some(match c {
-                        '0'..='9' => (6, c_str, i, 1),
-                        'a'..='z' => (7, c_str, i, 1),
+                        '0'..='9' => (6, c_str, 1, i),
+                        'a'..='z' => (7, c_str, 1, i),
                         _ => {
                             if let Some(s) = symbols.get(&c_str) {
                                 // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                                (*s, c_str, i, 1)
+                                (*s, c_str, 1, i)
                             } else {
                                 panic!("unrecognized test input '{c}' in test {test_id}, input {input}");
                             }
@@ -887,12 +887,12 @@ mod listener2 {
                 } else {
                     let c_str = c.to_string();
                     Some(match c {
-                        '0'..='9' => (6, c_str, i, 1),
-                        'a'..='z' => (7, c_str, i, 1),
+                        '0'..='9' => (6, c_str, 1, i),
+                        'a'..='z' => (7, c_str, 1, i),
                         _ => {
                             if let Some(s) = symbols.get(&c_str) {
                                 // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                                (*s, c_str, i, 1)
+                                (*s, c_str, 1, i)
                             } else {
                                 panic!("unrecognized test input '{c}' in test {test_id}, input {input}");
                             }
@@ -1187,7 +1187,7 @@ mod listener3 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (5, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (5, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -1485,7 +1485,7 @@ mod listener4 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (5, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (5, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -1794,7 +1794,7 @@ mod listener5 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (T_ID, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -2116,7 +2116,7 @@ mod listener6 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (T_ID, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -2384,7 +2384,7 @@ mod listener7 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (T_ID, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -2676,7 +2676,7 @@ mod listener8 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (T_ID, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -2982,7 +2982,7 @@ mod listener9 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (T_ID, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -3257,7 +3257,7 @@ mod listener10 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (T_ID, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -3563,7 +3563,7 @@ mod listener11 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (T_ID, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -3874,7 +3874,7 @@ mod listener12 {
                 if VERBOSE { println!("{:=<80}\ninput '{input}'", ""); }
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
-                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), i, 1) } else { (T_ID, w.to_string(), i, 1) }
+                    if let Some(s) = symbols.get(w) { (*s, w.to_string(), 1, i) } else { (T_ID, w.to_string(), 1, i) }
                 });
 
                 // User code under test ------------------------------
@@ -4200,12 +4200,12 @@ mod listener13 {
                 // (we pretend the symbols are on col 1, 11, 21, ...)
                 let stream = input.split_ascii_whitespace().index_step::<CaretCol>(1, 10).map(|(i, w)| {
                     if let Some(s) = symbols.get(w) {
-                        (*s, w.to_string(), i, 1)
+                        (*s, w.to_string(), 1, i)
                     } else {
                         if w.chars().next().unwrap().is_digit(10) {
-                            (T_NUM, w.to_string(), i, 1)
+                            (T_NUM, w.to_string(), 1, i)
                         } else {
-                            (T_ID, w.to_string(), i, 1)
+                            (T_ID, w.to_string(), 1, i)
                         }
                     }
                 });

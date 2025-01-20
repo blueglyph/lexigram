@@ -74,15 +74,15 @@ impl Display for LexerError {
 pub type CaretCol = u64;
 pub type CaretLine = u64;
 
-pub type LexerToken = (TokenId, ChannelId, String, CaretCol, CaretLine);
+pub type LexerToken = (TokenId, ChannelId, String, CaretLine, CaretCol);
 
 pub struct Lexer<R> {
     // operating variables
     input: Option<CharReader<R>>,
     error: LexerError,
     pos: u64,
-    col: CaretCol,
     line: CaretLine,
+    col: CaretCol,
     tab_width: u8,
     state_stack: Vec<StateId>,
     start_state: StateId,
@@ -117,8 +117,8 @@ impl<R: Read> Lexer<R> {
             input: None,
             error: LexerError::None,
             pos: 0,
-            col: 1,
             line: 1,
+            col: 1,
             tab_width: 8,
             state_stack: Vec::new(),
             start_state: 0,
@@ -137,8 +137,8 @@ impl<R: Read> Lexer<R> {
     pub fn attach_stream(&mut self, input: CharReader<R>) {
         self.input = Some(input);
         self.pos = 0;
-        self.col = 1;
         self.line = 1;
+        self.col = 1;
         self.state_stack.clear();
         self.start_state = self.initial_state;
     }
@@ -185,7 +185,7 @@ impl<R: Read> Lexer<R> {
     //          next char
     //          group       -> group == nbr_groups => unrecognized
     //          next_state  -> [normal] < first_end_state <= [accepting] <= nbr_states <= [invalid char]
-    //          col, line = self.(col, line)
+    //          line, col = self.(line, col)
     //          if next_state >= nbr_states || group >= nbr_groups (invalid char)
     //              if !EOS
     //                  rewind char
@@ -199,14 +199,14 @@ impl<R: Read> Lexer<R> {
     //                      start = n
     //                      state = n
     //                  if !skip
-    //                      return (token, channel, col, line)
-    //                  col, line = self.(col, line)
+    //                      return (token, channel, line, col)
+    //                  line, col = self.(line, col)
     //                  if !EOS
     //                      state = start
     //                      continue // skip
     //              return error/EOS
     //          else
-    //              update self.(col, line)
+    //              update self.(line, col)
     //              state = next_state
     //              pos++
     //
@@ -216,7 +216,7 @@ impl<R: Read> Lexer<R> {
         let mut text = String::new();
         if let Some(input) = self.input.as_mut() {
             let mut state = self.start_state;
-            let (mut col, mut line) = (self.col, self.line);
+            let (mut line, mut col) = (self.line, self.col);
             #[cfg(debug_assertions)] let mut last_state: Option<StateId> = None;
             #[cfg(debug_assertions)] let mut last_offset: Option<u64> = None;
             #[cfg(debug_assertions)] let mut infinite_loop_cnt = 0_u32;
@@ -272,9 +272,9 @@ impl<R: Read> Lexer<R> {
                         }
                         if let Some(token) = &terminal.token {
                             if VERBOSE { println!(" => OK: token {}", token); }
-                            return Ok((token.clone(), terminal.channel, text, col, line));
+                            return Ok((token.clone(), terminal.channel, text, line, col));
                         }
-                        (col, line) = (self.col, self.line);
+                        (line, col) = (self.line, self.col);
                         if !is_eos { // we can't skip if <EOF> or we'll loop indefinitely
                             if VERBOSE { println!(" => skip, state {}", self.start_state); }
                             state = self.start_state;
@@ -323,8 +323,8 @@ impl<R: Read> Lexer<R> {
                                 self.col = self.col - (self.col - 1) % self.tab_width as CaretCol + self.tab_width as CaretCol;
                             }
                             '\n' => {
-                                self.col = 1;
                                 self.line += 1;
+                                self.col = 1;
                             }
                             '\r' => {}
                             _ => self.col += 1,
@@ -370,12 +370,12 @@ pub struct LexInterpretIter<'a, R> {
 }
 
 impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
-    type Item = (TokenId, ChannelId, String, CaretCol, CaretLine);
+    type Item = (TokenId, ChannelId, String, CaretLine, CaretCol);
 
     fn next(&mut self) -> Option<Self::Item> {
         let t = self.lexer.get_token();
         match t {
-            Ok((token, channel, str, col, line)) => Some((token, channel, str, col, line)),
+            Ok((token, channel, str, line, col)) => Some((token, channel, str, line, col)),
             // Err(&LexerError { token_ch: Some((ref token, channel)), ref text, .. }) => Some((*token, channel, text.clone())),
             _ => None
         }

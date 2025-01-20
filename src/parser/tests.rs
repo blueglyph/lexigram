@@ -126,7 +126,7 @@ fn parser_parse_stream() {
                     let c_str = c.to_string();
                     if let Some(s) = symbols.get(&c_str) {
                         // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                        Some((*s, c_str, i, 1))
+                        Some((*s, c_str, 1, i))
                     } else {
                         panic!("unrecognized test input '{c}' in test {test_id}/{ll_id}/{start}, input {input}");
                     }
@@ -217,12 +217,12 @@ fn parser_parse_stream_id() {
             if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
             let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
                 if let Some(s) = symbols.get(w) {
-                    (*s, w.to_string(), i, 1)
+                    (*s, w.to_string(), 1, i)
                 } else {
                     if w.chars().next().unwrap().is_ascii_digit() {
-                        (num_id, w.to_string(), i, 1)
+                        (num_id, w.to_string(), 1, i)
                     } else {
-                        (id_id, w.to_string(), i, 1)
+                        (id_id, w.to_string(), 1, i)
                     }
                 }
             });
@@ -464,12 +464,12 @@ mod listener {
                         None
                     } else {
                         Some(match c {
-                            '0'..='9' => (6, c_str, i, 1),
-                            'a'..='z' => (7, c_str, i, 1),
+                            '0'..='9' => (6, c_str, 1, i),
+                            'a'..='z' => (7, c_str, 1, i),
                             _ => {
                                 if let Some(s) = symbols.get(&c_str) {
                                     // println!("stream: '{}' -> sym!({})", c, symbol_to_macro(s));
-                                    (*s, c_str, i, 1)
+                                    (*s, c_str, 1, i)
                                 } else {
                                     panic!("unrecognized test input '{c}' in test {test_id}/{ll_id}/{start}, input {input}");
                                 }

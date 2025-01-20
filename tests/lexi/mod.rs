@@ -169,10 +169,10 @@ mod tests {
             let mut wrapper = ListenerWrapper::new(listener, false);
             wrapper.set_verbose(VERBOSE);
 
-            let tokens = lexer.tokens().filter_map(|(tok, ch, text, col, line)| {
+            let tokens = lexer.tokens().filter_map(|(tok, ch, text, line, col)| {
                 if ch == 0 {
                     if VERBOSE { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
-                    Some((tok, text, col, line))
+                    Some((tok, text, line, col))
                 } else {
                     if VERBOSE { println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")}
                     None
