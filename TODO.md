@@ -59,7 +59,7 @@
       - [ ] add option for loop value/end-of-loop call (+, *, r-rec)
     - [ ] attach token information (text, line / col) to context items
       - [ ] replace SynVal by CtxVal in wrapper, with struct CtxVal { val: SynVal, text: String, line: usize, col: usize, .. }?
-      - [ ] adapt lexer
+      - [x] ~~adapt lexer~~
       - [ ] adapt parser
       - [ ] adapt parser code generation
     - [ ] check if LL(1)
