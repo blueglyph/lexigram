@@ -7659,25 +7659,27 @@ pub(crate) mod rules_rts_100_1 {
     }
     #[derive(Debug)]
     pub enum CtxRepeatItem {
-        /// `repeat_item -> item`
-        RepeatItem1 { item: SynItem },
         /// end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
-        RepeatItem2 { repeat_item: SynRepeatItem },
+        RepeatItem1 { repeat_item: SynRepeatItem },
+        /// `repeat_item -> item ?`
+        RepeatItem2 { item: SynItem },
+        /// `repeat_item -> item`
+        RepeatItem3 { item: SynItem },
         /// `repeat_item -> repeat_item + ?`
-        RepeatItem3 { repeat_item: SynRepeatItem },
-        /// `repeat_item -> repeat_item +`
         RepeatItem4 { repeat_item: SynRepeatItem },
-        /// `repeat_item -> repeat_item * ?`
+        /// `repeat_item -> repeat_item +`
         RepeatItem5 { repeat_item: SynRepeatItem },
-        /// `repeat_item -> repeat_item *`
+        /// `repeat_item -> repeat_item * ?`
         RepeatItem6 { repeat_item: SynRepeatItem },
+        /// `repeat_item -> repeat_item *`
+        RepeatItem7 { repeat_item: SynRepeatItem },
     }
     #[derive(Debug)]
     pub enum CtxItem {
-        /// `item -> ( item )`
-        Item1,
+        /// `item -> ( alt_items )`
+        Item1 { alt_items: SynAltItems },
         /// `item -> ~ item`
-        Item2,
+        Item2 { item: SynItem },
         /// `item -> EOF`
         Item3,
         /// `item -> Id`
@@ -7686,14 +7688,10 @@ pub(crate) mod rules_rts_100_1 {
         Item5 { charset: String },
         /// `item -> StrLit`
         Item6 { strlit: String },
-        /// `item -> item ?`
-        Item7 { item: SynItem },
-        /// end of iterations in item -> item ?
-        Item8 { item: SynItem },
         /// `item -> CharLit .. CharLit`
-        Item9 { charlit: [String; 2] },
+        Item7 { charlit: [String; 2] },
         /// `item -> CharLit`
-        Item10 { charlit: String },
+        Item8 { charlit: String },
     }
 
     // NT types:
@@ -7846,7 +7844,7 @@ pub(crate) mod rules_rts_100_1 {
                         4 => self.listener.init_option(),           // option
                         14 => self.init_option1(),                  // option_1
                         5 => self.listener.init_rule(),             // rule
-                        20 => {}                                    // rule_1
+                        19 => {}                                    // rule_1
                         6 => self.listener.init_actions(),          // actions
                         15 => self.init_actions1(),                 // actions_1
                         7 => self.listener.init_action(),           // action
@@ -7858,11 +7856,11 @@ pub(crate) mod rules_rts_100_1 {
                         22 => {}                                    // alt_item_2
                         11 => self.listener.init_repeat_item(),     // repeat_item
                         18 => {}                                    // repeat_item_1
-                        23 => {}                                    // repeat_item_2
-                        24 => {}                                    // repeat_item_3
+                        20 => {}                                    // repeat_item_2
+                        23 => {}                                    // repeat_item_3
+                        24 => {}                                    // repeat_item_4
                         12 => self.listener.init_item(),            // item
-                        19 => {}                                    // item_1
-                        21 => {}                                    // item_2
+                        21 => {}                                    // item_1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -7882,8 +7880,8 @@ pub(crate) mod rules_rts_100_1 {
                         28 => self.exit_option1(),                  // [, Id]* item in option -> channels { Id  ► [, Id]* ◄  }
                         29 => {}                                    // end of [, Id]* items in option -> channels { Id  ► [, Id]* ◄  }
                         8 |                                         // rule -> fragment Id : match ;
-                        40 |                                        // rule -> Id : match -> actions ;
-                        41 => self.exit_rule(factor_id),            // rule -> Id : match ;
+                        38 |                                        // rule -> Id : match -> actions ;
+                        39 => self.exit_rule(factor_id),            // rule -> Id : match ;
                      /* 9 */                                        // rule -> Id : match -> actions ; | Id : match ; (never called)
                         10 => self.exit_actions(),                  // actions -> action [, action]*
                         30 => self.exit_actions1(),                 // [, action]* item in actions -> action  ► [, action]* ◄
@@ -7900,25 +7898,25 @@ pub(crate) mod rules_rts_100_1 {
                         44 |                                        // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄
                         45 => self.exit_alt_item1(),                // end of [repeat_item]+ items in alt_item ->  ► [repeat_item]+ ◄
                      /* 32 */                                       // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄  (never called)
-                        18 => self.init_repeat_item(),              // repeat_item -> item
+                        40 |                                        // repeat_item -> item ?
+                        41 => self.init_repeat_item(factor_id),     // repeat_item -> item
                         37 |                                        // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
                         46 |                                        // repeat_item -> repeat_item + ?
                         47 |                                        // repeat_item -> repeat_item +
                         48 |                                        // repeat_item -> repeat_item * ?
                         49 => self.exit_repeat_item1(factor_id),    // repeat_item -> repeat_item *
+                     /* 18 */                                       // repeat_item -> item ? | item (never called)
                      /* 35 */                                       // repeat_item -> repeat_item + ? | repeat_item + (never called)
                      /* 36 */                                       // repeat_item -> repeat_item * ? | repeat_item * (never called)
-                        19 |                                        // item -> ( item )
+                        19 |                                        // item -> ( alt_items )
                         20 |                                        // item -> ~ item
                         21 |                                        // item -> EOF
                         22 |                                        // item -> Id
                         24 |                                        // item -> CharSet
                         25 |                                        // item -> StrLit
                         42 |                                        // item -> CharLit .. CharLit
-                        43 => self.init_item(factor_id),            // item -> CharLit
-                        38 |                                        // item -> item ?
-                        39 => self.exit_item1(factor_id),           // end of iterations in item -> item ?
-                     /* 23 */                                       // item -> CharLit .. CharLit | CharLit (never called)
+                        43 => self.exit_item(factor_id),            // item -> CharLit
+                     /* 23 */                                       // item -> CharLit | CharLit .. CharLit (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -8039,13 +8037,13 @@ pub(crate) mod rules_rts_100_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule1 { id, match1 }
                 }
-                40 => {
+                38 => {
                     let actions = self.stack.pop().unwrap().get_actions();
                     let match1 = self.stack.pop().unwrap().get_match1();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule2 { id, match1, actions }
                 }
-                41 => {
+                39 => {
                     let match1 = self.stack.pop().unwrap().get_match1();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule3 { id, match1 }
@@ -8143,9 +8141,19 @@ pub(crate) mod rules_rts_100_1 {
             self.stack.push(SynValue::AltItem1(plus_it));
         }
 
-        fn init_repeat_item(&mut self) {
-            let item = self.stack.pop().unwrap().get_item();
-            let val = self.listener.exit_repeat_item(CtxRepeatItem::RepeatItem1 { item });
+        fn init_repeat_item(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                40 => {
+                    let item = self.stack.pop().unwrap().get_item();
+                    CtxRepeatItem::RepeatItem2 { item }
+                }
+                41 => {
+                    let item = self.stack.pop().unwrap().get_item();
+                    CtxRepeatItem::RepeatItem3 { item }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn init_repeat_item")
+            };
+            let val = self.listener.exit_repeat_item(ctx);
             self.stack.push(SynValue::RepeatItem(val));
         }
 
@@ -8153,23 +8161,23 @@ pub(crate) mod rules_rts_100_1 {
             let ctx = match factor_id {
                 37 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-                    CtxRepeatItem::RepeatItem2 { repeat_item }
+                    CtxRepeatItem::RepeatItem1 { repeat_item }
                 }
                 46 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-                    CtxRepeatItem::RepeatItem3 { repeat_item }
+                    CtxRepeatItem::RepeatItem4 { repeat_item }
                 }
                 47 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-                    CtxRepeatItem::RepeatItem4 { repeat_item }
+                    CtxRepeatItem::RepeatItem5 { repeat_item }
                 }
                 48 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-                    CtxRepeatItem::RepeatItem5 { repeat_item }
+                    CtxRepeatItem::RepeatItem6 { repeat_item }
                 }
                 49 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
-                    CtxRepeatItem::RepeatItem6 { repeat_item }
+                    CtxRepeatItem::RepeatItem7 { repeat_item }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_repeat_item1")
             };
@@ -8177,13 +8185,15 @@ pub(crate) mod rules_rts_100_1 {
             self.stack.push(SynValue::RepeatItem(val));
         }
 
-        fn init_item(&mut self, factor_id: FactorId) {
+        fn exit_item(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 19 => {
-                    CtxItem::Item1
+                    let alt_items = self.stack.pop().unwrap().get_alt_items();
+                    CtxItem::Item1 { alt_items }
                 }
                 20 => {
-                    CtxItem::Item2
+                    let item = self.stack.pop().unwrap().get_item();
+                    CtxItem::Item2 { item }
                 }
                 21 => {
                     CtxItem::Item3
@@ -8203,29 +8213,13 @@ pub(crate) mod rules_rts_100_1 {
                 42 => {
                     let charlit_2 = self.stack_t.pop().unwrap();
                     let charlit_1 = self.stack_t.pop().unwrap();
-                    CtxItem::Item9 { charlit: [charlit_1, charlit_2] }
+                    CtxItem::Item7 { charlit: [charlit_1, charlit_2] }
                 }
                 43 => {
                     let charlit = self.stack_t.pop().unwrap();
-                    CtxItem::Item10 { charlit }
+                    CtxItem::Item8 { charlit }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn init_item")
-            };
-            let val = self.listener.exit_item(ctx);
-            self.stack.push(SynValue::Item(val));
-        }
-
-        fn exit_item1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                38 => {
-                    let item = self.stack.pop().unwrap().get_item();
-                    CtxItem::Item7 { item }
-                }
-                39 => {
-                    let item = self.stack.pop().unwrap().get_item();
-                    CtxItem::Item8 { item }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_item1")
+                _ => panic!("unexpected factor id {factor_id} in fn exit_item")
             };
             let val = self.listener.exit_item(ctx);
             self.stack.push(SynValue::Item(val));
