@@ -83,7 +83,8 @@ The regular expressions used on the right of the colon, in each matching or frag
 ## ANTLR Lexer Rules
 
 ```
-lexer grammar RLLexer;
+lexicon LexiLexer;
+channels { CH_WHITESPACE, CH_COMMENTS }	// dummy
 
 fragment BlockComment	: '/*' .*? '*/';
 fragment LineComment	: '//' ~[\r\n]*;
@@ -97,8 +98,10 @@ fragment FixedSet		: ('\\w' | '\\d');
 // Char inside a '[' ']' set
 fragment EscSetChar		: '\\' ([nrt\\[\]\-] | UnicodeEsc);
 fragment SetChar		: (EscSetChar | ~[\n\r\t\\\]]);
+fragment Letter			: 'a'..'z';  // dummy
+fragment NonLetter		: ~'a'..'z'; // dummy
 
-ARROW			: '->';
+ARROW			: '->'; /* // first token // */
 COLON			: ':';
 COMMA			: ',';
 ELLIPSIS		: '..';
@@ -141,13 +144,16 @@ STR_LIT			: StrLiteral;
 ## ANTLR Parser Rules
 
 ```
-parser grammar RLParser;
-options { tokenVocab = RLLexer; }
+grammar LexiParser;
 
-file: header? (option | declaration | rule)* EOF;
+file: header? file_item*;
+
+file_item:
+    option | declaration | rule
+;
 
 header:
-    LEXER GRAMMAR ID SEMICOLON
+    LEXICON ID SEMICOLON
 ;
 
 declaration:
@@ -175,18 +181,22 @@ action:
 ;
 
 match:
-    alt_item
+    alt_items
+;
+
+alt_items:
+    alt_items OR alt_item
+|   alt_item
 ;
 
 alt_item:
-    alt_item OR alt_item
-|   repeat_item+
+	repeat_item+
 ;
 
 repeat_item:
     repeat_item STAR QUESTION?
 |   repeat_item PLUS QUESTION?
-|   item
+|   item QUESTION?
 ;
 
 item:
@@ -195,8 +205,7 @@ item:
 |   CHAR_LIT (ELLIPSIS CHAR_LIT)?
 |   STR_LIT
 |   CHAR_SET
-|   LPAREN alt_item RPAREN
+|   LPAREN alt_items RPAREN
 |   NEGATE item
-|   item QUESTION
 ;
 ```
