@@ -146,12 +146,22 @@ mod general {
     }
 
     #[test]
-    fn add_from_iter() {
+    fn add_from_tree_iter() {
         let mut tree = build_tree();
         let other = tree.clone();
-        tree.add_from_tree(Some(6), other.iter_depth());
+        tree.add_from_tree_iter(Some(6), other.iter_depth());
         assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
-        tree.add_from_tree(Some(4), other.iter_depth_at(3));
+        tree.add_from_tree_iter(Some(4), other.iter_depth_at(3));
+        assert_eq!(tree_to_string(&tree), "root(a(a1(c(c1,c2)),a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
+    }
+
+    #[test]
+    fn add_from_tree() {
+        let mut tree = build_tree();
+        let other = tree.clone();
+        tree.add_from_tree(Some(6), &other, None);
+        assert_eq!(tree_to_string(&tree), "root(a(a1,a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
+        tree.add_from_tree(Some(4), &other, Some(3));
         assert_eq!(tree_to_string(&tree), "root(a(a1(c(c1,c2)),a2),b,c(c1(root(a(a1,a2),b,c(c1,c2))),c2))");
     }
 

@@ -684,14 +684,14 @@ impl RuleTreeSet<General> {
                 let children = new.children(child);
                 if VERBOSE { print!("({child}:&({})) ", children.iter().join(", ")); }
                 let or = qtree.add_root(gnode!(|));
-                let cc1 = qtree.add_from_tree(Some(or), new.iter_depth_at(child).inspect(|n| {
+                let cc1 = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(child).inspect(|n| {
                     if let &GrNode::LForm(v) = n.deref() {
                         lform_nt = Some(v);
                     }
                 }));
                 qtree.add(Some(cc1), gnode!(nt *new_var));
                 if is_plus {
-                    qtree.add_from_tree(Some(or), new.iter_depth_at(child));
+                    qtree.add_from_tree(Some(or), &new, Some(child));
                 } else {
                     qtree.add(Some(or), gnode!(e));
                 }
@@ -710,14 +710,14 @@ impl RuleTreeSet<General> {
                             }
                         }
                         GrNode::Concat => {
-                            let cc = qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child).inspect(|n| {
+                            let cc = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(*id_child).inspect(|n| {
                                 if let &GrNode::LForm(v) = n.deref() {
                                     lform_nt = Some(v);
                                 }
                             }));
                             qtree.add(Some(cc), gnode!(nt *new_var));
                             if is_plus {
-                                qtree.add_from_tree(Some(or), new.iter_depth_at(*id_child));
+                                qtree.add_from_tree(Some(or), &new, Some(*id_child));
                             }
                         }
                         x => panic!("unexpected node type under a | node: {x}"),

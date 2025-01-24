@@ -139,10 +139,13 @@ impl<'a, T> VecTree<T> {
     }
 }
 
-impl<'a, T:'a> VecTree<T> {
-    pub fn add_from_tree<U>(&mut self, parent_index: Option<usize>, items: U) -> usize
-        where U: Iterator<Item=NodeProxy<'a, T>>,
-              T: Clone
+impl<'a, T:'a + Clone> VecTree<T> {
+    pub fn add_from_tree(&mut self, parent_index: Option<usize>, tree: &VecTree<T>, top: Option<usize>) -> usize {
+        self.add_from_tree_iter(parent_index, tree.iter_depth_at(top.unwrap_or_else(|| tree.get_root().unwrap())))
+    }
+
+    pub fn add_from_tree_iter<U>(&mut self, parent_index: Option<usize>, items: U) -> usize
+        where U: Iterator<Item=NodeProxy<'a, T>>
     {
         let mut stack = Vec::<usize>::new();
         for item in items {
