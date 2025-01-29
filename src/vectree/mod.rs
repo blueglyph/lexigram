@@ -233,7 +233,7 @@ pub struct VecTreeIter<TData> {
 pub trait TreeDataIter {
     type TProxy;
     fn get_children(&self, index: usize) -> &[usize];
-    fn get_size(&self) -> usize;
+    // fn get_size(&self) -> usize;
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy;
 }
 
@@ -336,9 +336,9 @@ impl<'a, T> TreeDataIter for IterDataSimple<'a, T> {
         unsafe { &(*self.tree.nodes.as_ptr().add(index)).children }
     }
 
-    fn get_size(&self) -> usize {
-        self.tree.len()
-    }
+    // fn get_size(&self) -> usize {
+    //     self.tree.len()
+    // }
 
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
         assert!(index < self.tree.len());
@@ -399,9 +399,9 @@ impl<'a, T> TreeDataIter for IterData<'a, T> {
         }
     }
 
-    fn get_size(&self) -> usize {
-        self.tree_size
-    }
+    // fn get_size(&self) -> usize {
+    //     self.tree_size
+    // }
 
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
         assert!(index < self.tree_size);
@@ -499,9 +499,9 @@ impl<'a, T> TreeDataIter for IterDataSimpleMut<'a, T> {
         unsafe { &(*self.tree.nodes.as_ptr().add(index)).children }
     }
 
-    fn get_size(&self) -> usize {
-        self.tree.len()
-    }
+    // fn get_size(&self) -> usize {
+    //     self.tree.len()
+    // }
 
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
         assert!(index < self.tree.len());
@@ -570,9 +570,9 @@ impl<'a, T> TreeDataIter for IterDataMut<'a, T> {
         }
     }
 
-    fn get_size(&self) -> usize {
-        self.tree_size
-    }
+    // fn get_size(&self) -> usize {
+    //     self.tree_size
+    // }
 
     fn create_proxy(&self, index: usize, depth: u32) -> Self::TProxy {
         let c = self.borrows.get() + 1;
