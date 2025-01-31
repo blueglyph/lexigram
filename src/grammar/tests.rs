@@ -147,7 +147,7 @@ fn check_rts_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> 
         for node in tree.iter_depth_simple() {
             n += 1;
             if indices.contains(&node.index) {
-                msg.push_str(&format!("duplicate index {} for var {var} in tree {tree:#}\n", node.index));
+                msg.push_str(&format!("duplicate index {} for var {var} in tree {:#}\n", node.index, tree.to_str(None, None)));
             }
             indices.insert(node.index);
         }
@@ -595,11 +595,11 @@ fn rts_normalize() {
         if let Some(err) = check_rts_sanity(&rules, VERBOSE) {
             panic!("test {test_id} failed:\n{}", err);
         }
-        let result = BTreeMap::from_iter(rules.get_trees_iter().map(|(id, t)| (id, format!("{t}"))));
+        let result = BTreeMap::from_iter(rules.get_trees_iter().map(|(id, t)| (id, format!("{}", t.to_str(None, None)))));
         if VERBOSE {
             println!("flags:  {:?}", rules.flags);
             println!("parent: {:?}", rules.parent);
-            println!("{}", rules.get_trees_iter().map(|(id, t)| format!("- {id} => {t:#} (depth {})", t.depth().unwrap_or(0))).join("\n"));
+            println!("{}", rules.get_trees_iter().map(|(id, t)| format!("- {id} => {:#} (depth {})", t.to_str(None, None), t.depth().unwrap_or(0))).join("\n"));
             println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();

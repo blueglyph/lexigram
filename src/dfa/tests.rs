@@ -1,7 +1,7 @@
 #![cfg(test)]
 
 use crate::*;
-use crate::vectree::VecTree;
+use vectree::VecTree;
 use crate::dfa::*;
 use crate::segments::Seg;
 

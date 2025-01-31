@@ -10,7 +10,7 @@ use crate::lexer::Lexer;
 use crate::lexergen::LexerGen;
 use super::*;
 use crate::dfa::tests::print_dfa;
-use crate::grammar::ProdRuleSet;
+use crate::grammar::{ProdRuleSet, GrTreeExt};
 use crate::grammar::tests::print_production_rules;
 use crate::parsergen::ParserGen;
 use crate::parsergen::tests::{print_flags, print_items};
@@ -210,7 +210,7 @@ fn lexiparser_source() {
     rts.set_start(0);
     if VERBOSE {
         println!("rules, num_nt = {}, NT symbols: {}", rts.get_trees_iter().count(), rts.get_symbol_table().unwrap().get_num_nt());
-        let printable = std::collections::BTreeMap::from_iter(rts.get_trees_iter().map(|(id, t)| (id, format!("{t}"))));
+        let printable = std::collections::BTreeMap::from_iter(rts.get_trees_iter().map(|(id, t)| (id, format!("{}", t.to_str(None, None)))));
         for (id, s) in printable {
             println!("{id} => {s}");
         }

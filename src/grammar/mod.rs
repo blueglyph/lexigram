@@ -8,12 +8,12 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 use iter_index::IndexerIterator;
+use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::log::Logger;
-use crate::vectree::VecTree;
 use crate::symbol_table::SymbolTable;
 use crate::take_until::TakeUntilIterator;
 
@@ -143,12 +143,12 @@ impl GrNode {
 /// `Copy(<value>)` on subsequent calls. The indices are stored on 31 bits, keeping one bit
 /// for the 'original' flag. Trying to store larger values triggers a panic.
 #[derive(Clone, Copy)]
-struct Dup {
+pub(crate) struct Dup {
     index: u32
 }
 
 #[derive(Clone, Copy, Debug)]
-enum DupVal{
+enum DupVal {
     Original(u32),
     Copy(u32)
 }
@@ -191,7 +191,16 @@ impl std::fmt::Debug for Dup {
 
 type GrTree = VecTree<GrNode>;
 
-impl GrTree {
+/// Adds methods to GrTree.
+///
+/// _NOTE: We must create a trait for GrTree since we can't implement functions for an external type,
+/// and a type alias is not considered as a new type._
+pub(crate) trait GrTreeExt {
+    fn get_dup(&mut self, dup_index: &mut Dup) -> usize;
+    fn to_str(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String;
+}
+
+impl GrTreeExt for GrTree {
     fn get_dup(&mut self, dup_index: &mut Dup) -> usize {
         match dup_index.get() {
             DupVal::Original(index) => index as usize,
@@ -202,7 +211,7 @@ impl GrTree {
         }
     }
 
-    pub fn to_str(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
+    fn to_str(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
         let tfmt = GrTreeFmt {
             tree: &self,
             show_ids: false,
@@ -211,25 +220,6 @@ impl GrTree {
             start_node,
         };
         tfmt.to_string()
-    }
-}
-
-impl Default for GrTree {
-    fn default() -> Self {
-        GrTree::new()
-    }
-}
-
-impl Display for GrTree {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let tree_fmt = GrTreeFmt {
-            tree: &self,
-            show_ids: f.alternate(),
-            show_depth: f.sign_plus(),
-            symbol_table: None,
-            start_node: None,
-        };
-        tree_fmt.fmt(f)
     }
 }
 
@@ -280,7 +270,6 @@ impl Display for GrTreeFmt<'_> {
         write!(f, "{}", stack.pop().unwrap_or("empty".to_string()))
     }
 }
-
 
 // ---------------------------------------------------------------------------------------------
 
@@ -478,7 +467,7 @@ impl RuleTreeSet<General> {
         if VERBOSE { println!("normalize_var({})", Symbol::NT(var).to_str(self.get_symbol_table())); }
         let mut new_var = self.get_next_available_var();
         let orig = std::mem::take(&mut self.trees[var as usize]);
-        let mut new = VecTree::<GrNode>::new();
+        let mut new = GrTree::new();
         let mut stack = Vec::<usize>::new();    // indices in new
         for sym in orig.iter_depth() {
             let n = sym.num_children();
@@ -667,7 +656,7 @@ impl RuleTreeSet<General> {
 
     fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, var: VarId, new_var: &mut VarId, is_plus: bool) {
         const VERBOSE: bool = false;
-        let mut qtree = VecTree::<GrNode>::new();
+        let mut qtree = GrTree::new();
         let child = stack.pop().unwrap();
         let mut lform_nt = None;
         // See comments in `normalize` near the calls to this method for details about the operations below

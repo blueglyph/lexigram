@@ -3,9 +3,9 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+use vectree::VecTree;
 use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized};
 use crate::segments::{Segments, Seg};
-use crate::vectree::VecTree;
 use crate::take_until::TakeUntilIterator;
 
 pub type StateId = usize;   // todo: reduce size

@@ -2,12 +2,11 @@
 
 use std::collections::{BTreeSet, HashSet};
 use std::ops::Deref;
-use crate::vectree::VecTree;
+use vectree::VecTree;
 
 mod macros;
 mod take_until;
 mod cproduct;
-mod vectree;
 pub mod segments;
 pub mod io;
 pub mod dfa;

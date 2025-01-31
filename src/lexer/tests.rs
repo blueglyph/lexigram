@@ -6,7 +6,7 @@ use crate::dfa::*;
 use crate::segments::*;
 use crate::dfa::tests::{build_re, print_dfa};
 use crate::lexergen::LexerGen;
-use crate::vectree::VecTree;
+use vectree::VecTree;
 use super::*;
 
 #[test]
