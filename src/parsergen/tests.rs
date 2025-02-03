@@ -120,6 +120,7 @@ mod gen_integration {
     }
 
     #[test]
+    #[cfg(not(miri))]
     fn verify_integration_sources() {
         for i in 0_u32.. {
             if !do_test(i, false) { break }
@@ -1515,14 +1516,14 @@ mod wrapper_source {
                 println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}\n    // [{test_name}]\n    // {:-<60}", "");
                 println!("}}\n");
             }
-            let expected_src = get_tagged_source(WRAPPER_FILENAME, &test_name);
+            let expected_src = if !cfg!(miri) { get_tagged_source(WRAPPER_FILENAME, &test_name) } else { None };
             let err_msg = format!("test {test_id} {rule_id:?} #{rule_iter} failed ");
             if TESTS_ALL {
                 if result_items != expected_items || result_factors != expected_factors || result_nt_type != nt_type {
                     num_errors += 1;
                     println!("## ERROR: {err_msg}");
                 }
-                if TEST_SOURCE && Some(&result_src) != expected_src.as_ref() {
+                if !cfg!(miri) && TEST_SOURCE && Some(&result_src) != expected_src.as_ref() {
                     if REPLACE_SOURCE {
                         replace_tagged_source(WRAPPER_FILENAME, &test_name, &result_src).expect("replacement failed");
                     }
@@ -1533,7 +1534,7 @@ mod wrapper_source {
                 assert_eq!(result_items, expected_items, "{err_msg}");
                 assert_eq!(result_factors, expected_factors, "{err_msg}");
                 assert_eq!(result_nt_type, nt_type, "{err_msg}");
-                if TEST_SOURCE {
+                if !cfg!(miri) && TEST_SOURCE {
                     if REPLACE_SOURCE && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() {
                         replace_tagged_source(WRAPPER_FILENAME, &test_name, &result_src).expect("replacement failed");
                     }

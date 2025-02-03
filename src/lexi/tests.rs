@@ -53,6 +53,7 @@ fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
 }
 
 #[test]
+#[cfg(not(miri))]
 fn lexilexer_source() {
     // CAUTION! Setting this to 'true' modifies the validation file with the current result
     const REPLACE_SOURCE: bool = false;
@@ -256,12 +257,13 @@ fn lexiparser_source() {
         print_items(&builder, 0, false);
     }
     let result_src = builder.build_source_code(4, true);
-    let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
-    if result_src != expected_src {
-        if REPLACE_SOURCE {
-            replace_tagged_source(FILENAME, TAG, &result_src).expect("source replacement failed");
+    if !cfg!(miri) {
+        let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
+        if result_src != expected_src {
+            if REPLACE_SOURCE {
+                replace_tagged_source(FILENAME, TAG, &result_src).expect("source replacement failed");
+            }
+            assert_eq!(result_src, expected_src, "failed");
         }
-        assert_eq!(result_src, expected_src, "failed");
     }
-
 }
