@@ -381,3 +381,52 @@ impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
         }
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+
+pub struct TokenSplit<I, F> {
+    iter: I,
+    f: F
+}
+
+pub trait TokenSpliterator<F>: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)> {
+    /// Splits the token iterator out of the lexer based on the channel ID:
+    /// * channel 0 is output as another iterator on `(token, string, line, column)`, suitable for the parser
+    /// * other channels are consummed by the closure `f`, which takes the parameters `token, channel, string, line, column`
+    ///
+    /// ## Example
+    /// ```ignore
+    /// let tokens = lexer.tokens().split_channels(|tok, ch, text, line, col|
+    ///     println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")
+    /// );
+    /// let result = parser.parse_stream(&mut listener, tokens);
+    /// ```
+    fn split_channels(self, f: F) -> TokenSplit<Self, F>
+    where Self: Sized,
+          F: FnMut(TokenId, ChannelId, String, CaretLine, CaretCol)
+    {
+        TokenSplit { iter: self, f }
+    }
+}
+
+impl<I, F> Iterator for TokenSplit<I, F>
+    where I: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)>,
+          F: FnMut(TokenId, ChannelId, String, CaretLine, CaretCol)
+{
+    type Item = (TokenId, String, CaretLine, CaretCol);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if let Some((token, ch, str, line, col)) = self.iter.next() {
+            if ch == 0 {
+                Some((token, str, line, col))
+            } else {
+                (self.f)(token, ch, str, line, col);
+                None
+            }
+        } else {
+            None
+        }
+    }
+}
+
+impl<I: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)>, F: FnMut(TokenId, ChannelId, String, CaretLine, CaretCol)> TokenSpliterator<F> for I {}

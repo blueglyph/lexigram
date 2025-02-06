@@ -147,6 +147,7 @@ mod tests {
     use super::*;
     use crate::gen::build_lexer;
     use crate::gen::lexiparser::lexiparser::build_parser;
+    use rlexer::lexer::TokenSpliterator;
 
     #[test]
     fn lexer_parser() {
@@ -172,15 +173,11 @@ mod tests {
             let mut wrapper = ListenerWrapper::new(listener, false);
             wrapper.set_verbose(VERBOSE);
 
-            let tokens = lexer.tokens().filter_map(|(tok, ch, text, line, col)| {
-                if ch == 0 {
-                    if VERBOSE_DETAILS { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
-                    Some((tok, text, line, col))
-                } else {
-                    if VERBOSE_DETAILS { println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")}
-                    None
-                }
-            });
+            let tokens = lexer.tokens().split_channels(|tok, ch, text, line, col|
+                if VERBOSE_DETAILS { println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")}
+            ).inspect(|(tok, text, line, col)|
+                if VERBOSE_DETAILS { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
+            );
             let result = parser.parse_stream(&mut wrapper, tokens);
             assert_eq!(result, Ok(()));
         }
