@@ -151,35 +151,58 @@ mod tests {
 
     #[test]
     fn lexer_parser() {
-        let tests = vec![
-            "",
-            "lexicon LexiLexer;",
-            LEXICON,
+        let tests = [
+            ("", 0),
+            ("lexicon LexiLexer;", 3),
+            (LEXICON, 261),
         ];
         const VERBOSE: bool = false;
         const VERBOSE_DETAILS: bool = false;
         const VERBOSE_LISTENER: bool = false;
 
-        for (test_id, input) in tests.into_iter().enumerate() {
-            if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
-            let stream = CharReader::new(Cursor::new(input));
-            let mut lexer = build_lexer();
-            lexer.set_tab_width(4);
-            lexer.attach_stream(stream);
+        for method in 0..3 {
+            for (test_id, (input, expected_tokens)) in tests.into_iter().enumerate() {
+                if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
+                let stream = CharReader::new(Cursor::new(input));
+                let mut lexer = build_lexer();
+                lexer.set_tab_width(4);
+                lexer.attach_stream(stream);
 
-            let mut parser = build_parser();
-            let mut listener = LexiListener::new();
-            listener.verbose = VERBOSE_LISTENER;
-            let mut wrapper = ListenerWrapper::new(listener, false);
-            wrapper.set_verbose(VERBOSE);
-
-            let tokens = lexer.tokens().split_channels(|tok, ch, text, line, col|
-                if VERBOSE_DETAILS { println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")}
-            ).inspect(|(tok, text, line, col)|
-                if VERBOSE_DETAILS { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
-            );
-            let result = parser.parse_stream(&mut wrapper, tokens);
-            assert_eq!(result, Ok(()));
+                let mut parser = build_parser();
+                let mut listener = LexiListener::new();
+                listener.verbose = VERBOSE_LISTENER;
+                let mut wrapper = ListenerWrapper::new(listener, false);
+                wrapper.set_verbose(VERBOSE);
+                let mut result_tokens = 0;
+                let result = match method {
+                    // 'match' returns the result and not the tokens because the token iterator has a different
+                    // type in each case:
+                    0 => {
+                        let tokens = lexer.tokens().split_channels(0, |(_tok, ch, text, line, col)|
+                            panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\""),
+                        ).inspect(|(tok, text, line, col)| {
+                            result_tokens += 1;
+                            if VERBOSE_DETAILS { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
+                        });
+                        parser.parse_stream(&mut wrapper, tokens)
+                    }
+                    1 => {
+                        let tokens = lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
+                            panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
+                        ).inspect(|(tok, text, line, col)| {
+                            result_tokens += 1;
+                            if VERBOSE_DETAILS { println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\""); }
+                        });
+                        parser.parse_stream(&mut wrapper, tokens)
+                    }
+                    2 => parser.parse_stream(&mut wrapper, lexer.tokens().keep_channel0().inspect(|_| result_tokens += 1)),
+                    3 => parser.parse_stream(&mut wrapper, lexer.tokens().keep_channel(0).inspect(|_| result_tokens += 1)),
+                    _ => panic!()
+                };
+                let text = format!("test {test_id}, method {method} failed");
+                assert_eq!(result, Ok(()), "{text}");
+                assert_eq!(result_tokens, expected_tokens, "{text}");
+            }
         }
     }
 }

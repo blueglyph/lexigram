@@ -386,41 +386,110 @@ impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
 
 pub struct TokenSplit<I, F> {
     iter: I,
+    ch: ChannelId,
     f: F
 }
 
-pub trait TokenSpliterator<F>: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)> {
-    /// Splits the token iterator out of the lexer based on the channel ID:
-    /// * channel 0 is output as another iterator on `(token, string, line, column)`, suitable for the parser
-    /// * other channels are consummed by the closure `f`, which takes the parameters `token, channel, string, line, column`
+pub trait TokenSpliterator: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)> {
+    /// Splits the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, CaretLine, CaretCol)`) based on the channel ID:
+    /// * the default channel 0 is output as another iterator on `(token, string, line, column)`, suitable for the parser
+    /// * other channels are consummed by the closure `f`, which takes the parameters `(token, channel, string, line, column)`
     ///
     /// ## Example
     /// ```ignore
-    /// let tokens = lexer.tokens().split_channels(|tok, ch, text, line, col|
+    /// let tokens = lexer.tokens().split_channel0(|(tok, ch, text, line, col)|
     ///     println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")
     /// );
     /// let result = parser.parse_stream(&mut listener, tokens);
     /// ```
-    fn split_channels(self, f: F) -> TokenSplit<Self, F>
+    fn split_channel0<F>(self, f: F) -> TokenSplit<Self, F>
     where Self: Sized,
-          F: FnMut(TokenId, ChannelId, String, CaretLine, CaretCol)
+          F: FnMut((TokenId, ChannelId, String, CaretLine, CaretCol))
     {
-        TokenSplit { iter: self, f }
+        TokenSplit { iter: self, ch: 0, f }
     }
+
+    /// Splits the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, CaretLine, CaretCol)`) based on the channel ID:
+    /// * the channel `channel` is output as another iterator on `(token, string, line, column)`, suitable for the parser
+    /// * other channels are consummed by the closure `f`, which takes the parameters `(token, channel, string, line, column)`
+    ///
+    /// ## Example
+    /// ```ignore
+    /// let tokens = lexer.tokens().split_channels(2, |(tok, ch, text, line, col)|
+    ///     println!("TOKEN: channel {ch}, discarded, line {line} col {col}, Id {tok:?}, \"{text}\"")
+    /// );
+    /// let result = parser.parse_stream(&mut listener, tokens);
+    /// ```
+    fn split_channels<F>(self, channel: ChannelId, f: F) -> TokenSplit<Self, F>
+    where Self: Sized,
+          F: FnMut((TokenId, ChannelId, String, CaretLine, CaretCol))
+    {
+        TokenSplit { iter: self, ch: channel, f }
+    }
+
+    /// Filters the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, CaretLine, CaretCol)`) based on the channel ID:
+    /// * the default channel 0 is output as another iterator on `(token, string, line, column)`, suitable for the parser
+    /// * other channels are discarded.
+    ///
+    /// ## Example
+    /// ```ignore
+    /// let tokens = lexer.tokens().keep_channel0();
+    /// let result = parser.parse_stream(&mut listener, tokens);
+    /// ```
+    fn keep_channel0(self) -> impl Iterator<Item=(TokenId, String, CaretLine, CaretCol)>
+    where Self: Sized
+    {
+        self.filter_map(|(token, ch, str, line, col)| {
+            if ch == 0 {
+                Some((token, str, line, col))
+            } else {
+                None
+            }
+        })
+    }
+
+    /// Filters the token iterator out of the lexer (Item: `(TokenId, ChannelId, String, CaretLine, CaretCol)`) based on the channel ID:
+    /// * channel `channel` is output as another iterator on `(token, string, line, column)`, suitable for the parser
+    /// * other channels are discarded.
+    ///
+    /// ## Example
+    /// ```ignore
+    /// let tokens = lexer.tokens().keep_channel(2);
+    /// let result = parser.parse_stream(&mut listener, tokens);
+    /// ```
+    fn keep_channel(self, channel: ChannelId) -> TokenSplit<Self, fn((TokenId, ChannelId, String, CaretLine, CaretCol))>
+    where Self: Sized
+    {
+        TokenSplit { iter: self, ch: channel, f: |_| {} }
+    }
+
+    // or:
+    //
+    // fn keep_channel(self, channel: ChannelId) -> impl Iterator<Item=(TokenId, String, CaretLine, CaretCol)>
+    // where Self: Sized
+    // {
+    //     self.filter_map(move |(token, ch, str, line, col)| {
+    //         if ch == channel {
+    //             Some((token, str, line, col))
+    //         } else {
+    //             None
+    //         }
+    //     })
+    // }
 }
 
 impl<I, F> Iterator for TokenSplit<I, F>
     where I: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)>,
-          F: FnMut(TokenId, ChannelId, String, CaretLine, CaretCol)
+          F: FnMut((TokenId, ChannelId, String, CaretLine, CaretCol))
 {
     type Item = (TokenId, String, CaretLine, CaretCol);
 
     fn next(&mut self) -> Option<Self::Item> {
         if let Some((token, ch, str, line, col)) = self.iter.next() {
-            if ch == 0 {
+            if ch == self.ch {
                 Some((token, str, line, col))
             } else {
-                (self.f)(token, ch, str, line, col);
+                (self.f)((token, ch, str, line, col));
                 None
             }
         } else {
@@ -429,4 +498,4 @@ impl<I, F> Iterator for TokenSplit<I, F>
     }
 }
 
-impl<I: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)>, F: FnMut(TokenId, ChannelId, String, CaretLine, CaretCol)> TokenSpliterator<F> for I {}
+impl<I: Iterator<Item=(TokenId, ChannelId, String, CaretLine, CaretCol)>> TokenSpliterator for I {}
