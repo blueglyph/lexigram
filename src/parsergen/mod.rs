@@ -874,7 +874,7 @@ impl ParserGen {
     /// struct SynA1Item { b: SynB, c: String }
     /// // User-defined: SynA, SynB
     ///
-    /// nt_name = [Some(("A", "a")), Some(("B", "b")), Some(("A1", "a1"))]
+    /// nt_name = [Some(("A", "a", "a")), Some(("B", "b", "b")), Some(("A1", "a1", "a1"))]
     /// factor_info: [Some((0, "A1")), Some((0, "A2")), Some((1, "B")), None, None]
     /// item_info = [
     ///     [ItemInfo { name: "star", sym: NT(2), .. }, ItemInfo { name: "b", sym: T(1), .. }],
@@ -887,17 +887,19 @@ impl ParserGen {
     ///     2: [ItemInfo { name: "b", sym: NT(1), .. }, ItemInfo { name: "c", sym: T(2), .. }]
     /// }
     /// ```
-    fn get_type_info(&self) -> (Vec<Option<(String, String)>>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
+    fn get_type_info(&self) -> (Vec<Option<(String, String, String)>>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
         const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
         let mut nt_lower_fixer = NameFixer::new();
-        let mut nt_name: Vec<Option<(String, String)>> = (0..pinfo.num_nt).map(|v| {
+        let mut nt_plower_fixer = NameFixer::new_empty(); // prefixed lowercase: don't worry about reserved words
+        let mut nt_name: Vec<Option<(String, String, String)>> = (0..pinfo.num_nt).map(|v| {
             let name = self.symbol_table.get_nt_name(v as VarId);
             let nu = nt_upper_fixer.get_unique_name(name.to_camelcase());
             let nl = nt_lower_fixer.get_unique_name(nu.to_underscore_lowercase());
-            Some((nu, nl))
+            let npl = nt_plower_fixer.get_unique_name(nu.to_underscore_lowercase());
+            Some((nu, nl, npl))
         }).to_vec();
 
         let mut factor_info: Vec<Option<(VarId, String)>> = vec![None; pinfo.factors.len()];
@@ -933,7 +935,8 @@ impl ParserGen {
                                 if nt_name[*v as usize].is_none() {
                                     let name = self.symbol_table.get_nt_name(*v);
                                     nt_name[*v as usize] = Some((nt_upper_fixer.get_unique_name(name.to_camelcase()),
-                                                                 nt_lower_fixer.get_unique_name(name.to_underscore_lowercase())));
+                                                                 nt_lower_fixer.get_unique_name(name.to_underscore_lowercase()),
+                                                                 nt_plower_fixer.get_unique_name(name.to_underscore_lowercase())));
                                 }
                             }
                             if let Some((_, c)) = indices.get_mut(s) {
@@ -945,6 +948,7 @@ impl ParserGen {
                                         let inside_factor_id = self.var_factors[*vs as usize][0];
                                         let inside_factor = &pinfo.factors[inside_factor_id as usize].1;
                                         if false {
+                                            // we don't use this any more
                                             let mut plus_name = inside_factor.symbols()[0].to_str(self.get_symbol_table()).to_underscore_lowercase();
                                             plus_name.push_str(if flag & ruleflag::REPEAT_PLUS != 0 { "_plus" } else { "_star" });
                                             plus_name
@@ -1061,7 +1065,7 @@ impl ParserGen {
 
         if VERBOSE {
             println!("NT names: {}", nt_name.iter()
-                .filter_map(|n| if let Some((u, l)) = n { Some(format!("{u}/{l}")) } else { None })
+                .filter_map(|n| if let Some((u, l, pl)) = n { Some(format!("{u}/{l}/{pl}")) } else { None })
                 .join(", "));
             println!("factor info:");
             for (factor_id, factor_names) in factor_info.iter().enumerate() {
@@ -1223,7 +1227,7 @@ impl ParserGen {
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let v = v as VarId;
             if !self.nt_type.contains_key(&v) {
-                let (nu, _nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
+                let nu = name.as_ref().map(|(nu, _nl, _npl)| nu.as_str()).unwrap();
                 self.nt_type.insert(v, format!("Syn{nu}"));
             }
         }
@@ -1264,10 +1268,15 @@ impl ParserGen {
         // Writes intermediate Syn types
         src.add_space();
         src.push("// NT types:".to_string());
-        let mut syns = Vec::<(&str, &str, String)>::new();
+        // syns contains (nu, nl, npl, type), where
+        // - nu is the uppercase identifier
+        // - nl is the lowercase identifier, which is guaranteed not to match any reserved Rust keyword
+        // - npl is the lowercase identifier without the above guarantee, only to be used when prefixed or postfixed (e.g. "get_{npl}")
+        // - type is the type of the corresponding symbol
+        let mut syns = Vec::<(&str, &str, &str, String)>::new();
         for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let v = v as VarId;
-            let (nu, nl) = name.as_ref().map(|(nu, nl)| (nu.as_str(), nl.as_str())).unwrap();
+            let (nu, nl, npl) = name.as_ref().map(|(nu, nl, npl)| (nu.as_str(), nl.as_str(), npl.as_str())).unwrap();
             let nt_type = self.get_nt_type(v);
             if self.nt_has_flags(v, ruleflag::CHILD_REPEAT) {
                 let parent = pinfo.get_top_parent(v);
@@ -1331,10 +1340,10 @@ impl ParserGen {
                 ];
                 self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
             }
-            syns.push((nu, nl, self.get_nt_type(v).to_string()));
+            syns.push((nu, nl, npl, self.get_nt_type(v).to_string()));
         }
         if !self.nt_value[self.start as usize] {
-            let (nu, _) = nt_name[self.start as usize].as_ref().unwrap();
+            let (nu, _, _) = nt_name[self.start as usize].as_ref().unwrap();
             src.push(format!("// Top non-terminal {nu} has no value:"));
             src.push(format!("#[derive(Debug, PartialEq)]"));
             src.push(format!("pub struct Syn{nu}();"))
@@ -1344,13 +1353,13 @@ impl ParserGen {
         src.add_space();
         // SynValue type
         src.push(format!("#[derive(Debug)]"));
-        src.push(format!("enum SynValue {{ {} }}", syns.iter().map(|(nu, _, nt_type)| format!("{nu}({nt_type})")).join(", ")));
+        src.push(format!("enum SynValue {{ {} }}", syns.iter().map(|(nu, _, _, nt_type)| format!("{nu}({nt_type})")).join(", ")));
         if !syns.is_empty() {
             // SynValue getters
             src.add_space();
             src.push("impl SynValue {".to_string());
-            for (nu, nl, nt_type) in &syns {
-                src.push(format!("    fn get_{nl}(self) -> {nt_type} {{"));
+            for (nu, nl, npl, nt_type) in &syns {
+                src.push(format!("    fn get_{npl}(self) -> {nt_type} {{"));
                 if syns.len() == 1 {
                     src.push(format!("        let SynValue::{nu}(val) = self;"));
                     src.push(format!("        val"));
@@ -1395,29 +1404,29 @@ impl ParserGen {
                 // Call::Enter
 
                 if self.parsing_table.parent[nt].is_none() {
-                    let (nu, nl) = nt_name[nt].as_ref().unwrap();
+                    let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
                     if has_value && self.nt_has_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) {
                         src_wrapper_impl.push(String::new());
-                        src_listener_decl.push(format!("    fn init_{nl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                        src_listener_decl.push(format!("    fn init_{npl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
-                        src_wrapper_impl.push(format!("    fn init_{nl}(&mut self) {{"));
+                        src_wrapper_impl.push(format!("    fn init_{npl}(&mut self) {{"));
                         src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
                         src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                         src_wrapper_impl.push(format!("    }}"));
                     } else {
-                        src_listener_decl.push(format!("    fn init_{nl}(&mut self) {{}}"));
-                        src_init.push(vec![format!("                    {nt} => self.listener.init_{nl}(),"), nt_comment]);
+                        src_listener_decl.push(format!("    fn init_{npl}(&mut self) {{}}"));
+                        src_init.push(vec![format!("                    {nt} => self.listener.init_{npl}(),"), nt_comment]);
                     }
                 } else {
                     if flags & ruleflag::CHILD_REPEAT != 0 {
                         if has_value {
                             src_wrapper_impl.push(String::new());
-                            let (nu, nl) = nt_name[nt].as_ref().unwrap();
-                            src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
-                            src_wrapper_impl.push(format!("    fn init_{nl}(&mut self) {{"));
+                            let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
+                            src_init.push(vec![format!("                    {nt} => self.init_{npl}(),"), nt_comment]);
+                            src_wrapper_impl.push(format!("    fn init_{npl}(&mut self) {{"));
                             if flags & ruleflag::L_FORM != 0 {
-                                src_wrapper_impl.push(format!("        let val = self.listener.init_{nl}();"));
-                                src_listener_decl.push(format!("    fn init_{nl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
+                                src_wrapper_impl.push(format!("        let val = self.listener.init_{npl}();"));
+                                src_listener_decl.push(format!("    fn init_{npl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                             } else {
                                 src_wrapper_impl.push(format!("        let val = Syn{nu}(Vec::new());"));
                             }
@@ -1425,9 +1434,9 @@ impl ParserGen {
                             src_wrapper_impl.push(format!("    }}"));
                         } else {
                             if flags & ruleflag::L_FORM != 0 {
-                                let (nu, nl) = nt_name[nt].as_ref().unwrap();
-                                src_init.push(vec![format!("                    {nt} => self.listener.init_{nl}(),"), nt_comment]);
-                                src_listener_decl.push(format!("    fn init_{nl}(&mut self) {{}}"));
+                                let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
+                                src_init.push(vec![format!("                    {nt} => self.listener.init_{npl}(),"), nt_comment]);
+                                src_listener_decl.push(format!("    fn init_{npl}(&mut self) {{}}"));
                             } else {
                                 src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
                             }
@@ -1502,15 +1511,15 @@ impl ParserGen {
                     (flags & ruleflag::R_RECURSION != 0 ||
                         parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT & !ruleflag::PARENT_L_FACTOR == 0)
                 {
-                    let (nu, nl) = nt_name[nt].as_ref().unwrap();
-                    let (pnu, pnl) = nt_name[parent_nt].as_ref().unwrap();
+                    let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
+                    let (pnu, pnl, pnpl) = nt_name[parent_nt].as_ref().unwrap();
                     if VERBOSE { println!("    {nu} (parent {pnu})"); }
                     let no_method = !has_value && flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
                     if is_parent || (is_child_repeat_lform && !no_method) {
                         if has_value {
-                            src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) -> {};", self.get_nt_type(nt as VarId)));
+                            src_listener_decl.push(format!("    fn exit_{npl}(&mut self, _ctx: Ctx{nu}) -> {};", self.get_nt_type(nt as VarId)));
                         } else {
-                            src_listener_decl.push(format!("    fn exit_{nl}(&mut self, _ctx: Ctx{nu}) {{}}"));
+                            src_listener_decl.push(format!("    fn exit_{npl}(&mut self, _ctx: Ctx{nu}) {{}}"));
                         }
                     }
                     let mut exit_factors = self.gather_factors(nt as VarId);
@@ -1518,7 +1527,7 @@ impl ParserGen {
                     for f in &exit_factors {
                         exit_factor_done.insert(*f, true);
                     }
-                    let init_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("init_{nl}") } else { format!("exit_{nl}") };
+                    let init_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("init_{npl}") } else { format!("exit_{npl}") };
                     let fn_name = exit_fixer.get_unique_name(init_or_exit_name.clone());
                     let (is_factor_id, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method);
                     if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
@@ -1558,7 +1567,7 @@ impl ParserGen {
                                 if let Symbol::NT(v) = item.sym {
                                     let mut_s = if !is_child_repeat_lform && v as usize == nt { "mut " } else { "" };
                                     src_wrapper_impl.push(format!("        let {mut_s}{varname} = self.stack.pop().unwrap().get_{}();",
-                                                                  nt_name[v as usize].as_ref().unwrap().1));
+                                                                  nt_name[v as usize].as_ref().unwrap().2));
                                 } else {
                                     src_wrapper_impl.push(format!("        let {varname} = self.stack_t.pop().unwrap();"));
                                 }
@@ -1570,7 +1579,7 @@ impl ParserGen {
                                 } else {
                                     format!("Ctx{nu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
                                 };
-                                src_wrapper_impl.push(format!("        {}self.listener.exit_{nl}({ctx});", if parent_has_value { "let val = " } else { "" }));
+                                src_wrapper_impl.push(format!("        {}self.listener.exit_{npl}({ctx});", if parent_has_value { "let val = " } else { "" }));
                                 if parent_has_value {
                                     src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
                                 }
@@ -1596,7 +1605,7 @@ impl ParserGen {
                             None
                         };
                         let fnu = if is_child_repeat_lform { nu } else { pnu }; // +* <L> use the loop variable, the other factors use the parent
-                        let fnl = if is_child_repeat_lform { nl } else { pnl }; // +* <L> use the loop variable, the other factors use the parent
+                        let fnpl = if is_child_repeat_lform { npl } else { pnpl }; // +* <L> use the loop variable, the other factors use the parent
                         let f_has_value = if is_child_repeat_lform { has_value } else { parent_has_value };
                         let is_single = has_last_flag || exit_factors.len() == 1;
                         let indent = if is_single { "        " } else { "                " };
@@ -1629,7 +1638,8 @@ impl ParserGen {
                                     assert!(has_last_flag);
                                     src_wrapper_impl.push(format!("{indent}let {varname} = factor_id == {};", last_factor_id.unwrap()));
                                 } else if let Symbol::NT(v) = item.sym {
-                                    src_wrapper_impl.push(format!("{indent}let {varname} = self.stack.pop().unwrap().get_{}();", nt_name[v as usize].as_ref().unwrap().1));
+                                    src_wrapper_impl.push(format!("{indent}let {varname} = self.stack.pop().unwrap().get_{}();",
+                                                                  nt_name[v as usize].as_ref().unwrap().2));
                                 } else {
                                     src_wrapper_impl.push(format!("{indent}let {varname} = self.stack_t.pop().unwrap();"));
                                 }
@@ -1641,7 +1651,7 @@ impl ParserGen {
                                 format!("Ctx{fnu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
                             };
                             if is_single {
-                                src_wrapper_impl.push(format!("        {}self.listener.exit_{fnl}({ctx});", if f_has_value { "let val = " } else { "" }));
+                                src_wrapper_impl.push(format!("        {}self.listener.exit_{fnpl}({ctx});", if f_has_value { "let val = " } else { "" }));
                                 if f_has_value {
                                     src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
                                 }
@@ -1653,7 +1663,7 @@ impl ParserGen {
                         if !is_single {
                             src_wrapper_impl.push(format!("            _ => panic!(\"unexpected factor id {{factor_id}} in fn {fn_name}\")"));
                             src_wrapper_impl.push(format!("        }};"));
-                            src_wrapper_impl.push(format!("        {}self.listener.exit_{fnl}(ctx);", if f_has_value { "let val = " } else { "" }));
+                            src_wrapper_impl.push(format!("        {}self.listener.exit_{fnpl}(ctx);", if f_has_value { "let val = " } else { "" }));
                             if f_has_value {
                                 src_wrapper_impl.push(format!("        self.stack.push(SynValue::{fnu}(val));"));
                             }
@@ -1681,7 +1691,7 @@ impl ParserGen {
         src.add_space();
         src.push(format!("pub trait {}Listener {{", self.name));
         if self.nt_value[self.start as usize] {
-            src.push(format!("    fn exit(&mut self, _{}: {}) {{}}", nt_name[self.start as usize].as_ref().unwrap().1, self.get_nt_type(self.start)));
+            src.push(format!("    fn exit(&mut self, _{}: {}) {{}}", nt_name[self.start as usize].as_ref().unwrap().2, self.get_nt_type(self.start)));
         } else {
             src.push(format!("    fn exit(&mut self) {{}}"));
         }
@@ -1770,8 +1780,8 @@ impl ParserGen {
         if self.nt_value[self.start as usize] {
             src.push(format!(""));
             src.push(format!("    fn exit(&mut self) {{"));
-            if let Some((nu, nl)) = &nt_name[self.start as usize] {
-                src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{nl}();"));
+            if let Some((nu, nl, npl)) = &nt_name[self.start as usize] {
+                src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{npl}();"));
                 src.push(format!("        self.listener.exit({nl});"));
             }
             src.push(format!("    }}"));

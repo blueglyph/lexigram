@@ -92,11 +92,11 @@ impl LexiParserListener for LexiListener {
         SynAction()
     }
 
-    fn init_match1(&mut self) {
+    fn init_match(&mut self) {
         if self.verbose { println!("init_match1"); }
     }
 
-    fn exit_match1(&mut self, _ctx: CtxMatch) -> SynMatch {
+    fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch {
         if self.verbose { println!("exit_match1"); }
         SynMatch()
     }

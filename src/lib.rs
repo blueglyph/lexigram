@@ -181,7 +181,7 @@ impl CharLen for str {
 // ---------------------------------------------------------------------------------------------
 // Source generation helper traits and types
 
-/// Dictionary-based helper that adapts names so they are unique
+/// Dictionary-based helper that adapts names to guarantee they're unique.
 pub struct NameFixer {
     dic: HashSet<String>
 }
@@ -193,9 +193,22 @@ impl NameFixer {
         "trait", "true", "type", "unsafe", "use", "where", "while", "async", "await", "dyn", "abstract", "become", "box",
         "do", "final", "macro", "override", "priv", "typeof", "unsized", "virtual", "yield", "try"];
 
+    /// Creates a new instance of [NameFixer] pre-filled with reserved words of the Rust language, so that variables
+    /// don't have a forbidden name.
+    ///
+    /// See [new_empty()](NameFixer::new_empty) for a version that isn't pre-filled with reserved words.
     pub fn new() -> Self {
         let mut dic = HashSet::<String>::new();
         dic.extend(Self::RUST_KEYWORDS.iter().map(|s| s.to_string()));
+        NameFixer { dic }
+    }
+
+    /// Creates a new instance of [NameFixer] that is not pre-filled with Rust reserved words. This name fixer can be used
+    /// when the names will be prefixed or postfixed in a way that guarantees they're not forbidden.
+    ///
+    /// See [new()](NameFixer::new) for the safer version pre-filled with reserved words.
+    pub fn new_empty() -> Self {
+        let dic = HashSet::<String>::new();
         NameFixer { dic }
     }
 
@@ -226,6 +239,8 @@ impl NameFixer {
         name
     }
 
+    /// Adds `_{num}` or `{num}` to the string depending on its last character, whether it's respectivelly a digit or not.
+    /// Used if we want to make sure a digit isn't added to an identifier ending with a number, which would make it confusing.
     pub fn add_number(s: &mut String, num: usize) {
         if s.ends_with(|c: char| c.is_digit(10)) {
             s.push('_');

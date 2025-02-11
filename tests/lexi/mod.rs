@@ -55,7 +55,7 @@ impl LexiParserListener for LexiListener {
         todo!()
     }
 
-    fn exit_match1(&mut self, _ctx: CtxMatch) -> SynMatch {
+    fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch {
         todo!()
     }
 

@@ -6061,7 +6061,7 @@ pub(crate) mod rules_prs_20_1 {
     enum SynValue { Struct(SynStruct), List(SynList) }
 
     impl SynValue {
-        fn get_struct1(self) -> SynStruct {
+        fn get_struct(self) -> SynStruct {
             if let SynValue::Struct(val) = self { val } else { panic!() }
         }
         fn get_list(self) -> SynList {
@@ -6070,9 +6070,9 @@ pub(crate) mod rules_prs_20_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _struct1: SynStruct) {}
-        fn init_struct1(&mut self) {}
-        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
+        fn exit(&mut self, _struct: SynStruct) {}
+        fn init_struct(&mut self) {}
+        fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
@@ -6096,7 +6096,7 @@ pub(crate) mod rules_prs_20_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_struct1(),          // STRUCT
+                        0 => self.listener.init_struct(),           // STRUCT
                         1 => self.listener.init_list(),             // LIST
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -6104,7 +6104,7 @@ pub(crate) mod rules_prs_20_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
+                        0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> id : id ; LIST
                         2 => self.exit_list(factor_id),             // LIST -> }
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -6136,14 +6136,14 @@ pub(crate) mod rules_prs_20_1 {
         }
 
         fn exit(&mut self) {
-            let struct1 = self.stack.pop().unwrap().get_struct1();
+            let struct1 = self.stack.pop().unwrap().get_struct();
             self.listener.exit(struct1);
         }
 
-        fn exit_struct1(&mut self) {
+        fn exit_struct(&mut self) {
             let list = self.stack.pop().unwrap().get_list();
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_struct1(CtxStruct::Struct { id, list });
+            let val = self.listener.exit_struct(CtxStruct::Struct { id, list });
             self.stack.push(SynValue::Struct(val));
         }
 
@@ -6213,16 +6213,16 @@ pub(crate) mod rules_prs_20_2 {
     enum SynValue { Struct(SynStruct) }
 
     impl SynValue {
-        fn get_struct1(self) -> SynStruct {
+        fn get_struct(self) -> SynStruct {
             let SynValue::Struct(val) = self;
             val
         }
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _struct1: SynStruct) {}
-        fn init_struct1(&mut self) {}
-        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
+        fn exit(&mut self, _struct: SynStruct) {}
+        fn init_struct(&mut self) {}
+        fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
         fn exit_list(&mut self, _ctx: CtxList) {}
     }
@@ -6246,7 +6246,7 @@ pub(crate) mod rules_prs_20_2 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_struct1(),          // STRUCT
+                        0 => self.listener.init_struct(),           // STRUCT
                         1 => self.listener.init_list(),             // LIST
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -6254,7 +6254,7 @@ pub(crate) mod rules_prs_20_2 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
+                        0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> id : id ; LIST
                         2 => self.exit_list(factor_id),             // LIST -> }
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -6286,13 +6286,13 @@ pub(crate) mod rules_prs_20_2 {
         }
 
         fn exit(&mut self) {
-            let struct1 = self.stack.pop().unwrap().get_struct1();
+            let struct1 = self.stack.pop().unwrap().get_struct();
             self.listener.exit(struct1);
         }
 
-        fn exit_struct1(&mut self) {
+        fn exit_struct(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_struct1(CtxStruct::Struct { id });
+            let val = self.listener.exit_struct(CtxStruct::Struct { id });
             self.stack.push(SynValue::Struct(val));
         }
 
@@ -6367,7 +6367,7 @@ pub(crate) mod rules_prs_37_1 {
     enum SynValue { Struct(SynStruct), List(SynList) }
 
     impl SynValue {
-        fn get_struct1(self) -> SynStruct {
+        fn get_struct(self) -> SynStruct {
             if let SynValue::Struct(val) = self { val } else { panic!() }
         }
         fn get_list(self) -> SynList {
@@ -6376,9 +6376,9 @@ pub(crate) mod rules_prs_37_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _struct1: SynStruct) {}
-        fn init_struct1(&mut self) {}
-        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
+        fn exit(&mut self, _struct: SynStruct) {}
+        fn init_struct(&mut self) {}
+        fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
@@ -6402,7 +6402,7 @@ pub(crate) mod rules_prs_37_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_struct1(),          // STRUCT
+                        0 => self.listener.init_struct(),           // STRUCT
                         1 => self.listener.init_list(),             // LIST
                         2 => {}                                     // LIST_1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
@@ -6411,7 +6411,7 @@ pub(crate) mod rules_prs_37_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
+                        0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> }
                         3 |                                         // LIST -> id : id ; LIST
                         4 => self.exit_list(factor_id),             // LIST -> id ; LIST
@@ -6445,14 +6445,14 @@ pub(crate) mod rules_prs_37_1 {
         }
 
         fn exit(&mut self) {
-            let struct1 = self.stack.pop().unwrap().get_struct1();
+            let struct1 = self.stack.pop().unwrap().get_struct();
             self.listener.exit(struct1);
         }
 
-        fn exit_struct1(&mut self) {
+        fn exit_struct(&mut self) {
             let list = self.stack.pop().unwrap().get_list();
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_struct1(CtxStruct::Struct { id, list });
+            let val = self.listener.exit_struct(CtxStruct::Struct { id, list });
             self.stack.push(SynValue::Struct(val));
         }
 
@@ -6527,7 +6527,7 @@ pub(crate) mod rules_prs_30_1 {
     enum SynValue { Struct(SynStruct), List(SynList) }
 
     impl SynValue {
-        fn get_struct1(self) -> SynStruct {
+        fn get_struct(self) -> SynStruct {
             if let SynValue::Struct(val) = self { val } else { panic!() }
         }
         fn get_list(self) -> SynList {
@@ -6536,9 +6536,9 @@ pub(crate) mod rules_prs_30_1 {
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _struct1: SynStruct) {}
-        fn init_struct1(&mut self) {}
-        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
+        fn exit(&mut self, _struct: SynStruct) {}
+        fn init_struct(&mut self) {}
+        fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) -> SynList;
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
@@ -6562,7 +6562,7 @@ pub(crate) mod rules_prs_30_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_struct1(),          // STRUCT
+                        0 => self.listener.init_struct(),           // STRUCT
                         1 => self.init_list(),                      // LIST
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -6570,7 +6570,7 @@ pub(crate) mod rules_prs_30_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
+                        0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> id : id ; LIST <L>
                         2 => self.exit_list(factor_id),             // LIST -> } <L>
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -6602,14 +6602,14 @@ pub(crate) mod rules_prs_30_1 {
         }
 
         fn exit(&mut self) {
-            let struct1 = self.stack.pop().unwrap().get_struct1();
+            let struct1 = self.stack.pop().unwrap().get_struct();
             self.listener.exit(struct1);
         }
 
-        fn exit_struct1(&mut self) {
+        fn exit_struct(&mut self) {
             let list = self.stack.pop().unwrap().get_list();
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_struct1(CtxStruct::Struct { id, list });
+            let val = self.listener.exit_struct(CtxStruct::Struct { id, list });
             self.stack.push(SynValue::Struct(val));
         }
 
@@ -6685,16 +6685,16 @@ pub(crate) mod rules_prs_30_2 {
     enum SynValue { Struct(SynStruct) }
 
     impl SynValue {
-        fn get_struct1(self) -> SynStruct {
+        fn get_struct(self) -> SynStruct {
             let SynValue::Struct(val) = self;
             val
         }
     }
 
     pub trait TestListener {
-        fn exit(&mut self, _struct1: SynStruct) {}
-        fn init_struct1(&mut self) {}
-        fn exit_struct1(&mut self, _ctx: CtxStruct) -> SynStruct;
+        fn exit(&mut self, _struct: SynStruct) {}
+        fn init_struct(&mut self) {}
+        fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
         fn init_list(&mut self) {}
         fn exit_list(&mut self, _ctx: CtxList) {}
     }
@@ -6718,7 +6718,7 @@ pub(crate) mod rules_prs_30_2 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_struct1(),          // STRUCT
+                        0 => self.listener.init_struct(),           // STRUCT
                         1 => self.listener.init_list(),             // LIST
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -6726,7 +6726,7 @@ pub(crate) mod rules_prs_30_2 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_struct1(),                   // STRUCT -> struct id { LIST
+                        0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> id : id ; LIST <L>
                         2 => self.exit_list(factor_id),             // LIST -> } <L>
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -6758,13 +6758,13 @@ pub(crate) mod rules_prs_30_2 {
         }
 
         fn exit(&mut self) {
-            let struct1 = self.stack.pop().unwrap().get_struct1();
+            let struct1 = self.stack.pop().unwrap().get_struct();
             self.listener.exit(struct1);
         }
 
-        fn exit_struct1(&mut self) {
+        fn exit_struct(&mut self) {
             let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_struct1(CtxStruct::Struct { id });
+            let val = self.listener.exit_struct(CtxStruct::Struct { id });
             self.stack.push(SynValue::Struct(val));
         }
 
@@ -7758,7 +7758,7 @@ pub(crate) mod rules_rts_100_1 {
         fn get_action(self) -> SynAction {
             if let SynValue::Action(val) = self { val } else { panic!() }
         }
-        fn get_match1(self) -> SynMatch {
+        fn get_match(self) -> SynMatch {
             if let SynValue::Match(val) = self { val } else { panic!() }
         }
         fn get_alt_items(self) -> SynAltItems {
@@ -7805,8 +7805,8 @@ pub(crate) mod rules_rts_100_1 {
         fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions;
         fn init_action(&mut self) {}
         fn exit_action(&mut self, _ctx: CtxAction) -> SynAction;
-        fn init_match1(&mut self) {}
-        fn exit_match1(&mut self, _ctx: CtxMatch) -> SynMatch;
+        fn init_match(&mut self) {}
+        fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch;
         fn init_alt_items(&mut self) {}
         fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems;
         fn init_alt_item(&mut self) {}
@@ -7848,7 +7848,7 @@ pub(crate) mod rules_rts_100_1 {
                         6 => self.listener.init_actions(),          // actions
                         15 => self.init_actions1(),                 // actions_1
                         7 => self.listener.init_action(),           // action
-                        8 => self.listener.init_match1(),           // match
+                        8 => self.listener.init_match(),            // match
                         9 => self.listener.init_alt_items(),        // alt_items
                         17 => {}                                    // alt_items_1
                         10 => self.listener.init_alt_item(),        // alt_item
@@ -7890,7 +7890,7 @@ pub(crate) mod rules_rts_100_1 {
                         12 |                                        // action -> pop
                         13 |                                        // action -> skip
                         14 => self.exit_action(factor_id),          // action -> return
-                        15 => self.exit_match1(),                   // match -> alt_items
+                        15 => self.exit_match(),                    // match -> alt_items
                         16 => self.init_alt_items(),                // alt_items -> alt_item
                         33 |                                        // alt_items -> alt_items | alt_item
                         34 => self.exit_alt_items1(factor_id),      // end of iterations in alt_items -> alt_items | alt_item
@@ -8033,18 +8033,18 @@ pub(crate) mod rules_rts_100_1 {
         fn exit_rule(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 8 => {
-                    let match1 = self.stack.pop().unwrap().get_match1();
+                    let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule1 { id, match1 }
                 }
                 38 => {
                     let actions = self.stack.pop().unwrap().get_actions();
-                    let match1 = self.stack.pop().unwrap().get_match1();
+                    let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule2 { id, match1, actions }
                 }
                 39 => {
-                    let match1 = self.stack.pop().unwrap().get_match1();
+                    let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule3 { id, match1 }
                 }
@@ -8094,9 +8094,9 @@ pub(crate) mod rules_rts_100_1 {
             self.stack.push(SynValue::Action(val));
         }
 
-        fn exit_match1(&mut self) {
+        fn exit_match(&mut self) {
             let alt_items = self.stack.pop().unwrap().get_alt_items();
-            let val = self.listener.exit_match1(CtxMatch::Match { alt_items });
+            let val = self.listener.exit_match(CtxMatch::Match { alt_items });
             self.stack.push(SynValue::Match(val));
         }
 

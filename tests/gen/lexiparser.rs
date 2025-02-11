@@ -213,7 +213,7 @@ pub(crate) mod lexiparser {
         fn get_action(self) -> SynAction {
             if let SynValue::Action(val) = self { val } else { panic!() }
         }
-        fn get_match1(self) -> SynMatch {
+        fn get_match(self) -> SynMatch {
             if let SynValue::Match(val) = self { val } else { panic!() }
         }
         fn get_alt_items(self) -> SynAltItems {
@@ -260,8 +260,8 @@ pub(crate) mod lexiparser {
         fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions;
         fn init_action(&mut self) {}
         fn exit_action(&mut self, _ctx: CtxAction) -> SynAction;
-        fn init_match1(&mut self) {}
-        fn exit_match1(&mut self, _ctx: CtxMatch) -> SynMatch;
+        fn init_match(&mut self) {}
+        fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch;
         fn init_alt_items(&mut self) {}
         fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems;
         fn init_alt_item(&mut self) {}
@@ -303,7 +303,7 @@ pub(crate) mod lexiparser {
                         6 => self.listener.init_actions(),          // actions
                         15 => self.init_actions1(),                 // actions_1
                         7 => self.listener.init_action(),           // action
-                        8 => self.listener.init_match1(),           // match
+                        8 => self.listener.init_match(),            // match
                         9 => self.listener.init_alt_items(),        // alt_items
                         17 => {}                                    // alt_items_1
                         10 => self.listener.init_alt_item(),        // alt_item
@@ -345,7 +345,7 @@ pub(crate) mod lexiparser {
                         12 |                                        // action -> pop
                         13 |                                        // action -> skip
                         14 => self.exit_action(factor_id),          // action -> return
-                        15 => self.exit_match1(),                   // match -> alt_items
+                        15 => self.exit_match(),                    // match -> alt_items
                         16 => self.init_alt_items(),                // alt_items -> alt_item
                         33 |                                        // alt_items -> alt_items | alt_item
                         34 => self.exit_alt_items1(factor_id),      // end of iterations in alt_items -> alt_items | alt_item
@@ -488,18 +488,18 @@ pub(crate) mod lexiparser {
         fn exit_rule(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 8 => {
-                    let match1 = self.stack.pop().unwrap().get_match1();
+                    let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule1 { id, match1 }
                 }
                 38 => {
                     let actions = self.stack.pop().unwrap().get_actions();
-                    let match1 = self.stack.pop().unwrap().get_match1();
+                    let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule2 { id, match1, actions }
                 }
                 39 => {
-                    let match1 = self.stack.pop().unwrap().get_match1();
+                    let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule3 { id, match1 }
                 }
@@ -549,9 +549,9 @@ pub(crate) mod lexiparser {
             self.stack.push(SynValue::Action(val));
         }
 
-        fn exit_match1(&mut self) {
+        fn exit_match(&mut self) {
             let alt_items = self.stack.pop().unwrap().get_alt_items();
-            let val = self.listener.exit_match1(CtxMatch::Match { alt_items });
+            let val = self.listener.exit_match(CtxMatch::Match { alt_items });
             self.stack.push(SynValue::Match(val));
         }
 
