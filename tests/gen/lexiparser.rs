@@ -686,31 +686,31 @@ pub(crate) mod lexiparser {
 }
 
 pub(crate) mod lexiparser_types {
-    // SynFile: User-defined type for `file`
-    // SynFileItem: User-defined type for `file_item`
-    // SynHeader: User-defined type for `header`
-    // SynDeclaration: User-defined type for `declaration`
-    // SynOption: User-defined type for `option`
-    // SynRule: User-defined type for `rule`
-    // SynActions: User-defined type for `actions`
-    // SynAction: User-defined type for `action`
-    // SynMatch: User-defined type for `match`
-    // SynAltItems: User-defined type for `alt_items`
-    // SynAltItem: User-defined type for `alt_item`
-    // SynRepeatItem: User-defined type for `repeat_item`
-    // SynItem: User-defined type for `item`
 
+    /// SynFile: User-defined type for `file`
     #[derive(Debug, PartialEq)] pub struct SynFile();
+    /// SynFileItem: User-defined type for `file_item`
     #[derive(Debug, PartialEq)] pub struct SynFileItem();
+    /// SynHeader: User-defined type for `header`
     #[derive(Debug, PartialEq)] pub struct SynHeader();
+    /// SynDeclaration: User-defined type for `declaration`
     #[derive(Debug, PartialEq)] pub struct SynDeclaration();
+    /// SynOption: User-defined type for `option`
     #[derive(Debug, PartialEq)] pub struct SynOption();
+    /// SynRule: User-defined type for `rule`
     #[derive(Debug, PartialEq)] pub struct SynRule();
+    /// SynActions: User-defined type for `actions`
     #[derive(Debug, PartialEq)] pub struct SynActions();
+    /// SynAction: User-defined type for `action`
     #[derive(Debug, PartialEq)] pub struct SynAction();
+    /// SynMatch: User-defined type for `match`
     #[derive(Debug, PartialEq)] pub struct SynMatch();
+    /// SynAltItems: User-defined type for `alt_items`
     #[derive(Debug, PartialEq)] pub struct SynAltItems();
+    /// SynAltItem: User-defined type for `alt_item`
     #[derive(Debug, PartialEq)] pub struct SynAltItem();
+    /// SynRepeatItem: User-defined type for `repeat_item`
     #[derive(Debug, PartialEq)] pub struct SynRepeatItem();
+    /// SynItem: User-defined type for `item`
     #[derive(Debug, PartialEq)] pub struct SynItem();
 }
