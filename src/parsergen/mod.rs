@@ -1198,25 +1198,29 @@ impl ParserGen {
         ]
     }
 
+    fn get_info_type(&self, infos: &Vec<ItemInfo>, info: &ItemInfo) -> String {
+        let type_name_base = match info.sym {
+            Symbol::T(_) => "String".to_string(),
+            Symbol::NT(vs) => self.get_nt_type(vs).to_string(),
+            Symbol::Empty => "bool".to_string(),
+            _ => panic!("unexpected symbol {}", info.sym)
+        };
+        if info.index.is_some() {
+            let nbr = infos.iter()
+                .map(|nfo| if nfo.sym == info.sym { nfo.index.unwrap() } else { 0 })
+                .max().unwrap() + 1;
+            format!("[{type_name_base}; {nbr}]")
+        } else {
+            type_name_base
+        }
+    }
+
     /// Structure elements used in a context or in a +* child type
     fn source_infos(&self, infos: &Vec<ItemInfo>, add_pub: bool) -> String {
         let pub_str = if add_pub { "pub " } else { "" };
         infos.iter().filter_map(|info| {
             if info.index.is_none() || info.index == Some(0) {
-                let type_name_base = match info.sym {
-                    Symbol::T(_) => "String".to_string(),
-                    Symbol::NT(vs) => self.get_nt_type(vs).to_string(), //format!("Syn{}", nt_name[vs as usize].clone().unwrap().0),
-                    Symbol::Empty => "bool".to_string(),
-                    _ => panic!("unexpected symbol {}", info.sym)
-                };
-                let type_name = if info.index.is_some() {
-                    let nbr = infos.iter()
-                        .map(|nfo| if nfo.sym == info.sym { nfo.index.unwrap() } else { 0 })
-                        .max().unwrap() + 1;
-                    format!("[{type_name_base}; {nbr}]")
-                } else {
-                    type_name_base
-                };
+                let type_name = self.get_info_type(&infos, &info);
                 Some(format!("{pub_str}{}: {}", info.name, type_name))
             } else {
                 None
@@ -1315,15 +1319,24 @@ impl ParserGen {
                         ];
                         self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
                     } else {
-                        // complex + * items; for ex. A -> (B b)+
-                        src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
-                        src.push(format!("#[derive(Debug, PartialEq)]"));
-                        src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
-                        let mut fact = self.parsing_table.factors[self.var_factors[v as usize][0] as usize].1.symbols().to_vec();
-                        fact.pop();
-                        src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
-                        src.push(format!("#[derive(Debug, PartialEq)]"));
-                        src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
+                        if infos.len() == 1 {
+                            // single + * item; for ex. A -> (B)+
+                            let info = &infos[0];
+                            let type_name = self.get_info_type(&infos, &infos[0]);
+                            src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                            src.push(format!("#[derive(Debug, PartialEq)]"));
+                            src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
+                        } else {
+                            // complex + * items; for ex. A -> (B b)+
+                            src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                            src.push(format!("#[derive(Debug, PartialEq)]"));
+                            src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
+                            let mut fact = self.parsing_table.factors[self.var_factors[v as usize][0] as usize].1.symbols().to_vec();
+                            fact.pop();
+                            src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
+                            src.push(format!("#[derive(Debug, PartialEq)]"));
+                            src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
+                        }
                     }
                 } else {
                     if is_lform {
@@ -1496,22 +1509,26 @@ impl ParserGen {
                     (is_factor_id, choices)
                 }
 
-                fn get_var_params(item_info: &Vec<ItemInfo>, skip: usize, indices: HashMap<Symbol, Vec<String>>, mut non_indices: Vec<String>) -> String {
-                    item_info.iter().skip(skip).filter_map(|item| {
-                        if let Some(index) = item.index {
-                            if index == 0 {
-                                Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
-                            } else {
-                                None
-                            }
+                fn get_var_param(item: &ItemInfo, indices: &HashMap<Symbol, Vec<String>>, non_indices: &mut Vec<String>) -> Option<String> {
+                    if let Some(index) = item.index {
+                        if index == 0 {
+                            Some(format!("{}: [{}]", item.name, indices[&item.sym].iter().rev().join(", ")))
                         } else {
-                            let name = non_indices.pop().unwrap();
-                            if name == item.name {
-                                Some(name)
-                            } else {
-                                Some(format!("{}: {name}", item.name))
-                            }
+                            None
                         }
+                    } else {
+                        let name = non_indices.pop().unwrap();
+                        if name == item.name {
+                            Some(name)
+                        } else {
+                            Some(format!("{}: {name}", item.name))
+                        }
+                    }
+                }
+
+                fn get_var_params(item_info: &Vec<ItemInfo>, skip: usize, indices: &HashMap<Symbol, Vec<String>>, non_indices: &mut Vec<String>) -> String {
+                    item_info.iter().skip(skip).filter_map(|item| {
+                        get_var_param(item, indices, non_indices)
                     }).join(", ")
                 }
 
@@ -1585,7 +1602,7 @@ impl ParserGen {
                                 }
                             }
                             if is_child_repeat_lform {
-                                let ctx_params = get_var_params(&item_info[f as usize], 0, indices, non_indices);
+                                let ctx_params = get_var_params(&item_info[f as usize], 0, &indices, &mut non_indices);
                                 let ctx = if ctx_params.is_empty() {
                                     format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap().1)
                                 } else {
@@ -1601,8 +1618,13 @@ impl ParserGen {
                                 if is_simple {
                                     src_wrapper_impl.push(format!("        {var_name}.0.push({});", &non_indices[0]));
                                 } else {
-                                    let params = get_var_params(&item_info[f as usize], 1, indices, non_indices);
-                                    src_wrapper_impl.push(format!("        {var_name}.0.push(Syn{nu}Item {{ {params} }});"));
+                                    if item_info[f as usize].len() == 2 {
+                                        src_wrapper_impl.push(format!("        {var_name}.0.push({});",
+                                                                      get_var_param(&item_info[f as usize][1], &indices, &mut non_indices).unwrap()));
+                                    } else {
+                                        let params = get_var_params(&item_info[f as usize], 1, &indices, &mut non_indices);
+                                        src_wrapper_impl.push(format!("        {var_name}.0.push(Syn{nu}Item {{ {params} }});"));
+                                    }
                                 }
                                 src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
                             }
@@ -1656,7 +1678,7 @@ impl ParserGen {
                                     src_wrapper_impl.push(format!("{indent}let {varname} = self.stack_t.pop().unwrap();"));
                                 }
                             }
-                            let ctx_params = get_var_params(&item_info[f as usize], 0, indices, non_indices);
+                            let ctx_params = get_var_params(&item_info[f as usize], 0, &indices, &mut non_indices);
                             let ctx = if ctx_params.is_empty() {
                                 format!("Ctx{fnu}::{}", factor_info[f as usize].as_ref().unwrap().1)
                             } else {

@@ -1600,10 +1600,7 @@ pub(crate) mod rules_rts_27_1 {
     // #[derive(Debug, PartialEq)] pub struct SynB();
     /// Computed `[B]+` array in `A -> a  ► [B]+ ◄  c`
     #[derive(Debug, PartialEq)]
-    pub struct SynA1(pub Vec<SynA1Item>);
-    /// `B` item in `A -> a  ► [B]+ ◄  c`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA1Item { pub b: SynB }
+    pub struct SynA1(pub Vec<SynB>);
 
     #[derive(Debug)]
     enum SynValue { A(SynA), B(SynB), A1(SynA1) }
@@ -1711,7 +1708,7 @@ pub(crate) mod rules_rts_27_1 {
         fn exit_a1(&mut self) {
             let b = self.stack.pop().unwrap().get_b();
             let mut plus_it = self.stack.pop().unwrap().get_a1();
-            plus_it.0.push(SynA1Item { b });
+            plus_it.0.push(b);
             self.stack.push(SynValue::A1(plus_it));
         }
 
@@ -7829,25 +7826,16 @@ pub(crate) mod rules_rts_100_1 {
     // #[derive(Debug, PartialEq)] pub struct SynItem();
     /// Computed `[file_item]*` array in `file -> header  ► [file_item]* ◄ `, array in `file ->  ► [file_item]* ◄ `
     #[derive(Debug, PartialEq)]
-    pub struct SynFile1(pub Vec<SynFile1Item>);
-    /// `file_item` item in `file -> header  ► [file_item]* ◄ `, item in `file ->  ► [file_item]* ◄ `
-    #[derive(Debug, PartialEq)]
-    pub struct SynFile1Item { pub file_item: SynFileItem }
+    pub struct SynFile1(pub Vec<SynFileItem>);
     /// Computed `[, Id]*` array in `option -> channels { Id  ► [, Id]* ◄  }`
     #[derive(Debug, PartialEq)]
     pub struct SynOption1(pub Vec<String>);
     /// Computed `[, action]*` array in `actions -> action  ► [, action]* ◄ `
     #[derive(Debug, PartialEq)]
-    pub struct SynActions1(pub Vec<SynActions1Item>);
-    /// `, action` item in `actions -> action  ► [, action]* ◄ `
-    #[derive(Debug, PartialEq)]
-    pub struct SynActions1Item { pub action: SynAction }
+    pub struct SynActions1(pub Vec<SynAction>);
     /// Computed `[repeat_item]+` array in `alt_item ->  ► [repeat_item]+ ◄ `
     #[derive(Debug, PartialEq)]
-    pub struct SynAltItem1(pub Vec<SynAltItem1Item>);
-    /// `repeat_item` item in `alt_item ->  ► [repeat_item]+ ◄ `
-    #[derive(Debug, PartialEq)]
-    pub struct SynAltItem1Item { pub repeat_item: SynRepeatItem }
+    pub struct SynAltItem1(pub Vec<SynRepeatItem>);
 
     #[derive(Debug)]
     enum SynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItem1(SynAltItem1) }
@@ -8094,7 +8082,7 @@ pub(crate) mod rules_rts_100_1 {
         fn exit_file1(&mut self) {
             let file_item = self.stack.pop().unwrap().get_file_item();
             let mut star_it = self.stack.pop().unwrap().get_file1();
-            star_it.0.push(SynFile1Item { file_item });
+            star_it.0.push(file_item);
             self.stack.push(SynValue::File1(star_it));
         }
 
@@ -8188,7 +8176,7 @@ pub(crate) mod rules_rts_100_1 {
         fn exit_actions1(&mut self) {
             let action = self.stack.pop().unwrap().get_action();
             let mut star_it = self.stack.pop().unwrap().get_actions1();
-            star_it.0.push(SynActions1Item { action });
+            star_it.0.push(action);
             self.stack.push(SynValue::Actions1(star_it));
         }
 
@@ -8256,7 +8244,7 @@ pub(crate) mod rules_rts_100_1 {
         fn exit_alt_item1(&mut self) {
             let repeat_item = self.stack.pop().unwrap().get_repeat_item();
             let mut plus_it = self.stack.pop().unwrap().get_alt_item1();
-            plus_it.0.push(SynAltItem1Item { repeat_item });
+            plus_it.0.push(repeat_item);
             self.stack.push(SynValue::AltItem1(plus_it));
         }
 
