@@ -149,41 +149,55 @@ pub(crate) mod lexiparser {
         Item8 { charlit: String },
     }
 
-    // NT types:
-    // SynFile: User-defined type for `file`
-    // SynFileItem: User-defined type for `file_item`
-    // SynHeader: User-defined type for `header`
-    // SynDeclaration: User-defined type for `declaration`
-    // SynOption: User-defined type for `option`
-    // SynRule: User-defined type for `rule`
-    // SynActions: User-defined type for `actions`
-    // SynAction: User-defined type for `action`
-    // SynMatch: User-defined type for `match`
-    // SynAltItems: User-defined type for `alt_items`
-    // SynAltItem: User-defined type for `alt_item`
-    // SynRepeatItem: User-defined type for `repeat_item`
-    // SynItem: User-defined type for `item`
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `file`
+    // #[derive(Debug, PartialEq)] pub struct SynFile();
+    // /// User-defined type for `file_item`
+    // #[derive(Debug, PartialEq)] pub struct SynFileItem();
+    // /// User-defined type for `header`
+    // #[derive(Debug, PartialEq)] pub struct SynHeader();
+    // /// User-defined type for `declaration`
+    // #[derive(Debug, PartialEq)] pub struct SynDeclaration();
+    // /// User-defined type for `option`
+    // #[derive(Debug, PartialEq)] pub struct SynOption();
+    // /// User-defined type for `rule`
+    // #[derive(Debug, PartialEq)] pub struct SynRule();
+    // /// User-defined type for `actions`
+    // #[derive(Debug, PartialEq)] pub struct SynActions();
+    // /// User-defined type for `action`
+    // #[derive(Debug, PartialEq)] pub struct SynAction();
+    // /// User-defined type for `match`
+    // #[derive(Debug, PartialEq)] pub struct SynMatch();
+    // /// User-defined type for `alt_items`
+    // #[derive(Debug, PartialEq)] pub struct SynAltItems();
+    // /// User-defined type for `alt_item`
+    // #[derive(Debug, PartialEq)] pub struct SynAltItem();
+    // /// User-defined type for `repeat_item`
+    // #[derive(Debug, PartialEq)] pub struct SynRepeatItem();
+    // /// User-defined type for `item`
+    // #[derive(Debug, PartialEq)] pub struct SynItem();
     /// Computed `[file_item]*` array in `file -> header  ► [file_item]* ◄ `, array in `file ->  ► [file_item]* ◄ `
     #[derive(Debug, PartialEq)]
-    pub struct SynFile1(Vec<SynFile1Item>);
+    pub struct SynFile1(pub Vec<SynFile1Item>);
     /// `file_item` item in `file -> header  ► [file_item]* ◄ `, item in `file ->  ► [file_item]* ◄ `
     #[derive(Debug, PartialEq)]
-    pub struct SynFile1Item { file_item: SynFileItem }
+    pub struct SynFile1Item { pub file_item: SynFileItem }
     /// Computed `[, Id]*` array in `option -> channels { Id  ► [, Id]* ◄  }`
     #[derive(Debug, PartialEq)]
-    pub struct SynOption1(Vec<String>);
+    pub struct SynOption1(pub Vec<String>);
     /// Computed `[, action]*` array in `actions -> action  ► [, action]* ◄ `
     #[derive(Debug, PartialEq)]
-    pub struct SynActions1(Vec<SynActions1Item>);
+    pub struct SynActions1(pub Vec<SynActions1Item>);
     /// `, action` item in `actions -> action  ► [, action]* ◄ `
     #[derive(Debug, PartialEq)]
-    pub struct SynActions1Item { action: SynAction }
+    pub struct SynActions1Item { pub action: SynAction }
     /// Computed `[repeat_item]+` array in `alt_item ->  ► [repeat_item]+ ◄ `
     #[derive(Debug, PartialEq)]
-    pub struct SynAltItem1(Vec<SynAltItem1Item>);
+    pub struct SynAltItem1(pub Vec<SynAltItem1Item>);
     /// `repeat_item` item in `alt_item ->  ► [repeat_item]+ ◄ `
     #[derive(Debug, PartialEq)]
-    pub struct SynAltItem1Item { repeat_item: SynRepeatItem }
+    pub struct SynAltItem1Item { pub repeat_item: SynRepeatItem }
 
     #[derive(Debug)]
     enum SynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItem1(SynAltItem1) }
@@ -686,6 +700,7 @@ pub(crate) mod lexiparser {
 }
 
 pub(crate) mod lexiparser_types {
+    use rlexer::dfa::Terminal;
 
     /// SynFile: User-defined type for `file`
     #[derive(Debug, PartialEq)] pub struct SynFile();
@@ -702,7 +717,7 @@ pub(crate) mod lexiparser_types {
     /// SynActions: User-defined type for `actions`
     #[derive(Debug, PartialEq)] pub struct SynActions();
     /// SynAction: User-defined type for `action`
-    #[derive(Debug, PartialEq)] pub struct SynAction();
+    #[derive(Debug, PartialEq)] pub struct SynAction(pub Terminal);
     /// SynMatch: User-defined type for `match`
     #[derive(Debug, PartialEq)] pub struct SynMatch();
     /// SynAltItems: User-defined type for `alt_items`

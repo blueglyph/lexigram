@@ -218,6 +218,19 @@ impl ParserGen {
     }
 
     #[inline]
+    /// NT source type and source code including doc comment and empty template type definition.
+    ///
+    /// ## Example:
+    /// ```ignore
+    /// let (type_src, src) = parger_gen.get_nt_extra_info(var_id);
+    /// ```
+    /// * `type_src` = "SynHeader"
+    /// * `src` =
+    ///     ```ignore
+    ///     /// User-defined type for `header`
+    ///     #[derive(Debug, PartialEq)]
+    ///     pub struct SynHeader();
+    ///     ```
     pub fn get_nt_extra_info(&self, nt: VarId) -> Option<&(String, Vec<String>)> {
         self.nt_extra_info.get(&nt)
     }
@@ -1186,7 +1199,8 @@ impl ParserGen {
     }
 
     /// Structure elements used in a context or in a +* child type
-    fn source_infos(&self, infos: &Vec<ItemInfo>) -> String {
+    fn source_infos(&self, infos: &Vec<ItemInfo>, add_pub: bool) -> String {
+        let pub_str = if add_pub { "pub " } else { "" };
         infos.iter().filter_map(|info| {
             if info.index.is_none() || info.index == Some(0) {
                 let type_name_base = match info.sym {
@@ -1203,7 +1217,7 @@ impl ParserGen {
                 } else {
                     type_name_base
                 };
-                Some(format!("{}: {}", info.name, type_name))
+                Some(format!("{pub_str}{}: {}", info.name, type_name))
             } else {
                 None
             }
@@ -1252,7 +1266,7 @@ impl ParserGen {
                     for &f_id in factors {
                         let (v, pf) = &self.parsing_table.factors[f_id as usize];
                         src.push(format!("    /// {}", self.full_factor_str::<false>(f_id, None, true)));
-                        let ctx_content = self.source_infos(&item_info[f_id as usize]);
+                        let ctx_content = self.source_infos(&item_info[f_id as usize], false);
                         let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
                         if ctx_content.is_empty() {
                             src.push(format!("    {f_name},", ))
@@ -1267,7 +1281,8 @@ impl ParserGen {
 
         // Writes intermediate Syn types
         src.add_space();
-        src.push("// NT types:".to_string());
+        src.push("// NT types and user-defined type templates (copy elsewhere and uncomment when necessary):".to_string());
+        src.add_space();
         // syns contains (nu, nl, npl, type), where
         // - nu is the uppercase identifier
         // - nl is the lowercase identifier, which is guaranteed not to match any reserved Rust keyword
@@ -1291,9 +1306,8 @@ impl ParserGen {
                 let current = Symbol::NT(v).to_str(self.get_symbol_table());
                 if let Some(infos) = nt_repeat.get(&(v)) {
                     if is_lform {
-                        src.push(format!("// {}: User-defined type for `{}` {comment1}",
-                                         self.get_nt_type(v),
-                                         self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                        src.push(format!("// /// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                        src.push(format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)));
                         let extra_src = vec![
                             format!("/// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
                             format!("#[derive(Debug, PartialEq)]"),
@@ -1304,18 +1318,17 @@ impl ParserGen {
                         // complex + * items; for ex. A -> (B b)+
                         src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
                         src.push(format!("#[derive(Debug, PartialEq)]"));
-                        src.push(format!("pub struct {nt_type}(Vec<Syn{nu}Item>);"));
+                        src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
                         let mut fact = self.parsing_table.factors[self.var_factors[v as usize][0] as usize].1.symbols().to_vec();
                         fact.pop();
                         src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
                         src.push(format!("#[derive(Debug, PartialEq)]"));
-                        src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos)));
+                        src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
                     }
                 } else {
                     if is_lform {
-                        src.push(format!("// {}: User-defined type for `{}` {comment1}",
-                                         self.get_nt_type(v),
-                                         self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                        src.push(format!("// /// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                        src.push(format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)));
                         let extra_src = vec![
                             format!("/// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
                             format!("#[derive(Debug, PartialEq)]"),
@@ -1326,13 +1339,12 @@ impl ParserGen {
                         // + * item is only a terminal
                         src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
                         src.push(format!("#[derive(Debug, PartialEq)]"));
-                        src.push(format!("pub struct {nt_type}(Vec<String>);"));
+                        src.push(format!("pub struct {nt_type}(pub Vec<String>);"));
                     }
                 }
             } else {
-                src.push(format!("// {}: User-defined type for `{}`",
-                                 self.get_nt_type(v),
-                                 Symbol::NT(v).to_str(self.get_symbol_table())));
+                src.push(format!("// /// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())));
+                src.push(format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)));
                 let extra_src = vec![
                     format!("/// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())),
                     format!("#[derive(Debug, PartialEq)]"),
@@ -1344,7 +1356,7 @@ impl ParserGen {
         }
         if !self.nt_value[self.start as usize] {
             let (nu, _, _) = nt_name[self.start as usize].as_ref().unwrap();
-            src.push(format!("// Top non-terminal {nu} has no value:"));
+            src.push(format!("/// Top non-terminal {nu} (has no value)"));
             src.push(format!("#[derive(Debug, PartialEq)]"));
             src.push(format!("pub struct Syn{nu}();"))
         }
