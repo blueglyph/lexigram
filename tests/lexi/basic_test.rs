@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use rlexer::dfa::Terminal;
 use crate::gen::lexiparser::lexiparser::*;
 use crate::gen::lexiparser::lexiparser_types::*;
 
@@ -87,9 +88,9 @@ impl LexiParserListener for LexiListener {
         if self.verbose { println!("init_action"); }
     }
 
-    fn exit_action(&mut self, _ctx: CtxAction) -> SynAction {
+    fn exit_action(&mut self, ctx: CtxAction) -> SynAction {
         if self.verbose { println!("exit_action"); }
-        SynAction()
+        SynAction(Terminal::default())
     }
 
     fn init_match(&mut self) {

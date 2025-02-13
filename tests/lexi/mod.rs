@@ -1,23 +1,43 @@
 mod basic_test;
 
+use rlexer::dfa::Terminal;
 use std::collections::HashMap;
+use std::ops::Range;
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
+use rlexer::log::Logger;
+use rlexer::{hashmap, term};
 use crate::gen::lexiparser::lexiparser::*;
 use crate::gen::lexiparser::lexiparser_types::*;
 
+#[derive(Debug)]
+enum RuleType {
+    Terminal(usize),
+    Fragment(usize)
+}
+
 struct LexiListener {
     verbose: bool,
-    re: VecTree<ReNode>,
-    fragments: HashMap<String, VecTree<ReNode>>,
+    curr: Option<VecTree<ReNode>>,
+    rules: HashMap<String, RuleType>,
+    fragments: Vec<VecTree<ReNode>>,
+    terminals: Vec<VecTree<ReNode>>,
+    modes: HashMap<String, usize>,
+    mode_range: Vec<Range<usize>>,    // exclusive range
+    log: Logger,
 }
 
 impl LexiListener {
     fn new() -> Self {
         LexiListener {
             verbose: false,
-            re: VecTree::new(),
-            fragments: HashMap::new(),
+            curr: None,
+            rules: HashMap::new(),
+            fragments: Vec::new(),
+            terminals: Vec::new(),
+            modes: hashmap!("DEFAULT_MODE".to_string() => 0),
+            mode_range: vec![0..0], // empty
+            log: Logger::new()
         }
     }
 }
@@ -43,20 +63,65 @@ impl LexiParserListener for LexiListener {
         todo!()
     }
 
-    fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule {
-        todo!()
+    fn init_rule(&mut self) {
+        assert!(self.curr.is_none());
+        self.curr = Some(VecTree::new());
     }
 
-    fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions {
-        todo!()
+    fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
+        let (id, rule_type) = match ctx {
+            CtxRule::Rule1 { id, .. } => {
+                (id, RuleType::Fragment(self.fragments.len()))
+            }
+            CtxRule::Rule2 { id, actions, .. } => {
+                (id, RuleType::Terminal(self.terminals.len()))
+            }
+            CtxRule::Rule3 { id, .. } => {
+                (id, RuleType::Terminal(self.terminals.len()))
+            }
+        };
+        if self.rules.contains_key(&id) {
+            self.log.add_error(format!("Symbol '{id}' is already defined"));
+        } else {
+            let rule = self.curr.take().unwrap();
+            if let RuleType::Fragment(_) = rule_type {
+                self.fragments.push(rule);
+            } else {
+                self.terminals.push(rule);
+            }
+            self.rules.insert(id, rule_type);
+        }
+        SynRule()
     }
 
-    fn exit_action(&mut self, _ctx: CtxAction) -> SynAction {
-        todo!()
+    fn exit_actions(&mut self, ctx: CtxActions) -> SynActions {
+        let CtxActions::Actions { action, mut star } = ctx;
+        let mut terminal = action.0;
+        for action in star.0 {
+            terminal = terminal + action.0;
+        }
+        SynActions()
+    }
+
+    fn exit_action(&mut self, ctx: CtxAction) -> SynAction {
+        let action = match ctx {
+            CtxAction::Action1 { id } => {
+                let n = self.modes.len();
+                let id_val = *self.modes.entry(id).or_insert({
+                    self.mode_range.push(0..0);
+                    n
+                }) as u16;
+                term!(push id_val)
+            },
+            CtxAction::Action2 => term!(pop),
+            CtxAction::Action3 => term!(skip),
+            CtxAction::Action4 => term!(= self.terminals.len() as u16),
+        };
+        SynAction(action)
     }
 
     fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch {
-        todo!()
+        SynMatch()
     }
 
     fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems {
