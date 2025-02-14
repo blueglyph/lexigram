@@ -4,7 +4,7 @@ pub(super) mod tests;
 
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use crate::dfa::{ReNode, ReType, Terminal, TokenId};
+use crate::dfa::{ReNode, ReType, Terminal, TermType, TokenId};
 use crate::segments::{Seg, Segments};
 use crate::{gnode, node, term, General};
 use crate::grammar::{RuleTreeSet, VarId, GrNode, Symbol};

@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use rlexer::dfa::TermType;
 use rlexer::dfa::Terminal;
 use crate::gen::lexiparser::lexiparser::*;
 use crate::gen::lexiparser::lexiparser_types::*;

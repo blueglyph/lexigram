@@ -11,8 +11,10 @@ use crate::segments::Seg;
 #[allow(unused)]
 pub(crate) fn term_to_string(t: &Terminal) -> String {
     let mut str = Vec::<String>::new();
-    if let Some(token) = &t.token {
+    if let Some(token) = t.get_token() {
         str.push(format!("term!(={})", token));
+    } else if t.is_skip() {
+        str.push("term!(skip)".to_string());
     }
     if t.channel != 0 {
         str.push(format!("term!(#{})", t.channel));
@@ -26,11 +28,7 @@ pub(crate) fn term_to_string(t: &Terminal) -> String {
     if t.pop {
         str.push("term!(pop)".to_string());
     }
-    if str.is_empty() {
-        "term!(skip)".to_string()
-    } else {
-        str.join(" + ")
-    }
+    str.join(" + ")
 }
 
 pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {

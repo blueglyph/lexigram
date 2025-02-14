@@ -270,7 +270,7 @@ impl<R: Read> Lexer<R> {
                             self.start_state = goto_state;
                             if VERBOSE { print!(", push({})", goto_state); }
                         }
-                        if let Some(token) = &terminal.token {
+                        if let Some(token) = terminal.get_token() {
                             if VERBOSE { println!(" => OK: token {}", token); }
                             return Ok((token.clone(), terminal.channel, text, line, col));
                         }

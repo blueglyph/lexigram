@@ -3,6 +3,7 @@ pub(crate) mod tests;
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+use std::ops::Add;
 use vectree::VecTree;
 use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized};
 use crate::segments::{Segments, Seg};
@@ -14,8 +15,29 @@ pub type ModeId = u16;
 pub type ChannelId = u16;
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
+pub enum TermType {
+    #[default] None,
+    Token(TokenId),
+    Skip
+}
+
+impl TermType {
+    pub fn is_none(&self) -> bool { self == &TermType::None }
+    pub fn is_token(&self) -> bool { matches!(self, TermType::Token(_) ) }
+    pub fn is_skip(&self) -> bool { self == &TermType::Skip }
+
+    pub fn get_token(&self) -> Option<TokenId> {
+        if let TermType::Token(token) = self {
+            Some(*token)
+        } else {
+            None
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub struct Terminal {
-    pub token: Option<TokenId>,
+    pub typ: TermType,
     pub channel: ChannelId,
     pub push_mode: Option<ModeId>,
     pub push_state: Option<StateId>,
@@ -25,27 +47,96 @@ pub struct Terminal {
 impl Terminal {
     #[inline]
     pub fn is_only_skip(&self) -> bool {
-        self.token.is_none() && self.push_mode.is_none() && self.push_state.is_none() && !self.pop
+        self.typ.is_skip() && self.push_mode.is_none() && self.push_state.is_none() && !self.pop
+    }
+
+    #[inline]
+    pub fn is_skip(&self) -> bool {
+        self.typ.is_skip()
     }
 
     #[inline]
     pub fn is_token(&self) -> bool {
-        self.token.is_some()
+        self.typ.is_token()
+    }
+
+    #[inline]
+    pub fn get_token(&self) -> Option<TokenId> {
+        self.typ.get_token()
+    }
+
+    fn add_checked(self, rhs: Self) -> Option<Terminal> {
+        let typ = if self.typ.is_none() {
+            rhs.typ
+        } else {
+            if rhs.typ.is_none() {
+                self.typ
+            } else {
+                return None;
+            }
+        };
+        let channel = if self.channel == 0 {
+            rhs.channel
+        } else {
+            if rhs.channel == 0 {
+                self.channel
+            } else {
+                return None;
+            }
+        };
+        let push_mode = if self.push_mode.is_none() {
+            rhs.push_mode
+        } else {
+            if rhs.push_mode.is_none() {
+                self.push_mode
+            } else {
+                return None;
+            }
+        };
+        let push_state = if self.push_state.is_none() {
+            rhs.push_state
+        } else {
+            if rhs.push_state.is_none() {
+                self.push_state
+            } else {
+                return None;
+            }
+        };
+        Some(Terminal {
+            typ,
+            channel,
+            push_mode,
+            push_state,
+            pop: self.pop || rhs.pop
+        })
+    }
+}
+
+impl Add for Terminal {
+    type Output = Terminal;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        self.add_checked(rhs).unwrap()
     }
 }
 
 impl Display for Terminal {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if let Some(tok) = &self.token { write!(f, "<end:{}", tok)?; } else { write!(f, "<skip")?; }
-        if self.channel != 0 { write!(f, ",ch {}", self.channel)?; }
-        if self.push_mode.is_some() || self.push_state.is_some() {
-            write!(f, ",push(")?;
-            if let Some(m) = self.push_mode { write!(f, "mode {m}")?; }
-            if let Some(s) = self.push_state { write!(f, ",state {s}")?; }
-            write!(f, ")")?;
+        let mut elements = vec![];
+        match self.typ {
+            TermType::None => {}
+            TermType::Token(tok) => elements.push(format!("end:{}", tok)),
+            TermType::Skip => elements.push("skip".to_string()),
         }
-        if self.pop { write!(f, ",pop")?; }
-        write!(f, ">")
+        if self.channel != 0 { elements.push(format!("ch {}", self.channel)); }
+        if self.push_mode.is_some() || self.push_state.is_some() {
+            elements.push(format!("push({}{})",
+                if let Some(m) = self.push_mode { format!("mode {m}") } else { "".to_string() },
+                if let Some(s) = self.push_state { format!(",state {s}") } else { "".to_string() }
+            ));
+        }
+        if self.pop { elements.push("pop".to_string()); }
+        write!(f, "<{}>", elements.join(","))
     }
 }
 
@@ -961,9 +1052,9 @@ pub(crate) fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
 // Macros
 
 pub mod macros {
-    use std::ops::Add;
-    #[allow(unused)]
+    #[allow(unused)] // necessary to avoid compiler false positive
     use crate::io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN};
+    #[allow(unused)] // necessary to avoid compiler false positive
     use super::*;
 
     /// Generates an `ReNode` instance.
@@ -977,7 +1068,7 @@ pub mod macros {
     /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
     /// assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
     /// assert_eq!(node!(str "new"), ReNode::string("new"));
-    /// assert_eq!(node!(=5), ReNode::end(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }));
+    /// assert_eq!(node!(=5), ReNode::end(Terminal { typ: TermType::Token(5), channel: 0, push_mode: None, push_state: None, pop: false }));
     /// assert_eq!(node!(&), ReNode::concat());
     /// assert_eq!(node!(|), ReNode::or());
     /// assert_eq!(node!(*), ReNode::star());
@@ -999,7 +1090,7 @@ pub mod macros {
         (e) => { ReNode::empty() };
         (??) => { ReNode::lazy() };
         // actions:
-        (= $id:expr) => { ReNode::end(Terminal { token: Some($id), channel: 0, push_mode: None, push_state: None, pop: false }) };
+        (= $id:expr) => { ReNode::end(Terminal { typ: TermType::Token($id), channel: 0, push_mode: None, push_state: None, pop: false }) };
         ($id:expr) => { ReNode::end($id) };
         //
         ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
@@ -1008,38 +1099,24 @@ pub mod macros {
 
     #[macro_export(local_inner_macros)]
     macro_rules! term {
-        (= $id:expr ) =>   { Terminal { token: Some($id), channel: 0, push_mode: None, push_state: None, pop: false } };
-        (skip) =>          { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false } };
-        (push $id:expr) => { Terminal { token: None, channel: 0, push_mode: Some($id), push_state: None, pop: false } };
-        (pushst $id:expr) => { Terminal { token: None, channel: 0, push_mode: None, push_state: Some($id), pop: false } };
-        (pop) =>           { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true } };
-        (# $id:expr) =>    { Terminal { token: None, channel: $id, push_mode: None, push_state: None, pop: false } };
-    }
-
-    impl Add for Terminal {
-        type Output = Terminal;
-
-        fn add(self, rhs: Self) -> Self::Output {
-            Terminal {
-                token: if self.token.is_some() { self.token } else { rhs.token },
-                channel: self.channel + rhs.channel,
-                push_mode: if self.push_mode.is_some() { self.push_mode } else { rhs.push_mode },
-                push_state: if self.push_state.is_some() { self.push_state } else { rhs.push_state },
-                pop: self.pop || rhs.pop
-            }
-        }
+        (= $id:expr ) =>     { Terminal { typ: TermType::Token($id), channel: 0,   push_mode: None,      push_state: None,      pop: false } };
+        (skip) =>            { Terminal { typ: TermType::Skip,       channel: 0,   push_mode: None,      push_state: None,      pop: false } };
+        (push $id:expr) =>   { Terminal { typ: TermType::None,       channel: 0,   push_mode: Some($id), push_state: None,      pop: false } };
+        (pushst $id:expr) => { Terminal { typ: TermType::None,       channel: 0,   push_mode: None,      push_state: Some($id), pop: false } };
+        (pop) =>             { Terminal { typ: TermType::None,       channel: 0,   push_mode: None,      push_state: None,      pop: true  } };
+        (# $id:expr) =>      { Terminal { typ: TermType::None,       channel: $id, push_mode: None,      push_state: None,      pop: false } };
     }
 
     #[test]
     fn macro_node() {
-        assert_eq!(node!([0 - LOW_MAX, HIGH_MIN - MAX]),   ReNode::char_range(Segments::dot()));
+        assert_eq!(node!([0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::char_range(Segments::dot()));
         assert_eq!(node!(~[0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::char_range(Segments::empty()));
 
         assert_eq!(node!(chr 'a'), ReNode::char('a'));
         assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
         assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
         assert_eq!(node!(str "new"), ReNode::string("new"));
-        assert_eq!(node!(=5), ReNode::end(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }));
+        assert_eq!(node!(=5), ReNode::end(Terminal { typ: TermType::Token(5), channel: 0, push_mode: None, push_state: None, pop: false }));
         assert_eq!(node!(&), ReNode::concat());
         assert_eq!(node!(|), ReNode::or());
         assert_eq!(node!(*), ReNode::star());
