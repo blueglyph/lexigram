@@ -1,12 +1,13 @@
 mod basic_test;
 
-use rlexer::dfa::Terminal;
+use rlexer::dfa::TermType;
+use rlexer::dfa::{ReType, Terminal, TokenId};
 use std::collections::HashMap;
-use std::ops::Range;
+use std::ops::{Deref, Range};
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
-use rlexer::{hashmap, term};
+use rlexer::{hashmap, node, term};
 use crate::gen::lexiparser::lexiparser::*;
 use crate::gen::lexiparser::lexiparser_types::*;
 
@@ -69,24 +70,33 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
-        let (id, rule_type) = match ctx {
+        let (id, rule_type, action_maybe) = match ctx {
             CtxRule::Rule1 { id, .. } => {
-                (id, RuleType::Fragment(self.fragments.len()))
+                (id, RuleType::Fragment(self.fragments.len()), None)
             }
             CtxRule::Rule2 { id, actions, .. } => {
-                (id, RuleType::Terminal(self.terminals.len()))
+                (id, RuleType::Terminal(self.terminals.len()), Some(actions.0))
             }
             CtxRule::Rule3 { id, .. } => {
-                (id, RuleType::Terminal(self.terminals.len()))
+                (id, RuleType::Terminal(self.terminals.len()), None)
             }
         };
         if self.rules.contains_key(&id) {
             self.log.add_error(format!("Symbol '{id}' is already defined"));
         } else {
-            let rule = self.curr.take().unwrap();
+            let mut rule = self.curr.take().unwrap();
             if let RuleType::Fragment(_) = rule_type {
                 self.fragments.push(rule);
             } else {
+                // if no action, only return
+                let rule_exit = action_maybe.unwrap_or(term!(= self.terminals.len() as TokenId));
+                let mut root = rule.get_root().unwrap();
+                if *rule.get(root).get_type() != ReType::Concat {
+                    let new_root = rule.addci(None, node!(&), root);
+                    rule.set_root(new_root);
+                    root = new_root;
+                }
+                rule.add(Some(root), ReNode::end(rule_exit));
                 self.terminals.push(rule);
             }
             self.rules.insert(id, rule_type);
@@ -95,17 +105,25 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_actions(&mut self, ctx: CtxActions) -> SynActions {
+        // actions:
+        // - skip
+        // - push(n)
+        // - push(n)+return
+        // - pop
+        // - channel #      => add return
         let CtxActions::Actions { action, mut star } = ctx;
         let mut terminal = action.0;
         for action in star.0 {
             terminal = terminal + action.0;
         }
-        SynActions()
+
+        SynActions(terminal)
     }
 
     fn exit_action(&mut self, ctx: CtxAction) -> SynAction {
         let action = match ctx {
-            CtxAction::Action1 { id } => {
+            CtxAction::
+            Action1 { id } => {
                 let n = self.modes.len();
                 let id_val = *self.modes.entry(id).or_insert({
                     self.mode_range.push(0..0);
@@ -115,7 +133,7 @@ impl LexiParserListener for LexiListener {
             },
             CtxAction::Action2 => term!(pop),
             CtxAction::Action3 => term!(skip),
-            CtxAction::Action4 => term!(= self.terminals.len() as u16),
+            CtxAction::Action4 => term!(= self.terminals.len() as TokenId),
         };
         SynAction(action)
     }
