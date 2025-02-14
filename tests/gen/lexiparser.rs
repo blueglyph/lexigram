@@ -706,7 +706,7 @@ pub(crate) mod lexiparser_types {
     /// SynRule: User-defined type for `rule`
     #[derive(Debug, PartialEq)] pub struct SynRule();
     /// SynActions: User-defined type for `actions`
-    #[derive(Debug, PartialEq)] pub struct SynActions();
+    #[derive(Debug, PartialEq)] pub struct SynActions(pub Terminal);
     /// SynAction: User-defined type for `action`
     #[derive(Debug, PartialEq)] pub struct SynAction(pub Terminal);
     /// SynMatch: User-defined type for `match`

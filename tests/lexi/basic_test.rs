@@ -81,14 +81,14 @@ impl LexiParserListener for LexiListener {
 
     fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions {
         if self.verbose { println!("exit_actions"); }
-        SynActions()
+        SynActions(rlexer::term!(skip)) // dummy
     }
 
     fn init_action(&mut self) {
         if self.verbose { println!("init_action"); }
     }
 
-    fn exit_action(&mut self, ctx: CtxAction) -> SynAction {
+    fn exit_action(&mut self, _ctx: CtxAction) -> SynAction {
         if self.verbose { println!("exit_action"); }
         SynAction(Terminal::default())
     }

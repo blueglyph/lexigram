@@ -134,12 +134,36 @@ impl ReNode {
         ReNode { id: None, op: node, firstpos: HashSet::new(), lastpos: HashSet::new(), nullable: None }
     }
 
+    pub fn empty() -> ReNode { ReNode::new(ReType::Empty) }
+
+    pub fn end(t: Terminal) -> ReNode { ReNode::new(ReType::End(Box::new(t))) }
+
+    pub fn char(c: char) -> ReNode { ReNode::new(ReType::Char(c)) }
+
+    pub fn char_range(s: Segments) -> ReNode { ReNode::new(ReType::CharRange(Box::new(s))) }
+
+    pub fn string<T: Into<String>>(s: T) -> ReNode { ReNode::new(ReType::String(Box::new(s.into()))) }
+
+    pub fn concat() -> ReNode { ReNode::new(ReType::Concat) }
+
+    pub fn star() -> ReNode { ReNode::new(ReType::Star) }
+
+    pub fn plus() -> ReNode { ReNode::new(ReType::Plus) }
+
+    pub fn or() -> ReNode { ReNode::new(ReType::Or) }
+
+    pub fn lazy() -> ReNode { ReNode::new(ReType::Lazy) }
+
     pub fn is_leaf(&self) -> bool {
         self.op.is_leaf()
     }
 
     pub fn is_empty(&self) -> bool {
         self.op.is_empty()
+    }
+
+    pub fn get_type(&self) -> &ReType {
+        &self.op
     }
 }
 
@@ -236,7 +260,7 @@ impl DfaBuilder {
                 _ => {
                     node.op = ReType::Concat;
                     for c in s.chars() {
-                        self.re.add(Some(index), ReNode::new(ReType::Char(c)));
+                        self.re.add(Some(index), ReNode::char(c));
                     }
                 }
             }
@@ -949,34 +973,34 @@ pub mod macros {
     /// # use std::collections::BTreeSet;
     /// # use rlexer::{dfa::*, node, io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN}};
     /// # use rlexer::segments::{Seg, Segments};
-    /// assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
-    /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))))));
-    /// assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))))));
-    /// assert_eq!(node!(str "new"), ReNode::new(ReType::String(Box::new("new".to_string()))));
-    /// assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }))));
-    /// assert_eq!(node!(&), ReNode::new(ReType::Concat));
-    /// assert_eq!(node!(|), ReNode::new(ReType::Or));
-    /// assert_eq!(node!(*), ReNode::new(ReType::Star));
-    /// assert_eq!(node!(+), ReNode::new(ReType::Plus));
-    /// assert_eq!(node!(e), ReNode::new(ReType::Empty));
+    /// assert_eq!(node!(chr 'a'), ReNode::char('a'));
+    /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
+    /// assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
+    /// assert_eq!(node!(str "new"), ReNode::string("new"));
+    /// assert_eq!(node!(=5), ReNode::end(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }));
+    /// assert_eq!(node!(&), ReNode::concat());
+    /// assert_eq!(node!(|), ReNode::or());
+    /// assert_eq!(node!(*), ReNode::star());
+    /// assert_eq!(node!(+), ReNode::plus());
+    /// assert_eq!(node!(e), ReNode::empty());
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! node {
-        (chr $char:expr) => { ReNode::new(ReType::Char($char)) };
-        (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::new(ReType::Char(c))) };
-        ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]))) };
-        (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::new(ReType::CharRange(Box::new(segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]))) };
+        (chr $char:expr) => { ReNode::char($char) };
+        (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::char(c)) };
+        ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::char_range(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
+        (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::char_range(segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
         (.) => { node!([DOT]) };
-        (str $str:expr) => { ReNode::new(ReType::String(Box::new($str.to_string()))) };
-        (&) => { ReNode::new(ReType::Concat) };
-        (|) => { ReNode::new(ReType::Or) };
-        (*) => { ReNode::new(ReType::Star) };
-        (+) => { ReNode::new(ReType::Plus) };
-        (e) => { ReNode::new(ReType::Empty) };
-        (??) => { ReNode::new(ReType::Lazy) };
+        (str $str:expr) => { ReNode::string($str) };
+        (&) => { ReNode::concat() };
+        (|) => { ReNode::or() };
+        (*) => { ReNode::star() };
+        (+) => { ReNode::plus() };
+        (e) => { ReNode::empty() };
+        (??) => { ReNode::lazy() };
         // actions:
-        (= $id:expr) => { ReNode::new(ReType::End(Box::new(Terminal { token: Some($id), channel: 0, push_mode: None, push_state: None, pop: false })) ) };
-        ($id:expr) => { ReNode::new(ReType::End(Box::new($id))) };
+        (= $id:expr) => { ReNode::end(Terminal { token: Some($id), channel: 0, push_mode: None, push_state: None, pop: false }) };
+        ($id:expr) => { ReNode::end($id) };
         //
         ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
         (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!(~ [$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
@@ -1008,18 +1032,18 @@ pub mod macros {
 
     #[test]
     fn macro_node() {
-        assert_eq!(node!([0 - LOW_MAX, HIGH_MIN - MAX]),   ReNode::new(ReType::CharRange(Box::new(Segments::dot()))));
-        assert_eq!(node!(~[0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::new(ReType::CharRange(Box::new(Segments::empty()))));
+        assert_eq!(node!([0 - LOW_MAX, HIGH_MIN - MAX]),   ReNode::char_range(Segments::dot()));
+        assert_eq!(node!(~[0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::char_range(Segments::empty()));
 
-        assert_eq!(node!(chr 'a'), ReNode::new(ReType::Char('a')));
-        assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))))));
-        assert_eq!(node!(.), ReNode::new(ReType::CharRange(Box::new(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))))));
-        assert_eq!(node!(str "new"), ReNode::new(ReType::String(Box::new("new".to_string()))));
-        assert_eq!(node!(=5), ReNode::new(ReType::End(Box::new(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }))));
-        assert_eq!(node!(&), ReNode::new(ReType::Concat));
-        assert_eq!(node!(|), ReNode::new(ReType::Or));
-        assert_eq!(node!(*), ReNode::new(ReType::Star));
-        assert_eq!(node!(+), ReNode::new(ReType::Plus));
-        assert_eq!(node!(e), ReNode::new(ReType::Empty));
+        assert_eq!(node!(chr 'a'), ReNode::char('a'));
+        assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
+        assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
+        assert_eq!(node!(str "new"), ReNode::string("new"));
+        assert_eq!(node!(=5), ReNode::end(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }));
+        assert_eq!(node!(&), ReNode::concat());
+        assert_eq!(node!(|), ReNode::or());
+        assert_eq!(node!(*), ReNode::star());
+        assert_eq!(node!(+), ReNode::plus());
+        assert_eq!(node!(e), ReNode::empty());
     }
 }
