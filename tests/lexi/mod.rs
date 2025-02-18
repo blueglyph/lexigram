@@ -1,9 +1,8 @@
 mod basic_test;
 
-use rlexer::dfa::TermType;
 use rlexer::dfa::{ReType, Terminal, TokenId};
 use std::collections::HashMap;
-use std::ops::{Deref, Range};
+use std::ops::Range;
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
@@ -106,15 +105,16 @@ impl LexiParserListener for LexiListener {
 
     fn exit_actions(&mut self, ctx: CtxActions) -> SynActions {
         // actions:
-        // - skip
-        // - push(n)
-        // - push(n)+return
-        // - pop
-        // - channel #      => add return
-        let CtxActions::Actions { action, mut star } = ctx;
+        // - skip           => doesn't return token, current string dropped (modifier)
+        // - more           => doesn't return token, current string kept for next rule (modifier)
+        // - push(n)        => returns token + push
+        // - pop            => returns token + pop
+        // - channel #      => returns token + channel
+        let CtxActions::Actions { action, star } = ctx;
         let mut terminal = action.0;
         for action in star.0 {
-            terminal = terminal + action.0;
+            todo!();
+            // terminal = terminal + action.0;
         }
 
         SynActions(terminal)

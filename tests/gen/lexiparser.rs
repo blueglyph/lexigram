@@ -691,7 +691,15 @@ pub(crate) mod lexiparser {
 }
 
 pub(crate) mod lexiparser_types {
-    use rlexer::dfa::Terminal;
+    use rlexer::dfa::{ChannelId, ModeId, Terminal, TokenId};
+
+    #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
+    pub struct LexAction {
+        pub token: Option<TokenId>,
+        pub channel: ChannelId,
+        pub push_mode: Option<ModeId>,
+        pub pop: bool
+    }
 
     /// SynFile: User-defined type for `file`
     #[derive(Debug, PartialEq)] pub struct SynFile();
