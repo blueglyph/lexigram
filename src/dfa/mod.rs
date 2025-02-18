@@ -13,9 +13,21 @@ pub type TokenId = u16;
 pub type ModeId = u16;
 pub type ChannelId = u16;
 
+/// Terminal instructions for the lexer logic.
+///
+/// Possible actions:
+/// * skip           => doesn't return token, drops current string
+/// * more           => doesn't return token, keeps current string for next rule
+/// * push(n)        => pushes mode and switches to mode `n`
+/// * pop            => pops next mode from the stack
+/// * channel #      => defines output channel
+///
+/// By default, `push`, `pop`, `channel` or no specified action outputs a token (`token = Some(..)`).
+/// If a `skip` or `more` action is specified, no token is returned (`token = None`).
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub struct Terminal {
     pub token: Option<TokenId>,
+    pub more: bool,
     pub channel: ChannelId,
     pub push_mode: Option<ModeId>,
     pub push_state: Option<StateId>,
@@ -25,7 +37,7 @@ pub struct Terminal {
 impl Terminal {
     #[inline]
     pub fn is_only_skip(&self) -> bool {
-        self.token.is_none() && self.push_mode.is_none() && self.push_state.is_none() && !self.pop
+        self.token.is_none() && self.push_mode.is_none() && self.push_state.is_none() && !self.pop && !self.more
     }
 
     #[inline]
@@ -36,7 +48,13 @@ impl Terminal {
 
 impl Display for Terminal {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        if let Some(tok) = &self.token { write!(f, "<end:{}", tok)?; } else { write!(f, "<skip")?; }
+        if let Some(tok) = &self.token {
+            write!(f, "<end:{}", tok)?;
+        } else if self.more {
+            write!(f, "<more")?;
+        } else {
+            write!(f, "<skip")?;
+        }
         if self.channel != 0 { write!(f, ",ch {}", self.channel)?; }
         if self.push_mode.is_some() || self.push_state.is_some() {
             write!(f, ",push(")?;
@@ -977,7 +995,7 @@ pub mod macros {
     /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
     /// assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
     /// assert_eq!(node!(str "new"), ReNode::string("new"));
-    /// assert_eq!(node!(=5), ReNode::end(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }));
+    /// assert_eq!(node!(=5), ReNode::end(Terminal { token: Some(5), more: false, channel: 0, push_mode: None, push_state: None, pop: false }));
     /// assert_eq!(node!(&), ReNode::concat());
     /// assert_eq!(node!(|), ReNode::or());
     /// assert_eq!(node!(*), ReNode::star());
@@ -999,7 +1017,7 @@ pub mod macros {
         (e) => { ReNode::empty() };
         (??) => { ReNode::lazy() };
         // actions:
-        (= $id:expr) => { ReNode::end(Terminal { token: Some($id), channel: 0, push_mode: None, push_state: None, pop: false }) };
+        (= $id:expr) => { ReNode::end(Terminal { token: Some($id), more: false, channel: 0, push_mode: None, push_state: None, pop: false }) };
         ($id:expr) => { ReNode::end($id) };
         //
         ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
@@ -1008,12 +1026,13 @@ pub mod macros {
 
     #[macro_export(local_inner_macros)]
     macro_rules! term {
-        (= $id:expr ) =>   { Terminal { token: Some($id), channel: 0, push_mode: None, push_state: None, pop: false } };
-        (skip) =>          { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false } };
-        (push $id:expr) => { Terminal { token: None, channel: 0, push_mode: Some($id), push_state: None, pop: false } };
-        (pushst $id:expr) => { Terminal { token: None, channel: 0, push_mode: None, push_state: Some($id), pop: false } };
-        (pop) =>           { Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true } };
-        (# $id:expr) =>    { Terminal { token: None, channel: $id, push_mode: None, push_state: None, pop: false } };
+        (= $id:expr ) =>     { Terminal { token: Some($id), more: false, channel: 0,   push_mode: None,      push_state: None,      pop: false } };
+        (more) =>            { Terminal { token: None,      more: true,  channel: 0,   push_mode: None,      push_state: None,      pop: false } };
+        (skip) =>            { Terminal { token: None,      more: false, channel: 0,   push_mode: None,      push_state: None,      pop: false } };
+        (push $id:expr) =>   { Terminal { token: None,      more: false, channel: 0,   push_mode: Some($id), push_state: None,      pop: false } };
+        (pushst $id:expr) => { Terminal { token: None,      more: false, channel: 0,   push_mode: None,      push_state: Some($id), pop: false } };
+        (pop) =>             { Terminal { token: None,      more: false, channel: 0,   push_mode: None,      push_state: None,      pop: true } };
+        (# $id:expr) =>      { Terminal { token: None,      more: false, channel: $id, push_mode: None,      push_state: None,      pop: false } };
     }
 
     impl Add for Terminal {
@@ -1022,6 +1041,7 @@ pub mod macros {
         fn add(self, rhs: Self) -> Self::Output {
             Terminal {
                 token: if self.token.is_some() { self.token } else { rhs.token },
+                more: self.more || rhs.more,
                 channel: self.channel + rhs.channel,
                 push_mode: if self.push_mode.is_some() { self.push_mode } else { rhs.push_mode },
                 push_state: if self.push_state.is_some() { self.push_state } else { rhs.push_state },
@@ -1039,7 +1059,7 @@ pub mod macros {
         assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
         assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
         assert_eq!(node!(str "new"), ReNode::string("new"));
-        assert_eq!(node!(=5), ReNode::end(Terminal { token: Some(5), channel: 0, push_mode: None, push_state: None, pop: false }));
+        assert_eq!(node!(=5), ReNode::end(Terminal { token: Some(5), more: false, channel: 0, push_mode: None, push_state: None, pop: false }));
         assert_eq!(node!(&), ReNode::concat());
         assert_eq!(node!(|), ReNode::or());
         assert_eq!(node!(*), ReNode::star());

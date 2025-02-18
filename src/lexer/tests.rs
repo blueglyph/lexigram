@@ -196,7 +196,21 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
 
             btreemap![0 => re, 1 => re1]
         },
-        _ => btreemap![],
+        3 => {
+            // mode 0: '\''<more,push(1)>|'.'<end:0>
+            let or = re.add_root(node!(|));
+            re.addc_iter(Some(or), node!(&), [node!(chr '\''), node!(term!(push 1) + term!(more))]);
+            re.addc_iter(Some(or), node!(&), [node!(chr '.'), node!(term!(= 0))]);
+
+            // mode 1: '\''<end:1,pop>|[' ', 'a'-'z']<more>
+            let mut re1 = VecTree::new();
+            let or = re1.add_root(node!(|));
+            re1.addc_iter(Some(or), node!(&), [node!(chr '\''), node!(term!(= 1) + term!(pop))]);
+            re1.addc_iter(Some(or), node!(&), [node!([' ', 'a'-'z']), node!(term!(more))]);
+
+            btreemap![0 => re, 1 => re1]
+        }
+     _ => btreemap![],
     };
     const VERBOSE: bool = false;
     let dfas = trees.into_iter().enumerate().map(|(dfa_id, (mode, re))| {
@@ -246,6 +260,10 @@ fn lexer_modes() {
             (" 10 20 30", vec![(0, 1, 2), (0, 1, 5), (0, 1, 8)], vec!["10", "20", "30"]),
             (" 10 20 ", vec![(0, 1, 2), (0, 1, 5)], vec!["10", "20"]),
             (" 5 /* bla bla */ 6\n \n 7", vec![(0, 1, 2), (0, 1, 18), (0, 3, 2)], vec!["5", "6", "7"]),
+        ]),
+        (3, vec![
+            ("'hello'.", vec![(1, 1, 1), (0, 1, 8)], vec!["'hello'", "."]),
+            (".", vec![(0, 1, 1)], vec!["."]),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -313,11 +331,11 @@ mod lexer_source1 {
     //     (Seg(119189, 119189), 2),
     //     (Seg(119190, 1114111), 6),];
     const TERMINAL_TABLE: [Terminal;5] = [
-        Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
-        Terminal { token: Some(0), channel: 0, push_mode: None, push_state: None, pop: false },
-        Terminal { token: None, channel: 0, push_mode: Some(1), push_state: Some(2), pop: false },
-        Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: false },
-        Terminal { token: None, channel: 0, push_mode: None, push_state: None, pop: true }];
+        Terminal { token: None, more: false, channel: 0, push_mode: None, push_state: None, pop: false },
+        Terminal { token: Some(0), more: false, channel: 0, push_mode: None, push_state: None, pop: false },
+        Terminal { token: None, more: false, channel: 0, push_mode: Some(1), push_state: Some(2), pop: false },
+        Terminal { token: None, more: false, channel: 0, push_mode: None, push_state: None, pop: false },
+        Terminal { token: None, more: false, channel: 0, push_mode: None, push_state: None, pop: true }];
     const STATE_TABLE: [StateId; 45] = [
           4,   1,   5,   9,   9, // state 0
           9,   9,   9,   6,   9, // state 1

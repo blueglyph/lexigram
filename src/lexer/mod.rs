@@ -226,16 +226,6 @@ impl<R: Read> Lexer<R> {
                     if last_state.map(|st| st == state).unwrap_or(false) && last_offset.map(|offset| offset == input.get_offset()).unwrap_or(false) {
                         if infinite_loop_cnt > 3 {
                             self.error = LexerError::InfiniteLoop { pos: self.pos };
-                            // self.error = Some(LexerError {
-                            //     pos: self.pos,
-                            //     curr_char: None,
-                            //     group: None,
-                            //     token_ch: None,
-                            //     state: 0,
-                            //     is_eos: true,
-                            //     text: "".to_string(),
-                            //     msg: "infinite loop".to_string(),
-                            // });
                             if VERBOSE { println!(" => Err({})", self.error); }
                             return Err(self.error.clone());
                         }
@@ -271,14 +261,19 @@ impl<R: Read> Lexer<R> {
                             if VERBOSE { print!(", push({})", goto_state); }
                         }
                         if let Some(token) = &terminal.token {
+                            assert_eq!(terminal.more, false);
                             if VERBOSE { println!(" => OK: token {}", token); }
                             return Ok((token.clone(), terminal.channel, text, line, col));
                         }
-                        (line, col) = (self.line, self.col);
+                        if !terminal.more {
+                            (line, col) = (self.line, self.col);
+                        }
                         if !is_eos { // we can't skip if <EOF> or we'll loop indefinitely
-                            if VERBOSE { println!(" => skip, state {}", self.start_state); }
+                            if VERBOSE { println!(" => {}, state {}", if terminal.more { "more" } else { "skip" }, self.start_state); }
                             state = self.start_state;
-                            text.clear();
+                            if !terminal.more {
+                                text.clear();
+                            }
                             continue;
                         }
                     }
