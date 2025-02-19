@@ -1058,7 +1058,7 @@ pub mod macros {
         (e) => { ReNode::empty() };
         (??) => { ReNode::lazy() };
         // actions:
-        (= $id:expr) => { ReNode::end(Terminal { action: $crate::dfa::TermAction::Token($id), channel: 0, push_mode: None, push_state: None, pop: false }) };
+        (= $id:expr) => { ReNode::end($crate::dfa::Terminal { action: $crate::dfa::TermAction::Token($id), channel: 0, push_mode: None, push_state: None, pop: false }) };
         ($id:expr) => { ReNode::end($id) };
         //
         ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
@@ -1067,13 +1067,13 @@ pub mod macros {
 
     #[macro_export(local_inner_macros)]
     macro_rules! term {
-        (= $id:expr ) =>     { Terminal { action: $crate::dfa::TermAction::Token($id),channel: 0,   push_mode: None,      push_state: None,      pop: false } };
-        (more) =>            { Terminal { action: $crate::dfa::TermAction::More,      channel: 0,   push_mode: None,      push_state: None,      pop: false } };
-        (skip) =>            { Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: None,      push_state: None,      pop: false } };
-        (push $id:expr) =>   { Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: Some($id), push_state: None,      pop: false } };
-        (pushst $id:expr) => { Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: None,      push_state: Some($id), pop: false } };
-        (pop) =>             { Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: None,      push_state: None,      pop: true  } };
-        (# $id:expr) =>      { Terminal { action: $crate::dfa::TermAction::Skip,      channel: $id, push_mode: None,      push_state: None,      pop: false } };
+        (= $id:expr ) =>     { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Token($id),channel: 0,   push_mode: None,      push_state: None,      pop: false } };
+        (more) =>            { $crate::dfa::Terminal { action: $crate::dfa::TermAction::More,      channel: 0,   push_mode: None,      push_state: None,      pop: false } };
+        (skip) =>            { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: None,      push_state: None,      pop: false } };
+        (push $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: Some($id), push_state: None,      pop: false } };
+        (pushst $id:expr) => { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: None,      push_state: Some($id), pop: false } };
+        (pop) =>             { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: None,      push_state: None,      pop: true  } };
+        (# $id:expr) =>      { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: $id, push_mode: None,      push_state: None,      pop: false } };
     }
 
     impl Add for Terminal {

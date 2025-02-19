@@ -3,7 +3,7 @@
 use std::collections::BTreeSet;
 use std::io::{Cursor, Read};
 use std::mem::size_of_val;
-use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string};
+use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, Terminal};
 use crate::{escape_string, CollectJoin, General, LL1};
 use crate::io::CharReader;
 use crate::lexer::Lexer;
