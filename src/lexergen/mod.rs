@@ -175,7 +175,7 @@ impl LexerGen {
         // Create source code:
         source.push(format!("use std::collections::HashMap;"));
         source.push(format!("use std::io::Read;"));
-        source.push(format!("use rlexer::dfa::{{StateId, Terminal}};"));
+        source.push(format!("use rlexer::dfa::{{StateId, Terminal, TermAction::*}};"));
         source.push(format!("use rlexer::lexer::Lexer;"));
         source.push(format!("use rlexer::lexergen::GroupId;"));
         source.push(format!("use rlexer::segments::{{Seg, SegMap}};"));
