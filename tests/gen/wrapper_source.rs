@@ -7737,8 +7737,12 @@ pub(crate) mod rules_rts_100_1 {
         Action2,
         /// `action -> skip`
         Action3,
-        /// `action -> return`
+        /// `action -> more`
         Action4,
+        /// `action -> type ( Id )`
+        Action5 { id: String },
+        /// `action -> channel ( Id )`
+        Action6 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxMatch {
@@ -7976,54 +7980,56 @@ pub(crate) mod rules_rts_100_1 {
                     match factor_id {
                         0 |                                         // file -> header [file_item]*
                         1 => self.exit_file(factor_id),             // file -> [file_item]*
-                        26 => self.exit_file1(),                    // [file_item]* item in file -> header  ► [file_item]* ◄  | ...
-                        27 => {}                                    // end of [file_item]* items in file -> header  ► [file_item]* ◄  | ...
+                        28 => self.exit_file1(),                    // [file_item]* item in file -> header  ► [file_item]* ◄  | ...
+                        29 => {}                                    // end of [file_item]* items in file -> header  ► [file_item]* ◄  | ...
                         2 |                                         // file_item -> option
                         3 |                                         // file_item -> declaration
                         4 => self.exit_file_item(factor_id),        // file_item -> rule
                         5 => self.exit_header(),                    // header -> lexicon Id ;
                         6 => self.exit_declaration(),               // declaration -> mode Id ;
                         7 => self.exit_option(),                    // option -> channels { Id [, Id]* }
-                        28 => self.exit_option1(),                  // [, Id]* item in option -> channels { Id  ► [, Id]* ◄  }
-                        29 => {}                                    // end of [, Id]* items in option -> channels { Id  ► [, Id]* ◄  }
+                        30 => self.exit_option1(),                  // [, Id]* item in option -> channels { Id  ► [, Id]* ◄  }
+                        31 => {}                                    // end of [, Id]* items in option -> channels { Id  ► [, Id]* ◄  }
                         8 |                                         // rule -> fragment Id : match ;
-                        38 |                                        // rule -> Id : match -> actions ;
-                        39 => self.exit_rule(factor_id),            // rule -> Id : match ;
+                        40 |                                        // rule -> Id : match -> actions ;
+                        41 => self.exit_rule(factor_id),            // rule -> Id : match ;
                      /* 9 */                                        // rule -> Id : match -> actions ; | Id : match ; (never called)
                         10 => self.exit_actions(),                  // actions -> action [, action]*
-                        30 => self.exit_actions1(),                 // [, action]* item in actions -> action  ► [, action]* ◄
-                        31 => {}                                    // end of [, action]* items in actions -> action  ► [, action]* ◄
+                        32 => self.exit_actions1(),                 // [, action]* item in actions -> action  ► [, action]* ◄
+                        33 => {}                                    // end of [, action]* items in actions -> action  ► [, action]* ◄
                         11 |                                        // action -> push ( Id )
                         12 |                                        // action -> pop
                         13 |                                        // action -> skip
-                        14 => self.exit_action(factor_id),          // action -> return
-                        15 => self.exit_match(),                    // match -> alt_items
-                        16 => self.init_alt_items(),                // alt_items -> alt_item
-                        33 |                                        // alt_items -> alt_items | alt_item
-                        34 => self.exit_alt_items1(factor_id),      // end of iterations in alt_items -> alt_items | alt_item
-                        17 => self.exit_alt_item(),                 // alt_item -> [repeat_item]+
-                        44 |                                        // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄
-                        45 => self.exit_alt_item1(),                // end of [repeat_item]+ items in alt_item ->  ► [repeat_item]+ ◄
-                     /* 32 */                                       // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄  (never called)
-                        40 |                                        // repeat_item -> item ?
-                        41 => self.init_repeat_item(factor_id),     // repeat_item -> item
-                        37 |                                        // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
-                        46 |                                        // repeat_item -> repeat_item + ?
-                        47 |                                        // repeat_item -> repeat_item +
-                        48 |                                        // repeat_item -> repeat_item * ?
-                        49 => self.exit_repeat_item1(factor_id),    // repeat_item -> repeat_item *
-                     /* 18 */                                       // repeat_item -> item ? | item (never called)
-                     /* 35 */                                       // repeat_item -> repeat_item + ? | repeat_item + (never called)
-                     /* 36 */                                       // repeat_item -> repeat_item * ? | repeat_item * (never called)
-                        19 |                                        // item -> ( alt_items )
-                        20 |                                        // item -> ~ item
-                        21 |                                        // item -> EOF
-                        22 |                                        // item -> Id
-                        24 |                                        // item -> CharSet
-                        25 |                                        // item -> StrLit
-                        42 |                                        // item -> CharLit .. CharLit
-                        43 => self.exit_item(factor_id),            // item -> CharLit
-                     /* 23 */                                       // item -> CharLit | CharLit .. CharLit (never called)
+                        14 |                                        // action -> more
+                        15 |                                        // action -> type ( Id )
+                        16 => self.exit_action(factor_id),          // action -> channel ( Id )
+                        17 => self.exit_match(),                    // match -> alt_items
+                        18 => self.init_alt_items(),                // alt_items -> alt_item
+                        35 |                                        // alt_items -> alt_items | alt_item
+                        36 => self.exit_alt_items1(factor_id),      // end of iterations in alt_items -> alt_items | alt_item
+                        19 => self.exit_alt_item(),                 // alt_item -> [repeat_item]+
+                        46 |                                        // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄
+                        47 => self.exit_alt_item1(),                // end of [repeat_item]+ items in alt_item ->  ► [repeat_item]+ ◄
+                     /* 34 */                                       // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄  (never called)
+                        42 |                                        // repeat_item -> item ?
+                        43 => self.init_repeat_item(factor_id),     // repeat_item -> item
+                        39 |                                        // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
+                        48 |                                        // repeat_item -> repeat_item + ?
+                        49 |                                        // repeat_item -> repeat_item +
+                        50 |                                        // repeat_item -> repeat_item * ?
+                        51 => self.exit_repeat_item1(factor_id),    // repeat_item -> repeat_item *
+                     /* 20 */                                       // repeat_item -> item ? | item (never called)
+                     /* 37 */                                       // repeat_item -> repeat_item + ? | repeat_item + (never called)
+                     /* 38 */                                       // repeat_item -> repeat_item * ? | repeat_item * (never called)
+                        21 |                                        // item -> ( alt_items )
+                        22 |                                        // item -> ~ item
+                        23 |                                        // item -> EOF
+                        24 |                                        // item -> Id
+                        26 |                                        // item -> CharSet
+                        27 |                                        // item -> StrLit
+                        44 |                                        // item -> CharLit .. CharLit
+                        45 => self.exit_item(factor_id),            // item -> CharLit
+                     /* 25 */                                       // item -> CharLit | CharLit .. CharLit (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -8144,13 +8150,13 @@ pub(crate) mod rules_rts_100_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule1 { id, match1 }
                 }
-                38 => {
+                40 => {
                     let actions = self.stack.pop().unwrap().get_actions();
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule2 { id, match1, actions }
                 }
-                39 => {
+                41 => {
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule3 { id, match1 }
@@ -8195,6 +8201,14 @@ pub(crate) mod rules_rts_100_1 {
                 14 => {
                     CtxAction::Action4
                 }
+                15 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxAction::Action5 { id }
+                }
+                16 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxAction::Action6 { id }
+                }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_action")
             };
             let val = self.listener.exit_action(ctx);
@@ -8215,12 +8229,12 @@ pub(crate) mod rules_rts_100_1 {
 
         fn exit_alt_items1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                33 => {
+                35 => {
                     let alt_item = self.stack.pop().unwrap().get_alt_item();
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
                     CtxAltItems::AltItems2 { alt_items, alt_item }
                 }
-                34 => {
+                36 => {
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
                     CtxAltItems::AltItems3 { alt_items }
                 }
@@ -8250,11 +8264,11 @@ pub(crate) mod rules_rts_100_1 {
 
         fn init_repeat_item(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                40 => {
+                42 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRepeatItem::RepeatItem2 { item }
                 }
-                41 => {
+                43 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRepeatItem::RepeatItem3 { item }
                 }
@@ -8266,23 +8280,23 @@ pub(crate) mod rules_rts_100_1 {
 
         fn exit_repeat_item1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                37 => {
+                39 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem1 { repeat_item }
                 }
-                46 => {
+                48 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem4 { repeat_item }
                 }
-                47 => {
+                49 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem5 { repeat_item }
                 }
-                48 => {
+                50 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem6 { repeat_item }
                 }
-                49 => {
+                51 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem7 { repeat_item }
                 }
@@ -8294,35 +8308,35 @@ pub(crate) mod rules_rts_100_1 {
 
         fn exit_item(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                19 => {
+                21 => {
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
                     CtxItem::Item1 { alt_items }
                 }
-                20 => {
+                22 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxItem::Item2 { item }
                 }
-                21 => {
+                23 => {
                     CtxItem::Item3
                 }
-                22 => {
+                24 => {
                     let id = self.stack_t.pop().unwrap();
                     CtxItem::Item4 { id }
                 }
-                24 => {
+                26 => {
                     let charset = self.stack_t.pop().unwrap();
                     CtxItem::Item5 { charset }
                 }
-                25 => {
+                27 => {
                     let strlit = self.stack_t.pop().unwrap();
                     CtxItem::Item6 { strlit }
                 }
-                42 => {
+                44 => {
                     let charlit_2 = self.stack_t.pop().unwrap();
                     let charlit_1 = self.stack_t.pop().unwrap();
                     CtxItem::Item7 { charlit: [charlit_1, charlit_2] }
                 }
-                43 => {
+                45 => {
                     let charlit = self.stack_t.pop().unwrap();
                     CtxItem::Item8 { charlit }
                 }

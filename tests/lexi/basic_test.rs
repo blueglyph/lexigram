@@ -1,8 +1,8 @@
 #![cfg(test)]
 
-use rlexer::dfa::Terminal;
 use crate::gen::lexiparser::lexiparser::*;
 use crate::gen::lexiparser::lexiparser_types::*;
+use crate::lexi::LexAction;
 
 struct LexiListener {
     verbose: bool
@@ -81,7 +81,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions {
         if self.verbose { println!("exit_actions"); }
-        SynActions(rlexer::term!(skip)) // dummy
+        SynActions(LexAction::default()) // dummy
     }
 
     fn init_action(&mut self) {
@@ -90,7 +90,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_action(&mut self, _ctx: CtxAction) -> SynAction {
         if self.verbose { println!("exit_action"); }
-        SynAction(Terminal::default())
+        SynAction(LexAction::default())
     }
 
     fn init_match(&mut self) {
@@ -155,7 +155,7 @@ mod tests {
         let tests = [
             ("", 0),
             ("lexicon LexiLexer;", 3),
-            (LEXICON, 261),
+            (LEXICON, 269),
         ];
         const VERBOSE: bool = false;
         const VERBOSE_DETAILS: bool = false;

@@ -35,16 +35,18 @@ enum T {
     Mode,       // 17
     Pop,        // 18
     Push,       // 19
-    Return,     // 20
+    More,       // 20
     Skip,       // 21
-    SymEof,     // 22
-    Id,         // 23
-    CharLit,    // 24
-    CharSet,    // 25
-    StrLit,     // 26
+    Type,       // 22
+    Channel,    // 23
+    SymEof,     // 24
+    Id,         // 25
+    CharLit,    // 26
+    CharSet,    // 27
+    StrLit,     // 28
 }
 
-pub const TERMINALS: [(&str, Option<&str>); 27] = [
+pub const TERMINALS: [(&str, Option<&str>); 29] = [
     ("Arrow",     Some("->")),          // 0
     ("Colon",     Some(":")),           // 1
     ("Comma",     Some(",")),           // 2
@@ -65,13 +67,15 @@ pub const TERMINALS: [(&str, Option<&str>); 27] = [
     ("Mode",      Some("mode")),        // 17
     ("Pop",       Some("pop")),         // 18
     ("Push",      Some("push")),        // 19
-    ("Return",    Some("return")),      // 20
+    ("More",      Some("more")),        // 20
     ("Skip",      Some("skip")),        // 21
-    ("SymEof",    Some("EOF")),         // 22
-    ("Id",        None),                // 23
-    ("CharLit",   None),                // 24
-    ("CharSet",   None),                // 25
-    ("StrLit",    None),                // 26
+    ("Type",      Some("type")),        // 22
+    ("Channel",   Some("channel")),     // 23
+    ("SymEof",    Some("EOF")),         // 24
+    ("Id",        None),                // 25
+    ("CharLit",   None),                // 26
+    ("CharSet",   None),                // 27
+    ("StrLit",    None),                // 28
 ];
 
 pub fn build_re() -> VecTree<ReNode> {
@@ -234,8 +238,10 @@ LEXICON			: 'lexicon';
 MODE			: 'mode';
 POP				: 'pop';
 PUSH			: 'push';
-RETURN			: 'return';
+MORE			: 'more';
 SKiP			: 'skip';
+TYPE            : 'type';
+CHANNEL         : 'channel';
 SYM_EOF			: 'EOF';
 
 COMMENT			: BlockComment 				-> skip;
@@ -253,57 +259,59 @@ CHAR_SET		: '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
 STR_LIT			: StrLiteral;
 "#;
 
-pub const LEXICON_TOKENS: [TokenId; 261] = [
-    16, 23,                                             // lexicon RLLexer;
-    12, 14, 4, 23, 2, 23, 10,                           // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
-    15, 23, 1, 26, 25, 13, 9, 26, 12,                   // fragment BlockComment   : '/*' .*? '*/';
-    15, 23, 1, 26, 6, 25, 13, 12,                       // fragment LineComment    : '//' ~[\r\n]*;
-    15, 23, 1, 25, 12,                                  // fragment HexDigit       : [0-9a-fA-F];
-    15, 23, 1, 26, 23, 7, 24, 12,                       // fragment UnicodeEsc     : 'u{' HexDigit+ '}';
-    15, 23, 1, 24, 5, 25, 8, 23, 11, 12,                // fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
-    15, 23, 1, 23, 8, 6, 25, 12,                        // fragment Char           : EscChar | ~[\n\r\t'\\];
-    15, 23, 1, 24, 23, 24, 12,                          // fragment CharLiteral    : '\'' Char '\'';
-    15, 23, 1, 24, 23, 23, 7, 24, 12,                   // fragment StrLiteral     : '\'' Char Char+ '\'';
-    15, 23, 1, 5, 26, 8, 26, 11, 12,                    // fragment FixedSet       : ('\\w' | '\\d');
-    15, 23, 1, 24, 5, 25, 8, 23, 11, 12,                // fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
-    15, 23, 1, 5, 23, 8, 6, 25, 11, 12,                 // fragment SetChar        : (EscSetChar | ~[\n\r\t\\\]]);
-    15, 23, 1, 24, 3, 24, 12,                           // fragment Letter         : 'a'..'z';  // dummy
-    15, 23, 1, 6, 24, 3, 24, 12,                        // fragment NonLetter      : ~'a'..'z'; // dummy
-    23, 1, 26, 12,                                      // ARROW       : '->';
-    23, 1, 24, 12,                                      // COLON       : ':';
-    23, 1, 24, 12,                                      // COMMA       : ',';
-    23, 1, 26, 12,                                      // ELLIPSIS    : '..';
-    23, 1, 24, 12,                                      // LBRACKET    : '{';
-    23, 1, 24, 12,                                      // LPAREN      : '(';
-    23, 1, 24, 12,                                      // NEGATE      : '~';
-    23, 1, 24, 12,                                      // PLUS        : '+';
-    23, 1, 24, 12,                                      // OR          : '|';
-    23, 1, 24, 12,                                      // QUESTION    : '?';
-    23, 1, 24, 12,                                      // RBRACKET    : '}';
-    23, 1, 24, 12,                                      // RPAREN      : ')';
-    23, 1, 24, 12,                                      // SEMICOLON   : ';';
-    23, 1, 24, 12,                                      // STAR        : '*';
-    23, 1, 26, 12,                                      // CHANNELS    : 'channels';
-    23, 1, 26, 12,                                      // FRAGMENT    : 'fragment';
-    23, 1, 26, 12,                                      // LEXICON     : 'lexicon';
-    23, 1, 26, 12,                                      // MODE        : 'mode';
-    23, 1, 26, 12,                                      // POP         : 'pop';
-    23, 1, 26, 12,                                      // PUSH        : 'push';
-    23, 1, 26, 12,                                      // RETURN      : 'return';
-    23, 1, 26, 12,                                      // SKiP        : 'skip';
-    23, 1, 26, 12,                                      // SYM_EOF     : 'EOF';
-    23, 1, 23, 0, 21, 12,                               // COMMENT     : BlockComment           -> skip;
-    23, 1, 23, 0, 21, 12,                               // LINECOMMENT : LineComment            -> skip;
-    23, 1, 25, 7, 0, 21, 12,                            // WHITESPACE  : [ \n\r\t]+             -> skip;
-    23, 1, 25, 25, 13, 12,                              // ID          : [a-zA-Z][a-zA-Z_0-9]*;
-    23, 1, 23, 12,                                      // CHAR_LIT    : CharLiteral;
-    23, 1, 24, 5, 23, 24, 23, 8, 23, 8, 23, 11, 7, 24,  // CHAR_SET : '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
-        8, 24,                                          //          | '.'
-        8, 23, 12,                                      //          | FixedSet;
-    23, 1, 23, 12,                                      // STR_LIT     : StrLiteral;
+pub const LEXICON_TOKENS: [TokenId; 269] = [
+    16, 25,                                             // lexicon RLLexer;
+    12, 14, 4, 25, 2, 25, 10,                           // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
+    15, 25, 1, 28, 27, 13, 9, 28, 12,                   // fragment BlockComment   : '/*' .*? '*/';
+    15, 25, 1, 28, 6, 27, 13, 12,                       // fragment LineComment    : '//' ~[\r\n]*;
+    15, 25, 1, 27, 12,                                  // fragment HexDigit       : [0-9a-fA-F];
+    15, 25, 1, 28, 25, 7, 26, 12,                       // fragment UnicodeEsc     : 'u{' HexDigit+ '}';
+    15, 25, 1, 26, 5, 27, 8, 25, 11, 12,                // fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
+    15, 25, 1, 25, 8, 6, 27, 12,                        // fragment Char           : EscChar | ~[\n\r\t'\\];
+    15, 25, 1, 26, 25, 26, 12,                          // fragment CharLiteral    : '\'' Char '\'';
+    15, 25, 1, 26, 25, 25, 7, 26, 12,                   // fragment StrLiteral     : '\'' Char Char+ '\'';
+    15, 25, 1, 5, 28, 8, 28, 11, 12,                    // fragment FixedSet       : ('\\w' | '\\d');
+    15, 25, 1, 26, 5, 27, 8, 25, 11, 12,                // fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
+    15, 25, 1, 5, 25, 8, 6, 27, 11, 12,                 // fragment SetChar        : (EscSetChar | ~[\n\r\t\\\]]);
+    15, 25, 1, 26, 3, 26, 12,                           // fragment Letter         : 'a'..'z';  // dummy
+    15, 25, 1, 6, 26, 3, 26, 12,                        // fragment NonLetter      : ~'a'..'z'; // dummy
+    25, 1, 28, 12,                                      // ARROW       : '->';
+    25, 1, 26, 12,                                      // COLON       : ':';
+    25, 1, 26, 12,                                      // COMMA       : ',';
+    25, 1, 28, 12,                                      // ELLIPSIS    : '..';
+    25, 1, 26, 12,                                      // LBRACKET    : '{';
+    25, 1, 26, 12,                                      // LPAREN      : '(';
+    25, 1, 26, 12,                                      // NEGATE      : '~';
+    25, 1, 26, 12,                                      // PLUS        : '+';
+    25, 1, 26, 12,                                      // OR          : '|';
+    25, 1, 26, 12,                                      // QUESTION    : '?';
+    25, 1, 26, 12,                                      // RBRACKET    : '}';
+    25, 1, 26, 12,                                      // RPAREN      : ')';
+    25, 1, 26, 12,                                      // SEMICOLON   : ';';
+    25, 1, 26, 12,                                      // STAR        : '*';
+    25, 1, 28, 12,                                      // CHANNELS    : 'channels';
+    25, 1, 28, 12,                                      // FRAGMENT    : 'fragment';
+    25, 1, 28, 12,                                      // LEXICON     : 'lexicon';
+    25, 1, 28, 12,                                      // MODE        : 'mode';
+    25, 1, 28, 12,                                      // POP         : 'pop';
+    25, 1, 28, 12,                                      // PUSH        : 'push';
+    25, 1, 28, 12,                                      // MORE        : 'more';
+    25, 1, 28, 12,                                      // SKiP        : 'skip';
+    25, 1, 28, 12,                                      // TYPE        : 'type';
+    25, 1, 28, 12,                                      // CHANNEL     : 'channel';
+    25, 1, 28, 12,                                      // SYM_EOF     : 'EOF';
+    25, 1, 25, 0, 21, 12,                               // COMMENT     : BlockComment           -> skip;
+    25, 1, 25, 0, 21, 12,                               // LINECOMMENT : LineComment            -> skip;
+    25, 1, 27, 7, 0, 21, 12,                            // WHITESPACE  : [ \n\r\t]+             -> skip;
+    25, 1, 27, 27, 13, 12,                              // ID          : [a-zA-Z][a-zA-Z_0-9]*;
+    25, 1, 25, 12,                                      // CHAR_LIT    : CharLiteral;
+    25, 1, 26, 5, 25, 26, 25, 8, 25, 8, 25, 11, 7, 26,  // CHAR_SET : '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
+        8, 26,                                          //          | '.'
+        8, 25, 12,                                      //          | FixedSet;
+    25, 1, 25, 12,                                      // STR_LIT     : StrLiteral;
 ];
 
-pub const LEXICON_TEXT: [&str; 261] = [
+pub const LEXICON_TEXT: [&str; 269] = [
     "lexicon", "LexiLexer", ";", "channels", "{", "CH_WHITESPACE", ",", "CH_COMMENTS", "}", "fragment", "BlockComment", ":", "'/*'", ".", "*", "?",
     "'*/'", ";", "fragment", "LineComment", ":", "'//'", "~", r#"[\r\n]"#, "*", ";", "fragment", "HexDigit", ":", "[0-9a-fA-F]", ";", "fragment",
     "UnicodeEsc", ":", "'u{'", "HexDigit", "+", "'}'", ";", "fragment", "EscChar", ":", r#"'\\'"#, "(", r#"[nrt'\\]"#, "|", "UnicodeEsc", ")", ";", "fragment",
@@ -314,8 +322,9 @@ pub const LEXICON_TEXT: [&str; 261] = [
     ":", "':'", ";", "COMMA", ":", "','", ";", "ELLIPSIS", ":", "'..'", ";", "LBRACKET", ":", "'{'", ";", "LPAREN", ":", "'('", ";", "NEGATE", ":", "'~'",
     ";", "PLUS", ":", "'+'", ";", "OR", ":", "'|'", ";", "QUESTION", ":", "'?'", ";", "RBRACKET", ":", "'}'", ";", "RPAREN", ":", "')'", ";", "SEMICOLON",
     ":", "';'", ";", "STAR", ":", "'*'", ";", "CHANNELS", ":", "'channels'", ";", "FRAGMENT", ":", "'fragment'", ";", "LEXICON", ":", "'lexicon'", ";",
-    "MODE", ":", "'mode'", ";", "POP", ":", "'pop'", ";", "PUSH", ":", "'push'", ";", "RETURN", ":", "'return'", ";",
-    "SKiP", ":", "'skip'", ";", "SYM_EOF", ":", "'EOF'", ";", "COMMENT", ":", "BlockComment", "->", "skip", ";", "LINECOMMENT", ":", "LineComment", "->",
+    "MODE", ":", "'mode'", ";", "POP", ":", "'pop'", ";", "PUSH", ":", "'push'", ";", "MORE", ":", "'more'", ";", "SKiP", ":", "'skip'", ";",
+    "TYPE", ":", "'type'", ";", "CHANNEL", ":", "'channel'", ";", "SYM_EOF", ":", "'EOF'", ";",
+    "COMMENT", ":", "BlockComment", "->", "skip", ";", "LINECOMMENT", ":", "LineComment", "->",
     "skip", ";", "WHITESPACE", ":", r#"[ \n\r\t]"#, "+", "->", "skip", ";", "ID", ":", "[a-zA-Z]", "[a-zA-Z_0-9]", "*", ";", "CHAR_LIT", ":", "CharLiteral",
     ";", "CHAR_SET", ":", "'['", "(", "SetChar", "'-'", "SetChar", "|", "SetChar", "|", "FixedSet", ")", "+", "']'", "|", "'.'", "|", "FixedSet", ";",
     "STR_LIT", ":", "StrLiteral", ";"
@@ -358,7 +367,9 @@ action:
     PUSH LPAREN ID RPAREN
 |   POP
 |   SKiP
-|   RETURN
+|   MORE
+|   TYPE LPAREN ID RPAREN
+|   CHANNEL LPAREN ID RPAREN
 ;
 
 match:
@@ -502,13 +513,17 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     //     PUSH LPAREN ID RPAREN
     // |   POP
     // |   SKiP
-    // |   RETURN
+    // |   MORE
+    // |   TYPE LPAREN ID RPAREN
+    // |   CHANNEL LPAREN ID RPAREN
     // ;
     //
     let tree = rules.get_tree_mut(NT::Action as VarId);
     let or = tree.add_root(gnode!(|));
     tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::Push), gnode!(t T::Lparen), gnode!(t T::Id), gnode!(t T::Rparen)]);
-    tree.add_iter(Some(or), [gnode!(t T::Pop), gnode!(t T::Skip), gnode!(t T::Return)]);
+    tree.add_iter(Some(or), [gnode!(t T::Pop), gnode!(t T::Skip), gnode!(t T::More)]);
+    tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::Type), gnode!(t T::Lparen), gnode!(t T::Id), gnode!(t T::Rparen)]);
+    tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::Channel), gnode!(t T::Lparen), gnode!(t T::Id), gnode!(t T::Rparen)]);
 
     // match:
     //     alt_items
