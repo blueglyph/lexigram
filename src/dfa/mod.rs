@@ -15,19 +15,19 @@ pub type ModeId = u16;
 pub type ChannelId = u16;
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub enum TermAction {
+pub enum ActionOption {
     #[default] Skip,
     Token(TokenId),
     More
 }
 
-impl TermAction {
-    pub fn is_skip(&self) -> bool { self == &TermAction::Skip }
-    pub fn is_token(&self) -> bool { matches!(self, TermAction::Token(_) ) }
-    pub fn is_more(&self) -> bool { self == &TermAction::More }
+impl ActionOption {
+    pub fn is_skip(&self) -> bool { self == &ActionOption::Skip }
+    pub fn is_token(&self) -> bool { matches!(self, ActionOption::Token(_) ) }
+    pub fn is_more(&self) -> bool { self == &ActionOption::More }
 
     pub fn get_token(&self) -> Option<TokenId> {
-        if let TermAction::Token(token) = self {
+        if let ActionOption::Token(token) = self {
             Some(*token)
         } else {
             None
@@ -35,23 +35,23 @@ impl TermAction {
     }
 }
 
-impl Add for TermAction {
+impl Add for ActionOption {
     type Output = Self;
 
     fn add(self, rhs: Self) -> Self::Output {
         match self {
-            TermAction::Skip => rhs,
+            ActionOption::Skip => rhs,
             _ => if rhs.is_skip() { self } else { panic!("can't add {self:?} and {rhs:?}") }
         }
     }
 }
 
-impl Display for TermAction {
+impl Display for ActionOption {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            TermAction::Skip => write!(f, "skip"),
-            TermAction::Token(t) => write!(f, "end:{t}"),
-            TermAction::More => write!(f, "more")
+            ActionOption::Skip => write!(f, "skip"),
+            ActionOption::Token(t) => write!(f, "end:{t}"),
+            ActionOption::More => write!(f, "more")
         }
     }
 }
@@ -91,7 +91,7 @@ impl ModeOption {
 /// If a `skip` or `more` action is specified, no token is returned (`token = None`).
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub struct Terminal {
-    pub action: TermAction,
+    pub action: ActionOption,
     pub channel: ChannelId,
     pub mode: ModeOption,
     pub mode_state: Option<StateId>,
@@ -1064,7 +1064,7 @@ pub mod macros {
     /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
     /// assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
     /// assert_eq!(node!(str "new"), ReNode::string("new"));
-    /// assert_eq!(node!(=5), ReNode::end(Terminal { action: TermAction::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
+    /// assert_eq!(node!(=5), ReNode::end(Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
     /// assert_eq!(node!(&), ReNode::concat());
     /// assert_eq!(node!(|), ReNode::or());
     /// assert_eq!(node!(*), ReNode::star());
@@ -1086,7 +1086,7 @@ pub mod macros {
         (e) => { ReNode::empty() };
         (??) => { ReNode::lazy() };
         // actions:
-        (= $id:expr) => { ReNode::end($crate::dfa::Terminal { action: $crate::dfa::TermAction::Token($id), channel: 0, mode: $crate::dfa::ModeOption::None, mode_state: None, pop: false }) };
+        (= $id:expr) => { ReNode::end($crate::dfa::Terminal { action: $crate::dfa::ActionOption::Token($id), channel: 0, mode: $crate::dfa::ModeOption::None, mode_state: None, pop: false }) };
         ($id:expr) => { ReNode::end($id) };
         //
         ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
@@ -1095,14 +1095,14 @@ pub mod macros {
 
     #[macro_export(local_inner_macros)]
     macro_rules! term {
-        (= $id:expr ) =>     { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Token($id),channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
-        (more) =>            { $crate::dfa::Terminal { action: $crate::dfa::TermAction::More,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
-        (skip) =>            { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
-        (mode $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::Mode($id), mode_state: None,      pop: false } };
-        (push $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::Push($id), mode_state: None,      pop: false } };
-        (pushst $id:expr) => { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: Some($id), pop: false } };
-        (pop) =>             { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: true  } };
-        (# $id:expr) =>      { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: $id, mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
+        (= $id:expr ) =>     { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Token($id),channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
+        (more) =>            { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::More,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
+        (skip) =>            { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
+        (mode $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::Mode($id), mode_state: None,      pop: false } };
+        (push $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::Push($id), mode_state: None,      pop: false } };
+        (pushst $id:expr) => { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: Some($id), pop: false } };
+        (pop) =>             { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: true  } };
+        (# $id:expr) =>      { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: $id, mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
     }
 
     impl Add for Terminal {
@@ -1129,7 +1129,7 @@ pub mod macros {
         assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
         assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
         assert_eq!(node!(str "new"), ReNode::string("new"));
-        assert_eq!(node!(=5), ReNode::end(Terminal { action: TermAction::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
+        assert_eq!(node!(=5), ReNode::end(Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
         assert_eq!(node!(&), ReNode::concat());
         assert_eq!(node!(|), ReNode::or());
         assert_eq!(node!(*), ReNode::star());

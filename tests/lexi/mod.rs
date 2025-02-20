@@ -1,6 +1,6 @@
 mod basic_test;
 
-use rlexer::dfa::{ChannelId, ModeOption, ReType, TermAction, Terminal, TokenId};
+use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId};
 use std::collections::HashMap;
 use std::ops::{Add, Range};
 use vectree::VecTree;
@@ -12,7 +12,7 @@ use crate::gen::lexiparser::lexiparser::*;
 use crate::gen::lexiparser::lexiparser_types::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub enum ActionOption {
+pub enum LexActionOption {
     #[default]
     None,
     Skip,
@@ -30,7 +30,7 @@ pub enum ActionOption {
 /// - pop           => returns token + pop mode
 /// - channel(n)    => returns token + channel
 pub struct LexAction {
-    pub option: ActionOption,
+    pub option: LexActionOption,
     pub channel: Option<ChannelId>,
     pub mode: ModeOption,
     pub pop: bool
@@ -43,10 +43,10 @@ impl LexAction {
     pub fn to_terminal(&self, token_maybe: Option<TokenId>) -> Result<Terminal, ()> {
         Ok(Terminal {
             action: match self.option {
-                ActionOption::None => if let Some(t) = token_maybe { TermAction::Token(t) } else { return Err(()) }
-                ActionOption::Skip => TermAction::Skip,
-                ActionOption::Token(t) => TermAction::Token(t),
-                ActionOption::More => TermAction::More
+                LexActionOption::None => if let Some(t) = token_maybe { ActionOption::Token(t) } else { return Err(()) }
+                LexActionOption::Skip => ActionOption::Skip,
+                LexActionOption::Token(t) => ActionOption::Token(t),
+                LexActionOption::More => ActionOption::More
             },
             channel: self.channel.unwrap_or(0),
             mode: self.mode,
@@ -56,14 +56,14 @@ impl LexAction {
     }
 
     pub fn try_add(self, rhs: LexAction) -> Result<LexAction, String> {
-        if (self.option != ActionOption::None && rhs.option != ActionOption::None) ||
+        if (self.option != LexActionOption::None && rhs.option != LexActionOption::None) ||
             (self.channel.is_some() && rhs.channel.is_some()) ||
             (!self.mode.is_none() && !rhs.mode.is_none())
         {
             return Err(format!("can't add {self:?} and {rhs:?}"))
         }
         Ok(LexAction {
-            option: if self.option == ActionOption::None { rhs.option } else { self.option },
+            option: if self.option == LexActionOption::None { rhs.option } else { self.option },
             channel: self.channel.or_else(|| rhs.channel),
             mode: if !self.mode.is_none() { self.mode } else { rhs.mode },
             pop: self.pop || rhs.pop,
@@ -236,12 +236,12 @@ impl LexiParserListener for LexiListener {
 pub mod macros {
     #[macro_export(local_inner_macros)]
     macro_rules! action {
-        (= $id:expr) =>      { $crate::lexi::LexAction { option: $crate::lexi::ActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false } };
-        (more) =>            { $crate::lexi::LexAction { option: $crate::lexi::ActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false } };
-        (skip) =>            { $crate::lexi::LexAction { option: $crate::lexi::ActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false } };
-        (mode $id:expr) =>   { $crate::lexi::LexAction { option: $crate::lexi::ActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false } };
-        (push $id:expr) =>   { $crate::lexi::LexAction { option: $crate::lexi::ActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false } };
-        (pop) =>             { $crate::lexi::LexAction { option: $crate::lexi::ActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true  } };
-        (# $id:expr) =>      { $crate::lexi::LexAction { option: $crate::lexi::ActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false } };
+        (= $id:expr) =>      { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false } };
+        (more) =>            { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false } };
+        (skip) =>            { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false } };
+        (mode $id:expr) =>   { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false } };
+        (push $id:expr) =>   { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false } };
+        (pop) =>             { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true  } };
+        (# $id:expr) =>      { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false } };
     }
 }
