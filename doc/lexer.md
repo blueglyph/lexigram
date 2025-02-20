@@ -122,8 +122,10 @@ LEXICON			: 'lexicon';
 MODE			: 'mode';
 POP				: 'pop';
 PUSH			: 'push';
-RETURN			: 'return';
+MORE			: 'more';
 SKiP			: 'skip';
+TYPE            : 'type';
+CHANNEL         : 'channel';
 SYM_EOF			: 'EOF';
 
 COMMENT			: BlockComment 				-> skip;
@@ -174,10 +176,13 @@ actions:
 ;
 
 action:
-    PUSH LPAREN ID RPAREN
+    MODE LPAREN ID RPAREN
+|   PUSH LPAREN ID RPAREN
 |   POP
 |   SKiP
-|   RETURN
+|   MORE
+|   TYPE LPAREN ID RPAREN
+|   CHANNEL LPAREN ID RPAREN
 ;
 
 match:

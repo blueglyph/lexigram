@@ -255,7 +255,7 @@ impl<R: Read> Lexer<R> {
                             self.start_state = self.state_stack.pop().unwrap();
                             if VERBOSE { print!(", pop to {}", self.start_state); }
                         }
-                        if let Some(goto_state) = terminal.push_state {
+                        if let Some(goto_state) = terminal.mode_state {
                             self.state_stack.push(curr_start_state);
                             self.start_state = goto_state;
                             if VERBOSE { print!(", push({})", goto_state); }

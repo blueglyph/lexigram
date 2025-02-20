@@ -175,7 +175,7 @@ impl LexerGen {
         // Create source code:
         source.push(format!("use std::collections::HashMap;"));
         source.push(format!("use std::io::Read;"));
-        source.push(format!("use rlexer::dfa::{{StateId, Terminal, TermAction::*}};"));
+        source.push(format!("use rlexer::dfa::{{StateId, Terminal, TermAction, ModeOption}};"));
         source.push(format!("use rlexer::lexer::Lexer;"));
         source.push(format!("use rlexer::lexergen::GroupId;"));
         source.push(format!("use rlexer::segments::{{Seg, SegMap}};"));
@@ -222,7 +222,10 @@ impl LexerGen {
         source.push(format!("];"));
         source.push(format!("const TERMINAL_TABLE: [Terminal;{}] = [", self.terminal_table.len()));
         for t in &self.terminal_table {
-            source.push(format!("    {t:?},"));
+            // Terminal { action: TermAction::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+            source.push(format!("    Terminal {{ action: TermAction::{:?}, channel: {}, mode: ModeOption::{:?}, mode_state: {:?}, pop: {} }},",
+                                t.action, t.channel, t.mode, t.mode_state, t.pop
+            ));
         }
         source.push(format!("];"));
         source.push(format!("const STATE_TABLE: [StateId; {}] = [", self.state_table.len() - 1));

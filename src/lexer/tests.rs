@@ -294,7 +294,7 @@ fn lexer_modes() {
 mod lexer_source1 {
     use std::collections::HashMap;
     use std::io::{Cursor, Read};
-    use crate::dfa::{StateId, Terminal, TokenId};
+    use crate::dfa::{ModeOption, StateId, Terminal, TokenId};
     use crate::escape_string;
     use crate::io::CharReader;
     use crate::lexergen::GroupId;
@@ -331,11 +331,11 @@ mod lexer_source1 {
     //     (Seg(119189, 119189), 2),
     //     (Seg(119190, 1114111), 6),];
     const TERMINAL_TABLE: [Terminal;5] = [
-        Terminal { action: crate::dfa::TermAction::Skip,     channel: 0, push_mode: None, push_state: None, pop: false },
-        Terminal { action: crate::dfa::TermAction::Token(0), channel: 0, push_mode: None, push_state: None, pop: false },
-        Terminal { action: crate::dfa::TermAction::Skip,     channel: 0, push_mode: Some(1), push_state: Some(2), pop: false },
-        Terminal { action: crate::dfa::TermAction::Skip,     channel: 0, push_mode: None, push_state: None, pop: false },
-        Terminal { action: crate::dfa::TermAction::Skip,     channel: 0, push_mode: None, push_state: None, pop: true }];
+        Terminal { action: crate::dfa::TermAction::Skip,     channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: crate::dfa::TermAction::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: crate::dfa::TermAction::Skip,     channel: 0, mode: ModeOption::Push(1), mode_state: Some(2), pop: false },
+        Terminal { action: crate::dfa::TermAction::Skip,     channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: crate::dfa::TermAction::Skip,     channel: 0, mode: ModeOption::None, mode_state: None, pop: true }];
     const STATE_TABLE: [StateId; 45] = [
           4,   1,   5,   9,   9, // state 0
           9,   9,   9,   6,   9, // state 1

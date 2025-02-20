@@ -364,7 +364,8 @@ actions:
 ;
 
 action:
-    PUSH LPAREN ID RPAREN
+    MODE LPAREN ID RPAREN
+|   PUSH LPAREN ID RPAREN
 |   POP
 |   SKiP
 |   MORE
@@ -510,7 +511,8 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     tree.addc_iter(Some(star1), gnode!(&), [gnode!(t T::Comma), gnode!(nt NT::Action)]);
 
     // action:
-    //     PUSH LPAREN ID RPAREN
+    //     MODE LPAREN ID RPAREN
+    // |   PUSH LPAREN ID RPAREN
     // |   POP
     // |   SKiP
     // |   MORE
@@ -520,6 +522,7 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     //
     let tree = rules.get_tree_mut(NT::Action as VarId);
     let or = tree.add_root(gnode!(|));
+    tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::Mode), gnode!(t T::Lparen), gnode!(t T::Id), gnode!(t T::Rparen)]);
     tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::Push), gnode!(t T::Lparen), gnode!(t T::Id), gnode!(t T::Rparen)]);
     tree.add_iter(Some(or), [gnode!(t T::Pop), gnode!(t T::Skip), gnode!(t T::More)]);
     tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::Type), gnode!(t T::Lparen), gnode!(t T::Id), gnode!(t T::Rparen)]);

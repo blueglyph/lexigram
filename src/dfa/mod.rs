@@ -56,6 +56,28 @@ impl Display for TermAction {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
+pub enum ModeOption {
+    #[default]
+    None,
+    Mode(ModeId),
+    Push(ModeId)
+}
+
+impl ModeOption {
+    pub fn is_none(&self) -> bool {
+        self == &ModeOption::None
+    }
+
+    pub fn is_mode(&self) -> bool {
+        matches!(self, &ModeOption::Mode(_))
+    }
+
+    pub fn is_push(&self) -> bool {
+        matches!(self, &ModeOption::Push(_))
+    }
+}
+
 /// Terminal instructions for the lexer logic.
 ///
 /// Possible actions:
@@ -71,15 +93,15 @@ impl Display for TermAction {
 pub struct Terminal {
     pub action: TermAction,
     pub channel: ChannelId,
-    pub push_mode: Option<ModeId>,
-    pub push_state: Option<StateId>,
+    pub mode: ModeOption,
+    pub mode_state: Option<StateId>,
     pub pop: bool
 }
 
 impl Terminal {
     #[inline]
     pub fn is_only_skip(&self) -> bool {
-        self.action.is_skip() && self.push_mode.is_none() && self.push_state.is_none() && !self.pop
+        self.action.is_skip() && self.mode.is_none() && self.mode_state.is_none() && !self.pop
     }
 
     #[inline]
@@ -97,10 +119,13 @@ impl Display for Terminal {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "<{}", self.action)?;
         if self.channel != 0 { write!(f, ",ch {}", self.channel)?; }
-        if self.push_mode.is_some() || self.push_state.is_some() {
-            write!(f, ",push(")?;
-            if let Some(m) = self.push_mode { write!(f, "mode {m}")?; }
-            if let Some(s) = self.push_state { write!(f, ",state {s}")?; }
+        if !self.mode.is_none() || self.mode_state.is_some() {
+            match self.mode {
+                ModeOption::None => {}
+                ModeOption::Mode(m) => write!(f, ",mode({m}")?,
+                ModeOption::Push(m) => write!(f, ",push({m}")?,
+            }
+            if let Some(s) = self.mode_state { write!(f, ",state {s}")?; }
             write!(f, ")")?;
         }
         if self.pop { write!(f, ",pop")?; }
@@ -126,7 +151,7 @@ pub enum ReType { // todo: remove Boxes
 
 #[test]
 fn retype_size() {
-    let size = std::mem::size_of::<ReType>();
+    let size = size_of::<ReType>();
     assert!(size <= 16, "size of ReType is too big: {size}");
 }
 
@@ -683,13 +708,16 @@ impl DfaBuilder {
         }
         if init_states.len() > 1 {
             for (_, term) in dfa.end_states.iter_mut() {
-                term.push_state = term.push_mode.and_then(|m| {
-                    let state_opt = init_states.get(&m);
-                    if state_opt.is_none() {
-                        self.errors.push(format!("unknown mode {m} in merged graph"));
+                term.mode_state = match term.mode {
+                    ModeOption::None => None,
+                    ModeOption::Mode(m) | ModeOption::Push(m) => {
+                        let state_opt = init_states.get(&m);
+                        if state_opt.is_none() {
+                            self.errors.push(format!("unknown mode {m} in merged graph"));
+                        }
+                        state_opt.cloned()
                     }
-                    state_opt.cloned()
-                });
+                };
             }
             dfa.first_end_state = None;
         }
@@ -793,8 +821,8 @@ impl<T> Dfa<T> {
         }
         self.initial_state = self.initial_state.map(|st| *translate.get(&st).unwrap());
         for s in end_states.iter_mut() {
-            if let Some(state) = s.1.push_state {
-                s.1.push_state = Some(translate[&state])
+            if let Some(state) = s.1.mode_state {
+                s.1.mode_state = Some(translate[&state])
             }
         }
         self.end_states = end_states;
@@ -936,7 +964,7 @@ impl<T> Dfa<T> {
                 .filter_map(|(group_id, states)| states.iter()
                     .find_map(|s| self.end_states.get(s).map(|terminal| {
                         let mut new_terminal = terminal.clone();
-                        if let Some(state) = &mut new_terminal.push_state {
+                        if let Some(state) = &mut new_terminal.mode_state {
                             *state = st_to_group[state];
                         }
                         (group_id as StateId, new_terminal)
@@ -1036,7 +1064,7 @@ pub mod macros {
     /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
     /// assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
     /// assert_eq!(node!(str "new"), ReNode::string("new"));
-    /// assert_eq!(node!(=5), ReNode::end(Terminal { action: TermAction::Token(5), channel: 0, push_mode: None, push_state: None, pop: false }));
+    /// assert_eq!(node!(=5), ReNode::end(Terminal { action: TermAction::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
     /// assert_eq!(node!(&), ReNode::concat());
     /// assert_eq!(node!(|), ReNode::or());
     /// assert_eq!(node!(*), ReNode::star());
@@ -1058,7 +1086,7 @@ pub mod macros {
         (e) => { ReNode::empty() };
         (??) => { ReNode::lazy() };
         // actions:
-        (= $id:expr) => { ReNode::end($crate::dfa::Terminal { action: $crate::dfa::TermAction::Token($id), channel: 0, push_mode: None, push_state: None, pop: false }) };
+        (= $id:expr) => { ReNode::end($crate::dfa::Terminal { action: $crate::dfa::TermAction::Token($id), channel: 0, mode: $crate::dfa::ModeOption::None, mode_state: None, pop: false }) };
         ($id:expr) => { ReNode::end($id) };
         //
         ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
@@ -1067,13 +1095,14 @@ pub mod macros {
 
     #[macro_export(local_inner_macros)]
     macro_rules! term {
-        (= $id:expr ) =>     { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Token($id),channel: 0,   push_mode: None,      push_state: None,      pop: false } };
-        (more) =>            { $crate::dfa::Terminal { action: $crate::dfa::TermAction::More,      channel: 0,   push_mode: None,      push_state: None,      pop: false } };
-        (skip) =>            { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: None,      push_state: None,      pop: false } };
-        (push $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: Some($id), push_state: None,      pop: false } };
-        (pushst $id:expr) => { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: None,      push_state: Some($id), pop: false } };
-        (pop) =>             { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   push_mode: None,      push_state: None,      pop: true  } };
-        (# $id:expr) =>      { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: $id, push_mode: None,      push_state: None,      pop: false } };
+        (= $id:expr ) =>     { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Token($id),channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
+        (more) =>            { $crate::dfa::Terminal { action: $crate::dfa::TermAction::More,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
+        (skip) =>            { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
+        (mode $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::Mode($id), mode_state: None,      pop: false } };
+        (push $id:expr) =>   { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::Push($id), mode_state: None,      pop: false } };
+        (pushst $id:expr) => { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: Some($id), pop: false } };
+        (pop) =>             { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: true  } };
+        (# $id:expr) =>      { $crate::dfa::Terminal { action: $crate::dfa::TermAction::Skip,      channel: $id, mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
     }
 
     impl Add for Terminal {
@@ -1084,8 +1113,8 @@ pub mod macros {
                 // token: if self.token.is_some() { self.token } else { rhs.token },
                 action: self.action + rhs.action,
                 channel: self.channel + rhs.channel,
-                push_mode: if self.push_mode.is_some() { self.push_mode } else { rhs.push_mode },
-                push_state: if self.push_state.is_some() { self.push_state } else { rhs.push_state },
+                mode: if !self.mode.is_none() { self.mode } else { rhs.mode },
+                mode_state: if self.mode_state.is_some() { self.mode_state } else { rhs.mode_state },
                 pop: self.pop || rhs.pop
             }
         }
@@ -1100,7 +1129,7 @@ pub mod macros {
         assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
         assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
         assert_eq!(node!(str "new"), ReNode::string("new"));
-        assert_eq!(node!(=5), ReNode::end(Terminal { action: TermAction::Token(5), channel: 0, push_mode: None, push_state: None, pop: false }));
+        assert_eq!(node!(=5), ReNode::end(Terminal { action: TermAction::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
         assert_eq!(node!(&), ReNode::concat());
         assert_eq!(node!(|), ReNode::or());
         assert_eq!(node!(*), ReNode::star());
