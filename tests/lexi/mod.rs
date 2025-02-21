@@ -1,6 +1,6 @@
 mod basic_test;
 
-use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId};
+use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId};
 use std::collections::HashMap;
 use std::ops::{Add, Range};
 use vectree::VecTree;
@@ -84,18 +84,23 @@ impl Add for LexAction {
 
 #[derive(Debug)]
 enum RuleType {
-    Terminal(usize),
-    Fragment(usize)
+    Terminal(TokenId),
+    Fragment(TokenId)
 }
 
 struct LexiListener {
     verbose: bool,
     curr: Option<VecTree<ReNode>>,
+    curr_mode: ModeId,
     rules: HashMap<String, RuleType>,
+    /// VecTree of each fragment.
     fragments: Vec<VecTree<ReNode>>,
+    /// VecTree of each terminal. Some may be empty: `type(token)` with no corresponding rule.
     terminals: Vec<VecTree<ReNode>>,
-    modes: HashMap<String, usize>,
-    mode_range: Vec<Range<usize>>,    // exclusive range
+    channels: HashMap<String, ChannelId>,
+    modes: HashMap<String, ModeId>,
+    /// Range of terminals defined in `fragments` for each mode.
+    mode_terminals: Vec<Range<TokenId>>,
     log: Logger,
 }
 
@@ -104,11 +109,13 @@ impl LexiListener {
         LexiListener {
             verbose: false,
             curr: None,
+            curr_mode: 0,
             rules: HashMap::new(),
             fragments: Vec::new(),
             terminals: Vec::new(),
+            channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
-            mode_range: vec![0..0], // empty
+            mode_terminals: vec![0..0],
             log: Logger::new()
         }
     }
@@ -127,12 +134,27 @@ impl LexiParserListener for LexiListener {
         todo!()
     }
 
-    fn exit_declaration(&mut self, _ctx: CtxDeclaration) -> SynDeclaration {
-        todo!()
+    fn exit_declaration(&mut self, ctx: CtxDeclaration) -> SynDeclaration {
+        // FIXME: manage errors (may panic)
+        let CtxDeclaration::Declaration { id: mode_name } = ctx;
+        let mode_id = *self.modes.entry(mode_name.clone()).or_insert(
+            ModeId::try_from(self.modes.len()).expect(&format!("max {} modes", ModeId::MAX)));
+        self.curr_mode = mode_id;
+        let next_token = TokenId::try_from(self.terminals.len())
+            .expect(&format!("no room left for any terminal in mode {mode_name}, max {} allowed", TokenId::MAX));
+        *self.mode_terminals.get_mut(mode_id as usize) = next_token..next_token;
+        SynDeclaration()
     }
 
-    fn exit_option(&mut self, _ctx: CtxOption) -> SynOption {
-        todo!()
+    fn exit_option(&mut self, ctx: CtxOption) -> SynOption {
+        // FIXME: manage errors (may panic)
+        let CtxOption::Option { id, mut star } = ctx;
+        star.0.insert(0, id);
+        for ch in star.0 {
+            assert!(!self.channels.contains_key(&ch), "channel '{ch}' defined twice");
+            self.channels.insert(ch, self.channels.len() as ChannelId);
+        }
+        SynOption()
     }
 
     fn init_rule(&mut self) {
@@ -142,34 +164,42 @@ impl LexiParserListener for LexiListener {
 
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
         let (id, rule_type, action_maybe) = match ctx {
-            CtxRule::Rule1 { id, .. } => {
-                (id, RuleType::Fragment(self.fragments.len()), None)
+            // FIXME: manage errors (may panic)
+            CtxRule::Rule1 { id, .. } => {              // rule -> fragment Id : match ;
+                let rule_id = TokenId::try_from(self.fragments.len()).expect(&format!("max {} fragments", TokenId::MAX));
+                (id, RuleType::Fragment(rule_id), None)
             }
-            CtxRule::Rule2 { id, actions, .. } => {
-                (id, RuleType::Terminal(self.terminals.len()), Some(actions.0))
+            CtxRule::Rule2 { id, actions, .. } => {     // rule -> Id : match -> actions ;
+                let rule_id = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
+                (id, RuleType::Terminal(rule_id), Some(actions.0))
             }
-            CtxRule::Rule3 { id, .. } => {
-                (id, RuleType::Terminal(self.terminals.len()), None)
+            CtxRule::Rule3 { id, .. } => {              // rule -> Id : match ;
+                let rule_id = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
+                (id, RuleType::Terminal(rule_id), None)
             }
         };
         if self.rules.contains_key(&id) {
             self.log.add_error(format!("Symbol '{id}' is already defined"));
         } else {
             let mut rule = self.curr.take().unwrap();
-            if let RuleType::Fragment(_) = rule_type {
-                self.fragments.push(rule);
-            } else {
-                // if no action, only return
-                let rule_action = action_maybe.unwrap_or(action!(= self.terminals.len() as TokenId));
-                let mut root = rule.get_root().unwrap();
-                if *rule.get(root).get_type() != ReType::Concat {
-                    let new_root = rule.addci(None, node!(&), root);
-                    rule.set_root(new_root);
-                    root = new_root;
+            match rule_type {
+                RuleType::Fragment(_) => {
+                    self.fragments.push(rule);
                 }
-                let terminal = rule_action.to_terminal(Some(self.terminals.len() as TokenId)).unwrap(); // FIXME: manage errors (may panic)
-                rule.add(Some(root), ReNode::end(terminal));
-                self.terminals.push(rule);
+                RuleType::Terminal(rule_id) => {
+                    // if no action, only return
+                    let rule_action = action_maybe.unwrap_or(action!(= rule_id));
+                    let mut root = rule.get_root().unwrap();
+                    if *rule.get(root).get_type() != ReType::Concat {
+                        let new_root = rule.addci(None, node!(&), root);
+                        rule.set_root(new_root);
+                        root = new_root;
+                    }
+                    let terminal = rule_action.to_terminal(Some(rule_id)).unwrap();
+                    rule.add(Some(root), ReNode::end(terminal));
+                    self.terminals.push(rule);
+                    self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
+                }
             }
             self.rules.insert(id, rule_type);
         }
@@ -187,27 +217,43 @@ impl LexiParserListener for LexiListener {
 
     fn exit_action(&mut self, ctx: CtxAction) -> SynAction {
         let action = match ctx {
-            CtxAction::Action1 { id } => {
-                let n = self.modes.len();
-                let id_val = *self.modes.entry(id).or_insert({
-                    self.mode_range.push(0..0);
-                    n
-                }) as u16;
+            CtxAction::Action1 { id } => {              // action -> mode ( Id )
+                let n = ModeId::try_from(self.modes.len()).expect(&format!("max {} modes", ModeId::MAX));
+                let id_val = *self.modes.entry(id).or_insert(n);
                 action!(mode id_val)
             }
-            CtxAction::Action2 { id } => {
-                let n = self.modes.len();
-                let id_val = *self.modes.entry(id).or_insert({
-                    self.mode_range.push(0..0);
-                    n
-                }) as u16;
+            CtxAction::Action2 { id } => {              // action -> push ( Id )
+                let n = ModeId::try_from(self.modes.len()).expect(&format!("max {} modes", ModeId::MAX));
+                let id_val = *self.modes.entry(id).or_insert(n);
                 action!(push id_val)
             },
-            CtxAction::Action3 => action!(pop),
-            CtxAction::Action4 => action!(skip),
-            CtxAction::Action5 => action!(more),
-            CtxAction::Action6 { id } => todo!("type(id)"),
-            CtxAction::Action7 { id } => todo!("channel(id)")
+            CtxAction::Action3 => action!(pop),         // action -> pop
+            CtxAction::Action4 => action!(skip),        // action -> skip
+            CtxAction::Action5 => action!(more),        // action -> more
+            CtxAction::Action6 { id } => {              // action -> type ( Id )
+                // returns the token if that rule exists, otherwise creates it
+                let token = match self.rules.get(&id) {
+                    None => {
+                        let token = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
+                        self.rules.insert(id, RuleType::Terminal(token));
+                        self.terminals.push(VecTree::new());
+                        token
+                    }
+                    Some(rule) => {
+                        if let RuleType::Terminal(token) = rule {
+                            *token as TokenId
+                        } else {
+                            panic!("{id} is not a terminal; it's a fragment")   // FIXME: manage errors (may panic)
+                        }
+                    }
+                };
+                action!(= token)
+            }
+            CtxAction::Action7 { id } => {              // action -> channel ( Id )
+                // we don't allow to define new channels here on the fly because typos would induce annoying errors
+                let channel = *self.channels.get(&id).unwrap(); // FIXME: manage errors (may panic)
+                action!(# channel)
+            }
         };
         SynAction(action)
     }
