@@ -15,34 +15,46 @@ STRING_LITERAL  : '"' (~('"'|'\n'|'\r') | '""')* '"';
 
 The default action of a rule is to return the token, but other actions can be specified:
 
-- return the token on a specific channel (which must be defined in a `channels` rule):
+- `channel` returns the token on a specific channel (which must be defined in a `channels` rule). `DEFAULT_CHANNEL` is the name of channel 0, which is the default output channel for all tokens:
 ```
 channels { CH_COMMENTS, CH_WHITESPACES };
 COMMENT_LINE    : '//' ~[\r\n]*     -> channel(CH_COMMENTS);
 ```
-- discard the match:
+- `skip` discards the match:
 ```
 WHITESPACES     : [ \t\r\n]*        -> skip;
 ```
-- change the mode (mode sections are defined with the `mode` rule; `DEFAULT_MODE` is the mode name of the rules that aren't in another mode section):
+- `mode` changes the mode; `push` changes the mode, too, but pushes the current mode on a stack first (mode sections are defined with the `mode` rule; `DEFAULT_MODE` is the mode name of the rules that aren't in another mode section):
 ```
-SCRIPT_OPEN     : '<script'         -> push(script);
+SCRIPT_OPEN     : '<script'         -> push(SCRIPT);
 ID              : [A-Za-z][A-Za-z0-9]+;
 
-mode script;
+mode SCRIPT;
 SCRIPT_CLOSE    : '>'               -> pop;
 SCRIPT_INCLUDE  : 'include';
 SCRIPT_EXECUTE  : 'execute';
 SCRIPT_ID       : [a-z][a-z0-9]+;
 ```
+- `more` continues evaluating the rules but keep all the characters that have been matched so far:
+```
+TAG_OPEN        : '<'                   -> mode(TAG), more;
 
-The `channel` action returns the token, but the other actions don't. To force the return of a token, the `return` action can be added:
+mode TAG:
+TAG_MORE        : [a-zA-Z][a-zA-Z0-9]*  -> more;
+TAG             : '>'                   -> mode(DEFAULT_MODE);
+```
+
+If `skip` or `more` is in the list of actions, no token is returned. Otherwise, the rule returns the token related to the rule name or, if specified, to the `type(token)` action.
 
 ```
-SCRIPT_OPEN     : '<script'         -> push(script), return;
+STRING          : '"'         -> push(STRING), more;
+
+mode STRING;
+STRING_CLOSE    : '"'         -> pop, type(STRING);
+STRING_CONTENT  : [ -z]*      -> more;
 ```
 
-Fragments of lexemes that are used several times or that should be isolated can be defined by `fragment`.
+Fragments of lexemes that are used several times or that should be isolated can be defined by `fragment`. They're used as an alias inside rules, and they don't return any token nor can accept actions on their own.
 
 ```
 fragment DIGIT      : [0-9];
