@@ -90,6 +90,7 @@ enum RuleType {
 
 struct LexiListener {
     verbose: bool,
+    name: String,
     curr: Option<VecTree<ReNode>>,
     curr_mode: ModeId,
     rules: HashMap<String, RuleType>,
@@ -108,6 +109,7 @@ impl LexiListener {
     fn new() -> Self {
         LexiListener {
             verbose: false,
+            name: String::new(),
             curr: None,
             curr_mode: 0,
             rules: HashMap::new(),
@@ -130,8 +132,10 @@ impl LexiParserListener for LexiListener {
         todo!()
     }
 
-    fn exit_header(&mut self, _ctx: CtxHeader) -> SynHeader {
-        todo!()
+    fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader {
+        let CtxHeader::Header { id } = ctx;
+        self.name = id;
+        SynHeader()
     }
 
     fn exit_declaration(&mut self, ctx: CtxDeclaration) -> SynDeclaration {
@@ -259,25 +263,87 @@ impl LexiParserListener for LexiListener {
         SynAction(action)
     }
 
-    fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch {
+    fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch {
+        let CtxMatch::Match { alt_items } = ctx;
+
         SynMatch()
     }
 
-    fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems {
-        todo!()
+    fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems {
+        match ctx {
+            CtxAltItems::AltItems1 { alt_item } => {                // alt_items -> alt_item
+            }
+            CtxAltItems::AltItems2 { alt_items, alt_item } => {     // alt_items -> alt_items | alt_item
+            }
+            CtxAltItems::AltItems3 { alt_items } => {               // end of iterations in alt_items -> alt_items | alt_item
+            }
+        }
+        SynAltItems()
     }
 
-    fn exit_alt_item(&mut self, _ctx: CtxAltItem) -> SynAltItem {
-        todo!()
+    fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem {
+        let CtxAltItem::AltItem { plus } = ctx;
+
+        SynAltItem()
     }
 
-    fn exit_repeat_item(&mut self, _ctx: CtxRepeatItem) -> SynRepeatItem {
-        todo!()
+    fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem {
+        match ctx {
+            CtxRepeatItem::RepeatItem1 { repeat_item } => {
+                // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
+            }
+            CtxRepeatItem::RepeatItem2 { item } => {            // repeat_item -> item ?
+            }
+            CtxRepeatItem::RepeatItem3 { item } => {            // repeat_item -> item
+            }
+            CtxRepeatItem::RepeatItem4 { repeat_item } => {     // repeat_item -> repeat_item + ?
+            }
+            CtxRepeatItem::RepeatItem5 { repeat_item } => {     // repeat_item -> repeat_item +
+            }
+            CtxRepeatItem::RepeatItem6 { repeat_item } => {     // repeat_item -> repeat_item * ?
+            }
+            CtxRepeatItem::RepeatItem7 { repeat_item } => {     // repeat_item -> repeat_item *
+            }
+        }
+
+        SynRepeatItem()
     }
 
-    fn exit_item(&mut self, _ctx: CtxItem) -> SynItem {
-        todo!()
+    fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
+        match ctx {
+            CtxItem::Item1 { alt_items } => {       // item -> ( alt_items )
+            }
+            CtxItem::Item2 { item } => {            // item -> ~ item
+            }
+            CtxItem::Item3 => {                     // item -> EOF
+            }
+            CtxItem::Item4 { id } => {              // item -> Id
+            }
+            CtxItem::Item5 { charset } => {         // item -> CharSet
+            }
+            CtxItem::Item6 { strlit } => {          // item -> StrLit
+            }
+            CtxItem::Item7 { charlit } => {         // item -> CharLit .. CharLit
+            }
+            CtxItem::Item8 { charlit } => {         // item -> CharLit
+                // charlit is always sourrounded by quotes:
+                // fragment CharLiteral	: '\'' Char '\'';
+                let node = decode_char(&charlit[1..charlit.len() - 2]);
+                todo!()
+            }
+        }
+
+        SynItem()
     }
+}
+
+fn decode_char(char: &str) -> ReNode {
+    // fragment Char        : EscChar | ~[\n\r\t'\\];
+    // fragment EscChar     : '\\' ([nrt'\\] | UnicodeEsc);
+    // fragment UnicodeEsc  : 'u{' HexDigit+ '}';
+    // fragment HexDigit    : [0-9a-fA-F];
+
+    ReNode::char(todo!())
 }
 
 pub mod macros {
