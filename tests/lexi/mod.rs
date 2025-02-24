@@ -136,13 +136,14 @@ impl LexiParserListener for LexiListener {
 
     fn exit_declaration(&mut self, ctx: CtxDeclaration) -> SynDeclaration {
         // FIXME: manage errors (may panic)
-        let CtxDeclaration::Declaration { id: mode_name } = ctx;
-        let mode_id = *self.modes.entry(mode_name.clone()).or_insert(
-            ModeId::try_from(self.modes.len()).expect(&format!("max {} modes", ModeId::MAX)));
+        let CtxDeclaration::Declaration { id: mode_name } = ctx;    // declaration -> mode Id ;
+        let n = self.modes.len();
+        let mode_id = *self.modes.entry(mode_name.clone()).or_insert_with(||
+            ModeId::try_from(n).expect(&format!("max {} modes", ModeId::MAX)));
         self.curr_mode = mode_id;
         let next_token = TokenId::try_from(self.terminals.len())
             .expect(&format!("no room left for any terminal in mode {mode_name}, max {} allowed", TokenId::MAX));
-        *self.mode_terminals.get_mut(mode_id as usize) = next_token..next_token;
+        *self.mode_terminals.get_mut(mode_id as usize).unwrap() = next_token..next_token;
         SynDeclaration()
     }
 
@@ -218,13 +219,13 @@ impl LexiParserListener for LexiListener {
     fn exit_action(&mut self, ctx: CtxAction) -> SynAction {
         let action = match ctx {
             CtxAction::Action1 { id } => {              // action -> mode ( Id )
-                let n = ModeId::try_from(self.modes.len()).expect(&format!("max {} modes", ModeId::MAX));
-                let id_val = *self.modes.entry(id).or_insert(n);
+                let n = self.modes.len();
+                let id_val = *self.modes.entry(id).or_insert_with(|| ModeId::try_from(n).expect(&format!("max {} modes", ModeId::MAX)));
                 action!(mode id_val)
             }
             CtxAction::Action2 { id } => {              // action -> push ( Id )
-                let n = ModeId::try_from(self.modes.len()).expect(&format!("max {} modes", ModeId::MAX));
-                let id_val = *self.modes.entry(id).or_insert(n);
+                let n = self.modes.len();
+                let id_val = *self.modes.entry(id).or_insert_with(|| ModeId::try_from(n).expect(&format!("max {} modes", ModeId::MAX)));
                 action!(push id_val)
             },
             CtxAction::Action3 => action!(pop),         // action -> pop
