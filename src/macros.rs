@@ -7,19 +7,18 @@
 /// # Example
 /// ```
 /// # #[macro_use] fn main() {
-/// # use std::collections::HashMap;
 /// # use rlexer::hashmap;
 /// let days = hashmap![0 => "Monday", 1 => "Tuesday", 2 => "Wednesday"];
 /// // => HashMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday"), ])
-/// assert_eq!(days, HashMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday")]));
+/// assert_eq!(days, std::collections::HashMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday")]));
 /// # }
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! hashmap {
-    () => { HashMap::new() };
+    () => { std::collections::HashMap::new() };
     ($($key:expr => $value:expr,)+) => { hashmap!($($key => $value),+) };
     ($($key:expr => $value:expr),*) => {
-        HashMap::from([ $(($key, $value),)* ])
+        std::collections::HashMap::from([ $(($key, $value),)* ])
     };
 }
 
