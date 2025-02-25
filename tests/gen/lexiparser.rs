@@ -739,5 +739,5 @@ pub(crate) mod lexiparser_types {
     /// SynRepeatItem: User-defined type for `repeat_item`
     #[derive(Debug, PartialEq)] pub struct SynRepeatItem();
     /// SynItem: User-defined type for `item`
-    #[derive(Debug, PartialEq)] pub struct SynItem();
+    #[derive(Debug, PartialEq)] pub struct SynItem(pub usize);
 }

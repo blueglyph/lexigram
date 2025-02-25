@@ -7,6 +7,7 @@ use vectree::VecTree;
 use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
 use rlexer::{hashmap, node};
+use rlexer::segments::{Seg, Segments};
 use crate::action;
 use crate::gen::lexiparser::lexiparser::*;
 use crate::gen::lexiparser::lexiparser_types::*;
@@ -310,40 +311,72 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
+        // FIXME: manage errors (may panic)
+        let tree = self.curr.as_mut().unwrap();
         match ctx {
             CtxItem::Item1 { alt_items } => {       // item -> ( alt_items )
+                SynItem(todo!())
             }
             CtxItem::Item2 { item } => {            // item -> ~ item
+                SynItem(todo!())
             }
             CtxItem::Item3 => {                     // item -> EOF
+                todo!()
             }
             CtxItem::Item4 { id } => {              // item -> Id
+                if let Some(RuleType::Fragment(f)) = self.rules.get(&id) {
+                    let subtree = self.fragments.get(*f as usize).unwrap();
+                    SynItem(tree.add_from_tree(None, subtree, None))
+                } else {
+                    panic!("unknown fragment '{id}'")
+                }
             }
             CtxItem::Item5 { charset } => {         // item -> CharSet
+                SynItem(todo!())
             }
             CtxItem::Item6 { strlit } => {          // item -> StrLit
+                let s = &strlit[1..strlit.len()];
+                SynItem(tree.add(None, ReNode::string(s)))
             }
             CtxItem::Item7 { charlit } => {         // item -> CharLit .. CharLit
+                let c1 = decode_char(&charlit[0][1..charlit[0].len() - 2]).unwrap_or_else(|s| panic!("{s}"));
+                let c2 = decode_char(&charlit[1][1..charlit[1].len() - 2]).unwrap_or_else(|s| panic!("{s}"));
+                SynItem(tree.add(None, ReNode::char_range(Segments::new(Seg(c1 as u32, c2 as u32)))))
             }
             CtxItem::Item8 { charlit } => {         // item -> CharLit
                 // charlit is always sourrounded by quotes:
                 // fragment CharLiteral	: '\'' Char '\'';
-                let node = decode_char(&charlit[1..charlit.len() - 2]);
-                todo!()
+                let c = decode_char(&charlit[1..charlit.len() - 2]).unwrap_or_else(|s| panic!("{s}"));
+                SynItem(tree.add(None, ReNode::char(c)))
             }
         }
-
-        SynItem()
     }
 }
 
-fn decode_char(char: &str) -> ReNode {
+fn decode_char(char: &str) -> Result<char, String> {
     // fragment Char        : EscChar | ~[\n\r\t'\\];
     // fragment EscChar     : '\\' ([nrt'\\] | UnicodeEsc);
     // fragment UnicodeEsc  : 'u{' HexDigit+ '}';
     // fragment HexDigit    : [0-9a-fA-F];
+    if char.as_bytes()[0] == b'\\' {
+        match char.as_bytes()[1] {
+            b'n' => Ok('\n'),
+            b'r' => Ok('\r'),
+            b't' => Ok('\t'),
+            b'\'' => Ok('\''),
+            b'\\' => Ok('\\'),
+            b'u' => {
+                let hex = &char[3..char.len()];
+                let code = u32::from_str_radix(hex, 16).map_err(|_| format!("{hex} isn't a valid hexadecimal value"))?;
+                let u = char::from_u32(code).ok_or(format!("{hex} isn't a valid unicode hexadecimal value"))?;
+                Ok(u)
+            }
+            _ => Err(format!("Unknown escape code '{char}'")), // shouldn't happen
+        }
 
-    ReNode::char(todo!())
+    } else {
+        Ok(char.chars().nth(1).unwrap())
+    }
 }
 
 pub mod macros {

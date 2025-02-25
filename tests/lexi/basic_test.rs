@@ -135,7 +135,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_item(&mut self, _ctx: CtxItem) -> SynItem {
         if self.verbose { println!("exit_item"); }
-        SynItem()
+        SynItem(0)
     }
     
     
