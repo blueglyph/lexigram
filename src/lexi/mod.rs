@@ -394,7 +394,6 @@ repeat_item:
 
 item:
     ID
-|   SYM_EOF
 |   CHAR_LIT (ELLIPSIS CHAR_LIT)?
 |   STR_LIT
 |   CHAR_SET
@@ -569,7 +568,6 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     //
     // item:
     //     ID
-    // |   SYM_EOF
     // |   CHAR_LIT (ELLIPSIS CHAR_LIT)?
     // |   STR_LIT
     // |   CHAR_SET
@@ -580,18 +578,17 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     let or = tree.add_root(gnode!(|));
     let cc1s = tree.add_iter(Some(or), [
         gnode!(t T::Id),        // 0: ID
-        gnode!(t T::SymEof),    // 1: SYM_EOF
         gnode!(&),              // 2: CHAR_LIT (ELLIPSIS CHAR_LIT)?
         gnode!(t T::StrLit),    // 3: STR_LIT
         gnode!(t T::CharSet),   // 4: CHAR_SET
         gnode!(&),              // 5: LPAREN alt_items RPAREN
         gnode!(&),              // 6: NEGATE item
     ]);
-    tree.add(Some(cc1s[2]), gnode!(t T::CharLit));
-    let maybe2 = tree.add(Some(cc1s[2]), gnode!(?));
+    tree.add(Some(cc1s[1]), gnode!(t T::CharLit));
+    let maybe2 = tree.add(Some(cc1s[1]), gnode!(?));
     tree.addc_iter(Some(maybe2), gnode!(&), [gnode!(t T::Ellipsis), gnode!(t T::CharLit)]);
-    tree.add_iter(Some(cc1s[5]), [gnode!(t T::Lparen), gnode!(nt NT::AltItems), gnode!(t T::Rparen)]);
-    tree.add_iter(Some(cc1s[6]), [gnode!(t T::Negate), gnode!(nt NT::Item)]);
+    tree.add_iter(Some(cc1s[4]), [gnode!(t T::Lparen), gnode!(nt NT::AltItems), gnode!(t T::Rparen)]);
+    tree.add_iter(Some(cc1s[5]), [gnode!(t T::Negate), gnode!(nt NT::Item)]);
 
     rules
 }

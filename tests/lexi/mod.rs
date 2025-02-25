@@ -320,10 +320,7 @@ impl LexiParserListener for LexiListener {
             CtxItem::Item2 { item } => {            // item -> ~ item
                 SynItem(todo!())
             }
-            CtxItem::Item3 => {                     // item -> EOF
-                todo!()
-            }
-            CtxItem::Item4 { id } => {              // item -> Id
+            CtxItem::Item3 { id } => {              // item -> Id
                 if let Some(RuleType::Fragment(f)) = self.rules.get(&id) {
                     let subtree = self.fragments.get(*f as usize).unwrap();
                     SynItem(tree.add_from_tree(None, subtree, None))
@@ -331,19 +328,19 @@ impl LexiParserListener for LexiListener {
                     panic!("unknown fragment '{id}'")
                 }
             }
-            CtxItem::Item5 { charset } => {         // item -> CharSet
+            CtxItem::Item4 { charset } => {         // item -> CharSet
                 SynItem(todo!())
             }
-            CtxItem::Item6 { strlit } => {          // item -> StrLit
+            CtxItem::Item5 { strlit } => {          // item -> StrLit
                 let s = &strlit[1..strlit.len()];
                 SynItem(tree.add(None, ReNode::string(s)))
             }
-            CtxItem::Item7 { charlit } => {         // item -> CharLit .. CharLit
+            CtxItem::Item6 { charlit } => {         // item -> CharLit .. CharLit
                 let c1 = decode_char(&charlit[0][1..charlit[0].len() - 2]).unwrap_or_else(|s| panic!("{s}"));
                 let c2 = decode_char(&charlit[1][1..charlit[1].len() - 2]).unwrap_or_else(|s| panic!("{s}"));
                 SynItem(tree.add(None, ReNode::char_range(Segments::new(Seg(c1 as u32, c2 as u32)))))
             }
-            CtxItem::Item8 { charlit } => {         // item -> CharLit
+            CtxItem::Item7 { charlit } => {         // item -> CharLit
                 // charlit is always sourrounded by quotes:
                 // fragment CharLiteral	: '\'' Char '\'';
                 let c = decode_char(&charlit[1..charlit.len() - 2]).unwrap_or_else(|s| panic!("{s}"));

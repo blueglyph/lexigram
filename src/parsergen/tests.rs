@@ -1389,36 +1389,35 @@ mod wrapper_source {
                 21 => symbols![],                       // 21: repeat_item -> item repeat_item_2     | ►repeat_item_2 ►item          |
                 22 => symbols![nt 9],                   // 22: item -> ( alt_items )                 | ◄22 ) ►alt_items (            | alt_items
                 23 => symbols![nt 12],                  // 23: item -> ~ item                        | ◄23 ►item ~                   | item
-                24 => symbols![],                       // 24: item -> EOF                           | ◄24 EOF                       |
-                25 => symbols![t 25],                   // 25: item -> Id                            | ◄25 Id!                       | Id
-                26 => symbols![],                       // 26: item -> CharLit item_1                | ►item_1 CharLit!              |
-                27 => symbols![t 27],                   // 27: item -> CharSet                       | ◄27 CharSet!                  | CharSet
-                28 => symbols![t 28],                   // 28: item -> StrLit                        | ◄28 StrLit!                   | StrLit
-                29 => symbols![nt 13, nt 1],            // 29: file_1 -> file_item file_1            | ●file_1 ◄29 ►file_item        | file_1 file_item
-                30 => symbols![],                       // 30: file_1 -> ε                           | ◄30                           |
-                31 => symbols![nt 14, t 25],            // 31: option_1 -> , Id option_1             | ●option_1 ◄31 Id! ,           | option_1 Id
-                32 => symbols![],                       // 32: option_1 -> ε                         | ◄32                           |
-                33 => symbols![nt 15, nt 7],            // 33: actions_1 -> , action actions_1       | ●actions_1 ◄33 ►action ,      | actions_1 action
-                34 => symbols![],                       // 34: actions_1 -> ε                        | ◄34                           |
-                35 => symbols![],                       // 35: alt_item_1 -> repeat_item alt_item_2  | ►alt_item_2 ►repeat_item      |
-                36 => symbols![nt 9, nt 10],            // 36: alt_items_1 -> | alt_item alt_items_1 | ●alt_items_1 ◄36 ►alt_item |  | alt_items alt_item
-                37 => symbols![nt 9],                   // 37: alt_items_1 -> ε                      | ◄37                           | alt_items
-                38 => symbols![],                       // 38: repeat_item_1 -> + repeat_item_3      | ►repeat_item_3 +              |
-                39 => symbols![],                       // 39: repeat_item_1 -> * repeat_item_4      | ►repeat_item_4 *              |
-                40 => symbols![nt 11],                  // 40: repeat_item_1 -> ε                    | ◄40                           | repeat_item
-                41 => symbols![t 25, nt 8, nt 6],       // 41: rule_1 -> -> actions ;                | ◄41 ; ►actions ->             | Id match actions
-                42 => symbols![t 25, nt 8],             // 42: rule_1 -> ;                           | ◄42 ;                         | Id match
-                43 => symbols![nt 12],                  // 43: repeat_item_2 -> ? repeat_item_1      | ►repeat_item_1 ◄43 ?          | item
-                44 => symbols![nt 12],                  // 44: repeat_item_2 -> repeat_item_1        | ►repeat_item_1 ◄44            | item
-                45 => symbols![t 26, t 26],             // 45: item_1 -> .. CharLit                  | ◄45 CharLit! ..               | CharLit CharLit
-                46 => symbols![t 26],                   // 46: item_1 -> ε                           | ◄46                           | CharLit
-                47 => symbols![nt 16, nt 11],           // 47: alt_item_2 -> alt_item_1              | ●alt_item_1 ◄47               | alt_item_1 repeat_item
-                48 => symbols![nt 16, nt 11],           // 48: alt_item_2 -> ε                       | ◄48                           | alt_item_1 repeat_item
-                49 => symbols![nt 11],                  // 49: repeat_item_3 -> ? repeat_item_1      | ●repeat_item_1 ◄49 ?          | repeat_item
-                50 => symbols![nt 11],                  // 50: repeat_item_3 -> repeat_item_1        | ●repeat_item_1 ◄50            | repeat_item
-                51 => symbols![nt 11],                  // 51: repeat_item_4 -> ? repeat_item_1      | ●repeat_item_1 ◄51 ?          | repeat_item
-                52 => symbols![nt 11],                  // 52: repeat_item_4 -> repeat_item_1        | ●repeat_item_1 ◄52            | repeat_item
-            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 41, 42], 6 => vec![10], 7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![43, 44], 12 => vec![22, 23, 24, 25, 27, 28, 45, 46]]),
+                24 => symbols![t 25],                   // 24: item -> Id                            | ◄24 Id!                       | Id
+                25 => symbols![],                       // 25: item -> CharLit item_1                | ►item_1 CharLit!              |
+                26 => symbols![t 27],                   // 26: item -> CharSet                       | ◄26 CharSet!                  | CharSet
+                27 => symbols![t 28],                   // 27: item -> StrLit                        | ◄27 StrLit!                   | StrLit
+                28 => symbols![nt 13, nt 1],            // 28: file_1 -> file_item file_1            | ●file_1 ◄28 ►file_item        | file_1 file_item
+                29 => symbols![],                       // 29: file_1 -> ε                           | ◄29                           |
+                30 => symbols![nt 14, t 25],            // 30: option_1 -> , Id option_1             | ●option_1 ◄30 Id! ,           | option_1 Id
+                31 => symbols![],                       // 31: option_1 -> ε                         | ◄31                           |
+                32 => symbols![nt 15, nt 7],            // 32: actions_1 -> , action actions_1       | ●actions_1 ◄32 ►action ,      | actions_1 action
+                33 => symbols![],                       // 33: actions_1 -> ε                        | ◄33                           |
+                34 => symbols![],                       // 34: alt_item_1 -> repeat_item alt_item_2  | ►alt_item_2 ►repeat_item      |
+                35 => symbols![nt 9, nt 10],            // 35: alt_items_1 -> | alt_item alt_items_1 | ●alt_items_1 ◄35 ►alt_item |  | alt_items alt_item
+                36 => symbols![nt 9],                   // 36: alt_items_1 -> ε                      | ◄36                           | alt_items
+                37 => symbols![],                       // 37: repeat_item_1 -> + repeat_item_3      | ►repeat_item_3 +              |
+                38 => symbols![],                       // 38: repeat_item_1 -> * repeat_item_4      | ►repeat_item_4 *              |
+                39 => symbols![nt 11],                  // 39: repeat_item_1 -> ε                    | ◄39                           | repeat_item
+                40 => symbols![t 25, nt 8, nt 6],       // 40: rule_1 -> -> actions ;                | ◄40 ; ►actions ->             | Id match actions
+                41 => symbols![t 25, nt 8],             // 41: rule_1 -> ;                           | ◄41 ;                         | Id match
+                42 => symbols![nt 12],                  // 42: repeat_item_2 -> ? repeat_item_1      | ►repeat_item_1 ◄42 ?          | item
+                43 => symbols![nt 12],                  // 43: repeat_item_2 -> repeat_item_1        | ►repeat_item_1 ◄43            | item
+                44 => symbols![t 26, t 26],             // 44: item_1 -> .. CharLit                  | ◄44 CharLit! ..               | CharLit CharLit
+                45 => symbols![t 26],                   // 45: item_1 -> ε                           | ◄45                           | CharLit
+                46 => symbols![nt 16, nt 11],           // 46: alt_item_2 -> alt_item_1              | ●alt_item_1 ◄46               | alt_item_1 repeat_item
+                47 => symbols![nt 16, nt 11],           // 47: alt_item_2 -> ε                       | ◄47                           | alt_item_1 repeat_item
+                48 => symbols![nt 11],                  // 48: repeat_item_3 -> ? repeat_item_1      | ●repeat_item_1 ◄48 ?          | repeat_item
+                49 => symbols![nt 11],                  // 49: repeat_item_3 -> repeat_item_1        | ●repeat_item_1 ◄49            | repeat_item
+                50 => symbols![nt 11],                  // 50: repeat_item_4 -> ? repeat_item_1      | ●repeat_item_1 ◄50 ?          | repeat_item
+                51 => symbols![nt 11],                  // 51: repeat_item_4 -> repeat_item_1        | ●repeat_item_1 ◄51            | repeat_item
+            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 40, 41], 6 => vec![10], 7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![42, 43], 12 => vec![22, 23, 24, 26, 27, 44, 45]]),
             /*
             (PRS(), 0, btreemap![], btreemap![], Default, btreemap![]),
             (RTS(), 0, btreemap![], btreemap![], Default, btreemap![]),

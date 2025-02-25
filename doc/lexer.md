@@ -218,7 +218,6 @@ repeat_item:
 
 item:
     ID
-|   SYM_EOF
 |   CHAR_LIT (ELLIPSIS CHAR_LIT)?
 |   STR_LIT
 |   CHAR_SET
