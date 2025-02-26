@@ -328,20 +328,12 @@ impl LexiParserListener for LexiListener {
                     panic!("unknown fragment '{id}'")
                 }
             }
-            CtxItem::Item4 { charset } => {         // item -> CharSet
-                // fragment HexDigit    : [0-9a-fA-F];
-                // fragment UnicodeEsc  : 'u{' HexDigit+ '}';
-                // fragment EscSetChar  : '\\' ([nrt\\[\]\-] | UnicodeEsc);
-                // fragment SetChar     : (EscSetChar | ~[\n\r\t\\\]]);
-                // fragment FixedSet    : ('\\w' | '\\d');
-                // CHAR_SET             : '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
-                //                      | '.'
-                //                      | FixedSet;
-                SynItem(todo!())
-            }
-            CtxItem::Item5 { strlit } => {          // item -> StrLit
+            CtxItem::Item4 { strlit } => {          // item -> StrLit
                 let s = &strlit[1..strlit.len()];
                 SynItem(tree.add(None, ReNode::string(s)))
+            }
+            CtxItem::Item5 { char_set } => {         // item -> CharSet
+                SynItem(todo!())
             }
             CtxItem::Item6 { charlit } => {         // item -> CharLit .. CharLit
                 let c1 = decode_char(&charlit[0][1..charlit[0].len() - 2]).unwrap_or_else(|s| panic!("{s}"));
@@ -355,6 +347,14 @@ impl LexiParserListener for LexiListener {
                 SynItem(tree.add(None, ReNode::char(c)))
             }
         }
+    }
+
+    fn exit_char_set(&mut self, _ctx: CtxCharSet) -> SynCharSet {
+        todo!()
+    }
+
+    fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne {
+        todo!()
     }
 }
 

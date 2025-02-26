@@ -137,8 +137,14 @@ impl LexiParserListener for LexiListener {
         if self.verbose { println!("exit_item"); }
         SynItem(0)
     }
-    
-    
+
+    fn exit_char_set(&mut self, _ctx: CtxCharSet) -> SynCharSet {
+        SynCharSet()
+    }
+
+    fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne {
+        SynCharSetOne()
+    }
 }
 
 mod tests {
@@ -155,7 +161,7 @@ mod tests {
         let tests = [
             ("", 0),
             ("lexicon LexiLexer;", 3),
-            (LEXICON, 269),
+            (LEXICON, 326),
         ];
         const VERBOSE: bool = false;
         const VERBOSE_DETAILS: bool = false;

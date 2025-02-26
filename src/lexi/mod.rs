@@ -410,10 +410,13 @@ item:
 ;
 
 char_set:
-    LSBRACKET (SET_CHAR MINUS SET_CHAR | SET_CHAR | FIXED_SET)+ RSBRACKET
+    LSBRACKET (char_set_one)+ RSBRACKET
 |   DOT
 |   FIXED_SET;
 ;
+
+char_set_one:
+    SET_CHAR MINUS SET_CHAR | SET_CHAR | FIXED_SET;
 
 "#;
 
@@ -433,9 +436,10 @@ enum NT {
     RepeatItem,         // 11
     Item,               // 12
     CharSet,            // 13
+    CharSetOne,         // 14
 }
 
-const NON_TERMINALS: [&str; 14] = [
+const NON_TERMINALS: [&str; 15] = [
     "file",             // 0
     "file_item",        // 1
     "header",           // 2
@@ -450,6 +454,7 @@ const NON_TERMINALS: [&str; 14] = [
     "repeat_item",      // 11
     "item",             // 12
     "char_set",         // 13
+    "char_set_one",     // 14
 ];
 
 pub(crate) fn build_rts() -> RuleTreeSet<General> {
@@ -606,6 +611,25 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     tree.addc_iter(Some(maybe2), gnode!(&), [gnode!(t T::Ellipsis), gnode!(t T::CharLit)]);
     tree.add_iter(Some(cc1s[4]), [gnode!(t T::Lparen), gnode!(nt NT::AltItems), gnode!(t T::Rparen)]);
     tree.add_iter(Some(cc1s[5]), [gnode!(t T::Negate), gnode!(nt NT::Item)]);
+
+    // char_set:
+    //     LSBRACKET (char_set_one)+ RSBRACKET
+    // |   DOT
+    // |   FIXED_SET;
+    let tree = rules.get_tree_mut(NT::CharSet as VarId);
+    let or = tree.add_root(gnode!(|));
+    let cc1 = tree.addc(Some(or), gnode!(&), gnode!(t T::LSbracket));
+    let star2 = tree.addc(Some(cc1), gnode!(+), gnode!(nt NT::CharSetOne));
+    tree.add(Some(cc1), gnode!(t T::RSbracket));
+    tree.add(Some(or), gnode!(t T::Dot));
+    tree.add(Some(or), gnode!(t T::FixedSet));
+
+    // char_set_one:
+    //     SET_CHAR MINUS SET_CHAR | SET_CHAR | FIXED_SET;
+    let tree = rules.get_tree_mut(NT::CharSetOne as VarId);
+    let or = tree.add_root(gnode!(|));
+    tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::SetChar), gnode!(t T::Minus), gnode!(t T::SetChar)]);
+    tree.add_iter(Some(or), [gnode!(t T::SetChar), gnode!(t T::FixedSet)]);
 
     rules
 }

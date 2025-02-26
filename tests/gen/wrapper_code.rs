@@ -519,4 +519,10 @@ pub(crate) mod code_rts_100_1 {
     /// User-defined type for `item`
     #[derive(Debug, PartialEq)]
     pub struct SynItem();
+
+    /// User-defined type for `char_set`
+    #[derive(Debug, PartialEq)] pub struct SynCharSet();
+
+    /// User-defined type for `char_set_one`
+    #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
 }

@@ -7,16 +7,16 @@ pub(crate) mod lexiparser {
     use rlexer::{CollectJoin, grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{Call, Listener, OpCode, Parser}, symbol_table::SymbolTable};
     use super::lexiparser_types::*;
 
-    const PARSER_NUM_T: usize = 29;
-    const PARSER_NUM_NT: usize = 25;
-    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("Colon", Some(":")), ("Comma", Some(",")), ("Ellipsis", Some("..")), ("Lbracket", Some("{")), ("Lparen", Some("(")), ("Negate", Some("~")), ("Plus", Some("+")), ("Or", Some("|")), ("Question", Some("?")), ("Rbracket", Some("}")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Channels", Some("channels")), ("Fragment", Some("fragment")), ("Lexicon", Some("lexicon")), ("Mode", Some("mode")), ("Pop", Some("pop")), ("Push", Some("push")), ("More", Some("more")), ("Skip", Some("skip")), ("Type", Some("type")), ("Channel", Some("channel")), ("SymEof", Some("EOF")), ("Id", None), ("CharLit", None), ("CharSet", None), ("StrLit", None)];
-    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "file_item", "header", "declaration", "option", "rule", "actions", "action", "match", "alt_items", "alt_item", "repeat_item", "item", "file_1", "option_1", "actions_1", "alt_item_1", "alt_items_1", "repeat_item_1", "rule_1", "repeat_item_2", "item_1", "alt_item_2", "repeat_item_3", "repeat_item_4"];
-    const SYMBOLS_NAMES: [(&str, VarId); 12] = [("actions_1", 15), ("alt_item_1", 16), ("alt_item_2", 22), ("alt_items_1", 17), ("file_1", 13), ("item_1", 21), ("option_1", 14), ("repeat_item_1", 18), ("repeat_item_2", 20), ("repeat_item_3", 23), ("repeat_item_4", 24), ("rule_1", 19)];
-    const PARSING_FACTORS: [(VarId, &[Symbol]); 52] = [(0, &[Symbol::NT(2), Symbol::NT(13)]), (0, &[Symbol::NT(13)]), (1, &[Symbol::NT(4)]), (1, &[Symbol::NT(3)]), (1, &[Symbol::NT(5)]), (2, &[Symbol::T(16), Symbol::T(25), Symbol::T(12)]), (3, &[Symbol::T(17), Symbol::T(25), Symbol::T(12)]), (4, &[Symbol::T(14), Symbol::T(4), Symbol::T(25), Symbol::NT(14), Symbol::T(10)]), (5, &[Symbol::T(15), Symbol::T(25), Symbol::T(1), Symbol::NT(8), Symbol::T(12)]), (5, &[Symbol::T(25), Symbol::T(1), Symbol::NT(8), Symbol::NT(19)]), (6, &[Symbol::NT(7), Symbol::NT(15)]), (7, &[Symbol::T(17), Symbol::T(5), Symbol::T(25), Symbol::T(11)]), (7, &[Symbol::T(19), Symbol::T(5), Symbol::T(25), Symbol::T(11)]), (7, &[Symbol::T(18)]), (7, &[Symbol::T(21)]), (7, &[Symbol::T(20)]), (7, &[Symbol::T(22), Symbol::T(5), Symbol::T(25), Symbol::T(11)]), (7, &[Symbol::T(23), Symbol::T(5), Symbol::T(25), Symbol::T(11)]), (8, &[Symbol::NT(9)]), (9, &[Symbol::NT(10), Symbol::NT(17)]), (10, &[Symbol::NT(16)]), (11, &[Symbol::NT(12), Symbol::NT(20)]), (12, &[Symbol::T(5), Symbol::NT(9), Symbol::T(11)]), (12, &[Symbol::T(6), Symbol::NT(12)]), (12, &[Symbol::T(25)]), (12, &[Symbol::T(26), Symbol::NT(21)]), (12, &[Symbol::T(27)]), (12, &[Symbol::T(28)]), (13, &[Symbol::NT(1), Symbol::NT(13)]), (13, &[Symbol::Empty]), (14, &[Symbol::T(2), Symbol::T(25), Symbol::NT(14)]), (14, &[Symbol::Empty]), (15, &[Symbol::T(2), Symbol::NT(7), Symbol::NT(15)]), (15, &[Symbol::Empty]), (16, &[Symbol::NT(11), Symbol::NT(22)]), (17, &[Symbol::T(8), Symbol::NT(10), Symbol::NT(17)]), (17, &[Symbol::Empty]), (18, &[Symbol::T(7), Symbol::NT(23)]), (18, &[Symbol::T(13), Symbol::NT(24)]), (18, &[Symbol::Empty]), (19, &[Symbol::T(0), Symbol::NT(6), Symbol::T(12)]), (19, &[Symbol::T(12)]), (20, &[Symbol::T(9), Symbol::NT(18)]), (20, &[Symbol::NT(18)]), (21, &[Symbol::T(3), Symbol::T(26)]), (21, &[Symbol::Empty]), (22, &[Symbol::NT(16)]), (22, &[Symbol::Empty]), (23, &[Symbol::T(9), Symbol::NT(18)]), (23, &[Symbol::NT(18)]), (24, &[Symbol::T(9), Symbol::NT(18)]), (24, &[Symbol::NT(18)])];
-    const PARSING_TABLE: [FactorId; 750] = [52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 1, 1, 0, 1, 52, 52, 52, 52, 52, 52, 52, 1, 52, 52, 52, 1, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 2, 4, 52, 3, 52, 52, 52, 52, 52, 52, 52, 4, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 5, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 6, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 7, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 8, 52, 52, 52, 52, 52, 52, 52, 52, 52, 9, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 10, 10, 10, 10, 10, 10, 10, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 11, 13, 12, 15, 14, 16, 17, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 18, 18, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 18, 18, 18, 18, 52, 52, 52, 52, 52, 52, 19, 19, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 19, 19, 19, 19, 52, 52, 52, 52, 52, 52, 20, 20, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 20, 20, 20, 20, 52, 52, 52, 52, 52, 52, 21, 21, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 21, 21, 21, 21, 52, 52, 52, 52, 52, 52, 22, 23, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 24, 25, 26, 27, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 28, 28, 52, 28, 52, 52, 52, 52, 52, 52, 52, 28, 52, 52, 52, 29, 52, 52, 30, 52, 52, 52, 52, 52, 52, 52, 31, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 32, 52, 52, 52, 52, 52, 52, 52, 52, 52, 33, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 34, 34, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 34, 34, 34, 34, 52, 36, 52, 52, 52, 52, 52, 52, 52, 35, 52, 52, 36, 36, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 39, 52, 52, 52, 52, 39, 39, 37, 39, 52, 52, 39, 39, 38, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 39, 39, 39, 39, 52, 40, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 41, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 43, 52, 52, 52, 52, 43, 43, 43, 43, 42, 52, 43, 43, 43, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 43, 43, 43, 43, 52, 45, 52, 52, 44, 52, 45, 45, 45, 45, 45, 52, 45, 45, 45, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 45, 45, 45, 45, 52, 47, 52, 52, 52, 52, 46, 46, 52, 47, 52, 52, 47, 47, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 46, 46, 46, 46, 52, 49, 52, 52, 52, 52, 49, 49, 49, 49, 48, 52, 49, 49, 49, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 49, 49, 49, 49, 52, 51, 52, 52, 52, 52, 51, 51, 51, 51, 50, 52, 51, 51, 51, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 52, 51, 51, 51, 51, 52];
-    const FLAGS: [u32; 25] = [2048, 0, 0, 0, 2048, 32, 2048, 0, 0, 512, 6144, 544, 34, 1, 1, 1, 4129, 4, 36, 64, 64, 64, 64, 64, 64];
-    const PARENT: [Option<VarId>; 25] = [None, None, None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(4), Some(6), Some(10), Some(9), Some(11), Some(5), Some(11), Some(12), Some(16), Some(18), Some(18)];
-    const OPCODES: [&[OpCode]; 52] = [&[OpCode::Exit(0), OpCode::NT(13), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::NT(13)], &[OpCode::Exit(2), OpCode::NT(4)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(12), OpCode::T(25), OpCode::T(16)], &[OpCode::Exit(6), OpCode::T(12), OpCode::T(25), OpCode::T(17)], &[OpCode::Exit(7), OpCode::T(10), OpCode::NT(14), OpCode::T(25), OpCode::T(4), OpCode::T(14)], &[OpCode::Exit(8), OpCode::T(12), OpCode::NT(8), OpCode::T(1), OpCode::T(25), OpCode::T(15)], &[OpCode::NT(19), OpCode::NT(8), OpCode::T(1), OpCode::T(25)], &[OpCode::Exit(10), OpCode::NT(15), OpCode::NT(7)], &[OpCode::Exit(11), OpCode::T(11), OpCode::T(25), OpCode::T(5), OpCode::T(17)], &[OpCode::Exit(12), OpCode::T(11), OpCode::T(25), OpCode::T(5), OpCode::T(19)], &[OpCode::Exit(13), OpCode::T(18)], &[OpCode::Exit(14), OpCode::T(21)], &[OpCode::Exit(15), OpCode::T(20)], &[OpCode::Exit(16), OpCode::T(11), OpCode::T(25), OpCode::T(5), OpCode::T(22)], &[OpCode::Exit(17), OpCode::T(11), OpCode::T(25), OpCode::T(5), OpCode::T(23)], &[OpCode::Exit(18), OpCode::NT(9)], &[OpCode::NT(17), OpCode::Exit(19), OpCode::NT(10)], &[OpCode::Exit(20), OpCode::NT(16)], &[OpCode::NT(20), OpCode::NT(12)], &[OpCode::Exit(22), OpCode::T(11), OpCode::NT(9), OpCode::T(5)], &[OpCode::Exit(23), OpCode::NT(12), OpCode::T(6)], &[OpCode::Exit(24), OpCode::T(25)], &[OpCode::NT(21), OpCode::T(26)], &[OpCode::Exit(26), OpCode::T(27)], &[OpCode::Exit(27), OpCode::T(28)], &[OpCode::Loop(13), OpCode::Exit(28), OpCode::NT(1)], &[OpCode::Exit(29)], &[OpCode::Loop(14), OpCode::Exit(30), OpCode::T(25), OpCode::T(2)], &[OpCode::Exit(31)], &[OpCode::Loop(15), OpCode::Exit(32), OpCode::NT(7), OpCode::T(2)], &[OpCode::Exit(33)], &[OpCode::NT(22), OpCode::NT(11)], &[OpCode::Loop(17), OpCode::Exit(35), OpCode::NT(10), OpCode::T(8)], &[OpCode::Exit(36)], &[OpCode::NT(23), OpCode::T(7)], &[OpCode::NT(24), OpCode::T(13)], &[OpCode::Exit(39)], &[OpCode::Exit(40), OpCode::T(12), OpCode::NT(6), OpCode::T(0)], &[OpCode::Exit(41), OpCode::T(12)], &[OpCode::NT(18), OpCode::Exit(42), OpCode::T(9)], &[OpCode::NT(18), OpCode::Exit(43)], &[OpCode::Exit(44), OpCode::T(26), OpCode::T(3)], &[OpCode::Exit(45)], &[OpCode::Loop(16), OpCode::Exit(46)], &[OpCode::Exit(47)], &[OpCode::Loop(18), OpCode::Exit(48), OpCode::T(9)], &[OpCode::Loop(18), OpCode::Exit(49)], &[OpCode::Loop(18), OpCode::Exit(50), OpCode::T(9)], &[OpCode::Loop(18), OpCode::Exit(51)]];
+    const PARSER_NUM_T: usize = 34;
+    const PARSER_NUM_NT: usize = 30;
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("Colon", Some(":")), ("Comma", Some(",")), ("Dot", Some(".")), ("Ellipsis", Some("..")), ("Lbracket", Some("{")), ("LSbracket", Some("[")), ("Lparen", Some("(")), ("Negate", Some("~")), ("Minus", Some("-")), ("Plus", Some("+")), ("Or", Some("|")), ("Question", Some("?")), ("Rbracket", Some("}")), ("RSbracket", Some("]")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Channels", Some("channels")), ("Fragment", Some("fragment")), ("Lexicon", Some("lexicon")), ("Mode", Some("mode")), ("Pop", Some("pop")), ("Push", Some("push")), ("More", Some("more")), ("Skip", Some("skip")), ("Type", Some("type")), ("Channel", Some("channel")), ("SymEof", Some("EOF")), ("Id", None), ("CharLit", None), ("StrLit", None), ("FixedSet", None), ("SetChar", None)];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "file_item", "header", "declaration", "option", "rule", "actions", "action", "match", "alt_items", "alt_item", "repeat_item", "item", "char_set", "char_set_one", "file_1", "option_1", "actions_1", "alt_item_1", "char_set_1", "alt_items_1", "repeat_item_1", "rule_1", "repeat_item_2", "item_1", "char_set_one_1", "alt_item_2", "char_set_2", "repeat_item_3", "repeat_item_4"];
+    const SYMBOLS_NAMES: [(&str, VarId); 15] = [("actions_1", 17), ("alt_item_1", 18), ("alt_item_2", 26), ("alt_items_1", 20), ("char_set_1", 19), ("char_set_2", 27), ("char_set_one_1", 25), ("file_1", 15), ("item_1", 24), ("option_1", 16), ("repeat_item_1", 21), ("repeat_item_2", 23), ("repeat_item_3", 28), ("repeat_item_4", 29), ("rule_1", 22)];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 62] = [(0, &[Symbol::NT(2), Symbol::NT(15)]), (0, &[Symbol::NT(15)]), (1, &[Symbol::NT(4)]), (1, &[Symbol::NT(3)]), (1, &[Symbol::NT(5)]), (2, &[Symbol::T(20), Symbol::T(29), Symbol::T(16)]), (3, &[Symbol::T(21), Symbol::T(29), Symbol::T(16)]), (4, &[Symbol::T(18), Symbol::T(5), Symbol::T(29), Symbol::NT(16), Symbol::T(13)]), (5, &[Symbol::T(19), Symbol::T(29), Symbol::T(1), Symbol::NT(8), Symbol::T(16)]), (5, &[Symbol::T(29), Symbol::T(1), Symbol::NT(8), Symbol::NT(22)]), (6, &[Symbol::NT(7), Symbol::NT(17)]), (7, &[Symbol::T(21), Symbol::T(7), Symbol::T(29), Symbol::T(15)]), (7, &[Symbol::T(23), Symbol::T(7), Symbol::T(29), Symbol::T(15)]), (7, &[Symbol::T(22)]), (7, &[Symbol::T(25)]), (7, &[Symbol::T(24)]), (7, &[Symbol::T(26), Symbol::T(7), Symbol::T(29), Symbol::T(15)]), (7, &[Symbol::T(27), Symbol::T(7), Symbol::T(29), Symbol::T(15)]), (8, &[Symbol::NT(9)]), (9, &[Symbol::NT(10), Symbol::NT(20)]), (10, &[Symbol::NT(18)]), (11, &[Symbol::NT(12), Symbol::NT(23)]), (12, &[Symbol::T(7), Symbol::NT(9), Symbol::T(15)]), (12, &[Symbol::T(8), Symbol::NT(12)]), (12, &[Symbol::T(29)]), (12, &[Symbol::T(30), Symbol::NT(24)]), (12, &[Symbol::T(31)]), (12, &[Symbol::NT(13)]), (13, &[Symbol::T(6), Symbol::NT(19), Symbol::T(14)]), (13, &[Symbol::T(3)]), (13, &[Symbol::T(32)]), (14, &[Symbol::T(32)]), (14, &[Symbol::T(33), Symbol::NT(25)]), (15, &[Symbol::NT(1), Symbol::NT(15)]), (15, &[Symbol::Empty]), (16, &[Symbol::T(2), Symbol::T(29), Symbol::NT(16)]), (16, &[Symbol::Empty]), (17, &[Symbol::T(2), Symbol::NT(7), Symbol::NT(17)]), (17, &[Symbol::Empty]), (18, &[Symbol::NT(11), Symbol::NT(26)]), (19, &[Symbol::NT(14), Symbol::NT(27)]), (20, &[Symbol::T(11), Symbol::NT(10), Symbol::NT(20)]), (20, &[Symbol::Empty]), (21, &[Symbol::T(10), Symbol::NT(28)]), (21, &[Symbol::T(17), Symbol::NT(29)]), (21, &[Symbol::Empty]), (22, &[Symbol::T(0), Symbol::NT(6), Symbol::T(16)]), (22, &[Symbol::T(16)]), (23, &[Symbol::T(12), Symbol::NT(21)]), (23, &[Symbol::NT(21)]), (24, &[Symbol::T(4), Symbol::T(30)]), (24, &[Symbol::Empty]), (25, &[Symbol::T(9), Symbol::T(33)]), (25, &[Symbol::Empty]), (26, &[Symbol::NT(18)]), (26, &[Symbol::Empty]), (27, &[Symbol::NT(19)]), (27, &[Symbol::Empty]), (28, &[Symbol::T(12), Symbol::NT(21)]), (28, &[Symbol::NT(21)]), (29, &[Symbol::T(12), Symbol::NT(21)]), (29, &[Symbol::NT(21)])];
+    const PARSING_TABLE: [FactorId; 1050] = [62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 1, 1, 0, 1, 62, 62, 62, 62, 62, 62, 62, 1, 62, 62, 62, 62, 1, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 2, 4, 62, 3, 62, 62, 62, 62, 62, 62, 62, 4, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 5, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 6, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 7, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 8, 62, 62, 62, 62, 62, 62, 62, 62, 62, 9, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 10, 10, 10, 10, 10, 10, 10, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 11, 13, 12, 15, 14, 16, 17, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 18, 62, 62, 18, 18, 18, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 18, 18, 18, 18, 62, 62, 62, 62, 62, 19, 62, 62, 19, 19, 19, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 19, 19, 19, 19, 62, 62, 62, 62, 62, 20, 62, 62, 20, 20, 20, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 20, 20, 20, 20, 62, 62, 62, 62, 62, 21, 62, 62, 21, 21, 21, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 21, 21, 21, 21, 62, 62, 62, 62, 62, 27, 62, 62, 27, 22, 23, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 24, 25, 26, 27, 62, 62, 62, 62, 62, 29, 62, 62, 28, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 30, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 31, 32, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 33, 33, 62, 33, 62, 62, 62, 62, 62, 62, 62, 33, 62, 62, 62, 62, 34, 62, 62, 35, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 36, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 37, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 38, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 39, 62, 62, 39, 39, 39, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 39, 39, 39, 39, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 40, 40, 62, 42, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 41, 62, 62, 62, 42, 42, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 45, 62, 62, 45, 62, 62, 45, 45, 45, 62, 43, 45, 62, 62, 62, 45, 45, 44, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 45, 45, 45, 45, 62, 62, 46, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 47, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 49, 62, 62, 49, 62, 62, 49, 49, 49, 62, 49, 49, 48, 62, 62, 49, 49, 49, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 49, 49, 49, 49, 62, 62, 51, 62, 62, 51, 50, 62, 51, 51, 51, 62, 51, 51, 51, 62, 62, 51, 51, 51, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 51, 51, 51, 51, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 52, 62, 62, 62, 62, 53, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 53, 53, 62, 55, 62, 62, 54, 62, 62, 54, 54, 54, 62, 62, 55, 62, 62, 62, 55, 55, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 54, 54, 54, 54, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 57, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 56, 56, 62, 59, 62, 62, 59, 62, 62, 59, 59, 59, 62, 59, 59, 58, 62, 62, 59, 59, 59, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 59, 59, 59, 59, 62, 62, 61, 62, 62, 61, 62, 62, 61, 61, 61, 62, 61, 61, 60, 62, 62, 61, 61, 61, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 62, 61, 61, 61, 61, 62, 62];
+    const FLAGS: [u32; 30] = [2048, 0, 0, 0, 2048, 32, 2048, 0, 0, 512, 6144, 544, 34, 6144, 32, 1, 1, 1, 4129, 4129, 4, 36, 64, 64, 64, 64, 64, 64, 64, 64];
+    const PARENT: [Option<VarId>; 30] = [None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(4), Some(6), Some(10), Some(13), Some(9), Some(11), Some(5), Some(11), Some(12), Some(14), Some(18), Some(19), Some(21), Some(21)];
+    const OPCODES: [&[OpCode]; 62] = [&[OpCode::Exit(0), OpCode::NT(15), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::NT(15)], &[OpCode::Exit(2), OpCode::NT(4)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(16), OpCode::T(29), OpCode::T(20)], &[OpCode::Exit(6), OpCode::T(16), OpCode::T(29), OpCode::T(21)], &[OpCode::Exit(7), OpCode::T(13), OpCode::NT(16), OpCode::T(29), OpCode::T(5), OpCode::T(18)], &[OpCode::Exit(8), OpCode::T(16), OpCode::NT(8), OpCode::T(1), OpCode::T(29), OpCode::T(19)], &[OpCode::NT(22), OpCode::NT(8), OpCode::T(1), OpCode::T(29)], &[OpCode::Exit(10), OpCode::NT(17), OpCode::NT(7)], &[OpCode::Exit(11), OpCode::T(15), OpCode::T(29), OpCode::T(7), OpCode::T(21)], &[OpCode::Exit(12), OpCode::T(15), OpCode::T(29), OpCode::T(7), OpCode::T(23)], &[OpCode::Exit(13), OpCode::T(22)], &[OpCode::Exit(14), OpCode::T(25)], &[OpCode::Exit(15), OpCode::T(24)], &[OpCode::Exit(16), OpCode::T(15), OpCode::T(29), OpCode::T(7), OpCode::T(26)], &[OpCode::Exit(17), OpCode::T(15), OpCode::T(29), OpCode::T(7), OpCode::T(27)], &[OpCode::Exit(18), OpCode::NT(9)], &[OpCode::NT(20), OpCode::Exit(19), OpCode::NT(10)], &[OpCode::Exit(20), OpCode::NT(18)], &[OpCode::NT(23), OpCode::NT(12)], &[OpCode::Exit(22), OpCode::T(15), OpCode::NT(9), OpCode::T(7)], &[OpCode::Exit(23), OpCode::NT(12), OpCode::T(8)], &[OpCode::Exit(24), OpCode::T(29)], &[OpCode::NT(24), OpCode::T(30)], &[OpCode::Exit(26), OpCode::T(31)], &[OpCode::Exit(27), OpCode::NT(13)], &[OpCode::Exit(28), OpCode::T(14), OpCode::NT(19), OpCode::T(6)], &[OpCode::Exit(29), OpCode::T(3)], &[OpCode::Exit(30), OpCode::T(32)], &[OpCode::Exit(31), OpCode::T(32)], &[OpCode::NT(25), OpCode::T(33)], &[OpCode::Loop(15), OpCode::Exit(33), OpCode::NT(1)], &[OpCode::Exit(34)], &[OpCode::Loop(16), OpCode::Exit(35), OpCode::T(29), OpCode::T(2)], &[OpCode::Exit(36)], &[OpCode::Loop(17), OpCode::Exit(37), OpCode::NT(7), OpCode::T(2)], &[OpCode::Exit(38)], &[OpCode::NT(26), OpCode::NT(11)], &[OpCode::NT(27), OpCode::NT(14)], &[OpCode::Loop(20), OpCode::Exit(41), OpCode::NT(10), OpCode::T(11)], &[OpCode::Exit(42)], &[OpCode::NT(28), OpCode::T(10)], &[OpCode::NT(29), OpCode::T(17)], &[OpCode::Exit(45)], &[OpCode::Exit(46), OpCode::T(16), OpCode::NT(6), OpCode::T(0)], &[OpCode::Exit(47), OpCode::T(16)], &[OpCode::NT(21), OpCode::Exit(48), OpCode::T(12)], &[OpCode::NT(21), OpCode::Exit(49)], &[OpCode::Exit(50), OpCode::T(30), OpCode::T(4)], &[OpCode::Exit(51)], &[OpCode::Exit(52), OpCode::T(33), OpCode::T(9)], &[OpCode::Exit(53)], &[OpCode::Loop(18), OpCode::Exit(54)], &[OpCode::Exit(55)], &[OpCode::Loop(19), OpCode::Exit(56)], &[OpCode::Exit(57)], &[OpCode::Loop(21), OpCode::Exit(58), OpCode::T(12)], &[OpCode::Loop(21), OpCode::Exit(59)], &[OpCode::Loop(21), OpCode::Exit(60), OpCode::T(12)], &[OpCode::Loop(21), OpCode::Exit(61)]];
     const START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser {
@@ -143,14 +143,32 @@ pub(crate) mod lexiparser {
         Item2 { item: SynItem },
         /// `item -> Id`
         Item3 { id: String },
-        /// `item -> CharSet`
-        Item4 { charset: String },
         /// `item -> StrLit`
-        Item5 { strlit: String },
+        Item4 { strlit: String },
+        /// `item -> char_set`
+        Item5 { char_set: SynCharSet },
         /// `item -> CharLit .. CharLit`
         Item6 { charlit: [String; 2] },
         /// `item -> CharLit`
         Item7 { charlit: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxCharSet {
+        /// `char_set -> [ [char_set_one]+ ]`
+        CharSet1 { plus: SynCharSet1 },
+        /// `char_set -> .`
+        CharSet2,
+        /// `char_set -> FixedSet`
+        CharSet3 { fixedset: String },
+    }
+    #[derive(Debug)]
+    pub enum CtxCharSetOne {
+        /// `char_set_one -> FixedSet`
+        CharSetOne1 { fixedset: String },
+        /// `char_set_one -> SetChar - SetChar`
+        CharSetOne2 { setchar: [String; 2] },
+        /// `char_set_one -> SetChar`
+        CharSetOne3 { setchar: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -181,6 +199,10 @@ pub(crate) mod lexiparser {
     // #[derive(Debug, PartialEq)] pub struct SynRepeatItem();
     // /// User-defined type for `item`
     // #[derive(Debug, PartialEq)] pub struct SynItem();
+    // /// User-defined type for `char_set`
+    // #[derive(Debug, PartialEq)] pub struct SynCharSet();
+    // /// User-defined type for `char_set_one`
+    // #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
     /// Computed `[file_item]*` array in `file -> header  ► [file_item]* ◄ `, array in `file ->  ► [file_item]* ◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynFile1(pub Vec<SynFileItem>);
@@ -193,9 +215,12 @@ pub(crate) mod lexiparser {
     /// Computed `[repeat_item]+` array in `alt_item ->  ► [repeat_item]+ ◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynAltItem1(pub Vec<SynRepeatItem>);
+    /// Computed `[char_set_one]+` array in `char_set -> [  ► [char_set_one]+ ◄  ]`
+    #[derive(Debug, PartialEq)]
+    pub struct SynCharSet1(pub Vec<SynCharSetOne>);
 
     #[derive(Debug)]
-    enum SynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItem1(SynAltItem1) }
+    enum SynValue { File(SynFile), FileItem(SynFileItem), Header(SynHeader), Declaration(SynDeclaration), Option(SynOption), Rule(SynRule), Actions(SynActions), Action(SynAction), Match(SynMatch), AltItems(SynAltItems), AltItem(SynAltItem), RepeatItem(SynRepeatItem), Item(SynItem), CharSet(SynCharSet), CharSetOne(SynCharSetOne), File1(SynFile1), Option1(SynOption1), Actions1(SynActions1), AltItem1(SynAltItem1), CharSet1(SynCharSet1) }
 
     impl SynValue {
         fn get_file(self) -> SynFile {
@@ -237,6 +262,12 @@ pub(crate) mod lexiparser {
         fn get_item(self) -> SynItem {
             if let SynValue::Item(val) = self { val } else { panic!() }
         }
+        fn get_char_set(self) -> SynCharSet {
+            if let SynValue::CharSet(val) = self { val } else { panic!() }
+        }
+        fn get_char_set_one(self) -> SynCharSetOne {
+            if let SynValue::CharSetOne(val) = self { val } else { panic!() }
+        }
         fn get_file1(self) -> SynFile1 {
             if let SynValue::File1(val) = self { val } else { panic!() }
         }
@@ -248,6 +279,9 @@ pub(crate) mod lexiparser {
         }
         fn get_alt_item1(self) -> SynAltItem1 {
             if let SynValue::AltItem1(val) = self { val } else { panic!() }
+        }
+        fn get_char_set1(self) -> SynCharSet1 {
+            if let SynValue::CharSet1(val) = self { val } else { panic!() }
         }
     }
 
@@ -279,6 +313,10 @@ pub(crate) mod lexiparser {
         fn exit_repeat_item(&mut self, _ctx: CtxRepeatItem) -> SynRepeatItem;
         fn init_item(&mut self) {}
         fn exit_item(&mut self, _ctx: CtxItem) -> SynItem;
+        fn init_char_set(&mut self) {}
+        fn exit_char_set(&mut self, _ctx: CtxCharSet) -> SynCharSet;
+        fn init_char_set_one(&mut self) {}
+        fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne;
     }
 
     pub struct ListenerWrapper<T> {
@@ -301,30 +339,35 @@ pub(crate) mod lexiparser {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_file(),             // file
-                        13 => self.init_file1(),                    // file_1
+                        15 => self.init_file1(),                    // file_1
                         1 => self.listener.init_file_item(),        // file_item
                         2 => self.listener.init_header(),           // header
                         3 => self.listener.init_declaration(),      // declaration
                         4 => self.listener.init_option(),           // option
-                        14 => self.init_option1(),                  // option_1
+                        16 => self.init_option1(),                  // option_1
                         5 => self.listener.init_rule(),             // rule
-                        19 => {}                                    // rule_1
+                        22 => {}                                    // rule_1
                         6 => self.listener.init_actions(),          // actions
-                        15 => self.init_actions1(),                 // actions_1
+                        17 => self.init_actions1(),                 // actions_1
                         7 => self.listener.init_action(),           // action
                         8 => self.listener.init_match(),            // match
                         9 => self.listener.init_alt_items(),        // alt_items
-                        17 => {}                                    // alt_items_1
+                        20 => {}                                    // alt_items_1
                         10 => self.listener.init_alt_item(),        // alt_item
-                        16 => self.init_alt_item1(),                // alt_item_1
-                        22 => {}                                    // alt_item_2
+                        18 => self.init_alt_item1(),                // alt_item_1
+                        26 => {}                                    // alt_item_2
                         11 => self.listener.init_repeat_item(),     // repeat_item
-                        18 => {}                                    // repeat_item_1
-                        20 => {}                                    // repeat_item_2
-                        23 => {}                                    // repeat_item_3
-                        24 => {}                                    // repeat_item_4
+                        21 => {}                                    // repeat_item_1
+                        23 => {}                                    // repeat_item_2
+                        28 => {}                                    // repeat_item_3
+                        29 => {}                                    // repeat_item_4
                         12 => self.listener.init_item(),            // item
-                        21 => {}                                    // item_1
+                        24 => {}                                    // item_1
+                        13 => self.listener.init_char_set(),        // char_set
+                        19 => self.init_char_set1(),                // char_set_1
+                        27 => {}                                    // char_set_2
+                        14 => self.listener.init_char_set_one(),    // char_set_one
+                        25 => {}                                    // char_set_one_1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -333,23 +376,23 @@ pub(crate) mod lexiparser {
                     match factor_id {
                         0 |                                         // file -> header [file_item]*
                         1 => self.exit_file(factor_id),             // file -> [file_item]*
-                        28 => self.exit_file1(),                    // [file_item]* item in file -> header  ► [file_item]* ◄  | ...
-                        29 => {}                                    // end of [file_item]* items in file -> header  ► [file_item]* ◄  | ...
+                        33 => self.exit_file1(),                    // [file_item]* item in file -> header  ► [file_item]* ◄  | ...
+                        34 => {}                                    // end of [file_item]* items in file -> header  ► [file_item]* ◄  | ...
                         2 |                                         // file_item -> option
                         3 |                                         // file_item -> declaration
                         4 => self.exit_file_item(factor_id),        // file_item -> rule
                         5 => self.exit_header(),                    // header -> lexicon Id ;
                         6 => self.exit_declaration(),               // declaration -> mode Id ;
                         7 => self.exit_option(),                    // option -> channels { Id [, Id]* }
-                        30 => self.exit_option1(),                  // [, Id]* item in option -> channels { Id  ► [, Id]* ◄  }
-                        31 => {}                                    // end of [, Id]* items in option -> channels { Id  ► [, Id]* ◄  }
+                        35 => self.exit_option1(),                  // [, Id]* item in option -> channels { Id  ► [, Id]* ◄  }
+                        36 => {}                                    // end of [, Id]* items in option -> channels { Id  ► [, Id]* ◄  }
                         8 |                                         // rule -> fragment Id : match ;
-                        40 |                                        // rule -> Id : match -> actions ;
-                        41 => self.exit_rule(factor_id),            // rule -> Id : match ;
+                        46 |                                        // rule -> Id : match -> actions ;
+                        47 => self.exit_rule(factor_id),            // rule -> Id : match ;
                      /* 9 */                                        // rule -> Id : match -> actions ; | Id : match ; (never called)
                         10 => self.exit_actions(),                  // actions -> action [, action]*
-                        32 => self.exit_actions1(),                 // [, action]* item in actions -> action  ► [, action]* ◄
-                        33 => {}                                    // end of [, action]* items in actions -> action  ► [, action]* ◄
+                        37 => self.exit_actions1(),                 // [, action]* item in actions -> action  ► [, action]* ◄
+                        38 => {}                                    // end of [, action]* items in actions -> action  ► [, action]* ◄
                         11 |                                        // action -> mode ( Id )
                         12 |                                        // action -> push ( Id )
                         13 |                                        // action -> pop
@@ -359,30 +402,40 @@ pub(crate) mod lexiparser {
                         17 => self.exit_action(factor_id),          // action -> channel ( Id )
                         18 => self.exit_match(),                    // match -> alt_items
                         19 => self.init_alt_items(),                // alt_items -> alt_item
-                        35 |                                        // alt_items -> alt_items | alt_item
-                        36 => self.exit_alt_items1(factor_id),      // end of iterations in alt_items -> alt_items | alt_item
+                        41 |                                        // alt_items -> alt_items | alt_item
+                        42 => self.exit_alt_items1(factor_id),      // end of iterations in alt_items -> alt_items | alt_item
                         20 => self.exit_alt_item(),                 // alt_item -> [repeat_item]+
-                        46 |                                        // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄
-                        47 => self.exit_alt_item1(),                // end of [repeat_item]+ items in alt_item ->  ► [repeat_item]+ ◄
-                     /* 34 */                                       // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄  (never called)
-                        42 |                                        // repeat_item -> item ?
-                        43 => self.init_repeat_item(factor_id),     // repeat_item -> item
-                        39 |                                        // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
-                        48 |                                        // repeat_item -> repeat_item + ?
-                        49 |                                        // repeat_item -> repeat_item +
-                        50 |                                        // repeat_item -> repeat_item * ?
-                        51 => self.exit_repeat_item1(factor_id),    // repeat_item -> repeat_item *
+                        54 |                                        // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄
+                        55 => self.exit_alt_item1(),                // end of [repeat_item]+ items in alt_item ->  ► [repeat_item]+ ◄
+                     /* 39 */                                       // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄  (never called)
+                        48 |                                        // repeat_item -> item ?
+                        49 => self.init_repeat_item(factor_id),     // repeat_item -> item
+                        45 |                                        // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
+                        58 |                                        // repeat_item -> repeat_item + ?
+                        59 |                                        // repeat_item -> repeat_item +
+                        60 |                                        // repeat_item -> repeat_item * ?
+                        61 => self.exit_repeat_item1(factor_id),    // repeat_item -> repeat_item *
                      /* 21 */                                       // repeat_item -> item ? | item (never called)
-                     /* 37 */                                       // repeat_item -> repeat_item + ? | repeat_item + (never called)
-                     /* 38 */                                       // repeat_item -> repeat_item * ? | repeat_item * (never called)
+                     /* 43 */                                       // repeat_item -> repeat_item + ? | repeat_item + (never called)
+                     /* 44 */                                       // repeat_item -> repeat_item * ? | repeat_item * (never called)
                         22 |                                        // item -> ( alt_items )
                         23 |                                        // item -> ~ item
                         24 |                                        // item -> Id
-                        26 |                                        // item -> CharSet
-                        27 |                                        // item -> StrLit
-                        44 |                                        // item -> CharLit .. CharLit
-                        45 => self.exit_item(factor_id),            // item -> CharLit
+                        26 |                                        // item -> StrLit
+                        27 |                                        // item -> char_set
+                        50 |                                        // item -> CharLit .. CharLit
+                        51 => self.exit_item(factor_id),            // item -> CharLit
                      /* 25 */                                       // item -> CharLit | CharLit .. CharLit (never called)
+                        28 |                                        // char_set -> [ [char_set_one]+ ]
+                        29 |                                        // char_set -> .
+                        30 => self.exit_char_set(factor_id),        // char_set -> FixedSet
+                        56 |                                        // [char_set_one]+ item in char_set -> [  ► [char_set_one]+ ◄  ]
+                        57 => self.exit_char_set1(),                // end of [char_set_one]+ items in char_set -> [  ► [char_set_one]+ ◄  ]
+                     /* 40 */                                       // [char_set_one]+ item in char_set -> [  ► [char_set_one]+ ◄  ] (never called)
+                        31 |                                        // char_set_one -> FixedSet
+                        52 |                                        // char_set_one -> SetChar - SetChar
+                        53 => self.exit_char_set_one(factor_id),    // char_set_one -> SetChar
+                     /* 32 */                                       // char_set_one -> SetChar | SetChar - SetChar (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -503,13 +556,13 @@ pub(crate) mod lexiparser {
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule1 { id, match1 }
                 }
-                40 => {
+                46 => {
                     let actions = self.stack.pop().unwrap().get_actions();
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule2 { id, match1, actions }
                 }
-                41 => {
+                47 => {
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule3 { id, match1 }
@@ -586,12 +639,12 @@ pub(crate) mod lexiparser {
 
         fn exit_alt_items1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                35 => {
+                41 => {
                     let alt_item = self.stack.pop().unwrap().get_alt_item();
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
                     CtxAltItems::AltItems2 { alt_items, alt_item }
                 }
-                36 => {
+                42 => {
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
                     CtxAltItems::AltItems3 { alt_items }
                 }
@@ -621,11 +674,11 @@ pub(crate) mod lexiparser {
 
         fn init_repeat_item(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                42 => {
+                48 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRepeatItem::RepeatItem2 { item }
                 }
-                43 => {
+                49 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRepeatItem::RepeatItem3 { item }
                 }
@@ -637,23 +690,23 @@ pub(crate) mod lexiparser {
 
         fn exit_repeat_item1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                39 => {
+                45 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem1 { repeat_item }
                 }
-                48 => {
+                58 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem4 { repeat_item }
                 }
-                49 => {
+                59 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem5 { repeat_item }
                 }
-                50 => {
+                60 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem6 { repeat_item }
                 }
-                51 => {
+                61 => {
                     let repeat_item = self.stack.pop().unwrap().get_repeat_item();
                     CtxRepeatItem::RepeatItem7 { repeat_item }
                 }
@@ -678,19 +731,19 @@ pub(crate) mod lexiparser {
                     CtxItem::Item3 { id }
                 }
                 26 => {
-                    let charset = self.stack_t.pop().unwrap();
-                    CtxItem::Item4 { charset }
+                    let strlit = self.stack_t.pop().unwrap();
+                    CtxItem::Item4 { strlit }
                 }
                 27 => {
-                    let strlit = self.stack_t.pop().unwrap();
-                    CtxItem::Item5 { strlit }
+                    let char_set = self.stack.pop().unwrap().get_char_set();
+                    CtxItem::Item5 { char_set }
                 }
-                44 => {
+                50 => {
                     let charlit_2 = self.stack_t.pop().unwrap();
                     let charlit_1 = self.stack_t.pop().unwrap();
                     CtxItem::Item6 { charlit: [charlit_1, charlit_2] }
                 }
-                45 => {
+                51 => {
                     let charlit = self.stack_t.pop().unwrap();
                     CtxItem::Item7 { charlit }
                 }
@@ -698,6 +751,58 @@ pub(crate) mod lexiparser {
             };
             let val = self.listener.exit_item(ctx);
             self.stack.push(SynValue::Item(val));
+        }
+
+        fn exit_char_set(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                28 => {
+                    let plus = self.stack.pop().unwrap().get_char_set1();
+                    CtxCharSet::CharSet1 { plus }
+                }
+                29 => {
+                    CtxCharSet::CharSet2
+                }
+                30 => {
+                    let fixedset = self.stack_t.pop().unwrap();
+                    CtxCharSet::CharSet3 { fixedset }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_char_set")
+            };
+            let val = self.listener.exit_char_set(ctx);
+            self.stack.push(SynValue::CharSet(val));
+        }
+
+        fn init_char_set1(&mut self) {
+            let val = SynCharSet1(Vec::new());
+            self.stack.push(SynValue::CharSet1(val));
+        }
+
+        fn exit_char_set1(&mut self) {
+            let char_set_one = self.stack.pop().unwrap().get_char_set_one();
+            let mut plus_it = self.stack.pop().unwrap().get_char_set1();
+            plus_it.0.push(char_set_one);
+            self.stack.push(SynValue::CharSet1(plus_it));
+        }
+
+        fn exit_char_set_one(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                31 => {
+                    let fixedset = self.stack_t.pop().unwrap();
+                    CtxCharSetOne::CharSetOne1 { fixedset }
+                }
+                52 => {
+                    let setchar_2 = self.stack_t.pop().unwrap();
+                    let setchar_1 = self.stack_t.pop().unwrap();
+                    CtxCharSetOne::CharSetOne2 { setchar: [setchar_1, setchar_2] }
+                }
+                53 => {
+                    let setchar = self.stack_t.pop().unwrap();
+                    CtxCharSetOne::CharSetOne3 { setchar }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_char_set_one")
+            };
+            let val = self.listener.exit_char_set_one(ctx);
+            self.stack.push(SynValue::CharSetOne(val));
         }
     }
 
@@ -734,4 +839,8 @@ pub(crate) mod lexiparser_types {
     #[derive(Debug, PartialEq)] pub struct SynRepeatItem(pub usize);
     /// SynItem: User-defined type for `item`
     #[derive(Debug, PartialEq)] pub struct SynItem(pub usize);
+    /// User-defined type for `char_set`
+    #[derive(Debug, PartialEq)] pub struct SynCharSet();
+    /// User-defined type for `char_set_one`
+    #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
 }
