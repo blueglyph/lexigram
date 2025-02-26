@@ -18,64 +18,74 @@ enum T {
     Arrow = 0,  // 0
     Colon,      // 1
     Comma,      // 2
-    Ellipsis,   // 3
-    Lbracket,   // 4
-    Lparen,     // 5
-    Negate,     // 6
-    Plus,       // 7
-    Or,         // 8
-    Question,   // 9
-    Rbracket,   // 10
-    Rparen,     // 11
-    Semicolon,  // 12
-    Star,       // 13
-    Channels,   // 14
-    Fragment,   // 15
-    Lexicon,    // 16
-    Mode,       // 17
-    Pop,        // 18
-    Push,       // 19
-    More,       // 20
-    Skip,       // 21
-    Type,       // 22
-    Channel,    // 23
-    SymEof,     // 24
-    Id,         // 25
-    CharLit,    // 26
-    CharSet,    // 27
-    StrLit,     // 28
+    Dot,        // 3
+    Ellipsis,   // 4
+    Lbracket,   // 5
+    LSbracket,  // 6
+    Lparen,     // 7
+    Negate,     // 8
+    Minus,      // 9
+    Plus,       // 10
+    Or,         // 11
+    Question,   // 12
+    Rbracket,   // 13
+    RSbracket,  // 14
+    Rparen,     // 15
+    Semicolon,  // 16
+    Star,       // 17
+    Channels,   // 18
+    Fragment,   // 19
+    Lexicon,    // 20
+    Mode,       // 21
+    Pop,        // 22
+    Push,       // 23
+    More,       // 24
+    Skip,       // 25
+    Type,       // 26
+    Channel,    // 27
+    SymEof,     // 28
+    Id,         // 29
+    CharLit,    // 30
+    StrLit,     // 31
+    FixedSet,   // 32
+    SetChar,    // 33
 }
 
-pub const TERMINALS: [(&str, Option<&str>); 29] = [
+pub const TERMINALS: [(&str, Option<&str>); 34] = [
     ("Arrow",     Some("->")),          // 0
     ("Colon",     Some(":")),           // 1
     ("Comma",     Some(",")),           // 2
-    ("Ellipsis",  Some("..")),          // 3
-    ("Lbracket",  Some("{")),           // 4
-    ("Lparen",    Some("(")),           // 5
-    ("Negate",    Some("~")),           // 6
-    ("Plus",      Some("+")),           // 7
-    ("Or",        Some("|")),           // 8
-    ("Question",  Some("?")),           // 9
-    ("Rbracket",  Some("}")),           // 10
-    ("Rparen",    Some(")")),           // 11
-    ("Semicolon", Some(";")),           // 12
-    ("Star",      Some("*")),           // 13
-    ("Channels",  Some("channels")),    // 14
-    ("Fragment",  Some("fragment")),    // 15
-    ("Lexicon",   Some("lexicon")),     // 16
-    ("Mode",      Some("mode")),        // 17
-    ("Pop",       Some("pop")),         // 18
-    ("Push",      Some("push")),        // 19
-    ("More",      Some("more")),        // 20
-    ("Skip",      Some("skip")),        // 21
-    ("Type",      Some("type")),        // 22
-    ("Channel",   Some("channel")),     // 23
-    ("SymEof",    Some("EOF")),         // 24
-    ("Id",        None),                // 25
-    ("CharLit",   None),                // 26
-    ("CharSet",   None),                // 27
-    ("StrLit",    None),                // 28
+    ("Dot",       Some(".")),           // 3
+    ("Ellipsis",  Some("..")),          // 4
+    ("Lbracket",  Some("{")),           // 5
+    ("LSbracket", Some("[")),           // 6
+    ("Lparen",    Some("(")),           // 7
+    ("Negate",    Some("~")),           // 8
+    ("Minus",     Some("-")),           // 9
+    ("Plus",      Some("+")),           // 10
+    ("Or",        Some("|")),           // 11
+    ("Question",  Some("?")),           // 12
+    ("Rbracket",  Some("}")),           // 13
+    ("RSbracket", Some("]")),           // 14
+    ("Rparen",    Some(")")),           // 15
+    ("Semicolon", Some(";")),           // 16
+    ("Star",      Some("*")),           // 17
+    ("Channels",  Some("channels")),    // 18
+    ("Fragment",  Some("fragment")),    // 19
+    ("Lexicon",   Some("lexicon")),     // 20
+    ("Mode",      Some("mode")),        // 21
+    ("Pop",       Some("pop")),         // 22
+    ("Push",      Some("push")),        // 23
+    ("More",      Some("more")),        // 24
+    ("Skip",      Some("skip")),        // 25
+    ("Type",      Some("type")),        // 26
+    ("Channel",   Some("channel")),     // 27
+    ("SymEof",    Some("EOF")),         // 28
+    ("Id",        None),                // 29
+    ("CharLit",   None),                // 30
+    ("StrLit",    None),                // 31
+    ("FixedSet",  None),                // 32
+    ("SetChar",   None),                // 33
 ];
 
 pub fn build_re() -> VecTree<ReNode> {
@@ -138,14 +148,29 @@ pub fn build_re() -> VecTree<ReNode> {
     add_char(&mut re, char_lit);
     re.add_iter(Some(char_lit), [node!(chr '\''), node!(=T::CharLit as TokenId)]);
 
+    // StrLit: '\'' Char Char+ '\''
+    let str_lit = re.add(Some(top), node!(&));
+    re.add(Some(str_lit), node!(chr '\''));
+    add_char(&mut re, str_lit);
+    let p = re.add(Some(str_lit), node!(+));
+    add_char(&mut re, p);
+    re.add_iter(Some(str_lit), [node!(chr '\''), node!(=T::StrLit as TokenId)]);
+
     // CharSet:                                                       |     |
     //          '[' (                         |                )* ']'   '.'   ('\\w' | '\\d')
     //               SetChar ( '-' SetChar )?   ('\\w' | '\\d')
     //                                       or4                s3   or1   or1
     //                    or3----------------
+
+    // FixedSet: ('\\w' | '\\d')
+    let fixed_set = re.add(Some(top), node!(&));
+        let or1 = re.add(Some(fixed_set), node!(|));
+            re.add_iter(Some(or1), [node!(str "\\w"), node!(str "\\d")]);
+    re.add(Some(fixed_set), node!(=T::FixedSet as TokenId));
+
     // SetChar: ( '\\' ([nrt\\[\]\-] | 'u{' [0-9a-fA-F]+ '}') | ~[\n\r\t\\] )
-    fn add_set_char(re: &mut VecTree<ReNode>, parent: usize) {
-        let or1 = re.add(Some(parent), node!(|));
+    let set_char = re.add(Some(top), node!(&));
+        let or1 = re.add(Some(set_char), node!(|));
             let cc2 = re.add(Some(or1), node!(&));
                 re.add(Some(cc2), node!(chr '\\'));
                 let or3 = re.add(Some(cc2), node!(|));
@@ -156,36 +181,7 @@ pub fn build_re() -> VecTree<ReNode> {
                         re.add(Some(cc4), node!(chr '}'));
             // Note: we accept the opening bracket within brackets, with or without escaping: [a-z[] or [a-z\[]
             re.add(Some(or1), node!(~['\n', '\r', '\t', '\\', ']']));
-    }
-    let char_set = re.add(Some(top), node!(&));
-        let or1 = re.add(Some(char_set), node!(|));
-            let cc2 = re.add(Some(or1), node!(&));
-                re.add(Some(cc2), node!(chr '['));
-                let s3 = re.add(Some(cc2), node!(*));
-                    let or4 = re.add(Some(s3), node!(|));
-                        let cc5 = re.add(Some(or4), node!(&));
-                            add_set_char(&mut re, cc5);
-                            // Since x? isn't defined, ('-' SetChar )? = ('-' SetChar | <empty>)
-                            let or6 = re.add(Some(cc5), node!(|));
-                                let cc7 = re.add(Some(or6), node!(&));
-                                    re.add(Some(cc7), node!(chr '-'));
-                                    add_set_char(&mut re, cc7);
-                                re.add(Some(or6), node!(e));
-                        let or5 = re.add(Some(or4), node!(|)); // FixedSet
-                            re.add_iter(Some(or5), [node!(str "\\w"), node!(str "\\d")]);
-                re.add(Some(cc2), node!(chr ']'));
-            re.add(Some(or1), node!(chr '.'));
-            let or2 = re.add(Some(or1), node!(|)); // FixedSet
-                re.add_iter(Some(or2), [node!(str "\\w"), node!(str "\\d")]);
-    re.add(Some(char_set), node!(=T::CharSet as TokenId));
-
-    // StrLit: '\'' Char Char+ '\''
-    let str_lit = re.add(Some(top), node!(&));
-    re.add(Some(str_lit), node!(chr '\''));
-    add_char(&mut re, str_lit);
-    let p = re.add(Some(str_lit), node!(+));
-    add_char(&mut re, p);
-    re.add_iter(Some(str_lit), [node!(chr '\''), node!(=T::StrLit as TokenId)]);
+    re.add(Some(set_char), node!(=T::SetChar as TokenId));
 
     re
 }
@@ -210,24 +206,26 @@ fragment EscChar		: '\\' ([nrt'\\] | UnicodeEsc);
 fragment Char			: EscChar | ~[\n\r\t'\\];
 fragment CharLiteral	: '\'' Char '\'';
 fragment StrLiteral		: '\'' Char Char+ '\'';
-fragment FixedSet		: ('\\w' | '\\d');
 // Char inside a '[' ']' set
 fragment EscSetChar		: '\\' ([nrt\\[\]\-] | UnicodeEsc);
-fragment SetChar		: (EscSetChar | ~[\n\r\t\\\]]);
 fragment Letter			: 'a'..'z';  // dummy
 fragment NonLetter		: ~'a'..'z'; // dummy
 
 ARROW			: '->'; /* // first token // */
 COLON			: ':';
 COMMA			: ',';
+DOT             : '.';
 ELLIPSIS		: '..';
 LBRACKET    	: '{';
+LSBRACKET       : '[';
 LPAREN			: '(';
 NEGATE			: '~';
+MINUS           : '-';
 PLUS			: '+';
 OR				: '|';
 QUESTION		: '?';
 RBRACKET    	: '}';
+RSBRACKET       : ']';
 RPAREN			: ')';
 SEMICOLON		: ';';
 STAR			: '*';
@@ -251,15 +249,13 @@ WHITESPACE		: [ \n\r\t]+				-> skip;
 ID				: [a-zA-Z][a-zA-Z_0-9]*;
 
 CHAR_LIT		: CharLiteral;
-
-CHAR_SET		: '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
-                | '.'
-                | FixedSet;
-
 STR_LIT			: StrLiteral;
+
+FIXED_SET       : ('\\w' | '\\d');
+SET_CHAR        : (EscSetChar | ~[\n\r\t\\\]]);
 "#;
 
-pub const LEXICON_TOKENS: [TokenId; 269] = [
+pub const LEXICON_TOKENS: [TokenId; 248] = [
     16, 25,                                             // lexicon RLLexer;
     12, 14, 4, 25, 2, 25, 10,                           // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
     15, 25, 1, 28, 27, 13, 9, 28, 12,                   // fragment BlockComment   : '/*' .*? '*/';
@@ -270,9 +266,7 @@ pub const LEXICON_TOKENS: [TokenId; 269] = [
     15, 25, 1, 25, 8, 6, 27, 12,                        // fragment Char           : EscChar | ~[\n\r\t'\\];
     15, 25, 1, 26, 25, 26, 12,                          // fragment CharLiteral    : '\'' Char '\'';
     15, 25, 1, 26, 25, 25, 7, 26, 12,                   // fragment StrLiteral     : '\'' Char Char+ '\'';
-    15, 25, 1, 5, 28, 8, 28, 11, 12,                    // fragment FixedSet       : ('\\w' | '\\d');
     15, 25, 1, 26, 5, 27, 8, 25, 11, 12,                // fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
-    15, 25, 1, 5, 25, 8, 6, 27, 11, 12,                 // fragment SetChar        : (EscSetChar | ~[\n\r\t\\\]]);
     15, 25, 1, 26, 3, 26, 12,                           // fragment Letter         : 'a'..'z';  // dummy
     15, 25, 1, 6, 26, 3, 26, 12,                        // fragment NonLetter      : ~'a'..'z'; // dummy
     25, 1, 28, 12,                                      // ARROW       : '->';
@@ -305,10 +299,9 @@ pub const LEXICON_TOKENS: [TokenId; 269] = [
     25, 1, 27, 7, 0, 21, 12,                            // WHITESPACE  : [ \n\r\t]+             -> skip;
     25, 1, 27, 27, 13, 12,                              // ID          : [a-zA-Z][a-zA-Z_0-9]*;
     25, 1, 25, 12,                                      // CHAR_LIT    : CharLiteral;
-    25, 1, 26, 5, 25, 26, 25, 8, 25, 8, 25, 11, 7, 26,  // CHAR_SET : '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
-        8, 26,                                          //          | '.'
-        8, 25, 12,                                      //          | FixedSet;
     25, 1, 25, 12,                                      // STR_LIT     : StrLiteral;
+    25, 1, 5, 28, 8, 28, 11, 12,                        // FIXED_SET   : ('\\w' | '\\d');
+    25, 1, 5, 25, 8, 6, 27, 11, 12,                     // SET_CHAR    : (EscSetChar | ~[\n\r\t\\\]]);
 ];
 
 pub const LEXICON_TEXT: [&str; 269] = [
@@ -383,7 +376,7 @@ alt_items:
 ;
 
 alt_item:
-	repeat_item+
+    repeat_item+
 ;
 
 repeat_item:
@@ -396,10 +389,17 @@ item:
     ID
 |   CHAR_LIT (ELLIPSIS CHAR_LIT)?
 |   STR_LIT
-|   CHAR_SET
+|   char_set
 |   LPAREN alt_items RPAREN
 |   NEGATE item
 ;
+
+char_set:
+    LSBRACKET (SET_CHAR MINUS SET_CHAR | SET_CHAR | FIXED_SET)+ RSBRACKET
+|   DOT
+|   FIXED_SET;
+;
+
 "#;
 
 #[repr(u16)]
@@ -417,9 +417,10 @@ enum NT {
     AltItem,            // 10
     RepeatItem,         // 11
     Item,               // 12
+    CharSet,            // 13
 }
 
-const NON_TERMINALS: [&str; 13] = [
+const NON_TERMINALS: [&str; 14] = [
     "file",             // 0
     "file_item",        // 1
     "header",           // 2
@@ -433,6 +434,7 @@ const NON_TERMINALS: [&str; 13] = [
     "alt_item",         // 10
     "repeat_item",      // 11
     "item",             // 12
+    "char_set",         // 13
 ];
 
 pub(crate) fn build_rts() -> RuleTreeSet<General> {
@@ -570,7 +572,7 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     //     ID
     // |   CHAR_LIT (ELLIPSIS CHAR_LIT)?
     // |   STR_LIT
-    // |   CHAR_SET
+    // |   char_set
     // |   LPAREN alt_item RPAREN
     // |   NEGATE item
     // ;
@@ -580,7 +582,7 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
         gnode!(t T::Id),        // 0: ID
         gnode!(&),              // 2: CHAR_LIT (ELLIPSIS CHAR_LIT)?
         gnode!(t T::StrLit),    // 3: STR_LIT
-        gnode!(t T::CharSet),   // 4: CHAR_SET
+        gnode!(nt NT::CharSet), // 4: char_set
         gnode!(&),              // 5: LPAREN alt_items RPAREN
         gnode!(&),              // 6: NEGATE item
     ]);
