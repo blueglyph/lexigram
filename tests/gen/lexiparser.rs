@@ -727,11 +727,11 @@ pub(crate) mod lexiparser_types {
     /// SynMatch: User-defined type for `match`
     #[derive(Debug, PartialEq)] pub struct SynMatch();
     /// SynAltItems: User-defined type for `alt_items`
-    #[derive(Debug, PartialEq)] pub struct SynAltItems();
+    #[derive(Debug, PartialEq)] pub struct SynAltItems(pub usize);
     /// SynAltItem: User-defined type for `alt_item`
-    #[derive(Debug, PartialEq)] pub struct SynAltItem();
+    #[derive(Debug, PartialEq)] pub struct SynAltItem(pub usize);
     /// SynRepeatItem: User-defined type for `repeat_item`
-    #[derive(Debug, PartialEq)] pub struct SynRepeatItem();
+    #[derive(Debug, PartialEq)] pub struct SynRepeatItem(pub usize);
     /// SynItem: User-defined type for `item`
     #[derive(Debug, PartialEq)] pub struct SynItem(pub usize);
 }

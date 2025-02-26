@@ -163,11 +163,6 @@ impl LexiParserListener for LexiListener {
         SynOption()
     }
 
-    fn init_rule(&mut self) {
-        assert!(self.curr.is_none());
-        self.curr = Some(VecTree::new());
-    }
-
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
         let (id, rule_type, action_maybe) = match ctx {
             // FIXME: manage errors (may panic)
@@ -264,9 +259,15 @@ impl LexiParserListener for LexiListener {
         SynAction(action)
     }
 
-    fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch {
-        let CtxMatch::Match { alt_items } = ctx;
+    fn init_match(&mut self) {
+        assert!(self.curr.is_none());
+        self.curr = Some(VecTree::new());
+    }
 
+    fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch {
+        // sets the tree root ID, so that any rule using `match` can expect to get a usable VecTree
+        let CtxMatch::Match { alt_items } = ctx;
+        self.curr.as_mut().unwrap().set_root(alt_items.0);
         SynMatch()
     }
 
@@ -279,13 +280,13 @@ impl LexiParserListener for LexiListener {
             CtxAltItems::AltItems3 { alt_items } => {               // end of iterations in alt_items -> alt_items | alt_item
             }
         }
-        SynAltItems()
+        SynAltItems(todo!())
     }
 
     fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem {
         let CtxAltItem::AltItem { plus } = ctx;
 
-        SynAltItem()
+        SynAltItem(todo!())
     }
 
     fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem {
@@ -306,8 +307,7 @@ impl LexiParserListener for LexiListener {
             CtxRepeatItem::RepeatItem7 { repeat_item } => {     // repeat_item -> repeat_item *
             }
         }
-
-        SynRepeatItem()
+        SynRepeatItem(todo!())
     }
 
     fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
@@ -315,7 +315,7 @@ impl LexiParserListener for LexiListener {
         let tree = self.curr.as_mut().unwrap();
         match ctx {
             CtxItem::Item1 { alt_items } => {       // item -> ( alt_items )
-                SynItem(todo!())
+                SynItem(alt_items.0)
             }
             CtxItem::Item2 { item } => {            // item -> ~ item
                 SynItem(todo!())
@@ -329,6 +329,14 @@ impl LexiParserListener for LexiListener {
                 }
             }
             CtxItem::Item4 { charset } => {         // item -> CharSet
+                // fragment HexDigit    : [0-9a-fA-F];
+                // fragment UnicodeEsc  : 'u{' HexDigit+ '}';
+                // fragment EscSetChar  : '\\' ([nrt\\[\]\-] | UnicodeEsc);
+                // fragment SetChar     : (EscSetChar | ~[\n\r\t\\\]]);
+                // fragment FixedSet    : ('\\w' | '\\d');
+                // CHAR_SET             : '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
+                //                      | '.'
+                //                      | FixedSet;
                 SynItem(todo!())
             }
             CtxItem::Item5 { strlit } => {          // item -> StrLit
