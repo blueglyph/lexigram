@@ -228,7 +228,7 @@ impl LexerGen {
             ));
         }
         source.push(format!("];"));
-        source.push(format!("const STATE_TABLE: [StateId; {}] = [", self.state_table.len() - 1));
+        source.push(format!("const STATE_TABLE: [StateId; {}] = [", self.state_table.len()));
         for i in 0..self.nbr_states as usize {
             source.push(format!("    {}, // state {}{}",
                 (0..self.nbr_groups as usize).map(|j| format!("{:3}", self.state_table[i * self.nbr_groups as usize + j])).join(", "),
@@ -236,6 +236,7 @@ impl LexerGen {
                 if i >= self.first_end_state { format!(" {}", self.terminal_table[i - self.first_end_state] ) } else { "".to_string() }
             ));
         }
+        source.push(format!("    {:3} // error group in [nbr_state * nbr_group + nbr_group]", self.state_table[self.state_table.len() - 1]));
         source.push(format!("];"));
         source.push(String::new());
         source.push(format!("pub fn build_lexer<R: Read>() -> Lexer<R> {{"));

@@ -24,15 +24,26 @@ pub enum LexerType { Normalized, Optimized }
 
 fn make_dfa() -> Dfa<General> {
     const VERBOSE: bool = false;
-    let re = build_re();
-    let mut dfa_builder = DfaBuilder::from_re(re);
-    let dfa = dfa_builder.build();
+    let regs = build_re();
+    let mut dfas = vec![];
+    for (n, re) in regs {
+        let mut dfa_builder = DfaBuilder::from_re(re);
+        let dfa = dfa_builder.build();
+        if VERBOSE {
+            println!("Mode {n}:");
+            println!("Tree: {}", tree_to_string(&dfa_builder.get_re(), true));
+            println!("Messages:\n{}", dfa_builder.get_messages());
+        }
+        assert_eq!(dfa_builder.get_errors().len(), 0);
+        dfas.push((n, dfa));
+    }
+    let mut dfa_builder = DfaBuilder::new();
+    let dfa = dfa_builder.build_from_dfa_modes(dfas);
     if VERBOSE {
-        println!("Tree: {}", tree_to_string(&dfa_builder.get_re(), true));
         println!("Messages:\n{}", dfa_builder.get_messages());
     }
     assert_eq!(dfa_builder.get_errors().len(), 0);
-    dfa
+    dfa.expect(&format!("failed to build Dfa:\n{}", dfa_builder.get_messages()))
 }
 
 fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
@@ -85,14 +96,14 @@ fn lexilexer_tokens() {
 
 /// We scan source files and check the tokens and the source text they cover.
 pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
         (1, vec![
             // no error
-            ("-> : , .. { ( ~ + | ? } ) ; * channels fragment lexicon mode pop push more skip type channel",
-             vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23],
-             vec!["->", ":", ",", "..", "{", "(", "~", "+", "|", "?", "}", ")", ";", "*",
-                  "channels", "fragment", "lexicon", "mode", "pop", "push", "more", "skip", "type", "channel"]),
+            ("-> : , . .. { ( ~ - + | ? } ) ; * channels fragment lexicon mode pop push more skip type channel [a-z.\\t]",
+             vec![0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 6, 33, 33, 33, 33, 33, 14],
+             vec!["->", ":", ",", ".", "..", "{", "(", "~", "-", "+", "|", "?", "}", ")", ";", "*",
+                  "channels", "fragment", "lexicon", "mode", "pop", "push", "more", "skip", "type", "channel", "[", "a", "-", "z", ".", "\\t", "]"]),
         ]),
         (2, vec![(LEXICON, LEXICON_TOKENS.to_vec(), LEXICON_TEXT.to_vec())]),
     ];
@@ -123,11 +134,29 @@ fn regexgen_stability() {
         let mut lexer = make_lexer(opt);
         let stream = CharReader::new(Cursor::new(LEXICON));
         lexer.attach_stream(stream);
+        let mut source2 = String::new();
+        let mut mode1 = false;
         let (tokens, texts): (Vec<TokenId>, Vec<String>) = lexer
             .tokens()
-            .filter_map(|(tok, ch, text, _col, _line)| if ch == 0 { Some((tok, text)) } else { None })
+            .filter_map(|(tok, ch, text, _col, _line)| if ch == 0 {
+                source2.push_str(&text);
+                println!("{} {text}", if mode1 { "1" } else { " " } );
+                if &text == "[" {
+                    mode1 = true; // '[' doesn't need escaping within mode1, so we don't check the mode here
+                } else if &text == "]" {
+                    assert!(mode1);
+                    mode1 = false;
+                }
+                if !mode1 {
+                    source2.push(' ');
+                }
+                Some((tok, text))
+            } else {
+                None
+            })
             .unzip();
-        let source2 = texts.join(" ");
+        source2.pop(); // remove trailing space
+        println!("{source2}");
         let stream2 = CharReader::new(Cursor::new(source2.as_str()));
         lexer.detach_stream();
         lexer.attach_stream(stream2);

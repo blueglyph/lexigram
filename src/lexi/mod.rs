@@ -4,7 +4,7 @@ pub(super) mod tests;
 
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use crate::dfa::{ReNode, ReType, TokenId};
+use crate::dfa::{ModeId, ReNode, ReType, TokenId};
 use crate::segments::{Seg, Segments};
 use crate::{gnode, node, term, General};
 use crate::grammar::{RuleTreeSet, VarId, GrNode, Symbol};
@@ -88,40 +88,43 @@ pub const TERMINALS: [(&str, Option<&str>); 34] = [
     ("SetChar",   None),                // 33
 ];
 
-pub fn build_re() -> VecTree<ReNode> {
-    let mut re = VecTree::new();
-    let top = re.add_root(node!(|));
+pub fn build_re() -> Vec<(ModeId, VecTree<ReNode>)> {
+    // MODE_DEFAULT:
+    let mut re1 = VecTree::new();
+    let top1 = re1.add_root(node!(|));
 
     // All symbols
     for (id, (_, text_op)) in TERMINALS.iter().index() {
         if let Some(text) = text_op {
-            re.addc_iter(Some(top), node!(&), [node!(str *text), node!(=id)]);
+            if *text != "[" && *text != "]" {
+                re1.addc_iter(Some(top1), node!(&), [node!(str *text), node!(=id)]);
+            }
         }
     }
 
     // Comment: '/' '*' .*? '*' '/'
-    let comment = re.add(Some(top), node!(&));
-    re.add(Some(comment), node!(str "/*"));
-    let l = re.add(Some(comment), node!(??));
-    re.addc(Some(l), node!(*), node!([DOT]));
-    re.add_iter(Some(comment), [node!(str "*/"), node!(term!(skip))]);
+    let comment = re1.add(Some(top1), node!(&));
+    re1.add(Some(comment), node!(str "/*"));
+    let l = re1.add(Some(comment), node!(??));
+    re1.addc(Some(l), node!(*), node!([DOT]));
+    re1.add_iter(Some(comment), [node!(str "*/"), node!(term!(skip))]);
 
     // LineComment: '//' ~[\r\n]*
-    let line_comment = re.add(Some(top), node!(&));
-    re.add(Some(line_comment), node!(str "//"));
-    re.addc(Some(line_comment), node!(*), node!(~['\r', '\n']));
-    re.add(Some(line_comment), node!(term!(skip)));
+    let line_comment = re1.add(Some(top1), node!(&));
+    re1.add(Some(line_comment), node!(str "//"));
+    re1.addc(Some(line_comment), node!(*), node!(~['\r', '\n']));
+    re1.add(Some(line_comment), node!(term!(skip)));
 
     // Whitespace: [ \n\r\t]+
-    let whitespace = re.add(Some(top), node!(&));
-    re.addc(Some(whitespace), node!(+), node!([' ', '\n', '\r', '\t']));
-    re.add(Some(whitespace), node!(term!(skip)));
+    let whitespace = re1.add(Some(top1), node!(&));
+    re1.addc(Some(whitespace), node!(+), node!([' ', '\n', '\r', '\t']));
+    re1.add(Some(whitespace), node!(term!(skip)));
 
     // Id: [a-zA-Z][a-zA-Z_0-9]*
-    let id = re.add(Some(top), node!(&));
-    re.add(Some(id), node!(['a'-'z', 'A'-'Z']));
-    re.addc(Some(id), node!(*), node!(['_', '0'-'9', 'a'-'z', 'A'-'Z']));
-    re.add(Some(id), node!(=T::Id as TokenId));
+    let id = re1.add(Some(top1), node!(&));
+    re1.add(Some(id), node!(['a'-'z', 'A'-'Z']));
+    re1.addc(Some(id), node!(*), node!(['_', '0'-'9', 'a'-'z', 'A'-'Z']));
+    re1.add(Some(id), node!(=T::Id as TokenId));
 
     // Staggered form of Char (easier to decompose):
     //
@@ -143,47 +146,51 @@ pub fn build_re() -> VecTree<ReNode> {
                         re.add(Some(cc4), node!(chr '}'));
             re.add(Some(or1), node!(~['\n', '\r', '\t', '\'', '\\']));
     }
-    let char_lit = re.add(Some(top), node!(&));
-    re.add(Some(char_lit), node!(chr '\''));
-    add_char(&mut re, char_lit);
-    re.add_iter(Some(char_lit), [node!(chr '\''), node!(=T::CharLit as TokenId)]);
+    let char_lit = re1.add(Some(top1), node!(&));
+    re1.add(Some(char_lit), node!(chr '\''));
+    add_char(&mut re1, char_lit);
+    re1.add_iter(Some(char_lit), [node!(chr '\''), node!(=T::CharLit as TokenId)]);
 
     // StrLit: '\'' Char Char+ '\''
-    let str_lit = re.add(Some(top), node!(&));
-    re.add(Some(str_lit), node!(chr '\''));
-    add_char(&mut re, str_lit);
-    let p = re.add(Some(str_lit), node!(+));
-    add_char(&mut re, p);
-    re.add_iter(Some(str_lit), [node!(chr '\''), node!(=T::StrLit as TokenId)]);
-
-    // CharSet:                                                       |     |
-    //          '[' (                         |                )* ']'   '.'   ('\\w' | '\\d')
-    //               SetChar ( '-' SetChar )?   ('\\w' | '\\d')
-    //                                       or4                s3   or1   or1
-    //                    or3----------------
+    let str_lit = re1.add(Some(top1), node!(&));
+    re1.add(Some(str_lit), node!(chr '\''));
+    add_char(&mut re1, str_lit);
+    let p = re1.add(Some(str_lit), node!(+));
+    add_char(&mut re1, p);
+    re1.add_iter(Some(str_lit), [node!(chr '\''), node!(=T::StrLit as TokenId)]);
 
     // FixedSet: ('\\w' | '\\d')
-    let fixed_set = re.add(Some(top), node!(&));
-        let or1 = re.add(Some(fixed_set), node!(|));
-            re.add_iter(Some(or1), [node!(str "\\w"), node!(str "\\d")]);
-    re.add(Some(fixed_set), node!(=T::FixedSet as TokenId));
+    let fixed_set = re1.add(Some(top1), node!(&));
+        let or1 = re1.add(Some(fixed_set), node!(|));
+            re1.add_iter(Some(or1), [node!(str "\\w"), node!(str "\\d")]);
+    re1.add(Some(fixed_set), node!(=T::FixedSet as TokenId));
 
-    // SetChar: ( '\\' ([nrt\\[\]\-] | 'u{' [0-9a-fA-F]+ '}') | ~[\n\r\t\\] )
-    let set_char = re.add(Some(top), node!(&));
-        let or1 = re.add(Some(set_char), node!(|));
-            let cc2 = re.add(Some(or1), node!(&));
-                re.add(Some(cc2), node!(chr '\\'));
-                let or3 = re.add(Some(cc2), node!(|));
-                    re.add(Some(or3), node!(['n', 'r', 't', '\'', '\\', '[', ']', '-']));
-                    let cc4 = re.add(Some(or3), node!(&));
-                        re.add(Some(cc4), node!(str "u{"));
-                        re.addc(Some(cc4), node!(+), node!(['0'-'9', 'a'-'f', 'A'-'F']));
-                        re.add(Some(cc4), node!(chr '}'));
+    // '[' -> push(MODE_SET_CHAR)
+    re1.addc_iter(Some(top1), node!(&), [node!(chr '['), node!(term!(=T::LSbracket as TokenId) + term!(push 1))]);
+
+    // MODE_SET_CHAR:
+    let mut re2 = VecTree::new();
+    let top2 = re2.add_root(node!(|));
+
+    // ']' -> pop
+    re2.addc_iter(Some(top2), node!(&), [node!(chr ']'), node!(term!(=T::RSbracket as TokenId) + term!(pop))]);
+
+    // SetChar: ( '\\' ([nrt\\[\]\-] | 'u{' [0-9a-fA-F]+ '}') | ~[\n\r\t\\\]] )
+    let set_char = re2.add(Some(top2), node!(&));
+        let or1 = re2.add(Some(set_char), node!(|));
+            let cc2 = re2.add(Some(or1), node!(&));
+                re2.add(Some(cc2), node!(chr '\\'));
+                let or3 = re2.add(Some(cc2), node!(|));
+                    re2.add(Some(or3), node!(['n', 'r', 't', '\'', '\\', '[', ']', '-']));
+                    let cc4 = re2.add(Some(or3), node!(&));
+                        re2.add(Some(cc4), node!(str "u{"));
+                        re2.addc(Some(cc4), node!(+), node!(['0'-'9', 'a'-'f', 'A'-'F']));
+                        re2.add(Some(cc4), node!(chr '}'));
             // Note: we accept the opening bracket within brackets, with or without escaping: [a-z[] or [a-z\[]
-            re.add(Some(or1), node!(~['\n', '\r', '\t', '\\', ']']));
-    re.add(Some(set_char), node!(=T::SetChar as TokenId));
+            re2.add(Some(or1), node!(~['\n', '\r', '\t', '\\', ']']));
+    re2.add(Some(set_char), node!(=T::SetChar as TokenId));
 
-    re
+    vec![(0, re1), (1, re2)]
 }
 
 // TODO: We must make a few constants public because they're used in the integration tests.
@@ -255,73 +262,81 @@ FIXED_SET       : ('\\w' | '\\d');
 SET_CHAR        : (EscSetChar | ~[\n\r\t\\\]]);
 "#;
 
-pub const LEXICON_TOKENS: [TokenId; 248] = [
-    16, 25,                                             // lexicon RLLexer;
-    12, 14, 4, 25, 2, 25, 10,                           // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
-    15, 25, 1, 28, 27, 13, 9, 28, 12,                   // fragment BlockComment   : '/*' .*? '*/';
-    15, 25, 1, 28, 6, 27, 13, 12,                       // fragment LineComment    : '//' ~[\r\n]*;
-    15, 25, 1, 27, 12,                                  // fragment HexDigit       : [0-9a-fA-F];
-    15, 25, 1, 28, 25, 7, 26, 12,                       // fragment UnicodeEsc     : 'u{' HexDigit+ '}';
-    15, 25, 1, 26, 5, 27, 8, 25, 11, 12,                // fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
-    15, 25, 1, 25, 8, 6, 27, 12,                        // fragment Char           : EscChar | ~[\n\r\t'\\];
-    15, 25, 1, 26, 25, 26, 12,                          // fragment CharLiteral    : '\'' Char '\'';
-    15, 25, 1, 26, 25, 25, 7, 26, 12,                   // fragment StrLiteral     : '\'' Char Char+ '\'';
-    15, 25, 1, 26, 5, 27, 8, 25, 11, 12,                // fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
-    15, 25, 1, 26, 3, 26, 12,                           // fragment Letter         : 'a'..'z';  // dummy
-    15, 25, 1, 6, 26, 3, 26, 12,                        // fragment NonLetter      : ~'a'..'z'; // dummy
-    25, 1, 28, 12,                                      // ARROW       : '->';
-    25, 1, 26, 12,                                      // COLON       : ':';
-    25, 1, 26, 12,                                      // COMMA       : ',';
-    25, 1, 28, 12,                                      // ELLIPSIS    : '..';
-    25, 1, 26, 12,                                      // LBRACKET    : '{';
-    25, 1, 26, 12,                                      // LPAREN      : '(';
-    25, 1, 26, 12,                                      // NEGATE      : '~';
-    25, 1, 26, 12,                                      // PLUS        : '+';
-    25, 1, 26, 12,                                      // OR          : '|';
-    25, 1, 26, 12,                                      // QUESTION    : '?';
-    25, 1, 26, 12,                                      // RBRACKET    : '}';
-    25, 1, 26, 12,                                      // RPAREN      : ')';
-    25, 1, 26, 12,                                      // SEMICOLON   : ';';
-    25, 1, 26, 12,                                      // STAR        : '*';
-    25, 1, 28, 12,                                      // CHANNELS    : 'channels';
-    25, 1, 28, 12,                                      // FRAGMENT    : 'fragment';
-    25, 1, 28, 12,                                      // LEXICON     : 'lexicon';
-    25, 1, 28, 12,                                      // MODE        : 'mode';
-    25, 1, 28, 12,                                      // POP         : 'pop';
-    25, 1, 28, 12,                                      // PUSH        : 'push';
-    25, 1, 28, 12,                                      // MORE        : 'more';
-    25, 1, 28, 12,                                      // SKiP        : 'skip';
-    25, 1, 28, 12,                                      // TYPE        : 'type';
-    25, 1, 28, 12,                                      // CHANNEL     : 'channel';
-    25, 1, 28, 12,                                      // SYM_EOF     : 'EOF';
-    25, 1, 25, 0, 21, 12,                               // COMMENT     : BlockComment           -> skip;
-    25, 1, 25, 0, 21, 12,                               // LINECOMMENT : LineComment            -> skip;
-    25, 1, 27, 7, 0, 21, 12,                            // WHITESPACE  : [ \n\r\t]+             -> skip;
-    25, 1, 27, 27, 13, 12,                              // ID          : [a-zA-Z][a-zA-Z_0-9]*;
-    25, 1, 25, 12,                                      // CHAR_LIT    : CharLiteral;
-    25, 1, 25, 12,                                      // STR_LIT     : StrLiteral;
-    25, 1, 5, 28, 8, 28, 11, 12,                        // FIXED_SET   : ('\\w' | '\\d');
-    25, 1, 5, 25, 8, 6, 27, 11, 12,                     // SET_CHAR    : (EscSetChar | ~[\n\r\t\\\]]);
+pub const LEXICON_TOKENS: [TokenId; 326] = [
+    20, 29, 16,                                                 // lexicon RLLexer;
+    18, 5, 29, 2, 29, 13,                                       // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
+    19, 29, 1, 31, 3, 17, 12, 31, 16,                           // fragment BlockComment   : '/*' .*? '*/';
+    19, 29, 1, 31, 8, 6, 33, 33, 14, 17, 16,                    // fragment LineComment    : '//' ~[\r\n]*;
+    19, 29, 1, 6, 33, 33, 33, 33, 33, 33, 33, 33, 33, 14, 16,   // fragment HexDigit       : [0-9a-fA-F];
+    19, 29, 1, 31, 29, 10, 30, 16,                              // fragment UnicodeEsc     : 'u{' HexDigit+ '}';
+    19, 29, 1, 30, 7, 6, 33, 33, 33, 33, 33, 14, 11, 29, 15, 16,// fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
+    19, 29, 1, 29, 11, 8, 6, 33, 33, 33, 33, 33, 14, 16,        // fragment Char           : EscChar | ~[\n\r\t'\\];
+    19, 29, 1, 30, 29, 30, 16,                                  // fragment CharLiteral    : '\'' Char '\'';
+    19, 29, 1, 30, 29, 29, 10, 30, 16,                          // fragment StrLiteral     : '\'' Char Char+ '\'';
+    19, 29, 1, 30, 7, 6, 33, 33, 33, 33, 33, 33, 33, 14, 11, 29,
+               15, 16,                                          // fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
+    19, 29, 1, 30, 4, 30, 16,                                   // fragment Letter         : 'a'..'z';  // dummy
+    19, 29, 1, 8, 30, 4, 30, 16,                                // fragment NonLetter      : ~'a'..'z'; // dummy
+
+    29, 1, 31, 16,                                              // ARROW       : '->';
+    29, 1, 30, 16,                                              // COLON       : ':';
+    29, 1, 30, 16,                                              // COMMA       : ',';
+    29, 1, 30, 16,                                              // DOT         : '.';
+    29, 1, 31, 16,                                              // ELLIPSIS    : '..';
+    29, 1, 30, 16,                                              // LBRACKET    : '{';
+    29, 1, 30, 16,                                              // LSBRACKET   : '[';
+    29, 1, 30, 16,                                              // LPAREN      : '(';
+    29, 1, 30, 16,                                              // NEGATE      : '~';
+    29, 1, 30, 16,                                              // MINUS       : '-';
+    29, 1, 30, 16,                                              // PLUS        : '+';
+    29, 1, 30, 16,                                              // OR          : '|';
+    29, 1, 30, 16,                                              // QUESTION    : '?';
+    29, 1, 30, 16,                                              // RBRACKET    : '}';
+    29, 1, 30, 16,                                              // RSBRACKET   : ']';
+    29, 1, 30, 16,                                              // RPAREN      : ')';
+    29, 1, 30, 16,                                              // SEMICOLON   : ';';
+    29, 1, 30, 16,                                              // STAR        : '*';
+    29, 1, 31, 16,                                              // CHANNELS    : 'channels';
+    29, 1, 31, 16,                                              // FRAGMENT    : 'fragment';
+    29, 1, 31, 16,                                              // LEXICON     : 'lexicon';
+    29, 1, 31, 16,                                              // MODE        : 'mode';
+    29, 1, 31, 16,                                              // POP         : 'pop';
+    29, 1, 31, 16,                                              // PUSH        : 'push';
+    29, 1, 31, 16,                                              // MORE        : 'more';
+    29, 1, 31, 16,                                              // SKiP        : 'skip';
+    29, 1, 31, 16,                                              // TYPE        : 'type';
+    29, 1, 31, 16,                                              // CHANNEL     : 'channel';
+    29, 1, 31, 16,                                              // SYM_EOF     : 'EOF';
+    29, 1, 29, 0, 25, 16,                                       // COMMENT     : BlockComment           -> skip;
+    29, 1, 29, 0, 25, 16,                                       // LINECOMMENT : LineComment            -> skip;
+    29, 1, 6, 33, 33, 33, 33, 14, 10, 0, 25, 16,                // WHITESPACE  : [ \n\r\t]+             -> skip;
+    29, 1, 6, 33, 33, 33, 33, 33, 33, 14, 6, 33, 33, 33, 33,
+              33, 33, 33, 33, 33, 33, 14, 17, 16,               // ID          : [a-zA-Z][a-zA-Z_0-9]*;
+    29, 1, 29, 16,                                              // CHAR_LIT    : CharLiteral;
+    29, 1, 29, 16,                                              // STR_LIT     : StrLiteral;
+    29, 1, 7, 31, 11, 31, 15, 16,                               // FIXED_SET   : ('\\w' | '\\d');
+    29, 1, 7, 29, 11, 8, 6, 33, 33, 33, 33, 33, 14, 15, 16      // SET_CHAR    : (EscSetChar | ~[\n\r\t\\\]]);
 ];
 
-pub const LEXICON_TEXT: [&str; 269] = [
-    "lexicon", "LexiLexer", ";", "channels", "{", "CH_WHITESPACE", ",", "CH_COMMENTS", "}", "fragment", "BlockComment", ":", "'/*'", ".", "*", "?",
-    "'*/'", ";", "fragment", "LineComment", ":", "'//'", "~", r#"[\r\n]"#, "*", ";", "fragment", "HexDigit", ":", "[0-9a-fA-F]", ";", "fragment",
-    "UnicodeEsc", ":", "'u{'", "HexDigit", "+", "'}'", ";", "fragment", "EscChar", ":", r#"'\\'"#, "(", r#"[nrt'\\]"#, "|", "UnicodeEsc", ")", ";", "fragment",
-    "Char", ":", "EscChar", "|", "~", r#"[\n\r\t'\\]"#, ";", "fragment", "CharLiteral", ":", r#"'\''"#, "Char", r#"'\''"#, ";", "fragment", "StrLiteral",
-    ":", r#"'\''"#, "Char", "Char", "+", r#"'\''"#, ";", "fragment", "FixedSet", ":", "(", r#"'\\w'"#, "|", r#"'\\d'"#, ")", ";", "fragment", "EscSetChar",
-    ":", r#"'\\'"#, "(", r#"[nrt\\[\]\-]"#, "|", "UnicodeEsc", ")", ";", "fragment", "SetChar", ":", "(", "EscSetChar", "|", "~", r#"[\n\r\t\\\]]"#, ")",
-    ";", "fragment", "Letter", ":", "'a'", "..", "'z'", ";", "fragment", "NonLetter", ":", "~", "'a'", "..", "'z'", ";", "ARROW", ":", "'->'", ";", "COLON",
-    ":", "':'", ";", "COMMA", ":", "','", ";", "ELLIPSIS", ":", "'..'", ";", "LBRACKET", ":", "'{'", ";", "LPAREN", ":", "'('", ";", "NEGATE", ":", "'~'",
-    ";", "PLUS", ":", "'+'", ";", "OR", ":", "'|'", ";", "QUESTION", ":", "'?'", ";", "RBRACKET", ":", "'}'", ";", "RPAREN", ":", "')'", ";", "SEMICOLON",
-    ":", "';'", ";", "STAR", ":", "'*'", ";", "CHANNELS", ":", "'channels'", ";", "FRAGMENT", ":", "'fragment'", ";", "LEXICON", ":", "'lexicon'", ";",
-    "MODE", ":", "'mode'", ";", "POP", ":", "'pop'", ";", "PUSH", ":", "'push'", ";", "MORE", ":", "'more'", ";", "SKiP", ":", "'skip'", ";",
-    "TYPE", ":", "'type'", ";", "CHANNEL", ":", "'channel'", ";", "SYM_EOF", ":", "'EOF'", ";",
-    "COMMENT", ":", "BlockComment", "->", "skip", ";", "LINECOMMENT", ":", "LineComment", "->",
-    "skip", ";", "WHITESPACE", ":", r#"[ \n\r\t]"#, "+", "->", "skip", ";", "ID", ":", "[a-zA-Z]", "[a-zA-Z_0-9]", "*", ";", "CHAR_LIT", ":", "CharLiteral",
-    ";", "CHAR_SET", ":", "'['", "(", "SetChar", "'-'", "SetChar", "|", "SetChar", "|", "FixedSet", ")", "+", "']'", "|", "'.'", "|", "FixedSet", ";",
-    "STR_LIT", ":", "StrLiteral", ";"
-];
+pub const LEXICON_TEXT: [&str; 326] = [
+    "lexicon", "LexiLexer", ";", "channels", "{", "CH_WHITESPACE", ",", "CH_COMMENTS", "}", "fragment", "BlockComment",
+    ":", "'/*'", ".", "*", "?", "'*/'", ";", "fragment", "LineComment", ":", "'//'", "~", "[", "\\r", "\\n", "]",
+    "*", ";", "fragment", "HexDigit", ":", "[", "0", "-", "9", "a", "-", "f", "A", "-", "F", "]", ";",
+    "fragment", "UnicodeEsc", ":", "'u{'", "HexDigit", "+", "'}'", ";", "fragment", "EscChar",
+    ":", "'\\\\'", "(", "[", "n", "r", "t", "'", "\\\\", "]", "|", "UnicodeEsc", ")", ";", "fragment", "Char", ":", "EscChar", "|", "~",
+    "[", "\\n", "\\r", "\\t", "'", "\\\\", "]", ";", "fragment", "CharLiteral", ":", "'\\''", "Char", "'\\''", ";", "fragment", "StrLiteral",
+    ":", "'\\''", "Char", "Char", "+", "'\\''", ";", "fragment", "EscSetChar", ":", "'\\\\'", "(", "[", "n", "r", "t", "\\\\", "[", "\\]", "\\-", "]",
+    "|", "UnicodeEsc", ")", ";", "fragment", "Letter", ":", "'a'", "..", "'z'", ";", "fragment", "NonLetter", ":", "~", "'a'", "..", "'z'", ";",
+    "ARROW", ":", "'->'", ";", "COLON", ":", "':'", ";", "COMMA", ":", "','", ";", "DOT", ":", "'.'", ";", "ELLIPSIS", ":", "'..'", ";", "LBRACKET",
+    ":", "'{'", ";", "LSBRACKET", ":", "'['", ";", "LPAREN", ":", "'('", ";", "NEGATE", ":", "'~'", ";", "MINUS", ":", "'-'", ";", "PLUS", ":",
+    "'+'", ";", "OR", ":", "'|'", ";", "QUESTION", ":", "'?'", ";", "RBRACKET", ":", "'}'", ";", "RSBRACKET", ":", "']'", ";", "RPAREN", ":", "')'",
+    ";", "SEMICOLON", ":", "';'", ";", "STAR", ":", "'*'", ";", "CHANNELS", ":", "'channels'", ";", "FRAGMENT", ":", "'fragment'", ";", "LEXICON", ":",
+    "'lexicon'", ";", "MODE", ":", "'mode'", ";", "POP", ":", "'pop'", ";", "PUSH", ":", "'push'", ";", "MORE", ":", "'more'", ";", "SKiP", ":", "'skip'",
+    ";", "TYPE", ":", "'type'", ";", "CHANNEL", ":", "'channel'", ";", "SYM_EOF", ":", "'EOF'", ";", "COMMENT", ":", "BlockComment", "->", "skip", ";",
+    "LINECOMMENT", ":", "LineComment", "->", "skip", ";", "WHITESPACE", ":", "[", " ", "\\n", "\\r", "\\t", "]", "+", "->", "skip", ";", "ID", ":", "[",
+    "a", "-", "z", "A", "-", "Z", "]", "[", "a", "-", "z", "A", "-", "Z", "_", "0", "-", "9", "]", "*", ";", "CHAR_LIT", ":", "CharLiteral", ";", "STR_LIT",
+    ":", "StrLiteral", ";", "FIXED_SET", ":", "(", "'\\\\w'", "|", "'\\\\d'", ")", ";", "SET_CHAR", ":", "(", "EscSetChar", "|", "~", "[", "\\n", "\\r", "\\t",
+    "\\\\", "\\]", "]", ")", ";"];
 
 // ---------------------------------------------------------------------------------------------
 // Parser
