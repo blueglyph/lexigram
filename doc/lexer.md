@@ -211,8 +211,8 @@ alt_item:
 ;
 
 repeat_item:
-    repeat_item STAR QUESTION?
-|   repeat_item PLUS QUESTION?
+    item STAR QUESTION?
+|   item PLUS QUESTION?
 |   item QUESTION?
 ;
 

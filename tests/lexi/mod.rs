@@ -272,48 +272,49 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems {
-        match ctx {
+        let id = match ctx {
             CtxAltItems::AltItems1 { alt_item } => {                // alt_items -> alt_item
+                alt_item.0
             }
             CtxAltItems::AltItems2 { alt_items, alt_item } => {     // alt_items -> alt_items | alt_item
+                todo!()
             }
             CtxAltItems::AltItems3 { alt_items } => {               // end of iterations in alt_items -> alt_items | alt_item
+                todo!()
             }
-        }
-        SynAltItems(todo!())
+        };
+        SynAltItems(id)
     }
 
     fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem {
         let CtxAltItem::AltItem { plus } = ctx;
-
-        SynAltItem(todo!())
+        let id = self.curr.as_mut().unwrap().addi_iter(None, node!(&), plus.0.into_iter().map(|item| item.0));
+        SynAltItem(id)
     }
 
     fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem {
-        // FIXME: manage errors (may panic)
         let tree = self.curr.as_mut().unwrap();
         let id = match ctx {
-            CtxRepeatItem::RepeatItem1 { repeat_item } => {
-                // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
-                todo!()
+            CtxRepeatItem::RepeatItem1 { item } => {   // repeat_item -> item ?
+                tree.addci_iter(None, node!(|),
+                                [item.0, tree.add(None, node!(e))])
             }
-            CtxRepeatItem::RepeatItem2 { item } => {            // repeat_item -> item ?
-                tree.addci(None, node!(??), item.0)
-            }
-            CtxRepeatItem::RepeatItem3 { item } => {            // repeat_item -> item
+            CtxRepeatItem::RepeatItem2 { item } => {   // repeat_item -> item
                 item.0
             }
-            CtxRepeatItem::RepeatItem4 { repeat_item } => {     // repeat_item -> repeat_item + ?
-                todo!()
+            CtxRepeatItem::RepeatItem3 { item } => {   // repeat_item -> item +? (lazy)
+                tree.addci(None, node!(??),
+                           tree.addci(None, node!(+), item.0))
             }
-            CtxRepeatItem::RepeatItem5 { repeat_item } => {     // repeat_item -> repeat_item +
-                todo!()
+            CtxRepeatItem::RepeatItem4 { item } => {   // repeat_item -> item +
+                tree.addci(None, node!(+), item.0)
             }
-            CtxRepeatItem::RepeatItem6 { repeat_item } => {     // repeat_item -> repeat_item * ?
-                todo!()
+            CtxRepeatItem::RepeatItem5 { item } => {   // repeat_item -> item *? (lazy)
+                tree.addci(None, node!(??),
+                           tree.addci(None, node!(*), item.0))
             }
-            CtxRepeatItem::RepeatItem7 { repeat_item } => {     // repeat_item -> repeat_item *
-                todo!()
+            CtxRepeatItem::RepeatItem6 { item } => {   // repeat_item -> item *
+                tree.addci(None, node!(*), item.0)
             }
         };
         SynRepeatItem(id)

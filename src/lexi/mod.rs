@@ -396,8 +396,8 @@ alt_item:
 ;
 
 repeat_item:
-    repeat_item STAR QUESTION?
-|   repeat_item PLUS QUESTION?
+    item STAR QUESTION?
+|   item PLUS QUESTION?
 |   item QUESTION?
 ;
 
@@ -575,15 +575,15 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     tree.add(Some(plus), gnode!(nt NT::RepeatItem));
 
     // repeat_item:
-    //     repeat_item STAR QUESTION?
-    // |   repeat_item PLUS QUESTION?
+    //     item STAR QUESTION?
+    // |   item PLUS QUESTION?
     // |   item QUESTION?
     // ;
     let tree = rules.get_tree_mut(NT::RepeatItem as VarId);
     let or = tree.add_root(gnode!(|));
-    let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::RepeatItem), gnode!(t T::Star)]);
+    let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::Item), gnode!(t T::Star)]);
     tree.addc(Some(cc1), gnode!(?), gnode!(t T::Question));
-    let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::RepeatItem), gnode!(t T::Plus)]);
+    let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::Item), gnode!(t T::Plus)]);
     tree.addc(Some(cc1), gnode!(?), gnode!(t T::Question));
     let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::Item)]);
     tree.addc(Some(cc1), gnode!(?), gnode!(t T::Question));
