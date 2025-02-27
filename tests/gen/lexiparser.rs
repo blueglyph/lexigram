@@ -811,6 +811,7 @@ pub(crate) mod lexiparser {
 }
 
 pub(crate) mod lexiparser_types {
+    use rlexer::segments::Segments;
     use crate::lexi::LexAction;
 
     /// SynFile: User-defined type for `file`
@@ -840,7 +841,7 @@ pub(crate) mod lexiparser_types {
     /// SynItem: User-defined type for `item`
     #[derive(Debug, PartialEq)] pub struct SynItem(pub usize);
     /// User-defined type for `char_set`
-    #[derive(Debug, PartialEq)] pub struct SynCharSet();
+    #[derive(Debug, PartialEq)] pub struct SynCharSet(pub Segments);
     /// User-defined type for `char_set_one`
-    #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
+    #[derive(Debug, PartialEq)] pub struct SynCharSetOne(pub Segments);
 }

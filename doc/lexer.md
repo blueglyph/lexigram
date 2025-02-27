@@ -220,8 +220,20 @@ item:
     ID
 |   CHAR_LIT (ELLIPSIS CHAR_LIT)?
 |   STR_LIT
-|   CHAR_SET
+|   char_set
 |   LPAREN alt_items RPAREN
 |   NEGATE item
+;
+
+char_set:
+    LSBRACKET (char_set_one)+ RSBRACKET
+|   DOT
+|   FIXED_SET
+;
+
+char_set_one:
+    SET_CHAR MINUS SET_CHAR
+|   SET_CHAR
+|   FIXED_SET
 ;
 ```

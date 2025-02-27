@@ -249,6 +249,10 @@ impl ReNode {
     pub fn get_type(&self) -> &ReType {
         &self.op
     }
+
+    pub fn get_mut_type(&mut self) -> &mut ReType {
+        &mut self.op
+    }
 }
 
 impl Display for ReNode {

@@ -6,7 +6,7 @@ use std::ops::{Add, Range};
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
-use rlexer::{hashmap, node};
+use rlexer::{hashmap, node, segments};
 use rlexer::segments::{Seg, Segments};
 use crate::action;
 use crate::gen::lexiparser::lexiparser::*;
@@ -290,71 +290,121 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem {
-        match ctx {
+        // FIXME: manage errors (may panic)
+        let tree = self.curr.as_mut().unwrap();
+        let id = match ctx {
             CtxRepeatItem::RepeatItem1 { repeat_item } => {
                 // end of iterations in repeat_item -> repeat_item + ? | repeat_item + | repeat_item * ? | repeat_item *
+                todo!()
             }
             CtxRepeatItem::RepeatItem2 { item } => {            // repeat_item -> item ?
+                tree.addci(None, node!(??), item.0)
             }
             CtxRepeatItem::RepeatItem3 { item } => {            // repeat_item -> item
+                item.0
             }
             CtxRepeatItem::RepeatItem4 { repeat_item } => {     // repeat_item -> repeat_item + ?
+                todo!()
             }
             CtxRepeatItem::RepeatItem5 { repeat_item } => {     // repeat_item -> repeat_item +
+                todo!()
             }
             CtxRepeatItem::RepeatItem6 { repeat_item } => {     // repeat_item -> repeat_item * ?
+                todo!()
             }
             CtxRepeatItem::RepeatItem7 { repeat_item } => {     // repeat_item -> repeat_item *
+                todo!()
             }
-        }
-        SynRepeatItem(todo!())
+        };
+        SynRepeatItem(id)
     }
 
     fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
         // FIXME: manage errors (may panic)
         let tree = self.curr.as_mut().unwrap();
-        match ctx {
+        let id = match ctx {
             CtxItem::Item1 { alt_items } => {       // item -> ( alt_items )
-                SynItem(alt_items.0)
+                alt_items.0
             }
             CtxItem::Item2 { item } => {            // item -> ~ item
-                SynItem(todo!())
+                let mut node = tree.get_mut(item.0);
+                if let ReType::CharRange(range) = node.get_mut_type() {
+                    *range = Box::new(range.not())
+                } else {
+                    panic!("~ can only be applied to a char set, not to '{node:?}'");
+                }
+                item.0
             }
             CtxItem::Item3 { id } => {              // item -> Id
                 if let Some(RuleType::Fragment(f)) = self.rules.get(&id) {
                     let subtree = self.fragments.get(*f as usize).unwrap();
-                    SynItem(tree.add_from_tree(None, subtree, None))
+                    tree.add_from_tree(None, subtree, None)
                 } else {
                     panic!("unknown fragment '{id}'")
                 }
             }
             CtxItem::Item4 { strlit } => {          // item -> StrLit
                 let s = &strlit[1..strlit.len()];
-                SynItem(tree.add(None, ReNode::string(s)))
+                tree.add(None, ReNode::string(s))
             }
-            CtxItem::Item5 { char_set } => {         // item -> CharSet
-                SynItem(todo!())
+            CtxItem::Item5 { char_set } => {         // item -> char_set
+                tree.add(None, ReNode::char_range(char_set.0))
             }
             CtxItem::Item6 { charlit } => {         // item -> CharLit .. CharLit
                 let c1 = decode_char(&charlit[0][1..charlit[0].len() - 2]).unwrap_or_else(|s| panic!("{s}"));
                 let c2 = decode_char(&charlit[1][1..charlit[1].len() - 2]).unwrap_or_else(|s| panic!("{s}"));
-                SynItem(tree.add(None, ReNode::char_range(Segments::new(Seg(c1 as u32, c2 as u32)))))
+                tree.add(None, ReNode::char_range(Segments::from((c1, c2))))
             }
             CtxItem::Item7 { charlit } => {         // item -> CharLit
                 // charlit is always sourrounded by quotes:
                 // fragment CharLiteral	: '\'' Char '\'';
                 let c = decode_char(&charlit[1..charlit.len() - 2]).unwrap_or_else(|s| panic!("{s}"));
-                SynItem(tree.add(None, ReNode::char(c)))
+                tree.add(None, ReNode::char_range(Segments::from(c)))
             }
-        }
+        };
+        SynItem(id)
     }
 
-    fn exit_char_set(&mut self, _ctx: CtxCharSet) -> SynCharSet {
-        todo!()
+    fn exit_char_set(&mut self, ctx: CtxCharSet) -> SynCharSet {
+        // char_set:
+        //     LSBRACKET (char_set_one)+ RSBRACKET
+        // |   DOT
+        // |   FIXED_SET;
+        let seg = match ctx {
+            CtxCharSet::CharSet1 { plus } => {              // char_set -> [ [char_set_one]+ ]
+                plus.0.into_iter().map(|one| one.0).sum()
+            }
+            CtxCharSet::CharSet2 => {                       // char_set -> .
+                Segments::dot()
+            }
+            CtxCharSet::CharSet3 { fixedset } => {          // char_set -> FixedSet
+                decode_fixed_set(&fixedset).unwrap_or_else(|s| panic!("{s}"))
+            }
+        };
+        SynCharSet(seg)
     }
 
-    fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne {
-        todo!()
+    fn exit_char_set_one(&mut self, ctx: CtxCharSetOne) -> SynCharSetOne {
+        // FIXME: manage errors (may panic)
+        // char_set_one:
+        //     SET_CHAR MINUS SET_CHAR
+        // |   SET_CHAR
+        // |   FIXED_SET;
+        let seg = match ctx {
+            CtxCharSetOne::CharSetOne1 { fixedset } => {    // char_set_one -> FixedSet
+                decode_fixed_set(&fixedset).unwrap_or_else(|s| panic!("{s}"))
+            }
+            CtxCharSetOne::CharSetOne2 { setchar } => {     // char_set_one -> SetChar - SetChar
+                let first = decode_set_char(&setchar[0]).unwrap_or_else(|s| panic!("{s}"));
+                let last = decode_set_char(&setchar[1]).unwrap_or_else(|s| panic!("{s}"));
+                Segments::from((first, last))
+            }
+            CtxCharSetOne::CharSetOne3 { setchar } => {     // char_set_one -> SetChar
+                let single = decode_set_char(&setchar).unwrap_or_else(|s| panic!("{s}"));
+                Segments::from(single)
+            }
+        };
+        SynCharSetOne(seg)
     }
 }
 
@@ -363,8 +413,9 @@ fn decode_char(char: &str) -> Result<char, String> {
     // fragment EscChar     : '\\' ([nrt'\\] | UnicodeEsc);
     // fragment UnicodeEsc  : 'u{' HexDigit+ '}';
     // fragment HexDigit    : [0-9a-fA-F];
-    if char.as_bytes()[0] == b'\\' {
-        match char.as_bytes()[1] {
+    let bytes = char.as_bytes();
+    if bytes[0] == b'\\' {
+        match bytes[1] {
             b'n' => Ok('\n'),
             b'r' => Ok('\r'),
             b't' => Ok('\t'),
@@ -376,11 +427,53 @@ fn decode_char(char: &str) -> Result<char, String> {
                 let u = char::from_u32(code).ok_or(format!("{hex} isn't a valid unicode hexadecimal value"))?;
                 Ok(u)
             }
-            _ => Err(format!("Unknown escape code '{char}'")), // shouldn't happen
+            _ => Err(format!("unknown escape code '{char}'")), // shouldn't happen
         }
 
     } else {
-        Ok(char.chars().nth(1).unwrap())
+        Ok(char.chars().next().unwrap())
+    }
+}
+
+fn decode_set_char(setchar: &str) -> Result<char, String> {
+    // SET_CHAR             : (EscSetChar | ~[\n\r\t\\\]]);
+    // fragment EscSetChar  : '\\' ([nrt\\[\]\-] | UnicodeEsc);
+    // fragment UnicodeEsc  : 'u{' HexDigit+ '}';
+    // fragment HexDigit    : [0-9a-fA-F];
+    let bytes = setchar.as_bytes();
+    if bytes[0] == b'\\' {
+        match bytes[1] {
+            b'n' => Ok('\n'),
+            b'r' => Ok('\r'),
+            b't' => Ok('\t'),
+            b'[' => Ok('['),
+            b']' => Ok(']'),
+            b'-' => Ok('-'),
+            b'\\' => Ok('\\'),
+            b'u' => {
+                let hex = &setchar[3..setchar.len()];
+                let code = u32::from_str_radix(hex, 16).map_err(|_| format!("{hex} isn't a valid hexadecimal value"))?;
+                let u = char::from_u32(code).ok_or(format!("{hex} isn't a valid unicode hexadecimal value"))?;
+                Ok(u)
+            }
+            _ => Err(format!("unknown escape code '{setchar}'")), // shouldn't happen
+        }
+    } else {
+        Ok(setchar.chars().next().unwrap())
+    }
+}
+
+fn decode_fixed_set(fixedset: &str) -> Result<Segments, String> {
+    // FIXED_SET       : ('\\w' | '\\d');
+    let bytes = fixedset.as_bytes();
+    if bytes[0] != b'\\' {
+        Err(format!("unknown shorthand code '{fixedset}'")) // shouldn't happen
+    } else {
+        match fixedset.as_bytes()[1] {
+            b'd' => Ok(segments!('0'-'9')),
+            b'w' => Ok(segments!('0'-'9', '_', 'A'-'Z', 'a'-'z')),
+            _ => Err(format!("unknown shorthand code '{fixedset}'")), // shouldn't happen
+        }
     }
 }
 

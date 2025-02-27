@@ -1,5 +1,6 @@
 #![cfg(test)]
 
+use rlexer::segments::Segments;
 use crate::gen::lexiparser::lexiparser::*;
 use crate::gen::lexiparser::lexiparser_types::*;
 use crate::lexi::LexAction;
@@ -139,11 +140,11 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_char_set(&mut self, _ctx: CtxCharSet) -> SynCharSet {
-        SynCharSet()
+        SynCharSet(Segments::empty())
     }
 
     fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne {
-        SynCharSetOne()
+        SynCharSetOne(Segments::empty())
     }
 }
 
