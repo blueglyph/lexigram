@@ -493,7 +493,7 @@ impl DfaBuilder {
         for id in self.ids.values() {
             let node = self.re.get_mut(*id);
             if let ReType::Char(c) = node.op {
-                node.op = ReType::CharRange(Box::new(Segments::from_char(c)));
+                node.op = ReType::CharRange(Box::new(Segments::from(c)));
             }
             if let ReType::CharRange(segments) = &node.op {
                 symbols_part.add_partition(&segments);

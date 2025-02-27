@@ -1,7 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Debug, Display, Formatter, LowerHex, UpperHex};
-use std::ops::{Deref, DerefMut, RangeInclusive};
+use std::ops::{Add, Deref, DerefMut, RangeInclusive};
 use std::collections::btree_map::{IntoIter, Iter};
+use std::iter::Sum;
 use std::ops::Bound::Included;
 use crate::{btreeset, CollectJoin, escape_char};
 use crate::io::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN, UTF8_GAP_MIN, UTF8_GAP_MAX};
@@ -48,10 +49,6 @@ impl Segments {
         if seg.0 <= seg.1 {
             self.0.insert(seg);
         }
-    }
-
-    pub fn from_char(char: char) -> Self {
-        Segments(btreeset![Seg(char as u32, char as u32)])
     }
 
     pub fn to_char(&self) -> Option<char> {
@@ -272,6 +269,18 @@ impl<const N: usize> From<[Seg; N]> for Segments {
     }
 }
 
+impl From<char> for Segments {
+    fn from(c: char) -> Self {
+        Segments(btreeset![Seg(c as u32, c as u32)])
+    }
+}
+
+impl From<(char, char)> for Segments {
+    fn from((first, last): (char, char)) -> Self {
+        Segments(btreeset![Seg(first as u32, last as u32)])
+    }
+}
+
 impl Deref for Segments {
     type Target = BTreeSet<Seg>;
 
@@ -405,6 +414,25 @@ impl Iterator for ReTypeCharIter {
             }
         }
         next.map(|code| char::from_u32(code).unwrap())
+    }
+}
+
+impl Add for Segments {
+    type Output = Self;
+
+    fn add(mut self, rhs: Self) -> Self::Output {
+        self.add_partition(&rhs);
+        self
+    }
+}
+
+impl Sum for Segments {
+    fn sum<I: Iterator<Item=Self>>(mut iter: I) -> Self {
+        let mut acc = iter.next().unwrap_or(Segments::empty());
+        while let Some(next) = iter.next() {
+            acc.add_partition(&next);
+        }
+        acc
     }
 }
 
@@ -618,8 +646,8 @@ pub mod macros {
     fn macro_segments() {
         assert_eq!(seg!('a'-'z'), Seg('a' as u32, 'z' as u32));
         assert_eq!(seg!('a'), Seg('a' as u32, 'a' as u32));
-        assert_eq!(segments!('a'-'z'), Segments::new(Seg('a' as u32, 'z' as u32)));
-        assert_eq!(segments!('a'), Segments::new(Seg('a' as u32, 'a' as u32)));
+        assert_eq!(segments!('a'-'z'), Segments::from(('a', 'z')));
+        assert_eq!(segments!('a'), Segments::from('a'));
         assert_eq!(segments!('a'-'z', '0'-'9'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]));
         assert_eq!(segments!('a'-'z', '0'-'9', '-'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32), Seg('-' as u32, '-' as u32)]));
         assert_eq!(segments!(~ '0'-'9', '.'), Segments::from([Seg('0' as u32, '9' as u32), Seg('.' as u32, '.' as u32)]).not());
