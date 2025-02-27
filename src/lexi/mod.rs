@@ -558,13 +558,13 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     tree.add_root(gnode!(nt NT::AltItems));
 
     // alt_items:
-    //     alt_items OR alt_item
-    // |   alt_item
+    //     alt_item (OR alt_item)*
     // ;
     let tree = rules.get_tree_mut(NT::AltItems as VarId);
-    let or = tree.add_root(gnode!(|));
-    tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::AltItems), gnode!(t T::Or), gnode!(nt NT::AltItem)]);
-    tree.add(Some(or), gnode!(nt NT::AltItem));
+    let cc = tree.add_root(gnode!(&));
+    tree.add(Some(cc), gnode!(nt NT::AltItem));
+    let star = tree.add(Some(cc), gnode!(*));
+    tree.addc_iter(Some(star), gnode!(&), [gnode!(t T::Or), gnode!(nt NT::AltItem)]);
 
     // alt_item:
     // 	repeat_item+

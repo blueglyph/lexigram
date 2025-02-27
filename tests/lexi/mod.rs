@@ -272,23 +272,19 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems {
-        let id = match ctx {
-            CtxAltItems::AltItems1 { alt_item } => {                // alt_items -> alt_item
-                alt_item.0
-            }
-            CtxAltItems::AltItems2 { alt_items, alt_item } => {     // alt_items -> alt_items | alt_item
-                todo!()
-            }
-            CtxAltItems::AltItems3 { alt_items } => {               // end of iterations in alt_items -> alt_items | alt_item
-                todo!()
-            }
-        };
+        let tree = self.curr.as_mut().unwrap();
+        let CtxAltItems::AltItems { alt_item, star } = ctx;
+        let mut id = alt_item.0;
+        if !star.0.is_empty() {
+            id = tree.addci(None, node!(|), id);
+            tree.attach_children(id, star.0.into_iter().map(|i| i.0))
+        }
         SynAltItems(id)
     }
 
     fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem {
         let CtxAltItem::AltItem { plus } = ctx;
-        let id = self.curr.as_mut().unwrap().addi_iter(None, node!(&), plus.0.into_iter().map(|item| item.0));
+        let id = self.curr.as_mut().unwrap().addci_iter(None, node!(&), plus.0.into_iter().map(|item| item.0));
         SynAltItem(id)
     }
 
@@ -296,22 +292,22 @@ impl LexiParserListener for LexiListener {
         let tree = self.curr.as_mut().unwrap();
         let id = match ctx {
             CtxRepeatItem::RepeatItem1 { item } => {   // repeat_item -> item ?
-                tree.addci_iter(None, node!(|),
-                                [item.0, tree.add(None, node!(e))])
+                let empty = tree.add(None, node!(e));
+                tree.addci_iter(None, node!(|), [item.0, empty])
             }
             CtxRepeatItem::RepeatItem2 { item } => {   // repeat_item -> item
                 item.0
             }
             CtxRepeatItem::RepeatItem3 { item } => {   // repeat_item -> item +? (lazy)
-                tree.addci(None, node!(??),
-                           tree.addci(None, node!(+), item.0))
+                let plus = tree.addci(None, node!(+), item.0);
+                tree.addci(None, node!(??), plus)
             }
             CtxRepeatItem::RepeatItem4 { item } => {   // repeat_item -> item +
                 tree.addci(None, node!(+), item.0)
             }
             CtxRepeatItem::RepeatItem5 { item } => {   // repeat_item -> item *? (lazy)
-                tree.addci(None, node!(??),
-                           tree.addci(None, node!(*), item.0))
+                let star = tree.addci(None, node!(*), item.0);
+                tree.addci(None, node!(??), star)
             }
             CtxRepeatItem::RepeatItem6 { item } => {   // repeat_item -> item *
                 tree.addci(None, node!(*), item.0)

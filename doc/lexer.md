@@ -202,8 +202,7 @@ match:
 ;
 
 alt_items:
-    alt_items OR alt_item
-|   alt_item
+    alt_item (OR alt_item)*
 ;
 
 alt_item:
