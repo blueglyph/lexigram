@@ -3,13 +3,12 @@
 use std::collections::BTreeSet;
 use std::io::{Cursor, Read};
 use std::mem::size_of_val;
-use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, Terminal};
+use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, print_dfa, Terminal};
 use crate::{escape_string, CollectJoin, General, LL1};
 use crate::io::CharReader;
 use crate::lexer::Lexer;
 use crate::lexergen::LexerGen;
 use super::*;
-use crate::dfa::tests::print_dfa;
 use crate::grammar::{ProdRuleSet, GrTreeExt};
 use crate::grammar::tests::print_production_rules;
 use crate::parsergen::ParserGen;
@@ -31,7 +30,7 @@ fn make_dfa() -> Dfa<General> {
         let dfa = dfa_builder.build();
         if VERBOSE {
             println!("Mode {n}:");
-            println!("Tree: {}", tree_to_string(&dfa_builder.get_re(), true));
+            println!("Tree: {}", tree_to_string(&dfa_builder.get_re(), None, true));
             println!("Messages:\n{}", dfa_builder.get_messages());
         }
         assert_eq!(dfa_builder.get_errors().len(), 0);
@@ -54,7 +53,7 @@ fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
     } else {
         dfa.optimize()
     };
-    if VERBOSE { print_dfa(&dfa); }
+    if VERBOSE { print_dfa(&dfa, 4); }
     let lexgen = LexerGen::from_dfa(&dfa);
     if VERBOSE {
         println!("Sources:");
@@ -187,7 +186,7 @@ fn regexgen_optimize() {
                  dfa.get_end_states().iter().map(|(_, t)| t.clone()).collect::<BTreeSet<Terminal>>().len(),
                  dfa.get_end_states().len()
         );
-        if VERBOSE { print_dfa(&dfa); }
+        if VERBOSE { print_dfa(&dfa, 4); }
         let mut lexgen = LexerGen::new();
         lexgen.max_utf8_chars = 0;
         lexgen.build_tables(&dfa);

@@ -6,7 +6,7 @@ use std::io::Read;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 #[cfg(test)]
-use crate::dfa::tests::print_graph;
+use crate::dfa::print_graph;
 use crate::{CollectJoin, escape_char, Normalized, indent_source};
 use crate::lexer::Lexer;
 use crate::segments::{Segments, Seg, SegMap};
@@ -274,7 +274,7 @@ pub fn char_to_group(ascii_to_group: &[GroupId], utf8_to_group: &HashMap<char, G
 fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<Segments> {
     const VERBOSE: bool = false;
     let mut groups = Vec::new();
-    #[cfg(test)] if VERBOSE { print_graph(g, None); }
+    #[cfg(test)] if VERBOSE { print_graph(g, None, 4); }
     for (_state, branches) in g {
         // branches from a given state
         let mut map = BTreeMap::<StateId, Segments>::new();

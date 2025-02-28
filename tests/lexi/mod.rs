@@ -1,14 +1,14 @@
 mod basic_test;
 mod tests;
 
-use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder};
+use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
 use std::collections::HashMap;
 use std::ops::{Add, Range};
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
 use rlexer::{hashmap, node, segments, CollectJoin, General};
-use rlexer::segments::{Seg, Segments};
+use rlexer::segments::Segments;
 use crate::action;
 use crate::gen::lexiparser::lexiparser::*;
 use crate::gen::lexiparser::lexiparser_types::*;
@@ -136,18 +136,23 @@ impl LexiListener {
         let mut dfas = vec![];
         for (mode_name, mode_id) in &self.modes {
             let range = &self.mode_terminals[*mode_id as usize];
-            if VERBOSE { println!("* mode {mode_id}: {mode_name} = {range:?}"); }
+            if VERBOSE { println!("* mode {mode_id}: {mode_name} = rules {range:?} ({})", range.clone().map(|n| &names[n as usize]).join(", ")); }
             let range = range.start as usize..range.end as usize;
             let mut tree = VecTree::<ReNode>::new();
             let top = tree.add_root(node!(|));
-            for t in self.terminals[range].iter().enumerate() {
-                tree.addc_iter(Some(top), node!(&), []);
+            for t in &self.terminals[range] {
+                let cc = tree.add(Some(top), node!(&));
+                tree.add_from_tree(Some(cc), t, None);
             }
+            if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
             let mut dfa_builder = DfaBuilder::from_re(tree);
-            let dfa = dfa_builder.build();
+            assert!(dfa_builder.get_errors().is_empty(), "failed to compile mode {mode_id}");
+            dfas.push((*mode_id as ModeId, dfa_builder.build()));
         }
-
-        Dfa::new()
+        let mut dfa_builder = DfaBuilder::new();
+        if VERBOSE { println!("merging dfa modes"); }
+        let dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer\n{}", dfa_builder.get_messages()));
+        dfa
     }
 }
 
@@ -527,35 +532,5 @@ pub mod macros {
         (push $id:expr) =>   { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false } };
         (pop) =>             { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true  } };
         (# $id:expr) =>      { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false } };
-    }
-}
-
-#[allow(unused)]
-fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
-    let node = tree.get(index);
-    let mut result = String::new();
-    if !basic {
-        if node.is_nullable().is_none() {
-            result.push('?');
-        } else if node.is_nullable().unwrap() {
-            result.push('!');
-        }
-    }
-    result.push_str(&node.to_string());
-    let children = tree.children(index);
-    if !children.is_empty() {
-        result.push_str("(");
-        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c, basic)).to_vec().join(","));
-        result.push_str(")");
-    }
-    result
-}
-
-#[allow(unused)]
-pub(crate) fn tree_to_string(tree: &VecTree<ReNode>, root: Option<usize>, basic: bool) -> String {
-    if tree.len() > 0 {
-        node_to_string(tree, root.unwrap_or_else(|| tree.get_root().unwrap()), basic)
-    } else {
-        "None".to_string()
     }
 }

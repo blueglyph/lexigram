@@ -8,31 +8,6 @@ use crate::segments::Seg;
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
-#[allow(unused)]
-pub(crate) fn term_to_string(t: &Terminal) -> String {
-    let mut str = Vec::<String>::new();
-    match &t.action {
-        ActionOption::Skip => str.push("term!(skip)".to_string()),
-        ActionOption::Token(t) => str.push(format!("term!(={t})")),
-        ActionOption::More => str.push("term!(more)".to_string())
-    }
-    if t.channel != 0 {
-        str.push(format!("term!(#{})", t.channel));
-    }
-    match t.mode {
-        ModeOption::None => {}
-        ModeOption::Mode(m) => str.push(format!("term!(mode {m})")),
-        ModeOption::Push(m) => str.push(format!("term!(push {m})")),
-    }
-    if let Some(id) = t.mode_state {
-        str.push(format!("term!(pushst {})", id));
-    }
-    if t.pop {
-        str.push("term!(pop)".to_string());
-    }
-    str.join(" + ")
-}
-
 pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
     let mut re = VecTree::new();
     match test {
@@ -628,25 +603,6 @@ fn debug_tree(tree: &VecTree<ReNode>) -> String {
     result
 }
 
-#[allow(unused)]
-pub(crate) fn print_dfa<T>(dfa: &Dfa<T>) {
-    // println!("  graph:      {:?}", dfa.state_graph);
-    println!("Initial state: {}", if let Some(st) = dfa.initial_state { st.to_string() } else { "none".to_string() });
-    println!("Graph:");
-    print_graph(&dfa.state_graph, Some(&dfa.end_states));
-    println!("End states: [{}]", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).join(", "));
-}
-
-pub(crate) fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>, end_states: Option<&BTreeMap<StateId, Terminal>>) {
-    for (state, trans) in state_graph.clone() {
-        println!("{:3} => branch!({}),{}",
-                 state,
-                 trans.iter().map(|(sym, st)| format!("{sym} => {st}")).join(", "),
-                 end_states.and_then(|map| map.get(&state).map(|token| format!(" // {}", token))).unwrap_or("".to_string()),
-        );
-    }
-}
-
 // ---------------------------------------------------------------------------------------------
 // Tests
 
@@ -659,9 +615,9 @@ fn dfa_preprocess() {
     ];
     for (test_id, (expected1, expected2)) in tests.into_iter().enumerate() {
         let re = build_re(test_id);
-        let result1 = tree_to_string(&re, false);
+        let result1 = tree_to_string(&re, None, false);
         let dfa = DfaBuilder::from_re(re);
-        let result2 = tree_to_string(&dfa.re, false);
+        let result2 = tree_to_string(&dfa.re, None, false);
         assert_eq!(result1, expected1, "test {test_id} failed (1st part)");
         assert_eq!(result2, expected2, "test {test_id} failed (2nd part)");
     }
@@ -681,7 +637,7 @@ fn dfa_id() {
         let re = build_re(test_id);
         let mut dfa = DfaBuilder::from_re(re);
         dfa.calc_node_pos();
-        assert_eq!(tree_to_string(&dfa.re, true), expected, "test {test_id} failed");
+        assert_eq!(tree_to_string(&dfa.re, None, true), expected, "test {test_id} failed");
     }
 }
 
@@ -717,7 +673,7 @@ fn dfa_nullable() {
         let re = build_re(test_id);
         let mut dfa_builder = DfaBuilder::from_re(re);
         dfa_builder.calc_node_pos();
-        assert_eq!(tree_to_string(&dfa_builder.re, false), expected, "test {test_id} failed");
+        assert_eq!(tree_to_string(&dfa_builder.re, None, false), expected, "test {test_id} failed");
     }
 }
 
@@ -1465,8 +1421,8 @@ fn dfa_states() {
         let mut dfa_builder = DfaBuilder::from_re(re);
         let dfa = dfa_builder.build();
         if VERBOSE {
-            println!("{}", tree_to_string(&dfa_builder.re, false));
-            print_dfa(&dfa);
+            println!("{}", tree_to_string(&dfa_builder.re, None, false));
+            print_dfa(&dfa, 12);
             let msg = dfa_builder.get_messages();
             if !msg.is_empty() {
                 println!("{msg}");
@@ -1583,7 +1539,7 @@ fn dfa_modes() {
         for (id, dfa) in dfas.iter() {
             if VERBOSE {
                 println!("## mode {id}");
-                print_dfa(dfa);
+                print_dfa(dfa, 12);
             }
         }
         if VERBOSE { println!("## Merged:"); }
@@ -1591,7 +1547,7 @@ fn dfa_modes() {
         let dfa = dfa_builder.build_from_dfa_modes(dfas)
             .expect(&format!("test {test_id} failed to build Dfa:\n{}", dfa_builder.get_messages()));
         if VERBOSE {
-            print_dfa(&dfa);
+            print_dfa(&dfa, 12);
             println!("-------------------------------------------------");
         }
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
@@ -1730,7 +1686,7 @@ fn dfa_optimize_graphs() {
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
         let dfa = dfa.optimize();
         if VERBOSE {
-            print_dfa(&dfa);
+            print_dfa(&dfa, 12);
         }
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
         assert_eq!(dfa.end_states, BTreeMap::from_iter(exp_end_states.into_iter()), "test {test_id} failed");

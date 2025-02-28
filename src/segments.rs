@@ -541,8 +541,8 @@ pub mod macros {
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! seg {
-        ($($a1:literal)?$($a2:ident)? - $($b1:literal)?$($b2:ident)?) => { Seg(utf8!($($a1)?$($a2)?), utf8!($($b1)?$($b2)?)) };
-        ($($a1:literal)?$($a2:ident)?) => { Seg(utf8!($($a1)?$($a2)?), utf8!($($a1)?$($a2)?)) };
+        ($($a1:literal)?$($a2:ident)? - $($b1:literal)?$($b2:ident)?) => { $crate::segments::Seg(utf8!($($a1)?$($a2)?), utf8!($($b1)?$($b2)?)) };
+        ($($a1:literal)?$($a2:ident)?) => { $crate::segments::Seg(utf8!($($a1)?$($a2)?), utf8!($($a1)?$($a2)?)) };
     }
 
     /// Generates a Segments initialization from Seg values. The macro only accepts literals, either characters or integers,
@@ -568,9 +568,9 @@ pub mod macros {
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! segments {
-        () => { Segments::empty() };
-        (DOT) => { Segments::dot() };
-        ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { Segments::from([$(seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+]) };
+        () => { $crate::segments::Segments::empty() };
+        (DOT) => { $crate::segments::Segments::dot() };
+        ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { $crate::segments::Segments::from([$(seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+]) };
         (~ $($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { segments![$($($a1)?$($a2)? $(- $($b1)?$($b2)?)?),+].not() };
         //
         ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+) => { segments![$(seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+] };

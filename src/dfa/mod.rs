@@ -562,8 +562,8 @@ impl DfaBuilder {
                             println!("{id} is not in followpos; are you missing an accepting state?");
                             println!("dbg: {segments}");
                             println!("dbg: {id}");
-                            println!("dbg: tree = {}", crate::dfa::tree_to_string(&self.re, true));
-                            println!("dbg: followpos = {}", crate::dfa::followpos_to_string(&self));
+                            println!("dbg: tree = {}", tree_to_string(&self.re, None, true));
+                            println!("dbg: followpos = {}", followpos_to_string(&self));
                         }
                         id_transitions.extend(&self.followpos[&id]);
                         let cmp = segments.intersect(&symbols_part);
@@ -1044,11 +1044,63 @@ fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
     result
 }
 
-pub(crate) fn tree_to_string(tree: &VecTree<ReNode>, basic: bool) -> String {
+// ---------------------------------------------------------------------------------------------
+// Debug functions left in the code for the integration tests
+
+#[allow(unused)]
+/// Debug function to display the content of a tree.
+pub fn tree_to_string(tree: &VecTree<ReNode>, root: Option<usize>, basic: bool) -> String {
     if tree.len() > 0 {
-        node_to_string(tree, 0, basic)
+        node_to_string(tree, root.unwrap_or_else(|| tree.get_root().unwrap()), basic)
     } else {
         "None".to_string()
+    }
+}
+
+#[allow(unused)]
+pub(crate) fn term_to_string(t: &Terminal) -> String {
+    let mut str = Vec::<String>::new();
+    match &t.action {
+        ActionOption::Skip => str.push("term!(skip)".to_string()),
+        ActionOption::Token(t) => str.push(format!("term!(={t})")),
+        ActionOption::More => str.push("term!(more)".to_string())
+    }
+    if t.channel != 0 {
+        str.push(format!("term!(#{})", t.channel));
+    }
+    match t.mode {
+        ModeOption::None => {}
+        ModeOption::Mode(m) => str.push(format!("term!(mode {m})")),
+        ModeOption::Push(m) => str.push(format!("term!(push {m})")),
+    }
+    if let Some(id) = t.mode_state {
+        str.push(format!("term!(pushst {})", id));
+    }
+    if t.pop {
+        str.push("term!(pop)".to_string());
+    }
+    str.join(" + ")
+}
+
+#[allow(unused)]
+/// Debug function to display the content of a Dfa.
+pub fn print_dfa<T>(dfa: &Dfa<T>, indent: usize) {
+    // println!("  graph:      {:?}", dfa.state_graph);
+    println!("Initial state: {}", if let Some(st) = dfa.initial_state { st.to_string() } else { "none".to_string() });
+    println!("Graph:");
+    print_graph(&dfa.state_graph, Some(&dfa.end_states), indent);
+    println!("End states:\n{: >indent$}{}", " ", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).join(", "), indent=indent);
+}
+
+/// Debug function to display the graph of a Dfa.
+pub fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>, end_states: Option<&BTreeMap<StateId, Terminal>>, indent: usize) {
+    let s = String::from_utf8(vec![32; indent]).unwrap();
+    for (state, trans) in state_graph.clone() {
+        println!("{s}{} => branch!({}),{}",
+                 state,
+                 trans.iter().map(|(sym, st)| format!("{sym} => {st}")).join(", "),
+                 end_states.and_then(|map| map.get(&state).map(|token| format!(" // {}", token))).unwrap_or("".to_string()),
+        );
     }
 }
 
