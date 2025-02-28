@@ -69,6 +69,10 @@ impl Parser {
         Some(&self.symbol_table)
     }
 
+    pub fn set_start(&mut self, start: VarId) {
+        self.start = start;
+    }
+
     pub(crate) fn get_factors(&self) -> &Vec<(VarId, ProdFactor)> {
         &self.factors
     }

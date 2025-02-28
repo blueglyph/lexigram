@@ -250,6 +250,10 @@ impl ReNode {
         &self.op
     }
 
+    pub fn is_nullable(&self) -> Option<bool> {
+        self.nullable
+    }
+
     pub fn get_mut_type(&mut self) -> &mut ReType {
         &mut self.op
     }

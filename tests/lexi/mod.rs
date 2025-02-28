@@ -1,12 +1,13 @@
 mod basic_test;
+mod tests;
 
-use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId};
+use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder};
 use std::collections::HashMap;
 use std::ops::{Add, Range};
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
-use rlexer::{hashmap, node, segments};
+use rlexer::{hashmap, node, segments, CollectJoin, General};
 use rlexer::segments::{Seg, Segments};
 use crate::action;
 use crate::gen::lexiparser::lexiparser::*;
@@ -83,10 +84,10 @@ impl Add for LexAction {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 enum RuleType {
-    Terminal(TokenId),
-    Fragment(TokenId)
+    Fragment(TokenId),
+    Terminal(TokenId)
 }
 
 struct LexiListener {
@@ -122,15 +123,41 @@ impl LexiListener {
             log: Logger::new()
         }
     }
+
+    fn make_dfa(&mut self) -> Dfa<General> {
+        const VERBOSE: bool = true;
+        let num_t = self.terminals.len();
+        let mut names = vec![String::new(); num_t];
+        for (s, r) in &self.rules {
+            if let RuleType::Terminal(token) = r {
+                names[*token as usize] = s.clone();
+            }
+        }
+        let mut dfas = vec![];
+        for (mode_name, mode_id) in &self.modes {
+            let range = &self.mode_terminals[*mode_id as usize];
+            if VERBOSE { println!("* mode {mode_id}: {mode_name} = {range:?}"); }
+            let range = range.start as usize..range.end as usize;
+            let mut tree = VecTree::<ReNode>::new();
+            let top = tree.add_root(node!(|));
+            for t in self.terminals[range].iter().enumerate() {
+                tree.addc_iter(Some(top), node!(&), []);
+            }
+            let mut dfa_builder = DfaBuilder::from_re(tree);
+            let dfa = dfa_builder.build();
+        }
+
+        Dfa::new()
+    }
 }
 
 impl LexiParserListener for LexiListener {
     fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
-        todo!()
+        SynFile()
     }
 
     fn exit_file_item(&mut self, _ctx: CtxFileItem) -> SynFileItem {
-        todo!()
+        SynFileItem()
     }
 
     fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader {
@@ -266,12 +293,14 @@ impl LexiParserListener for LexiListener {
 
     fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch {
         // sets the tree root ID, so that any rule using `match` can expect to get a usable VecTree
+        if self.verbose { print!("- exit_match({ctx:?})"); }
         let CtxMatch::Match { alt_items } = ctx;
         self.curr.as_mut().unwrap().set_root(alt_items.0);
         SynMatch()
     }
 
     fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems {
+        if self.verbose { print!("- exit_alt_items({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let CtxAltItems::AltItems { alt_item, star } = ctx;
         let mut id = alt_item.0;
@@ -279,16 +308,25 @@ impl LexiParserListener for LexiListener {
             id = tree.addci(None, node!(|), id);
             tree.attach_children(id, star.0.into_iter().map(|i| i.0))
         }
+        if self.verbose { println!(" -> {}", tree_to_string(tree, Some(id), false)); }
         SynAltItems(id)
     }
 
     fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem {
+        if self.verbose { print!("- exit_alt_item({ctx:?})"); }
         let CtxAltItem::AltItem { plus } = ctx;
-        let id = self.curr.as_mut().unwrap().addci_iter(None, node!(&), plus.0.into_iter().map(|item| item.0));
+        let tree = self.curr.as_mut().unwrap();
+        let id = if plus.0.len() > 1 {
+            tree.addci_iter(None, node!(&), plus.0.into_iter().map(|item| item.0))
+        } else {
+            plus.0[0].0
+        };
+        if self.verbose { println!(" -> {}", tree_to_string(tree, Some(id), false)); }
         SynAltItem(id)
     }
 
     fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem {
+        if self.verbose { print!("- exit_repeat_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let id = match ctx {
             CtxRepeatItem::RepeatItem1 { item } => {   // repeat_item -> item ?
@@ -313,18 +351,20 @@ impl LexiParserListener for LexiListener {
                 tree.addci(None, node!(*), item.0)
             }
         };
+        if self.verbose { println!(" -> {}", tree_to_string(tree, Some(id), false)); }
         SynRepeatItem(id)
     }
 
     fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
         // FIXME: manage errors (may panic)
+        if self.verbose { print!("- exit_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let id = match ctx {
             CtxItem::Item1 { alt_items } => {       // item -> ( alt_items )
                 alt_items.0
             }
             CtxItem::Item2 { item } => {            // item -> ~ item
-                let mut node = tree.get_mut(item.0);
+                let node = tree.get_mut(item.0);
                 if let ReType::CharRange(range) = node.get_mut_type() {
                     *range = Box::new(range.not())
                 } else {
@@ -341,7 +381,7 @@ impl LexiParserListener for LexiListener {
                 }
             }
             CtxItem::Item4 { strlit } => {          // item -> StrLit
-                let s = &strlit[1..strlit.len()];
+                let s = &strlit[1..strlit.len() - 1];
                 tree.add(None, ReNode::string(s))
             }
             CtxItem::Item5 { char_set } => {         // item -> char_set
@@ -359,6 +399,7 @@ impl LexiParserListener for LexiListener {
                 tree.add(None, ReNode::char_range(Segments::from(c)))
             }
         };
+        if self.verbose { println!(" -> {}", tree_to_string(tree, Some(id), false)); }
         SynItem(id)
     }
 
@@ -367,6 +408,7 @@ impl LexiParserListener for LexiListener {
         //     LSBRACKET (char_set_one)+ RSBRACKET
         // |   DOT
         // |   FIXED_SET;
+        if self.verbose { print!("- exit_char_set({ctx:?})"); }
         let seg = match ctx {
             CtxCharSet::CharSet1 { plus } => {              // char_set -> [ [char_set_one]+ ]
                 plus.0.into_iter().map(|one| one.0).sum()
@@ -378,6 +420,7 @@ impl LexiParserListener for LexiListener {
                 decode_fixed_set(&fixedset).unwrap_or_else(|s| panic!("{s}"))
             }
         };
+        if self.verbose { println!(" -> {seg}"); }
         SynCharSet(seg)
     }
 
@@ -484,5 +527,35 @@ pub mod macros {
         (push $id:expr) =>   { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false } };
         (pop) =>             { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true  } };
         (# $id:expr) =>      { $crate::lexi::LexAction { option: $crate::lexi::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false } };
+    }
+}
+
+#[allow(unused)]
+fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
+    let node = tree.get(index);
+    let mut result = String::new();
+    if !basic {
+        if node.is_nullable().is_none() {
+            result.push('?');
+        } else if node.is_nullable().unwrap() {
+            result.push('!');
+        }
+    }
+    result.push_str(&node.to_string());
+    let children = tree.children(index);
+    if !children.is_empty() {
+        result.push_str("(");
+        result.push_str(&children.iter().map(|&c| node_to_string(&tree, c, basic)).to_vec().join(","));
+        result.push_str(")");
+    }
+    result
+}
+
+#[allow(unused)]
+pub(crate) fn tree_to_string(tree: &VecTree<ReNode>, root: Option<usize>, basic: bool) -> String {
+    if tree.len() > 0 {
+        node_to_string(tree, root.unwrap_or_else(|| tree.get_root().unwrap()), basic)
+    } else {
+        "None".to_string()
     }
 }
