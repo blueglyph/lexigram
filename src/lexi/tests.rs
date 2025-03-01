@@ -68,7 +68,7 @@ fn lexilexer_source() {
     // CAUTION! Setting this to 'true' modifies the validation file with the current result
     const REPLACE_SOURCE: bool = false;
 
-    const FILENAME: &str = "tests/gen/lexilexer.rs";
+    const FILENAME: &str = "tests/out/lexilexer.rs";
     const TAG: &str = "lexilexer";
     let dfa = make_dfa();
     let dfa = dfa.optimize();
@@ -233,7 +233,7 @@ fn lexiparser_source() {
     const REPLACE_SOURCE: bool = false;
 
     const VERBOSE: bool = false;
-    const FILENAME: &str = "tests/gen/lexiparser.rs";
+    const FILENAME: &str = "tests/out/lexiparser.rs";
     const TAG: &str = "lexiparser";
     let mut rts = build_rts();
     rts.set_start(0);

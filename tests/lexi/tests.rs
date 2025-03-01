@@ -14,8 +14,8 @@ mod simple {
     use rlexer::{branch, btreemap, term};
     use rlexer::dfa::{print_dfa, tree_to_string};
     use rlexer::io::CharReader;
-    use crate::gen::build_lexer;
-    use crate::gen::lexiparser::lexiparser::{build_parser, ListenerWrapper};
+    use crate::out::build_lexer;
+    use crate::out::lexiparser::lexiparser::{build_parser, ListenerWrapper};
     use rlexer::lexer::TokenSpliterator;
     use crate::lexi::{LexiListener, RuleType};
     use super::*;

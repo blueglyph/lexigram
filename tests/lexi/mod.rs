@@ -10,8 +10,8 @@ use rlexer::log::Logger;
 use rlexer::{hashmap, node, segments, CollectJoin, General};
 use rlexer::segments::Segments;
 use crate::action;
-use crate::gen::lexiparser::lexiparser::*;
-use crate::gen::lexiparser::lexiparser_types::*;
+use crate::out::lexiparser::lexiparser::*;
+use crate::out::lexiparser::lexiparser_types::*;
 
 #[derive(Clone, Copy, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
 pub enum LexActionOption {

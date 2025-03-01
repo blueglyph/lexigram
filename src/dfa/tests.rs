@@ -3,7 +3,6 @@
 use crate::*;
 use vectree::VecTree;
 use crate::dfa::*;
-use crate::segments::Seg;
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions

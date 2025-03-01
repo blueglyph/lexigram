@@ -3,7 +3,6 @@
 use std::io::Cursor;
 use crate::{btreemap, CollectJoin, escape_string, node, term};
 use crate::dfa::*;
-use crate::segments::*;
 use crate::dfa::{print_dfa, tests::{build_re}};
 use crate::lexergen::LexerGen;
 use vectree::VecTree;

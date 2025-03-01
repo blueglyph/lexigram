@@ -229,7 +229,7 @@ mod test {
     use rlexer::escape_string;
     use rlexer::io::CharReader;
     use rlexer::lexi::{LEXICON, LEXICON_TEXT, LEXICON_TOKENS};
-    use crate::gen::lexilexer::lexilexer::build_lexer;
+    use crate::out::lexilexer::lexilexer::build_lexer;
 
     #[test]
     pub fn check_lexer_tokens() {

@@ -100,7 +100,7 @@ impl SymbolTable {
             if *old_v >= v { *old_v -= 1; }
         }
         self.primes = self.primes.iter()
-            .filter(|(&child, &parent)| child != v && parent != v)
+            .filter(|&(child, parent)| *child != v && *parent != v)
             .map(|(&child, &parent)| (if child > v { child - 1 } else { child }, if parent > v { parent - 1 } else { parent }))
             .collect::<HashMap<_, _>>();
     }

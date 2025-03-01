@@ -1440,7 +1440,7 @@ mod wrapper_source {
         // those parsers don't require type definition in wrapper_code.rs (avoids an unused_imports warning):
         let type_gen_exclusion = hashset!["rts_29_3", "rts_30_2", "rts_38_3"];
 
-        const WRAPPER_FILENAME: &str = "tests/gen/wrapper_source.rs";
+        const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
         const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)

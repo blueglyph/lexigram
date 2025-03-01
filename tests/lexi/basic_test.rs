@@ -1,8 +1,8 @@
 #![cfg(test)]
 
 use rlexer::segments::Segments;
-use crate::gen::lexiparser::lexiparser::*;
-use crate::gen::lexiparser::lexiparser_types::*;
+use crate::out::lexiparser::lexiparser::*;
+use crate::out::lexiparser::lexiparser_types::*;
 use crate::lexi::LexAction;
 
 struct LexiListener {
@@ -153,8 +153,8 @@ mod tests {
     use rlexer::io::CharReader;
     use rlexer::lexi::LEXICON;
     use super::*;
-    use crate::gen::build_lexer;
-    use crate::gen::lexiparser::lexiparser::build_parser;
+    use crate::out::build_lexer;
+    use crate::out::lexiparser::lexiparser::build_parser;
     use rlexer::lexer::TokenSpliterator;
 
     #[test]
