@@ -393,14 +393,14 @@ impl LexiParserListener for LexiListener {
                 tree.add(None, ReNode::char_range(char_set.0))
             }
             CtxItem::Item6 { charlit } => {         // item -> CharLit .. CharLit
-                let c1 = decode_char(&charlit[0][1..charlit[0].len() - 2]).unwrap_or_else(|s| panic!("{s}"));
-                let c2 = decode_char(&charlit[1][1..charlit[1].len() - 2]).unwrap_or_else(|s| panic!("{s}"));
+                let c1 = decode_char(&charlit[0][1..charlit[0].len() - 1]).unwrap_or_else(|s| panic!("{s}"));
+                let c2 = decode_char(&charlit[1][1..charlit[1].len() - 1]).unwrap_or_else(|s| panic!("{s}"));
                 tree.add(None, ReNode::char_range(Segments::from((c1, c2))))
             }
             CtxItem::Item7 { charlit } => {         // item -> CharLit
                 // charlit is always sourrounded by quotes:
                 // fragment CharLiteral	: '\'' Char '\'';
-                let c = decode_char(&charlit[1..charlit.len() - 2]).unwrap_or_else(|s| panic!("{s}"));
+                let c = decode_char(&charlit[1..charlit.len() - 1]).unwrap_or_else(|s| panic!("{s}"));
                 tree.add(None, ReNode::char_range(Segments::from(c)))
             }
         };
