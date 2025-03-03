@@ -193,6 +193,12 @@ pub fn build_re() -> Vec<(ModeId, VecTree<ReNode>)> {
             re2.add(Some(or1), node!(~['\n', '\r', '\t', '\\', ']', '-']));
     re2.add(Some(set_char), node!(=T::SetChar as TokenId));
 
+    // FixedSet: ('\\w' | '\\d')
+    let fixed_set = re2.add(Some(top1), node!(&));
+        let or1 = re2.add(Some(fixed_set), node!(|));
+            re2.add_iter(Some(or1), [node!(str "\\w"), node!(str "\\d")]);
+    re2.add(Some(fixed_set), node!(=T::FixedSet as TokenId));
+
     vec![(0, re1), (1, re2)]
 }
 

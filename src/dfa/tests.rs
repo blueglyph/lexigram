@@ -1531,7 +1531,7 @@ fn dfa_modes() {
         ])
     ];
 
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, exp_graph, exp_ends) in tests {
         if VERBOSE { println!("{test_id}:"); }
         let dfas = build_dfa(test_id);

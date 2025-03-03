@@ -211,7 +211,7 @@ impl<R: Read> Lexer<R> {
     //              pos++
     //
     pub fn get_token(&mut self) -> Result<LexerToken, LexerError> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         if VERBOSE { println!("lexer state_table: {}, last: {}", self.state_table.len(), self.state_table.iter().last().unwrap()); }
         self.error = LexerError::None;
         let mut text = String::new();

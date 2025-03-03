@@ -125,7 +125,7 @@ impl LexiListener {
     }
 
     fn make_dfa(&mut self) -> Dfa<General> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let num_t = self.terminals.len();
         let mut names = vec![String::new(); num_t];
         for (s, r) in &self.rules {
