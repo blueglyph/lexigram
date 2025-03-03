@@ -435,6 +435,7 @@ impl LexiParserListener for LexiListener {
         //     SET_CHAR MINUS SET_CHAR
         // |   SET_CHAR
         // |   FIXED_SET;
+        if self.verbose { print!("- exit_char_set_one({ctx:?})"); }
         let seg = match ctx {
             CtxCharSetOne::CharSetOne1 { fixedset } => {    // char_set_one -> FixedSet
                 decode_fixed_set(&fixedset).unwrap_or_else(|s| panic!("{s}"))
@@ -449,6 +450,7 @@ impl LexiParserListener for LexiListener {
                 Segments::from(single)
             }
         };
+        if self.verbose { println!(" -> {seg}"); }
         SynCharSetOne(seg)
     }
 }

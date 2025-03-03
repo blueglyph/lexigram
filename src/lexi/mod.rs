@@ -175,20 +175,22 @@ pub fn build_re() -> Vec<(ModeId, VecTree<ReNode>)> {
     // ']' -> pop
     re2.addc_iter(Some(top2), node!(&), [node!(chr ']'), node!(term!(=T::RSbracket as TokenId) + term!(pop))]);
 
-    // FIXME: shouldn't that be: ( '\\' ([nrt\\[\]\-] | 'u{' [0-9a-fA-F]+ '}') | ~[\n\r\t\\\]\-] )
-    // SetChar: ( '\\' ([nrt\\[\]\-] | 'u{' [0-9a-fA-F]+ '}') | ~[\n\r\t\\\]] )
+    // Minus: '-'
+    re2.addc_iter(Some(top2), node!(&), [node!(chr '-'), node!(term!(=T::Minus as TokenId))]);
+
+    // SetChar: ( '\\' ([nrt\\[\]\-] | 'u{' [0-9a-fA-F]+ '}') | ~[\n\r\t\\\]\-] )
     let set_char = re2.add(Some(top2), node!(&));
         let or1 = re2.add(Some(set_char), node!(|));
             let cc2 = re2.add(Some(or1), node!(&));
                 re2.add(Some(cc2), node!(chr '\\'));
                 let or3 = re2.add(Some(cc2), node!(|));
-                    re2.add(Some(or3), node!(['n', 'r', 't', '\'', '\\', '[', ']', '-']));  // FIXME
+                    re2.add(Some(or3), node!(['n', 'r', 't', '\'', '\\', '[', ']', '-']));
                     let cc4 = re2.add(Some(or3), node!(&));
                         re2.add(Some(cc4), node!(str "u{"));
                         re2.addc(Some(cc4), node!(+), node!(['0'-'9', 'a'-'f', 'A'-'F']));
                         re2.add(Some(cc4), node!(chr '}'));
             // Note: we accept the opening bracket within brackets, with or without escaping: [a-z[] or [a-z\[]
-            re2.add(Some(or1), node!(~['\n', '\r', '\t', '\\', ']']));  // FIXME
+            re2.add(Some(or1), node!(~['\n', '\r', '\t', '\\', ']', '-']));
     re2.add(Some(set_char), node!(=T::SetChar as TokenId));
 
     vec![(0, re1), (1, re2)]
@@ -268,7 +270,7 @@ pub const LEXICON_TOKENS: [TokenId; 326] = [
     18, 5, 29, 2, 29, 13,                                       // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
     19, 29, 1, 31, 3, 17, 12, 31, 16,                           // fragment BlockComment   : '/*' .*? '*/';
     19, 29, 1, 31, 8, 6, 33, 33, 14, 17, 16,                    // fragment LineComment    : '//' ~[\r\n]*;
-    19, 29, 1, 6, 33, 33, 33, 33, 33, 33, 33, 33, 33, 14, 16,   // fragment HexDigit       : [0-9a-fA-F];
+    19, 29, 1, 6, 33, 9, 33, 33, 9, 33, 33, 9, 33, 14, 16,      // fragment HexDigit       : [0-9a-fA-F];
     19, 29, 1, 31, 29, 10, 30, 16,                              // fragment UnicodeEsc     : 'u{' HexDigit+ '}';
     19, 29, 1, 30, 7, 6, 33, 33, 33, 33, 33, 14, 11, 29, 15, 16,// fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
     19, 29, 1, 29, 11, 8, 6, 33, 33, 33, 33, 33, 14, 16,        // fragment Char           : EscChar | ~[\n\r\t'\\];
@@ -311,8 +313,8 @@ pub const LEXICON_TOKENS: [TokenId; 326] = [
     29, 1, 29, 0, 25, 16,                                       // COMMENT     : BlockComment           -> skip;
     29, 1, 29, 0, 25, 16,                                       // LINECOMMENT : LineComment            -> skip;
     29, 1, 6, 33, 33, 33, 33, 14, 10, 0, 25, 16,                // WHITESPACE  : [ \n\r\t]+             -> skip;
-    29, 1, 6, 33, 33, 33, 33, 33, 33, 14, 6, 33, 33, 33, 33,
-              33, 33, 33, 33, 33, 33, 14, 17, 16,               // ID          : [a-zA-Z][a-zA-Z_0-9]*;
+    29, 1, 6, 33, 9, 33, 33, 9, 33, 14, 6, 33, 9, 33, 33,
+              9, 33, 33, 33, 9, 33, 14, 17, 16,                 // ID          : [a-zA-Z][a-zA-Z_0-9]*;
     29, 1, 29, 16,                                              // CHAR_LIT    : CharLiteral;
     29, 1, 29, 16,                                              // STR_LIT     : StrLiteral;
     29, 1, 7, 31, 11, 31, 15, 16,                               // FIXED_SET   : ('\\w' | '\\d');

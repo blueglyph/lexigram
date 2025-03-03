@@ -100,7 +100,7 @@ pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
         (1, vec![
             // no error
             ("-> : , . .. { ( ~ - + | ? } ) ; * channels fragment lexicon mode pop push more skip type channel [a-z.\\t]",
-             vec![0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 6, 33, 33, 33, 33, 33, 14],
+             vec![0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 6, 33, 9, 33, 33, 33, 14],
              vec!["->", ":", ",", ".", "..", "{", "(", "~", "-", "+", "|", "?", "}", ")", ";", "*",
                   "channels", "fragment", "lexicon", "mode", "pop", "push", "more", "skip", "type", "channel", "[", "a", "-", "z", ".", "\\t", "]"]),
         ]),
@@ -117,10 +117,16 @@ pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
                 assert_eq!(ch, 0, "test {} failed for input {}", test_id, escape_string(input));
                 (tok, text)
             }).unzip();
-            assert_eq!(tokens, expected_tokens, "test {} failed for opt={opt:?}, input '{}'", test_id, escape_string(input));
-            assert_eq!(texts, expected_texts, "test {} failed for opt={opt:?}, input '{}'", test_id, escape_string(input));
-            assert!(!lexer.has_error() || lexer.is_eos(), "test {} failed for opt={opt:?}, input '{}'",
-                    test_id, escape_string(input));
+            if VERBOSE {
+                if lexer.has_error() {
+                    println!("ERROR: {:?}", lexer.get_error());
+                }
+            }
+            let txt = format!("test {} failed for opt={opt:?}, input '{}'{}", test_id, escape_string(input),
+                              if lexer.has_error() { format!(", error: {:?}", lexer.get_error()) } else { String::new() });
+            assert_eq!(tokens, expected_tokens, "{txt}");
+            assert_eq!(texts, expected_texts, "txt");
+            assert!(!lexer.has_error() || lexer.is_eos(), "{txt}");
         }
         if VERBOSE { println!("--------------------------------------\n"); }
     }
