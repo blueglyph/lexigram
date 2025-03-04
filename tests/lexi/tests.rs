@@ -13,7 +13,29 @@ const TXT1: &str = r#"
     E: 'e:' [\w]+;
     F: 'f' ':' (\d | [a-zA-Z_])+;
     G: 'g:' ([\d] | [A-Za-z_])+;
+    H: 'h:' .;
+    I: 'i:' [a-z] [0-9]*? ('0' | '.');
+    J: 'j:' [a-z] [0-9]*  ('0' | '.');
+    K: 'k:' [a-z] [0-9]+? ('0' | '.');
+    L: 'l:' [a-z] [0-9]+  ('0' | '.');
+    M: 'm:' [a-z] [0-9]?;
     WHITESPACE: [ \n\r\t]+ -> skip;
+"#;
+
+const TXT2: &str = r#"
+    lexicon B;
+    OPEN_TAG: '<' -> push(TAG_MODE), skip;
+    OPEN_SPEC: '<?' -> push(SPEC_MODE), skip;
+
+    mode TAG_MODE;
+    CLOSE_TAG: '>' -> pop, skip;
+    SEP_TAG: [ \t,] -> skip;
+    TAG: \w+;
+
+    mode SPEC_MODE;
+    CLOSE_SPEC: '?>' -> pop, skip;
+    SEP_SPEC: [ \t,] -> skip;
+    SPEC: \w+;
 "#;
 
 mod simple {
@@ -33,32 +55,85 @@ mod simple {
             (
                 TXT1,
                 btreemap![
-                    0 => branch!('\t'-'\n', '\r', ' ' => 15, 'a' => 1, 'b' => 9, 'c' => 10, 'd' => 11, 'e' => 12, 'f' => 13, 'g' => 14),
+                    0 => branch!('\t'-'\n', '\r', ' ' => 33, 'a' => 1, 'b' => 17, 'c' => 18, 'd' => 19, 'e' => 20, 'f' => 21, 'g' => 22, 'h' => 23, 'i' => 24, 'j' => 29, 'k' => 30, 'l' => 32, 'm' => 25),
                     1 => branch!(':' => 2),
-                    2 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 16),
-                    3 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 17),
-                    4 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 18),
-                    5 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 19),
-                    6 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 20),
-                    7 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 21),
-                    8 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 22),
-                    9 => branch!(':' => 3),
-                    10 => branch!(':' => 4),
-                    11 => branch!(':' => 5),
-                    12 => branch!(':' => 6),
-                    13 => branch!(':' => 7),
-                    14 => branch!(':' => 8),
-                    15 => branch!('\t'-'\n', '\r', ' ' => 15), // <skip>
-                    16 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 16), // <end:0>
-                    17 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 17), // <end:1>
-                    18 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 18), // <end:2>
-                    19 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 19), // <end:3>
-                    20 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 20), // <end:4>
-                    21 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 21), // <end:5>
-                    22 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 22), // <end:6>
+                    2 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 34),
+                    3 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 35),
+                    4 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 36),
+                    5 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 37),
+                    6 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 38),
+                    7 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 39),
+                    8 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 40),
+                    9 => branch!(DOT => 41),
+                    10 => branch!('a'-'z' => 11),
+                    11 => branch!('.' => 42, '0' => 43, '1'-'9' => 11),
+                    12 => branch!('.' => 44, '0' => 45, '1'-'9' => 12),
+                    13 => branch!('0'-'9' => 14),
+                    14 => branch!('.' => 46, '0' => 47, '1'-'9' => 14),
+                    15 => branch!('.' => 48, '0' => 49, '1'-'9' => 15),
+                    16 => branch!('a'-'z' => 50),
+                    17 => branch!(':' => 3),
+                    18 => branch!(':' => 4),
+                    19 => branch!(':' => 5),
+                    20 => branch!(':' => 6),
+                    21 => branch!(':' => 7),
+                    22 => branch!(':' => 8),
+                    23 => branch!(':' => 9),
+                    24 => branch!(':' => 10),
+                    25 => branch!(':' => 16),
+                    26 => branch!('a'-'z' => 12),
+                    27 => branch!('a'-'z' => 13),
+                    28 => branch!('0'-'9' => 15),
+                    29 => branch!(':' => 26),
+                    30 => branch!(':' => 27),
+                    31 => branch!('a'-'z' => 28),
+                    32 => branch!(':' => 31),
+                    33 => branch!('\t'-'\n', '\r', ' ' => 33), // <skip>
+                    34 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 34), // <end:0>
+                    35 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 35), // <end:1>
+                    36 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 36), // <end:2>
+                    37 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 37), // <end:3>
+                    38 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 38), // <end:4>
+                    39 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 39), // <end:5>
+                    40 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 40), // <end:6>
+                    41 => branch!(), // <end:7>
+                    42 => branch!(), // <end:8>
+                    43 => branch!(), // <end:8>
+                    44 => branch!(), // <end:9>
+                    45 => branch!('.' => 44, '0' => 45, '1'-'9' => 12), // <end:9>
+                    46 => branch!(), // <end:10>
+                    47 => branch!(), // <end:10>
+                    48 => branch!(), // <end:11>
+                    49 => branch!('.' => 48, '0' => 49, '1'-'9' => 15), // <end:11>
+                    50 => branch!('0'-'9' => 51), // <end:12>
+                    51 => branch!(), // <end:12>
                 ], btreemap![
-                    15 => term!(skip), 16 => term!(=0), 17 => term!(=1), 18 => term!(=2), 19 => term!(=3), 20 => term!(=4), 21 => term!(=5), 22 => term!(=6)
-            ]),
+                    33 => term!(skip), 34 => term!(=0), 35 => term!(=1), 36 => term!(=2), 37 => term!(=3), 38 => term!(=4), 39 => term!(=5),
+                    40 => term!(=6), 41 => term!(=7), 42 => term!(=8), 43 => term!(=8), 44 => term!(=9), 45 => term!(=9), 46 => term!(=10),
+                    47 => term!(=10), 48 => term!(=11), 49 => term!(=11), 50 => term!(=12), 51 => term!(=12)
+                ]
+            ),
+            (
+                TXT2,
+                btreemap![
+                    0 => branch!('<' => 4),
+                    1 => branch!('\t', ' ', ',' => 6, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 7, '?' => 2),
+                    2 => branch!('>' => 8),
+                    3 => branch!('\t', ' ', ',' => 9, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 10, '>' => 11),
+                    4 => branch!('?' => 5), // <skip,push(1,state 3)>
+                    5 => branch!(), // <skip,push(2,state 1)>
+                    6 => branch!(), // <skip>
+                    7 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 7), // <end:7>
+                    8 => branch!(), // <skip,pop>
+                    9 => branch!(), // <skip>
+                    10 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 10), // <end:4>
+                    11 => branch!(), // <skip,pop>
+                ],
+                btreemap![
+                    4 => term!(skip) + term!(push 1) + term!(pushst 3), 5 => term!(skip) + term!(push 2) + term!(pushst 1), 6 => term!(skip),
+                    7 => term!(=7), 8 => term!(skip) + term!(pop), 9 => term!(skip), 10 => term!(=4), 11 => term!(skip) + term!(pop)
+                ]
+            ),
         ];
         const VERBOSE: bool = true;
         // const VERBOSE_DETAILS: bool = false;
@@ -114,84 +189,3 @@ mod simple {
         }
     }
 }
-
-/*
-    grammar LexiParser;
-
-    file: header? file_item*;
-
-    file_item:
-        option | declaration | rule
-    ;
-
-    header:
-        LEXICON ID SEMICOLON
-    ;
-
-    declaration:
-        MODE ID SEMICOLON
-    ;
-
-    option:
-        CHANNELS LBRACKET ID (COMMA ID)* RBRACKET
-    ;
-
-    rule:
-        FRAGMENT ID COLON match SEMICOLON
-    |   ID COLON match (ARROW actions)? SEMICOLON
-    ;
-
-    actions:
-        action (COMMA action)*
-    ;
-
-    action:
-        MODE LPAREN ID RPAREN
-    |   PUSH LPAREN ID RPAREN
-    |   POP
-    |   SKiP
-    |   MORE
-    |   TYPE LPAREN ID RPAREN
-    |   CHANNEL LPAREN ID RPAREN
-    ;
-
-    match:
-        alt_items
-    ;
-
-    alt_items:
-v       alt_items OR alt_item
-v   |   alt_item
-    ;
-
-    alt_item:
-v       repeat_item+
-    ;
-
-    repeat_item:
-        item STAR QUESTION?
-    |   item PLUS QUESTION?
-    |   item QUESTION?
-    ;
-
-    item:
-v       ID
-v   |   CHAR_LIT (ELLIPSIS CHAR_LIT)?
-v   |   STR_LIT
-v   |   char_set
-v   |   LPAREN alt_items RPAREN
-v   |   NEGATE item
-    ;
-
-    char_set:
-v       LSBRACKET (char_set_one)+ RSBRACKET
-    |   DOT
-v   |   FIXED_SET;
-    ;
-
-    char_set_one:
-v       SET_CHAR MINUS SET_CHAR
-v   |   SET_CHAR
-v   |   FIXED_SET;
-
-*/

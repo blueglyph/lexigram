@@ -2,12 +2,12 @@ mod basic_test;
 mod tests;
 
 use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::ops::{Add, Range};
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
-use rlexer::{hashmap, node, segments, CollectJoin, General};
+use rlexer::{btreemap, hashmap, node, segments, CollectJoin, General};
 use rlexer::segments::Segments;
 use crate::action;
 use crate::out::lexiparser::lexiparser::*;
@@ -101,7 +101,7 @@ struct LexiListener {
     /// VecTree of each terminal. Some may be empty: `type(token)` with no corresponding rule.
     terminals: Vec<VecTree<ReNode>>,
     channels: HashMap<String, ChannelId>,
-    modes: HashMap<String, ModeId>,
+    modes: BTreeMap<String, ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
     mode_terminals: Vec<Range<TokenId>>,
     log: Logger,
@@ -118,7 +118,7 @@ impl LexiListener {
             fragments: Vec::new(),
             terminals: Vec::new(),
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
-            modes: hashmap!("DEFAULT_MODE".to_string() => 0),
+            modes: btreemap!("DEFAULT_MODE".to_string() => 0),
             mode_terminals: vec![0..0],
             log: Logger::new()
         }
@@ -158,6 +158,15 @@ impl LexiListener {
 
 impl LexiParserListener for LexiListener {
     fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
+        if self.verbose {
+            println!("\nmodes: ");
+            let mut modes = self.modes.keys().to_vec();
+            modes.sort();
+            for mode in modes {
+                let mode_id = self.modes.get(mode).unwrap();
+                println!("- {mode}: {mode_id}, {:?}", self.mode_terminals[*mode_id as usize]);
+            }
+        }
         SynFile()
     }
 
@@ -173,14 +182,16 @@ impl LexiParserListener for LexiListener {
 
     fn exit_declaration(&mut self, ctx: CtxDeclaration) -> SynDeclaration {
         // FIXME: manage errors (may panic)
+        if self.verbose { print!("- exit_declaration({ctx:?}), modes: {:?}", self.modes); }
         let CtxDeclaration::Declaration { id: mode_name } = ctx;    // declaration -> mode Id ;
         let n = self.modes.len();
         let mode_id = *self.modes.entry(mode_name.clone()).or_insert_with(||
             ModeId::try_from(n).expect(&format!("max {} modes", ModeId::MAX)));
         self.curr_mode = mode_id;
+        if self.verbose { println!(" -> mode {mode_id}, mode_terminals: {:?}", self.mode_terminals)}
         let next_token = TokenId::try_from(self.terminals.len())
             .expect(&format!("no room left for any terminal in mode {mode_name}, max {} allowed", TokenId::MAX));
-        *self.mode_terminals.get_mut(mode_id as usize).unwrap() = next_token..next_token;
+        self.mode_terminals.insert(mode_id as usize, next_token..next_token);
         SynDeclaration()
     }
 
@@ -298,7 +309,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_match(&mut self, ctx: CtxMatch) -> SynMatch {
         // sets the tree root ID, so that any rule using `match` can expect to get a usable VecTree
-        if self.verbose { print!("- exit_match({ctx:?})"); }
+        if self.verbose { println!("- exit_match({ctx:?})"); }
         let CtxMatch::Match { alt_items } = ctx;
         self.curr.as_mut().unwrap().set_root(alt_items.0);
         SynMatch()
