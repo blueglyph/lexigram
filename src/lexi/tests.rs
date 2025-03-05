@@ -54,7 +54,7 @@ fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
         dfa.optimize()
     };
     if VERBOSE { print_dfa(&dfa, 4); }
-    let lexgen = LexerGen::from_dfa(&dfa);
+    let lexgen = LexerGen::from(&dfa);
     if VERBOSE {
         println!("Sources:");
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");

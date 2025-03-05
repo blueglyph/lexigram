@@ -68,7 +68,7 @@ fn lexgen_symbol_tables() {
         let dfa = dfa_builder.build_from_graph(g, 0, btreemap![3 => term![=0], 4 => term![=0], 5 => term![=1], 6 => term![=2]])
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
         let dfa = dfa.normalize();
-        let lexgen = LexerGen::from_dfa(&dfa);
+        let lexgen = LexerGen::from(&dfa);
         let mut ascii_vec = vec![BTreeSet::<char>::new(); lexgen.nbr_groups as usize];
         for i in 0..128_u8 {
             let c = char::from(i);
@@ -165,7 +165,7 @@ fn lexgen_build() {
                 let mut dfa_builder = DfaBuilder::from_re(re);
                 let dfa = dfa_builder.build();
                 let dfa = dfa.normalize();
-                lexgen = LexerGen::from_dfa(&dfa);
+                lexgen = LexerGen::from(&dfa);
                 if VERBOSE { print!("- {test_id:2}: "); }
             }
         }

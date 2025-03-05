@@ -70,7 +70,7 @@ fn lexer_simple() {
         let dfa = DfaBuilder::from_re(build_re(test_id)).build();
         let dfa = dfa.normalize();
         if VERBOSE { print_dfa(&dfa, 12); }
-        let lexgen = LexerGen::from_dfa(&dfa);
+        let lexgen = LexerGen::from(&dfa);
         if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
         let mut lexer = lexgen.make_lexer();
         for (exp_token, (inputs, outputs)) in token_tests {

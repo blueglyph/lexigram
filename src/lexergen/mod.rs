@@ -48,12 +48,6 @@ impl LexerGen {
         }
     }
 
-    pub fn from_dfa(dfa: &Dfa<Normalized>) -> Self {
-        let mut lexgen = LexerGen::new();
-        lexgen.build_tables(dfa);
-        lexgen
-    }
-
     pub fn build_tables(&mut self, dfa: &Dfa<Normalized>) {
         self.create_input_tables(dfa);
         self.create_state_tables(dfa);
@@ -255,6 +249,14 @@ impl LexerGen {
         source.push(format!("    )"));
         source.push(format!("}}"));
         source
+    }
+}
+
+impl From<&Dfa<Normalized>> for LexerGen {
+    fn from(dfa: &Dfa<Normalized>) -> Self {
+        let mut lexgen = LexerGen::new();
+        lexgen.build_tables(dfa);
+        lexgen
     }
 }
 
