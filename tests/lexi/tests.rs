@@ -52,6 +52,7 @@ mod simple {
     use crate::out::build_lexer;
     use crate::out::lexiparser::lexiparser::{build_parser, ListenerWrapper};
     use rlexer::lexer::TokenSpliterator;
+    use rlexer::lexergen::LexerGen;
     use crate::lexi::{LexiListener, RuleType};
     use super::*;
 
@@ -117,7 +118,16 @@ mod simple {
                     33 => term!(skip), 34 => term!(=0), 35 => term!(=1), 36 => term!(=2), 37 => term!(=3), 38 => term!(=4), 39 => term!(=5),
                     40 => term!(=6), 41 => term!(=7), 42 => term!(=8), 43 => term!(=8), 44 => term!(=9), 45 => term!(=9), 46 => term!(=10),
                     47 => term!(=10), 48 => term!(=11), 49 => term!(=11), 50 => term!(=12), 51 => term!(=12)
-                ]
+                ], vec![
+                (
+                    "a:aA_0 \t\nb:bB_1 c:cC_2 d:dD_3 e:eE_4 f:fF_5 g:gG_6 h:α i:i123. i:i120 j:j123. j:j1200 j:j120 k:k123. k:k120 l:l123. l:l1200 l:l120. m:m1",
+                    vec![
+                        (0, "a:aA_0"), (1, "b:bB_1"), (2, "c:cC_2"), (3, "d:dD_3"), (4, "e:eE_4"), (5, "f:fF_5"), (6, "g:gG_6"), (7, "h:α"),
+                        (8, "i:i123."), (8, "i:i120"), (9, "j:j123."), (9, "j:j1200"), (9, "j:j120"), (10, "k:k123."), (10, "k:k120"),
+                        (11, "l:l123."), (11, "l:l1200"), (11, "l:l120."), (12, "m:m1")
+                    ]
+                )
+            ]
             ),
             (
                 TXT2,
@@ -126,7 +136,7 @@ mod simple {
                     1 => branch!('\t', ' ', ',' => 8, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 9, '>' => 10),
                     2 => branch!('\t', ' ', ',' => 11, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 12, '?' => 3),
                     3 => branch!('>' => 13),
-                    4 => branch!(',' => 14, '0'-'9' => 15, ']' => 16),
+                    4 => branch!('\t'-'\n', ' ' => 14, ',' => 15, '0'-'9' => 16, ']' => 17),
                     5 => branch!('?' => 7), // <skip,push(1,state 1)>
                     6 => branch!(), // <more,mode(3,state 4)>
                     7 => branch!(), // <skip,push(2,state 2)>
@@ -136,24 +146,32 @@ mod simple {
                     11 => branch!(), // <skip>
                     12 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 12), // <end:8>
                     13 => branch!(), // <skip,pop>
-                    14 => branch!(), // <more>
-                    15 => branch!('0'-'9' => 15), // <more>
-                    16 => branch!(), // <end:9,mode(0,state 0)>
+                    14 => branch!(), // <skip>
+                    15 => branch!(), // <more>
+                    16 => branch!('0'-'9' => 16), // <more>
+                    17 => branch!(), // <end:9,mode(0,state 0)>
                 ],
                 btreemap![
                     5 => term!(skip) + term!(push 1) + term!(pushst 1), 6 => term!(more) + term!(mode 3) + term!(pushst 4),
                     7 => term!(skip) + term!(push 2) + term!(pushst 2), 8 => term!(skip), 9 => term!(=5), 10 => term!(skip) + term!(pop),
-                    11 => term!(skip), 12 => term!(=8), 13 => term!(skip) + term!(pop), 14 => term!(more), 15 => term!(more),
-                    16 => term!(=9) + term!(mode 0) + term!(pushst 0)
+                    11 => term!(skip), 12 => term!(=8), 13 => term!(skip) + term!(pop), 14 => term!(skip), 15 => term!(more), 16 => term!(more),
+                    17 => term!(=9) + term!(mode 0) + term!(pushst 0)
+               ], vec![
+                (
+                    "<a,A,\t_, 0><b><><?c,C,\t_, 1?><?d?><??>[0,\t1, 2][3][]",
+                    vec![
+                        (5, "a"), (5, "A"), (5, "_"), (5, "0"), (5, "b"), (8, "c"), (8, "C"), (8, "_"), (8, "1"), (8, "d"), (9, "2]"), (9, "[3]"), (9, "[]")
+                    ]
+                )
                 ]
             ),
         ];
-        const VERBOSE: bool = true;
-        // const VERBOSE_DETAILS: bool = false;
+        const VERBOSE: bool = false;
         const VERBOSE_WRAPPER: bool = false;
-        const VERBOSE_LISTENER: bool = true;
+        const VERBOSE_LISTENER: bool = false;
+        const VERBOSE_DETAILS: bool = false;
 
-        for (test_id, (input, expected_graph, expected_end_states)) in tests.into_iter().enumerate() {
+        for (test_id, (input, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
             let mut lexer = build_lexer();
@@ -170,7 +188,7 @@ mod simple {
                 panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
             ).inspect(|(tok, text, line, col)| {
                 result_tokens += 1;
-                if VERBOSE {
+                if VERBOSE_DETAILS {
                     println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
                 }
             });
@@ -199,6 +217,37 @@ mod simple {
             assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}");
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");
             // assert_eq!(result_tokens, expected_tokens, "{text}");
+
+            let mut lexer = LexerGen::from(&dfa).make_lexer();
+            for (input_id, (input, expected_tokens)) in test_strs.into_iter().enumerate() {
+                if VERBOSE {
+                    println!("Testing input '{input}'")
+                }
+                let stream = CharReader::new(Cursor::new(input));
+                lexer.attach_stream(stream);
+                let tokens = lexer.tokens().to_vec();
+                if VERBOSE {
+                    for (tokenid, channelid, string, caretline, caretcol) in &tokens {
+                        println!("- {tokenid}, {channelid}, {string}, {caretline}, {caretcol}")
+                    }
+                    if lexer.is_eos() {
+                        println!("=> OK");
+                    } if lexer.has_error() {
+                        println!("{:?}", lexer.get_error());
+                    } else {
+                        println!("stream not entirely consummed");
+                    }
+                }
+                lexer.detach_stream();
+                let result_tokens = tokens.into_iter()
+                    .filter_map(|(tokenid, channelid, string, _, _)| if channelid == 0 { Some((tokenid, string)) } else { None })
+                    .to_vec();
+                if VERBOSE {
+                    println!("{}", result_tokens.iter().map(|(t, s)| format!("({t}, \"{s}\")")).join(", "));
+                }
+                let expected_tokens = expected_tokens.into_iter().map(|(i, s)| (i, s.to_string())).to_vec();
+                assert_eq!(result_tokens, expected_tokens, "{text}, input {input_id}");
+            }
         }
     }
 }
