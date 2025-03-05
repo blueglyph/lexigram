@@ -24,6 +24,8 @@ const TXT1: &str = r#"
 
 const TXT2: &str = r#"
     lexicon B;
+    channels { REF }
+
     OPEN_TAG: '<' -> push(TAG_MODE), skip;
     OPEN_SPEC: '<?' -> push(SPEC_MODE), skip;
     OPEN_ARRAY: '[' -> mode(ARRAY_MODE), more;
@@ -32,6 +34,7 @@ const TXT2: &str = r#"
     CLOSE_TAG: '>' -> pop, skip;
     SEP_TAG: [ \t,] -> skip;
     TAG: \w+;
+    REF_TAG: '@' \w+ -> channel(REF);
 
     mode SPEC_MODE;
     CLOSE_SPEC: '?>' -> pop, skip;
@@ -122,9 +125,9 @@ mod simple {
                 (
                     "a:aA_0 \t\nb:bB_1 c:cC_2 d:dD_3 e:eE_4 f:fF_5 g:gG_6 h:α i:i123. i:i120 j:j123. j:j1200 j:j120 k:k123. k:k120 l:l123. l:l1200 l:l120. m:m1",
                     vec![
-                        (0, "a:aA_0"), (1, "b:bB_1"), (2, "c:cC_2"), (3, "d:dD_3"), (4, "e:eE_4"), (5, "f:fF_5"), (6, "g:gG_6"), (7, "h:α"),
-                        (8, "i:i123."), (8, "i:i120"), (9, "j:j123."), (9, "j:j1200"), (9, "j:j120"), (10, "k:k123."), (10, "k:k120"),
-                        (11, "l:l123."), (11, "l:l1200"), (11, "l:l120."), (12, "m:m1")
+                        (0, 0, "a:aA_0"), (0, 1, "b:bB_1"), (0, 2, "c:cC_2"), (0, 3, "d:dD_3"), (0, 4, "e:eE_4"), (0, 5, "f:fF_5"), (0, 6, "g:gG_6"), (0, 7, "h:α"),
+                        (0, 8, "i:i123."), (0, 8, "i:i120"), (0, 9, "j:j123."), (0, 9, "j:j1200"), (0, 9, "j:j120"), (0, 10, "k:k123."), (0, 10, "k:k120"),
+                        (0, 11, "l:l123."), (0, 11, "l:l1200"), (0, 11, "l:l120."), (0, 12, "m:m1")
                     ]
                 )
             ]
@@ -132,36 +135,43 @@ mod simple {
             (
                 TXT2,
                 btreemap![
-                    0 => branch!('<' => 5, '[' => 6),
-                    1 => branch!('\t', ' ', ',' => 8, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 9, '>' => 10),
-                    2 => branch!('\t', ' ', ',' => 11, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 12, '?' => 3),
-                    3 => branch!('>' => 13),
-                    4 => branch!('\t'-'\n', ' ' => 14, ',' => 15, '0'-'9' => 16, ']' => 17),
-                    5 => branch!('?' => 7), // <skip,push(1,state 1)>
-                    6 => branch!(), // <more,mode(3,state 4)>
-                    7 => branch!(), // <skip,push(2,state 2)>
-                    8 => branch!(), // <skip>
-                    9 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 9), // <end:5>
-                    10 => branch!(), // <skip,pop>
-                    11 => branch!(), // <skip>
-                    12 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 12), // <end:8>
-                    13 => branch!(), // <skip,pop>
-                    14 => branch!(), // <skip>
-                    15 => branch!(), // <more>
-                    16 => branch!('0'-'9' => 16), // <more>
-                    17 => branch!(), // <end:9,mode(0,state 0)>
+                    0 => branch!('<' => 6, '[' => 7),
+                    1 => branch!('\t', ' ', ',' => 9, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 10, '>' => 11, '@' => 2),
+                    2 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 12),
+                    3 => branch!('\t', ' ', ',' => 13, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 14, '?' => 4),
+                    4 => branch!('>' => 15),
+                    5 => branch!('\t'-'\n', ' ' => 16, ',' => 17, '0'-'9' => 18, ']' => 19),
+                    6 => branch!('?' => 8), // <skip,push(1,state 1)>
+                    7 => branch!(), // <more,mode(3,state 5)>
+                    8 => branch!(), // <skip,push(2,state 3)>
+                    9 => branch!(), // <skip>
+                    10 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 10), // <end:5>
+                    11 => branch!(), // <skip,pop>
+                    12 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 12), // <end:6,ch 1>
+                    13 => branch!(), // <skip>
+                    14 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 14), // <end:9>
+                    15 => branch!(), // <skip,pop>
+                    16 => branch!(), // <skip>
+                    17 => branch!(), // <more>
+                    18 => branch!('0'-'9' => 18), // <more>
+                    19 => branch!(), // <end:10,mode(0,state 0)>
                 ],
                 btreemap![
-                    5 => term!(skip) + term!(push 1) + term!(pushst 1), 6 => term!(more) + term!(mode 3) + term!(pushst 4),
-                    7 => term!(skip) + term!(push 2) + term!(pushst 2), 8 => term!(skip), 9 => term!(=5), 10 => term!(skip) + term!(pop),
-                    11 => term!(skip), 12 => term!(=8), 13 => term!(skip) + term!(pop), 14 => term!(skip), 15 => term!(more), 16 => term!(more),
-                    17 => term!(=9) + term!(mode 0) + term!(pushst 0)
+                    6 => term!(skip) + term!(push 1) + term!(pushst 1), 7 => term!(more) + term!(mode 3) + term!(pushst 5),
+                    8 => term!(skip) + term!(push 2) + term!(pushst 3), 9 => term!(skip), 10 => term!(=5), 11 => term!(skip) + term!(pop),
+                    12 => term!(=6) + term!(#1), 13 => term!(skip), 14 => term!(=9), 15 => term!(skip) + term!(pop), 16 => term!(skip),
+                    17 => term!(more), 18 => term!(more), 19 => term!(=10) + term!(mode 0) + term!(pushst 0)
                ], vec![
                 (
                     "<a,A,\t_, 0><b><><?c,C,\t_, 1?><?d?><??>[0,\t1, 2][3][]",
                     vec![
-                        (5, "a"), (5, "A"), (5, "_"), (5, "0"), (5, "b"), (8, "c"), (8, "C"), (8, "_"), (8, "1"), (8, "d"), (9, "2]"), (9, "[3]"), (9, "[]")
+                        (0, 5, "a"), (0, 5, "A"), (0, 5, "_"), (0, 5, "0"), (0, 5, "b"), (0, 9, "c"), (0, 9, "C"),
+                        (0, 9, "_"), (0, 9, "1"), (0, 9, "d"), (0, 10, "2]"), (0, 10, "[3]"), (0, 10, "[]")
                     ]
+                ),
+                (
+                    "<a@1,b@my_b_1>",
+                    vec![(0, 5, "a"), (1, 6, "@1"), (0, 5, "b"), (1, 6, "@my_b_1")]
                 )
                 ]
             ),
@@ -193,6 +203,8 @@ mod simple {
                 }
             });
             let result = parser.parse_stream(&mut wrapper, tokens);
+            let text = format!("test {test_id} failed");
+            assert_eq!(result, Ok(()), "{text}");
             listener = wrapper.listener();
             if VERBOSE {
                 println!("Rules:");
@@ -212,8 +224,6 @@ mod simple {
                 println!("Final optimized Dfa:");
                 print_dfa(&dfa, 20);
             }
-            let text = format!("test {test_id} failed");
-            assert_eq!(result, Ok(()), "{text}");
             assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}");
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");
             // assert_eq!(result_tokens, expected_tokens, "{text}");
@@ -240,12 +250,12 @@ mod simple {
                 }
                 lexer.detach_stream();
                 let result_tokens = tokens.into_iter()
-                    .filter_map(|(tokenid, channelid, string, _, _)| if channelid == 0 { Some((tokenid, string)) } else { None })
+                    .map(|(tokenid, channelid, string, _, _)| (channelid, tokenid, string))
                     .to_vec();
                 if VERBOSE {
-                    println!("{}", result_tokens.iter().map(|(t, s)| format!("({t}, \"{s}\")")).join(", "));
+                    println!("{}", result_tokens.iter().map(|(c, t, s)| format!("({c}, {t}, \"{s}\")")).join(", "));
                 }
-                let expected_tokens = expected_tokens.into_iter().map(|(i, s)| (i, s.to_string())).to_vec();
+                let expected_tokens = expected_tokens.into_iter().map(|(c, i, s)| (c, i, s.to_string())).to_vec();
                 assert_eq!(result_tokens, expected_tokens, "{text}, input {input_id}");
             }
         }
