@@ -2,12 +2,12 @@ mod basic_test;
 mod tests;
 
 use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::HashMap;
 use std::ops::{Add, Range};
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
-use rlexer::{btreemap, hashmap, node, segments, CollectJoin, General};
+use rlexer::{hashmap, node, segments, CollectJoin, General};
 use rlexer::segments::Segments;
 use crate::action;
 use crate::out::lexiparser::lexiparser::*;
@@ -101,7 +101,7 @@ struct LexiListener {
     /// VecTree of each terminal. Some may be empty: `type(token)` with no corresponding rule.
     terminals: Vec<VecTree<ReNode>>,
     channels: HashMap<String, ChannelId>,
-    modes: BTreeMap<String, ModeId>,
+    modes: HashMap<String, ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
     mode_terminals: Vec<Range<TokenId>>,
     log: Logger,
@@ -118,10 +118,16 @@ impl LexiListener {
             fragments: Vec::new(),
             terminals: Vec::new(),
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
-            modes: btreemap!("DEFAULT_MODE".to_string() => 0),
+            modes: hashmap!("DEFAULT_MODE".to_string() => 0),
             mode_terminals: vec![0..0],
             log: Logger::new()
         }
+    }
+
+    fn get_sorted_modes(&self) -> Vec<(&ModeId, &String)> {
+        let mut sorted_modes = self.modes.iter().map(|(name, id)| (id, name)).to_vec();
+        sorted_modes.sort();
+        sorted_modes
     }
 
     fn make_dfa(&mut self) -> Dfa<General> {
@@ -134,20 +140,26 @@ impl LexiListener {
             }
         }
         let mut dfas = vec![];
-        for (mode_name, mode_id) in &self.modes {
+        let sorted_modes = self.get_sorted_modes();
+        for (mode_id, mode_name) in sorted_modes {
+            if VERBOSE { println!("mode {mode_id}: {mode_name}"); }
             let range = &self.mode_terminals[*mode_id as usize];
             if VERBOSE { println!("* mode {mode_id}: {mode_name} = rules {range:?} ({})", range.clone().map(|n| &names[n as usize]).join(", ")); }
             let range = range.start as usize..range.end as usize;
             let mut tree = VecTree::<ReNode>::new();
             let top = tree.add_root(node!(|));
-            for t in &self.terminals[range] {
-                let cc = tree.add(Some(top), node!(&));
-                tree.add_from_tree(Some(cc), t, None);
+            for (i, t) in self.terminals[range].iter().enumerate() {
+                if VERBOSE { println!("- adding tree for terminal {i}: {t:?}"); }
+                if !t.is_empty() {
+                    let cc = tree.add(Some(top), node!(&));
+                    tree.add_from_tree(Some(cc), t, None);
+                }
             }
             if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
             let mut dfa_builder = DfaBuilder::from_re(tree);
             assert!(dfa_builder.get_errors().is_empty(), "failed to compile mode {mode_id}");
             dfas.push((*mode_id as ModeId, dfa_builder.build()));
+            if VERBOSE { rlexer::dfa::print_dfa(&dfas[dfas.len() - 1].1, 5); }
         }
         let mut dfa_builder = DfaBuilder::new();
         if VERBOSE { println!("merging dfa modes"); }
@@ -159,12 +171,9 @@ impl LexiListener {
 impl LexiParserListener for LexiListener {
     fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
         if self.verbose {
-            println!("\nmodes: ");
-            let mut modes = self.modes.keys().to_vec();
-            modes.sort();
-            for mode in modes {
-                let mode_id = self.modes.get(mode).unwrap();
-                println!("- {mode}: {mode_id}, {:?}", self.mode_terminals[*mode_id as usize]);
+            println!("\nModes: ");
+            for (mode_id, mode) in self.get_sorted_modes() {
+                println!("- {mode_id} - {mode}: terminals {:?}", self.mode_terminals[*mode_id as usize]);
             }
         }
         SynFile()

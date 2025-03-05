@@ -26,6 +26,7 @@ const TXT2: &str = r#"
     lexicon B;
     OPEN_TAG: '<' -> push(TAG_MODE), skip;
     OPEN_SPEC: '<?' -> push(SPEC_MODE), skip;
+    OPEN_ARRAY: '[' -> mode(ARRAY_MODE), more;
 
     mode TAG_MODE;
     CLOSE_TAG: '>' -> pop, skip;
@@ -36,6 +37,11 @@ const TXT2: &str = r#"
     CLOSE_SPEC: '?>' -> pop, skip;
     SEP_SPEC: [ \t,] -> skip;
     SPEC: \w+;
+
+    mode ARRAY_MODE;
+    CLOSE_ARRAY: ']' -> mode(DEFAULT_MODE), type(ARRAY);
+    NUM_ARRAY: \d+ | ',' -> more;
+    SEP_ARRAY: [ \t\n] -> skip;
 "#;
 
 mod simple {
@@ -116,22 +122,29 @@ mod simple {
             (
                 TXT2,
                 btreemap![
-                    0 => branch!('<' => 4),
-                    1 => branch!('\t', ' ', ',' => 6, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 7, '?' => 2),
-                    2 => branch!('>' => 8),
-                    3 => branch!('\t', ' ', ',' => 9, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 10, '>' => 11),
-                    4 => branch!('?' => 5), // <skip,push(1,state 3)>
-                    5 => branch!(), // <skip,push(2,state 1)>
-                    6 => branch!(), // <skip>
-                    7 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 7), // <end:7>
-                    8 => branch!(), // <skip,pop>
-                    9 => branch!(), // <skip>
-                    10 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 10), // <end:4>
-                    11 => branch!(), // <skip,pop>
+                    0 => branch!('<' => 5, '[' => 6),
+                    1 => branch!('\t', ' ', ',' => 8, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 9, '>' => 10),
+                    2 => branch!('\t', ' ', ',' => 11, '0'-'9', 'A'-'Z', '_', 'a'-'z' => 12, '?' => 3),
+                    3 => branch!('>' => 13),
+                    4 => branch!(',' => 14, '0'-'9' => 15, ']' => 16),
+                    5 => branch!('?' => 7), // <skip,push(1,state 1)>
+                    6 => branch!(), // <more,mode(3,state 4)>
+                    7 => branch!(), // <skip,push(2,state 2)>
+                    8 => branch!(), // <skip>
+                    9 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 9), // <end:5>
+                    10 => branch!(), // <skip,pop>
+                    11 => branch!(), // <skip>
+                    12 => branch!('0'-'9', 'A'-'Z', '_', 'a'-'z' => 12), // <end:8>
+                    13 => branch!(), // <skip,pop>
+                    14 => branch!(), // <more>
+                    15 => branch!('0'-'9' => 15), // <more>
+                    16 => branch!(), // <end:9,mode(0,state 0)>
                 ],
                 btreemap![
-                    4 => term!(skip) + term!(push 1) + term!(pushst 3), 5 => term!(skip) + term!(push 2) + term!(pushst 1), 6 => term!(skip),
-                    7 => term!(=7), 8 => term!(skip) + term!(pop), 9 => term!(skip), 10 => term!(=4), 11 => term!(skip) + term!(pop)
+                    5 => term!(skip) + term!(push 1) + term!(pushst 1), 6 => term!(more) + term!(mode 3) + term!(pushst 4),
+                    7 => term!(skip) + term!(push 2) + term!(pushst 2), 8 => term!(skip), 9 => term!(=5), 10 => term!(skip) + term!(pop),
+                    11 => term!(skip), 12 => term!(=8), 13 => term!(skip) + term!(pop), 14 => term!(more), 15 => term!(more),
+                    16 => term!(=9) + term!(mode 0) + term!(pushst 0)
                 ]
             ),
         ];
