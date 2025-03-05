@@ -290,6 +290,7 @@ impl LexiParserListener for LexiListener {
                         let token = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
                         self.rules.insert(id, RuleType::Terminal(token));
                         self.terminals.push(VecTree::new());
+                        self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
                         token
                     }
                     Some(rule) => {
