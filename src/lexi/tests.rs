@@ -33,7 +33,7 @@ fn make_dfa() -> Dfa<General> {
             println!("Tree: {}", tree_to_string(&dfa_builder.get_re(), None, true));
             println!("Messages:\n{}", dfa_builder.get_messages());
         }
-        assert_eq!(dfa_builder.get_errors().len(), 0);
+        assert_eq!(dfa_builder.num_errors(), 0);
         dfas.push((n, dfa));
     }
     let mut dfa_builder = DfaBuilder::new();
@@ -41,7 +41,7 @@ fn make_dfa() -> Dfa<General> {
     if VERBOSE {
         println!("Messages:\n{}", dfa_builder.get_messages());
     }
-    assert_eq!(dfa_builder.get_errors().len(), 0);
+    assert_eq!(dfa_builder.num_errors(), 0);
     dfa.expect(&format!("failed to build Dfa:\n{}", dfa_builder.get_messages()))
 }
 
@@ -135,6 +135,7 @@ pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
 #[test]
 /// We take the text output of each token and re-inject them to the lexer, then we compare both token streams.
 fn regexgen_stability() {
+    const VERBOSE: bool = false;
     for opt in [LexerType::Normalized, LexerType::Optimized] {
         let mut lexer = make_lexer(opt);
         let stream = CharReader::new(Cursor::new(LEXICON));
@@ -145,7 +146,7 @@ fn regexgen_stability() {
             .tokens()
             .filter_map(|(tok, ch, text, _col, _line)| if ch == 0 {
                 source2.push_str(&text);
-                println!("{} {text}", if mode1 { "1" } else { " " } );
+                if VERBOSE { println!("{} {text}", if mode1 { "1" } else { " " }); }
                 if &text == "[" {
                     mode1 = true; // '[' doesn't need escaping within mode1, so we don't check the mode here
                 } else if &text == "]" {
@@ -161,7 +162,7 @@ fn regexgen_stability() {
             })
             .unzip();
         source2.pop(); // remove trailing space
-        println!("{source2}");
+        if VERBOSE { println!("{source2}"); }
         let stream2 = CharReader::new(Cursor::new(source2.as_str()));
         lexer.detach_stream();
         lexer.attach_stream(stream2);

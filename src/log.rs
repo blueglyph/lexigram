@@ -14,6 +14,7 @@ impl Logger {
         Logger { messages: Vec::new(), num_notes: 0, num_warnings: 0, num_errors: 0 }
     }
 
+    /// Clears all messages: notes, warnings, and errors.
     pub fn clear(&mut self) {
         self.messages.clear();
         self.num_notes = 0;
@@ -49,18 +50,18 @@ impl Logger {
         self.num_errors
     }
 
-    pub fn add_note(&mut self, msg: String) {
-        self.messages.push(LogMsg::Note(msg.to_string()));
+    pub fn add_note<T: Into<String>>(&mut self, msg: T) {
+        self.messages.push(LogMsg::Note(msg.into()));
         self.num_notes += 1;
     }
 
-    pub fn add_warning(&mut self, msg: String) {
-        self.messages.push(LogMsg::Warning(msg.to_string()));
+    pub fn add_warning<T: Into<String>>(&mut self, msg: T) {
+        self.messages.push(LogMsg::Warning(msg.into()));
         self.num_warnings += 1;
     }
 
-    pub fn add_error(&mut self, msg: String) {
-        self.messages.push(LogMsg::Error(msg.to_string()));
+    pub fn add_error<T: Into<String>>(&mut self, msg: T) {
+        self.messages.push(LogMsg::Error(msg.into()));
         self.num_errors += 1;
     }
 }

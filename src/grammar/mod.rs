@@ -915,7 +915,7 @@ pub struct ProdRuleSet<T> {
     parent: Vec<Option<VarId>>,
     start: Option<VarId>,
     nt_conversion: HashMap<VarId, NTConversion>,
-    log: Logger,
+    pub(crate) log: Logger,
     _phantom: PhantomData<T>
 }
 

@@ -22,12 +22,20 @@
 - [x] ~~how to retrieve original text behind tokens?~~
 - [ ] lexer hooks? (using traits?)
 - [x] ~~define lexer file basic syntax (1st step)~~
-- [ ] error reporting
+- error reporting
+  - [ ] when creating the lexer
+    - [ ] Logger in DfaBuilder, Dfa
+    - [ ] Logger in LexerGen
+  - [ ] when using the lexer / parser
+    - [ ] Lexer 
+    - [ ] Lexer - Parser - wrapper - listener
 - [ ] independence from reader type (Lexer<R: Read>)
 
 # RParser
 
 - parser lib
+  - PargerGen
+    - [ ] populate log with info (& warnings, errors?)
   - RuleTreeSet to store the parsed production rules (as `VecTree<GrNode>`)
     - [x] ~~normalize~~
     - [x] ~~transforms to | of &s~~ 

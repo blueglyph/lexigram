@@ -1437,13 +1437,13 @@ fn dfa_states() {
             if dfa.end_states != expected_ends {
                 msg.push("End states incorrect".to_string());
             }
-            if dfa_builder.get_warnings().len() != expected_warnings {
+            if dfa_builder.num_warnings() != expected_warnings {
                 msg.push("Number of warnings not as expected".to_string());
-                msg.extend(dfa_builder.get_warnings().iter().cloned());
+                msg.extend(dfa_builder.get_warnings().cloned());
             }
-            if dfa_builder.get_errors().len() > 0 {
+            if dfa_builder.num_errors() > 0 {
                 msg.push("Errors:".to_string());
-                msg.extend(dfa_builder.get_errors().iter().cloned());
+                msg.extend(dfa_builder.get_errors().cloned());
             }
             if msg.len() > 0 {
                 println!("ERRORS in test {test_id}:");
@@ -1456,8 +1456,8 @@ fn dfa_states() {
         } else {
             assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
             assert_eq!(dfa.end_states, expected_ends, "test {test_id} failed");
-            assert_eq!(dfa_builder.get_warnings().len(), expected_warnings, "test {test_id} failed:\n{}", dfa_builder.get_messages());
-            assert_eq!(dfa_builder.get_errors().len(), 0, "test {test_id} failed:\n{}", dfa_builder.get_messages());
+            assert_eq!(dfa_builder.num_warnings(), expected_warnings, "test {test_id} failed:\n{}", dfa_builder.get_messages());
+            assert_eq!(dfa_builder.num_errors(), 0, "test {test_id} failed:\n{}", dfa_builder.get_messages());
         }
     }
     assert_eq!(errors, 0, "{errors} error(s) during the tests");

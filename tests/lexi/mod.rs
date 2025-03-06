@@ -157,7 +157,7 @@ impl LexiListener {
             }
             if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
             let mut dfa_builder = DfaBuilder::from_re(tree);
-            assert!(dfa_builder.get_errors().is_empty(), "failed to compile mode {mode_id}");
+            assert!(dfa_builder.num_errors() == 0, "failed to compile mode {mode_id}");
             dfas.push((*mode_id as ModeId, dfa_builder.build()));
             if VERBOSE { rlexer::dfa::print_dfa(&dfas[dfas.len() - 1].1, 5); }
         }

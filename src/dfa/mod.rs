@@ -6,6 +6,7 @@ use std::marker::PhantomData;
 use std::ops::Add;
 use vectree::VecTree;
 use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized};
+use crate::log::Logger;
 use crate::segments::{Segments, Seg};
 use crate::take_until::TakeUntilIterator;
 
@@ -279,8 +280,7 @@ pub struct DfaBuilder {
     lazypos: HashMap<Id, HashSet<usize>>,
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
-    warnings: Vec<String>,
-    errors: Vec<String>
+    log: Logger
 }
 
 impl DfaBuilder {
@@ -290,8 +290,7 @@ impl DfaBuilder {
             followpos: HashMap::new(),
             lazypos: HashMap::new(),
             ids: HashMap::new(),
-            warnings: Vec::new(),
-            errors: Vec::new()
+            log: Logger::new()
         }
     }
 
@@ -301,32 +300,49 @@ impl DfaBuilder {
             followpos: HashMap::new(),
             lazypos: HashMap::new(),
             ids: HashMap::new(),
-            warnings: Vec::new(),
-            errors: Vec::new()
+            log: Logger::new()
         };
         builder.preprocess_re();
         builder
     }
 
+    #[inline(always)]
     pub fn get_re(&self) -> &VecTree<ReNode> {
         &self.re
     }
 
-    pub fn get_warnings(&self) -> &Vec<String> {
-        &self.warnings
+    #[inline(always)]
+    pub fn get_log(&self) -> &Logger {
+        &self.log
     }
 
-    pub fn get_errors(&self) -> &Vec<String> {
-        &self.errors
+    #[inline(always)]
+    pub fn num_warnings(&self) -> usize {
+        self.log.num_warnings()
+    }
+
+    #[inline(always)]
+    pub fn get_warnings(&self) -> impl Iterator<Item = &String> {
+        self.log.get_warnings()
+    }
+
+    #[inline(always)]
+    pub fn num_errors(&self) -> usize {
+        self.log.num_errors()
+    }
+
+    #[inline(always)]
+    pub fn get_errors(&self) -> impl Iterator<Item = &String> {
+        self.log.get_errors()
     }
 
     pub fn get_messages(&self) -> String {
         let mut result = String::new();
-        if !self.warnings.is_empty() {
-            result.push_str(&format!("Warnings:\n- {}", self.warnings.join("\n- ")));
+        if self.log.num_warnings() > 0 {
+            result.push_str(&format!("Warnings:\n- {}", self.log.get_warnings().join("\n- ")));
         }
-        if !self.errors.is_empty() {
-            result.push_str(&format!("ERRORS:\n- {}", self.errors.join("\n- ")));
+        if self.log.num_errors() > 0 {
+            result.push_str(&format!("ERRORS:\n- {}", self.log.get_errors().join("\n- ")));
         }
         result
     }
@@ -533,9 +549,9 @@ impl DfaBuilder {
                             first_terminal_id = Some(id);
                             if new_state_id == 0 {
                                 if t.is_only_skip() {
-                                    self.warnings.push(format!("<skip> on initial state is a risk of infinite loop on bad input ({t})"));
+                                    self.log.add_warning(format!("<skip> on initial state is a risk of infinite loop on bad input ({t})"));
                                 } else if t.is_token() {
-                                    self.warnings.push(format!("<token> on initial state returns a token on bad input ({t})"));
+                                    self.log.add_warning(format!("<token> on initial state returns a token on bad input ({t})"));
                                 }
                             }
                         }
@@ -594,7 +610,7 @@ impl DfaBuilder {
                     let chosen = match potentials.len() {
                         0 => {
                             if VERBOSE { println!("    all ids have transitions => AMBIGUOUS, selecting the first defined terminal"); }
-                            self.warnings.push(format!("conflicting terminals for state {new_state_id}, none having other transitions: {}",
+                            self.log.add_warning(format!("conflicting terminals for state {new_state_id}, none having other transitions: {}",
                                                        terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
                             first_terminal_id.unwrap()
                         }
@@ -603,7 +619,7 @@ impl DfaBuilder {
                             potentials.pop_first().unwrap()
                         }
                         n => {
-                            self.warnings.push(format!("conflicting terminals for state {new_state_id}, {n} having no other transition: {}",
+                            self.log.add_warning(format!("conflicting terminals for state {new_state_id}, {n} having no other transition: {}",
                                                        terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
                             if potentials.contains(&first_terminal_id.unwrap()) {
                                 if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first defined terminal"); }
@@ -672,7 +688,7 @@ impl DfaBuilder {
     }
 
     pub fn build(&mut self) -> Dfa<General> {
-        self.warnings.clear();
+        self.log.clear();
         self.calc_node_pos();
         self.calc_states()
     }
@@ -721,7 +737,7 @@ impl DfaBuilder {
                     ModeOption::Mode(m) | ModeOption::Push(m) => {
                         let state_opt = init_states.get(&m);
                         if state_opt.is_none() {
-                            self.errors.push(format!("unknown mode {m} in merged graph"));
+                            self.log.add_error(format!("unknown mode {m} in merged graph"));
                         }
                         state_opt.cloned()
                     }
@@ -729,7 +745,7 @@ impl DfaBuilder {
             }
             dfa.first_end_state = None;
         }
-        if self.errors.is_empty() {
+        if self.log.num_errors() == 0 {
             Some(Dfa::<General> {
                 state_graph: dfa.state_graph,
                 initial_state: dfa.initial_state,
