@@ -41,6 +41,7 @@ pub enum LexerError {
     InvalidChar { info: LexerErrorInfo },
     UnrecognizedChar { info: LexerErrorInfo },
     InfiniteLoop { pos: u64 },
+    EmptyStateStack { info: LexerErrorInfo }
 }
 
 impl Display for LexerError {
@@ -56,6 +57,8 @@ impl Display for LexerError {
                 write!(f, "unrecognized character, pos = {pos}, chr = '{}'", curr_char.unwrap()),
             LexerError::InfiniteLoop { pos } =>
                 write!(f, "infinite loop, pos = {pos}"),
+            LexerError::EmptyStateStack { info: LexerErrorInfo { pos, curr_char, .. } } =>
+                write!(f, "pop from empty stack, pos = {pos}{}", if let Some(c) = curr_char { format!(", chr = '{c}'") } else { String::new() })
         }
     }
     // fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -253,6 +256,19 @@ impl<R: Read> Lexer<R> {
                         let curr_start_state = self.start_state;
                         let terminal = &self.terminal_table[state - self.first_end_state];
                         if terminal.pop {
+                            if self.state_stack.is_empty() {
+                                self.error = LexerError::EmptyStateStack {
+                                    info: LexerErrorInfo {
+                                        pos: self.pos,
+                                        curr_char: c_opt,
+                                        group,
+                                        state,
+                                        text,
+                                    }
+                                };
+                                if VERBOSE { println!(" => Err({})", self.error); }
+                                return Err(self.error.clone());
+                            }
                             self.start_state = self.state_stack.pop().unwrap();
                             if VERBOSE { print!(", pop to {}", self.start_state); }
                         }
