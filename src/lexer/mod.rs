@@ -15,6 +15,8 @@ use crate::lexergen::{char_to_group, GroupId};
 #[derive(Clone, PartialEq, Debug)]
 pub struct LexerErrorInfo {
     pub pos: u64,
+    pub line: CaretLine,
+    pub col: CaretCol,
     pub curr_char: Option<char>,
     pub group: GroupId,
     pub state: StateId,
@@ -37,16 +39,16 @@ impl Display for LexerError {
         match self {
             LexerError::None => write!(f, "no error"),
             LexerError::NoStreamAttached => write!(f, "no stream attached"),
-            LexerError::EndOfStream { info: LexerErrorInfo { pos, ..} } =>
-                write!(f, "end of stream, pos = {pos}"),
-            LexerError::InvalidChar { info: LexerErrorInfo { pos, curr_char, .. } } =>
-                write!(f, "invalid character, pos = {pos}, chr = '{}'", curr_char.unwrap()),
-            LexerError::UnrecognizedChar  { info: LexerErrorInfo { pos, curr_char, .. } } =>
-                write!(f, "unrecognized character, pos = {pos}, chr = '{}'", curr_char.unwrap()),
+            LexerError::EndOfStream { info: LexerErrorInfo { pos, line, col, ..} } =>
+                write!(f, "end of stream, pos = {pos}, line {line}, col {col}"),
+            LexerError::InvalidChar { info: LexerErrorInfo { pos, line, col, curr_char, .. } } =>
+                write!(f, "invalid character, pos = {pos}, line {line}, col {col}, chr = '{}'", curr_char.unwrap()),
+            LexerError::UnrecognizedChar  { info: LexerErrorInfo { pos, line, col, curr_char, .. } } =>
+                write!(f, "unrecognized character, pos = {pos}, line {line}, col {col}, chr = '{}'", curr_char.unwrap()),
             LexerError::InfiniteLoop { pos } =>
                 write!(f, "infinite loop, pos = {pos}"),
-            LexerError::EmptyStateStack { info: LexerErrorInfo { pos, curr_char, .. } } =>
-                write!(f, "pop from empty stack, pos = {pos}{}", if let Some(c) = curr_char { format!(", chr = '{c}'") } else { String::new() })
+            LexerError::EmptyStateStack { info: LexerErrorInfo { pos, line, col, curr_char, .. } } =>
+                write!(f, "pop from empty stack, pos = {pos}, line {line}, col {col}{}", if let Some(c) = curr_char { format!(", chr = '{c}'") } else { String::new() })
         }
     }
 }
@@ -229,6 +231,8 @@ impl<R: Read> Lexer<R> {
                                 self.error = LexerError::EmptyStateStack {
                                     info: LexerErrorInfo {
                                         pos: self.pos,
+                                        line: self.line,
+                                        col: self.col,
                                         curr_char: c_opt,
                                         group,
                                         state,
@@ -267,6 +271,8 @@ impl<R: Read> Lexer<R> {
                     // EOF or invalid character
                     let info = LexerErrorInfo {
                         pos: self.pos,
+                        line: self.line,
+                        col: self.col,
                         curr_char: c_opt,
                         group,
                         state,
