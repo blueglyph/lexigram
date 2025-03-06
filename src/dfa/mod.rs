@@ -771,7 +771,7 @@ pub struct Dfa<T> {
     initial_state: Option<StateId>,
     end_states: BTreeMap<StateId, Terminal>,
     first_end_state: Option<StateId>,
-    log: Logger,
+    pub(crate) log: Logger,
     _phantom: PhantomData<T>
 }
 

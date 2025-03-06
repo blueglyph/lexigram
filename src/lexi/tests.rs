@@ -54,7 +54,7 @@ fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
         dfa.optimize()
     };
     if VERBOSE { print_dfa(&dfa, 4); }
-    let lexgen = LexerGen::from(&dfa);
+    let lexgen = LexerGen::from(dfa);
     if VERBOSE {
         println!("Sources:");
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
@@ -74,7 +74,7 @@ fn lexilexer_source() {
     let dfa = dfa.optimize();
     let mut lexgen = LexerGen::new();
     lexgen.max_utf8_chars = 0;
-    lexgen.build_tables(&dfa);
+    lexgen.from_dfa(dfa);
     let result_src = lexgen.build_source_code(4);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
     if result_src != expected_src {
@@ -196,7 +196,7 @@ fn regexgen_optimize() {
         if VERBOSE { print_dfa(&dfa, 4); }
         let mut lexgen = LexerGen::new();
         lexgen.max_utf8_chars = 0;
-        lexgen.build_tables(&dfa);
+        lexgen.from_dfa(dfa);
         let size_tables = size_of_val(lexgen.state_table.as_ref()) +
                 size_of_val(lexgen.ascii_to_group.as_ref()) +
                 size_of_val(&lexgen.utf8_to_group) +
@@ -252,7 +252,9 @@ fn lexiparser_source() {
         }
     }
     let rules = ProdRuleSet::from(rts);
-    println!("messages PRS<General>: {}", rules.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
+    if !rules.get_log().is_empty() {
+        println!("messages PRS<General>: {}", rules.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
+    }
     if VERBOSE {
         let st_num_nt = rules.get_symbol_table().unwrap().get_num_nt();
         println!("rules, num_nt = {}, NT symbols: {}", rules.get_num_nt(), st_num_nt);
@@ -265,7 +267,9 @@ fn lexiparser_source() {
     }
     assert_eq!(rules.get_log().num_errors(), 0);
     let ll1 = ProdRuleSet::<LL1>::from(rules);
-    println!("messages PRS<LL1>: {}", ll1.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
+    if !ll1.get_log().is_empty() {
+        println!("messages PRS<LL1>: {}", ll1.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
+    }
     if VERBOSE {
         println!("LL1, num_nt = {}, NT symbols: {}", ll1.get_num_nt(), ll1.get_symbol_table().unwrap().get_num_nt());
         print_production_rules(&ll1, true);

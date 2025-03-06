@@ -24,8 +24,13 @@
 - [x] ~~define lexer file basic syntax (1st step)~~
 - error reporting
   - [ ] when creating the lexer
-    - [x] Logger in DfaBuilder, Dfa
-    - [ ] Logger in LexerGen
+    - [x] Logger in DfaBuilder, Dfa 
+      - [ ] populate
+    - [x] Logger in LexerGen
+      - [ ] populate
+  - [ ] when creating the parser
+    - [x] PargerGen
+      - [ ] populate log with info (& warnings, errors?)
   - [ ] when using the lexer / parser
     - [ ] Lexer 
     - [ ] Lexer - Parser - wrapper - listener
@@ -36,8 +41,6 @@
 # RParser
 
 - parser lib
-  - PargerGen
-    - [ ] populate log with info (& warnings, errors?)
   - RuleTreeSet to store the parsed production rules (as `VecTree<GrNode>`)
     - [x] ~~normalize~~
     - [x] ~~transforms to | of &s~~ 

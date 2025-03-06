@@ -9,6 +9,7 @@ use iter_index::IndexerIterator;
 use crate::dfa::print_graph;
 use crate::{CollectJoin, escape_char, Normalized, indent_source};
 use crate::lexer::Lexer;
+use crate::log::Logger;
 use crate::segments::{Segments, Seg, SegMap};
 use super::dfa::*;
 
@@ -27,6 +28,7 @@ pub struct LexerGen {
     pub seg_to_group: SegMap<GroupId>,
     pub state_table: Box<[StateId]>,
     pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
+    log: Logger,
     // internal
     group_partition: Segments,   // for optimization
 }
@@ -44,13 +46,15 @@ impl LexerGen {
             seg_to_group: SegMap::new(),
             state_table: Box::default(),
             terminal_table: Box::default(),
+            log: Logger::new(),
             group_partition: Segments::empty(),
         }
     }
 
-    pub fn build_tables(&mut self, dfa: &Dfa<Normalized>) {
-        self.create_input_tables(dfa);
-        self.create_state_tables(dfa);
+    pub fn from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
+        self.log.extend(std::mem::replace(&mut dfa.log, Logger::new()));
+        self.create_input_tables(&dfa);
+        self.create_state_tables(&dfa);
     }
 
     pub fn make_lexer<R: Read>(self) -> Lexer<R> {
@@ -252,10 +256,10 @@ impl LexerGen {
     }
 }
 
-impl From<&Dfa<Normalized>> for LexerGen {
-    fn from(dfa: &Dfa<Normalized>) -> Self {
+impl From<Dfa<Normalized>> for LexerGen {
+    fn from(dfa: Dfa<Normalized>) -> Self {
         let mut lexgen = LexerGen::new();
-        lexgen.build_tables(dfa);
+        lexgen.from_dfa(dfa);
         lexgen
     }
 }

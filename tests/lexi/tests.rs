@@ -228,7 +228,7 @@ mod simple {
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");
             // assert_eq!(result_tokens, expected_tokens, "{text}");
 
-            let mut lexer = LexerGen::from(&dfa).make_lexer();
+            let mut lexer = LexerGen::from(dfa).make_lexer();
             for (input_id, (input, expected_tokens)) in test_strs.into_iter().enumerate() {
                 if VERBOSE {
                     println!("Testing input '{input}'")
