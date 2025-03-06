@@ -14,12 +14,24 @@ impl Logger {
         Logger { messages: Vec::new(), num_notes: 0, num_warnings: 0, num_errors: 0 }
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.messages.is_empty()
+    }
+
     /// Clears all messages: notes, warnings, and errors.
     pub fn clear(&mut self) {
         self.messages.clear();
         self.num_notes = 0;
         self.num_warnings = 0;
         self.num_errors = 0;
+    }
+
+    /// Extends the messages with another Logger's messages.
+    pub fn extend(&mut self, other: Logger) {
+        self.num_notes += other.num_notes;
+        self.num_warnings += other.num_warnings;
+        self.num_errors += other.num_errors;
+        self.messages.extend(other.messages)
     }
 
     pub fn get_messages(&self) -> impl Iterator<Item = &LogMsg> {

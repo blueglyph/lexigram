@@ -684,6 +684,8 @@ impl DfaBuilder {
             // finally, updates the graph with the reverse (symbol -> state) data
             dfa.state_graph.insert(new_state_id, map.into_iter().map(|(id, segments)| (segments, id)).collect());
         }
+        // transfers all the log messages to the Dfa
+        dfa.log.extend(std::mem::replace(&mut self.log, Logger::new()));
         dfa
     }
 
@@ -701,6 +703,7 @@ impl DfaBuilder {
             initial_state: Some(init_state),
             end_states: BTreeMap::from_iter(end_states),
             first_end_state: None,
+            log: Logger::new(),
             _phantom: PhantomData
         };
         dfa.first_end_state = dfa.end_states.keys().min().map(|st| *st);
@@ -718,6 +721,7 @@ impl DfaBuilder {
         let mut init_states = BTreeMap::new();
         init_states.insert(idx, dfa.initial_state.expect(&format!("no initial state in DFA {idx}")));
         while let Some((idx, new_dfa)) = iter.next() {
+            dfa.log.extend(new_dfa.log);
             let offset = 1 + dfa.state_graph.keys().max().expect(&format!("empty DFA {idx}"));
             assert!(!init_states.contains_key(&idx), "DFA {idx} defined multiple times");
             init_states.insert(idx, offset + new_dfa.initial_state.expect(&format!("no initial state in DFA {idx}")));
@@ -751,6 +755,7 @@ impl DfaBuilder {
                 initial_state: dfa.initial_state,
                 end_states: dfa.end_states,
                 first_end_state: dfa.first_end_state,
+                log: dfa.log,
                 _phantom: PhantomData,
             })
         } else {
@@ -766,6 +771,7 @@ pub struct Dfa<T> {
     initial_state: Option<StateId>,
     end_states: BTreeMap<StateId, Terminal>,
     first_end_state: Option<StateId>,
+    log: Logger,
     _phantom: PhantomData<T>
 }
 
@@ -776,6 +782,7 @@ impl Dfa<General> {
             initial_state: None,
             end_states: BTreeMap::new(),
             first_end_state: None,
+            log: Logger::new(),
             _phantom: PhantomData
         }
     }
@@ -862,6 +869,7 @@ impl<T> Dfa<T> {
             initial_state: self.initial_state,
             end_states: self.end_states,
             first_end_state: self.first_end_state,
+            log: self.log,
             _phantom: PhantomData,
         }
     }
@@ -1014,6 +1022,7 @@ impl<T> Dfa<T> {
             initial_state: self.initial_state,
             end_states: self.end_states,
             first_end_state: self.first_end_state,
+            log: self.log,
             _phantom: PhantomData,
         }
     }

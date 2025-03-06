@@ -1456,8 +1456,8 @@ fn dfa_states() {
         } else {
             assert_eq!(dfa.state_graph, expected, "test {test_id} failed");
             assert_eq!(dfa.end_states, expected_ends, "test {test_id} failed");
-            assert_eq!(dfa_builder.num_warnings(), expected_warnings, "test {test_id} failed:\n{}", dfa_builder.get_messages());
-            assert_eq!(dfa_builder.num_errors(), 0, "test {test_id} failed:\n{}", dfa_builder.get_messages());
+            assert_eq!(dfa.log.num_warnings(), expected_warnings, "test {test_id} failed:\n{}", dfa_builder.get_messages());
+            assert_eq!(dfa.log.num_errors(), 0, "test {test_id} failed:\n{}", dfa_builder.get_messages());
         }
     }
     assert_eq!(errors, 0, "{errors} error(s) during the tests");

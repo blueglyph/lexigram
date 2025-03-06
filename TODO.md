@@ -24,11 +24,13 @@
 - [x] ~~define lexer file basic syntax (1st step)~~
 - error reporting
   - [ ] when creating the lexer
-    - [ ] Logger in DfaBuilder, Dfa
+    - [x] Logger in DfaBuilder, Dfa
     - [ ] Logger in LexerGen
   - [ ] when using the lexer / parser
     - [ ] Lexer 
     - [ ] Lexer - Parser - wrapper - listener
+  - [ ] create info/warning/error ID numbers
+  - [ ] make messages parse-friendly and consistent (indentation structure, casing, ...)
 - [ ] independence from reader type (Lexer<R: Read>)
 
 # RParser
