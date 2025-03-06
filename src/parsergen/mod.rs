@@ -156,6 +156,7 @@ impl ParserGen {
 
     pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
         let mut ll1_rules = ProdRuleSet::<LL1>::from(rules);
+        assert_eq!(ll1_rules.get_log().num_errors(), 0);
         let parsing_table = ll1_rules.create_parsing_table();
         let num_nt = ll1_rules.get_num_nt();
         let start = ll1_rules.get_start().unwrap();

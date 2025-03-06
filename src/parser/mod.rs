@@ -70,6 +70,7 @@ impl Parser {
     }
 
     pub fn set_start(&mut self, start: VarId) {
+        assert!(self.num_nt > start as usize);
         self.start = start;
     }
 
