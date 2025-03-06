@@ -176,7 +176,7 @@ mod simple {
                 ]
             ),
         ];
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const VERBOSE_WRAPPER: bool = false;
         const VERBOSE_LISTENER: bool = false;
         const VERBOSE_DETAILS: bool = false;

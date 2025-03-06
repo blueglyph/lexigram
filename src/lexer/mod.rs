@@ -99,7 +99,7 @@ impl<R: Read> Lexer<R> {
             pos: 0,
             line: 1,
             col: 1,
-            tab_width: 8,
+            tab_width: 4,
             state_stack: Vec::new(),
             start_state: 0,
             nbr_groups,

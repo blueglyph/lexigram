@@ -73,6 +73,7 @@ fn lexer_simple() {
         let lexgen = LexerGen::from(dfa);
         if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
         let mut lexer = lexgen.make_lexer();
+        lexer.set_tab_width(8);
         for (exp_token, (inputs, outputs)) in token_tests {
             for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
                 if VERBOSE { println!("\"{}\": (should succeed)", escape_string(input)); }
