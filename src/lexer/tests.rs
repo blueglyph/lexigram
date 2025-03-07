@@ -10,14 +10,15 @@ use super::*;
 
 #[test]
 fn lexer_simple() {
-    fn eval(result: &Result<(TokenId, ChannelId, String, CaretCol, CaretLine), LexerError>, verbose: bool)
+    fn eval(result: &Result<Option<(TokenId, ChannelId, String, CaretCol, CaretLine)>, LexerError>, verbose: bool)
         -> Option<(TokenId, ChannelId, String, CaretCol, CaretLine)>
     {
         match result {
-            Ok(token_ch) => {
+            Ok(Some(token_ch)) => {
                 if verbose { println!("=> OK {}, #{}", token_ch.0, token_ch.1); }
                 Some(token_ch.clone())
             }
+            Ok(None) => None,
             Err(e) => {
                 if verbose { println!("## Error: {e}"); }
                 None

@@ -54,7 +54,7 @@ mod simple {
     use rlexer::io::CharReader;
     use crate::out::build_lexer;
     use crate::out::lexiparser::lexiparser::{build_parser, ListenerWrapper};
-    use rlexer::lexer::TokenSpliterator;
+    use rlexer::lexer::{LexerError, TokenSpliterator};
     use rlexer::lexergen::LexerGen;
     use crate::lexi::{LexiListener, RuleType};
     use super::*;
@@ -240,12 +240,12 @@ mod simple {
                     for (tokenid, channelid, string, caretline, caretcol) in &tokens {
                         println!("- {tokenid}, {channelid}, {string}, {caretline}, {caretcol}")
                     }
-                    if lexer.is_eos() {
-                        println!("=> OK");
-                    } if lexer.has_error() {
+                    if lexer.has_error() {
                         println!("{:?}", lexer.get_error());
+                    } else if lexer.is_eos() {
+                        println!("=> OK");
                     } else {
-                        println!("stream not entirely consummed");
+                        println!("stream not entirely consumed");
                     }
                 }
                 lexer.detach_stream();
@@ -257,6 +257,104 @@ mod simple {
                 }
                 let expected_tokens = expected_tokens.into_iter().map(|(c, i, s)| (c, i, s.to_string())).to_vec();
                 assert_eq!(result_tokens, expected_tokens, "{text}, input {input_id}");
+            }
+        }
+    }
+
+    #[test]
+    fn lexiparser_errors() {
+        let tests = vec![
+            (
+                TXT1,
+                vec![
+                    // input    lexer OK: None, lexer error: Some(column)
+                    ("a",       Some(2)),
+                    ("a:",      Some(3)),
+                    ("a:aA_0",  None),
+                ]
+            ),
+            (
+                TXT2,
+                vec![
+                    ("<a>", None),
+                    ("<a><b,", None),
+                    ("<a,A,_, 0><b><><?c,C,_, 1!?><?d?><??>[0,\t1, 2][3][]", Some(26)),
+                ]
+            )
+        ];
+        const VERBOSE: bool = true;
+        const VERBOSE_WRAPPER: bool = false;
+        const VERBOSE_LISTENER: bool = false;
+        const VERBOSE_DETAILS: bool = false;
+
+        for (test_id, (lexicon, inputs)) in tests.into_iter().enumerate() {
+            if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
+            let text = format!("test {test_id} failed");
+
+            // 1) creates the lexer
+
+            // - instantiates a lexiparser
+            let mut parser = build_parser();
+            let mut listener = LexiListener::new();
+            listener.verbose = VERBOSE_LISTENER;
+            let mut wrapper = ListenerWrapper::new(listener, false);
+            wrapper.set_verbose(VERBOSE_WRAPPER);
+
+            // - instantiates a lexilexer and attaches it to the lexicon stream
+            let stream = CharReader::new(Cursor::new(lexicon));
+            let mut lexer = build_lexer();
+            lexer.set_tab_width(4);
+            lexer.attach_stream(stream);
+            let tokens = lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
+                panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
+            ).inspect(|(tok, text, line, col)| {
+                if VERBOSE_DETAILS {
+                    println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
+                }
+            });
+
+            // - parses the lexicon and builds the lexer reg tree
+            let result = parser.parse_stream(&mut wrapper, tokens);
+            assert_eq!(result, Ok(()), "{text}: couldn't parse the lexicon");
+            listener = wrapper.listener();
+
+            // - builds the dfa from the reg tree
+            let dfa = listener.make_dfa().optimize();
+
+            // - builds the lexer
+            let mut lexer = LexerGen::from(dfa).make_lexer();
+
+            // 2) tests the lexer on inputs
+            for (input_id, (input, expected_error)) in inputs.into_iter().enumerate() {
+                let text = format!("{text} in input {input_id}");
+                if VERBOSE {
+                    println!("Testing input '{input}'")
+                }
+                let stream = CharReader::new(Cursor::new(input));
+                lexer.attach_stream(stream);
+                let tokens = lexer.tokens().to_vec();
+                let result_error = match lexer.get_error() {
+                    LexerError::None => None,
+                    LexerError::EndOfStream { info }
+                    | LexerError::InvalidChar { info }
+                    | LexerError::UnrecognizedChar { info }
+                    | LexerError::EmptyStateStack { info } => Some(info.col),
+                    LexerError::NoStreamAttached | LexerError::InfiniteLoop { .. } => panic!("{text}: unexpected error {:?}", lexer.get_error()),
+                };
+                if VERBOSE {
+                    for (tokenid, channelid, string, caretline, caretcol) in &tokens {
+                        println!("- {tokenid}, {channelid}, {string}, {caretline}, {caretcol}")
+                    }
+                    println!(" => {:?}", lexer.get_error());
+                }
+                lexer.detach_stream();
+                let result_tokens = tokens.into_iter()
+                    .map(|(tokenid, channelid, string, _, _)| (channelid, tokenid, string))
+                    .to_vec();
+                if VERBOSE {
+                    println!("{}", result_tokens.iter().map(|(c, t, s)| format!("({c}, {t}, \"{s}\")")).join(", "));
+                }
+                assert_eq!(result_error, expected_error, "{text}: wrong parsing outcome");
             }
         }
     }

@@ -62,6 +62,7 @@ pub struct Lexer<R> {
     // operating variables
     input: Option<CharReader<R>>,
     error: LexerError,
+    is_eos: bool,
     pos: u64,
     line: CaretLine,
     col: CaretCol,
@@ -98,6 +99,7 @@ impl<R: Read> Lexer<R> {
         Lexer {
             input: None,
             error: LexerError::None,
+            is_eos: false,
             pos: 0,
             line: 1,
             col: 1,
@@ -118,6 +120,7 @@ impl<R: Read> Lexer<R> {
 
     pub fn attach_stream(&mut self, input: CharReader<R>) {
         self.input = Some(input);
+        self.is_eos = false;
         self.pos = 0;
         self.line = 1;
         self.col = 1;
@@ -184,7 +187,7 @@ impl<R: Read> Lexer<R> {
     //              state = next_state
     //              pos++
     //
-    pub fn get_token(&mut self) -> Result<LexerToken, LexerError> {
+    pub fn get_token(&mut self) -> Result<Option<LexerToken>, LexerError> {
         const VERBOSE: bool = false;
         if VERBOSE { println!("lexer state_table: {}, last: {}", self.state_table.len(), self.state_table.iter().last().unwrap()); }
         self.error = LexerError::None;
@@ -213,6 +216,7 @@ impl<R: Read> Lexer<R> {
                 }
                 let c_opt = input.get_char();
                 let is_eos = c_opt.is_none();
+                self.is_eos = is_eos;
                 let group = c_opt.and_then(|c| char_to_group(&self.ascii_to_group, &self.utf8_to_group, &self.seg_to_group, c))
                     .unwrap_or(self.nbr_groups);
                 if VERBOSE { print!(", char '{}' group {}", if let Some(c) = c_opt { escape_char(c) } else { "<EOF>".to_string() }, group); }
@@ -223,7 +227,8 @@ impl<R: Read> Lexer<R> {
                     if let Some(c) = c_opt {
                         input.rewind(c).expect(&format!("Can't rewind character '{}'", escape_char(c)));
                     }
-                    if self.first_end_state <= state && state < self.nbr_states { // accepting
+                    let is_accepting = self.first_end_state <= state && state < self.nbr_states;
+                    if is_accepting { // accepting
                         let curr_start_state = self.start_state;
                         let terminal = &self.terminal_table[state - self.first_end_state];
                         if terminal.pop {
@@ -254,7 +259,7 @@ impl<R: Read> Lexer<R> {
                         }
                         if let Some(token) = &terminal.get_token() {
                             if VERBOSE { println!(" => OK: token {}", token); }
-                            return Ok((token.clone(), terminal.channel, text, line, col));
+                            return Ok(Some((token.clone(), terminal.channel, text, line, col)));
                         }
                         if !terminal.action.is_more() {
                             (line, col) = (self.line, self.col);
@@ -269,6 +274,9 @@ impl<R: Read> Lexer<R> {
                         }
                     }
                     // EOF or invalid character
+                    if is_eos && is_accepting {
+                        return Ok(None);
+                    }
                     let info = LexerErrorInfo {
                         pos: self.pos,
                         line: self.line,
@@ -328,7 +336,8 @@ impl<R: Read> Lexer<R> {
     }
 
     pub fn is_eos(&self) -> bool {
-        matches!(self.error, LexerError::EndOfStream { .. })
+        self.is_eos
+        // matches!(self.error, LexerError::EndOfStream { .. })
     }
 }
 
@@ -340,10 +349,14 @@ impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
     type Item = (TokenId, ChannelId, String, CaretLine, CaretCol);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let t = self.lexer.get_token();
-        match t {
-            Ok((token, channel, str, line, col)) => Some((token, channel, str, line, col)),
-            _ => None
+        if self.lexer.is_eos {
+            None
+        } else {
+            let t = self.lexer.get_token();
+            match t {
+                Ok(Some(token)) => Some(token),
+                _ => None
+            }
         }
     }
 }
