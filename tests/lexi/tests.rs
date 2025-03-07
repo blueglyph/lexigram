@@ -60,8 +60,8 @@ mod simple {
     use super::*;
 
     #[test]
-    fn lexer_parser() {
-        let tests = [
+    fn lexiparser() {
+        let tests = vec![
             (
                 TXT1,
                 btreemap![
