@@ -90,8 +90,8 @@ impl Parser {
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<OpCode>::new();
         let mut stack_t = Vec::<String>::new();
-        let error = self.factors.len() as FactorId;
-        let end = (self.num_t - 1) as VarId;
+        let error_factor_id = self.factors.len() as FactorId;
+        let end_var_id = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
         stack.push(OpCode::NT(self.start));
         let mut stack_sym = stack.pop().unwrap();
@@ -113,18 +113,18 @@ impl Parser {
             }
             match (stack_sym, stream_sym) {
                 (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {
-                    let sr = if let Symbol::T(sr) = stream_sym { sr } else { end };
+                    let sr = if let Symbol::T(sr) = stream_sym { sr } else { end_var_id };
                     let factor_id = self.table[var as usize * self.num_t + sr as usize];
                     if VERBOSE {
                         println!("- table[{var}, {sr}] = {factor_id}: {} -> {}",
                                  Symbol::NT(var).to_str(self.get_symbol_table()),
-                                 if factor_id >= error {
+                                 if factor_id >= error_factor_id {
                                      "ERROR".to_string()
                                  } else {
                                      self.factors[factor_id as usize].1.to_str(sym_table)
                                  });
                     }
-                    if factor_id >= error {
+                    if factor_id >= error_factor_id {
                         return Err(format!("syntax error on input '{}' while parsing '{}'{}",
                                            stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
                                            if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
