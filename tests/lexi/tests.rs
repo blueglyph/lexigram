@@ -268,27 +268,28 @@ mod simple {
                 TXT1,
                 vec![
                     // input    lexer OK: None, lexer error: Some(column)
-                    ("a",       Some(2)),
-                    ("a:",      Some(3)),
-                    ("a:aA_0",  None),
+                    ("a",       Some(2), Some("':'")),
+                    ("a:",      Some(3), Some("'0'-'9', 'A'-'Z', '_', 'a'-'z'")),
+                    ("a:aA_0",  None, None),
                 ]
             ),
             (
                 TXT2,
                 vec![
-                    ("<a>", None),
-                    ("<a><b,", None),
-                    ("<a,A,_, 0><b><><?c,C,_, 1!?><?d?><??>[0,\t1, 2][3][]", Some(26)),
+                    ("<a>", None, None),
+                    ("<a><b,", None, None),
+                    ("<a,A,_, 0><b><><?c,C,_, 1!?><?d?><??>[0,\t1, 2][3][]", Some(26), Some("'\\t', ' ', ',', '0'-'9', '?', 'A'-'Z', '_', 'a'-'z'")),
                 ]
             )
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const VERBOSE_WRAPPER: bool = false;
         const VERBOSE_LISTENER: bool = false;
         const VERBOSE_DETAILS: bool = false;
+        const JUST_SHOW_ANSWERS: bool = false;
 
         for (test_id, (lexicon, inputs)) in tests.into_iter().enumerate() {
-            if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
+            if VERBOSE || JUST_SHOW_ANSWERS { println!("// {:=<80}\n// Test {test_id}", ""); }
             let text = format!("test {test_id} failed");
 
             // 1) creates the lexer
@@ -325,7 +326,7 @@ mod simple {
             let mut lexer = LexerGen::from(dfa).make_lexer();
 
             // 2) tests the lexer on inputs
-            for (input_id, (input, expected_error)) in inputs.into_iter().enumerate() {
+            for (input_id, (input, expected_error, expected_valid)) in inputs.into_iter().enumerate() {
                 let text = format!("{text} in input {input_id}");
                 if VERBOSE {
                     println!("Testing input '{input}'")
@@ -333,19 +334,23 @@ mod simple {
                 let stream = CharReader::new(Cursor::new(input));
                 lexer.attach_stream(stream);
                 let tokens = lexer.tokens().to_vec();
-                let result_error = match lexer.get_error() {
-                    LexerError::None => None,
-                    LexerError::EndOfStream { info }
-                    | LexerError::InvalidChar { info }
+                let (result_error, valid_segments) = match lexer.get_error() {
+                    LexerError::None => (None, None),
+                    LexerError::InvalidChar { info }
                     | LexerError::UnrecognizedChar { info }
-                    | LexerError::EmptyStateStack { info } => Some(info.col),
+                    | LexerError::EndOfStream { info } => (Some(info.col), Some(lexer.get_valid_segments(info.state))),
+                    LexerError::EmptyStateStack { info } => (Some(info.col), None),
                     LexerError::NoStreamAttached | LexerError::InfiniteLoop { .. } => panic!("{text}: unexpected error {:?}", lexer.get_error()),
                 };
+                let result_valid = valid_segments.and_then(|s| Some(s.to_string()));
                 if VERBOSE {
                     for (tokenid, channelid, string, caretline, caretcol) in &tokens {
                         println!("- {tokenid}, {channelid}, {string}, {caretline}, {caretcol}")
                     }
                     println!(" => {:?}", lexer.get_error());
+                    if let Some(s) = &result_valid {
+                        println!("    valid characters: {s}")
+                    }
                 }
                 lexer.detach_stream();
                 let result_tokens = tokens.into_iter()
@@ -354,7 +359,12 @@ mod simple {
                 if VERBOSE {
                     println!("{}", result_tokens.iter().map(|(c, t, s)| format!("({c}, {t}, \"{s}\")")).join(", "));
                 }
-                assert_eq!(result_error, expected_error, "{text}: wrong parsing outcome");
+                if JUST_SHOW_ANSWERS {
+                    println!("                    (\"{input}\", {result_error:?}, {result_valid:?}),");
+                } else {
+                    assert_eq!(result_error, expected_error, "{text}: wrong parsing outcome");
+                    assert_eq!(result_valid, expected_valid.map(|s| s.to_string()), "{text}: wrong set of valid characters at this state");
+                }
             }
         }
     }
