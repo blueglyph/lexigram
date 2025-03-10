@@ -199,7 +199,7 @@ impl LexerGen {
         source.push(format!("];"));
         source.push(format!("const UTF8_TO_GROUP: [(char, GroupId); {}] = [", self.utf8_to_group.len()));
         for (c, g) in &self.utf8_to_group {
-            source.push(format!("('{}', {}),", escape_char(*c), g));
+            source.push(format!("    ('{}', {}),", escape_char(*c), g));
         }
         source.push(format!("];"));
         /*
