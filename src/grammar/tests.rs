@@ -1267,6 +1267,34 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(#L, t 0, nt 0; t 1),
             ]);
         }
+        43 => {
+            // GROUP -> '[' EXPR ']' | '(' EXPR ')'
+            // EXPR -> TERM '^' FACTOR;
+            // TERM -> FACTOR '*' FACTOR;
+            // FACTOR -> id | int | '(' EXPR ')';
+            symbol_table.extend_terminals([
+                ("[".to_string(), Some("[".to_string())),   // 0
+                ("]".to_string(), Some("]".to_string())),   // 1
+                ("(".to_string(), Some("(".to_string())),   // 2
+                (")".to_string(), Some(")".to_string())),   // 3
+                ("^".to_string(), Some("^".to_string())),   // 4
+                ("*".to_string(), Some("*".to_string())),   // 5
+                ("int".to_string(), None),                  // 6
+                ("id".to_string(), None)                    // 7
+            ]);
+            symbol_table.extend_non_terminals([
+                "GROUP".to_string(),                        // 0
+                "EXPR".to_string(),                         // 1
+                "TERM".to_string(),                         // 2
+                "FACTOR".to_string(),                       // 3
+            ]);
+            prods.extend([
+                prod!(t 0, nt 1, t 1; t 2, nt 1, t 3),
+                prod!(nt 2, t 4, nt 3),
+                prod!(nt 3, t 5, nt 3),
+                prod!(t 6; t 7; t 2, nt 1, t 3),
+            ]);
+        }
 
         // ambiguity?
         100 => {
@@ -2196,6 +2224,45 @@ fn prs_calc_table() {
               0,   7,   7,   7,   1,   7,
               7,   2,   7,   7,   7,   3,
               7,   7,   4,   5,   7,   6,
+        ]),
+        (43, 0, 0, vec![
+            // GROUP -> '[' EXPR ']' | '(' EXPR ')'
+            // EXPR -> TERM '^' FACTOR;
+            // TERM -> FACTOR '*' FACTOR;
+            // FACTOR -> id | int | '(' EXPR ')';
+            //
+            // first:                       follow:
+            //      [ => [                       GROUP => $
+            //      ] => ]                       EXPR => ] )
+            //      ( => (                       TERM => ^
+            //      ) => )                       FACTOR => ] ) ^ *
+            //      ^ => ^
+            //      * => *
+            //      int => int
+            //      id => id
+            //      GROUP => [ (
+            //      EXPR => ( int id
+            //      TERM => ( int id
+            //      FACTOR => ( int id
+            //
+            (0, prodf!(t 0, nt 1, t 1)),    // - 0: GROUP -> [ EXPR ]
+            (0, prodf!(t 2, nt 1, t 3)),    // - 1: GROUP -> ( EXPR )
+            (1, prodf!(nt 2, t 4, nt 3)),   // - 2: EXPR -> TERM ^ FACTOR
+            (2, prodf!(nt 3, t 5, nt 3)),   // - 3: TERM -> FACTOR * FACTOR
+            (3, prodf!(t 6)),               // - 4: FACTOR -> int
+            (3, prodf!(t 7)),               // - 5: FACTOR -> id
+            (3, prodf!(t 2, nt 1, t 3)),    // - 6: FACTOR -> ( EXPR )
+        ], vec![
+            //        | [  ]  (  )  ^  *  int id $
+            // -------+-----------------------------
+            // GROUP  | 0  .  1  .  .  .   .  .  .
+            // EXPR   | .  .  2  .  .  .   2  2  .
+            // TERM   | .  .  3  .  .  .   3  3  .
+            // FACTOR | .  .  6  .  .  .   4  5  .
+              0,   7,   1,   7,   7,   7,   7,   7,   7,
+              7,   7,   2,   7,   7,   7,   2,   2,   7,
+              7,   7,   3,   7,   7,   7,   3,   3,   7,
+              7,   7,   6,   7,   7,   7,   4,   5,   7,
         ]),
 
         (100, 0, 0, vec![
