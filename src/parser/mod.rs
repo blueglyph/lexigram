@@ -86,11 +86,12 @@ impl Parser {
         where I: Iterator<Item=ParserToken>,
               L: Listener,
     {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<OpCode>::new();
         let mut stack_t = Vec::<String>::new();
-        let error_factor_id = self.factors.len() as FactorId;
+        let error_skip_factor_id = self.factors.len() as FactorId;
+        let _error_pop_factor_id = error_skip_factor_id + 1; // TODO: recovery with skip and pop
         let end_var_id = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
         stack.push(OpCode::NT(self.start));
@@ -118,13 +119,13 @@ impl Parser {
                     if VERBOSE {
                         println!("- table[{var}, {sr}] = {factor_id}: {} -> {}",
                                  Symbol::NT(var).to_str(self.get_symbol_table()),
-                                 if factor_id >= error_factor_id {
+                                 if factor_id >= error_skip_factor_id {
                                      "ERROR".to_string()
                                  } else {
                                      self.factors[factor_id as usize].1.to_str(sym_table)
                                  });
                     }
-                    if factor_id >= error_factor_id {
+                    if factor_id >= error_skip_factor_id {
                         return Err(format!("syntax error on input '{}' while parsing '{}'{}",
                                            stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
                                            if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));

@@ -204,9 +204,17 @@ fn parser_parse_stream_id() {
             ("b c", true),
             ("b d", true),
         ]),
+        (T::PRS(43), 0, 7, 6, vec![
+            // GROUP -> '[' EXPR ']' | '(' EXPR ')'
+            // EXPR -> FACTOR '*' FACTOR;
+            // FACTOR -> id | int | '(' EXPR ')';
+            ("[ 1 * 2 ]", true),
+            ("[ ( 1 * 2 * 3 ]", false),
+        ])
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
+if ll_id != T::PRS(43) { continue }
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
         let mut ll1 = ll_id.get_prs(test_id, start, false);
         let symbols = (0..ll1.get_num_t() as TokenId)

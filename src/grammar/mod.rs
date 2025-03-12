@@ -1558,8 +1558,8 @@ impl ProdRuleSet<LL1> {
     /// - `factors`, the production factors: (VarId, ProdFactor) where the first value is the non-terminal index and the second one of its factors
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production factor for
     /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `factors.len()` stands for a syntactic error.
-    fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>) -> LLParsingTable {
-        fn add_table(table: &mut Vec<Vec<FactorId>>, error: VarId, num_t: usize, nt_id: VarId, t_id: VarId, f_id: FactorId) {
+    fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>, error_recovery: bool) -> LLParsingTable {
+        fn add_table(table: &mut Vec<Vec<FactorId>>, num_t: usize, nt_id: VarId, t_id: VarId, f_id: FactorId) {
             let pos = nt_id as usize * num_t + t_id as usize;
             table[pos].push(f_id);
         }
@@ -1567,7 +1567,8 @@ impl ProdRuleSet<LL1> {
         const DISABLE_FILTER: bool = false;
         let factors = self.prods.iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
             .flat_map(|(v, x)| x.iter().map(move |f| (v, f.clone()))).to_vec();
-        let error = factors.len() as FactorId; // table entry for syntactic error
+        let error_skip = factors.len() as FactorId; // table entry for syntactic error; recovery by skipping input symbol
+        let error_pop = error_skip + 1;             // table entry for syntactic error; recovery by popping T or NT from stack
         let num_nt = self.num_nt;
         let num_t = self.num_t + 1;
         let end = (num_t - 1) as VarId; // index of end symbol
@@ -1586,14 +1587,14 @@ impl ProdRuleSet<LL1> {
                         has_empty = true;
                         for s in &follow[&Symbol::NT(*nt_id)] {
                             match s {
-                                Symbol::T(t_id) => add_table(&mut table, error, num_t, *nt_id, *t_id, f_id),
-                                Symbol::End     => add_table(&mut table, error, num_t, *nt_id, end, f_id),
+                                Symbol::T(t_id) => add_table(&mut table, num_t, *nt_id, *t_id, f_id),
+                                Symbol::End     => add_table(&mut table, num_t, *nt_id, end, f_id),
                                 _ => {}
                             }
                         }
                     }
                     Symbol::T(t_id) => {
-                        add_table(&mut table, error, num_t, *nt_id, t_id, f_id);
+                        add_table(&mut table, num_t, *nt_id, t_id, f_id);
                     }
                     Symbol::NT(_) => {}
                     Symbol::End => {
@@ -1602,7 +1603,7 @@ impl ProdRuleSet<LL1> {
                 }
             }
             if has_empty && has_end {
-                add_table(&mut table, error, num_t, *nt_id, end, end);
+                add_table(&mut table, num_t, *nt_id, end, end);
             }
         }
         // creates the table and removes ambiguities
@@ -1611,7 +1612,19 @@ impl ProdRuleSet<LL1> {
             for t_id in 0..num_t {
                 let pos = nt_id * num_t + t_id;
                 final_table.push(match table[pos].len() {
-                    0 => error,
+                    0 => {
+                        if error_recovery {
+                            let sym_t = if t_id < num_t - 1 { Symbol::T(t_id as TokenId) } else { Symbol::End };
+                            let sym_nt = Symbol::NT(nt_id as VarId);
+                            if follow[&sym_nt].contains(&sym_t) || first[&sym_nt].contains(&sym_t) {
+                                error_pop
+                            } else {
+                                error_skip
+                            }
+                        } else {
+                            error_skip
+                        }
+                    },
                     1 => *table[pos].first().unwrap(),
                     _ => {
                         // we take the first item which isn't already in another position on the same NT row
@@ -1631,16 +1644,16 @@ impl ProdRuleSet<LL1> {
                 });
             }
         }
-        if !(0..num_t - 1).any(|t_id| (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] != error)) {
+        if !(0..num_t - 1).any(|t_id| (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] < error_skip)) {
             self.log.add_error("calc_table: no terminal used in the table".to_string());
         }
         LLParsingTable { num_nt, num_t, factors, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() }
     }
 
-    pub fn create_parsing_table(&mut self) -> LLParsingTable {
+    pub fn create_parsing_table(&mut self, error_recovery: bool) -> LLParsingTable {
         let first = self.calc_first();
         let follow = self.calc_follow(&first);
-        self.calc_table(&first, &follow)
+        self.calc_table(&first, &follow, error_recovery)
     }
 }
 
