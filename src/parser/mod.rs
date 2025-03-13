@@ -201,25 +201,19 @@ impl Parser {
                                 listener.abort();
                                 return Err(ParserError::Irrecoverable);
                             }
-                            let msg = format!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table()));
-                            if VERBOSE { println!("{msg}"); }
-                            self.log.add_note(msg);
+                            if VERBOSE { println!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table())); }
                             stream_n += 1;
                             (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| { // TODO: move to unique place
                                 stream_pos = Some((line, col));
                                 (Symbol::T(t), s)
                             }).unwrap_or((Symbol::End, String::new()));
                         } else if factor_id == error_pop_factor_id {
-                            let msg = format!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table()));
-                            if VERBOSE { println!("{msg}"); }
-                            self.log.add_note(msg);
+                            if VERBOSE { println!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table())); }
                             stack_sym = stack.pop().unwrap(); // TODO: move to unique place
                         } else {
                             if factor_id < error_skip_factor_id {
                                 recover_mode = false;
-                                let msg = "(recovering) resynchronized".to_string();
-                                if VERBOSE { println!("{msg}"); }
-                                self.log.add_note(msg);
+                                if VERBOSE { println!("(recovering) resynchronized"); }
                             } else {
                                 panic!("illegal factor_id {factor_id}")
                             }
@@ -274,13 +268,9 @@ impl Parser {
                         if VERBOSE { println!("!T {} <-> {}", stack_sym.to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
                         if sk == sr {
                             recover_mode = false;
-                            let msg = "(recovering) resynchronized".to_string();
-                            if VERBOSE { println!("{msg}"); }
-                            self.log.add_note(msg);
+                            if VERBOSE { println!("(recovering) resynchronized"); }
                         } else {
-                            let msg = format!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table()));
-                            if VERBOSE { println!("{msg}"); }
-                            self.log.add_note(msg);
+                            if VERBOSE { println!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table())); }
                             stack_sym = stack.pop().unwrap(); // TODO: move to unique place
                         }
                     }
