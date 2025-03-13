@@ -33,6 +33,7 @@ pub trait Listener {
     /// typically to attach parameters to an object being assembled by the listener
     /// (intermediate inheritance).
     fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) { /*false*/ }
+    fn abort(&mut self) {}
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -178,12 +179,14 @@ impl Parser {
                             self.log.add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
                                 self.log.add_error(format!("too many errors ({nbr_recovers}), giving up"));
+                                listener.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
                             nbr_recovers += 1;
                             recover_mode = true;
                         } else {
                             self.log.add_error(msg);
+                            listener.abort();
                             return Err(ParserError::SyntaxError);
                         }
                     }
@@ -194,6 +197,7 @@ impl Parser {
                                     let msg = format!("(recovering) irrecoverable, reached end of stream");
                                     if VERBOSE { println!("{msg}"); }
                                     self.log.add_error(msg);
+                                    listener.abort();
                                     return Err(ParserError::Irrecoverable);
                                 }
                                 let msg = format!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table()));
@@ -232,7 +236,9 @@ impl Parser {
                             println!("- {} {} -> {} ({}): [{}]", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
                                      Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table), t_data.len(), t_data.iter().join(" "));
                         }
-                        listener.switch(call, var, factor_id, Some(t_data));
+                        if nbr_recovers == 0 {
+                            listener.switch(call, var, factor_id, Some(t_data));
+                        }
                         let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                         stack.extend(self.opcodes[factor_id as usize].clone());
                         stack_sym = stack.pop().unwrap(); // TODO: move to unique place
@@ -242,7 +248,9 @@ impl Parser {
                     let var = self.factors[factor_id as usize].0;
                     let t_data = std::mem::take(&mut stack_t);
                     if VERBOSE { println!("- EXIT {} syn ({}): [{}]", Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter().join(" ")); }
-                    listener.switch(Call::Exit, var, factor_id, Some(t_data));
+                    if nbr_recovers == 0 {
+                        listener.switch(Call::Exit, var, factor_id, Some(t_data));
+                    }
                     stack_sym = stack.pop().unwrap(); // TODO: move to unique place
                 }
                 (OpCode::T(sk), Symbol::T(sr)) => {
@@ -253,12 +261,14 @@ impl Parser {
                             self.log.add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
                                 self.log.add_error(format!("too many errors ({nbr_recovers}), giving up"));
+                                listener.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
                             nbr_recovers += 1;
                             recover_mode = true;
                         } else {
                             self.log.add_error(msg);
+                            listener.abort();
                             return Err(ParserError::SyntaxError);
                         }
                     }
@@ -289,21 +299,26 @@ impl Parser {
                     }
                 }
                 (OpCode::End, Symbol::End) => {
-                    listener.switch(Call::End, 0, 0, None);
+                    if nbr_recovers == 0 {
+                        listener.switch(Call::End, 0, 0, None);
+                    }
                     break;
                 }
                 (OpCode::End, _) => {
                     self.log.add_error(format!("extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
+                    listener.abort();
                     return Err(ParserError::ExtraSymbol);
                 }
                 (_, Symbol::End) => {
                     self.log.add_error(format!("end of stream while expecting a '{}'", stack_sym.to_str(sym_table)));
+                    listener.abort();
                     return Err(ParserError::UnexpectedEOS);
                 }
                 (_, _) => {
                     self.log.add_error(format!("unexpected situation: input '{}' while expecting '{}'{}",
                                                stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
                                                if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                    listener.abort();
                     return Err(ParserError::UnexpectedError);
                 }
             }
@@ -313,6 +328,7 @@ impl Parser {
         if nbr_recovers == 0 {
             Ok(())
         } else {
+            listener.abort();
             Err(ParserError::EncounteredErrors)
         }
     }
