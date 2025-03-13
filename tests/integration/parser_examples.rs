@@ -348,6 +348,12 @@ mod listener {
                     false
                 }
             };
+            if VERBOSE {
+                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                if !msg.is_empty() {
+                    println!("Messages:\n{msg}");
+                }
+            }
             let listener = wrapper.listener();
 
             // ---------------------------------------------------
@@ -921,6 +927,10 @@ mod listener2 {
                 }
             };
             if VERBOSE {
+                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                if !msg.is_empty() {
+                    println!("Messages:\n{msg}");
+                }
                 println!("max stack: {}\nmax asm_stack: {}", wrapper.max_stack, wrapper.max_asm_stack);
                 println!("listener stack: {:?}", wrapper.stack);
                 println!("listener asm_stack: {:?}", wrapper.asm_stack);
@@ -1205,6 +1215,10 @@ mod listener3 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                     // println!("listener asm_stack: {:?}", wrapper.asm_stack);
@@ -1503,6 +1517,10 @@ mod listener4 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                 }
@@ -1812,6 +1830,10 @@ mod listener5 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                     // println!("listener asm_stack: {:?}", wrapper.asm_stack);
@@ -2134,6 +2156,10 @@ mod listener6 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                     // println!("listener asm_stack: {:?}", wrapper.asm_stack);
@@ -2402,6 +2428,10 @@ mod listener7 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                     // println!("listener asm_stack: {:?}", wrapper.asm_stack);
@@ -2694,6 +2724,10 @@ mod listener8 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                 }
@@ -3000,6 +3034,10 @@ mod listener9 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                     // println!("listener asm_stack: {:?}", wrapper.asm_stack);
@@ -3275,6 +3313,10 @@ mod listener10 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                     // println!("listener asm_stack: {:?}", wrapper.asm_stack);
@@ -3581,6 +3623,10 @@ mod listener11 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                     // println!("listener asm_stack: {:?}", wrapper.asm_stack);
@@ -3892,6 +3938,10 @@ mod listener12 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                 }
@@ -4225,6 +4275,10 @@ mod listener13 {
                     }
                 };
                 if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
                     println!("max stack: {}", wrapper.max_stack);
                     println!("wrapper stack: {:?}", wrapper.stack);
                     // println!("listener asm_stack: {:?}", wrapper.asm_stack);

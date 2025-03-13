@@ -6,6 +6,7 @@ use crate::CollectJoin;
 use crate::dfa::TokenId;
 use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId, FactorId};
 use crate::lexer::{CaretCol, CaretLine};
+use crate::log::Logger;
 use crate::symbol_table::SymbolTable;
 
 mod tests;
@@ -38,6 +39,29 @@ pub trait Listener {
 
 pub type ParserToken = (TokenId, String, CaretCol, CaretLine);
 
+#[derive(PartialEq, Debug)]
+pub enum ParserError {
+    SyntaxError,
+    TooManyErrors,
+    ExtraSymbol,
+    UnexpectedEOS,
+    UnexpectedError,
+    EncounteredErrors,
+}
+
+impl Display for ParserError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            ParserError::SyntaxError => "syntax error",
+            ParserError::TooManyErrors => "too many errors while trying to recover",
+            ParserError::ExtraSymbol => "extra symbol after end of parsing",
+            ParserError::UnexpectedEOS => "unexpected end of stream",
+            ParserError::UnexpectedError => "unexpected error",
+            ParserError::EncounteredErrors => "encountered errors",
+        })
+    }
+}
+
 pub struct Parser {
     num_nt: usize,
     num_t: usize,
@@ -47,10 +71,14 @@ pub struct Parser {
     parent: Vec<Option<VarId>>, // NT -> parent NT
     table: Vec<FactorId>,
     symbol_table: SymbolTable,
-    start: VarId
+    start: VarId,
+    log: Logger,
+    try_recover: bool,          // tries to recover from syntactical errors
 }
 
 impl Parser {
+    /// Maximum number of error recoveries attempted when meeting a syntax error
+    pub const MAX_NBR_RECOVERS: u32 = 5;
     pub fn new(parsing_table: LLParsingTable, symbol_table: SymbolTable, opcodes: Vec<Vec<OpCode>>, start: VarId) -> Self {
         assert!(parsing_table.num_nt > start as usize);
         let mut parser = Parser {
@@ -61,7 +89,11 @@ impl Parser {
             flags: parsing_table.flags,
             parent: parsing_table.parent,
             table: parsing_table.table,
-            symbol_table, start };
+            symbol_table,
+            start,
+            log: Logger::new(),
+            try_recover: true
+        };
         parser
     }
 
@@ -74,6 +106,10 @@ impl Parser {
         self.start = start;
     }
 
+    pub fn set_try_recover(&mut self, try_recover: bool) {
+        self.try_recover = try_recover;
+    }
+
     pub(crate) fn get_factors(&self) -> &Vec<(VarId, ProdFactor)> {
         &self.factors
     }
@@ -82,7 +118,11 @@ impl Parser {
         &self.opcodes
     }
 
-    pub fn parse_stream<I, L>(&mut self, listener: &mut L, mut stream: I) -> Result<(), String>
+    pub fn get_log(&self) -> &Logger {
+        &self.log
+    }
+
+    pub fn parse_stream<I, L>(&mut self, listener: &mut L, mut stream: I) -> Result<(), ParserError>
         where I: Iterator<Item=ParserToken>,
               L: Listener,
     {
@@ -91,17 +131,19 @@ impl Parser {
         let mut stack = Vec::<OpCode>::new();
         let mut stack_t = Vec::<String>::new();
         let error_skip_factor_id = self.factors.len() as FactorId;
-        let _error_pop_factor_id = error_skip_factor_id + 1; // TODO: recovery with skip and pop
+        let error_pop_factor_id = error_skip_factor_id + 1; // TODO: recovery with skip and pop
+        let mut recover_mode = false;
+        let mut nbr_recovers = 0;
         let end_var_id = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
         stack.push(OpCode::NT(self.start));
-        let mut stack_sym = stack.pop().unwrap();
+        let mut stack_sym = stack.pop().unwrap(); // TODO: move to unique place
         let mut stream_n = 1;
         let mut stream_pos = None;
-        let (mut stream_sym, mut stream_str) = stream.next().map(|(t, s, line, col)| {
+        let (mut stream_sym, mut stream_str) = stream.next().map(|(t, s, line, col)| { // TODO: move to unique place
             stream_pos = Some((line, col));
             (Symbol::T(t), s)
-        }).unwrap_or((Symbol::End, "".to_string()));
+        }).unwrap_or((Symbol::End, String::new()));
         loop {
             if VERBOSE {
                 println!("{:-<40}", "");
@@ -125,66 +167,144 @@ impl Parser {
                                      self.factors[factor_id as usize].1.to_str(sym_table)
                                  });
                     }
-                    if factor_id >= error_skip_factor_id {
-                        return Err(format!("syntax error on input '{}' while parsing '{}'{}",
-                                           stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                           if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                    if !recover_mode && factor_id >= error_skip_factor_id {
+                        let msg = format!("syntax error on input '{}' while parsing '{}'{}",
+                                          stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
+                                          if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
+                        if self.try_recover {
+                            self.log.add_error(msg);
+                            if nbr_recovers >= Self::MAX_NBR_RECOVERS {
+                                self.log.add_error(format!("too many errors ({nbr_recovers}), giving up"));
+                                return Err(ParserError::TooManyErrors);
+                            }
+                            nbr_recovers += 1;
+                            recover_mode = true;
+                        } else {
+                            self.log.add_error(msg);
+                            return Err(ParserError::SyntaxError);
+                        }
                     }
-                    let call = if stack_sym.is_loop() { Call::Loop } else { Call::Enter };
-                    let t_data = std::mem::take(&mut stack_t);
-                    if VERBOSE {
-                        let f = &self.factors[factor_id as usize];
-                        println!("- to stack: [{}]", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(" "));
-                        println!("- {} {} -> {} ({}): [{}]", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
-                                 Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table), t_data.len(), t_data.iter().join(" "));
+                    if recover_mode {
+                        match factor_id {
+                            error_skip_factor_id => {
+                                let msg = format!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table()));
+                                if VERBOSE { println!("{msg}"); }
+                                self.log.add_note(msg);
+                                stream_n += 1;
+                                (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| { // TODO: move to unique place
+                                    stream_pos = Some((line, col));
+                                    (Symbol::T(t), s)
+                                }).unwrap_or((Symbol::End, String::new()));
+                            }
+                            error_pop_factor_id => {
+                                let msg = format!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table()));
+                                if VERBOSE { println!("{msg}"); }
+                                self.log.add_note(msg);
+                                stack_sym = stack.pop().unwrap(); // TODO: move to unique place
+                            }
+                            _ => {
+                                if factor_id < error_skip_factor_id {
+                                    recover_mode = false;
+                                    let msg = "(recovering) resynchronized".to_string();
+                                    if VERBOSE { println!("{msg}"); }
+                                    self.log.add_note(msg);
+                                } else {
+                                    panic!("illegal factor_id {factor_id}")
+                                }
+                            }
+                        }
                     }
-                    listener.switch(call, var, factor_id, Some(t_data));
-                    let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
-                    stack.extend(self.opcodes[factor_id as usize].clone());
-                    stack_sym = stack.pop().unwrap();
+                    if !recover_mode {
+                        let call = if stack_sym.is_loop() { Call::Loop } else { Call::Enter };
+                        let t_data = std::mem::take(&mut stack_t);
+                        if VERBOSE {
+                            let f = &self.factors[factor_id as usize];
+                            println!("- to stack: [{}]", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(" "));
+                            println!("- {} {} -> {} ({}): [{}]", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
+                                     Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table), t_data.len(), t_data.iter().join(" "));
+                        }
+                        listener.switch(call, var, factor_id, Some(t_data));
+                        let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
+                        stack.extend(self.opcodes[factor_id as usize].clone());
+                        stack_sym = stack.pop().unwrap(); // TODO: move to unique place
+                    }
                 }
                 (OpCode::Exit(factor_id), _) => {
                     let var = self.factors[factor_id as usize].0;
                     let t_data = std::mem::take(&mut stack_t);
                     if VERBOSE { println!("- EXIT {} syn ({}): [{}]", Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter().join(" ")); }
                     listener.switch(Call::Exit, var, factor_id, Some(t_data));
-                    stack_sym = stack.pop().unwrap();
+                    stack_sym = stack.pop().unwrap(); // TODO: move to unique place
                 }
                 (OpCode::T(sk), Symbol::T(sr)) => {
-                    if sk != sr {
-                        return Err(format!("unexpected character: '{}' instead of '{}'{}", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                           if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                    if !recover_mode && sk != sr {
+                        let msg = format!("unexpected character: '{}' instead of '{}'{}", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
+                                          if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
+                        if self.try_recover {
+                            self.log.add_error(msg);
+                            if nbr_recovers >= Self::MAX_NBR_RECOVERS {
+                                self.log.add_error(format!("too many errors ({nbr_recovers}), giving up"));
+                                return Err(ParserError::TooManyErrors);
+                            }
+                            nbr_recovers += 1;
+                            recover_mode = true;
+                        } else {
+                            self.log.add_error(msg);
+                            return Err(ParserError::SyntaxError);
+                        }
                     }
-                    if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
-                    if self.symbol_table.is_t_data(sk) {
-                        stack_t.push(stream_str);
+                    if recover_mode {
+                        if sk == sr {
+                            recover_mode = false;
+                            let msg = "(recovering) resynchronized".to_string();
+                            if VERBOSE { println!("{msg}"); }
+                            self.log.add_note(msg);
+                        } else {
+                            let msg = format!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table()));
+                            if VERBOSE { println!("{msg}"); }
+                            self.log.add_note(msg);
+                            stack_sym = stack.pop().unwrap(); // TODO: move to unique place
+                        }
                     }
-                    stack_sym = stack.pop().unwrap();
-                    stream_n += 1;
-                    (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| {
-                        stream_pos = Some((line, col));
-                        (Symbol::T(t), s)
-                    }).unwrap_or((Symbol::End, "".to_string()));
+                    if !recover_mode {
+                        if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
+                        if self.symbol_table.is_t_data(sk) {
+                            stack_t.push(stream_str);
+                        }
+                        stack_sym = stack.pop().unwrap(); // TODO: move to unique place
+                        stream_n += 1;
+                        (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| { // TODO: move to unique place
+                            stream_pos = Some((line, col));
+                            (Symbol::T(t), s)
+                        }).unwrap_or((Symbol::End, String::new()));
+                    }
                 }
                 (OpCode::End, Symbol::End) => {
                     listener.switch(Call::End, 0, 0, None);
                     break;
                 }
-                (OpCode::End, _)  => {
-                    return Err(format!("extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
+                (OpCode::End, _) => {
+                    self.log.add_error(format!("extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
+                    return Err(ParserError::ExtraSymbol);
                 }
                 (_, Symbol::End) => {
-                    return Err(format!("end of stream while expecting a '{}'", stack_sym.to_str(sym_table)));
+                    self.log.add_error(format!("end of stream while expecting a '{}'", stack_sym.to_str(sym_table)));
+                    return Err(ParserError::UnexpectedEOS);
                 }
                 (_, _) => {
-                    return Err(format!("unexpected situation: input '{}' while expecting '{}'{}",
-                                       stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                       if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                    self.log.add_error(format!("unexpected situation: input '{}' while expecting '{}'{}",
+                                               stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
+                                               if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                    return Err(ParserError::UnexpectedError);
                 }
             }
         }
         assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));
         assert!(stack.is_empty(), "stack: {}", stack.iter().map(|s| s.to_str(sym_table)).join(", "));
-        Ok(())
+        if nbr_recovers == 0 {
+            Ok(())
+        } else {
+            Err(ParserError::EncounteredErrors)
+        }
     }
 }

@@ -203,6 +203,12 @@ mod simple {
                 }
             });
             let result = parser.parse_stream(&mut wrapper, tokens);
+            if VERBOSE {
+                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                if !msg.is_empty() {
+                    println!("Messages:\n{msg}");
+                }
+            }
             let text = format!("test {test_id} failed");
             assert_eq!(result, Ok(()), "{text}");
             listener = wrapper.listener();
@@ -316,6 +322,12 @@ mod simple {
 
             // - parses the lexicon and builds the lexer reg tree
             let result = parser.parse_stream(&mut wrapper, tokens);
+            if VERBOSE {
+                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                if !msg.is_empty() {
+                    println!("Messages:\n{msg}");
+                }
+            }
             assert_eq!(result, Ok(()), "{text}: couldn't parse the lexicon");
             listener = wrapper.listener();
 

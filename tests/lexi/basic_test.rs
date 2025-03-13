@@ -150,6 +150,7 @@ impl LexiParserListener for LexiListener {
 
 mod tests {
     use std::io::Cursor;
+    use rlexer::CollectJoin;
     use rlexer::io::CharReader;
     use rlexer::lexi::LEXICON;
     use super::*;
@@ -207,6 +208,12 @@ mod tests {
                     3 => parser.parse_stream(&mut wrapper, lexer.tokens().keep_channel(0).inspect(|_| result_tokens += 1)),
                     _ => panic!()
                 };
+                if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
+                }
                 let text = format!("test {test_id}, method {method} failed");
                 assert_eq!(result, Ok(()), "{text}");
                 assert_eq!(result_tokens, expected_tokens, "{text}");

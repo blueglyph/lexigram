@@ -142,6 +142,12 @@ fn parser_parse_stream() {
                     false
                 }
             };
+            if VERBOSE {
+                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                if !msg.is_empty() {
+                    println!("Messages:\n{msg}");
+                }
+            }
             assert_eq!(success, expected_success, "test {test_id}/{ll_id}/{start} failed for input {input}");
         }
     }
@@ -244,6 +250,12 @@ if ll_id != T::PRS(43) { continue }
                     false
                 }
             };
+            if VERBOSE {
+                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                if !msg.is_empty() {
+                    println!("Messages:\n{msg}");
+                }
+            }
             assert_eq!(success, expected_success, "test {test_id}/{ll_id:?}/{start} failed for input {input}");
         }
     }
@@ -500,6 +512,12 @@ mod listener {
                         false
                     }
                 };
+                if VERBOSE {
+                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
+                }
                 let listener = wrapper.listener();
 
                 // ---------------------------------------------------
