@@ -161,11 +161,13 @@ fn parser_parse_stream_id() {
 
     let tests = vec![
         (T::RTS(9), 0, 2, 999, vec![
-            ("var a , b ,", true),
+            ("var a , b ,", None),
         ]),
         (T::PRS(20), 0, 5, 999, vec![
-            ("struct test1 { a : int ; b : string ; c : bool ; }", true),
-            ("struct test2 { a : int ; b : string ; c : bool }", false),
+            ("struct test1 { a : int ; b : string ; c : bool ; }", None),
+            ("struct test2 { a : int ; b : string ; c : bool }", Some(vec![
+                "unexpected character: '}' instead of ';', line 1, col 15"
+            ])),
         ]),
         (T::PRS(22), 0, 3, 4, vec![
             // - 0: E -> id E_1
@@ -175,8 +177,8 @@ fn parser_parse_stream_id() {
             // - 4: E_1 -> & E_2
             // - 5: E_2 -> * id E_1
             // - 6: E_2 -> + id E_1
-            ("a + b * c", true),
-            ("a + b & * c * d", true),
+            ("a + b * c", None),
+            ("a + b & * c * d", None),
         ]),
         (T::PRS(23), 0, 3, 4, vec![
             // - 0: E -> F E_1
@@ -188,39 +190,44 @@ fn parser_parse_stream_id() {
             // - 6: E_1 -> & E_2
             // - 7: E_2 -> * F E_1
             // - 8: E_2 -> + F E_1
-            ("1 + 2 * 3", true),
-            ("a + 1 & * b * 2", true),
+            ("1 + 2 * 3", None),
+            ("a + 1 & * b * 2", None),
         ]),
         (T::PRS(100), 0, 999, 999, vec![
-            ("c a c a c b b", true),
-            ("c a c b a c b", true),
+            ("c a c a c b b", None),
+            ("c a c b a c b", None),
         ]),
         (T::RTS(23), 0, 999, 999, vec![
             // A -> a (b)+ c
-            ("a b b c", true),
+            ("a b b c", None),
         ]),
         (T::RTS(27), 0, 999, 999, vec![
             // A -> a (b)+ c
-            ("a b b c", true),
+            ("a b b c", None),
         ]),
         (T::PRS(33), 0, 999, 999, vec![
             // A -> A a | b c | b d
-            ("b c a a", true),
-            ("b d a a", true),
-            ("b c", true),
-            ("b d", true),
+            ("b c a a", None),
+            ("b d a a", None),
+            ("b c", None),
+            ("b d", None),
         ]),
         (T::PRS(43), 0, 7, 6, vec![
             // BATCH -> GROUP ';' BATCH <L> | ε
             // GROUP -> '[' EXPR ']' | '(' EXPR ')'
             // EXPR -> FACTOR '*' FACTOR;
             // FACTOR -> id | int | '(' EXPR ')';
-            ("[ 1 * 2 ] ;", true),
-            ("[ ( 1 * 2 * 3 ] ;", false),
-            ("[ 1 * 2 ; [ ( 3 * 4 ) * ] ; [ 5 * 6 ] ;", false),
+            ("[ 1 * 2 ] ;", None),
+            ("[ ( 1 * 2 * 3 ] ;", Some(vec![
+                "unexpected character: '*' instead of ')', line 1, col 6"
+            ])),
+            ("[ 1 * 2 ; [ ( 3 * 4 ) * ] ; [ 5 * 6 ] ;", Some(vec![
+                "unexpected character: ';' instead of ']', line 1, col 5",
+                "syntax error on input ']' while parsing '►FACTOR', line 1, col 13"
+            ])),
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
         let mut ll1 = ll_id.get_prs(test_id, start, false);
@@ -228,7 +235,7 @@ fn parser_parse_stream_id() {
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
         let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
-        for (input, expected_success) in sequences {
+        for (input, expected_errors) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
             let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
                 if let Some(s) = symbols.get(w) {
@@ -241,14 +248,14 @@ fn parser_parse_stream_id() {
                     }
                 }
             });
-            let success = match parser.parse_stream(&mut Stub(), stream) {
+            let errors = match parser.parse_stream(&mut Stub(), stream) {
                 Ok(_) => {
                     if VERBOSE { println!("parsing completed successfully"); }
-                    true
+                    None
                 }
                 Err(e) => {
                     if VERBOSE { println!("parsing failed: {e}"); }
-                    false
+                    Some(parser.get_log().get_errors().map(|s| s.as_str()).to_vec())
                 }
             };
             if VERBOSE {
@@ -257,7 +264,7 @@ fn parser_parse_stream_id() {
                     println!("Messages:\n{msg}");
                 }
             }
-            assert_eq!(success, expected_success, "test {test_id}/{ll_id:?}/{start} failed for input {input}");
+            assert_eq!(errors, expected_errors, "test {test_id}/{ll_id:?}/{start} failed for input {input}");
         }
     }
 }
