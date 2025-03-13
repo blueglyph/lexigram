@@ -43,6 +43,7 @@ pub type ParserToken = (TokenId, String, CaretCol, CaretLine);
 pub enum ParserError {
     SyntaxError,
     TooManyErrors,
+    Irrecoverable,
     ExtraSymbol,
     UnexpectedEOS,
     UnexpectedError,
@@ -54,6 +55,7 @@ impl Display for ParserError {
         write!(f, "{}", match self {
             ParserError::SyntaxError => "syntax error",
             ParserError::TooManyErrors => "too many errors while trying to recover",
+            ParserError::Irrecoverable => "irrecoverable syntax error",
             ParserError::ExtraSymbol => "extra symbol after end of parsing",
             ParserError::UnexpectedEOS => "unexpected end of stream",
             ParserError::UnexpectedError => "unexpected error",
@@ -134,6 +136,7 @@ impl Parser {
         let error_pop_factor_id = error_skip_factor_id + 1; // TODO: recovery with skip and pop
         let mut recover_mode = false;
         let mut nbr_recovers = 0;
+        self.log.clear();
         let end_var_id = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
         stack.push(OpCode::NT(self.start));
@@ -187,6 +190,12 @@ impl Parser {
                     if recover_mode {
                         match factor_id {
                             error_skip_factor_id => {
+                                if stream_sym == Symbol::End {
+                                    let msg = format!("(recovering) irrecoverable, reached end of stream");
+                                    if VERBOSE { println!("{msg}"); }
+                                    self.log.add_error(msg);
+                                    return Err(ParserError::Irrecoverable);
+                                }
                                 let msg = format!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table()));
                                 if VERBOSE { println!("{msg}"); }
                                 self.log.add_note(msg);
