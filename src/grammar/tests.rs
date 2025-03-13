@@ -1269,6 +1269,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
         }
         43 => {
+            // BATCH -> GROUP ';' BATCH <L> | ε
             // GROUP -> '[' EXPR ']' | '(' EXPR ')'
             // EXPR -> FACTOR '*' FACTOR;
             // FACTOR -> id | int | '(' EXPR ')';
@@ -1280,16 +1281,19 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("*".to_string(), Some("*".to_string())),   // 4
                 ("id".to_string(), None),                   // 5
                 ("int".to_string(), None),                  // 6
+                (";".to_string(), Some(";".to_string())),   // 7
             ]);
             symbol_table.extend_non_terminals([
-                "GROUP".to_string(),                        // 0
-                "EXPR".to_string(),                         // 1
-                "FACTOR".to_string(),                       // 2
+                "BATCH".to_string(),                        // 0
+                "GROUP".to_string(),                        // 1
+                "EXPR".to_string(),                         // 2
+                "FACTOR".to_string(),                       // 3
             ]);
             prods.extend([
-                prod!(t 0, nt 1, t 1; t 2, nt 1, t 3),
-                prod!(nt 2, t 4, nt 2),
-                prod!(t 5; t 6; t 2, nt 1, t 3),
+                prod!(#L, nt 1, t 7, nt 0; e),
+                prod!(t 0, nt 2, t 1; t 2, nt 2, t 3),
+                prod!(nt 3, t 4, nt 3),
+                prod!(t 5; t 6; t 2, nt 2, t 3),
             ]);
         }
 
@@ -2223,38 +2227,46 @@ fn prs_calc_table() {
               7,   7,   4,   5,   7,   6,
         ]),
         (43, 0, 0, vec![
+            // BATCH -> GROUP ';' BATCH <L> | ε
             // GROUP -> '[' EXPR ']' | '(' EXPR ')'
             // EXPR -> FACTOR '*' FACTOR;
             // FACTOR -> id | int | '(' EXPR ')';
             //
             // first:                   follow:
             // -----------------------------------------
-            // [ => [                   GROUP => $
-            // ] => ]                   EXPR => ] )
-            // ( => (                   FACTOR => ] ) *
-            // ) => )
+            // [ => [                   BATCH => $
+            // ] => ]                   GROUP => $
+            // ( => (                   EXPR => ] )
+            // ) => )                   FACTOR => ] ) *
             // * => *
             // id => id
             // int => int
+            // ; => ;
+            // BATCH => [ ( ε
             // GROUP => [ (
             // EXPR => ( id int
             // FACTOR => ( id int
+            // ε => ε
             //
-            (0, prodf!(t 0, nt 1, t 1)),    // - 0: GROUP -> [ EXPR ]
-            (0, prodf!(t 2, nt 1, t 3)),    // - 1: GROUP -> ( EXPR )
-            (1, prodf!(nt 2, t 4, nt 2)),   // - 2: EXPR -> FACTOR * FACTOR
-            (2, prodf!(t 5)),               // - 3: FACTOR -> id
-            (2, prodf!(t 6)),               // - 4: FACTOR -> int
-            (2, prodf!(t 2, nt 1, t 3)),    // - 5: FACTOR -> ( EXPR )
+            (0, prodf!(nt 1, t 7, nt 0)),   // - 0: BATCH -> GROUP ; BATCH
+            (0, prodf!(e)),                 // - 1: BATCH -> ε
+            (1, prodf!(t 0, nt 2, t 1)),    // - 2: GROUP -> [ EXPR ]
+            (1, prodf!(t 2, nt 2, t 3)),    // - 3: GROUP -> ( EXPR )
+            (2, prodf!(nt 3, t 4, nt 3)),   // - 4: EXPR -> FACTOR * FACTOR
+            (3, prodf!(t 5)),               // - 5: FACTOR -> id
+            (3, prodf!(t 6)),               // - 6: FACTOR -> int
+            (3, prodf!(t 2, nt 2, t 3)),    // - 7: FACTOR -> ( EXPR )
         ], vec![
-            //        |  [   ]   (   )   *  id  int  $
-            // -------+---------------------------------
-            // GROUP  |  0   .   1   .   .   .   .   p
-            // EXPR   |  .   p   2   p   .   2   2   .
-            // FACTOR |  .   p   5   p   p   3   4   .
-              0,   6,   1,   6,   6,   6,   6,   7,
-              6,   7,   2,   7,   6,   2,   2,   6,
-              6,   7,   5,   7,   7,   3,   4,   6,
+            //        |  [   ]   (   )   *  id  int  ;   $
+            // -------+-------------------------------------
+            // BATCH  |  0   .   0   .   .   .   .   .   1
+            // GROUP  |  2   .   3   .   .   .   .   p   .
+            // EXPR   |  .   p   4   p   .   4   4   .   .
+            // FACTOR |  .   p   7   p   p   5   6   .   .
+              0,   8,   0,   8,   8,   8,   8,   8,   1,
+              2,   8,   3,   8,   8,   8,   8,   9,   8,
+              8,   9,   4,   9,   8,   4,   4,   8,   8,
+              8,   9,   7,   9,   9,   5,   6,   8,   8,
         ]),
 
         (100, 0, 0, vec![

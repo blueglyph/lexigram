@@ -211,16 +211,17 @@ fn parser_parse_stream_id() {
             ("b d", true),
         ]),
         (T::PRS(43), 0, 7, 6, vec![
+            // BATCH -> GROUP ';' BATCH <L> | ε
             // GROUP -> '[' EXPR ']' | '(' EXPR ')'
             // EXPR -> FACTOR '*' FACTOR;
             // FACTOR -> id | int | '(' EXPR ')';
-            ("[ 1 * 2 ]", true),
-            ("[ ( 1 * 2 * 3 ]", false),
-        ])
+            ("[ 1 * 2 ] ;", true),
+            ("[ ( 1 * 2 * 3 ] ;", false),
+            ("[ 1 * 2 ; [ ( 3 * 4 ) * ] ; [ 5 * 6 ] ;", false),
+        ]),
     ];
     const VERBOSE: bool = true;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
-if ll_id != T::PRS(43) { continue }
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
         let mut ll1 = ll_id.get_prs(test_id, start, false);
         let symbols = (0..ll1.get_num_t() as TokenId)
@@ -228,7 +229,7 @@ if ll_id != T::PRS(43) { continue }
             .collect::<HashMap<_, _>>();
         let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
         for (input, expected_success) in sequences {
-            if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
+            if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
             let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
                 if let Some(s) = symbols.get(w) {
                     (*s, w.to_string(), 1, i)

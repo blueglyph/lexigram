@@ -135,6 +135,7 @@ impl Parser {
         let mut stack_t = Vec::<String>::new();
         let error_skip_factor_id = self.factors.len() as FactorId;
         let error_pop_factor_id = error_skip_factor_id + 1; // TODO: recovery with skip and pop
+        if VERBOSE { println!("skip = {error_skip_factor_id}, pop = {error_pop_factor_id}"); }
         let mut recover_mode = false;
         let mut nbr_recovers = 0;
         self.log.clear();
@@ -191,39 +192,36 @@ impl Parser {
                         }
                     }
                     if recover_mode {
-                        match factor_id {
-                            error_skip_factor_id => {
-                                if stream_sym == Symbol::End {
-                                    let msg = format!("(recovering) irrecoverable, reached end of stream");
-                                    if VERBOSE { println!("{msg}"); }
-                                    self.log.add_error(msg);
-                                    listener.abort();
-                                    return Err(ParserError::Irrecoverable);
-                                }
-                                let msg = format!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table()));
+                        if VERBOSE { println!("!NT {} <-> {}, factor_id = {factor_id}", stack_sym.to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
+                        if factor_id == error_skip_factor_id {
+                            if stream_sym == Symbol::End {
+                                let msg = format!("(recovering) irrecoverable, reached end of stream");
+                                if VERBOSE { println!("{msg}"); }
+                                self.log.add_error(msg);
+                                listener.abort();
+                                return Err(ParserError::Irrecoverable);
+                            }
+                            let msg = format!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table()));
+                            if VERBOSE { println!("{msg}"); }
+                            self.log.add_note(msg);
+                            stream_n += 1;
+                            (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| { // TODO: move to unique place
+                                stream_pos = Some((line, col));
+                                (Symbol::T(t), s)
+                            }).unwrap_or((Symbol::End, String::new()));
+                        } else if factor_id == error_pop_factor_id {
+                            let msg = format!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table()));
+                            if VERBOSE { println!("{msg}"); }
+                            self.log.add_note(msg);
+                            stack_sym = stack.pop().unwrap(); // TODO: move to unique place
+                        } else {
+                            if factor_id < error_skip_factor_id {
+                                recover_mode = false;
+                                let msg = "(recovering) resynchronized".to_string();
                                 if VERBOSE { println!("{msg}"); }
                                 self.log.add_note(msg);
-                                stream_n += 1;
-                                (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| { // TODO: move to unique place
-                                    stream_pos = Some((line, col));
-                                    (Symbol::T(t), s)
-                                }).unwrap_or((Symbol::End, String::new()));
-                            }
-                            error_pop_factor_id => {
-                                let msg = format!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table()));
-                                if VERBOSE { println!("{msg}"); }
-                                self.log.add_note(msg);
-                                stack_sym = stack.pop().unwrap(); // TODO: move to unique place
-                            }
-                            _ => {
-                                if factor_id < error_skip_factor_id {
-                                    recover_mode = false;
-                                    let msg = "(recovering) resynchronized".to_string();
-                                    if VERBOSE { println!("{msg}"); }
-                                    self.log.add_note(msg);
-                                } else {
-                                    panic!("illegal factor_id {factor_id}")
-                                }
+                            } else {
+                                panic!("illegal factor_id {factor_id}")
                             }
                         }
                     }
@@ -273,6 +271,7 @@ impl Parser {
                         }
                     }
                     if recover_mode {
+                        if VERBOSE { println!("!T {} <-> {}", stack_sym.to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
                         if sk == sr {
                             recover_mode = false;
                             let msg = "(recovering) resynchronized".to_string();
