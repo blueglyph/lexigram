@@ -60,6 +60,7 @@ mod listener {
     use rlexer::dfa::TokenId;
     use rlexer::parser::{Call, Listener};
     use rlexer::lexer::CaretCol;
+    use rlexer::CollectJoin;
 
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener]
