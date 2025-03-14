@@ -129,12 +129,12 @@ impl Parser {
         where I: Iterator<Item=ParserToken>,
               L: Listener,
     {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
         let mut stack = Vec::<OpCode>::new();
         let mut stack_t = Vec::<String>::new();
         let error_skip_factor_id = self.factors.len() as FactorId;
-        let error_pop_factor_id = error_skip_factor_id + 1; // TODO: recovery with skip and pop
+        let error_pop_factor_id = error_skip_factor_id + 1;
         if VERBOSE { println!("skip = {error_skip_factor_id}, pop = {error_pop_factor_id}"); }
         let mut recover_mode = false;
         let mut nbr_recovers = 0;
@@ -142,14 +142,21 @@ impl Parser {
         let end_var_id = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
         stack.push(OpCode::NT(self.start));
-        let mut stack_sym = stack.pop().unwrap(); // TODO: move to unique place
-        let mut stream_n = 1;
+        let mut stack_sym = stack.pop().unwrap();
+        let mut stream_n = 0;
         let mut stream_pos = None;
-        let (mut stream_sym, mut stream_str) = stream.next().map(|(t, s, line, col)| { // TODO: move to unique place
-            stream_pos = Some((line, col));
-            (Symbol::T(t), s)
-        }).unwrap_or((Symbol::End, String::new()));
+        let mut stream_sym = Symbol::default(); // must set fake value to comply with borrow checker
+        let mut stream_str = String::default(); // must set fake value to comply with borrow checker
+        let mut advance_stream = true;
         loop {
+            if advance_stream {
+                stream_n += 1;
+                (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| {
+                    stream_pos = Some((line, col));
+                    (Symbol::T(t), s)
+                }).unwrap_or((Symbol::End, String::new()));
+                advance_stream = false;
+            }
             if VERBOSE {
                 println!("{:-<40}", "");
                 println!("input ({stream_n}{}): {}   stack_t: [{}]   stack: [{}]   current: {}",
@@ -202,14 +209,10 @@ impl Parser {
                                 return Err(ParserError::Irrecoverable);
                             }
                             if VERBOSE { println!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table())); }
-                            stream_n += 1;
-                            (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| { // TODO: move to unique place
-                                stream_pos = Some((line, col));
-                                (Symbol::T(t), s)
-                            }).unwrap_or((Symbol::End, String::new()));
+                            advance_stream = true;
                         } else if factor_id == error_pop_factor_id {
                             if VERBOSE { println!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table())); }
-                            stack_sym = stack.pop().unwrap(); // TODO: move to unique place
+                            stack_sym = stack.pop().unwrap();
                         } else {
                             if factor_id < error_skip_factor_id {
                                 recover_mode = false;
@@ -233,7 +236,7 @@ impl Parser {
                         }
                         let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                         stack.extend(self.opcodes[factor_id as usize].clone());
-                        stack_sym = stack.pop().unwrap(); // TODO: move to unique place
+                        stack_sym = stack.pop().unwrap();
                     }
                 }
                 (OpCode::Exit(factor_id), _) => {
@@ -243,7 +246,7 @@ impl Parser {
                     if nbr_recovers == 0 {
                         listener.switch(Call::Exit, var, factor_id, Some(t_data));
                     }
-                    stack_sym = stack.pop().unwrap(); // TODO: move to unique place
+                    stack_sym = stack.pop().unwrap();
                 }
                 (OpCode::T(sk), Symbol::T(sr)) => {
                     if !recover_mode && sk != sr {
@@ -271,20 +274,16 @@ impl Parser {
                             if VERBOSE { println!("(recovering) resynchronized"); }
                         } else {
                             if VERBOSE { println!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table())); }
-                            stack_sym = stack.pop().unwrap(); // TODO: move to unique place
+                            stack_sym = stack.pop().unwrap();
                         }
                     }
                     if !recover_mode {
                         if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
                         if self.symbol_table.is_t_data(sk) {
-                            stack_t.push(stream_str);
+                            stack_t.push(std::mem::take(&mut stream_str)); // must use take() to comply with borrow checker
                         }
-                        stack_sym = stack.pop().unwrap(); // TODO: move to unique place
-                        stream_n += 1;
-                        (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| { // TODO: move to unique place
-                            stream_pos = Some((line, col));
-                            (Symbol::T(t), s)
-                        }).unwrap_or((Symbol::End, String::new()));
+                        stack_sym = stack.pop().unwrap();
+                        advance_stream = true;
                     }
                 }
                 (OpCode::End, Symbol::End) => {
