@@ -1,9 +1,4 @@
 # Project exclude paths
 /target/
-/.idea/inspectionProfiles/Project_Default.xml
-/.idea/.gitignore
-/.idea/misc.xml
-/.idea/modules.xml
-/.idea/vcs.xml
-/rlexer.iml
-/.idea/codeStyles/codeStyleConfig.xml
+/.idea
+
