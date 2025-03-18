@@ -1,5 +1,3 @@
-#![cfg(test)]
-
 use std::io::{BufRead, BufReader, BufWriter, Read, Write, Seek};
 use std::fs::{File, OpenOptions};
 use crate::CollectJoin;
@@ -8,7 +6,7 @@ use crate::CollectJoin;
 /// Returns the text between the tags or `None` if they couldn't be found.
 ///
 /// Each line is trimmed from any ending space characters and ends with `\n`.
-pub(crate) fn get_tagged_source(filename: &str, tag: &str) -> Option<String> {
+pub fn get_tagged_source(filename: &str, tag: &str) -> Option<String> {
     let file_tag = format!("[{tag}]");
     let file = File::open(filename).ok()?;
     let result = BufReader::new(file).lines()
@@ -26,7 +24,7 @@ pub(crate) fn get_tagged_source(filename: &str, tag: &str) -> Option<String> {
 
 /// Replaces the text between two tags `tag` by `new_src` in the file `filename`. Returns `Ok` on
 /// success, or `Err` on failure, either I/O or if the tags couldn't be found.
-pub(crate) fn replace_tagged_source(filename: &str, tag: &str, new_src: &str) -> std::io::Result<()> {
+pub fn replace_tagged_source(filename: &str, tag: &str, new_src: &str) -> std::io::Result<()> {
     let file_tag = format!("[{tag}]");
     let file = File::open(filename)?;
     let mut buf = BufReader::new(file);

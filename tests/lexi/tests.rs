@@ -381,3 +381,80 @@ mod simple {
         }
     }
 }
+
+mod stability {
+    use std::fs::File;
+    use std::io::BufReader;
+    use rlexer::CollectJoin;
+    use rlexer::io::CharReader;
+    use rlexer::lexer::TokenSpliterator;
+    use rlexer::lexergen::LexerGen;
+    use rlexer::test_tools::{get_tagged_source, replace_tagged_source};
+    use crate::lexi::LexiListener;
+    use crate::out::build_lexer;
+    use crate::out::lexiparser::lexiparser::{build_parser, ListenerWrapper};
+
+    const LEXICON_FILENAME: &str = "tests/lexi/lexicon.l";
+    const LEXILEXER_FILENAME: &str = "tests/out/lexilexer.rs";
+    const LEXILEXER_TAG: &str = "lexilexer";
+
+    #[test]
+    fn lexilexer() {
+        const VERBOSE: bool = true;
+        const VERBOSE_WRAPPER: bool = false;
+        const VERBOSE_LISTENER: bool = false;
+        const VERBOSE_DETAILS: bool = false;
+
+        const REPLACE_SOURCE: bool = false;
+
+        let file = File::open(LEXICON_FILENAME).expect(&format!("couldn't open lexicon file {LEXICON_FILENAME}"));
+        let reader = BufReader::new(file);
+
+        let mut parser = build_parser();
+        let mut listener = LexiListener::new();
+        listener.verbose = VERBOSE_LISTENER;
+        let mut wrapper = ListenerWrapper::new(listener, false);
+        wrapper.set_verbose(VERBOSE_WRAPPER);
+
+        // - instantiates a lexilexer and attaches it to the lexicon stream
+        let stream = CharReader::new(reader);
+        let mut lexer = build_lexer();
+        lexer.set_tab_width(4);
+        lexer.attach_stream(stream);
+        let tokens = lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
+            panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
+        ).inspect(|(tok, text, line, col)| {
+            if VERBOSE_DETAILS {
+                println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
+            }
+        });
+
+        // - parses the lexicon and builds the lexer reg tree
+        let result = parser.parse_stream(&mut wrapper, tokens);
+        if VERBOSE {
+            let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+            if !msg.is_empty() {
+                println!("Messages:\n{msg}");
+            }
+        }
+        assert_eq!(result, Ok(()), "couldn't parse the lexicon");
+        listener = wrapper.listener();
+
+        // - builds the dfa from the reg tree
+        let dfa = listener.make_dfa().optimize();
+
+        // - builds the lexer
+        let mut lexgen = LexerGen::new();
+        lexgen.max_utf8_chars = 0;
+        lexgen.from_dfa(dfa);
+
+        let result_src = lexgen.build_source_code(4);
+        let expected_src = get_tagged_source(LEXILEXER_FILENAME, LEXILEXER_TAG).unwrap_or(String::new());
+        if result_src != expected_src {
+            if REPLACE_SOURCE {
+                replace_tagged_source(LEXILEXER_FILENAME, LEXILEXER_TAG, &result_src).expect("source replacement failed");
+            }
+            assert_eq!(result_src, expected_src);
+        }
+    }
+}
