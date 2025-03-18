@@ -268,10 +268,10 @@ CHAR_LIT		: CharLiteral;
 STR_LIT			: StrLiteral;
 
 FIXED_SET       : ('\\w' | '\\d');
-SET_CHAR        : (EscSetChar | ~[\n\r\t\\\]]);
+SET_CHAR        : (EscSetChar | ~[\n\r\t\\\]\-]);
 "#;
 
-pub const LEXICON_TOKENS: [TokenId; 326] = [
+pub const LEXICON_TOKENS: [TokenId; 327] = [
     20, 29, 16,                                                 // lexicon RLLexer;
     18, 5, 29, 2, 29, 13,                                       // channels { CH_WHITESPACE, CH_COMMENTS } // dummy
     19, 29, 1, 31, 3, 17, 12, 31, 16,                           // fragment BlockComment   : '/*' .*? '*/';
@@ -324,10 +324,10 @@ pub const LEXICON_TOKENS: [TokenId; 326] = [
     29, 1, 29, 16,                                              // CHAR_LIT    : CharLiteral;
     29, 1, 29, 16,                                              // STR_LIT     : StrLiteral;
     29, 1, 7, 31, 11, 31, 15, 16,                               // FIXED_SET   : ('\\w' | '\\d');
-    29, 1, 7, 29, 11, 8, 6, 33, 33, 33, 33, 33, 14, 15, 16      // SET_CHAR    : (EscSetChar | ~[\n\r\t\\\]]);
+    29, 1, 7, 29, 11, 8, 6, 33, 33, 33, 33, 33, 33, 14, 15, 16  // SET_CHAR    : (EscSetChar | ~[\n\r\t\\\]\-]);
 ];
 
-pub const LEXICON_TEXT: [&str; 326] = [
+pub const LEXICON_TEXT: [&str; 327] = [
     "lexicon", "LexiLexer", ";", "channels", "{", "CH_WHITESPACE", ",", "CH_COMMENTS", "}", "fragment", "BlockComment",
     ":", "'/*'", ".", "*", "?", "'*/'", ";", "fragment", "LineComment", ":", "'//'", "~", "[", "\\r", "\\n", "]",
     "*", ";", "fragment", "HexDigit", ":", "[", "0", "-", "9", "a", "-", "f", "A", "-", "F", "]", ";",
@@ -345,7 +345,7 @@ pub const LEXICON_TEXT: [&str; 326] = [
     "LINECOMMENT", ":", "LineComment", "->", "skip", ";", "WHITESPACE", ":", "[", " ", "\\n", "\\r", "\\t", "]", "+", "->", "skip", ";", "ID", ":", "[",
     "a", "-", "z", "A", "-", "Z", "]", "[", "a", "-", "z", "A", "-", "Z", "_", "0", "-", "9", "]", "*", ";", "CHAR_LIT", ":", "CharLiteral", ";", "STR_LIT",
     ":", "StrLiteral", ";", "FIXED_SET", ":", "(", "'\\\\w'", "|", "'\\\\d'", ")", ";", "SET_CHAR", ":", "(", "EscSetChar", "|", "~", "[", "\\n", "\\r", "\\t",
-    "\\\\", "\\]", "]", ")", ";"];
+    "\\\\", "\\]", "\\-", "]", ")", ";"];
 
 // ---------------------------------------------------------------------------------------------
 // Parser
