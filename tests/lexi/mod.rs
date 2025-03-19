@@ -95,11 +95,16 @@ struct LexiListener {
     name: String,
     curr: Option<VecTree<ReNode>>,
     curr_mode: ModeId,
+    /// Dictionary of terminals and fragments
     rules: HashMap<String, RuleType>,
     /// VecTree of each fragment.
     fragments: Vec<VecTree<ReNode>>,
+    /// Optional constant literal for fragments; e.g. `COMMA: ',';` -> Some(',')
+    fragment_literals: Vec<Option<String>>,
     /// VecTree of each terminal. Some may be empty: `type(token)` with no corresponding rule.
     terminals: Vec<VecTree<ReNode>>,
+    /// Optional constant literal for terminal keywords; e.g. `COMMA: ',';` -> Some(',')
+    terminal_literals: Vec<Option<String>>,
     channels: HashMap<String, ChannelId>,
     modes: HashMap<String, ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
@@ -116,7 +121,9 @@ impl LexiListener {
             curr_mode: 0,
             rules: HashMap::new(),
             fragments: Vec::new(),
+            fragment_literals: Vec::new(),
             terminals: Vec::new(),
+            terminal_literals: Vec::new(),
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
             mode_terminals: vec![0..0],
@@ -216,19 +223,19 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
-        let (id, rule_type, action_maybe) = match ctx {
+        let (id, rule_type, action_maybe, const_literal) = match ctx {
             // FIXME: manage errors (may panic)
-            CtxRule::Rule1 { id, .. } => {              // rule -> fragment Id : match ;
+            CtxRule::Rule1 { id, match1 } => {          // rule -> fragment Id : match ;
                 let rule_id = TokenId::try_from(self.fragments.len()).expect(&format!("max {} fragments", TokenId::MAX));
-                (id, RuleType::Fragment(rule_id), None)
+                (id, RuleType::Fragment(rule_id), None, match1.0)
             }
-            CtxRule::Rule2 { id, actions, .. } => {     // rule -> Id : match -> actions ;
+            CtxRule::Rule2 { id, match1, actions } => {     // rule -> Id : match -> actions ;
                 let rule_id = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
-                (id, RuleType::Terminal(rule_id), Some(actions.0))
+                (id, RuleType::Terminal(rule_id), Some(actions.0), match1.0)
             }
-            CtxRule::Rule3 { id, .. } => {              // rule -> Id : match ;
+            CtxRule::Rule3 { id, match1 } => {              // rule -> Id : match ;
                 let rule_id = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
-                (id, RuleType::Terminal(rule_id), None)
+                (id, RuleType::Terminal(rule_id), None, match1.0)
             }
         };
         if self.rules.contains_key(&id) {
@@ -238,6 +245,7 @@ impl LexiParserListener for LexiListener {
             match rule_type {
                 RuleType::Fragment(_) => {
                     self.fragments.push(rule);
+                    self.fragment_literals.push(const_literal);
                 }
                 RuleType::Terminal(rule_id) => {
                     // if no action, only return
@@ -251,6 +259,7 @@ impl LexiParserListener for LexiListener {
                     let terminal = rule_action.to_terminal(Some(rule_id)).unwrap();
                     rule.add(Some(root), ReNode::end(terminal));
                     self.terminals.push(rule);
+                    self.terminal_literals.push(const_literal);
                     self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
                 }
             }
@@ -285,11 +294,15 @@ impl LexiParserListener for LexiListener {
             CtxAction::Action5 => action!(more),        // action -> more
             CtxAction::Action6 { id } => {              // action -> type ( Id )
                 // returns the token if that rule exists, otherwise creates it
+                // we won't copy the terminal_literal to Id because
+                // - there could be several rules with different literals
+                // - most of the time, this wouldn't make sense and could even be misleading
                 let token = match self.rules.get(&id) {
                     None => {
                         let token = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
                         self.rules.insert(id, RuleType::Terminal(token));
                         self.terminals.push(VecTree::new());
+                        self.terminal_literals.push(None);
                         self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
                         token
                     }
@@ -321,112 +334,116 @@ impl LexiParserListener for LexiListener {
         // sets the tree root ID, so that any rule using `match` can expect to get a usable VecTree
         if self.verbose { println!("- exit_match({ctx:?})"); }
         let CtxMatch::Match { alt_items } = ctx;
-        self.curr.as_mut().unwrap().set_root(alt_items.0);
-        SynMatch()
+        self.curr.as_mut().unwrap().set_root(alt_items.0.0);
+        SynMatch(alt_items.0.1)
     }
 
     fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems {
         if self.verbose { print!("- exit_alt_items({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let CtxAltItems::AltItems { alt_item, star } = ctx;
-        let mut id = alt_item.0;
-        if !star.0.is_empty() {
-            id = tree.addci(None, node!(|), id);
-            tree.attach_children(id, star.0.into_iter().map(|i| i.0))
-        }
-        if self.verbose { println!(" -> {}", tree_to_string(tree, Some(id), false)); }
-        SynAltItems(id)
+        let (id, const_literal) = if !star.0.is_empty() {
+            let id = tree.addci(None, node!(|), alt_item.0.0);
+            tree.attach_children(id, star.0.into_iter().map(|i| i.0.0));
+            (id, None)
+        } else {
+            alt_item.0
+        };
+        if self.verbose { println!(" -> {}, {:?}", tree_to_string(tree, Some(id), false), const_literal); }
+        SynAltItems((id, const_literal))
     }
 
     fn exit_alt_item(&mut self, ctx: CtxAltItem) -> SynAltItem {
         if self.verbose { print!("- exit_alt_item({ctx:?})"); }
-        let CtxAltItem::AltItem { plus } = ctx;
+        let CtxAltItem::AltItem { plus: SynAltItem1(mut items) } = ctx;
         let tree = self.curr.as_mut().unwrap();
-        let id = if plus.0.len() > 1 {
-            tree.addci_iter(None, node!(&), plus.0.into_iter().map(|item| item.0))
+        let (id, const_literal) = if items.len() > 1 {
+            let lit_maybe = items.iter().fold(Some(String::new()), |acc, next| if let Some(n) = &next.0.1 { acc.map(|a| a + n) } else { None });
+            (tree.addci_iter(None, node!(&), items.into_iter().map(|item| item.0.0)), lit_maybe)
         } else {
-            plus.0[0].0
+            items.pop().unwrap().0
         };
-        if self.verbose { println!(" -> {}", tree_to_string(tree, Some(id), false)); }
-        SynAltItem(id)
+        if self.verbose { println!(" -> {}, {:?}", tree_to_string(tree, Some(id), false), const_literal); }
+        SynAltItem((id, const_literal))
     }
 
     fn exit_repeat_item(&mut self, ctx: CtxRepeatItem) -> SynRepeatItem {
         if self.verbose { print!("- exit_repeat_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
-        let id = match ctx {
+        let (id, const_literal) = match ctx {
             CtxRepeatItem::RepeatItem1 { item } => {   // repeat_item -> item ?
                 let empty = tree.add(None, node!(e));
-                tree.addci_iter(None, node!(|), [item.0, empty])
+                (tree.addci_iter(None, node!(|), [item.0.0, empty]), None)
             }
             CtxRepeatItem::RepeatItem2 { item } => {   // repeat_item -> item
                 item.0
             }
             CtxRepeatItem::RepeatItem3 { item } => {   // repeat_item -> item +? (lazy)
-                let plus = tree.addci(None, node!(+), item.0);
-                tree.addci(None, node!(??), plus)
+                let plus = tree.addci(None, node!(+), item.0.0);
+                (tree.addci(None, node!(??), plus), None)
             }
             CtxRepeatItem::RepeatItem4 { item } => {   // repeat_item -> item +
-                tree.addci(None, node!(+), item.0)
+                (tree.addci(None, node!(+), item.0.0), None)
             }
             CtxRepeatItem::RepeatItem5 { item } => {   // repeat_item -> item *? (lazy)
-                let star = tree.addci(None, node!(*), item.0);
-                tree.addci(None, node!(??), star)
+                let star = tree.addci(None, node!(*), item.0.0);
+                (tree.addci(None, node!(??), star), None)
             }
             CtxRepeatItem::RepeatItem6 { item } => {   // repeat_item -> item *
-                tree.addci(None, node!(*), item.0)
+                (tree.addci(None, node!(*), item.0.0), None)
             }
         };
-        if self.verbose { println!(" -> {}", tree_to_string(tree, Some(id), false)); }
-        SynRepeatItem(id)
+        if self.verbose { println!(" -> {}, {:?}", tree_to_string(tree, Some(id), false), const_literal); }
+        SynRepeatItem((id, const_literal))
     }
 
     fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
         // FIXME: manage errors (may panic)
         if self.verbose { print!("- exit_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
-        let id = match ctx {
+        let (id, const_literal) = match ctx {
             CtxItem::Item1 { alt_items } => {       // item -> ( alt_items )
                 alt_items.0
             }
             CtxItem::Item2 { item } => {            // item -> ~ item
-                let node = tree.get_mut(item.0);
+                let node = tree.get_mut(item.0.0);
                 if let ReType::CharRange(range) = node.get_mut_type() {
                     *range = Box::new(range.not())
                 } else {
                     panic!("~ can only be applied to a char set, not to '{node:?}'");
                 }
-                item.0
+                (item.0.0, None)
             }
             CtxItem::Item3 { id } => {              // item -> Id
                 if let Some(RuleType::Fragment(f)) = self.rules.get(&id) {
                     let subtree = self.fragments.get(*f as usize).unwrap();
-                    tree.add_from_tree(None, subtree, None)
+                    let const_literal = self.fragment_literals.get(*f as usize).unwrap().clone();
+                    (tree.add_from_tree(None, subtree, None), const_literal)
                 } else {
                     panic!("unknown fragment '{id}'")
                 }
             }
             CtxItem::Item4 { strlit } => {          // item -> StrLit
                 let s = &strlit[1..strlit.len() - 1];
-                tree.add(None, ReNode::string(s))
+                (tree.add(None, ReNode::string(s)), Some(s.to_string()))
             }
             CtxItem::Item5 { char_set } => {         // item -> char_set
-                tree.add(None, ReNode::char_range(char_set.0))
+                (tree.add(None, ReNode::char_range(char_set.0)), None)
             }
             CtxItem::Item6 { charlit } => {         // item -> CharLit .. CharLit
                 let c1 = decode_char(&charlit[0][1..charlit[0].len() - 1]).unwrap_or_else(|s| panic!("{s}"));
                 let c2 = decode_char(&charlit[1][1..charlit[1].len() - 1]).unwrap_or_else(|s| panic!("{s}"));
-                tree.add(None, ReNode::char_range(Segments::from((c1, c2))))
+                (tree.add(None, ReNode::char_range(Segments::from((c1, c2)))), None)
             }
             CtxItem::Item7 { charlit } => {         // item -> CharLit
                 // charlit is always sourrounded by quotes:
                 // fragment CharLiteral	: '\'' Char '\'';
                 let c = decode_char(&charlit[1..charlit.len() - 1]).unwrap_or_else(|s| panic!("{s}"));
-                tree.add(None, ReNode::char_range(Segments::from(c)))
+                (tree.add(None, ReNode::char_range(Segments::from(c))), Some(c.to_string()))
             }
         };
-        if self.verbose { println!(" -> {}", tree_to_string(tree, Some(id), false)); }
-        SynItem(id)
+        if self.verbose { println!(" -> {}, {:?}", tree_to_string(tree, Some(id), false), const_literal); }
+        SynItem((id, const_literal))
     }
 
     fn exit_char_set(&mut self, ctx: CtxCharSet) -> SynCharSet {

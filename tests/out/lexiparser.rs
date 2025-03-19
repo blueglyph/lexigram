@@ -813,15 +813,15 @@ pub(crate) mod lexiparser_types {
     /// SynAction: User-defined type for `action`
     #[derive(Debug, PartialEq)] pub struct SynAction(pub LexAction);
     /// SynMatch: User-defined type for `match`
-    #[derive(Debug, PartialEq)] pub struct SynMatch();
+    #[derive(Debug, PartialEq)] pub struct SynMatch(pub Option<String>);
     /// SynAltItems: User-defined type for `alt_items`
-    #[derive(Debug, PartialEq)] pub struct SynAltItems(pub usize);
+    #[derive(Debug, PartialEq)] pub struct SynAltItems(pub (usize, Option<String>));
     /// SynAltItem: User-defined type for `alt_item`
-    #[derive(Debug, PartialEq)] pub struct SynAltItem(pub usize);
+    #[derive(Debug, PartialEq)] pub struct SynAltItem(pub (usize, Option<String>));
     /// SynRepeatItem: User-defined type for `repeat_item`
-    #[derive(Debug, PartialEq)] pub struct SynRepeatItem(pub usize);
+    #[derive(Debug, PartialEq)] pub struct SynRepeatItem(pub (usize, Option<String>));
     /// SynItem: User-defined type for `item`
-    #[derive(Debug, PartialEq)] pub struct SynItem(pub usize);
+    #[derive(Debug, PartialEq)] pub struct SynItem(pub (usize, Option<String>));
     /// User-defined type for `char_set`
     #[derive(Debug, PartialEq)] pub struct SynCharSet(pub Segments);
     /// User-defined type for `char_set_one`

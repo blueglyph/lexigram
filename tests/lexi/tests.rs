@@ -217,12 +217,12 @@ mod simple {
                 let mut rules = listener.rules.iter().to_vec();
                 rules.sort_by(|a, b| (&a.1, &a.0).cmp(&(&b.1, &b.0)));
                 // rules.sort_by_key(|(s, rt)| (rt, s));
-                for (s, rt) in rules {
-                    let t = match rt {
-                        RuleType::Fragment(id) => listener.fragments.get(*id as usize).unwrap(),
-                        RuleType::Terminal(id) => listener.terminals.get(*id as usize).unwrap(),
+                for (i, (s, rt)) in rules.into_iter().enumerate() {
+                    let (t, lit) = match rt {
+                        RuleType::Fragment(id) => (listener.fragments.get(*id as usize).unwrap(), listener.fragment_literals.get(*id as usize).unwrap()),
+                        RuleType::Terminal(id) => (listener.terminals.get(*id as usize).unwrap(), listener.terminal_literals.get(*id as usize).unwrap()),
                     };
-                    println!("- {rt:?} {s}: {}", tree_to_string(t, None, true));
+                    println!("- {rt:?} {s}: {}    {lit:?}", tree_to_string(t, None, true));
                 }
             }
             let dfa = listener.make_dfa().optimize();

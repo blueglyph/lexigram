@@ -100,7 +100,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch {
         if self.verbose { println!("exit_match1"); }
-        SynMatch()
+        SynMatch(None)
     }
 
     fn init_alt_items(&mut self) {
@@ -109,7 +109,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems {
         if self.verbose { println!("exit_alt_items"); }
-        SynAltItems(0)
+        SynAltItems((0, None))
     }
 
     fn init_alt_item(&mut self) {
@@ -118,7 +118,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_alt_item(&mut self, _ctx: CtxAltItem) -> SynAltItem {
         if self.verbose { println!("exit_alt_item"); }
-        SynAltItem(0)
+        SynAltItem((0, None))
     }
 
     fn init_repeat_item(&mut self) {
@@ -127,7 +127,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_repeat_item(&mut self, _ctx: CtxRepeatItem) -> SynRepeatItem {
         if self.verbose { println!("exit_repeat_item"); }
-        SynRepeatItem(0)
+        SynRepeatItem((0, None))
     }
 
     fn init_item(&mut self) {
@@ -136,7 +136,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_item(&mut self, _ctx: CtxItem) -> SynItem {
         if self.verbose { println!("exit_item"); }
-        SynItem(0)
+        SynItem((0, None))
     }
 
     fn exit_char_set(&mut self, _ctx: CtxCharSet) -> SynCharSet {
