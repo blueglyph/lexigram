@@ -131,6 +131,10 @@ impl LexiListener {
         }
     }
 
+    fn set_verbose(&mut self, verbose: bool) {
+        self.verbose = verbose;
+    }
+
     fn get_sorted_modes(&self) -> Vec<(&ModeId, &String)> {
         let mut sorted_modes = self.modes.iter().map(|(name, id)| (id, name)).to_vec();
         sorted_modes.sort();

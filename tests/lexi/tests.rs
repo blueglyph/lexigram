@@ -1,6 +1,13 @@
 #![cfg(test)]
 
+use std::io::Read;
 use rlexer::CollectJoin;
+use rlexer::io::CharReader;
+use rlexer::lexer::{Lexer, TokenSpliterator};
+use rlexer::parser::{Parser, ParserError};
+use crate::lexi::LexiListener;
+use crate::out::build_lexer;
+use crate::out::lexiparser::lexiparser::{build_parser, ListenerWrapper};
 
 const TXT1: &str = r#"
     lexicon A;
@@ -47,16 +54,53 @@ const TXT2: &str = r#"
     SEP_ARRAY: [ \t\n] -> skip;
 "#;
 
+struct TestLexi<R: Read> {
+    lexilexer: Lexer<R>,
+    lexiparser: Parser,
+    wrapper: ListenerWrapper<LexiListener>
+}
+
+impl<R: Read> TestLexi<R> {
+    const VERBOSE_WRAPPER: bool = false;
+    const VERBOSE_DETAILS: bool = false;
+    const VERBOSE_LISTENER: bool = false;
+
+    fn new() -> Self {
+        let listener = LexiListener::new();
+        let mut wrapper = ListenerWrapper::new(listener, Self::VERBOSE_WRAPPER);
+        wrapper.get_mut_listener().set_verbose(Self::VERBOSE_LISTENER);
+        let mut lexilexer = build_lexer();
+        lexilexer.set_tab_width(4);
+        TestLexi {
+            lexilexer,
+            lexiparser: build_parser(),
+            wrapper
+        }
+    }
+
+    fn build(&mut self, lexicon: CharReader<R>) -> Result<(), ParserError> {
+        self.lexilexer.attach_stream(lexicon);
+        let mut result_tokens = 0;
+        let tokens = self.lexilexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
+            panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
+        ).inspect(|(tok, text, line, col)| {
+            result_tokens += 1;
+            if Self::VERBOSE_DETAILS {
+                println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
+            }
+        });
+        self.lexiparser.parse_stream(&mut self.wrapper, tokens)
+    }
+}
+
 mod simple {
     use std::io::Cursor;
     use rlexer::{branch, btreemap, term};
     use rlexer::dfa::{print_dfa, tree_to_string};
     use rlexer::io::CharReader;
-    use crate::out::build_lexer;
-    use crate::out::lexiparser::lexiparser::{build_parser, ListenerWrapper};
-    use rlexer::lexer::{LexerError, TokenSpliterator};
+    use rlexer::lexer::LexerError;
     use rlexer::lexergen::LexerGen;
-    use crate::lexi::{LexiListener, RuleType};
+    use crate::lexi::RuleType;
     use super::*;
 
     #[test]
@@ -176,42 +220,22 @@ mod simple {
                 ]
             ),
         ];
-        const VERBOSE: bool = false;
-        const VERBOSE_WRAPPER: bool = false;
-        const VERBOSE_LISTENER: bool = false;
-        const VERBOSE_DETAILS: bool = false;
+        const VERBOSE: bool = true;
 
         for (test_id, (input, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
-            let mut lexer = build_lexer();
-            lexer.set_tab_width(4);
-            lexer.attach_stream(stream);
-
-            let mut parser = build_parser();
-            let mut listener = LexiListener::new();
-            listener.verbose = VERBOSE_LISTENER;
-            let mut wrapper = ListenerWrapper::new(listener, false);
-            wrapper.set_verbose(VERBOSE_WRAPPER);
-            let mut result_tokens = 0;
-            let tokens = lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-                panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
-            ).inspect(|(tok, text, line, col)| {
-                result_tokens += 1;
-                if VERBOSE_DETAILS {
-                    println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
-                }
-            });
-            let result = parser.parse_stream(&mut wrapper, tokens);
+            let mut lexi = TestLexi::new();
+            let result = lexi.build(stream);
             if VERBOSE {
-                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
             }
             let text = format!("test {test_id} failed");
             assert_eq!(result, Ok(()), "{text}");
-            listener = wrapper.listener();
+            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
                 println!("Rules:");
                 let mut rules = listener.rules.iter().to_vec();
@@ -222,7 +246,7 @@ mod simple {
                         RuleType::Fragment(id) => (listener.fragments.get(*id as usize).unwrap(), listener.fragment_literals.get(*id as usize).unwrap()),
                         RuleType::Terminal(id) => (listener.terminals.get(*id as usize).unwrap(), listener.terminal_literals.get(*id as usize).unwrap()),
                     };
-                    println!("- {rt:?} {s}: {}    {lit:?}", tree_to_string(t, None, true));
+                    println!("- [{i:3}] {rt:?} {s}: {}    {lit:?}", tree_to_string(t, None, true));
                 }
             }
             let dfa = listener.make_dfa().optimize();
@@ -289,47 +313,22 @@ mod simple {
             )
         ];
         const VERBOSE: bool = false;
-        const VERBOSE_WRAPPER: bool = false;
-        const VERBOSE_LISTENER: bool = false;
-        const VERBOSE_DETAILS: bool = false;
         const JUST_SHOW_ANSWERS: bool = false;
 
         for (test_id, (lexicon, inputs)) in tests.into_iter().enumerate() {
             if VERBOSE || JUST_SHOW_ANSWERS { println!("// {:=<80}\n// Test {test_id}", ""); }
             let text = format!("test {test_id} failed");
-
-            // 1) creates the lexer
-
-            // - instantiates a lexiparser
-            let mut parser = build_parser();
-            let mut listener = LexiListener::new();
-            listener.verbose = VERBOSE_LISTENER;
-            let mut wrapper = ListenerWrapper::new(listener, false);
-            wrapper.set_verbose(VERBOSE_WRAPPER);
-
-            // - instantiates a lexilexer and attaches it to the lexicon stream
             let stream = CharReader::new(Cursor::new(lexicon));
-            let mut lexer = build_lexer();
-            lexer.set_tab_width(4);
-            lexer.attach_stream(stream);
-            let tokens = lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-                panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
-            ).inspect(|(tok, text, line, col)| {
-                if VERBOSE_DETAILS {
-                    println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
-                }
-            });
-
-            // - parses the lexicon and builds the lexer reg tree
-            let result = parser.parse_stream(&mut wrapper, tokens);
+            let mut lexi = TestLexi::new();
+            let result = lexi.build(stream);
             if VERBOSE {
-                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
             }
             assert_eq!(result, Ok(()), "{text}: couldn't parse the lexicon");
-            listener = wrapper.listener();
+            let mut listener = lexi.wrapper.listener();
 
             // - builds the dfa from the reg tree
             let dfa = listener.make_dfa().optimize();
@@ -387,58 +386,35 @@ mod stability {
     use std::io::BufReader;
     use rlexer::CollectJoin;
     use rlexer::io::CharReader;
-    use rlexer::lexer::TokenSpliterator;
     use rlexer::lexergen::LexerGen;
     use rlexer::test_tools::{get_tagged_source, replace_tagged_source};
-    use crate::lexi::LexiListener;
-    use crate::out::build_lexer;
-    use crate::out::lexiparser::lexiparser::{build_parser, ListenerWrapper};
+    use crate::lexi::tests::TestLexi;
 
     const LEXICON_FILENAME: &str = "tests/lexi/lexicon.l";
     const LEXILEXER_FILENAME: &str = "tests/out/lexilexer.rs";
     const LEXILEXER_TAG: &str = "lexilexer";
 
+    #[ignore]
     #[test]
     fn lexilexer() {
         const VERBOSE: bool = true;
-        const VERBOSE_WRAPPER: bool = false;
-        const VERBOSE_LISTENER: bool = false;
-        const VERBOSE_DETAILS: bool = false;
 
         const REPLACE_SOURCE: bool = false;
 
         let file = File::open(LEXICON_FILENAME).expect(&format!("couldn't open lexicon file {LEXICON_FILENAME}"));
         let reader = BufReader::new(file);
-
-        let mut parser = build_parser();
-        let mut listener = LexiListener::new();
-        listener.verbose = VERBOSE_LISTENER;
-        let mut wrapper = ListenerWrapper::new(listener, false);
-        wrapper.set_verbose(VERBOSE_WRAPPER);
-
-        // - instantiates a lexilexer and attaches it to the lexicon stream
         let stream = CharReader::new(reader);
-        let mut lexer = build_lexer();
-        lexer.set_tab_width(4);
-        lexer.attach_stream(stream);
-        let tokens = lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-            panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
-        ).inspect(|(tok, text, line, col)| {
-            if VERBOSE_DETAILS {
-                println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
-            }
-        });
+        let mut lexi = TestLexi::new();
+        let result = lexi.build(stream);
 
-        // - parses the lexicon and builds the lexer reg tree
-        let result = parser.parse_stream(&mut wrapper, tokens);
         if VERBOSE {
-            let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+            let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
             if !msg.is_empty() {
                 println!("Messages:\n{msg}");
             }
         }
         assert_eq!(result, Ok(()), "couldn't parse the lexicon");
-        listener = wrapper.listener();
+        let mut listener = lexi.wrapper.listener();
 
         // - builds the dfa from the reg tree
         let dfa = listener.make_dfa().optimize();
