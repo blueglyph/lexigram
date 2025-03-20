@@ -267,7 +267,7 @@ impl<R: Read> Lexer<R> {
                         if !is_eos { // we can't skip if <EOF> or we'll loop indefinitely
                             if VERBOSE { println!(" => {}, state {}", terminal.action, self.start_state); }
                             state = self.start_state;
-                            if !terminal.action.is_more() {
+                            if !terminal.action.is_more() /*&& !terminal.is_only_skip() ???*/ {
                                 text.clear();
                             }
                             continue;

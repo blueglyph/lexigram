@@ -3,6 +3,7 @@ mod tests;
 
 use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
 use std::collections::HashMap;
+use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Range};
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
@@ -105,6 +106,8 @@ struct LexiListener {
     terminals: Vec<VecTree<ReNode>>,
     /// Optional constant literal for terminal keywords; e.g. `COMMA: ',';` -> Some(',')
     terminal_literals: Vec<Option<String>>,
+    /// true if the corresponding terminal is returned by the lexer (either directly by a rule or as the target of a `type(T)`)
+    terminal_ret: Vec<bool>,
     channels: HashMap<String, ChannelId>,
     modes: HashMap<String, ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
@@ -124,6 +127,7 @@ impl LexiListener {
             fragment_literals: Vec::new(),
             terminals: Vec::new(),
             terminal_literals: Vec::new(),
+            terminal_ret: Vec::new(),
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
             mode_terminals: vec![0..0],
@@ -177,6 +181,54 @@ impl LexiListener {
         let dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer\n{}", dfa_builder.get_messages()));
         dfa
     }
+
+    fn rules_to_string(&self, indent: usize) -> String {
+        let mut cols = vec![vec!["      type".to_string(), "name".to_string(), "tree".to_string(), "lit".to_string(), "ret".to_string()]];
+        let mut rules = self.rules.iter().to_vec();
+        rules.sort_by(|a, b| (&a.1, &a.0).cmp(&(&b.1, &b.0)));
+        // rules.sort_by_key(|(s, rt)| (rt, s));
+        for (i, (s, rt)) in rules.into_iter().enumerate() {
+            let (t, lit, ret) = match rt {
+                RuleType::Fragment(id) => (
+                    self.fragments.get(*id as usize).unwrap(),
+                    self.fragment_literals.get(*id as usize).unwrap(),
+                    None
+                ),
+                RuleType::Terminal(id) => (
+                    self.terminals.get(*id as usize).unwrap(),
+                    self.terminal_literals.get(*id as usize).unwrap(),
+                    Some(*self.terminal_ret.get(*id as usize).unwrap())
+                ),
+            };
+            cols.push(vec![format!("[{i:3}] {rt:?}"), format!("{s}"), format!("{}", tree_to_string(t, None, true)),
+                           format!("{lit:?}"), format!("{}", if let Some(b) = ret { b.to_string() } else { String::new() })
+            ]);
+        }
+        let mut cols_out = rlexer::columns_to_str(cols, None);
+        let title = cols_out.remove(0);
+        let tab = format!("{: <width$}", "", width = indent);
+        format!("{tab}   {title}\n{tab}{:-<width$}{}", "",
+                 cols_out.into_iter().map(|l| format!("\n{tab} - {l}")).join(""),
+                 width=title.len() + 5
+        )
+    }
+}
+
+impl Debug for LexiListener {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "LexiListener {{")?;
+        writeln!(f, "  name = {}", self.name)?;
+        writeln!(f, "  curr = {}", self.curr.as_ref().map(|t| tree_to_string(t, None, true)).unwrap_or(String::new()))?;
+        writeln!(f, "  curr_mode = {}", self.curr_mode)?;
+        writeln!(f, "  rules: {}\n{}", self.rules.len(), self.rules_to_string(4))?;
+        writeln!(f, "  fragments: {}", self.fragments.len())?;
+        writeln!(f, "  fragment_literals: {}", self.fragment_literals.len())?;
+        writeln!(f, "  terminals: {}", self.terminals.len())?;
+        writeln!(f, "  terminal_literals: {}", self.terminal_literals.len())?;
+        writeln!(f, "  terminal_ret: {}", self.terminal_ret.len())?;
+        writeln!(f, "  log:{}", self.log.get_messages().map(|s| format!("\n    - {s:?}")).join(""))?;
+        writeln!(f, "}}")
+    }
 }
 
 impl LexiParserListener for LexiListener {
@@ -217,6 +269,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_option(&mut self, ctx: CtxOption) -> SynOption {
         // FIXME: manage errors (may panic)
+        if self.verbose { println!("- exit_option({ctx:?})"); }
         let CtxOption::Option { id, mut star } = ctx;
         star.0.insert(0, id);
         for ch in star.0 {
@@ -227,9 +280,10 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
-        let (id, rule_type, action_maybe, const_literal) = match ctx {
+        if self.verbose { println!("- exit_rule({ctx:?})"); }
+        let (id, mut rule_type, action_maybe, const_literal) = match ctx {
             // FIXME: manage errors (may panic)
-            CtxRule::Rule1 { id, match1 } => {          // rule -> fragment Id : match ;
+            CtxRule::Rule1 { id, match1 } => {              // rule -> fragment Id : match ;
                 let rule_id = TokenId::try_from(self.fragments.len()).expect(&format!("max {} fragments", TokenId::MAX));
                 (id, RuleType::Fragment(rule_id), None, match1.0)
             }
@@ -242,7 +296,17 @@ impl LexiParserListener for LexiListener {
                 (id, RuleType::Terminal(rule_id), None, match1.0)
             }
         };
-        if self.rules.contains_key(&id) {
+        let existing_rule_id = if let Some(RuleType::Terminal(id)) = self.rules.get(&id) {
+            if self.terminals[*id as usize].is_empty() {
+                rule_type = RuleType::Terminal(*id);
+                Some(*id)   // this has been created by the action `-> type(T)`, now we can store the actual tree
+            } else {
+                None        // conflicts with another terminal
+            }
+        } else {
+            None            // fragment or doesn't exist yet
+        };
+        if existing_rule_id.is_none() && self.rules.contains_key(&id) {
             self.log.add_error(format!("Symbol '{id}' is already defined"));
         } else {
             let mut rule = self.curr.take().unwrap();
@@ -262,9 +326,16 @@ impl LexiParserListener for LexiListener {
                     }
                     let terminal = rule_action.to_terminal(Some(rule_id)).unwrap();
                     rule.add(Some(root), ReNode::end(terminal));
-                    self.terminals.push(rule);
-                    self.terminal_literals.push(const_literal);
-                    self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
+                    if let Some(rule_id0) = existing_rule_id {
+                        self.terminals[rule_id0 as usize] = rule;
+                        self.terminal_literals[rule_id0 as usize] = const_literal;
+                        self.terminal_ret[rule_id0 as usize] = true;
+                    } else {
+                        self.terminals.push(rule);
+                        self.terminal_literals.push(const_literal);
+                        self.terminal_ret.push(matches!(rule_action, LexAction { option: LexActionOption::Token(id), .. } if id == rule_id));
+                        self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
+                    }
                 }
             }
             self.rules.insert(id, rule_type);
@@ -307,6 +378,7 @@ impl LexiParserListener for LexiListener {
                         self.rules.insert(id, RuleType::Terminal(token));
                         self.terminals.push(VecTree::new());
                         self.terminal_literals.push(None);
+                        self.terminal_ret.push(false);
                         self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
                         token
                     }
@@ -330,7 +402,12 @@ impl LexiParserListener for LexiListener {
     }
 
     fn init_match(&mut self) {
-        assert!(self.curr.is_none());
+        if self.curr.is_some() {
+            println!("there is a problem");
+            println!();
+
+        }
+        assert!(self.curr.is_none(), "{self:?}");
         self.curr = Some(VecTree::new());
     }
 
