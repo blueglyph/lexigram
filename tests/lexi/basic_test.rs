@@ -163,7 +163,7 @@ mod tests {
         let tests = [
             ("", 0),
             ("lexicon LexiLexer;", 3),
-            (LEXICON, 326),
+            (LEXICON, 327),
         ];
         const VERBOSE: bool = false;
         const VERBOSE_DETAILS: bool = false;
