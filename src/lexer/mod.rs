@@ -192,6 +192,7 @@ impl<R: Read> Lexer<R> {
         if VERBOSE { println!("lexer state_table: {}, last: {}", self.state_table.len(), self.state_table.iter().last().unwrap()); }
         self.error = LexerError::None;
         let mut text = String::new();
+        let mut more_text = String::new();  // keeps previously scanned text if `more` action
         if let Some(input) = self.input.as_mut() {
             let mut state = self.start_state;
             let (mut line, mut col) = (self.line, self.col);
@@ -241,7 +242,7 @@ impl<R: Read> Lexer<R> {
                                         curr_char: c_opt,
                                         group,
                                         state,
-                                        text,
+                                        text: more_text + &text,
                                     }
                                 };
                                 if VERBOSE { println!(" => Err({})", self.error); }
@@ -259,7 +260,7 @@ impl<R: Read> Lexer<R> {
                         }
                         if let Some(token) = &terminal.get_token() {
                             if VERBOSE { println!(" => OK: token {}", token); }
-                            return Ok(Some((token.clone(), terminal.channel, text, line, col)));
+                            return Ok(Some((token.clone(), terminal.channel, more_text + &text, line, col)));
                         }
                         if !terminal.action.is_more() {
                             (line, col) = (self.line, self.col);
@@ -267,9 +268,10 @@ impl<R: Read> Lexer<R> {
                         if !is_eos { // we can't skip if <EOF> or we'll loop indefinitely
                             if VERBOSE { println!(" => {}, state {}", terminal.action, self.start_state); }
                             state = self.start_state;
-                            if !terminal.action.is_more() /*&& !terminal.is_only_skip() ???*/ {
-                                text.clear();
+                            if terminal.action.is_more() {
+                                more_text.push_str(&text);
                             }
+                            text.clear();
                             continue;
                         }
                     }
@@ -284,7 +286,7 @@ impl<R: Read> Lexer<R> {
                         curr_char: c_opt,
                         group,
                         state,
-                        text,
+                        text: more_text + &text,
                     };
                     self.error = if is_eos {
                         LexerError::EndOfStream { info }

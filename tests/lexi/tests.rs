@@ -80,7 +80,7 @@ struct TestLexi<R: Read> {
 impl<R: Read> TestLexi<R> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
-    const VERBOSE_LISTENER: bool = true;
+    const VERBOSE_LISTENER: bool = false;
 
     fn new() -> Self {
         let listener = LexiListener::new();
@@ -237,10 +237,9 @@ mod simple {
                 ]
             ),
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         for (test_id, (input, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
-if test_id != 1 { continue }
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
             let mut lexi = TestLexi::new();
@@ -426,10 +425,10 @@ if test_id != 1 { continue }
                 println!("Rules lexicon {}:\n{}", listener.name, listener.rules_to_string(0));
             }
             let _dfa = listener.make_dfa().optimize();
-            if VERBOSE {
-                println!("Final optimized Dfa:");
-                print_dfa(&_dfa, 20);
-            }
+            // if VERBOSE {
+            //     println!("Final optimized Dfa:");
+            //     print_dfa(&_dfa, 20);
+            // }
         }
     }
 }
