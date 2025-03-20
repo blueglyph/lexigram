@@ -1808,6 +1808,10 @@ impl ParserGen {
         src.push(format!("        ListenerWrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
         src.push(format!("    }}"));
         src.push(format!(""));
+        src.push(format!("    pub fn get_mut_listener(&mut self) -> &mut T {{"));
+        src.push(format!("        &mut self.listener"));
+        src.push(format!("    }}"));
+        src.push(format!(""));
         src.push(format!("    pub fn listener(self) -> T {{"));
         src.push(format!("        self.listener"));
         src.push(format!("    }}"));

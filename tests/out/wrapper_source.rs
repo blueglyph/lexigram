@@ -127,6 +127,10 @@ pub(crate) mod rules_prs_34_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -289,6 +293,10 @@ pub(crate) mod rules_rts_21_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -427,6 +435,10 @@ pub(crate) mod rules_rts_21_2 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -568,6 +580,10 @@ pub(crate) mod rules_rts_22_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -729,6 +745,10 @@ pub(crate) mod rules_rts_22_2 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -881,6 +901,10 @@ pub(crate) mod rules_rts_22_3 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -1042,6 +1066,10 @@ pub(crate) mod rules_rts_22_4 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -1210,6 +1238,10 @@ pub(crate) mod rules_rts_32_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -1374,6 +1406,10 @@ pub(crate) mod rules_rts_25_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -1510,6 +1546,10 @@ pub(crate) mod rules_rts_23_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -1677,6 +1717,10 @@ pub(crate) mod rules_rts_27_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -1855,6 +1899,10 @@ pub(crate) mod rules_rts_28_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -2018,6 +2066,10 @@ pub(crate) mod rules_rts_24_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -2171,6 +2223,10 @@ pub(crate) mod rules_rts_24_2 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -2318,6 +2374,10 @@ pub(crate) mod rules_rts_24_3 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -2474,6 +2534,10 @@ pub(crate) mod rules_rts_24_4 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -2650,6 +2714,10 @@ pub(crate) mod rules_rts_29_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -2835,6 +2903,10 @@ pub(crate) mod rules_rts_29_2 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -3006,6 +3078,10 @@ pub(crate) mod rules_rts_29_3 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -3194,6 +3270,10 @@ pub(crate) mod rules_rts_39_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -3398,6 +3478,10 @@ pub(crate) mod rules_rts_40_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -3615,6 +3699,10 @@ pub(crate) mod rules_rts_30_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -3812,6 +3900,10 @@ pub(crate) mod rules_rts_30_2 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -4078,6 +4170,10 @@ pub(crate) mod rules_rts_34_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -4301,6 +4397,10 @@ pub(crate) mod rules_prs_28_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -4473,6 +4573,10 @@ pub(crate) mod rules_prs_31_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -4639,6 +4743,10 @@ pub(crate) mod rules_prs_31_2 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -4800,6 +4908,10 @@ pub(crate) mod rules_prs_36_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -4974,6 +5086,10 @@ pub(crate) mod rules_prs_33_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -5144,6 +5260,10 @@ pub(crate) mod rules_prs_38_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -5326,6 +5446,10 @@ pub(crate) mod rules_prs_39_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -5518,6 +5642,10 @@ pub(crate) mod rules_prs_32_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -5696,6 +5824,10 @@ pub(crate) mod rules_rts_38_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -5884,6 +6016,10 @@ pub(crate) mod rules_rts_38_2 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -6056,6 +6192,10 @@ pub(crate) mod rules_rts_38_3 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -6210,6 +6350,10 @@ pub(crate) mod rules_prs_20_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -6360,6 +6504,10 @@ pub(crate) mod rules_prs_20_2 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -6524,6 +6672,10 @@ pub(crate) mod rules_prs_37_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -6684,6 +6836,10 @@ pub(crate) mod rules_prs_30_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -6842,6 +6998,10 @@ pub(crate) mod rules_prs_30_2 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -6998,6 +7158,10 @@ pub(crate) mod rules_rts_26_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -7178,6 +7342,10 @@ pub(crate) mod rules_rts_16_1 {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
         pub fn listener(self) -> T {
             self.listener
         }
@@ -7338,6 +7506,10 @@ pub(crate) mod rules_prs_35_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -7511,6 +7683,10 @@ pub(crate) mod rules_rts_33_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
@@ -8099,6 +8275,10 @@ pub(crate) mod rules_rts_100_1 {
     impl<T: TestListener> ListenerWrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
         }
 
         pub fn listener(self) -> T {
