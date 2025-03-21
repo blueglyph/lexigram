@@ -68,7 +68,8 @@ const TXT4: &str = r#"
     B: 'b';
     C: 'c' -> skip;
     D: 'd';
-    E: 'e';
+    E: 'e' -> type(E);
+    F: 'f';
 "#;
 
 struct TestLexi<R: Read> {

@@ -108,6 +108,10 @@ struct LexiListener {
     terminal_literals: Vec<Option<String>>,
     /// true if the corresponding terminal is returned by the lexer (either directly by a rule or as the target of a `type(T)`)
     terminal_ret: Vec<bool>,
+    /// future tokens reserved by `type(T)`. The value is the first token referring to it with `type(T)`
+    terminal_reserved: HashMap<String, TokenId>, // FIXME: change to HashSet
+    /// terminal token IDs that need to be remapped (from key to value)
+    remap: HashMap<TokenId, TokenId>,
     channels: HashMap<String, ChannelId>,
     modes: HashMap<String, ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
@@ -128,6 +132,8 @@ impl LexiListener {
             terminals: Vec::new(),
             terminal_literals: Vec::new(),
             terminal_ret: Vec::new(),
+            terminal_reserved: HashMap::new(),
+            remap: HashMap::new(),
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
             mode_terminals: vec![0..0],
@@ -195,9 +201,9 @@ impl LexiListener {
                     None
                 ),
                 RuleType::Terminal(id) => (
-                    self.terminals.get(*id as usize).unwrap(),
-                    self.terminal_literals.get(*id as usize).unwrap(),
-                    Some(*self.terminal_ret.get(*id as usize).unwrap())
+                    self.terminals.get(*id as usize).expect(&format!("no item {id}")),
+                    self.terminal_literals.get(*id as usize).expect(&format!("no item {id}")),
+                    Some(*self.terminal_ret.get(*id as usize).expect(&format!("no item {id}")))
                 ),
             };
             cols.push(vec![format!("[{i:3}] {rt:?}"), format!("{s}"), format!("{}", tree_to_string(t, None, true)),
@@ -233,6 +239,44 @@ impl Debug for LexiListener {
 
 impl LexiParserListener for LexiListener {
     fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
+        if self.verbose { println!("- exit_file({_ctx:?})"); }
+        println!("terminal_reserved: {:?}", self.terminal_reserved);
+        for (id, _first_id) in &self.terminal_reserved {
+            let Some(RuleType::Terminal(reserved_id)) = self.rules.get_mut(id) else { panic!("cannot find reserved {id}") };
+            let rule_id = self.terminals.len();
+            if *reserved_id as usize >= rule_id {
+                // TODO: change past references
+                let rule_id = rule_id as TokenId; // safe
+                println!("reserved {id} ({reserved_id}) wasn't an existing terminal, creating one in {rule_id}");
+                self.remap.insert(*reserved_id, rule_id);
+                self.terminals.push(VecTree::new());
+                self.terminal_literals.push(None);
+                self.terminal_ret.push(true);
+                *reserved_id = rule_id;
+                // self.mode_terminals.get_mut( which mode? ).unwrap().end += 1;}
+            }
+        }
+
+        // Deletes token IDs that are never returned
+        // TODO:
+
+        // Remaps the token IDs
+        println!("Remap:{}", self.remap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", "));
+        for tree in self.terminals.iter_mut() {
+            // changes all the temporary references since that first one
+            for mut node in tree.iter_depth_simple_mut() {
+                let x: &mut ReType = node.get_mut_type();
+                if let ReType::End(ref mut term) = x {
+                    if let ActionOption::Token(old_id) = term.action {
+                        if let Some(new_id) = self.remap.get(&old_id) {
+                            term.action = ActionOption::Token(*new_id);
+                        }
+                    }
+                }
+            }
+        }
+
+        // TODO: remap the modes...
         if self.verbose {
             println!("\nModes: ");
             for (mode_id, mode) in self.get_sorted_modes() {
@@ -281,7 +325,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
         if self.verbose { println!("- exit_rule({ctx:?})"); }
-        let (id, mut rule_type, action_maybe, const_literal) = match ctx {
+        let (id, rule_type, mut action_maybe, const_literal) = match ctx {
             // FIXME: manage errors (may panic)
             CtxRule::Rule1 { id, match1 } => {              // rule -> fragment Id : match ;
                 let rule_id = TokenId::try_from(self.fragments.len()).expect(&format!("max {} fragments", TokenId::MAX));
@@ -296,17 +340,31 @@ impl LexiParserListener for LexiListener {
                 (id, RuleType::Terminal(rule_id), None, match1.0)
             }
         };
-        let existing_rule_id = if let Some(RuleType::Terminal(id)) = self.rules.get(&id) {
-            if self.terminals[*id as usize].is_empty() {
-                rule_type = RuleType::Terminal(*id);
-                Some(*id)   // this has been created by the action `-> type(T)`, now we can store the actual tree
+        let was_reserved = if let Some(RuleType::Terminal(reserved_id)) = self.rules.get_mut(&id) {
+            // checks that it's indeed reserved and not a simple conflict with another terminal name
+            if let Some(first_ref_id) = self.terminal_reserved.get(&id) {
+                // reserved_id is a temporary, reserved TokenId introduced by terminal `first_ref_id` with `-> type(id)`
+                assert!(self.terminals.len() <= *reserved_id as usize,
+                        "collision between token IDs and reserved IDs: {} > {reserved_id} (for {id})", self.terminals.len());
+                let RuleType::Terminal(rule_id) = rule_type else { panic!() };
+                println!("terminal {id} was reserved by {first_ref_id} as {reserved_id}; will now be {rule_id}");
+                // assert_ne!(*first_ref_id, rule_id, "-> Type({id}) pointing to itself"); // FIXME: should we simply handle this?
+                if *first_ref_id == rule_id {
+                    // type(T) pointing at itself
+                    println!("    (so it was actually pointing at itself)");
+                    let Some(ref mut action) = action_maybe else { panic!() };
+                    action.option = LexActionOption::Token(rule_id)
+                }
+                self.remap.insert(*reserved_id, rule_id);
+                *reserved_id = rule_id;
+                true
             } else {
-                None        // conflicts with another terminal
+                false   // conflicts with another terminal
             }
         } else {
-            None            // fragment or doesn't exist yet
+            false       // fragment or doesn't exist yet
         };
-        if existing_rule_id.is_none() && self.rules.contains_key(&id) {
+        if !was_reserved && self.rules.contains_key(&id) {
             self.log.add_error(format!("Symbol '{id}' is already defined"));
         } else {
             let mut rule = self.curr.take().unwrap();
@@ -326,19 +384,21 @@ impl LexiParserListener for LexiListener {
                     }
                     let terminal = rule_action.to_terminal(Some(rule_id)).unwrap();
                     rule.add(Some(root), ReNode::end(terminal));
-                    if let Some(rule_id0) = existing_rule_id {
-                        self.terminals[rule_id0 as usize] = rule;
-                        self.terminal_literals[rule_id0 as usize] = const_literal;
-                        self.terminal_ret[rule_id0 as usize] = true;
-                    } else {
-                        self.terminals.push(rule);
-                        self.terminal_literals.push(const_literal);
-                        self.terminal_ret.push(matches!(rule_action, LexAction { option: LexActionOption::Token(id), .. } if id == rule_id));
-                        self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
-                    }
+                    // if let Some(rule_id0) = existing_rule_id {
+                    //     self.terminals[rule_id0 as usize] = rule;
+                    //     self.terminal_literals[rule_id0 as usize] = const_literal;
+                    //     self.terminal_ret[rule_id0 as usize] = true;
+                    // } else {
+                    self.terminals.push(rule);
+                    self.terminal_literals.push(const_literal);
+                    self.terminal_ret.push(was_reserved || matches!(rule_action, LexAction { option: LexActionOption::Token(id), .. } if id == rule_id));
+                    self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
+                    // }
                 }
             }
-            self.rules.insert(id, rule_type);
+            if !was_reserved {
+                self.rules.insert(id, rule_type);
+            }
         }
         SynRule()
     }
@@ -368,19 +428,29 @@ impl LexiParserListener for LexiListener {
             CtxAction::Action4 => action!(skip),        // action -> skip
             CtxAction::Action5 => action!(more),        // action -> more
             CtxAction::Action6 { id } => {              // action -> type ( Id )
-                // returns the token if that rule exists, otherwise creates it
+                // returns the token if that rule exists, otherwise reserves it; the action will have to be changed when we know the ID
                 // we won't copy the terminal_literal to Id because
                 // - there could be several rules with different literals
                 // - most of the time, this wouldn't make sense and could even be misleading
                 let token = match self.rules.get(&id) {
                     None => {
+                        // TODO: we'll have to check at some point that there were no collisions between IDs and reserved IDs,
+                        //       in other words, `assert!(self.terminals.len() <= TokenId::MAX as usize - self.terminal_reserved.len())`
+                        assert!(self.terminal_reserved.len() < TokenId::MAX as usize, "max {} reserved tokens", TokenId::MAX);
+                        let reserved_token = TokenId::MAX - self.terminal_reserved.len() as TokenId;
                         let token = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
-                        self.rules.insert(id, RuleType::Terminal(token));
-                        self.terminals.push(VecTree::new());
-                        self.terminal_literals.push(None);
-                        self.terminal_ret.push(false);
-                        self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
-                        token
+                        self.terminal_reserved.insert(id.clone(), token);           // first reference (this terminal rule)
+                        println!("-> type({id}) : reserved ID {reserved_token}");
+                        self.rules.insert(id, RuleType::Terminal(reserved_token));  // temporary token ID
+                        reserved_token
+
+                        // let token = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
+                        // self.rules.insert(id, RuleType::Terminal(token));
+                        // self.terminals.push(VecTree::new());
+                        // self.terminal_literals.push(None);
+                        // self.terminal_ret.push(false);
+                        // self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
+                        // token
                     }
                     Some(rule) => {
                         if let RuleType::Terminal(token) = rule {
