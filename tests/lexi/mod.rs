@@ -2,9 +2,10 @@ mod basic_test;
 mod tests;
 
 use rlexer::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Range};
+use iter_index::IndexerIterator;
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
@@ -111,7 +112,7 @@ struct LexiListener {
     /// future tokens reserved by `type(T)`. The value is the first token referring to it with `type(T)`
     terminal_reserved: HashMap<String, TokenId>, // FIXME: change to HashSet
     /// terminal token IDs that need to be remapped (from key to value)
-    remap: HashMap<TokenId, TokenId>,
+    terminal_remap: HashMap<TokenId, TokenId>,
     channels: HashMap<String, ChannelId>,
     modes: HashMap<String, ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
@@ -133,7 +134,7 @@ impl LexiListener {
             terminal_literals: Vec::new(),
             terminal_ret: Vec::new(),
             terminal_reserved: HashMap::new(),
-            remap: HashMap::new(),
+            terminal_remap: HashMap::new(),
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
             mode_terminals: vec![0..0],
@@ -189,7 +190,7 @@ impl LexiListener {
     }
 
     fn rules_to_string(&self, indent: usize) -> String {
-        let mut cols = vec![vec!["      type".to_string(), "name".to_string(), "tree".to_string(), "lit".to_string(), "ret".to_string()]];
+        let mut cols = vec![vec!["      type".to_string(), "name".to_string(), "tree".to_string(), "lit".to_string(), "ret".to_string(), "token".to_string()]];
         let mut rules = self.rules.iter().to_vec();
         rules.sort_by(|a, b| (&a.1, &a.0).cmp(&(&b.1, &b.0)));
         // rules.sort_by_key(|(s, rt)| (rt, s));
@@ -206,8 +207,12 @@ impl LexiListener {
                     Some(*self.terminal_ret.get(*id as usize).expect(&format!("no item {id}")))
                 ),
             };
-            cols.push(vec![format!("[{i:3}] {rt:?}"), format!("{s}"), format!("{}", tree_to_string(t, None, true)),
-                           format!("{lit:?}"), format!("{}", if let Some(b) = ret { b.to_string() } else { String::new() })
+            cols.push(vec![format!("[{i:3}] {rt:?}"),
+                           format!("{s}"),
+                           format!("{}", tree_to_string(t, None, true)),
+                           format!("{lit:?}"),
+                           format!("{}", if let Some(b) = ret { b.to_string() } else { String::new() }),
+                           if ret.unwrap_or(false) { format!("{s} = {}", self.terminal_remap.get(&(i as TokenId)).unwrap_or(&(i as TokenId))) } else { String::new() },
             ]);
         }
         let mut cols_out = rlexer::columns_to_str(cols, None);
@@ -232,6 +237,11 @@ impl Debug for LexiListener {
         writeln!(f, "  terminals: {}", self.terminals.len())?;
         writeln!(f, "  terminal_literals: {}", self.terminal_literals.len())?;
         writeln!(f, "  terminal_ret: {}", self.terminal_ret.len())?;
+        writeln!(f, "  terminal_reserved: {}", self.terminal_reserved.iter().map(|(s, _)| s.to_string()).join(", "))?;
+        let mut bremap = BTreeMap::<TokenId, TokenId>::new();
+        bremap.extend(self.terminal_remap.iter().map(|(a, b)| (*a, *b)));
+        let s = bremap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", ");
+        writeln!(f, "  terminal_remap: {s}")?;
         writeln!(f, "  log:{}", self.log.get_messages().map(|s| format!("\n    - {s:?}")).join(""))?;
         writeln!(f, "}}")
     }
@@ -248,7 +258,7 @@ impl LexiParserListener for LexiListener {
                 // TODO: change past references
                 let rule_id = rule_id as TokenId; // safe
                 println!("reserved {id} ({reserved_id}) wasn't an existing terminal, creating one in {rule_id}");
-                self.remap.insert(*reserved_id, rule_id);
+                self.terminal_remap.insert(*reserved_id, rule_id);
                 self.terminals.push(VecTree::new());
                 self.terminal_literals.push(None);
                 self.terminal_ret.push(true);
@@ -258,23 +268,41 @@ impl LexiParserListener for LexiListener {
         }
 
         // Deletes token IDs that are never returned
-        // TODO:
+        let mut remap: HashMap<TokenId, TokenId> = HashMap::new();
+        let mut new_id = 0;
+        for (old_id, ret) in self.terminal_ret.iter().index::<TokenId>() {
+            if *ret {
+                if old_id != new_id {
+                    remap.insert(old_id, new_id);
+                }
+                new_id += 1;
+            }
+        }
+        for (reserved_id, new_id) in std::mem::take(&mut self.terminal_remap) {
+            let new_new_id = remap.get(&new_id).cloned().unwrap_or(new_id); // takes new remap into account
+            remap.insert(reserved_id, new_new_id);
+        }
 
         // Remaps the token IDs
-        println!("Remap:{}", self.remap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", "));
+        {
+            let mut bremap = BTreeMap::<TokenId, TokenId>::new();
+            bremap.extend(remap.iter().map(|(a, b)| (*a, *b)));
+            println!("Remap:{}", bremap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", "));
+        }
         for tree in self.terminals.iter_mut() {
             // changes all the temporary references since that first one
             for mut node in tree.iter_depth_simple_mut() {
                 let x: &mut ReType = node.get_mut_type();
                 if let ReType::End(ref mut term) = x {
                     if let ActionOption::Token(old_id) = term.action {
-                        if let Some(new_id) = self.remap.get(&old_id) {
+                        if let Some(new_id) = remap.get(&old_id) {
                             term.action = ActionOption::Token(*new_id);
                         }
                     }
                 }
             }
         }
+        self.terminal_remap = remap;
 
         // TODO: remap the modes...
         if self.verbose {
@@ -355,7 +383,7 @@ impl LexiParserListener for LexiListener {
                     let Some(ref mut action) = action_maybe else { panic!() };
                     action.option = LexActionOption::Token(rule_id)
                 }
-                self.remap.insert(*reserved_id, rule_id);
+                self.terminal_remap.insert(*reserved_id, rule_id);
                 *reserved_id = rule_id;
                 true
             } else {
@@ -383,6 +411,7 @@ impl LexiParserListener for LexiListener {
                         root = new_root;
                     }
                     let terminal = rule_action.to_terminal(Some(rule_id)).unwrap();
+                    let ret = was_reserved || matches!(terminal.action, ActionOption::Token(tid) if tid == rule_id);
                     rule.add(Some(root), ReNode::end(terminal));
                     // if let Some(rule_id0) = existing_rule_id {
                     //     self.terminals[rule_id0 as usize] = rule;
@@ -391,7 +420,7 @@ impl LexiParserListener for LexiListener {
                     // } else {
                     self.terminals.push(rule);
                     self.terminal_literals.push(const_literal);
-                    self.terminal_ret.push(was_reserved || matches!(rule_action, LexAction { option: LexActionOption::Token(id), .. } if id == rule_id));
+                    self.terminal_ret.push(ret);
                     self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
                     // }
                 }
