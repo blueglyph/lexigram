@@ -291,7 +291,6 @@ impl LexiParserListener for LexiListener {
             let Some(RuleType::Terminal(reserved_id)) = self.rules.get_mut(id) else { panic!("cannot find reserved {id}") };
             let rule_id = self.terminals.len();
             if *reserved_id as usize >= rule_id {
-                // TODO: change past references
                 let rule_id = rule_id as TokenId; // safe
                 if self.verbose { println!("reserved {id} ({reserved_id}) wasn't an existing terminal, creating one in {rule_id}"); }
                 self.terminal_remap.insert(*reserved_id, rule_id);
@@ -299,7 +298,6 @@ impl LexiParserListener for LexiListener {
                 self.terminal_literals.push(None);
                 self.terminal_ret.push(true);
                 *reserved_id = rule_id;
-                // self.mode_terminals.get_mut( which mode? ).unwrap().end += 1;}
             }
         }
 
@@ -412,7 +410,6 @@ impl LexiParserListener for LexiListener {
                         "collision between token IDs and reserved IDs: {} > {reserved_id} (for {id})", self.terminals.len());
                 let RuleType::Terminal(rule_id) = rule_type else { panic!() };
                 if self.verbose { println!("terminal {id} was reserved by {first_ref_id} as {reserved_id}; will now be {rule_id}"); }
-                // assert_ne!(*first_ref_id, rule_id, "-> Type({id}) pointing to itself"); // FIXME: should we simply handle this?
                 if *first_ref_id == rule_id {
                     // type(T) pointing at itself
                     if self.verbose { println!("    (so it was actually pointing at itself)"); }
@@ -449,16 +446,10 @@ impl LexiParserListener for LexiListener {
                     let terminal = rule_action.to_terminal(Some(rule_id)).unwrap();
                     let ret = was_reserved || matches!(terminal.action, ActionOption::Token(tid) if tid == rule_id);
                     rule.add(Some(root), ReNode::end(terminal));
-                    // if let Some(rule_id0) = existing_rule_id {
-                    //     self.terminals[rule_id0 as usize] = rule;
-                    //     self.terminal_literals[rule_id0 as usize] = const_literal;
-                    //     self.terminal_ret[rule_id0 as usize] = true;
-                    // } else {
                     self.terminals.push(rule);
                     self.terminal_literals.push(const_literal);
                     self.terminal_ret.push(ret);
                     self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
-                    // }
                 }
             }
             if !was_reserved {
@@ -505,17 +496,9 @@ impl LexiParserListener for LexiListener {
                         let reserved_token = TokenId::MAX - self.terminal_reserved.len() as TokenId;
                         let token = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
                         self.terminal_reserved.insert(id.clone(), token);           // first reference (this terminal rule)
-                        println!("-> type({id}) : reserved ID {reserved_token}");
+                        if self.verbose { println!("-> type({id}) : reserved ID {reserved_token}"); }
                         self.rules.insert(id, RuleType::Terminal(reserved_token));  // temporary token ID
                         reserved_token
-
-                        // let token = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
-                        // self.rules.insert(id, RuleType::Terminal(token));
-                        // self.terminals.push(VecTree::new());
-                        // self.terminal_literals.push(None);
-                        // self.terminal_ret.push(false);
-                        // self.mode_terminals.get_mut(self.curr_mode as usize).unwrap().end += 1;
-                        // token
                     }
                     Some(rule) => {
                         if let RuleType::Terminal(token) = rule {

@@ -141,6 +141,7 @@ impl<R: Read> TestLexi<R> {
 
 mod simple {
     use std::collections::BTreeMap;
+    use std::hint::black_box;
     use std::io::Cursor;
     use rlexer::{branch, btreemap, term};
     use rlexer::dfa::{print_dfa, tree_to_string, ActionOption, ReType};
@@ -249,20 +250,20 @@ mod simple {
                 ],
                 btreemap![
                     6 => term!(skip) + term!(push 1) + term!(pushst 1), 7 => term!(more) + term!(mode 3) + term!(pushst 5),
-                    8 => term!(skip) + term!(push 2) + term!(pushst 3), 9 => term!(skip), 10 => term!(=5), 11 => term!(skip) + term!(pop),
-                    12 => term!(=6) + term!(#1), 13 => term!(skip), 14 => term!(=9), 15 => term!(skip) + term!(pop), 16 => term!(skip),
-                    17 => term!(more), 18 => term!(more), 19 => term!(=10) + term!(mode 0) + term!(pushst 0)
+                    8 => term!(skip) + term!(push 2) + term!(pushst 3), 9 => term!(skip), 10 => term!(=0), 11 => term!(skip) + term!(pop),
+                    12 => term!(=1) + term!(#1), 13 => term!(skip), 14 => term!(=2), 15 => term!(skip) + term!(pop), 16 => term!(skip),
+                    17 => term!(more), 18 => term!(more), 19 => term!(=3) + term!(mode 0) + term!(pushst 0)
                ], vec![
                 (
                     "<a,A,\t_, 0><b><><?c,C,\t_, 1?><?d?><??>[0,\t1, 2][3][]",
                     vec![
-                        (0, 5, "a"), (0, 5, "A"), (0, 5, "_"), (0, 5, "0"), (0, 5, "b"), (0, 9, "c"), (0, 9, "C"),
-                        (0, 9, "_"), (0, 9, "1"), (0, 9, "d"), (0, 10, "[0,1,2]"), (0, 10, "[3]"), (0, 10, "[]")
+                        (0, 0, "a"), (0, 0, "A"), (0, 0, "_"), (0, 0, "0"), (0, 0, "b"), (0, 2, "c"), (0, 2, "C"),
+                        (0, 2, "_"), (0, 2, "1"), (0, 2, "d"), (0, 3, "[0,1,2]"), (0, 3, "[3]"), (0, 3, "[]")
                     ]
                 ),
                 (
                     "<a@1,b@my_b_1>",
-                    vec![(0, 5, "a"), (1, 6, "@1"), (0, 5, "b"), (1, 6, "@my_b_1")]
+                    vec![(0, 0, "a"), (1, 1, "@1"), (0, 0, "b"), (1, 1, "@my_b_1")]
                 )
                 ]
             ),
@@ -451,7 +452,7 @@ mod simple {
              btreemap![0 => 1, 2 => 0, 4 => 2, 5 => 2, 6 => 3, 7 => 4, 9 => 8, 10 => 6, 11 => 7, 12 => 5, 13 => 6, 14 => 9, 15 => 11, 16 => 10],
             ),
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const JUST_SHOW_ANSWERS: bool = false;
 
         for (test_id, (input, expected_sym, expected_end)) in tests.into_iter().enumerate() {
@@ -495,12 +496,8 @@ mod simple {
                 assert_eq!(result_sym, expected_sym, "{text}: symbol table");
                 assert_eq!(result_end, expected_end, "{text}: end values");
             }
-            let _dfa = listener.make_dfa().optimize();
-
-            // if VERBOSE {
-            //     println!("Final optimized Dfa:");
-            //     print_dfa(&_dfa, 20);
-            // }
+            // checks that the Dfa can be built and optimized
+            black_box(listener.make_dfa().optimize());
         }
     }
 }
