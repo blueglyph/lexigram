@@ -11,6 +11,7 @@ use rlexer::dfa::ReNode;
 use rlexer::log::Logger;
 use rlexer::{hashmap, node, segments, CollectJoin, General};
 use rlexer::segments::Segments;
+use rlexer::symbol_table::SymbolTable;
 use crate::action;
 use crate::out::lexiparser::lexiparser::*;
 use crate::out::lexiparser::lexiparser_types::*;
@@ -152,6 +153,22 @@ impl LexiListener {
         sorted_modes
     }
 
+    fn build_symbol_table(&self) -> SymbolTable {
+        let mut table = SymbolTable::new();
+        let num_ret = self.terminal_ret.iter().filter(|&ret| *ret).count();
+        let mut symbols = vec![(String::new(), None); num_ret];
+        for (s, rt) in &self.rules {
+            if let RuleType::Terminal(id) = rt {
+                if self.terminal_ret[*id as usize] {
+                    let final_token_id = *self.terminal_remap.get(id).unwrap_or(id);
+                    symbols[final_token_id as usize] = (s.clone(), self.terminal_literals[*id as usize].clone())
+                }
+            };
+        }
+        table.extend_terminals(symbols);
+        table
+    }
+
     fn make_dfa(&mut self) -> Dfa<General> {
         const VERBOSE: bool = false;
         let num_t = self.terminals.len();
@@ -190,15 +207,17 @@ impl LexiListener {
     }
 
     fn rules_to_string(&self, indent: usize) -> String {
-        let mut cols = vec![vec!["      type".to_string(), "name".to_string(), "tree".to_string(), "lit".to_string(), "ret".to_string(), "token".to_string()]];
+        let mut cols = vec![vec!["      type".to_string(), "name".to_string(), "tree".to_string(), "lit".to_string(),
+                                 "ret".to_string(), "token".to_string(), "end".to_string()]];
         let mut rules = self.rules.iter().to_vec();
         rules.sort_by(|a, b| (&a.1, &a.0).cmp(&(&b.1, &b.0)));
         // rules.sort_by_key(|(s, rt)| (rt, s));
         for (i, (s, rt)) in rules.into_iter().enumerate() {
-            let (t, lit, ret, sym_maybe) = match rt {
+            let (t, lit, ret, sym_maybe, end_maybe) = match rt {
                 RuleType::Fragment(id) => (
                     self.fragments.get(*id as usize).unwrap(),
                     self.fragment_literals.get(*id as usize).unwrap(),
+                    None,
                     None,
                     None
                 ),
@@ -208,7 +227,16 @@ impl LexiListener {
                         self.terminals.get(*id as usize).expect(&format!("no item {id}")),
                         self.terminal_literals.get(*id as usize).expect(&format!("no item {id}")),
                         Some(ret),
-                        if ret { Some(self.terminal_remap.get(&(*id as TokenId)).unwrap_or(id)) } else { None }
+                        if ret { Some(self.terminal_remap.get(&(*id as TokenId)).unwrap_or(id)) } else { None },
+                        self.terminals[*id as usize].iter_depth_simple().find_map(|n|
+                            // unfortunately, we can't destructure entirely because term is a Box
+                            if let ReType::End(term) = n.get_type() {
+                                if let ActionOption::Token(end) = term.action { Some(end) } else { None }
+                            } else {
+                                None
+                            }
+                        )
+
                     )
                 },
             };
@@ -218,6 +246,7 @@ impl LexiListener {
                            format!("{lit:?}"),
                            format!("{}", if let Some(b) = ret { b.to_string() } else { String::new() }),
                            if let Some(sym) = sym_maybe { format!("{s} = {sym}") } else { String::new() },
+                           if let Some(end) = end_maybe { format!(" {end} ") } else { String::new() },
             ]);
         }
         let mut cols_out = rlexer::columns_to_str(cols, None);

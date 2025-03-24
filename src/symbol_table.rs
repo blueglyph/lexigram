@@ -74,12 +74,26 @@ impl SymbolTable {
         }
     }
 
+    pub fn add_terminal<J: Into<String>>(&mut self, name: J, name_maybe: Option<J>) -> TokenId {
+        let token = self.t.len();
+        assert!(token < TokenId::MAX as usize);
+        self.t.push((name.into(), name_maybe.map(|n| n.into())));
+        token as TokenId
+    }
+
     pub fn get_terminals(&self) -> &[(String, Option<String>)] {
         &self.t
     }
 
     pub fn extend_terminals<I: IntoIterator<Item=(J, Option<J>)>, J: Into<String>>(&mut self, iter: I) {
         self.t.extend(iter.into_iter().map(|(s, maybe)| (s.into(), maybe.map(|s2| s2.into()))));
+    }
+
+    pub fn add_non_terminal<J: Into<String>>(&mut self, name: J) -> VarId {
+        let var = self.nt.len();
+        assert!(var < VarId::MAX as usize);
+        self.nt.push(name.into());
+        var as VarId
     }
 
     pub fn get_non_terminals(&self) -> &[String] {

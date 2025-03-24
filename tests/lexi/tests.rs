@@ -72,6 +72,34 @@ const TXT4: &str = r#"
     F: 'f';
 "#;
 
+const TXT5: &str = r#"
+    lexicon E;
+    fragment X1: 'abc';
+    R: 'a' -> type(P);
+    Q: 'b' -> skip;
+    P: 'c' -> type(R);
+    O: 'd' -> skip;
+    N: 'e' -> type(O);
+    M: 'f' -> type(O);
+    L: 'g' -> type(M);
+    K: 'h';
+    J: 'i' -> mode(ONE), skip;
+    I: 'j' -> type(E);
+    fragment X0: 'def';
+    H: 'k';
+
+    mode ONE;
+    fragment Y0: 'ghi';
+    G: 'l';
+    F: 'm' -> type(I);
+    E: 'n' -> type(H);
+    D: 'o' -> type(C);
+    C: 'p' -> type(A);
+    fragment Y1: 'jkl';
+    B: 'q' -> mode(DEFAULT_MODE);
+    A: 'r' -> skip;
+"#;
+
 struct TestLexi<R: Read> {
     lexilexer: Lexer<R>,
     lexiparser: Parser,
@@ -112,9 +140,10 @@ impl<R: Read> TestLexi<R> {
 }
 
 mod simple {
+    use std::collections::BTreeMap;
     use std::io::Cursor;
     use rlexer::{branch, btreemap, term};
-    use rlexer::dfa::{print_dfa, tree_to_string};
+    use rlexer::dfa::{print_dfa, tree_to_string, ActionOption, ReType};
     use rlexer::io::CharReader;
     use rlexer::lexer::LexerError;
     use rlexer::lexergen::LexerGen;
@@ -401,14 +430,31 @@ mod simple {
     #[test]
     fn listener_data() {
         let tests = vec![
-            // TXT1,
-            TXT2,
-            TXT3,
-            TXT4,
+            (TXT1,
+             vec!["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"],
+             btreemap![0 => 0, 1 => 1, 2 => 2, 3 => 3, 4 => 4, 5 => 5, 6 => 6, 7 => 7, 8 => 8, 9 => 9, 10 => 10, 11 => 11, 12 => 12],
+            ),
+            (TXT2,
+             vec!["TAG", "REF_TAG", "SPEC", "ARRAY"],
+             btreemap![5 => 0, 6 => 1, 9 => 2, 10 => 3],
+            ),
+            (TXT3,
+             vec!["A", "ID", "B"],
+             btreemap![0 => 1, 1 => 0, 2 => 1, 3 => 2],
+            ),
+            (TXT4,
+             vec!["B", "D", "E", "F"],
+             btreemap![0 => 1, 1 => 0, 3 => 1, 4 => 2, 5 => 3],
+            ),
+            (TXT5,
+             vec!["R", "P", "O", "M", "K", "I", "H", "G", "E", "C", "B", "A"],
+             btreemap![0 => 1, 2 => 0, 4 => 2, 5 => 2, 6 => 3, 7 => 4, 9 => 8, 10 => 6, 11 => 7, 12 => 5, 13 => 6, 14 => 9, 15 => 11, 16 => 10],
+            ),
         ];
         const VERBOSE: bool = true;
+        const JUST_SHOW_ANSWERS: bool = false;
 
-        for (test_id, input) in tests.into_iter().enumerate() {
+        for (test_id, (input, expected_sym, expected_end)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
             let mut lexi = TestLexi::new();
@@ -425,7 +471,32 @@ mod simple {
             if VERBOSE {
                 println!("Rules lexicon {}:\n{}", listener.name, listener.rules_to_string(0));
             }
+            let symbol_table = listener.build_symbol_table();
+            let expected_sym = expected_sym.into_iter().map(|s| s.to_string()).to_vec();
+            let result_sym = symbol_table.get_terminals().iter().map(|(s, _)| s.to_string()).to_vec();
+            let result_end = listener.terminals.iter().enumerate().filter_map(|(id, t)| {
+                t.iter_depth_simple().find_map(|n|
+                    // unfortunately, we can't destructure entirely because term is a Box
+                    if let ReType::End(term) = n.get_type() {
+                        if let ActionOption::Token(end) = term.action {
+                            Some((id, end))
+                        } else {
+                            None
+                        }
+                    } else {
+                        None
+                    }
+                )
+            }).collect::<BTreeMap<_,_>>();
+            if JUST_SHOW_ANSWERS {
+                println!("             vec![{}],", result_sym.iter().map(|s| format!("\"{s}\"")).join(", "));
+                println!("             btreemap![{}],", result_end.iter().map(|(k, v)| format!("{k} => {v}")).join(", "));
+            } else {
+                assert_eq!(result_sym, expected_sym, "{text}: symbol table");
+                assert_eq!(result_end, expected_end, "{text}: end values");
+            }
             let _dfa = listener.make_dfa().optimize();
+
             // if VERBOSE {
             //     println!("Final optimized Dfa:");
             //     print_dfa(&_dfa, 20);
