@@ -179,7 +179,7 @@ impl LexiListener {
             }
             if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
             let mut dfa_builder = DfaBuilder::from_re(tree);
-            assert!(dfa_builder.num_errors() == 0, "failed to compile mode {mode_id}");
+            assert_eq!(dfa_builder.num_errors(), 0, "failed to compile mode {mode_id}");
             dfas.push((*mode_id as ModeId, dfa_builder.build()));
             if VERBOSE { rlexer::dfa::print_dfa(&dfas[dfas.len() - 1].1, 5); }
         }
@@ -254,15 +254,17 @@ impl Debug for LexiListener {
 
 impl LexiParserListener for LexiListener {
     fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
-        if self.verbose { println!("- exit_file({_ctx:?})"); }
-        println!("terminal_reserved: {:?}", self.terminal_reserved);
+        if self.verbose {
+            println!("- exit_file({_ctx:?})");
+            println!("terminal_reserved: {:?}", self.terminal_reserved);
+        }
         for (id, _first_id) in &self.terminal_reserved {
             let Some(RuleType::Terminal(reserved_id)) = self.rules.get_mut(id) else { panic!("cannot find reserved {id}") };
             let rule_id = self.terminals.len();
             if *reserved_id as usize >= rule_id {
                 // TODO: change past references
                 let rule_id = rule_id as TokenId; // safe
-                println!("reserved {id} ({reserved_id}) wasn't an existing terminal, creating one in {rule_id}");
+                if self.verbose { println!("reserved {id} ({reserved_id}) wasn't an existing terminal, creating one in {rule_id}"); }
                 self.terminal_remap.insert(*reserved_id, rule_id);
                 self.terminals.push(VecTree::new());
                 self.terminal_literals.push(None);
@@ -289,7 +291,7 @@ impl LexiParserListener for LexiListener {
         }
 
         // Remaps the token IDs
-        {
+        if self.verbose {
             let mut bremap = BTreeMap::<TokenId, TokenId>::new();
             bremap.extend(remap.iter().map(|(a, b)| (*a, *b)));
             println!("Remap:{}", bremap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", "));
@@ -380,11 +382,11 @@ impl LexiParserListener for LexiListener {
                 assert!(self.terminals.len() <= *reserved_id as usize,
                         "collision between token IDs and reserved IDs: {} > {reserved_id} (for {id})", self.terminals.len());
                 let RuleType::Terminal(rule_id) = rule_type else { panic!() };
-                println!("terminal {id} was reserved by {first_ref_id} as {reserved_id}; will now be {rule_id}");
+                if self.verbose { println!("terminal {id} was reserved by {first_ref_id} as {reserved_id}; will now be {rule_id}"); }
                 // assert_ne!(*first_ref_id, rule_id, "-> Type({id}) pointing to itself"); // FIXME: should we simply handle this?
                 if *first_ref_id == rule_id {
                     // type(T) pointing at itself
-                    println!("    (so it was actually pointing at itself)");
+                    if self.verbose { println!("    (so it was actually pointing at itself)"); }
                     let Some(ref mut action) = action_maybe else { panic!() };
                     action.option = LexActionOption::Token(rule_id)
                 }
