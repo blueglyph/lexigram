@@ -195,24 +195,29 @@ impl LexiListener {
         rules.sort_by(|a, b| (&a.1, &a.0).cmp(&(&b.1, &b.0)));
         // rules.sort_by_key(|(s, rt)| (rt, s));
         for (i, (s, rt)) in rules.into_iter().enumerate() {
-            let (t, lit, ret) = match rt {
+            let (t, lit, ret, sym_maybe) = match rt {
                 RuleType::Fragment(id) => (
                     self.fragments.get(*id as usize).unwrap(),
                     self.fragment_literals.get(*id as usize).unwrap(),
+                    None,
                     None
                 ),
-                RuleType::Terminal(id) => (
-                    self.terminals.get(*id as usize).expect(&format!("no item {id}")),
-                    self.terminal_literals.get(*id as usize).expect(&format!("no item {id}")),
-                    Some(*self.terminal_ret.get(*id as usize).expect(&format!("no item {id}")))
-                ),
+                RuleType::Terminal(id) => {
+                    let ret = *self.terminal_ret.get(*id as usize).expect(&format!("no item {id}"));
+                    (
+                        self.terminals.get(*id as usize).expect(&format!("no item {id}")),
+                        self.terminal_literals.get(*id as usize).expect(&format!("no item {id}")),
+                        Some(ret),
+                        if ret { Some(self.terminal_remap.get(&(*id as TokenId)).unwrap_or(id)) } else { None }
+                    )
+                },
             };
             cols.push(vec![format!("[{i:3}] {rt:?}"),
                            format!("{s}"),
                            format!("{}", tree_to_string(t, None, true)),
                            format!("{lit:?}"),
                            format!("{}", if let Some(b) = ret { b.to_string() } else { String::new() }),
-                           if ret.unwrap_or(false) { format!("{s} = {}", self.terminal_remap.get(&(i as TokenId)).unwrap_or(&(i as TokenId))) } else { String::new() },
+                           if let Some(sym) = sym_maybe { format!("{s} = {sym}") } else { String::new() },
             ]);
         }
         let mut cols_out = rlexer::columns_to_str(cols, None);
@@ -483,6 +488,7 @@ impl LexiParserListener for LexiListener {
                     }
                     Some(rule) => {
                         if let RuleType::Terminal(token) = rule {
+                            self.terminal_ret[*token as usize] = true;
                             *token as TokenId
                         } else {
                             panic!("{id} is not a terminal; it's a fragment")   // FIXME: manage errors (may panic)
