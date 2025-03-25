@@ -124,6 +124,10 @@ impl<R: Read> TestLexi<R> {
         }
     }
 
+    fn get_listener(&self) -> &LexiListener {
+        self.wrapper.get_listener()
+    }
+
     fn build(&mut self, lexicon: CharReader<R>) -> Result<(), ParserError> {
         self.lexilexer.attach_stream(lexicon);
         let mut result_tokens = 0;
@@ -135,7 +139,12 @@ impl<R: Read> TestLexi<R> {
                 println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
             }
         });
-        self.lexiparser.parse_stream(&mut self.wrapper, tokens)
+        let result = self.lexiparser.parse_stream(&mut self.wrapper, tokens);
+        if self.wrapper.get_listener().log.num_errors() > 0 {
+            Err(ParserError::EncounteredErrors)
+        } else {
+            result
+        }
     }
 }
 
@@ -530,7 +539,11 @@ mod stability {
         if VERBOSE {
             let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
             if !msg.is_empty() {
-                println!("Messages:\n{msg}");
+                println!("Parser messages:\n{msg}");
+            }
+            let msg = lexi.get_listener().log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+            if !msg.is_empty() {
+                println!("Listener messages:\n{msg}");
             }
         }
         assert_eq!(result, Ok(()), "couldn't parse the lexicon");

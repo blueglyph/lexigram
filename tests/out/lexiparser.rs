@@ -454,6 +454,10 @@ pub(crate) mod lexiparser {
             ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
         pub fn get_mut_listener(&mut self) -> &mut T {
             &mut self.listener
         }
