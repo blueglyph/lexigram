@@ -43,9 +43,9 @@ Type            : 'type';
 Channel         : 'channel';
 SymEof          : 'EOF';
 
-Comment         : BlockComment              -> skip;
-LineComment     : LineComment               -> skip;
-WhiteSpace      : [ \n\r\t]+                -> skip;
+SComment        : BlockComment              -> skip;
+SLineComment    : LineComment               -> skip;
+SWhiteSpace     : [ \n\r\t]+                -> skip;
 
 Id              : [a-zA-Z][a-zA-Z_0-9]*;
 
