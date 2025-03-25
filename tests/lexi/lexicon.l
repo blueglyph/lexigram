@@ -1,56 +1,56 @@
 lexicon LexiLexer;
 
-fragment BlockComment	: '/*' .*? '*/';
-fragment LineComment	: '//' ~[\r\n]*;
-fragment HexDigit		: [0-9a-fA-F];
-fragment UnicodeEsc		: 'u{' HexDigit+ '}';
-fragment EscChar		: '\\' ([nrt'\\] | UnicodeEsc);
-fragment Char			: EscChar | ~[\n\r\t'\\];
-fragment CharLiteral	: '\'' Char '\'';
-fragment StrLiteral		: '\'' Char Char+ '\'';
+fragment BlockComment   : '/*' .*? '*/';
+fragment LineComment    : '//' ~[\r\n]*;
+fragment HexDigit       : [0-9a-fA-F];
+fragment UnicodeEsc     : 'u{' HexDigit+ '}';
+fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
+fragment Char           : EscChar | ~[\n\r\t'\\];
+fragment CharLiteral    : '\'' Char '\'';
+fragment StrLiteral     : '\'' Char Char+ '\'';
 
 // Char inside a '[' ']' set
-fragment EscSetChar		: '\\' ([nrt\\[\]\-] | UnicodeEsc);
+fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
 
-ARROW			: '->'; /* // first token // */
-COLON			: ':';
-COMMA			: ',';
-DOT             : '.';
-ELLIPSIS		: '..';
-LBRACKET    	: '{';
-LSBRACKET       : '[';
-LPAREN			: '(';
-NEGATE			: '~';
-MINUS           : '-';
-PLUS			: '+';
-OR				: '|';
-QUESTION		: '?';
-RBRACKET    	: '}';
-RSBRACKET       : ']';
-RPAREN			: ')';
-SEMICOLON		: ';';
-STAR			: '*';
+Arrow           : '->'; /* // first token // */
+Colon           : ':';
+Comma           : ',';
+Dot             : '.';
+Ellipsis        : '..';
+Lbracket        : '{';
+LSbracket       : '[';
+Lparen          : '(';
+Negate          : '~';
+Minus           : '-';
+Plus            : '+';
+Or              : '|';
+Question        : '?';
+Rbracket        : '}';
+RSbracket       : ']';
+Rparen          : ')';
+Semicolon       : ';';
+Star            : '*';
 
-CHANNELS		: 'channels';
-FRAGMENT		: 'fragment';
-LEXICON			: 'lexicon';
-MODE			: 'mode';
-POP				: 'pop';
-PUSH			: 'push';
-MORE			: 'more';
-SKiP			: 'skip';
-TYPE            : 'type';
-CHANNEL         : 'channel';
-SYM_EOF			: 'EOF';
+Channels        : 'channels';
+Fragment        : 'fragment';
+Lexicon         : 'lexicon';
+Mode            : 'mode';
+Pop             : 'pop';
+Push            : 'push';
+More            : 'more';
+Skip            : 'skip';
+Type            : 'type';
+Channel         : 'channel';
+SymEof          : 'EOF';
 
-COMMENT			: BlockComment 				-> skip;
-LINECOMMENT		: LineComment				-> skip;
-WHITESPACE		: [ \n\r\t]+				-> skip;
+Comment         : BlockComment              -> skip;
+LineComment     : LineComment               -> skip;
+WhiteSpace      : [ \n\r\t]+                -> skip;
 
-ID				: [a-zA-Z][a-zA-Z_0-9]*;
+Id              : [a-zA-Z][a-zA-Z_0-9]*;
 
-CHAR_LIT		: CharLiteral;
-STR_LIT			: StrLiteral;
+CharLit         : CharLiteral;
+StrLit          : StrLiteral;
 
-FIXED_SET       : ('\\w' | '\\d');
-SET_CHAR        : (EscSetChar | ~[\n\r\t\\\]\-]);
+FixedSet        : ('\\w' | '\\d');
+SetChar         : (EscSetChar | ~[\n\r\t\\\]\-]);
