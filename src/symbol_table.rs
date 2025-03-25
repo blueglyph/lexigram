@@ -85,6 +85,10 @@ impl SymbolTable {
         &self.t
     }
 
+    pub fn get_num_t(&self) -> usize {
+        self.t.len()
+    }
+
     pub fn extend_terminals<I: IntoIterator<Item=(J, Option<J>)>, J: Into<String>>(&mut self, iter: I) {
         self.t.extend(iter.into_iter().map(|(s, maybe)| (s.into(), maybe.map(|s2| s2.into()))));
     }

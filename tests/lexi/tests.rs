@@ -515,7 +515,6 @@ mod stability {
     const LEXILEXER_FILENAME: &str = "tests/out/lexilexer.rs";
     const LEXILEXER_TAG: &str = "lexilexer";
 
-    #[ignore]
     #[test]
     fn lexilexer() {
         const VERBOSE: bool = true;
@@ -536,6 +535,11 @@ mod stability {
         }
         assert_eq!(result, Ok(()), "couldn't parse the lexicon");
         let mut listener = lexi.wrapper.listener();
+        let symbol_table = listener.build_symbol_table();
+        if VERBOSE {
+            println!("Rules lexicon {}:\n{}", listener.name, listener.rules_to_string(0));
+
+        }
 
         // - builds the dfa from the reg tree
         let dfa = listener.make_dfa().optimize();
@@ -544,6 +548,11 @@ mod stability {
         let mut lexgen = LexerGen::new();
         lexgen.max_utf8_chars = 0;
         lexgen.from_dfa(dfa);
+        lexgen.symbol_table = Some(symbol_table);
+        let sym_src = lexgen.build_symbols_source_code(4).expect("symbol source code");
+        if VERBOSE {
+            println!("Terminals:\n{sym_src}");
+        }
 
         let result_src = lexgen.build_source_code(4);
         let expected_src = get_tagged_source(LEXILEXER_FILENAME, LEXILEXER_TAG).unwrap_or(String::new());

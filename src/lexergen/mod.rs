@@ -11,6 +11,7 @@ use crate::{CollectJoin, escape_char, Normalized, indent_source};
 use crate::lexer::Lexer;
 use crate::log::Logger;
 use crate::segments::{Segments, Seg, SegMap};
+use crate::symbol_table::SymbolTable;
 use super::dfa::*;
 
 pub type GroupId = u32;
@@ -28,6 +29,7 @@ pub struct LexerGen {
     pub seg_to_group: SegMap<GroupId>,
     pub state_table: Box<[StateId]>,
     pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
+    pub symbol_table: Option<SymbolTable>,
     log: Logger,
     // internal
     group_partition: Segments,   // for optimization
@@ -46,6 +48,7 @@ impl LexerGen {
             seg_to_group: SegMap::new(),
             state_table: Box::default(),
             terminal_table: Box::default(),
+            symbol_table: None,
             log: Logger::new(),
             group_partition: Segments::empty(),
         }
@@ -161,6 +164,36 @@ impl LexerGen {
         out.write(source.as_bytes())?;
         // write!(out, "{source}");
         Ok(())
+    }
+
+    pub fn build_symbols_source_code(&self, indent: usize) -> Option<String> {
+        self.symbol_table.as_ref().map(|table| {
+            let mut source = Vec::<String>::new();
+            let (max_n, max_option) = table.get_terminals().iter().fold((0, 0), |(n, option), t| {
+                (n.max(t.0.len()), option.max(t.1.as_ref().map_or(0, |o| o.len())))
+            });
+            // Arrow = 0,  // 0
+            // Colon,      // 1
+            source.push("#[repr(u16)]".to_string());
+            source.push("enum T {".to_string());
+            for (i, (n, _option)) in table.get_terminals().iter().enumerate() {
+                source.push(format!("    {n:max_n$}{} // {i}", if i == 0 { " = 0," } else { ",    " }));
+            }
+            source.push("}".to_string());
+            source.push(String::new());
+            // ("Arrow",     Some("->")),          // 0
+            // ("Colon",     Some(":")),           // 1
+            source.push(format!("pub const TERMINALS: [(&str, Option<&str>); {}] = [", table.get_num_t()));
+            for (i, (n, option)) in table.get_terminals().iter().enumerate() {
+                source.push(format!("    (\"{n}\",{:w1$}{}),{:w2$} // {i}",
+                                    "",
+                                    if let Some(o) = option { format!("Some(\"{o}\")") } else { "None".to_string() },
+                                    "",
+                                    w1 = max_n - n.len(), w2 = max_option + 4 - option.as_ref().map_or(0, |o| o.len() + 4)));
+            }
+            source.push("];".to_string());
+            indent_source(vec![source], indent)
+        })
     }
 
     pub fn build_source_code(&self, indent: usize) -> String {

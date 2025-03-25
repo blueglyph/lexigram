@@ -427,6 +427,7 @@ impl LexiParserListener for LexiListener {
         };
         if !was_reserved && self.rules.contains_key(&id) {
             self.log.add_error(format!("Symbol '{id}' is already defined"));
+            self.curr = None;
         } else {
             let mut rule = self.curr.take().unwrap();
             match rule_type {
@@ -521,12 +522,7 @@ impl LexiParserListener for LexiListener {
     }
 
     fn init_match(&mut self) {
-        if self.curr.is_some() {
-            println!("there is a problem");
-            println!();
-
-        }
-        assert!(self.curr.is_none(), "{self:?}");
+        assert!(self.curr.is_none(), "remnant tree in self.curr:\n{self:?}");
         self.curr = Some(VecTree::new());
     }
 
