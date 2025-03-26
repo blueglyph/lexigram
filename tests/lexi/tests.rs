@@ -531,9 +531,23 @@ mod stability {
     const LEXILEXER_FILENAME: &str = "tests/out/lexilexer.rs";
     const LEXILEXER_TAG: &str = "lexilexer";
 
+    #[ignore]
     #[test]
+    /// Checks if lexi can rebuild itself identically from the lexicon (or at least produce the same output
+    /// after rebuilding itself).
+    ///
+    /// Set `REPLACE_SOURCE` to `true`, launch the test, launch the test again.
+    ///
+    /// On the 2nd run, it should be successful (once it runs with the sources it has generated in the first step).
+    ///
+    /// Revert the changes in `lexilexer.rs` after the test.
+    ///
+    /// * This test replaces the source in `lexilexer.rs`, so it must be reverted if something goes wrong.
+    /// * If the terminal list has changed, it must be updated in `src/lexi/mod.rs`, and the parser must be
+    ///   regenerated with the test `lexiparser_source()` in `src/lexi/tests.rs` (a series of other unit tests will
+    ///   have to be fixed, too).
     fn lexilexer() {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         const REPLACE_SOURCE: bool = false;
 
@@ -569,8 +583,9 @@ mod stability {
         lexgen.max_utf8_chars = 0;
         lexgen.from_dfa(dfa);
         lexgen.symbol_table = Some(symbol_table);
-        let sym_src = lexgen.build_symbols_source_code(0).expect("symbol source code");
         if VERBOSE {
+            // terminals to replace in src/lexi/mod.rs (copy/paste)
+            let sym_src = lexgen.build_symbols_source_code(0).expect("symbol source code");
             println!("Terminals:\n{sym_src}");
         }
 
