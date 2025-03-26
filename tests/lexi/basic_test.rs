@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use rlexer::log::{Log, Logger};
+use rlexer::log::{BufLog, Logger};
 use rlexer::segments::Segments;
 use crate::out::lexiparser::lexiparser::*;
 use crate::out::lexiparser::lexiparser_types::*;
@@ -8,14 +8,14 @@ use crate::lexi::LexAction;
 
 struct LexiListener {
     verbose: bool,
-    log: Log
+    log: BufLog
 }
 
 impl LexiListener {
     fn new() -> Self {
         LexiListener {
             verbose: false,
-            log: Log::new()
+            log: BufLog::new()
         }
     }
 }

@@ -8,7 +8,7 @@ use std::ops::{Add, Range};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
 use rlexer::dfa::ReNode;
-use rlexer::log::{Log, Logger};
+use rlexer::log::{BufLog, Logger};
 use rlexer::{hashmap, node, segments, CollectJoin, General};
 use rlexer::segments::Segments;
 use rlexer::symbol_table::SymbolTable;
@@ -118,7 +118,7 @@ struct LexiListener {
     modes: HashMap<String, ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
     mode_terminals: Vec<Range<TokenId>>,
-    log: Log,
+    log: BufLog,
 }
 
 impl LexiListener {
@@ -139,7 +139,7 @@ impl LexiListener {
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
             mode_terminals: vec![0..0],
-            log: Log::new()
+            log: BufLog::new()
         }
     }
 

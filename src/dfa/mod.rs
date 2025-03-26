@@ -6,7 +6,7 @@ use std::marker::PhantomData;
 use std::ops::Add;
 use vectree::VecTree;
 use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized};
-use crate::log::{Log, Logger};
+use crate::log::{BufLog, Logger};
 use crate::segments::{Segments, Seg};
 use crate::take_until::TakeUntilIterator;
 
@@ -280,7 +280,7 @@ pub struct DfaBuilder {
     lazypos: HashMap<Id, HashSet<usize>>,
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
-    log: Log
+    log: BufLog
 }
 
 impl DfaBuilder {
@@ -290,7 +290,7 @@ impl DfaBuilder {
             followpos: HashMap::new(),
             lazypos: HashMap::new(),
             ids: HashMap::new(),
-            log: Log::new()
+            log: BufLog::new()
         }
     }
 
@@ -300,7 +300,7 @@ impl DfaBuilder {
             followpos: HashMap::new(),
             lazypos: HashMap::new(),
             ids: HashMap::new(),
-            log: Log::new()
+            log: BufLog::new()
         };
         builder.preprocess_re();
         builder
@@ -312,7 +312,7 @@ impl DfaBuilder {
     }
 
     #[inline(always)]
-    pub fn get_log(&self) -> &Log {
+    pub fn get_log(&self) -> &BufLog {
         &self.log
     }
 
@@ -685,7 +685,7 @@ impl DfaBuilder {
             dfa.state_graph.insert(new_state_id, map.into_iter().map(|(id, segments)| (segments, id)).collect());
         }
         // transfers all the log messages to the Dfa
-        dfa.log.extend(std::mem::replace(&mut self.log, Log::new()));
+        dfa.log.extend(std::mem::replace(&mut self.log, BufLog::new()));
         dfa
     }
 
@@ -703,7 +703,7 @@ impl DfaBuilder {
             initial_state: Some(init_state),
             end_states: BTreeMap::from_iter(end_states),
             first_end_state: None,
-            log: Log::new(),
+            log: BufLog::new(),
             _phantom: PhantomData
         };
         dfa.first_end_state = dfa.end_states.keys().min().map(|st| *st);
@@ -771,7 +771,7 @@ pub struct Dfa<T> {
     initial_state: Option<StateId>,
     end_states: BTreeMap<StateId, Terminal>,
     first_end_state: Option<StateId>,
-    pub(crate) log: Log,
+    pub(crate) log: BufLog,
     _phantom: PhantomData<T>
 }
 
@@ -782,7 +782,7 @@ impl Dfa<General> {
             initial_state: None,
             end_states: BTreeMap::new(),
             first_end_state: None,
-            log: Log::new(),
+            log: BufLog::new(),
             _phantom: PhantomData
         }
     }

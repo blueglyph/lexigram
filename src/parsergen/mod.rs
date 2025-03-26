@@ -7,7 +7,7 @@ use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
-use crate::log::{Log, Logger};
+use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
 use crate::symbol_table::SymbolTable;
 
@@ -146,7 +146,7 @@ pub struct ParserGen {
     used_libs: StructLibs,
     nt_type: HashMap<VarId, String>,
     nt_extra_info: HashMap<VarId, (String, Vec<String>)>,
-    log: Log
+    log: BufLog
 }
 
 impl ParserGen {

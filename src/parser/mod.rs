@@ -6,7 +6,7 @@ use crate::CollectJoin;
 use crate::dfa::TokenId;
 use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId, FactorId};
 use crate::lexer::{CaretCol, CaretLine};
-use crate::log::{Log, Logger};
+use crate::log::{BufLog, Logger};
 use crate::symbol_table::SymbolTable;
 
 mod tests;
@@ -25,44 +25,6 @@ pub enum OpCode {
 
 #[derive(PartialEq, Debug)]
 pub enum Call { Enter, Loop, Exit, End }
-
-/// Default log system
-pub struct PrintLogger {
-    num_notes: usize,
-    num_warnings: usize,
-    num_errors: usize
-}
-
-impl PrintLogger {
-    pub fn new() -> PrintLogger {
-        PrintLogger { num_notes: 0, num_warnings: 0, num_errors: 0}
-    }
-}
-impl Logger for PrintLogger {
-    fn add_note<T: Into<String>>(&mut self, msg: T) {
-        eprintln!("NOTE: {}", msg.into());
-    }
-
-    fn add_warning<T: Into<String>>(&mut self, msg: T) {
-        eprintln!("WARNING: {}", msg.into());
-    }
-
-    fn add_error<T: Into<String>>(&mut self, msg: T) {
-        eprintln!("ERROR: {}", msg.into());
-    }
-
-    fn num_notes(&self) -> usize {
-        self.num_notes
-    }
-
-    fn num_warnings(&self) -> usize {
-        self.num_warnings
-    }
-
-    fn num_errors(&self) -> usize {
-        self.num_errors
-    }
-}
 
 pub trait Listener {
     /// Calls the listener to execute synthesis or inheritance actions.

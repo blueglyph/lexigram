@@ -7,8 +7,8 @@ use crate::dfa::TokenId;
 use crate::grammar::{ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, T};
 use crate::lexer::{CaretCol, LexerToken};
-use crate::log::{Log, Logger};
-use crate::parser::{Listener, PrintLogger};
+use crate::log::{BufLog, Logger, PrintLog};
+use crate::parser::Listener;
 use crate::parsergen::ParserGen;
 use crate::symbol_table::SymbolTable;
 
@@ -69,7 +69,7 @@ pub mod macros {
 #[test]
 fn parser_parse_stream() {
 
-    struct Stub(Log);
+    struct Stub(BufLog);
     impl Listener for Stub {
         fn get_mut_log(&mut self) -> &mut impl Logger {
             &mut self.0
@@ -137,7 +137,7 @@ fn parser_parse_stream() {
                     }
                 }
             });
-            let mut listener = Stub(Log::new());
+            let mut listener = Stub(BufLog::new());
             let success = match parser.parse_stream(&mut listener, stream) {
                 Ok(_) => {
                     if VERBOSE { println!("parsing completed successfully"); }
@@ -162,7 +162,7 @@ fn parser_parse_stream() {
 #[test]
 fn parser_parse_stream_id() {
 
-    struct Stub(Log);
+    struct Stub(BufLog);
     impl Listener for Stub {
         fn get_mut_log(&mut self) -> &mut impl Logger {
             &mut self.0
@@ -258,7 +258,7 @@ fn parser_parse_stream_id() {
                     }
                 }
             });
-            let mut listener = Stub(Log::new());
+            let mut listener = Stub(BufLog::new());
             let errors = match parser.parse_stream(&mut listener, stream) {
                 Ok(_) => {
                     if VERBOSE { println!("parsing completed successfully"); }
@@ -284,7 +284,7 @@ mod listener {
     use crate::grammar::tests::build_prs;
     use crate::grammar::{FactorId, VarId};
     use crate::lexer::{CaretCol, LexerToken};
-    use crate::log::Log;
+    use crate::log::BufLog;
     use crate::parser::{Call, Listener};
     use super::*;
 
@@ -404,12 +404,12 @@ mod listener {
         result: Vec<String>,
         level: usize,
         verbose: bool,
-        log: Log
+        log: BufLog
     }
 
     impl TestListener {
         pub fn new(verbose: bool) -> Self {
-            Self { result: Vec::new(), level: 0, verbose, log: Log::new() }
+            Self { result: Vec::new(), level: 0, verbose, log: BufLog::new() }
         }
     }
 

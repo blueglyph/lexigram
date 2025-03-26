@@ -9,7 +9,7 @@ use iter_index::IndexerIterator;
 use crate::dfa::print_graph;
 use crate::{CollectJoin, escape_char, Normalized, indent_source};
 use crate::lexer::Lexer;
-use crate::log::Log;
+use crate::log::BufLog;
 use crate::segments::{Segments, Seg, SegMap};
 use crate::symbol_table::SymbolTable;
 use super::dfa::*;
@@ -30,7 +30,7 @@ pub struct LexerGen {
     pub state_table: Box<[StateId]>,
     pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
     pub symbol_table: Option<SymbolTable>,
-    log: Log,
+    log: BufLog,
     // internal
     group_partition: Segments,   // for optimization
 }
@@ -49,13 +49,13 @@ impl LexerGen {
             state_table: Box::default(),
             terminal_table: Box::default(),
             symbol_table: None,
-            log: Log::new(),
+            log: BufLog::new(),
             group_partition: Segments::empty(),
         }
     }
 
     pub fn from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
-        self.log.extend(std::mem::replace(&mut dfa.log, Log::new()));
+        self.log.extend(std::mem::replace(&mut dfa.log, BufLog::new()));
         self.create_input_tables(&dfa);
         self.create_state_tables(&dfa);
     }
