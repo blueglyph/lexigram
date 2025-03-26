@@ -58,7 +58,7 @@ mod listener {
     use std::collections::HashMap;
     use iter_index::IndexerIterator;
     use rlexer::dfa::TokenId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::parser::{Call, ListenerWrapper};
     use rlexer::lexer::CaretCol;
     use rlexer::CollectJoin;
 
@@ -160,7 +160,7 @@ mod listener {
     // `Parser::parse_stream_hook` requires a type implementing `Listener`, but we can only implement
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
-    impl<T: ExprListener> Listener for ListenerWrapper<T> {
+    impl<T: ExprListener> ListenerWrapper for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -375,7 +375,7 @@ mod listener2 {
     use std::str::FromStr;
     use iter_index::IndexerIterator;
     use rlexer::dfa::TokenId;
-    use rlexer::parser::{Call, Listener};
+    use rlexer::parser::{Call, ListenerWrapper};
     use rlexer::CollectJoin;
     use rlexer::lexer::CaretCol;
 
@@ -564,7 +564,7 @@ mod listener2 {
         }
     }
 
-    impl<T: ExprListener> Listener for ListenerWrapper<T> {
+    impl<T: ExprListener> ListenerWrapper for ListenerWrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -994,7 +994,7 @@ mod listener3 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -1056,7 +1056,7 @@ mod listener3 {
             }
         }
 
-        impl<T: StructListener> Listener for ListenerWrapper<T> {
+        impl<T: StructListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -1287,7 +1287,7 @@ mod listener4 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -1348,7 +1348,7 @@ mod listener4 {
             }
         }
 
-        impl<T: StructListener> Listener for ListenerWrapper<T> {
+        impl<T: StructListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -1590,7 +1590,7 @@ mod listener5 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -1653,7 +1653,7 @@ mod listener5 {
             }
         }
 
-        impl<T: ExprListener> Listener for ListenerWrapper<T> {
+        impl<T: ExprListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -1898,7 +1898,7 @@ mod listener6 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -1977,7 +1977,7 @@ mod listener6 {
             }
         }
 
-        impl<T: ExprListener> Listener for ListenerWrapper<T> {
+        impl<T: ExprListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -2224,7 +2224,7 @@ mod listener7 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -2287,7 +2287,7 @@ mod listener7 {
             }
         }
 
-        impl<T: StarListener> Listener for ListenerWrapper<T> {
+        impl<T: StarListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -2498,7 +2498,7 @@ mod listener8 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -2566,7 +2566,7 @@ mod listener8 {
             }
         }
 
-        impl<T: StarListener> Listener for ListenerWrapper<T> {
+        impl<T: StarListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -2793,7 +2793,7 @@ mod listener9 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -2867,7 +2867,7 @@ mod listener9 {
             }
         }
 
-        impl<T: StarListener> Listener for ListenerWrapper<T> {
+        impl<T: StarListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -3104,7 +3104,7 @@ mod listener10 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -3170,7 +3170,7 @@ mod listener10 {
             }
         }
 
-        impl<T: StarListener> Listener for ListenerWrapper<T> {
+        impl<T: StarListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -3383,7 +3383,7 @@ mod listener11 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::{hashmap, s};
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -3460,7 +3460,7 @@ mod listener11 {
             }
         }
 
-        impl<T: StarListener> Listener for ListenerWrapper<T> {
+        impl<T: StarListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -3693,7 +3693,7 @@ mod listener12 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -3757,7 +3757,7 @@ mod listener12 {
             }
         }
 
-        impl<T: LeftRecListener> Listener for ListenerWrapper<T> {
+        impl<T: LeftRecListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);
@@ -4006,7 +4006,7 @@ mod listener13 {
         use rlexer::dfa::TokenId;
         use rlexer::grammar::{FactorId, Symbol, VarId};
         use rlexer::hashmap;
-        use rlexer::parser::{Call, Listener};
+        use rlexer::parser::{Call, ListenerWrapper};
         use rlexer::symbol_table::SymbolTable;
         use rlexer::CollectJoin;
         use rlexer::lexer::CaretCol;
@@ -4070,7 +4070,7 @@ mod listener13 {
             }
         }
 
-        impl<T: ExprListener> Listener for ListenerWrapper<T> {
+        impl<T: ExprListener> ListenerWrapper for ListenerWrapper<T> {
             fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
                 if let Some(mut t_data) = t_data {
                     self.stack_t.append(&mut t_data);

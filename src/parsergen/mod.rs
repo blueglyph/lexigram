@@ -1237,7 +1237,7 @@ impl ParserGen {
         const VERBOSE: bool = false;
 
         self.used_libs.extend([
-            "rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::Listener", "rlexer::grammar::FactorId",
+            "rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::ListenerWrapper", "rlexer::grammar::FactorId",
             "rlexer::log::Logger",
         ]);
 
@@ -1746,7 +1746,7 @@ impl ParserGen {
 
         // Writes the switch() function
         src.add_space();
-        src.push(format!("pub struct ListenerWrapper<T> {{"));
+        src.push(format!("pub struct Wrapper<T> {{"));
         src.push(format!("    verbose: bool,"));
         src.push(format!("    listener: T,"));
         src.push(format!("    stack: Vec<SynValue>,"));
@@ -1754,7 +1754,7 @@ impl ParserGen {
         src.push(format!("    stack_t: Vec<String>,"));
         src.push(format!("}}"));
         src.push(format!(""));
-        src.push(format!("impl<T: {}Listener> Listener for ListenerWrapper<T> {{", self.name));
+        src.push(format!("impl<T: {}Listener> ListenerWrapper for Wrapper<T> {{", self.name));
         src.push(format!("    fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {{"));
         src.push(format!("        if self.verbose {{"));
         src.push(format!("            println!(\"switch: call={{call:?}}, nt={{nt}}, factor={{factor_id}}, t_data={{t_data:?}}\");"));
@@ -1809,9 +1809,9 @@ impl ParserGen {
         src.push(format!("}}"));
 
         src.add_space();
-        src.push(format!("impl<T: {}Listener> ListenerWrapper<T> {{", self.name));
+        src.push(format!("impl<T: {}Listener> Wrapper<T> {{", self.name));
         src.push(format!("    pub fn new(listener: T, verbose: bool) -> Self {{"));
-        src.push(format!("        ListenerWrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
+        src.push(format!("        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
         src.push(format!("    }}"));
         src.push(format!(""));
         src.push(format!("    pub fn get_listener(&self) -> &T {{"));

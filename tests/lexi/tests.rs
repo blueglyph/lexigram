@@ -8,7 +8,7 @@ use rlexer::log::Logger;
 use rlexer::parser::{Parser, ParserError};
 use crate::lexi::LexiListener;
 use crate::out::build_lexer;
-use crate::out::lexiparser::lexiparser::{build_parser, ListenerWrapper};
+use crate::out::lexiparser::lexiparser::{build_parser, Wrapper};
 
 const TXT1: &str = r#"
     lexicon A;
@@ -104,7 +104,7 @@ const TXT5: &str = r#"
 struct TestLexi<R: Read> {
     lexilexer: Lexer<R>,
     lexiparser: Parser,
-    wrapper: ListenerWrapper<LexiListener>
+    wrapper: Wrapper<LexiListener>
 }
 
 #[allow(unused)]
@@ -115,7 +115,7 @@ impl<R: Read> TestLexi<R> {
 
     fn new() -> Self {
         let listener = LexiListener::new();
-        let mut wrapper = ListenerWrapper::new(listener, Self::VERBOSE_WRAPPER);
+        let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
         wrapper.get_mut_listener().set_verbose(Self::VERBOSE_LISTENER);
         let mut lexilexer = build_lexer();
         lexilexer.set_tab_width(4);

@@ -187,7 +187,7 @@ mod tests {
                 let mut parser = build_parser();
                 let mut listener = LexiListener::new();
                 listener.verbose = VERBOSE_LISTENER;
-                let mut wrapper = ListenerWrapper::new(listener, false);
+                let mut wrapper = Wrapper::new(listener, false);
                 wrapper.set_verbose(VERBOSE);
                 let mut result_tokens = 0;
                 let result = match method {

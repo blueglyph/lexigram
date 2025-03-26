@@ -4,7 +4,7 @@ pub(crate) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, Listener, OpCode, Parser}, symbol_table::SymbolTable};
+    use rlexer::{CollectJoin, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, symbol_table::SymbolTable};
     use super::lexiparser_types::*;
 
     const PARSER_NUM_T: usize = 34;
@@ -320,7 +320,7 @@ pub(crate) mod lexiparser {
         fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -328,7 +328,7 @@ pub(crate) mod lexiparser {
         stack_t: Vec<String>,
     }
 
-    impl<T: LexiParserListener> Listener for ListenerWrapper<T> {
+    impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -454,9 +454,9 @@ pub(crate) mod lexiparser {
         }
     }
 
-    impl<T: LexiParserListener> ListenerWrapper<T> {
+    impl<T: LexiParserListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
