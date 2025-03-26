@@ -569,7 +569,7 @@ mod stability {
         lexgen.max_utf8_chars = 0;
         lexgen.from_dfa(dfa);
         lexgen.symbol_table = Some(symbol_table);
-        let sym_src = lexgen.build_symbols_source_code(4).expect("symbol source code");
+        let sym_src = lexgen.build_symbols_source_code(0).expect("symbol source code");
         if VERBOSE {
             println!("Terminals:\n{sym_src}");
         }

@@ -23,7 +23,7 @@ use crate::test_tools::{get_tagged_source, replace_tagged_source};
 pub enum LexerType { Normalized, Optimized }
 
 fn make_dfa() -> Dfa<General> {
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     let regs = build_re();
     let mut dfas = vec![];
     for (n, re) in regs {
@@ -100,10 +100,10 @@ pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
     let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
         (1, vec![
             // no error
-            ("-> : , . .. { ( ~ - + | ? } ) ; * channels fragment lexicon mode pop push more skip type channel [a-z.\\t]",
-             vec![0, 1, 2, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 6, 33, 9, 33, 33, 33, 14],
+            ("-> : , . .. { ( ~ - + | ? } ) ; * channels fragment lexicon mode pop push more skip type channel \\w[a-z.\\t\\w]",
+             vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 30, 31, 33, 8, 33, 33, 33, 30, 32],
              vec!["->", ":", ",", ".", "..", "{", "(", "~", "-", "+", "|", "?", "}", ")", ";", "*",
-                  "channels", "fragment", "lexicon", "mode", "pop", "push", "more", "skip", "type", "channel", "[", "a", "-", "z", ".", "\\t", "]"]),
+                  "channels", "fragment", "lexicon", "mode", "pop", "push", "more", "skip", "type", "channel", "\\w", "[", "a", "-", "z", ".", "\\t", "\\w", "]"]),
         ]),
         (2, vec![(LEXICON, LEXICON_TOKENS.to_vec(), LEXICON_TEXT.to_vec())]),
     ];

@@ -96,63 +96,67 @@ The regular expressions used on the right of the colon, in each matching or frag
 
 ```
 lexicon LexiLexer;
-channels { CH_WHITESPACE, CH_COMMENTS }	// dummy
 
-fragment BlockComment	: '/*' .*? '*/';
-fragment LineComment	: '//' ~[\r\n]*;
-fragment HexDigit		: [0-9a-fA-F];
-fragment UnicodeEsc		: 'u{' HexDigit+ '}';
-fragment EscChar		: '\\' ([nrt'\\] | UnicodeEsc);
-fragment Char			: EscChar | ~[\n\r\t'\\];
-fragment CharLiteral	: '\'' Char '\'';
-fragment StrLiteral		: '\'' Char Char+ '\'';
-fragment FixedSet		: ('\\w' | '\\d');
+fragment BlockComment   : '/*' .*? '*/';
+fragment LineComment    : '//' ~[\r\n]*;
+fragment HexDigit       : [0-9a-fA-F];
+fragment UnicodeEsc     : 'u{' HexDigit+ '}';
+fragment EscChar        : '\\' ([nrt'\\] | UnicodeEsc);
+fragment Char           : EscChar | ~[\n\r\t'\\];
+fragment CharLiteral    : '\'' Char '\'';
+fragment StrLiteral     : '\'' Char Char+ '\'';
+
 // Char inside a '[' ']' set
-fragment EscSetChar		: '\\' ([nrt\\[\]\-] | UnicodeEsc);
-fragment SetChar		: (EscSetChar | ~[\n\r\t\\\]]);
-fragment Letter			: 'a'..'z';  // dummy
-fragment NonLetter		: ~'a'..'z'; // dummy
+fragment EscSetChar     : '\\' ([nrt\\[\]\-] | UnicodeEsc);
 
-ARROW			: '->'; /* // first token // */
-COLON			: ':';
-COMMA			: ',';
-ELLIPSIS		: '..';
-LBRACKET    	: '{';
-LPAREN			: '(';
-NEGATE			: '~';
-PLUS			: '+';
-OR				: '|';
-QUESTION		: '?';
-RBRACKET    	: '}';
-RPAREN			: ')';
-SEMICOLON		: ';';
-STAR			: '*';
+Arrow           : '->'; /* // first token // */
+Colon           : ':';
+Comma           : ',';
+Dot             : '.';
+Ellipsis        : '..';
+Lbracket        : '{';
+Lparen          : '(';
+Negate          : '~';
+Minus           : '-';
+Plus            : '+';
+Or              : '|';
+Question        : '?';
+Rbracket        : '}';
+Rparen          : ')';
+Semicolon       : ';';
+Star            : '*';
 
-CHANNELS		: 'channels';
-FRAGMENT		: 'fragment';
-LEXICON			: 'lexicon';
-MODE			: 'mode';
-POP				: 'pop';
-PUSH			: 'push';
-MORE			: 'more';
-SKiP			: 'skip';
-TYPE            : 'type';
-CHANNEL         : 'channel';
-SYM_EOF			: 'EOF';
+Channels        : 'channels';
+Fragment        : 'fragment';
+Lexicon         : 'lexicon';
+Mode            : 'mode';
+Pop             : 'pop';
+Push            : 'push';
+More            : 'more';
+Skip            : 'skip';
+Type            : 'type';
+Channel         : 'channel';
+SymEof          : 'EOF';
 
-COMMENT			: BlockComment 				-> skip;
-LINECOMMENT		: LineComment				-> skip;
-WHITESPACE		: [ \n\r\t]+				-> skip;
+SComment        : BlockComment              -> skip;
+SLineComment    : LineComment               -> skip;
+SWhiteSpace     : [ \n\r\t]+                -> skip;
 
-ID				: [a-zA-Z][a-zA-Z_0-9]*;
+Id              : [a-zA-Z][a-zA-Z_0-9]*;
 
-CHAR_LIT		: CharLiteral;
+CharLit         : CharLiteral;
+StrLit          : StrLiteral;
 
-CHAR_SET		: '[' (SetChar '-' SetChar | SetChar | FixedSet)+ ']'
-                | '.'
-                | FixedSet;
+FixedSet        : ('\\w' | '\\d');
 
-STR_LIT			: StrLiteral;
+LSbracket       : '['                       -> push(MODE_SET_CHAR);
+
+mode MODE_SET_CHAR;
+
+RSbracket       : ']'                       -> pop;
+Minus2          : '-'                       -> type(Minus);
+SetChar         : (EscSetChar | ~[\n\r\t\\\]\-]);
+FixedSet2       : ('\\w' | '\\d')           -> type(FixedSet);
 ```
 
 ## ANTLR Parser Rules

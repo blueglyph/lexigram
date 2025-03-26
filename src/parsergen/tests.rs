@@ -1318,35 +1318,41 @@ mod wrapper_source {
             //  - option: parent_+_or_* (2048)
             //  - rule: parent_left_fact (32)
             //  - actions: parent_+_or_* (2048)
-            //  - alt_items: parent_left_rec (512)
+            //  - alt_items: parent_+_or_* (2048)
             //  - alt_item: parent_+_or_* | plus (6144)
-            //  - repeat_item: parent_left_fact | parent_left_rec (544)
+            //  - repeat_item: parent_left_fact (32)
             //  - item: right_rec | parent_left_fact (34)
+            //  - char_set: parent_+_or_* | plus (6144)
+            //  - char_set_one: parent_left_fact (32)
             //  - file_1: child_+_or_* (1)
             //  - option_1: child_+_or_* (1)
             //  - actions_1: child_+_or_* (1)
+            //  - alt_items_1: child_+_or_* (1)
             //  - alt_item_1: child_+_or_* | parent_left_fact | plus (4129)
-            //  - alt_items_1: child_left_rec (4)
-            //  - repeat_item_1: child_left_rec | parent_left_fact (36)
+            //  - char_set_1: child_+_or_* | parent_left_fact | plus (4129)
             //  - rule_1: child_left_fact (64)
-            //  - repeat_item_2: child_left_fact (64)
+            //  - repeat_item_1: parent_left_fact | child_left_fact (96)
             //  - item_1: child_left_fact (64)
+            //  - char_set_one_1: child_left_fact (64)
             //  - alt_item_2: child_left_fact (64)
+            //  - char_set_2: child_left_fact (64)
+            //  - repeat_item_2: child_left_fact (64)
             //  - repeat_item_3: child_left_fact (64)
-            //  - repeat_item_4: child_left_fact (64)
             // parents:
             //  - file_1 -> file
             //  - option_1 -> option
             //  - actions_1 -> actions
-            //  - alt_item_1 -> alt_item
             //  - alt_items_1 -> alt_items
-            //  - repeat_item_1 -> repeat_item
+            //  - alt_item_1 -> alt_item
+            //  - char_set_1 -> char_set
             //  - rule_1 -> rule
-            //  - repeat_item_2 -> repeat_item
+            //  - repeat_item_1 -> repeat_item
             //  - item_1 -> item
+            //  - char_set_one_1 -> char_set_one
             //  - alt_item_2 -> alt_item_1
+            //  - char_set_2 -> char_set_1
+            //  - repeat_item_2 -> repeat_item_1
             //  - repeat_item_3 -> repeat_item_1
-            //  - repeat_item_4 -> repeat_item_1
             (RTS(100), 0, btreemap![
                 0 => "SynFile".to_string(),
                 1 => "SynFileItem".to_string(),
@@ -1375,37 +1381,37 @@ mod wrapper_source {
                 2 => symbols![nt 4],                    //  2: file_item -> option                    | ◄2 ►option                    | option
                 3 => symbols![nt 3],                    //  3: file_item -> declaration               | ◄3 ►declaration               | declaration
                 4 => symbols![nt 5],                    //  4: file_item -> rule                      | ◄4 ►rule                      | rule
-                5 => symbols![t 29],                    //  5: header -> lexicon Id ;                 | ◄5 ; Id! lexicon              | Id
-                6 => symbols![t 29],                    //  6: declaration -> mode Id ;               | ◄6 ; Id! mode                 | Id
-                7 => symbols![t 29, nt 16],             //  7: option -> channels { Id option_1 }     | ◄7 } ►option_1 Id! { channels | Id option_1
-                8 => symbols![t 29, nt 8],              //  8: rule -> fragment Id : match ;          | ◄8 ; ►match : Id! fragment    | Id match
+                5 => symbols![t 27],                    //  5: header -> lexicon Id ;                 | ◄5 ; Id! lexicon              | Id
+                6 => symbols![t 27],                    //  6: declaration -> mode Id ;               | ◄6 ; Id! mode                 | Id
+                7 => symbols![t 27, nt 16],             //  7: option -> channels { Id option_1 }     | ◄7 } ►option_1 Id! { channels | Id option_1
+                8 => symbols![t 27, nt 8],              //  8: rule -> fragment Id : match ;          | ◄8 ; ►match : Id! fragment    | Id match
                 9 => symbols![],                        //  9: rule -> Id : match rule_1              | ►rule_1 ►match : Id!          |
                 10 => symbols![nt 7, nt 17],            // 10: actions -> action actions_1            | ◄10 ►actions_1 ►action        | action actions_1
-                11 => symbols![t 29],                   // 11: action -> mode ( Id )                  | ◄11 ) Id! ( mode              | Id
-                12 => symbols![t 29],                   // 12: action -> push ( Id )                  | ◄12 ) Id! ( push              | Id
+                11 => symbols![t 27],                   // 11: action -> mode ( Id )                  | ◄11 ) Id! ( mode              | Id
+                12 => symbols![t 27],                   // 12: action -> push ( Id )                  | ◄12 ) Id! ( push              | Id
                 13 => symbols![],                       // 13: action -> pop                          | ◄13 pop                       |
                 14 => symbols![],                       // 14: action -> skip                         | ◄14 skip                      |
                 15 => symbols![],                       // 15: action -> more                         | ◄15 more                      |
-                16 => symbols![t 29],                   // 16: action -> type ( Id )                  | ◄16 ) Id! ( type              | Id
-                17 => symbols![t 29],                   // 17: action -> channel ( Id )               | ◄17 ) Id! ( channel           | Id
+                16 => symbols![t 27],                   // 16: action -> type ( Id )                  | ◄16 ) Id! ( type              | Id
+                17 => symbols![t 27],                   // 17: action -> channel ( Id )               | ◄17 ) Id! ( channel           | Id
                 18 => symbols![nt 9],                   // 18: match -> alt_items                     | ◄18 ►alt_items                | alt_items
                 19 => symbols![nt 10, nt 18],           // 19: alt_items -> alt_item alt_items_1      | ◄19 ►alt_items_1 ►alt_item    | alt_item alt_items_1
                 20 => symbols![nt 19],                  // 20: alt_item -> alt_item_1                 | ◄20 ►alt_item_1               | alt_item_1
                 21 => symbols![],                       // 21: repeat_item -> item repeat_item_1      | ►repeat_item_1 ►item          |
                 22 => symbols![nt 9],                   // 22: item -> ( alt_items )                  | ◄22 ) ►alt_items (            | alt_items
                 23 => symbols![nt 12],                  // 23: item -> ~ item                         | ◄23 ►item ~                   | item
-                24 => symbols![t 29],                   // 24: item -> Id                             | ◄24 Id!                       | Id
+                24 => symbols![t 27],                   // 24: item -> Id                             | ◄24 Id!                       | Id
                 25 => symbols![],                       // 25: item -> CharLit item_1                 | ►item_1 CharLit!              |
-                26 => symbols![t 31],                   // 26: item -> StrLit                         | ◄26 StrLit!                   | StrLit
+                26 => symbols![t 29],                   // 26: item -> StrLit                         | ◄26 StrLit!                   | StrLit
                 27 => symbols![nt 13],                  // 27: item -> char_set                       | ◄27 ►char_set                 | char_set
                 28 => symbols![nt 20],                  // 28: char_set -> [ char_set_1 ]             | ◄28 ] ►char_set_1 [           | char_set_1
                 29 => symbols![],                       // 29: char_set -> .                          | ◄29 .                         |
-                30 => symbols![t 32],                   // 30: char_set -> FixedSet                   | ◄30 FixedSet!                 | FixedSet
-                31 => symbols![t 32],                   // 31: char_set_one -> FixedSet               | ◄31 FixedSet!                 | FixedSet
+                30 => symbols![t 30],                   // 30: char_set -> FixedSet                   | ◄30 FixedSet!                 | FixedSet
+                31 => symbols![t 30],                   // 31: char_set_one -> FixedSet               | ◄31 FixedSet!                 | FixedSet
                 32 => symbols![],                       // 32: char_set_one -> SetChar char_set_one_1 | ►char_set_one_1 SetChar!      |
                 33 => symbols![nt 15, nt 1],            // 33: file_1 -> file_item file_1             | ●file_1 ◄33 ►file_item        | file_1 file_item
                 34 => symbols![],                       // 34: file_1 -> ε                            | ◄34                           |
-                35 => symbols![nt 16, t 29],            // 35: option_1 -> , Id option_1              | ●option_1 ◄35 Id! ,           | option_1 Id
+                35 => symbols![nt 16, t 27],            // 35: option_1 -> , Id option_1              | ●option_1 ◄35 Id! ,           | option_1 Id
                 36 => symbols![],                       // 36: option_1 -> ε                          | ◄36                           |
                 37 => symbols![nt 17, nt 7],            // 37: actions_1 -> , action actions_1        | ●actions_1 ◄37 ►action ,      | actions_1 action
                 38 => symbols![],                       // 38: actions_1 -> ε                         | ◄38                           |
@@ -1413,14 +1419,14 @@ mod wrapper_source {
                 40 => symbols![],                       // 40: alt_items_1 -> ε                       | ◄40                           |
                 41 => symbols![],                       // 41: alt_item_1 -> repeat_item alt_item_2   | ►alt_item_2 ►repeat_item      |
                 42 => symbols![],                       // 42: char_set_1 -> char_set_one char_set_2  | ►char_set_2 ►char_set_one     |
-                43 => symbols![t 29, nt 8, nt 6],       // 43: rule_1 -> -> actions ;                 | ◄43 ; ►actions ->             | Id match actions
-                44 => symbols![t 29, nt 8],             // 44: rule_1 -> ;                            | ◄44 ;                         | Id match
+                43 => symbols![t 27, nt 8, nt 6],       // 43: rule_1 -> -> actions ;                 | ◄43 ; ►actions ->             | Id match actions
+                44 => symbols![t 27, nt 8],             // 44: rule_1 -> ;                            | ◄44 ;                         | Id match
                 45 => symbols![],                       // 45: repeat_item_1 -> + repeat_item_2       | ►repeat_item_2 +              |
                 46 => symbols![nt 12],                  // 46: repeat_item_1 -> ?                     | ◄46 ?                         | item
                 47 => symbols![],                       // 47: repeat_item_1 -> * repeat_item_3       | ►repeat_item_3 *              |
                 48 => symbols![nt 12],                  // 48: repeat_item_1 -> ε                     | ◄48                           | item
-                49 => symbols![t 30, t 30],             // 49: item_1 -> .. CharLit                   | ◄49 CharLit! ..               | CharLit CharLit
-                50 => symbols![t 30],                   // 50: item_1 -> ε                            | ◄50                           | CharLit
+                49 => symbols![t 28, t 28],             // 49: item_1 -> .. CharLit                   | ◄49 CharLit! ..               | CharLit CharLit
+                50 => symbols![t 28],                   // 50: item_1 -> ε                            | ◄50                           | CharLit
                 51 => symbols![t 33, t 33],             // 51: char_set_one_1 -> - SetChar            | ◄51 SetChar! -                | SetChar SetChar
                 52 => symbols![t 33],                   // 52: char_set_one_1 -> ε                    | ◄52                           | SetChar
                 53 => symbols![nt 19, nt 11],           // 53: alt_item_2 -> alt_item_1               | ●alt_item_1 ◄53               | alt_item_1 repeat_item
