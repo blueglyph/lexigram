@@ -13,7 +13,7 @@ use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR};
 use crate::grammar::NTConversion::{MovedTo, Removed};
-use crate::log::Logger;
+use crate::log::{Log, Logger};
 use crate::symbol_table::SymbolTable;
 use crate::take_until::TakeUntilIterator;
 
@@ -354,7 +354,7 @@ pub struct RuleTreeSet<T> {
     parent: Vec<Option<VarId>>, // NT -> parent NT
     // priority: Vec<Vec<u16>>, // factor -> priority
     nt_conversion: HashMap<VarId, NTConversion>,
-    log: Logger,
+    log: Log,
     _phantom: PhantomData<T>
 }
 
@@ -412,7 +412,7 @@ impl RuleTreeSet<General> {
             symbol_table: None,
             flags: Vec::new(),
             parent: Vec::new(),
-            log: Logger::new(),
+            log: Log::new(),
             nt_conversion: HashMap::new(),
             _phantom: PhantomData,
         }
@@ -915,7 +915,7 @@ pub struct ProdRuleSet<T> {
     parent: Vec<Option<VarId>>,
     start: Option<VarId>,
     nt_conversion: HashMap<VarId, NTConversion>,
-    pub(crate) log: Logger,
+    pub(crate) log: Log,
     _phantom: PhantomData<T>
 }
 
@@ -965,7 +965,7 @@ impl<T> ProdRuleSet<T> {
         self.num_t
     }
 
-    pub fn get_log(&self) -> &Logger {
+    pub fn get_log(&self) -> &Log {
         &self.log
     }
 
@@ -1296,7 +1296,7 @@ impl<T> ProdRuleSet<T> {
             parent: Vec::new(),
             start: None,
             nt_conversion: HashMap::new(),
-            log: Logger::new(),
+            log: Log::new(),
             _phantom: PhantomData
         }
     }
@@ -1311,7 +1311,7 @@ impl<T> ProdRuleSet<T> {
             parent: Vec::with_capacity(capacity),
             start: None,
             nt_conversion: HashMap::new(),
-            log: Logger::new(),
+            log: Log::new(),
             _phantom: PhantomData
         }
     }

@@ -4,7 +4,7 @@ pub(crate) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{Call, Listener, OpCode, Parser}, symbol_table::SymbolTable};
+    use rlexer::{CollectJoin, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, Listener, OpCode, Parser}, symbol_table::SymbolTable};
     use super::lexiparser_types::*;
 
     const PARSER_NUM_T: usize = 34;
@@ -286,6 +286,7 @@ pub(crate) mod lexiparser {
     }
 
     pub trait LexiParserListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _file: SynFile) {}
         fn init_file(&mut self) {}
         fn exit_file(&mut self, _ctx: CtxFile) -> SynFile;
@@ -446,6 +447,10 @@ pub(crate) mod lexiparser {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
         }
     }
 

@@ -2,16 +2,16 @@
 pub enum LogMsg { Note(String), Warning(String), Error(String) }
 
 #[derive(Clone, Debug)]
-pub struct Logger {
+pub struct Log {
     messages: Vec<LogMsg>,
     num_notes: usize,
     num_warnings: usize,
     num_errors: usize
 }
 
-impl Logger {
+impl Log {
     pub fn new() -> Self {
-        Logger { messages: Vec::new(), num_notes: 0, num_warnings: 0, num_errors: 0 }
+        Log { messages: Vec::new(), num_notes: 0, num_warnings: 0, num_errors: 0 }
     }
 
     pub fn is_empty(&self) -> bool {
@@ -27,7 +27,7 @@ impl Logger {
     }
 
     /// Extends the messages with another Logger's messages.
-    pub fn extend(&mut self, other: Logger) {
+    pub fn extend(&mut self, other: Log) {
         self.num_notes += other.num_notes;
         self.num_warnings += other.num_warnings;
         self.num_errors += other.num_errors;
@@ -49,31 +49,45 @@ impl Logger {
     pub fn get_errors(&self) -> impl Iterator<Item = &String> {
         self.messages.iter().filter_map(|m| if let LogMsg::Error(s) = m { Some(s) } else { None })
     }
+}
 
-    pub fn num_notes(&self) -> usize {
-        self.num_notes
-    }
+pub trait Logger {
+    fn add_note<T: Into<String>>(&mut self, msg: T);
+    fn add_warning<T: Into<String>>(&mut self, msg: T);
+    fn add_error<T: Into<String>>(&mut self, msg: T);
+    fn num_notes(&self) -> usize;
+    fn num_warnings(&self) -> usize;
+    fn num_errors(&self) -> usize;
+    // fn get_notes(&self) -> impl Iterator<Item = &String>;
+    // fn get_warnings(&self) -> impl Iterator<Item = &String>;
+    // fn get_errors(&self) -> impl Iterator<Item = &String>;
+}
 
-    pub fn num_warnings(&self) -> usize {
-        self.num_warnings
-    }
-
-    pub fn num_errors(&self) -> usize {
-        self.num_errors
-    }
-
-    pub fn add_note<T: Into<String>>(&mut self, msg: T) {
+impl Logger for Log {
+    fn add_note<T: Into<String>>(&mut self, msg: T) {
         self.messages.push(LogMsg::Note(msg.into()));
         self.num_notes += 1;
     }
 
-    pub fn add_warning<T: Into<String>>(&mut self, msg: T) {
+    fn add_warning<T: Into<String>>(&mut self, msg: T) {
         self.messages.push(LogMsg::Warning(msg.into()));
         self.num_warnings += 1;
     }
 
-    pub fn add_error<T: Into<String>>(&mut self, msg: T) {
+    fn add_error<T: Into<String>>(&mut self, msg: T) {
         self.messages.push(LogMsg::Error(msg.into()));
         self.num_errors += 1;
+    }
+
+    fn num_notes(&self) -> usize {
+        self.num_notes
+    }
+
+    fn num_warnings(&self) -> usize {
+        self.num_warnings
+    }
+
+    fn num_errors(&self) -> usize {
+        self.num_errors
     }
 }

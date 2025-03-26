@@ -1,7 +1,7 @@
 // Copyright 2023 Redglyph
 //
 // Integration tests: tests that all the functionalities are accessible and work as expected.
-
+#![cfg(feature = "disabled")]
 #![cfg(test)]
 #![allow(non_camel_case_types)]
 

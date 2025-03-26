@@ -4,6 +4,7 @@ use std::io::Read;
 use rlexer::CollectJoin;
 use rlexer::io::CharReader;
 use rlexer::lexer::{Lexer, TokenSpliterator};
+use rlexer::log::Logger;
 use rlexer::parser::{Parser, ParserError};
 use crate::lexi::LexiListener;
 use crate::out::build_lexer;
@@ -106,6 +107,7 @@ struct TestLexi<R: Read> {
     wrapper: ListenerWrapper<LexiListener>
 }
 
+#[allow(unused)]
 impl<R: Read> TestLexi<R> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
@@ -122,6 +124,10 @@ impl<R: Read> TestLexi<R> {
             lexiparser: build_parser(),
             wrapper
         }
+    }
+
+    fn get_mut_listener(&mut self) -> &mut LexiListener {
+        self.wrapper.get_mut_listener()
     }
 
     fn get_listener(&self) -> &LexiListener {
@@ -284,15 +290,15 @@ mod simple {
             let stream = CharReader::new(Cursor::new(input));
             let mut lexi = TestLexi::new();
             let result = lexi.build(stream);
+            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
-                let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
             }
             let text = format!("test {test_id} failed");
             assert_eq!(result, Ok(()), "{text}");
-            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
                 println!("Rules:");
                 let mut rules = listener.rules.iter().to_vec();
@@ -378,14 +384,14 @@ mod simple {
             let stream = CharReader::new(Cursor::new(lexicon));
             let mut lexi = TestLexi::new();
             let result = lexi.build(stream);
+            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
-                let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
             }
             assert_eq!(result, Ok(()), "{text}: couldn't parse the lexicon");
-            let mut listener = lexi.wrapper.listener();
 
             // - builds the dfa from the reg tree
             let dfa = listener.make_dfa().optimize();
@@ -469,15 +475,15 @@ mod simple {
             let stream = CharReader::new(Cursor::new(input));
             let mut lexi = TestLexi::new();
             let result = lexi.build(stream);
+            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
-                let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
             }
             let text = format!("test {test_id} failed");
             assert_eq!(result, Ok(()), "{text}");
-            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
                 println!("Rules lexicon {}:\n{}", listener.name, listener.rules_to_string(0));
             }
@@ -535,19 +541,19 @@ mod stability {
         let stream = CharReader::new(reader);
         let mut lexi = TestLexi::new();
         let result = lexi.build(stream);
+        let mut listener = lexi.wrapper.listener();
 
         if VERBOSE {
-            let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+            let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
             if !msg.is_empty() {
                 println!("Parser messages:\n{msg}");
             }
-            let msg = lexi.get_listener().log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+            let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
             if !msg.is_empty() {
                 println!("Listener messages:\n{msg}");
             }
         }
         assert_eq!(result, Ok(()), "couldn't parse the lexicon");
-        let mut listener = lexi.wrapper.listener();
         let symbol_table = listener.build_symbol_table();
         if VERBOSE {
             println!("Rules lexicon {}:\n{}", listener.name, listener.rules_to_string(0));

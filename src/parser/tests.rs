@@ -7,7 +7,8 @@ use crate::dfa::TokenId;
 use crate::grammar::{ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, T};
 use crate::lexer::{CaretCol, LexerToken};
-use crate::parser::Listener;
+use crate::log::{Log, Logger};
+use crate::parser::{Listener, PrintLogger};
 use crate::parsergen::ParserGen;
 use crate::symbol_table::SymbolTable;
 
@@ -68,8 +69,12 @@ pub mod macros {
 #[test]
 fn parser_parse_stream() {
 
-    struct Stub();
-    impl Listener for Stub {}
+    struct Stub(Log);
+    impl Listener for Stub {
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            &mut self.0
+        }
+    }
 
     let tests = vec![
         (5, 0, vec![
@@ -132,7 +137,8 @@ fn parser_parse_stream() {
                     }
                 }
             });
-            let success = match parser.parse_stream(&mut Stub(), stream) {
+            let mut listener = Stub(Log::new());
+            let success = match parser.parse_stream(&mut listener, stream) {
                 Ok(_) => {
                     if VERBOSE { println!("parsing completed successfully"); }
                     true
@@ -143,7 +149,7 @@ fn parser_parse_stream() {
                 }
             };
             if VERBOSE {
-                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.0.get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
@@ -156,8 +162,12 @@ fn parser_parse_stream() {
 #[test]
 fn parser_parse_stream_id() {
 
-    struct Stub();
-    impl Listener for Stub {}
+    struct Stub(Log);
+    impl Listener for Stub {
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            &mut self.0
+        }
+    }
 
     let tests = vec![
         (T::RTS(9), 0, 2, 999, vec![
@@ -248,18 +258,19 @@ fn parser_parse_stream_id() {
                     }
                 }
             });
-            let errors = match parser.parse_stream(&mut Stub(), stream) {
+            let mut listener = Stub(Log::new());
+            let errors = match parser.parse_stream(&mut listener, stream) {
                 Ok(_) => {
                     if VERBOSE { println!("parsing completed successfully"); }
                     None
                 }
                 Err(e) => {
                     if VERBOSE { println!("parsing failed: {e}"); }
-                    Some(parser.get_log().get_errors().map(|s| s.as_str()).to_vec())
+                    Some(listener.0.get_errors().map(|s| s.as_str()).to_vec())
                 }
             };
             if VERBOSE {
-                let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.0.get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
@@ -273,6 +284,7 @@ mod listener {
     use crate::grammar::tests::build_prs;
     use crate::grammar::{FactorId, VarId};
     use crate::lexer::{CaretCol, LexerToken};
+    use crate::log::Log;
     use crate::parser::{Call, Listener};
     use super::*;
 
@@ -294,6 +306,7 @@ mod listener {
     pub enum CtxT1 { Mul, Div, Empty }
 
     pub trait ExprListenerTrait {
+        fn get_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn enter_e(&mut self) {}
         fn enter_t(&mut self) {}
@@ -363,6 +376,10 @@ mod listener {
             }
             // false
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_log()
+        }
     }
 
     impl<T: ExprListenerTrait> ListenerWrapper<T> {
@@ -386,16 +403,21 @@ mod listener {
     struct TestListener {
         result: Vec<String>,
         level: usize,
-        verbose: bool
+        verbose: bool,
+        log: Log
     }
 
     impl TestListener {
         pub fn new(verbose: bool) -> Self {
-            Self { result: Vec::new(), level: 0, verbose }
+            Self { result: Vec::new(), level: 0, verbose, log: Log::new() }
         }
     }
 
     impl ExprListenerTrait for TestListener {
+        fn get_log(&mut self) -> &mut impl Logger {
+            &mut self.log
+        }
+
         fn exit(&mut self) {
             if self.verbose { println!("{: <1$}$", "", self.level * 4); }
             self.result.push("$".to_string());
@@ -520,13 +542,13 @@ mod listener {
                         false
                     }
                 };
+                let mut listener = wrapper.listener();
                 if VERBOSE {
-                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                     if !msg.is_empty() {
                         println!("Messages:\n{msg}");
                     }
                 }
-                let listener = wrapper.listener();
 
                 // ---------------------------------------------------
 

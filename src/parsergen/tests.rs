@@ -51,6 +51,7 @@ mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
     use crate::{CollectJoin, LL1};
+    use crate::log::Logger;
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
     use crate::symbol_table::SymbolTable;
