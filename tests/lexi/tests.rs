@@ -146,11 +146,12 @@ impl<R: Read> TestLexi<R> {
             }
         });
         let result = self.lexiparser.parse_stream(&mut self.wrapper, tokens);
-        if self.wrapper.get_listener().log.num_errors() > 0 {
+        result.and_then(|r| if self.wrapper.get_listener().log.num_errors() > 0 {
+            // in case the parser hasn't reported any error but the listener has
             Err(ParserError::EncounteredErrors)
         } else {
-            result
-        }
+            Ok(r)
+        } )
     }
 }
 

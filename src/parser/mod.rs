@@ -76,7 +76,6 @@ pub struct Parser {
     table: Vec<FactorId>,
     symbol_table: SymbolTable,
     start: VarId,
-    // log: Log,
     try_recover: bool,          // tries to recover from syntactical errors
 }
 
@@ -95,7 +94,6 @@ impl Parser {
             table: parsing_table.table,
             symbol_table,
             start,
-            // log: Log::new(),
             try_recover: true
         };
         parser
@@ -122,6 +120,12 @@ impl Parser {
         &self.opcodes
     }
 
+    /// Parses an entire `stream` using the `listener`, and returns `Ok(())` if the whole stream could
+    /// be successfully parsed, or an error if it couldn't.
+    ///
+    /// All errors are reported to the listener's log. Usually, the listener simply transmits the
+    /// reports to the user listener's log, where the user listener is one of the listener's fields
+    /// (defined by the user instead of being generated like the listener).
     pub fn parse_stream<I, L>(&mut self, listener: &mut L, mut stream: I) -> Result<(), ParserError>
         where I: Iterator<Item=ParserToken>,
               L: Listener,
@@ -135,7 +139,6 @@ impl Parser {
         if VERBOSE { println!("skip = {error_skip_factor_id}, pop = {error_pop_factor_id}"); }
         let mut recover_mode = false;
         let mut nbr_recovers = 0;
-        // self.log.clear();    // FIXME: let the user clear the log, or add to trait?
         let end_var_id = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
         stack.push(OpCode::NT(self.start));
@@ -313,6 +316,7 @@ impl Parser {
         if nbr_recovers == 0 {
             Ok(())
         } else {
+            // when nbr_recovers > 0, we know that at least one error has been reported to the log, no need to add one here
             listener.abort();
             Err(ParserError::EncounteredErrors)
         }
