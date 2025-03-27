@@ -8,7 +8,7 @@ use lexigram::io::CharReader;
 use lexigram::lexer::{Lexer, TokenSpliterator};
 use lexigram::log::Logger;
 use lexigram::parser::{Parser, ParserError};
-use crate::lexi::LexiListener;
+use crate::lexi::listener::LexiListener;
 use crate::out::build_lexer;
 use crate::out::lexiparser::lexiparser::{build_parser, Wrapper};
 
@@ -166,7 +166,7 @@ mod simple {
     use lexigram::io::CharReader;
     use lexigram::lexer::LexerError;
     use lexigram::lexergen::LexerGen;
-    use crate::lexi::RuleType;
+    use crate::lexi::listener::RuleType;
     use super::*;
 
     #[test]

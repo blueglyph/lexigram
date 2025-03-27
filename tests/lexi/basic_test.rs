@@ -4,9 +4,9 @@
 
 use lexigram::log::{BufLog, Logger};
 use lexigram::segments::Segments;
+use crate::lexi::listener::LexAction;
 use crate::out::lexiparser::lexiparser::*;
 use crate::out::lexiparser::lexiparser_types::*;
-use crate::lexi::LexAction;
 
 struct LexiListener {
     verbose: bool,

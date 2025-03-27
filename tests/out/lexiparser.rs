@@ -809,7 +809,7 @@ pub(crate) mod lexiparser {
 
 pub(crate) mod lexiparser_types {
     use lexigram::segments::Segments;
-    use crate::lexi::LexAction;
+    use crate::lexi::listener::LexAction;
 
     /// SynFile: User-defined type for `file`
     #[derive(Debug, PartialEq)] pub struct SynFile();
