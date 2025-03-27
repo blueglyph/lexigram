@@ -32,8 +32,8 @@
     - [x] PargerGen
       - [ ] populate log with info (& warnings, errors?)
   - [ ] when using the lexer / parser
-    - [ ] Lexer 
-    - [ ] Lexer - Parser - wrapper - listener
+    - ~~Lexer~~ not necessary: returns an error code 
+    - [x] ~~Lexer - Parser - wrapper - listener~~
   - [ ] create info/warning/error ID numbers
   - [ ] make messages parse-friendly and consistent (indentation structure, casing, ...)
 - [ ] independence from reader type (Lexer<R: Read>)
