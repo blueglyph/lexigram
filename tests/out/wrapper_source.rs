@@ -1,3 +1,5 @@
+// Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
+
 #![cfg(test)]
 #![allow(non_camel_case_types)]
 #![allow(dead_code)]

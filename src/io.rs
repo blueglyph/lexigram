@@ -1,3 +1,5 @@
+// Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
+
 use std::io::{BufReader, Read};
 
 // Note on UTF-8 encoding

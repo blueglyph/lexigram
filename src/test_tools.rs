@@ -1,3 +1,5 @@
+// Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
+
 use std::io::{BufRead, BufReader, BufWriter, Read, Write, Seek};
 use std::fs::{File, OpenOptions};
 use crate::CollectJoin;

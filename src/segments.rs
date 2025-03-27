@@ -1,3 +1,5 @@
+// Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::{Debug, Display, Formatter, LowerHex, UpperHex};
 use std::ops::{Add, Deref, DerefMut, RangeInclusive};

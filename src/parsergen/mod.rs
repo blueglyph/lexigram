@@ -1,3 +1,5 @@
+// Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
+
 #![allow(dead_code)]  // TODO: remove
 
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};

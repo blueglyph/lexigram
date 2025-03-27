@@ -1,3 +1,5 @@
+// Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
+
 // Rust lacks the HashMap and HashSet equivalents of vec!
 
 /// Generates the code to initialize a [HashMap](std::collections::HashMap).
