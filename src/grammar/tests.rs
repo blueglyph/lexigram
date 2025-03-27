@@ -564,7 +564,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
     rules
 }
 
-// cargo +nightly miri test --package rlexer --lib grammar::tests::ruletree_normalize -- --exact
+// cargo +nightly miri test --package lexigram --lib grammar::tests::ruletree_normalize -- --exact
 #[test]
 fn rts_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![

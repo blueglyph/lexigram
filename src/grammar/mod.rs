@@ -1803,9 +1803,9 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use rlexer::dfa::TokenId;
-    /// # use rlexer::gnode;
-    /// # use rlexer::grammar::{GrNode, Symbol, VarId};
+    /// # use lexigram::dfa::TokenId;
+    /// # use lexigram::gnode;
+    /// # use lexigram::grammar::{GrNode, Symbol, VarId};
     /// assert_eq!(gnode!([1]), GrNode::Symbol(Symbol::T(1 as TokenId)));
     /// assert_eq!(gnode!(t 2), GrNode::Symbol(Symbol::T(2 as TokenId)));
     /// assert_eq!(gnode!(nt 3), GrNode::Symbol(Symbol::NT(3 as VarId)));
@@ -1840,9 +1840,9 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use rlexer::dfa::TokenId;
-    /// # use rlexer::sym;
-    /// # use rlexer::grammar::{Symbol, VarId};
+    /// # use lexigram::dfa::TokenId;
+    /// # use lexigram::sym;
+    /// # use lexigram::grammar::{Symbol, VarId};
     /// assert_eq!(sym!(t 2), Symbol::T(2 as TokenId));
     /// assert_eq!(sym!(nt 3), Symbol::NT(3 as VarId));
     /// assert_eq!(sym!(e), Symbol::Empty);
@@ -1874,9 +1874,9 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use rlexer::dfa::TokenId;
-    /// # use rlexer::grammar::{ProdFactor, Symbol, VarId};
-    /// # use rlexer::{prodf, sym};
+    /// # use lexigram::dfa::TokenId;
+    /// # use lexigram::grammar::{ProdFactor, Symbol, VarId};
+    /// # use lexigram::{prodf, sym};
     /// assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
     /// assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
     /// assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
@@ -1903,9 +1903,9 @@ pub mod macros {
     ///
     /// Example
     /// ```
-    /// # use rlexer::dfa::TokenId;
-    /// # use rlexer::grammar::{ProdFactor, Symbol, VarId};
-    /// # use rlexer::{prod, prodf, sym};
+    /// # use lexigram::dfa::TokenId;
+    /// # use lexigram::grammar::{ProdFactor, Symbol, VarId};
+    /// # use lexigram::{prod, prodf, sym};
     /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e),
     ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
     ///                 ProdFactor::new(vec![sym!(nt  2)]),

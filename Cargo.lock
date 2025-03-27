@@ -9,7 +9,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0cf0ae38911bcace7db2635fa7031be1488f71a6f08868f4c9701e9b1be5d132"
 
 [[package]]
-name = "rlexer"
+name = "lexigram"
 version = "0.1.0"
 dependencies = [
  "iter-index",

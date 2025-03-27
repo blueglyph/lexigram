@@ -1147,13 +1147,13 @@ impl ParserGen {
         let num_t = self.symbol_table.get_terminals().len();
         let mut symbol_names = self.symbol_table.get_names().to_vec(); // hashmap: we want predictable outcome, so we sort names
         for lib in [
-            "rlexer::grammar::ProdFactor",
-            "rlexer::grammar::Symbol",
-            "rlexer::grammar::VarId",
-            "rlexer::grammar::FactorId",
-            "rlexer::parser::OpCode",
-            "rlexer::parser::Parser",
-            "rlexer::symbol_table::SymbolTable",
+            "lexigram::grammar::ProdFactor",
+            "lexigram::grammar::Symbol",
+            "lexigram::grammar::VarId",
+            "lexigram::grammar::FactorId",
+            "lexigram::parser::OpCode",
+            "lexigram::parser::Parser",
+            "lexigram::symbol_table::SymbolTable",
         ] {
             self.used_libs.add(lib);
         }
@@ -1191,7 +1191,7 @@ impl ParserGen {
             format!("    symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));"),
             format!("    let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();"),
             format!("    let table: Vec<FactorId> = PARSING_TABLE.into();"),
-            format!("    let parsing_table = rlexer::grammar::LLParsingTable {{"),
+            format!("    let parsing_table = lexigram::grammar::LLParsingTable {{"),
             format!("        num_nt: PARSER_NUM_NT,"),
             format!("        num_t: PARSER_NUM_T + 1,"),
             format!("        factors,"),
@@ -1239,8 +1239,8 @@ impl ParserGen {
         const VERBOSE: bool = false;
 
         self.used_libs.extend([
-            "rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::ListenerWrapper", "rlexer::grammar::FactorId",
-            "rlexer::log::Logger",
+            "lexigram::CollectJoin", "lexigram::grammar::VarId", "lexigram::parser::Call", "lexigram::parser::ListenerWrapper", "lexigram::grammar::FactorId",
+            "lexigram::log::Logger",
         ]);
 
         let (nt_name, factor_info, mut item_info, nt_repeat) = self.get_type_info();

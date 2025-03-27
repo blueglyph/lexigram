@@ -1,6 +1,6 @@
-# RLexer
+# Lexigram
 
-- basic rlexer
+- basic lexi
   - [x] ~~create regex for rlexer's lexicon (manually)~~
   - [x] ~~replace struct Token(pub TokenId) by just a TokenId~~
   - [x] ~~create simple top-down parser for rlexer's grammar (manually)~~
@@ -38,7 +38,7 @@
   - [ ] make messages parse-friendly and consistent (indentation structure, casing, ...)
 - [ ] independence from reader type (Lexer<R: Read>)
 
-# RParser
+# Parser
 
 - parser lib
   - RuleTreeSet to store the parsed production rules (as `VecTree<GrNode>`)
@@ -110,7 +110,7 @@
       - check left-/right-associativity
       - left-associative:  A -> A β δ | δ
       - right-associative: A -> δ β A | δ
-- basic rparser
+- basic gram
   - parser text -> RuleTree
     - [ ] generate lexer tree with basic rlexer (lexicon file)
     - [ ] adapt rlexer's top-down parser (manually)

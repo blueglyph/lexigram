@@ -9,7 +9,7 @@
 /// # Example
 /// ```
 /// # #[macro_use] fn main() {
-/// # use rlexer::hashmap;
+/// # use lexigram::hashmap;
 /// let days = hashmap![0 => "Monday", 1 => "Tuesday", 2 => "Wednesday"];
 /// // => HashMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday"), ])
 /// assert_eq!(days, std::collections::HashMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday")]));
@@ -32,7 +32,7 @@ macro_rules! hashmap {
 /// ```
 /// # #[macro_use] fn main() {
 /// # use std::collections::BTreeMap;
-/// # use rlexer::btreemap;
+/// # use lexigram::btreemap;
 /// let days = btreemap![0 => "Monday", 1 => "Tuesday", 2 => "Wednesday"];
 /// // => BTreeMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday"), ])
 /// assert_eq!(days, BTreeMap::from([(0, "Monday"), (1, "Tuesday"), (2, "Wednesday")]));
@@ -55,7 +55,7 @@ macro_rules! btreemap {
 /// ```
 /// # #[macro_use] fn main() {
 /// # use std::collections::HashSet;
-/// # use rlexer::hashset;
+/// # use lexigram::hashset;
 /// let days = hashset!["Monday", "Tuesday", "Wednesday"];
 /// // => HashSet::from(["Monday", "Tuesday", "Wednesday", ])
 /// assert_eq!(days, HashSet::from(["Monday", "Tuesday", "Wednesday"]));
@@ -76,7 +76,7 @@ macro_rules! hashset {
 /// ```
 /// # #[macro_use] fn main() {
 /// # use std::collections::BTreeSet;
-/// # use rlexer::btreeset;
+/// # use lexigram::btreeset;
 /// let days = btreeset!["Monday", "Tuesday", "Wednesday"];
 /// // => BTreeSet::from(["Monday", "Tuesday", "Wednesday", ])
 /// assert_eq!(days, BTreeSet::from(["Monday", "Tuesday", "Wednesday"]));
@@ -105,7 +105,7 @@ macro_rules! time {
 /// # Example
 /// ```
 /// # #[macro_use] fn main() {
-/// # use rlexer::s;
+/// # use lexigram::s;
 /// let text: String = s!("Hello");
 /// # }
 /// ```

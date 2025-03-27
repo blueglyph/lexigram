@@ -22,10 +22,10 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use rlexer::dfa::TokenId;
-    /// # use rlexer::opcode;
-    /// # use rlexer::grammar::VarId;
-    /// # use rlexer::parser::OpCode;
+    /// # use lexigram::dfa::TokenId;
+    /// # use lexigram::opcode;
+    /// # use lexigram::grammar::VarId;
+    /// # use lexigram::parser::OpCode;
     /// assert_eq!(opcode!(e), OpCode::Empty);
     /// assert_eq!(opcode!(t 2), OpCode::T(2 as TokenId));
     /// assert_eq!(opcode!(nt 3), OpCode::NT(3));
@@ -52,10 +52,10 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use rlexer::dfa::TokenId;
-    /// # use rlexer::grammar::{ProdFactor, Symbol, VarId};
-    /// # use rlexer::{strip, opcode};
-    /// # use rlexer::parser::OpCode;
+    /// # use lexigram::dfa::TokenId;
+    /// # use lexigram::grammar::{ProdFactor, Symbol, VarId};
+    /// # use lexigram::{strip, opcode};
+    /// # use lexigram::parser::OpCode;
     /// assert_eq!(strip!(nt 1, loop 5, t 3, e), vec![opcode!(nt 1), opcode!(loop 5), opcode!(t 3), opcode!(e)]);
     /// ```
     #[macro_export(local_inner_macros)]

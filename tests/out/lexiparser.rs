@@ -6,7 +6,7 @@ pub(crate) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{CollectJoin, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, symbol_table::SymbolTable};
     use super::lexiparser_types::*;
 
     const PARSER_NUM_T: usize = 34;
@@ -28,7 +28,7 @@ pub(crate) mod lexiparser {
         symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
-        let parsing_table = rlexer::grammar::LLParsingTable {
+        let parsing_table = lexigram::grammar::LLParsingTable {
             num_nt: PARSER_NUM_NT,
             num_t: PARSER_NUM_T + 1,
             factors,
@@ -808,7 +808,7 @@ pub(crate) mod lexiparser {
 }
 
 pub(crate) mod lexiparser_types {
-    use rlexer::segments::Segments;
+    use lexigram::segments::Segments;
     use crate::lexi::LexAction;
 
     /// SynFile: User-defined type for `file`

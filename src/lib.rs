@@ -253,7 +253,7 @@ impl NameFixer {
 pub trait NameTransformer {
     /// Transforms the string or string slice into a string with the camelcase equivalent.
     /// ```
-    /// # use rlexer::NameTransformer;
+    /// # use lexigram::NameTransformer;
     /// assert_eq!("statement".to_camelcase(), "Statement");
     /// assert_eq!("NUM_VAL".to_camelcase(), "NumVal");
     /// assert_eq!("expr_1".to_string().to_camelcase(), "Expr1");
@@ -263,7 +263,7 @@ pub trait NameTransformer {
     /// Transforms the camelcase string slice into a string with lowercase words separated by underscores.
     /// Note that numbers are not separated.
     /// ```
-    /// # use rlexer::NameTransformer;
+    /// # use lexigram::NameTransformer;
     /// assert_eq!("NumVal".to_underscore_lowercase(), "num_val");
     /// assert_eq!("Expr1".to_underscore_lowercase(), "expr1");
     /// assert_eq!("XAndY".to_string().to_underscore_lowercase(), "x_and_y");
@@ -273,7 +273,7 @@ pub trait NameTransformer {
     /// Transforms the camelcase string or string slice into a string with uppercase words separated by underscores.
     /// Note that numbers are not separated.
     /// ```
-    /// # use rlexer::NameTransformer;
+    /// # use lexigram::NameTransformer;
     /// assert_eq!("NumVal".to_underscore_uppercase(), "NUM_VAL");
     /// assert_eq!("Expr1".to_underscore_uppercase(), "EXPR1");
     /// assert_eq!("XAndY".to_string().to_underscore_uppercase(), "X_AND_Y");

@@ -208,10 +208,10 @@ impl LexerGen {
         // Create source code:
         source.push(format!("use std::collections::HashMap;"));
         source.push(format!("use std::io::Read;"));
-        source.push(format!("use rlexer::dfa::{{StateId, Terminal, ActionOption, ModeOption}};"));
-        source.push(format!("use rlexer::lexer::Lexer;"));
-        source.push(format!("use rlexer::lexergen::GroupId;"));
-        source.push(format!("use rlexer::segments::{{Seg, SegMap}};"));
+        source.push(format!("use lexigram::dfa::{{StateId, Terminal, ActionOption, ModeOption}};"));
+        source.push(format!("use lexigram::lexer::Lexer;"));
+        source.push(format!("use lexigram::lexergen::GroupId;"));
+        source.push(format!("use lexigram::segments::{{Seg, SegMap}};"));
         source.push(String::new());
         source.push(format!("const NBR_GROUPS: u32 = {};", self.nbr_groups));
         source.push(format!("const INITIAL_STATE: StateId = {};", self.initial_state));

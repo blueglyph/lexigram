@@ -155,7 +155,7 @@ impl Segments {
     /// Example:
     /// ```
     /// use std::collections::BTreeSet;
-    /// use rlexer::segments::{Segments, Seg};
+    /// use lexigram::segments::{Segments, Seg};
     ///
     /// let mut a = Segments(BTreeSet::from([Seg(0, 10), Seg(20, 30)]));
     /// let b = Segments(BTreeSet::from([Seg(5, 6), Seg(15, 25)]));
@@ -178,7 +178,7 @@ impl Segments {
     /// Slices the segments to match other's partition, but without merging self's initial partition.
     /// ```
     /// use std::collections::BTreeSet;
-    /// use rlexer::segments::{Seg, Segments};
+    /// use lexigram::segments::{Seg, Segments};
     /// let mut ab = Segments(BTreeSet::from([Seg(1 as u32, 50 as u32)]));
     /// let cd = Segments(BTreeSet::from([Seg(10 as u32, 20 as u32), Seg(30 as u32, 40 as u32)]));
     /// ab.slice_partitions(&cd);
@@ -263,7 +263,7 @@ impl<const N: usize> From<[Seg; N]> for Segments {
     /// ```
     ///
     ///
-    /// use rlexer::segments::{Seg, Segments};
+    /// use lexigram::segments::{Seg, Segments};
     /// let set1 = Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]);
     /// ```
     fn from(arr: [Seg; N]) -> Self {
@@ -535,7 +535,7 @@ pub mod macros {
     /// # Example
     /// ```
     /// # use std::collections::BTreeSet;
-    /// # use rlexer::{btreeset, seg, segments::{Segments, Seg}};
+    /// # use lexigram::{btreeset, seg, segments::{Segments, Seg}};
     /// let mut x = Segments::empty();
     /// x.insert(seg!('a'));
     /// x.insert(seg!('0'-'9'));
@@ -563,7 +563,7 @@ pub mod macros {
     /// # Example
     /// ```
     /// # use std::collections::BTreeSet;
-    /// # use rlexer::{btreeset, segments, segments::{Segments, Seg}};
+    /// # use lexigram::{btreeset, segments, segments::{Segments, Seg}};
     /// assert_eq!(segments!('a', '0'-'9'), Segments(btreeset![Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
     /// assert_eq!(segments!(DOT), Segments::dot());
     /// assert_eq!(segments!(~ '1'-'8'), segments![MIN-'0', '9'-LOW_MAX, HIGH_MIN-MAX]);
@@ -602,8 +602,8 @@ pub mod macros {
     /// # Example
     /// ```
     /// # use std::collections::{BTreeMap, BTreeSet};
-    /// # use rlexer::{btreemap, segments, branch, segments::Segments};
-    /// # use rlexer::segments::Seg;
+    /// # use lexigram::{btreemap, segments, branch, segments::Segments};
+    /// # use lexigram::segments::Seg;
     /// let transitions = btreemap![
     ///     0 => branch!['a'-'c' => 0],
     ///     1 => branch!['a'-'c', '0'-'2' => 0],

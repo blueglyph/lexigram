@@ -3,11 +3,11 @@
 #![cfg(test)]
 
 use std::io::Read;
-use rlexer::CollectJoin;
-use rlexer::io::CharReader;
-use rlexer::lexer::{Lexer, TokenSpliterator};
-use rlexer::log::Logger;
-use rlexer::parser::{Parser, ParserError};
+use lexigram::CollectJoin;
+use lexigram::io::CharReader;
+use lexigram::lexer::{Lexer, TokenSpliterator};
+use lexigram::log::Logger;
+use lexigram::parser::{Parser, ParserError};
 use crate::lexi::LexiListener;
 use crate::out::build_lexer;
 use crate::out::lexiparser::lexiparser::{build_parser, Wrapper};
@@ -161,11 +161,11 @@ mod simple {
     use std::collections::BTreeMap;
     use std::hint::black_box;
     use std::io::Cursor;
-    use rlexer::{branch, btreemap, term};
-    use rlexer::dfa::{print_dfa, tree_to_string, ActionOption, ReType};
-    use rlexer::io::CharReader;
-    use rlexer::lexer::LexerError;
-    use rlexer::lexergen::LexerGen;
+    use lexigram::{branch, btreemap, term};
+    use lexigram::dfa::{print_dfa, tree_to_string, ActionOption, ReType};
+    use lexigram::io::CharReader;
+    use lexigram::lexer::LexerError;
+    use lexigram::lexergen::LexerGen;
     use crate::lexi::RuleType;
     use super::*;
 
@@ -523,10 +523,10 @@ mod simple {
 mod stability {
     use std::fs::File;
     use std::io::BufReader;
-    use rlexer::CollectJoin;
-    use rlexer::io::CharReader;
-    use rlexer::lexergen::LexerGen;
-    use rlexer::test_tools::{get_tagged_source, replace_tagged_source};
+    use lexigram::CollectJoin;
+    use lexigram::io::CharReader;
+    use lexigram::lexergen::LexerGen;
+    use lexigram::test_tools::{get_tagged_source, replace_tagged_source};
     use crate::lexi::tests::TestLexi;
 
     const LEXICON_FILENAME: &str = "tests/lexi/lexicon.l";
