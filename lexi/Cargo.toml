@@ -1,0 +1,12 @@
+[package]
+name = "lexi"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lexigram = { path = "..", package = "lexigram" }
+iter-index = "0.1.1"
+vectree = "0.1.4"
+
+[features]
+disabled = []

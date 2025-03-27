@@ -2,15 +2,7 @@
 
 #![cfg(test)]
 
-use std::io::Read;
 use lexigram::CollectJoin;
-use lexigram::io::CharReader;
-use lexigram::lexer::{Lexer, TokenSpliterator};
-use lexigram::log::Logger;
-use lexigram::parser::{Parser, ParserError};
-use crate::lexi::listener::LexiListener;
-use crate::out::build_lexer;
-use crate::out::lexiparser::lexiparser::{build_parser, Wrapper};
 
 const TXT1: &str = r#"
     lexicon A;
@@ -103,60 +95,6 @@ const TXT5: &str = r#"
     A: 'r' -> skip;
 "#;
 
-struct TestLexi<R: Read> {
-    lexilexer: Lexer<R>,
-    lexiparser: Parser,
-    wrapper: Wrapper<LexiListener>
-}
-
-#[allow(unused)]
-impl<R: Read> TestLexi<R> {
-    const VERBOSE_WRAPPER: bool = false;
-    const VERBOSE_DETAILS: bool = false;
-    const VERBOSE_LISTENER: bool = false;
-
-    fn new() -> Self {
-        let listener = LexiListener::new();
-        let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
-        wrapper.get_mut_listener().set_verbose(Self::VERBOSE_LISTENER);
-        let mut lexilexer = build_lexer();
-        lexilexer.set_tab_width(4);
-        TestLexi {
-            lexilexer,
-            lexiparser: build_parser(),
-            wrapper
-        }
-    }
-
-    fn get_mut_listener(&mut self) -> &mut LexiListener {
-        self.wrapper.get_mut_listener()
-    }
-
-    fn get_listener(&self) -> &LexiListener {
-        self.wrapper.get_listener()
-    }
-
-    fn build(&mut self, lexicon: CharReader<R>) -> Result<(), ParserError> {
-        self.lexilexer.attach_stream(lexicon);
-        let mut result_tokens = 0;
-        let tokens = self.lexilexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-            panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
-        ).inspect(|(tok, text, line, col)| {
-            result_tokens += 1;
-            if Self::VERBOSE_DETAILS {
-                println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
-            }
-        });
-        let result = self.lexiparser.parse_stream(&mut self.wrapper, tokens);
-        result.and_then(|r| if self.wrapper.get_listener().log.num_errors() > 0 {
-            // in case the parser hasn't reported any error but the listener has
-            Err(ParserError::EncounteredErrors)
-        } else {
-            Ok(r)
-        } )
-    }
-}
-
 mod simple {
     use std::collections::BTreeMap;
     use std::hint::black_box;
@@ -166,7 +104,8 @@ mod simple {
     use lexigram::io::CharReader;
     use lexigram::lexer::LexerError;
     use lexigram::lexergen::LexerGen;
-    use crate::lexi::listener::RuleType;
+    use crate::lexi::TestLexi;
+    use crate::listener::RuleType;
     use super::*;
 
     #[test]
@@ -527,7 +466,7 @@ mod stability {
     use lexigram::io::CharReader;
     use lexigram::lexergen::LexerGen;
     use lexigram::test_tools::{get_tagged_source, replace_tagged_source};
-    use crate::lexi::tests::TestLexi;
+    use crate::lexi::TestLexi;
 
     const LEXICON_FILENAME: &str = "tests/lexi/lexicon.l";
     const LEXILEXER_FILENAME: &str = "tests/out/lexilexer.rs";

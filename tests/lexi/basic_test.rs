@@ -3,8 +3,6 @@
 #![cfg(test)]
 
 use lexigram::log::{BufLog, Logger};
-use lexigram::segments::Segments;
-use crate::lexi::listener::LexAction;
 use crate::out::lexiparser::lexiparser::*;
 use crate::out::lexiparser::lexiparser_types::*;
 
@@ -91,7 +89,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_actions(&mut self, _ctx: CtxActions) -> SynActions {
         if self.verbose { println!("exit_actions"); }
-        SynActions(LexAction::default()) // dummy
+        SynActions() // dummy
     }
 
     fn init_action(&mut self) {
@@ -100,7 +98,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_action(&mut self, _ctx: CtxAction) -> SynAction {
         if self.verbose { println!("exit_action"); }
-        SynAction(LexAction::default())
+        SynAction()
     }
 
     fn init_match(&mut self) {
@@ -109,7 +107,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_match(&mut self, _ctx: CtxMatch) -> SynMatch {
         if self.verbose { println!("exit_match1"); }
-        SynMatch(None)
+        SynMatch()
     }
 
     fn init_alt_items(&mut self) {
@@ -118,7 +116,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_alt_items(&mut self, _ctx: CtxAltItems) -> SynAltItems {
         if self.verbose { println!("exit_alt_items"); }
-        SynAltItems((0, None))
+        SynAltItems()
     }
 
     fn init_alt_item(&mut self) {
@@ -127,7 +125,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_alt_item(&mut self, _ctx: CtxAltItem) -> SynAltItem {
         if self.verbose { println!("exit_alt_item"); }
-        SynAltItem((0, None))
+        SynAltItem()
     }
 
     fn init_repeat_item(&mut self) {
@@ -136,7 +134,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_repeat_item(&mut self, _ctx: CtxRepeatItem) -> SynRepeatItem {
         if self.verbose { println!("exit_repeat_item"); }
-        SynRepeatItem((0, None))
+        SynRepeatItem()
     }
 
     fn init_item(&mut self) {
@@ -145,15 +143,15 @@ impl LexiParserListener for LexiListener {
 
     fn exit_item(&mut self, _ctx: CtxItem) -> SynItem {
         if self.verbose { println!("exit_item"); }
-        SynItem((0, None))
+        SynItem()
     }
 
     fn exit_char_set(&mut self, _ctx: CtxCharSet) -> SynCharSet {
-        SynCharSet(Segments::empty())
+        SynCharSet()
     }
 
     fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne {
-        SynCharSetOne(Segments::empty())
+        SynCharSetOne()
     }
 }
 

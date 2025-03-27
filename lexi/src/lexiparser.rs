@@ -808,6 +808,9 @@ pub(crate) mod lexiparser {
 }
 
 pub(crate) mod lexiparser_types {
+    use lexigram::segments::Segments;
+    use crate::listener::LexAction;
+
     /// SynFile: User-defined type for `file`
     #[derive(Debug, PartialEq)] pub struct SynFile();
     /// SynFileItem: User-defined type for `file_item`
@@ -821,21 +824,21 @@ pub(crate) mod lexiparser_types {
     /// SynRule: User-defined type for `rule`
     #[derive(Debug, PartialEq)] pub struct SynRule();
     /// SynActions: User-defined type for `actions`
-    #[derive(Debug, PartialEq)] pub struct SynActions();
+    #[derive(Debug, PartialEq)] pub struct SynActions(pub LexAction);
     /// SynAction: User-defined type for `action`
-    #[derive(Debug, PartialEq)] pub struct SynAction();
+    #[derive(Debug, PartialEq)] pub struct SynAction(pub LexAction);
     /// SynMatch: User-defined type for `match`
-    #[derive(Debug, PartialEq)] pub struct SynMatch();
+    #[derive(Debug, PartialEq)] pub struct SynMatch(pub Option<String>);
     /// SynAltItems: User-defined type for `alt_items`
-    #[derive(Debug, PartialEq)] pub struct SynAltItems();
+    #[derive(Debug, PartialEq)] pub struct SynAltItems(pub (usize, Option<String>));
     /// SynAltItem: User-defined type for `alt_item`
-    #[derive(Debug, PartialEq)] pub struct SynAltItem();
+    #[derive(Debug, PartialEq)] pub struct SynAltItem(pub (usize, Option<String>));
     /// SynRepeatItem: User-defined type for `repeat_item`
-    #[derive(Debug, PartialEq)] pub struct SynRepeatItem();
+    #[derive(Debug, PartialEq)] pub struct SynRepeatItem(pub (usize, Option<String>));
     /// SynItem: User-defined type for `item`
-    #[derive(Debug, PartialEq)] pub struct SynItem();
+    #[derive(Debug, PartialEq)] pub struct SynItem(pub (usize, Option<String>));
     /// User-defined type for `char_set`
-    #[derive(Debug, PartialEq)] pub struct SynCharSet();
+    #[derive(Debug, PartialEq)] pub struct SynCharSet(pub Segments);
     /// User-defined type for `char_set_one`
-    #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
+    #[derive(Debug, PartialEq)] pub struct SynCharSetOne(pub Segments);
 }
