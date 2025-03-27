@@ -239,7 +239,7 @@ mod test {
 
     #[test]
     pub fn check_lexer_tokens() {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let tests: Vec<(i32, Vec<(&str, Vec<u16>, Vec<&str>)>)> = vec![
             (1, vec![
                 // no error

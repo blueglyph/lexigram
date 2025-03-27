@@ -25,7 +25,7 @@ use crate::test_tools::{get_tagged_source, replace_tagged_source};
 pub enum LexerType { Normalized, Optimized }
 
 fn make_dfa() -> Dfa<General> {
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     let regs = build_re();
     let mut dfas = vec![];
     for (n, re) in regs {
