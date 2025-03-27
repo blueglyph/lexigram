@@ -7,7 +7,7 @@ use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
-use crate::log::Logger;
+use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
 use crate::symbol_table::SymbolTable;
 
@@ -146,7 +146,7 @@ pub struct ParserGen {
     used_libs: StructLibs,
     nt_type: HashMap<VarId, String>,
     nt_extra_info: HashMap<VarId, (String, Vec<String>)>,
-    log: Logger
+    log: BufLog
 }
 
 impl ParserGen {
@@ -1237,7 +1237,8 @@ impl ParserGen {
         const VERBOSE: bool = false;
 
         self.used_libs.extend([
-            "rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::Listener", "rlexer::grammar::FactorId"
+            "rlexer::CollectJoin", "rlexer::grammar::VarId", "rlexer::parser::Call", "rlexer::parser::ListenerWrapper", "rlexer::grammar::FactorId",
+            "rlexer::log::Logger",
         ]);
 
         let (nt_name, factor_info, mut item_info, nt_repeat) = self.get_type_info();
@@ -1728,6 +1729,7 @@ impl ParserGen {
         // Writes the listener trait declaration
         src.add_space();
         src.push(format!("pub trait {}Listener {{", self.name));
+        src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger;"));
         if self.nt_value[self.start as usize] {
             src.push(format!("    fn exit(&mut self, _{}: {}) {{}}", nt_name[self.start as usize].as_ref().unwrap().2, self.get_nt_type(self.start)));
         } else {
@@ -1744,7 +1746,7 @@ impl ParserGen {
 
         // Writes the switch() function
         src.add_space();
-        src.push(format!("pub struct ListenerWrapper<T> {{"));
+        src.push(format!("pub struct Wrapper<T> {{"));
         src.push(format!("    verbose: bool,"));
         src.push(format!("    listener: T,"));
         src.push(format!("    stack: Vec<SynValue>,"));
@@ -1752,7 +1754,7 @@ impl ParserGen {
         src.push(format!("    stack_t: Vec<String>,"));
         src.push(format!("}}"));
         src.push(format!(""));
-        src.push(format!("impl<T: {}Listener> Listener for ListenerWrapper<T> {{", self.name));
+        src.push(format!("impl<T: {}Listener> ListenerWrapper for Wrapper<T> {{", self.name));
         src.push(format!("    fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {{"));
         src.push(format!("        if self.verbose {{"));
         src.push(format!("            println!(\"switch: call={{call:?}}, nt={{nt}}, factor={{factor_id}}, t_data={{t_data:?}}\");"));
@@ -1800,12 +1802,16 @@ impl ParserGen {
         src.push(format!("            println!(\"> stack:     {{}}\", self.stack.iter().map(|it| format!(\"{{it:?}}\")).join(\", \"));"));
         src.push(format!("        }}"));
         src.push(format!("    }}"));
+        src.push(format!(""));
+        src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger {{"));
+        src.push(format!("        self.listener.get_mut_log()"));
+        src.push(format!("    }}"));
         src.push(format!("}}"));
 
         src.add_space();
-        src.push(format!("impl<T: {}Listener> ListenerWrapper<T> {{", self.name));
+        src.push(format!("impl<T: {}Listener> Wrapper<T> {{", self.name));
         src.push(format!("    pub fn new(listener: T, verbose: bool) -> Self {{"));
-        src.push(format!("        ListenerWrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
+        src.push(format!("        Wrapper {{ verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }}"));
         src.push(format!("    }}"));
         src.push(format!(""));
         src.push(format!("    pub fn get_listener(&self) -> &T {{"));

@@ -6,7 +6,7 @@ use crate::CollectJoin;
 use crate::dfa::TokenId;
 use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId, FactorId};
 use crate::lexer::{CaretCol, CaretLine};
-use crate::log::Logger;
+use crate::log::{BufLog, Logger};
 use crate::symbol_table::SymbolTable;
 
 mod tests;
@@ -26,14 +26,13 @@ pub enum OpCode {
 #[derive(PartialEq, Debug)]
 pub enum Call { Enter, Loop, Exit, End }
 
-pub trait Listener {
-    /// Calls the listener to execute synthesis or inheritance actions.
-    ///
-    /// The function returns true when `Asm(factor_id)` has to be pushed on the parser stack,
-    /// typically to attach parameters to an object being assembled by the listener
-    /// (intermediate inheritance).
-    fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) { /*false*/ }
+pub trait ListenerWrapper {
+    /// Calls the listener to execute Enter, Loop, Exit, and End actions.
+    fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {}
+    /// Aborts the parsing.
     fn abort(&mut self) {}
+    /// Gets access to the listener's log to report possible errors and information about the parsing.
+    fn get_mut_log(&mut self) -> &mut impl Logger;
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -75,7 +74,6 @@ pub struct Parser {
     table: Vec<FactorId>,
     symbol_table: SymbolTable,
     start: VarId,
-    log: Logger,
     try_recover: bool,          // tries to recover from syntactical errors
 }
 
@@ -94,7 +92,6 @@ impl Parser {
             table: parsing_table.table,
             symbol_table,
             start,
-            log: Logger::new(),
             try_recover: true
         };
         parser
@@ -121,13 +118,15 @@ impl Parser {
         &self.opcodes
     }
 
-    pub fn get_log(&self) -> &Logger {
-        &self.log
-    }
-
-    pub fn parse_stream<I, L>(&mut self, listener: &mut L, mut stream: I) -> Result<(), ParserError>
+    /// Parses an entire `stream` using the `listener`, and returns `Ok(())` if the whole stream could
+    /// be successfully parsed, or an error if it couldn't.
+    ///
+    /// All errors are reported to the wrapper's log. Usually, the wrapper simply transmits the
+    /// reports to the user listener's log, where the user listener is embedded in the wrapper as one
+    /// of its fields and is defined by the user (instead of being generated like the wrapper).
+    pub fn parse_stream<I, L>(&mut self, wrapper: &mut L, mut stream: I) -> Result<(), ParserError>
         where I: Iterator<Item=ParserToken>,
-              L: Listener,
+              L: ListenerWrapper,
     {
         const VERBOSE: bool = false;
         let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
@@ -138,7 +137,6 @@ impl Parser {
         if VERBOSE { println!("skip = {error_skip_factor_id}, pop = {error_pop_factor_id}"); }
         let mut recover_mode = false;
         let mut nbr_recovers = 0;
-        self.log.clear();
         let end_var_id = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
         stack.push(OpCode::NT(self.start));
@@ -184,17 +182,17 @@ impl Parser {
                                           stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
                                           if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
-                            self.log.add_error(msg);
+                            wrapper.get_mut_log().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
-                                self.log.add_error(format!("too many errors ({nbr_recovers}), giving up"));
-                                listener.abort();
+                                wrapper.get_mut_log().add_error(format!("too many errors ({nbr_recovers}), giving up"));
+                                wrapper.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
                             nbr_recovers += 1;
                             recover_mode = true;
                         } else {
-                            self.log.add_error(msg);
-                            listener.abort();
+                            wrapper.get_mut_log().add_error(msg);
+                            wrapper.abort();
                             return Err(ParserError::SyntaxError);
                         }
                     }
@@ -204,8 +202,8 @@ impl Parser {
                             if stream_sym == Symbol::End {
                                 let msg = format!("(recovering) irrecoverable, reached end of stream");
                                 if VERBOSE { println!("{msg}"); }
-                                self.log.add_error(msg);
-                                listener.abort();
+                                wrapper.get_mut_log().add_error(msg);
+                                wrapper.abort();
                                 return Err(ParserError::Irrecoverable);
                             }
                             if VERBOSE { println!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table())); }
@@ -232,7 +230,7 @@ impl Parser {
                                      Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table), t_data.len(), t_data.iter().join(" "));
                         }
                         if nbr_recovers == 0 {
-                            listener.switch(call, var, factor_id, Some(t_data));
+                            wrapper.switch(call, var, factor_id, Some(t_data));
                         }
                         let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                         stack.extend(self.opcodes[factor_id as usize].clone());
@@ -244,7 +242,7 @@ impl Parser {
                     let t_data = std::mem::take(&mut stack_t);
                     if VERBOSE { println!("- EXIT {} syn ({}): [{}]", Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter().join(" ")); }
                     if nbr_recovers == 0 {
-                        listener.switch(Call::Exit, var, factor_id, Some(t_data));
+                        wrapper.switch(Call::Exit, var, factor_id, Some(t_data));
                     }
                     stack_sym = stack.pop().unwrap();
                 }
@@ -253,17 +251,17 @@ impl Parser {
                         let msg = format!("unexpected character: '{}' instead of '{}'{}", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
                                           if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
-                            self.log.add_error(msg);
+                            wrapper.get_mut_log().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
-                                self.log.add_error(format!("too many errors ({nbr_recovers}), giving up"));
-                                listener.abort();
+                                wrapper.get_mut_log().add_error(format!("too many errors ({nbr_recovers}), giving up"));
+                                wrapper.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
                             nbr_recovers += 1;
                             recover_mode = true;
                         } else {
-                            self.log.add_error(msg);
-                            listener.abort();
+                            wrapper.get_mut_log().add_error(msg);
+                            wrapper.abort();
                             return Err(ParserError::SyntaxError);
                         }
                     }
@@ -288,25 +286,25 @@ impl Parser {
                 }
                 (OpCode::End, Symbol::End) => {
                     if nbr_recovers == 0 {
-                        listener.switch(Call::End, 0, 0, None);
+                        wrapper.switch(Call::End, 0, 0, None);
                     }
                     break;
                 }
                 (OpCode::End, _) => {
-                    self.log.add_error(format!("extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
-                    listener.abort();
+                    wrapper.get_mut_log().add_error(format!("extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
+                    wrapper.abort();
                     return Err(ParserError::ExtraSymbol);
                 }
                 (_, Symbol::End) => {
-                    self.log.add_error(format!("end of stream while expecting a '{}'", stack_sym.to_str(sym_table)));
-                    listener.abort();
+                    wrapper.get_mut_log().add_error(format!("end of stream while expecting a '{}'", stack_sym.to_str(sym_table)));
+                    wrapper.abort();
                     return Err(ParserError::UnexpectedEOS);
                 }
                 (_, _) => {
-                    self.log.add_error(format!("unexpected situation: input '{}' while expecting '{}'{}",
-                                               stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                               if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
-                    listener.abort();
+                    wrapper.get_mut_log().add_error(format!("unexpected situation: input '{}' while expecting '{}'{}",
+                                                            stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
+                                                            if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
+                    wrapper.abort();
                     return Err(ParserError::UnexpectedError);
                 }
             }
@@ -316,7 +314,8 @@ impl Parser {
         if nbr_recovers == 0 {
             Ok(())
         } else {
-            listener.abort();
+            // when nbr_recovers > 0, we know that at least one error has been reported to the log, no need to add one here
+            wrapper.abort();
             Err(ParserError::EncounteredErrors)
         }
     }

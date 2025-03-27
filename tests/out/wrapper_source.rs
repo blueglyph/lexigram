@@ -28,7 +28,7 @@ pub(crate) mod rules_prs_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(34) #1, start S]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_34_1::*;
 
     #[derive(Debug)]
@@ -68,6 +68,7 @@ pub(crate) mod rules_prs_34_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _s: SynS) {}
         fn init_s(&mut self) {}
         fn exit_s(&mut self, _ctx: CtxS) -> SynS;
@@ -75,7 +76,7 @@ pub(crate) mod rules_prs_34_1 {
         fn exit_val(&mut self, _ctx: CtxVal) -> SynVal;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -83,7 +84,7 @@ pub(crate) mod rules_prs_34_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -120,11 +121,15 @@ pub(crate) mod rules_prs_34_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -212,7 +217,7 @@ pub(crate) mod rules_rts_21_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_21_1::*;
 
     #[derive(Debug)]
@@ -242,12 +247,13 @@ pub(crate) mod rules_rts_21_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -255,7 +261,7 @@ pub(crate) mod rules_rts_21_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -290,11 +296,15 @@ pub(crate) mod rules_rts_21_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -365,7 +375,7 @@ pub(crate) mod rules_rts_21_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_21_2::*;
 
     #[derive(Debug)]
@@ -390,12 +400,13 @@ pub(crate) mod rules_rts_21_2 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -403,7 +414,7 @@ pub(crate) mod rules_rts_21_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -438,11 +449,15 @@ pub(crate) mod rules_rts_21_2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -501,7 +516,7 @@ pub(crate) mod rules_rts_22_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_1::*;
 
     #[derive(Debug)]
@@ -537,6 +552,7 @@ pub(crate) mod rules_rts_22_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -544,7 +560,7 @@ pub(crate) mod rules_rts_22_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -552,7 +568,7 @@ pub(crate) mod rules_rts_22_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -587,11 +603,15 @@ pub(crate) mod rules_rts_22_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -672,7 +692,7 @@ pub(crate) mod rules_rts_22_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_2::*;
 
     #[derive(Debug)]
@@ -704,6 +724,7 @@ pub(crate) mod rules_rts_22_2 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -711,7 +732,7 @@ pub(crate) mod rules_rts_22_2 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) {}
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -719,7 +740,7 @@ pub(crate) mod rules_rts_22_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -754,11 +775,15 @@ pub(crate) mod rules_rts_22_2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -830,7 +855,7 @@ pub(crate) mod rules_rts_22_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #3, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_3::*;
 
     #[derive(Debug)]
@@ -866,6 +891,7 @@ pub(crate) mod rules_rts_22_3 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -873,7 +899,7 @@ pub(crate) mod rules_rts_22_3 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -881,7 +907,7 @@ pub(crate) mod rules_rts_22_3 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -916,11 +942,15 @@ pub(crate) mod rules_rts_22_3 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -1000,7 +1030,7 @@ pub(crate) mod rules_rts_22_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #4, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_4::*;
 
     #[derive(Debug)]
@@ -1035,6 +1065,7 @@ pub(crate) mod rules_rts_22_4 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) {}
@@ -1042,7 +1073,7 @@ pub(crate) mod rules_rts_22_4 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1050,7 +1081,7 @@ pub(crate) mod rules_rts_22_4 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -1085,11 +1116,15 @@ pub(crate) mod rules_rts_22_4 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -1168,7 +1203,7 @@ pub(crate) mod rules_rts_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(32) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_32_1::*;
 
     #[derive(Debug)]
@@ -1206,6 +1241,7 @@ pub(crate) mod rules_rts_32_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -1213,7 +1249,7 @@ pub(crate) mod rules_rts_32_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1221,7 +1257,7 @@ pub(crate) mod rules_rts_32_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -1259,11 +1295,15 @@ pub(crate) mod rules_rts_32_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -1358,7 +1398,7 @@ pub(crate) mod rules_rts_25_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(25) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_25_1::*;
 
     #[derive(Debug)]
@@ -1383,12 +1423,13 @@ pub(crate) mod rules_rts_25_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1396,7 +1437,7 @@ pub(crate) mod rules_rts_25_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -1431,11 +1472,15 @@ pub(crate) mod rules_rts_25_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -1497,7 +1542,7 @@ pub(crate) mod rules_rts_23_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(23) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_23_1::*;
 
     #[derive(Debug)]
@@ -1527,12 +1572,13 @@ pub(crate) mod rules_rts_23_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1540,7 +1586,7 @@ pub(crate) mod rules_rts_23_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -1577,11 +1623,15 @@ pub(crate) mod rules_rts_23_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -1658,7 +1708,7 @@ pub(crate) mod rules_rts_27_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(27) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_27_1::*;
 
     #[derive(Debug)]
@@ -1698,6 +1748,7 @@ pub(crate) mod rules_rts_27_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -1705,7 +1756,7 @@ pub(crate) mod rules_rts_27_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1713,7 +1764,7 @@ pub(crate) mod rules_rts_27_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -1752,11 +1803,15 @@ pub(crate) mod rules_rts_27_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -1839,7 +1894,7 @@ pub(crate) mod rules_rts_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(28) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_28_1::*;
 
     #[derive(Debug)]
@@ -1882,6 +1937,7 @@ pub(crate) mod rules_rts_28_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -1889,7 +1945,7 @@ pub(crate) mod rules_rts_28_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -1897,7 +1953,7 @@ pub(crate) mod rules_rts_28_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -1936,11 +1992,15 @@ pub(crate) mod rules_rts_28_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -2021,7 +2081,7 @@ pub(crate) mod rules_rts_24_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_1::*;
 
     #[derive(Debug)]
@@ -2055,6 +2115,7 @@ pub(crate) mod rules_rts_24_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
@@ -2062,7 +2123,7 @@ pub(crate) mod rules_rts_24_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynMyAIter;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2070,7 +2131,7 @@ pub(crate) mod rules_rts_24_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -2107,11 +2168,15 @@ pub(crate) mod rules_rts_24_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -2186,7 +2251,7 @@ pub(crate) mod rules_rts_24_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_2::*;
 
     #[derive(Debug)]
@@ -2216,6 +2281,7 @@ pub(crate) mod rules_rts_24_2 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
@@ -2223,7 +2289,7 @@ pub(crate) mod rules_rts_24_2 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) {}
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2231,7 +2297,7 @@ pub(crate) mod rules_rts_24_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -2268,11 +2334,15 @@ pub(crate) mod rules_rts_24_2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -2339,7 +2409,7 @@ pub(crate) mod rules_rts_24_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #3, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_3::*;
 
     #[derive(Debug)]
@@ -2373,6 +2443,7 @@ pub(crate) mod rules_rts_24_3 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
@@ -2380,7 +2451,7 @@ pub(crate) mod rules_rts_24_3 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynMyAIter;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2388,7 +2459,7 @@ pub(crate) mod rules_rts_24_3 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -2425,11 +2496,15 @@ pub(crate) mod rules_rts_24_3 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -2504,7 +2579,7 @@ pub(crate) mod rules_rts_24_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #4, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_4::*;
 
     #[derive(Debug)]
@@ -2537,6 +2612,7 @@ pub(crate) mod rules_rts_24_4 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) {}
@@ -2544,7 +2620,7 @@ pub(crate) mod rules_rts_24_4 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynMyAIter;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2552,7 +2628,7 @@ pub(crate) mod rules_rts_24_4 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -2589,11 +2665,15 @@ pub(crate) mod rules_rts_24_4 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -2666,7 +2746,7 @@ pub(crate) mod rules_rts_29_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_29_1::*;
 
     #[derive(Debug)]
@@ -2718,6 +2798,7 @@ pub(crate) mod rules_rts_29_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -2725,7 +2806,7 @@ pub(crate) mod rules_rts_29_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2733,7 +2814,7 @@ pub(crate) mod rules_rts_29_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -2773,11 +2854,15 @@ pub(crate) mod rules_rts_29_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -2874,7 +2959,7 @@ pub(crate) mod rules_rts_29_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_29_2::*;
 
     #[derive(Debug)]
@@ -2909,6 +2994,7 @@ pub(crate) mod rules_rts_29_2 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -2916,7 +3002,7 @@ pub(crate) mod rules_rts_29_2 {
         fn exit_b(&mut self, _ctx: CtxB) {}
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -2924,7 +3010,7 @@ pub(crate) mod rules_rts_29_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -2964,11 +3050,15 @@ pub(crate) mod rules_rts_29_2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -3049,7 +3139,7 @@ pub(crate) mod rules_rts_29_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #3, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3090,6 +3180,7 @@ pub(crate) mod rules_rts_29_3 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) {}
@@ -3097,7 +3188,7 @@ pub(crate) mod rules_rts_29_3 {
         fn exit_b(&mut self, _ctx: CtxB) {}
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -3105,7 +3196,7 @@ pub(crate) mod rules_rts_29_3 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -3145,11 +3236,15 @@ pub(crate) mod rules_rts_29_3 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -3238,7 +3333,7 @@ pub(crate) mod rules_rts_39_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(39) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_39_1::*;
 
     #[derive(Debug)]
@@ -3286,6 +3381,7 @@ pub(crate) mod rules_rts_39_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -3295,7 +3391,7 @@ pub(crate) mod rules_rts_39_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAiter1;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -3303,7 +3399,7 @@ pub(crate) mod rules_rts_39_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -3341,11 +3437,15 @@ pub(crate) mod rules_rts_39_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -3455,7 +3555,7 @@ pub(crate) mod rules_rts_40_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(40) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_40_1::*;
 
     #[derive(Debug)]
@@ -3500,6 +3600,7 @@ pub(crate) mod rules_rts_40_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -3507,7 +3608,7 @@ pub(crate) mod rules_rts_40_1 {
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAiter1;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -3515,7 +3616,7 @@ pub(crate) mod rules_rts_40_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -3553,11 +3654,15 @@ pub(crate) mod rules_rts_40_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -3665,7 +3770,7 @@ pub(crate) mod rules_rts_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_30_1::*;
 
     #[derive(Debug)]
@@ -3717,6 +3822,7 @@ pub(crate) mod rules_rts_30_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
@@ -3724,7 +3830,7 @@ pub(crate) mod rules_rts_30_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -3732,7 +3838,7 @@ pub(crate) mod rules_rts_30_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -3776,11 +3882,15 @@ pub(crate) mod rules_rts_30_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -3883,7 +3993,7 @@ pub(crate) mod rules_rts_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3924,6 +4034,7 @@ pub(crate) mod rules_rts_30_2 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) {}
@@ -3931,7 +4042,7 @@ pub(crate) mod rules_rts_30_2 {
         fn exit_b(&mut self, _ctx: CtxB) {}
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -3939,7 +4050,7 @@ pub(crate) mod rules_rts_30_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -3983,11 +4094,15 @@ pub(crate) mod rules_rts_30_2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -4114,7 +4229,7 @@ pub(crate) mod rules_rts_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(34) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_34_1::*;
 
     #[derive(Debug)]
@@ -4180,12 +4295,13 @@ pub(crate) mod rules_rts_34_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4193,7 +4309,7 @@ pub(crate) mod rules_rts_34_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -4255,11 +4371,15 @@ pub(crate) mod rules_rts_34_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -4400,7 +4520,7 @@ pub(crate) mod rules_prs_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(28) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_28_1::*;
 
     #[derive(Debug)]
@@ -4433,12 +4553,13 @@ pub(crate) mod rules_prs_28_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4446,7 +4567,7 @@ pub(crate) mod rules_prs_28_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -4486,11 +4607,15 @@ pub(crate) mod rules_prs_28_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -4576,7 +4701,7 @@ pub(crate) mod rules_prs_31_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(31) #1, start E]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_31_1::*;
 
     #[derive(Debug)]
@@ -4614,6 +4739,7 @@ pub(crate) mod rules_prs_31_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
@@ -4621,7 +4747,7 @@ pub(crate) mod rules_prs_31_1 {
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4629,7 +4755,7 @@ pub(crate) mod rules_prs_31_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -4666,11 +4792,15 @@ pub(crate) mod rules_prs_31_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -4751,7 +4881,7 @@ pub(crate) mod rules_prs_31_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(31) #2, start E]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_31_2::*;
 
     #[derive(Debug)]
@@ -4788,6 +4918,7 @@ pub(crate) mod rules_prs_31_2 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) {}
@@ -4795,7 +4926,7 @@ pub(crate) mod rules_prs_31_2 {
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4803,7 +4934,7 @@ pub(crate) mod rules_prs_31_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -4840,11 +4971,15 @@ pub(crate) mod rules_prs_31_2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -4918,7 +5053,7 @@ pub(crate) mod rules_prs_36_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(36) #1, start E]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_36_1::*;
 
     #[derive(Debug)]
@@ -4958,6 +5093,7 @@ pub(crate) mod rules_prs_36_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
@@ -4965,7 +5101,7 @@ pub(crate) mod rules_prs_36_1 {
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -4973,7 +5109,7 @@ pub(crate) mod rules_prs_36_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -5011,11 +5147,15 @@ pub(crate) mod rules_prs_36_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -5109,7 +5249,7 @@ pub(crate) mod rules_prs_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(33) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_33_1::*;
 
     #[derive(Debug)]
@@ -5140,12 +5280,13 @@ pub(crate) mod rules_prs_33_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5153,7 +5294,7 @@ pub(crate) mod rules_prs_33_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -5191,11 +5332,15 @@ pub(crate) mod rules_prs_33_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -5286,7 +5431,7 @@ pub(crate) mod rules_prs_38_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(38) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_38_1::*;
 
     #[derive(Debug)]
@@ -5319,12 +5464,13 @@ pub(crate) mod rules_prs_38_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5332,7 +5478,7 @@ pub(crate) mod rules_prs_38_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -5371,11 +5517,15 @@ pub(crate) mod rules_prs_38_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -5474,7 +5624,7 @@ pub(crate) mod rules_prs_39_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(39) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_39_1::*;
 
     #[derive(Debug)]
@@ -5507,12 +5657,13 @@ pub(crate) mod rules_prs_39_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5520,7 +5671,7 @@ pub(crate) mod rules_prs_39_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -5561,11 +5712,15 @@ pub(crate) mod rules_prs_39_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -5664,7 +5819,7 @@ pub(crate) mod rules_prs_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(32) #1, start E]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_32_1::*;
 
     #[derive(Debug)]
@@ -5704,6 +5859,7 @@ pub(crate) mod rules_prs_32_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
@@ -5711,7 +5867,7 @@ pub(crate) mod rules_prs_32_1 {
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5719,7 +5875,7 @@ pub(crate) mod rules_prs_32_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -5759,11 +5915,15 @@ pub(crate) mod rules_prs_32_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -5857,7 +6017,7 @@ pub(crate) mod rules_rts_38_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_38_1::*;
 
     #[derive(Debug)]
@@ -5892,12 +6052,13 @@ pub(crate) mod rules_rts_38_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -5905,7 +6066,7 @@ pub(crate) mod rules_rts_38_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -5947,11 +6108,15 @@ pub(crate) mod rules_rts_38_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -6051,7 +6216,7 @@ pub(crate) mod rules_rts_38_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #2, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_38_2::*;
 
     #[derive(Debug)]
@@ -6086,12 +6251,13 @@ pub(crate) mod rules_rts_38_2 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6099,7 +6265,7 @@ pub(crate) mod rules_rts_38_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -6141,11 +6307,15 @@ pub(crate) mod rules_rts_38_2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -6238,7 +6408,7 @@ pub(crate) mod rules_rts_38_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #3, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -6266,12 +6436,13 @@ pub(crate) mod rules_rts_38_3 {
     enum SynValue {  }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) {}
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6279,7 +6450,7 @@ pub(crate) mod rules_rts_38_3 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -6321,11 +6492,15 @@ pub(crate) mod rules_rts_38_3 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -6397,7 +6572,7 @@ pub(crate) mod rules_prs_20_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #1, start STRUCT]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_20_1::*;
 
     #[derive(Debug)]
@@ -6433,6 +6608,7 @@ pub(crate) mod rules_prs_20_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
         fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
@@ -6440,7 +6616,7 @@ pub(crate) mod rules_prs_20_1 {
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6448,7 +6624,7 @@ pub(crate) mod rules_prs_20_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -6483,11 +6659,15 @@ pub(crate) mod rules_prs_20_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -6561,7 +6741,7 @@ pub(crate) mod rules_prs_20_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #2, start STRUCT]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_20_2::*;
 
     #[derive(Debug)]
@@ -6593,6 +6773,7 @@ pub(crate) mod rules_prs_20_2 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
         fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
@@ -6600,7 +6781,7 @@ pub(crate) mod rules_prs_20_2 {
         fn exit_list(&mut self, _ctx: CtxList) {}
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6608,7 +6789,7 @@ pub(crate) mod rules_prs_20_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -6643,11 +6824,15 @@ pub(crate) mod rules_prs_20_2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -6722,7 +6907,7 @@ pub(crate) mod rules_prs_37_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(37) #1, start STRUCT]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_37_1::*;
 
     #[derive(Debug)]
@@ -6760,6 +6945,7 @@ pub(crate) mod rules_prs_37_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
         fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
@@ -6767,7 +6953,7 @@ pub(crate) mod rules_prs_37_1 {
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6775,7 +6961,7 @@ pub(crate) mod rules_prs_37_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -6813,11 +6999,15 @@ pub(crate) mod rules_prs_37_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -6895,7 +7085,7 @@ pub(crate) mod rules_prs_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(30) #1, start STRUCT]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_30_1::*;
 
     #[derive(Debug)]
@@ -6931,6 +7121,7 @@ pub(crate) mod rules_prs_30_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
         fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
@@ -6938,7 +7129,7 @@ pub(crate) mod rules_prs_30_1 {
         fn exit_list(&mut self, _ctx: CtxList) -> SynList;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -6946,7 +7137,7 @@ pub(crate) mod rules_prs_30_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -6981,11 +7172,15 @@ pub(crate) mod rules_prs_30_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -7065,7 +7260,7 @@ pub(crate) mod rules_prs_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(30) #2, start STRUCT]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_30_2::*;
 
     #[derive(Debug)]
@@ -7097,6 +7292,7 @@ pub(crate) mod rules_prs_30_2 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
         fn exit_struct(&mut self, _ctx: CtxStruct) -> SynStruct;
@@ -7104,7 +7300,7 @@ pub(crate) mod rules_prs_30_2 {
         fn exit_list(&mut self, _ctx: CtxList) {}
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -7112,7 +7308,7 @@ pub(crate) mod rules_prs_30_2 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -7147,11 +7343,15 @@ pub(crate) mod rules_prs_30_2 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -7228,7 +7428,7 @@ pub(crate) mod rules_rts_26_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(26) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_26_1::*;
 
     #[derive(Debug)]
@@ -7262,12 +7462,13 @@ pub(crate) mod rules_rts_26_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -7275,7 +7476,7 @@ pub(crate) mod rules_rts_26_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -7313,11 +7514,15 @@ pub(crate) mod rules_rts_26_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -7412,7 +7617,7 @@ pub(crate) mod rules_rts_16_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(16) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_16_1::*;
 
     #[derive(Debug)]
@@ -7446,12 +7651,13 @@ pub(crate) mod rules_rts_16_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -7459,7 +7665,7 @@ pub(crate) mod rules_rts_16_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -7499,11 +7705,15 @@ pub(crate) mod rules_rts_16_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -7591,7 +7801,7 @@ pub(crate) mod rules_prs_35_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(35) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_35_1::*;
 
     #[derive(Debug)]
@@ -7620,12 +7830,13 @@ pub(crate) mod rules_prs_35_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -7633,7 +7844,7 @@ pub(crate) mod rules_prs_35_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -7669,11 +7880,15 @@ pub(crate) mod rules_prs_35_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -7752,7 +7967,7 @@ pub(crate) mod rules_rts_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(33) #1, start A]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_33_1::*;
 
     #[derive(Debug)]
@@ -7797,6 +8012,7 @@ pub(crate) mod rules_rts_33_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynMyA;
@@ -7804,7 +8020,7 @@ pub(crate) mod rules_rts_33_1 {
         fn exit_b(&mut self, _ctx: CtxB) -> SynB;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -7812,7 +8028,7 @@ pub(crate) mod rules_rts_33_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -7850,11 +8066,15 @@ pub(crate) mod rules_rts_33_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {
@@ -8033,7 +8253,7 @@ pub(crate) mod rules_rts_100_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(100) #1, start file]
 
-    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, parser::{Call, Listener}};
+    use rlexer::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_100_1::*;
 
     #[derive(Debug)]
@@ -8285,6 +8505,7 @@ pub(crate) mod rules_rts_100_1 {
     }
 
     pub trait TestListener {
+        fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _file: SynFile) {}
         fn init_file(&mut self) {}
         fn exit_file(&mut self, _ctx: CtxFile) -> SynFile;
@@ -8318,7 +8539,7 @@ pub(crate) mod rules_rts_100_1 {
         fn exit_char_set_one(&mut self, _ctx: CtxCharSetOne) -> SynCharSetOne;
     }
 
-    pub struct ListenerWrapper<T> {
+    pub struct Wrapper<T> {
         verbose: bool,
         listener: T,
         stack: Vec<SynValue>,
@@ -8326,7 +8547,7 @@ pub(crate) mod rules_rts_100_1 {
         stack_t: Vec<String>,
     }
 
-    impl<T: TestListener> Listener for ListenerWrapper<T> {
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
         fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
@@ -8446,11 +8667,15 @@ pub(crate) mod rules_rts_100_1 {
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
         }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
     }
 
-    impl<T: TestListener> ListenerWrapper<T> {
+    impl<T: TestListener> Wrapper<T> {
         pub fn new(listener: T, verbose: bool) -> Self {
-            ListenerWrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
         }
 
         pub fn get_listener(&self) -> &T {

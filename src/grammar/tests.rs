@@ -731,7 +731,7 @@ fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsing
     }
 }
 
-pub(crate) fn log_to_str(log: &Logger) -> String {
+pub(crate) fn log_to_str(log: &BufLog) -> String {
     let mut msg = Vec::<String>::new();
     msg.push(format!("Errors: {}", log.num_errors()));
     msg.extend(log.get_errors().cloned());

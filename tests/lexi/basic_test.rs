@@ -1,23 +1,30 @@
 #![cfg(test)]
 
+use rlexer::log::{BufLog, Logger};
 use rlexer::segments::Segments;
 use crate::out::lexiparser::lexiparser::*;
 use crate::out::lexiparser::lexiparser_types::*;
 use crate::lexi::LexAction;
 
 struct LexiListener {
-    verbose: bool
+    verbose: bool,
+    log: BufLog
 }
 
 impl LexiListener {
     fn new() -> Self {
         LexiListener {
-            verbose: false
+            verbose: false,
+            log: BufLog::new()
         }
     }
 }
 
 impl LexiParserListener for LexiListener {
+    fn get_mut_log(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
     fn exit(&mut self, _file: SynFile) {
         if self.verbose { println!("exit"); }
     }
@@ -163,7 +170,7 @@ mod tests {
         let tests = [
             ("", 0),
             ("lexicon LexiLexer;", 3),
-            (LEXICON, 327),
+            (LEXICON, 338),
         ];
         const VERBOSE: bool = false;
         const VERBOSE_DETAILS: bool = false;
@@ -180,7 +187,7 @@ mod tests {
                 let mut parser = build_parser();
                 let mut listener = LexiListener::new();
                 listener.verbose = VERBOSE_LISTENER;
-                let mut wrapper = ListenerWrapper::new(listener, false);
+                let mut wrapper = Wrapper::new(listener, false);
                 wrapper.set_verbose(VERBOSE);
                 let mut result_tokens = 0;
                 let result = match method {
@@ -209,7 +216,7 @@ mod tests {
                     _ => panic!()
                 };
                 if VERBOSE {
-                    let msg = parser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    let msg = wrapper.get_mut_listener().log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                     if !msg.is_empty() {
                         println!("Messages:\n{msg}");
                     }

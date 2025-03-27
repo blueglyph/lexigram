@@ -18,7 +18,6 @@ Comma           : ',';
 Dot             : '.';
 Ellipsis        : '..';
 Lbracket        : '{';
-LSbracket       : '[';
 Lparen          : '(';
 Negate          : '~';
 Minus           : '-';
@@ -26,7 +25,6 @@ Plus            : '+';
 Or              : '|';
 Question        : '?';
 Rbracket        : '}';
-RSbracket       : ']';
 Rparen          : ')';
 Semicolon       : ';';
 Star            : '*';
@@ -53,4 +51,12 @@ CharLit         : CharLiteral;
 StrLit          : StrLiteral;
 
 FixedSet        : ('\\w' | '\\d');
+
+LSbracket       : '['                       -> push(MODE_SET_CHAR);
+
+mode MODE_SET_CHAR;
+
+RSbracket       : ']'                       -> pop;
+Minus2          : '-'                       -> type(Minus);
 SetChar         : (EscSetChar | ~[\n\r\t\\\]\-]);
+FixedSet2       : ('\\w' | '\\d')           -> type(FixedSet);

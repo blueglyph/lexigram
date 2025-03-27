@@ -4,10 +4,11 @@ use std::io::Read;
 use rlexer::CollectJoin;
 use rlexer::io::CharReader;
 use rlexer::lexer::{Lexer, TokenSpliterator};
+use rlexer::log::Logger;
 use rlexer::parser::{Parser, ParserError};
 use crate::lexi::LexiListener;
 use crate::out::build_lexer;
-use crate::out::lexiparser::lexiparser::{build_parser, ListenerWrapper};
+use crate::out::lexiparser::lexiparser::{build_parser, Wrapper};
 
 const TXT1: &str = r#"
     lexicon A;
@@ -103,9 +104,10 @@ const TXT5: &str = r#"
 struct TestLexi<R: Read> {
     lexilexer: Lexer<R>,
     lexiparser: Parser,
-    wrapper: ListenerWrapper<LexiListener>
+    wrapper: Wrapper<LexiListener>
 }
 
+#[allow(unused)]
 impl<R: Read> TestLexi<R> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
@@ -113,7 +115,7 @@ impl<R: Read> TestLexi<R> {
 
     fn new() -> Self {
         let listener = LexiListener::new();
-        let mut wrapper = ListenerWrapper::new(listener, Self::VERBOSE_WRAPPER);
+        let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
         wrapper.get_mut_listener().set_verbose(Self::VERBOSE_LISTENER);
         let mut lexilexer = build_lexer();
         lexilexer.set_tab_width(4);
@@ -122,6 +124,10 @@ impl<R: Read> TestLexi<R> {
             lexiparser: build_parser(),
             wrapper
         }
+    }
+
+    fn get_mut_listener(&mut self) -> &mut LexiListener {
+        self.wrapper.get_mut_listener()
     }
 
     fn get_listener(&self) -> &LexiListener {
@@ -140,11 +146,12 @@ impl<R: Read> TestLexi<R> {
             }
         });
         let result = self.lexiparser.parse_stream(&mut self.wrapper, tokens);
-        if self.wrapper.get_listener().log.num_errors() > 0 {
+        result.and_then(|r| if self.wrapper.get_listener().log.num_errors() > 0 {
+            // in case the parser hasn't reported any error but the listener has
             Err(ParserError::EncounteredErrors)
         } else {
-            result
-        }
+            Ok(r)
+        } )
     }
 }
 
@@ -284,15 +291,15 @@ mod simple {
             let stream = CharReader::new(Cursor::new(input));
             let mut lexi = TestLexi::new();
             let result = lexi.build(stream);
+            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
-                let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
             }
             let text = format!("test {test_id} failed");
             assert_eq!(result, Ok(()), "{text}");
-            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
                 println!("Rules:");
                 let mut rules = listener.rules.iter().to_vec();
@@ -378,14 +385,14 @@ mod simple {
             let stream = CharReader::new(Cursor::new(lexicon));
             let mut lexi = TestLexi::new();
             let result = lexi.build(stream);
+            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
-                let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
             }
             assert_eq!(result, Ok(()), "{text}: couldn't parse the lexicon");
-            let mut listener = lexi.wrapper.listener();
 
             // - builds the dfa from the reg tree
             let dfa = listener.make_dfa().optimize();
@@ -469,15 +476,15 @@ mod simple {
             let stream = CharReader::new(Cursor::new(input));
             let mut lexi = TestLexi::new();
             let result = lexi.build(stream);
+            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
-                let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
             }
             let text = format!("test {test_id} failed");
             assert_eq!(result, Ok(()), "{text}");
-            let mut listener = lexi.wrapper.listener();
             if VERBOSE {
                 println!("Rules lexicon {}:\n{}", listener.name, listener.rules_to_string(0));
             }
@@ -524,9 +531,23 @@ mod stability {
     const LEXILEXER_FILENAME: &str = "tests/out/lexilexer.rs";
     const LEXILEXER_TAG: &str = "lexilexer";
 
+    #[ignore]
     #[test]
+    /// Checks if lexi can rebuild itself identically from the lexicon (or at least produce the same output
+    /// after rebuilding itself).
+    ///
+    /// Set `REPLACE_SOURCE` to `true`, launch the test, launch the test again.
+    ///
+    /// On the 2nd run, it should be successful (once it runs with the sources it has generated in the first step).
+    ///
+    /// Revert the changes in `lexilexer.rs` after the test.
+    ///
+    /// * This test replaces the source in `lexilexer.rs`, so it must be reverted if something goes wrong.
+    /// * If the terminal list has changed, it must be updated in `src/lexi/mod.rs`, and the parser must be
+    ///   regenerated with the test `lexiparser_source()` in `src/lexi/tests.rs` (a series of other unit tests will
+    ///   have to be fixed, too).
     fn lexilexer() {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         const REPLACE_SOURCE: bool = false;
 
@@ -535,19 +556,19 @@ mod stability {
         let stream = CharReader::new(reader);
         let mut lexi = TestLexi::new();
         let result = lexi.build(stream);
+        let mut listener = lexi.wrapper.listener();
 
         if VERBOSE {
-            let msg = lexi.lexiparser.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+            let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
             if !msg.is_empty() {
                 println!("Parser messages:\n{msg}");
             }
-            let msg = lexi.get_listener().log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+            let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
             if !msg.is_empty() {
                 println!("Listener messages:\n{msg}");
             }
         }
         assert_eq!(result, Ok(()), "couldn't parse the lexicon");
-        let mut listener = lexi.wrapper.listener();
         let symbol_table = listener.build_symbol_table();
         if VERBOSE {
             println!("Rules lexicon {}:\n{}", listener.name, listener.rules_to_string(0));
@@ -562,8 +583,9 @@ mod stability {
         lexgen.max_utf8_chars = 0;
         lexgen.from_dfa(dfa);
         lexgen.symbol_table = Some(symbol_table);
-        let sym_src = lexgen.build_symbols_source_code(4).expect("symbol source code");
         if VERBOSE {
+            // terminals to replace in src/lexi/mod.rs (copy/paste)
+            let sym_src = lexgen.build_symbols_source_code(0).expect("symbol source code");
             println!("Terminals:\n{sym_src}");
         }
 
