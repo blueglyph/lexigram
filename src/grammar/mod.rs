@@ -145,7 +145,7 @@ impl GrNode {
 /// `Copy(<value>)` on subsequent calls. The indices are stored on 31 bits, keeping one bit
 /// for the 'original' flag. Trying to store larger values triggers a panic.
 #[derive(Clone, Copy)]
-pub(crate) struct Dup {
+pub struct Dup {
     index: u32
 }
 
@@ -197,7 +197,7 @@ type GrTree = VecTree<GrNode>;
 ///
 /// _NOTE: We must create a trait for GrTree since we can't implement functions for an external type,
 /// and a type alias is not considered as a new type._
-pub(crate) trait GrTreeExt {
+pub trait GrTreeExt {
     fn get_dup(&mut self, dup_index: &mut Dup) -> usize;
     fn to_str(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String;
 }
@@ -1845,10 +1845,10 @@ pub mod macros {
     #[macro_export(local_inner_macros)]
     macro_rules! gnode {
         ([$id:expr]) => { gnode!(t $id) };
-        (t $id:expr) => { $crate::grammar::GrNode::Symbol(Symbol::T($id as TokenId)) };
-        (nt $id:expr) => { $crate::grammar::GrNode::Symbol(Symbol::NT($id as VarId)) };
-        (e) => { $crate::grammar::GrNode::Symbol(Symbol::Empty) };
-        (end) => { $crate::grammar::GrNode::Symbol(Symbol::End) };
+        (t $id:expr) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::T($id as $crate::dfa::TokenId)) };
+        (nt $id:expr) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::NT($id as $crate::grammar::VarId)) };
+        (e) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::Empty) };
+        (end) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::End) };
         //
         (&) => { $crate::grammar::GrNode::Concat };
         (|) => { $crate::grammar::GrNode::Or };
@@ -1872,8 +1872,8 @@ pub mod macros {
     /// assert_eq!(sym!(end), Symbol::End);
     #[macro_export(local_inner_macros)]
     macro_rules! sym {
-        (t $id:literal) => { $crate::grammar::Symbol::T($id as TokenId) };
-        (nt $id:literal) => { $crate::grammar::Symbol::NT($id as VarId) };
+        (t $id:literal) => { $crate::grammar::Symbol::T($id as $crate::dfa::TokenId) };
+        (nt $id:literal) => { $crate::grammar::Symbol::NT($id as $crate::grammar::VarId) };
         (e) => { $crate::grammar::Symbol::Empty };
         (end) => { $crate::grammar::Symbol::End };
     }

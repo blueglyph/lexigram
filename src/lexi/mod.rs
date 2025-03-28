@@ -634,7 +634,7 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     let tree = rules.get_tree_mut(NT::CharSet as VarId);
     let or = tree.add_root(gnode!(|));
     let cc1 = tree.addc(Some(or), gnode!(&), gnode!(t T::LSbracket));
-    let star2 = tree.addc(Some(cc1), gnode!(+), gnode!(nt NT::CharSetOne));
+    tree.addc(Some(cc1), gnode!(+), gnode!(nt NT::CharSetOne));
     tree.add(Some(cc1), gnode!(t T::RSbracket));
     tree.add(Some(or), gnode!(t T::Dot));
     tree.add(Some(or), gnode!(t T::FixedSet));
