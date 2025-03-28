@@ -95,6 +95,33 @@ const TXT5: &str = r#"
     A: 'r' -> skip;
 "#;
 
+mod listener {
+    use crate::listener::decode_str;
+
+    #[test]
+    fn decode_str_is_ok() {
+        let tests = vec![
+            ("abc", (true, "abc")),
+            ("\\n\\r\\t\\'\\\\", (true, "\n\r\t'\\")),
+            ("012顠abc©345𠃐ab", (true, "012顠abc©345𠃐ab")),
+            ("\\u{20}\\u{00A9}", (true, " ©")),
+            ("\\", (false, "'\\' incomplete escape code in string literal '\\'")),
+            ("\\a", (false, "unknown escape code '\\a' in string literal '\\a'")),
+            ("\\u", (false, "malformed unicode literal in string literal '\\u' (missing '{')")),
+            ("\\u{20", (false, "malformed unicode literal in string literal '\\u{20' (missing '}')")),
+            ("\\u{2x0}", (false, "'2x0' isn't a valid hexadecimal value")),
+            ("\\u{d800}", (false, "'d800' isn't a valid unicode hexadecimal value")),
+        ];
+        for (input, (ok, s)) in tests {
+            let result = match decode_str(input) {
+                Ok(s) => (true, s),
+                Err(s) => (false, s)
+            };
+            assert_eq!(result, (ok, s.to_string()), "failed for input '{input}'");
+        }
+    }
+}
+
 mod simple {
     use std::collections::BTreeMap;
     use std::hint::black_box;

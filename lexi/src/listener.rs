@@ -632,8 +632,8 @@ impl LexiParserListener for LexiListener {
                 }
             }
             CtxItem::Item4 { strlit } => {          // item -> StrLit
-                let s = &strlit[1..strlit.len() - 1];
-                (tree.add(None, ReNode::string(s)), Some(s.to_string()))
+                let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|s| panic!("{s}"));
+                (tree.add(None, ReNode::string(&s)), Some(s))
             }
             CtxItem::Item5 { char_set } => {         // item -> char_set
                 (tree.add(None, ReNode::char_range(char_set.0)), None)
@@ -701,6 +701,41 @@ impl LexiParserListener for LexiListener {
     }
 }
 
+/// Decodes a string literal (without its surrounding quotes). There must be at least two characters in `strlit`.
+pub(crate) fn decode_str(strlit: &str) -> Result<String, String> {
+    let mut result = String::new();
+    let mut chars = strlit.chars();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                result.push(match chars.next().ok_or(format!("'\\' incomplete escape code in string literal '{strlit}'"))? {
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    '\'' => '\'',
+                    '\\' => '\\',
+                    'u' => {
+                        if !matches!(chars.next(), Some('{')) { return Err(format!("malformed unicode literal in string literal '{strlit}' (missing '{{')")); }
+                        let mut hex = String::new();
+                        loop {
+                            let Some(h) = chars.next() else { return Err(format!("malformed unicode literal in string literal '{strlit}' (missing '}}')")); };
+                            if h == '}' { break; }
+                            hex.push(h);
+                        };
+                        let code = u32::from_str_radix(&hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
+                        char::from_u32(code).ok_or(format!("'{hex}' isn't a valid unicode hexadecimal value"))?
+                    }
+                    unknown => return Err(format!("unknown escape code '\\{unknown}' in string literal '{strlit}'"))
+                });
+            }
+            _ => result.push(c)
+        }
+    }
+    Ok(result)
+}
+
+/// Decodes a single character literal (without its surrounding quotes). There must be exactly one character in `char`,
+/// so this function assumes there's at least one byte but can handle malformed character literals.
 fn decode_char(char: &str) -> Result<char, String> {
     // fragment Char        : EscChar | ~[\n\r\t'\\];
     // fragment EscChar     : '\\' ([nrt'\\] | UnicodeEsc);
@@ -708,26 +743,31 @@ fn decode_char(char: &str) -> Result<char, String> {
     // fragment HexDigit    : [0-9a-fA-F];
     let bytes = char.as_bytes();
     if bytes[0] == b'\\' {
-        match bytes[1] {
+        match bytes.get(1).ok_or("'\\' incomplete escape code in character literal".to_string())? {
             b'n' => Ok('\n'),
             b'r' => Ok('\r'),
             b't' => Ok('\t'),
             b'\'' => Ok('\''),
             b'\\' => Ok('\\'),
             b'u' => {
+                if bytes[2] != b'{' || !matches!(char.chars().last(), Some('}')) {
+                    return Err(format!("malformed unicode literal '{char}'"));
+                }
                 let hex = &char[3..char.len()];
-                let code = u32::from_str_radix(hex, 16).map_err(|_| format!("{hex} isn't a valid hexadecimal value"))?;
-                let u = char::from_u32(code).ok_or(format!("{hex} isn't a valid unicode hexadecimal value"))?;
+                let code = u32::from_str_radix(hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
+                let u = char::from_u32(code).ok_or(format!("'{hex}' isn't a valid unicode hexadecimal value"))?;
                 Ok(u)
             }
             _ => Err(format!("unknown escape code '{char}'")), // shouldn't happen
         }
 
     } else {
-        Ok(char.chars().next().unwrap())
+        char.chars().next().ok_or(format!("'{char}' is not a valid character literal"))
     }
 }
 
+/// Decodes one character that is used inside `[` ... `]`. There must be exactly one character in `setchar`,
+/// so this function assumes there's at least one byte but can handle malformed character literals.
 fn decode_set_char(setchar: &str) -> Result<char, String> {
     // SET_CHAR             : (EscSetChar | ~[\n\r\t\\\]]);
     // fragment EscSetChar  : '\\' ([nrt\\[\]\-] | UnicodeEsc);
@@ -735,7 +775,7 @@ fn decode_set_char(setchar: &str) -> Result<char, String> {
     // fragment HexDigit    : [0-9a-fA-F];
     let bytes = setchar.as_bytes();
     if bytes[0] == b'\\' {
-        match bytes[1] {
+        match bytes.get(1).ok_or("'\\' incomplete escape code in set character literal".to_string())? {
             b'n' => Ok('\n'),
             b'r' => Ok('\r'),
             b't' => Ok('\t'),
@@ -744,15 +784,18 @@ fn decode_set_char(setchar: &str) -> Result<char, String> {
             b'-' => Ok('-'),
             b'\\' => Ok('\\'),
             b'u' => {
+                if bytes[2] != b'{' || !matches!(setchar.chars().last(), Some('}')) {
+                    return Err(format!("malformed unicode literal '{setchar}'"));
+                }
                 let hex = &setchar[3..setchar.len()];
-                let code = u32::from_str_radix(hex, 16).map_err(|_| format!("{hex} isn't a valid hexadecimal value"))?;
-                let u = char::from_u32(code).ok_or(format!("{hex} isn't a valid unicode hexadecimal value"))?;
+                let code = u32::from_str_radix(hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
+                let u = char::from_u32(code).ok_or(format!("'{hex}' isn't a valid unicode hexadecimal value"))?;
                 Ok(u)
             }
             _ => Err(format!("unknown escape code '{setchar}'")), // shouldn't happen
         }
     } else {
-        Ok(setchar.chars().next().unwrap())
+        setchar.chars().next().ok_or(format!("'{setchar}' is not a valid set character literal"))
     }
 }
 
