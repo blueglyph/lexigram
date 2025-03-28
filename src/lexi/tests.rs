@@ -12,7 +12,7 @@ use crate::lexer::Lexer;
 use crate::lexergen::LexerGen;
 use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt};
-use crate::grammar::tests::print_production_rules;
+use crate::grammar::print_production_rules;
 use crate::log::Logger;
 use crate::parsergen::ParserGen;
 use crate::parsergen::tests::{print_flags, print_items};

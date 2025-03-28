@@ -26,6 +26,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "make-lexi"
+version = "0.1.0"
+dependencies = [
+ "lexi",
+ "lexigram",
+ "vectree",
+]
+
+[[package]]
 name = "vectree"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"

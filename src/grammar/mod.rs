@@ -1796,6 +1796,29 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
 }
 
 // ---------------------------------------------------------------------------------------------
+// Supporting functions
+
+pub fn print_production_rules<T>(prods: &ProdRuleSet<T>, as_comment: bool) {
+    let prefix = if as_comment { "            // " } else { "    " };
+    println!("{prefix}{}", prods.get_prods_iter().map(|(var, p)|
+        format!("{} -> {}",
+                Symbol::NT(var).to_str(prods.get_symbol_table()),
+                prod_to_string(p, prods.get_symbol_table()))
+    ).join(&format!("\n{prefix}")));
+}
+
+pub fn print_factors<T>(rules: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor)>) {
+    println!("factors:\n{}",
+             factors.iter().enumerate().map(|(id, (v, f))|
+                 format!("            // - {id}: {} -> {}{}",
+                         Symbol::NT(*v).to_str(rules.get_symbol_table()),
+                         f.iter().map(|s| s.to_str(rules.get_symbol_table())).join(" "),
+                         if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
+                 )
+    ).join("\n"));
+}
+
+// ---------------------------------------------------------------------------------------------
 // Macros
 
 pub mod macros {
