@@ -4,8 +4,8 @@
   - [x] ~~create regex for rlexer's lexicon (manually)~~
   - [x] ~~replace struct Token(pub TokenId) by just a TokenId~~
   - [x] ~~create simple top-down parser for rlexer's grammar (manually)~~
-  - [ ] transform regex AST to vectree
-  - [ ] make binary application (lexicon file -> AST -> vectree -> dfa -> lexgen -> sources)
+  - [x] ~~transform regex AST to vectree~~
+  - [x] ~~make binary application (lexicon file -> AST -> vectree -> dfa -> lexgen -> sources)~~
 - [ ] don't pour big ranges (.) into utf8 table
 - improve robustness
   - [ ] detect dead ends without a terminal
@@ -37,6 +37,19 @@
   - [ ] create info/warning/error ID numbers
   - [ ] make messages parse-friendly and consistent (indentation structure, casing, ...)
 - [ ] independence from reader type (Lexer<R: Read>)
+
+# Packages
+
+- [x] lexigram lib
+- [x] lexi
+- [x] make-lexi
+- [ ] dependancies point to git + version instead of directories
+- [ ] gram
+- [ ] make-gram
+- [ ] lexigram bin
+- [ ] separate libs
+  - small lib for parser/lexer (for generated parser)
+  - gen lib? other?
 
 # Parser
 
@@ -127,7 +140,8 @@
 ## Project Structure
 
 - [ ] build.rs to compile generated code?
-- [ ] extract vectree into another lib
+  - currently done with tests
+- [x] ~~extract vectree into another lib~~
 - [x] ~~move macros~~
 
 ## Performances
