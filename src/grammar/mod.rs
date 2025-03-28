@@ -1822,18 +1822,18 @@ pub mod macros {
     #[macro_export(local_inner_macros)]
     macro_rules! gnode {
         ([$id:expr]) => { gnode!(t $id) };
-        (t $id:expr) => { GrNode::Symbol(Symbol::T($id as TokenId)) };
-        (nt $id:expr) => { GrNode::Symbol(Symbol::NT($id as VarId)) };
-        (e) => { GrNode::Symbol(Symbol::Empty) };
-        (end) => { GrNode::Symbol(Symbol::End) };
+        (t $id:expr) => { $crate::grammar::GrNode::Symbol(Symbol::T($id as TokenId)) };
+        (nt $id:expr) => { $crate::grammar::GrNode::Symbol(Symbol::NT($id as VarId)) };
+        (e) => { $crate::grammar::GrNode::Symbol(Symbol::Empty) };
+        (end) => { $crate::grammar::GrNode::Symbol(Symbol::End) };
         //
-        (&) => { GrNode::Concat };
-        (|) => { GrNode::Or };
-        (?) => { GrNode::Maybe };
-        (+) => { GrNode::Plus };
-        (*) => { GrNode::Star };
-        (L $id:expr) => { GrNode::LForm($id) };
-        (R) => { GrNode::RAssoc };
+        (&) => { $crate::grammar::GrNode::Concat };
+        (|) => { $crate::grammar::GrNode::Or };
+        (?) => { $crate::grammar::GrNode::Maybe };
+        (+) => { $crate::grammar::GrNode::Plus };
+        (*) => { $crate::grammar::GrNode::Star };
+        (L $id:expr) => { $crate::grammar::GrNode::LForm($id) };
+        (R) => { $crate::grammar::GrNode::RAssoc };
     }
 
     /// Generates a `Symbol` instance.
@@ -1849,10 +1849,10 @@ pub mod macros {
     /// assert_eq!(sym!(end), Symbol::End);
     #[macro_export(local_inner_macros)]
     macro_rules! sym {
-        (t $id:literal) => { Symbol::T($id as TokenId) };
-        (nt $id:literal) => { Symbol::NT($id as VarId) };
-        (e) => { Symbol::Empty };
-        (end) => { Symbol::End };
+        (t $id:literal) => { $crate::grammar::Symbol::T($id as TokenId) };
+        (nt $id:literal) => { $crate::grammar::Symbol::NT($id as VarId) };
+        (e) => { $crate::grammar::Symbol::Empty };
+        (end) => { $crate::grammar::Symbol::End };
     }
 
     #[macro_export(local_inner_macros)]
@@ -1885,11 +1885,11 @@ pub mod macros {
     macro_rules! prodf {
         () => { std::vec![] };
         ($($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![$($a $($b $(: $num)?)?),+] };
-        ($($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::new(std::vec![$(sym!($a $($b $(: $num)?)?)),*]) };
+        ($($a:ident $($b:literal $(: $num:expr)?)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$(sym!($a $($b $(: $num)?)?)),*]) };
         (#$f:literal, $($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![#$f, $($a $($b $(: $num)?)?),+] };
-        (#$f:literal, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], $f) };
+        (#$f:literal, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], $f) };
         (#$f:ident, $($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![#$f, $($a $($b $(: $num)?)?),+] };
-        (#$f:ident, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], prodflag!($f)) };
+        (#$f:ident, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], prodflag!($f)) };
     }
 
     #[macro_export(local_inner_macros)]
