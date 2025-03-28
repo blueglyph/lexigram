@@ -104,7 +104,7 @@ mod simple {
     use lexigram::io::CharReader;
     use lexigram::lexer::LexerError;
     use lexigram::lexergen::LexerGen;
-    use crate::lexi::TestLexi;
+    use crate::lexi::Lexi;
     use crate::listener::RuleType;
     use super::*;
 
@@ -230,11 +230,11 @@ mod simple {
         for (test_id, (input, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
-            let mut lexi = TestLexi::new();
+            let mut lexi = Lexi::new();
             let result = lexi.build(stream);
             let mut listener = lexi.wrapper.listener();
             if VERBOSE {
-                let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
@@ -324,11 +324,11 @@ mod simple {
             if VERBOSE || JUST_SHOW_ANSWERS { println!("// {:=<80}\n// Test {test_id}", ""); }
             let text = format!("test {test_id} failed");
             let stream = CharReader::new(Cursor::new(lexicon));
-            let mut lexi = TestLexi::new();
+            let mut lexi = Lexi::new();
             let result = lexi.build(stream);
             let mut listener = lexi.wrapper.listener();
             if VERBOSE {
-                let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
@@ -415,11 +415,11 @@ mod simple {
         for (test_id, (input, expected_sym, expected_end)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
-            let mut lexi = TestLexi::new();
+            let mut lexi = Lexi::new();
             let result = lexi.build(stream);
             let mut listener = lexi.wrapper.listener();
             if VERBOSE {
-                let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
@@ -427,7 +427,7 @@ mod simple {
             let text = format!("test {test_id} failed");
             assert_eq!(result, Ok(()), "{text}");
             if VERBOSE {
-                println!("Rules lexicon {}:\n{}", listener.name, listener.rules_to_string(0));
+                println!("Rules lexicon {}:\n{}", listener.get_name(), listener.rules_to_string(0));
             }
             let symbol_table = listener.build_symbol_table();
             let expected_sym = expected_sym.into_iter().map(|s| s.to_string()).to_vec();
@@ -466,7 +466,7 @@ mod stability {
     use lexigram::io::CharReader;
     use lexigram::lexergen::LexerGen;
     use lexigram::test_tools::{get_tagged_source, replace_tagged_source};
-    use crate::lexi::TestLexi;
+    use crate::lexi::Lexi;
 
     const LEXICON_FILENAME: &str = "tests/lexi/lexicon.l";
     const LEXILEXER_FILENAME: &str = "tests/out/lexilexer.rs";
@@ -495,16 +495,16 @@ mod stability {
         let file = File::open(LEXICON_FILENAME).expect(&format!("couldn't open lexicon file {LEXICON_FILENAME}"));
         let reader = BufReader::new(file);
         let stream = CharReader::new(reader);
-        let mut lexi = TestLexi::new();
+        let mut lexi = Lexi::new();
         let result = lexi.build(stream);
         let mut listener = lexi.wrapper.listener();
 
         if VERBOSE {
-            let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+            let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
             if !msg.is_empty() {
                 println!("Parser messages:\n{msg}");
             }
-            let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+            let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
             if !msg.is_empty() {
                 println!("Listener messages:\n{msg}");
             }
@@ -512,7 +512,7 @@ mod stability {
         assert_eq!(result, Ok(()), "couldn't parse the lexicon");
         let symbol_table = listener.build_symbol_table();
         if VERBOSE {
-            println!("Rules lexicon {}:\n{}", listener.name, listener.rules_to_string(0));
+            println!("Rules lexicon {}:\n{}", listener.get_name(), listener.rules_to_string(0));
 
         }
 

@@ -95,7 +95,7 @@ pub enum RuleType {
 
 pub struct LexiListener {
     verbose: bool,
-    pub(crate) name: String,
+    name: String,
     curr: Option<VecTree<ReNode>>,
     curr_mode: ModeId,
     /// Dictionary of terminals and fragments
@@ -118,7 +118,7 @@ pub struct LexiListener {
     modes: HashMap<String, ModeId>,
     /// Range of terminals defined in `fragments` for each mode.
     mode_terminals: Vec<Range<TokenId>>,
-    pub(crate) log: BufLog,
+    log: BufLog,
 }
 
 impl LexiListener {
@@ -145,6 +145,10 @@ impl LexiListener {
 
     pub fn set_verbose(&mut self, verbose: bool) {
         self.verbose = verbose;
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
     }
 
     pub fn get_log(&self) -> &BufLog {

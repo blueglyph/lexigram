@@ -9,14 +9,14 @@ use crate::lexilexer::lexilexer::build_lexer;
 use crate::lexiparser::lexiparser::{build_parser, Wrapper};
 use crate::listener::LexiListener;
 
-pub struct TestLexi<R: Read> {
-    pub(crate) lexilexer: Lexer<R>,
-    pub(crate) lexiparser: Parser,
-    pub(crate) wrapper: Wrapper<LexiListener>
+pub struct Lexi<R: Read> {
+    pub lexilexer: Lexer<R>,
+    pub lexiparser: Parser,
+    pub wrapper: Wrapper<LexiListener>
 }
 
 #[allow(unused)]
-impl<R: Read> TestLexi<R> {
+impl<R: Read> Lexi<R> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
     const VERBOSE_LISTENER: bool = false;
@@ -27,7 +27,7 @@ impl<R: Read> TestLexi<R> {
         wrapper.get_mut_listener().set_verbose(Self::VERBOSE_LISTENER);
         let mut lexilexer = build_lexer();
         lexilexer.set_tab_width(4);
-        TestLexi {
+        Lexi {
             lexilexer,
             lexiparser: build_parser(),
             wrapper
