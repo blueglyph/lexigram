@@ -4,6 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use lexi::lexi::Lexi;
 use lexigram::CollectJoin;
+use lexigram::dfa::print_dfa;
 use lexigram::io::CharReader;
 use lexigram::lexergen::LexerGen;
 use lexigram::parser::ParserError;
@@ -36,6 +37,10 @@ fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Res
     }
     // - builds the dfa from the reg tree
     let dfa = listener.make_dfa().optimize();
+    if verbose {
+        println!("Dfa:");
+        print_dfa(&dfa, 4);
+    }
 
     // - builds the lexer
     let mut lexgen = LexerGen::new();
@@ -68,7 +73,9 @@ mod tests {
 
     #[test]
     fn test_source() {
-        let (_result_sym, _result_src) = lexilexer_source(LEXILEXER_LEXICON, 4, false)
+        const VERBOSE: bool = false;
+
+        let (_result_sym, _result_src) = lexilexer_source(LEXILEXER_LEXICON, 4, VERBOSE)
             .inspect_err(|e| eprintln!("Failed to parse lexicon: {e:?}"))
             .unwrap();
         if !cfg!(miri) {
