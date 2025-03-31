@@ -2,13 +2,13 @@
 
 #![allow(unused)]
 
-use lexigram::grammar::GrTreeExt;
-use lexigram::{gnode, CollectJoin, General, LL1};
-use lexigram::grammar::{print_production_rules, ProdRuleSet, RuleTreeSet, VarId};
-use lexigram::log::Logger;
-use lexigram::parsergen::ParserGen;
-use lexigram::symbol_table::SymbolTable;
-use lexigram::test_tools::replace_tagged_source;
+use lexigram_mlexi::grammar::GrTreeExt;
+use lexigram_mlexi::{gnode, CollectJoin, General, LL1};
+use lexigram_mlexi::grammar::{print_production_rules, ProdRuleSet, RuleTreeSet, VarId};
+use lexigram_mlexi::log::Logger;
+use lexigram_mlexi::parsergen::ParserGen;
+use lexigram_mlexi::symbol_table::SymbolTable;
+use lexigram_mlexi::test_tools::replace_tagged_source;
 use crate::*;
 
 // -------------------------------------------------------------------------
@@ -372,7 +372,7 @@ fn write_lexiparser() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram::test_tools::{get_tagged_source, replace_tagged_source};
+    use lexigram_mlexi::test_tools::{get_tagged_source, replace_tagged_source};
     use crate::*;
     use super::*;
 

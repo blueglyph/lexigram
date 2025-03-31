@@ -3,12 +3,12 @@
 use std::fs::File;
 use std::io::BufReader;
 use lexi::lexi::Lexi;
-use lexigram::CollectJoin;
-use lexigram::dfa::print_dfa;
-use lexigram::io::CharReader;
-use lexigram::lexergen::LexerGen;
-use lexigram::parser::ParserError;
-use lexigram::test_tools::replace_tagged_source;
+use lexigram_mlexi::CollectJoin;
+use lexigram_mlexi::dfa::print_dfa;
+use lexigram_mlexi::io::CharReader;
+use lexigram_mlexi::lexergen::LexerGen;
+use lexigram_mlexi::parser::ParserError;
+use lexigram_mlexi::test_tools::replace_tagged_source;
 use crate::*;
 
 fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Result<(String, String), ParserError> {
@@ -67,7 +67,7 @@ pub fn write_lexilexer() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram::test_tools::get_tagged_source;
+    use lexigram_mlexi::test_tools::get_tagged_source;
     use crate::*;
     use super::*;
 

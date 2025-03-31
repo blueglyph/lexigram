@@ -1,16 +1,16 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use lexigram::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
+use lexigram_lexi::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Range};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use lexigram::dfa::ReNode;
-use lexigram::log::{BufLog, Logger};
-use lexigram::{hashmap, node, segments, CollectJoin, General};
-use lexigram::segments::Segments;
-use lexigram::symbol_table::SymbolTable;
+use lexigram_lexi::dfa::ReNode;
+use lexigram_lexi::log::{BufLog, Logger};
+use lexigram_lexi::{hashmap, node, segments, CollectJoin, General};
+use lexigram_lexi::segments::Segments;
+use lexigram_lexi::symbol_table::SymbolTable;
 use crate::action;
 use crate::lexiparser::lexiparser::*;
 use crate::lexiparser::lexiparser_types::*;
@@ -206,7 +206,7 @@ impl LexiListener {
             let mut dfa_builder = DfaBuilder::from_re(tree);
             assert_eq!(dfa_builder.num_errors(), 0, "failed to compile mode {mode_id}");
             dfas.push((*mode_id as ModeId, dfa_builder.build()));
-            if VERBOSE { lexigram::dfa::print_dfa(&dfas[dfas.len() - 1].1, 5); }
+            if VERBOSE { lexigram_lexi::dfa::print_dfa(&dfas[dfas.len() - 1].1, 5); }
         }
         let mut dfa_builder = DfaBuilder::new();
         if VERBOSE { println!("merging dfa modes"); }
@@ -257,7 +257,7 @@ impl LexiListener {
                            if let Some(end) = end_maybe { format!(" {end} ") } else { String::new() },
             ]);
         }
-        let mut cols_out = lexigram::columns_to_str(cols, None);
+        let mut cols_out = lexigram_lexi::columns_to_str(cols, None);
         let title = cols_out.remove(0);
         let tab = format!("{: <width$}", "", width = indent);
         format!("{tab}   {title}\n{tab}{:-<width$}{}", "",

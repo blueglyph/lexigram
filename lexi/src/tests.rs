@@ -2,7 +2,7 @@
 
 #![cfg(test)]
 
-use lexigram::CollectJoin;
+use lexigram_lexi::CollectJoin;
 
 const TXT1: &str = r#"
     lexicon A;
@@ -126,11 +126,11 @@ mod simple {
     use std::collections::BTreeMap;
     use std::hint::black_box;
     use std::io::Cursor;
-    use lexigram::{branch, btreemap, term};
-    use lexigram::dfa::{print_dfa, tree_to_string, ActionOption, ReType};
-    use lexigram::io::CharReader;
-    use lexigram::lexer::LexerError;
-    use lexigram::lexergen::LexerGen;
+    use lexigram_lexi::{branch, btreemap, term};
+    use lexigram_lexi::dfa::{print_dfa, tree_to_string, ActionOption, ReType};
+    use lexigram_lexi::io::CharReader;
+    use lexigram_lexi::lexer::LexerError;
+    use lexigram_lexi::lexergen::LexerGen;
     use crate::lexi::Lexi;
     use crate::listener::RuleType;
     use super::*;

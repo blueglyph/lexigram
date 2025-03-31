@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::io::Read;
-use lexigram::io::CharReader;
-use lexigram::lexer::{Lexer, TokenSpliterator};
-use lexigram::log::Logger;
-use lexigram::parser::{Parser, ParserError};
+use lexigram_lexi::io::CharReader;
+use lexigram_lexi::lexer::{Lexer, TokenSpliterator};
+use lexigram_lexi::log::Logger;
+use lexigram_lexi::parser::{Parser, ParserError};
 use crate::lexilexer::lexilexer::build_lexer;
 use crate::lexiparser::lexiparser::{build_parser, Wrapper};
 use crate::listener::LexiListener;
