@@ -13,41 +13,13 @@ name = "lexi"
 version = "0.1.0"
 dependencies = [
  "iter-index",
- "lexigram 0.2.0 (git+ssh://git@github.com/blueglyph/lexigram.git?tag=lexigram-v1)",
- "vectree",
-]
-
-[[package]]
-name = "lexi"
-version = "0.1.0"
-source = "git+ssh://git@github.com/blueglyph/lexigram.git?tag=lexi-v1#e66dcb85717ba5dfd963b121409063fd12b7b2b1"
-dependencies = [
- "iter-index",
- "lexigram 0.2.0 (git+ssh://git@github.com/blueglyph/lexigram.git?tag=lexi-v1)",
+ "lexigram",
  "vectree",
 ]
 
 [[package]]
 name = "lexigram"
 version = "0.2.0"
-dependencies = [
- "iter-index",
- "vectree",
-]
-
-[[package]]
-name = "lexigram"
-version = "0.2.0"
-source = "git+ssh://git@github.com/blueglyph/lexigram.git?tag=lexi-v1#e66dcb85717ba5dfd963b121409063fd12b7b2b1"
-dependencies = [
- "iter-index",
- "vectree",
-]
-
-[[package]]
-name = "lexigram"
-version = "0.2.0"
-source = "git+ssh://git@github.com/blueglyph/lexigram.git?tag=lexigram-v1#e66dcb85717ba5dfd963b121409063fd12b7b2b1"
 dependencies = [
  "iter-index",
  "vectree",
@@ -57,8 +29,9 @@ dependencies = [
 name = "make-lexi"
 version = "0.1.0"
 dependencies = [
- "lexi 0.1.0 (git+ssh://git@github.com/blueglyph/lexigram.git?tag=lexi-v1)",
- "lexigram 0.2.0 (git+ssh://git@github.com/blueglyph/lexigram.git?tag=lexigram-v1)",
+ "lexi",
+ "lexigram",
+ "vectree",
 ]
 
 [[package]]

@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-lexigram_mlexi = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag="lexigram-v1", package = "lexigram" }
-lexi = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag="lexi-v1", package = "lexi" }
+lexigram = { path = "..", package = "lexigram" }
+lexi = { path = "../lexi", package = "lexi" }
+vectree = "0.1.4"

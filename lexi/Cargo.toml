@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-lexigram_lexi = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag="lexigram-v1", package = "lexigram" }
+lexigram = { path = "..", package = "lexigram" }
 iter-index = "0.1.1"
 vectree = "0.1.4"
 
