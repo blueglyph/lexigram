@@ -6,4 +6,3 @@ edition = "2024"
 [dependencies]
 lexigram = { path = "..", package = "lexigram" }
 lexi = { path = "../lexi", package = "lexi" }
-vectree = "0.1.4"
