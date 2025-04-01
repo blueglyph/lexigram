@@ -16,5 +16,5 @@ unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_altern
 disabled = []
 
 [workspace]
-members = [".", "lexi", "make-lexi"]
+members = [".", "gram", "lexi", "make-gram", "make-lexi"]
 default-members = [".", "lexi", "make-lexi"]

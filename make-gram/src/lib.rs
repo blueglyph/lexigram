@@ -1,0 +1,14 @@
+// Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
+
+pub mod build_gramlexer;
+pub mod build_gramparser;
+
+const GRAMLEXER_LEXICON: &str = "./src/lexicon.l";
+const GRAMLEXER_FILENAME: &str = "../gram/src/gramlexer.rs";
+const GRAMPARSER_FILENAME: &str = "../gram/src/gramparser.rs";
+
+const GRAMLEXER_TAG: &str = "gramlexer";
+const GRAMPARSER_TAG: &str = "gramparser";
+
+const BUILD_GRAMPARSER_FILENAME: &str = "./src/build_gramparser.rs";
+const GRAM_SYM_TAG: &str = "terminal_symbols";
