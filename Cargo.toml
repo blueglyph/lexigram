@@ -17,4 +17,4 @@ disabled = []
 
 [workspace]
 members = [".", "gram", "lexi", "make-gram", "make-lexi"]
-default-members = [".", "lexi", "make-lexi"]
+default-members = [".", "gram", "lexi", "make-gram", "make-lexi"]

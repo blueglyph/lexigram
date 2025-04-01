@@ -86,7 +86,12 @@ Id              : ID;
 ```
 grammar GramParser;
 
-file: header rule+ SymEOF?;
+file: header rules SymEOF?;
+
+rules:
+    rule
+|   rules rule
+;
 
 header:
     Grammar Id Semicolon
@@ -111,8 +116,8 @@ prodTerm:
 
 termItem:
     Id
-|   Lparen prod Rparen
 |   Lform
 |   Rform
+|   Lparen prod Rparen
 ;
 ```

@@ -5,6 +5,11 @@ version = 4
 [[package]]
 name = "gram"
 version = "0.1.0"
+dependencies = [
+ "iter-index",
+ "lexigram",
+ "vectree",
+]
 
 [[package]]
 name = "iter-index"

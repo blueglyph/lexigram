@@ -16,9 +16,35 @@ use crate::*;
 
 #[repr(u16)]
 enum T {
+    Colon     = 0, // 0
+    Lparen   ,     // 1
+    Or       ,     // 2
+    Plus     ,     // 3
+    Question ,     // 4
+    Rparen   ,     // 5
+    Semicolon,     // 6
+    Star     ,     // 7
+    Grammar  ,     // 8
+    SymEof   ,     // 9
+    Lform    ,     // 10
+    Rform    ,     // 11
+    Id       ,     // 12
 }
 
-pub const TERMINALS: [(&str, Option<&str>); 0] = [
+pub const TERMINALS: [(&str, Option<&str>); 13] = [
+    ("Colon",    Some(":")),       // 0
+    ("Lparen",   Some("(")),       // 1
+    ("Or",       Some("|")),       // 2
+    ("Plus",     Some("+")),       // 3
+    ("Question", Some("?")),       // 4
+    ("Rparen",   Some(")")),       // 5
+    ("Semicolon",Some(";")),       // 6
+    ("Star",     Some("*")),       // 7
+    ("Grammar",  Some("grammar")), // 8
+    ("SymEof",   Some("EOF")),     // 9
+    ("Lform",    None),            // 10
+    ("Rform",    Some("<R>")),     // 11
+    ("Id",       None),            // 12
 ];
 
 // [terminal_symbols]
@@ -30,10 +56,24 @@ pub const TERMINALS: [(&str, Option<&str>); 0] = [
 #[repr(u16)]
 enum NT {
     File = 0,           // 0
+    Header,             // 1
+    Rules,              // 2
+    Rule,               // 3
+    Prod,               // 4
+    ProdFactor,         // 5
+    ProdTerm,           // 6
+    TermItem,           // 7
 }
 
-const NON_TERMINALS: [&str; 1] = [
+const NON_TERMINALS: [&str; 8] = [
     "file",             // 0
+    "header",           // 1
+    "rules",            // 2
+    "rule",             // 3
+    "prod",             // 4
+    "prod_factor",      // 5
+    "prod_term",        // 6
+    "term_item",        // 7
 ];
 
 // [non_terminal_symbols]
@@ -48,40 +88,79 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
 
     // grammar GramParser;
     //
-    // file: header rule+ SymEOF?;
+    // file: header rules SymEOF?;
     //
     let tree = rules.get_tree_mut(NT::File as VarId);
     let cc = tree.add_root(gnode!(&));
-    todo!("parser rules");
+    tree.add(Some(cc), gnode!(nt NT::Header));
+    tree.add(Some(cc), gnode!(nt NT::Rules));
+    tree.addc(Some(cc), gnode!(?), gnode!(t T::SymEof));
 
-    //
     // header:
     //     Grammar Id Semicolon
     // ;
     //
+    let tree = rules.get_tree_mut(NT::Header as VarId);
+    let cc = tree.add_root(gnode!(&));
+    tree.add_iter(Some(cc), [gnode!(nt T::Grammar), gnode!(t T::Id), gnode!(t T::Semicolon)]);
+
+    // rules:
+    //     rule
+    // |   rules rule
+    // ;
+    //
+    let tree = rules.get_tree_mut(NT::Rules as VarId);
+    let or = tree.add_root(gnode!(|));
+    tree.add(Some(or), gnode!(nt NT::Rule));
+    tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::Rules), gnode!(nt NT::Rule)]);
+
     // rule:
     //     Id Colon prod Semicolon
     // ;
     //
+    let tree = rules.get_tree_mut(NT::Rule as VarId);
+    let cc = tree.add_root(gnode!(&));
+    tree.add_iter(Some(cc), [gnode!(t T::Id), gnode!(t T::Colon), gnode!(nt NT::Prod), gnode!(t T::Semicolon)]);
+
     // prod:
     //     prodFactor
     // |   prod Or prodFactor
     // ;
     //
+    let tree = rules.get_tree_mut(NT::Prod as VarId);
+    let or = tree.add_root(gnode!(|));
+    tree.add(Some(or), gnode!(nt NT::ProdFactor));
+    tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::Prod), gnode!(t T::Or), gnode!(nt NT::ProdFactor)]);
+
     // prodFactor:
     //     prodTerm*
     // ;
     //
+    let tree = rules.get_tree_mut(NT::ProdFactor as VarId);
+    let star = tree.add_root(gnode!(*));
+    tree.add(Some(star), gnode!(nt NT::ProdTerm));
+
     // prodTerm:
     //     termItem (Plus | Star | Question)?
     // ;
     //
+    let tree = rules.get_tree_mut(NT::ProdTerm as VarId);
+    let cc = tree.add_root(gnode!(&));
+    tree.add(Some(cc), gnode!(nt NT::TermItem));
+    let maybe = tree.add(Some(cc), gnode!(?));
+    tree.addc_iter(Some(maybe), gnode!(|), [gnode!(t T::Plus), gnode!(t T::Star), gnode!(t T::Question)]);
+
     // termItem:
     //     Id
-    // |   Lparen prod Rparen
     // |   Lform
     // |   Rform
+    // |   Lparen prod Rparen
     // ;
+    //
+    let tree = rules.get_tree_mut(NT::TermItem as VarId);
+    let or = tree.add_root(gnode!(|));
+    tree.add_iter(Some(or), [gnode!(t T::Id), gnode!(t T::Lform), gnode!(t T::Rform)]);
+    tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::Lparen), gnode!(nt NT::Prod), gnode!(t T::Rparen)]);
 
     rules
 }
