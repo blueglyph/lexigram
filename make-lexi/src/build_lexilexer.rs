@@ -49,7 +49,7 @@ fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Res
     lexgen.symbol_table = Some(symbol_table);
     let sym_src = lexgen.build_symbols_source_code(0).expect("symbol source code");
     if verbose {
-        // terminals to replace in src/lexi/mod.rs (copy/paste)
+        // terminals to replace in src/lexi/lexiparser.rs (copy/paste)
         println!("Terminals:\n{sym_src}");
     }
     Ok((sym_src, lexgen.build_source_code(indent)))
