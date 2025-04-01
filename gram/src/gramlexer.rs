@@ -2,7 +2,7 @@
 
 #![allow(unused)]   // FIXME: temporary
 
-pub(super) mod lexilexer {
+pub(super) mod gramlexer {
     // -------------------------------------------------------------------------
     // [gramlexer]
 
@@ -122,7 +122,7 @@ mod test {
     use lexigram::dfa::TokenId;
     use lexigram::escape_string;
     use lexigram::io::CharReader;
-    use crate::gramlexer::lexilexer::build_lexer;
+    use crate::gramlexer::gramlexer::build_lexer;
 
     #[test]
     pub fn check_lexer_tokens() {
