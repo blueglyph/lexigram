@@ -43,7 +43,7 @@
 - [x] lexigram lib
 - [x] lexi
 - [x] make-lexi
-- [ ] dependancies point to git + version instead of directories
+- ~~[ ] dependancies point to git + version instead of directories~~ Too cumbersome and problematic
 - [ ] gram
 - [ ] make-gram
 - [ ] lexigram bin
