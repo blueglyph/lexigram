@@ -92,7 +92,7 @@ The regular expressions used on the right of the colon, in each matching or frag
 - `|`: alternative between several items; for example, `( 'if' | 'while' | [a-z]+ )`
 - fragment; for example, `( DIGIT | [a-f] )+` where `DIGIT' has been defined as a fragment
 
-## ANTLR Lexer Rules
+## Lexi Lexer Rules
 
 ```
 lexicon LexiLexer;
@@ -159,7 +159,7 @@ SetChar         : (EscSetChar | ~[\n\r\t\\\]\-]);
 FixedSet2       : ('\\w' | '\\d')           -> type(FixedSet);
 ```
 
-## ANTLR Parser Rules
+## Lexi Parser Rules
 
 ```
 grammar LexiParser;
