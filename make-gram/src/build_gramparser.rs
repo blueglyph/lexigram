@@ -2,7 +2,7 @@
 
 #![allow(unused)]
 
-use lexigram::grammar::GrTreeExt;
+use lexigram::grammar::{print_ll1_table, GrTreeExt};
 use lexigram::{gnode, CollectJoin, General, LL1};
 use lexigram::grammar::{print_production_rules, ProdRuleSet, RuleTreeSet, VarId};
 use lexigram::log::Logger;
@@ -102,7 +102,7 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     //
     let tree = rules.get_tree_mut(NT::Header as VarId);
     let cc = tree.add_root(gnode!(&));
-    tree.add_iter(Some(cc), [gnode!(nt T::Grammar), gnode!(t T::Id), gnode!(t T::Semicolon)]);
+    tree.add_iter(Some(cc), [gnode!(t T::Grammar), gnode!(t T::Id), gnode!(t T::Semicolon)]);
 
     // rules:
     //     rule
@@ -204,6 +204,10 @@ fn gramparser_source(indent: usize, verbose: bool) -> String {
     }
     assert_eq!(ll1.get_log().num_errors(), 0);
     let mut builder = ParserGen::from_rules(ll1, "GramParser".to_string());
+    if verbose {
+        println!("Parsing table:");
+        print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
+    }
     for v in 0..builder.get_symbol_table().unwrap().get_num_nt() as VarId {
         // print!("- {}: ", Symbol::NT(v).to_str(builder.get_symbol_table()));
         if builder.get_nt_parent(v).is_none() {
@@ -231,7 +235,8 @@ mod tests {
 
     #[test]
     fn test_source() {
-        let result_src = gramparser_source(4, false);
+        const VERBOSE: bool = false;
+        let result_src = gramparser_source(4, VERBOSE);
         if !cfg!(miri) {
             let expected_src = get_tagged_source(GRAMPARSER_FILENAME, GRAMPARSER_TAG).unwrap_or(String::new());
             assert_eq!(result_src, expected_src);

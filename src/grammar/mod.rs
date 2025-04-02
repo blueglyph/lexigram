@@ -1818,6 +1818,31 @@ pub fn print_factors<T>(rules: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor
     ).join("\n"));
 }
 
+pub fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsingTable, indent: usize) {
+    let LLParsingTable { num_nt, num_t, factors, table, flags, parent } = parsing_table;
+    let error_skip = factors.len() as FactorId;
+    let error_pop = error_skip + 1;
+    let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
+    let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
+    let str_t = (0..*num_t).map(|j| if j + 1 < *num_t { Symbol::T(j as VarId).to_str(symbol_table) } else { "$".to_string() }).to_vec();
+    let max_t_len = str_t.iter().map(|s| s.len()).max().unwrap().max(2);
+    let t_len = str_t.iter().map(|s| s.len().max(3)).to_vec();
+    println!("{:<i$}// {:<w$} | {}", "", "", (0..*num_t).map(|j| format!("{:^w$}", str_t[j], w = t_len[j])).join(" "), w = max_nt_len, i = indent);
+    println!("{:<i$}// {:-<w$}-+-{:-<t$}", "", "", "", w = max_nt_len, t = *num_t + t_len.iter().sum::<usize>(), i = indent);
+    for i in 0..*num_nt {
+        print!("{:<i$}// {:<w$} |", "", str_nt[i], w = max_nt_len, i = indent);
+        for j in 0..*num_t {
+            let value = table[i * num_t + j];
+            if value < error_skip {
+                print!(" {:^w$}", value, w = t_len[j]);
+            } else {
+                print!(" {:^w$}", if value == error_pop { "p" } else { "." } , w = t_len[j]);
+            }
+        }
+        println!();
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Macros
 

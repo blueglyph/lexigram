@@ -201,6 +201,11 @@ impl ParserGen {
     }
 
     #[inline]
+    pub fn get_parsing_table(&self) -> &LLParsingTable {
+        &self.parsing_table
+    }
+
+    #[inline]
     pub fn add_lib(&mut self, lib: &str) {
         self.used_libs.add(lib);
     }
