@@ -2,8 +2,6 @@
 
 #![cfg(test)]
 
-use lexigram::CollectJoin;
-
 const TXT1: &str = r#"
     lexicon A;
     fragment ALPHANUM: [0-9A-Za-z_];
@@ -131,6 +129,7 @@ mod simple {
     use lexigram::io::CharReader;
     use lexigram::lexer::LexerError;
     use lexigram::lexergen::LexerGen;
+    use lexigram::CollectJoin;
     use crate::lexi::Lexi;
     use crate::listener::RuleType;
     use super::*;
