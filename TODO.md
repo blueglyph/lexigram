@@ -79,7 +79,7 @@
         ```
     - [ ] reconstruct semantic synthesis attributes during parsing
       - [x] ~~tags when transforming grammar (remove_left_recursion, left_factorize)~~
-      - [x] stack-based reconstruction
+      - [x] ~~stack-based reconstruction~~
       - [ ] left/right-associativity
       - [x] ~~opcode builder based on flags~~
       - [ ] add option for loop value/end-of-loop call (+, *, r-rec)
@@ -107,6 +107,8 @@
       - [x] ~~switch~~
       - [x] ~~impl wrapper~~
       - [ ] special case of ambiguous left recursions (A α A)
+      - [ ] allow for references in Syn types (=> SynNT<'a>(&'a ValType), CtxRule<'a> { nt: SynNT<'a>, .. }, ...)
+        - if possible at all, we need to verify that the lifetime >= wrapper's lifetime (and make the borrow checked understand it)
       - [x] ~~NT whose nt_value is false but which carry other valuable NTs or T data must have an internal Syn type~~ 
     - [ ] loose ends / to check
       - [ ] name fixer / ...: prevent reserved words ("type", "const", ...) 
