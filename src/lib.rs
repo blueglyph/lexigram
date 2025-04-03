@@ -212,6 +212,16 @@ impl NameFixer {
         NameFixer { dic }
     }
 
+    /// Adds a name to the internal dictionary without checking whether it already existed or not. Use this
+    /// method to pre-fill existing names.
+    pub fn add(&mut self, name: String) {
+        self.dic.insert(name);
+    }
+
+    pub fn contains(&self, name: &str) -> bool {
+        self.dic.contains(name)
+    }
+
     /// Returns `name` if it's unique, or adds a suffix number first to make sure it's unique.
     pub fn get_unique_name(&mut self, mut name: String) -> String {
         let len = name.len();

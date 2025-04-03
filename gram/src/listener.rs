@@ -14,6 +14,8 @@ pub struct GramListener {
     name: String,
     log: BufLog,
     curr: Option<GrTree>,
+    curr_rulename: String,
+    curr_nt: Option<VarId>,
     curr_has_or: bool,
     rules: RuleTreeSet<General>,
     symbols: HashMap<String, Symbol>,
@@ -31,6 +33,8 @@ impl GramListener {
             name: String::new(),
             log: BufLog::new(),
             curr: None,
+            curr_rulename: String::new(),
+            curr_nt: None,
             curr_has_or: false,
             rules,
             symbols: HashMap::new(),
@@ -56,6 +60,16 @@ impl GramListener {
         self.rules.get_symbol_table()
     }
 
+    fn reserve_nt(&mut self, id: String) -> VarId {
+        let len = self.nt_reserved.len();
+        if let Some(v) = self.nt_reserved.get(&id) {
+            *v
+        } else {
+            let v = VarId::MAX - VarId::try_from(len).expect("too many reserved symbols");
+            self.nt_reserved.insert(id, v);
+            v
+        }
+    }
 }
 
 impl Debug for GramListener {
@@ -114,7 +128,18 @@ impl GramParserListener for GramListener {
     //     Id Colon prod Semicolon
     // ;
     fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule {
+        self.curr_nt = None;
+        todo!();
         SynRule()
+    }
+
+    fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName {
+        let CtxRuleName::RuleName { id } = ctx;
+        self.curr_rulename = id.clone();
+        let nt = VarId::MAX - VarId::try_from(self.symbols.len()).expect("too many reserved symbols");
+        assert_eq!(self.symbols.insert(id.clone(), Symbol::NT(nt)), None, "rule name {id} already defined");
+        self.curr_nt = Some(nt);
+        SynRuleName(id)
     }
 
     fn init_prod(&mut self) {
@@ -166,16 +191,45 @@ impl GramParserListener for GramListener {
                     Some(unexpected) => panic!("unexpected symbol: {unexpected:?}"),
                     None => {
                         // new NT
-                        let nt = *self.nt_reserved.entry(id).or_insert(VarId::MAX - self.nt_reserved.len().try_into().expect("too many reserved symbols"));
+                        let nt = self.reserve_nt(id);
                         tree.add(None, GrNode::Symbol(Symbol::NT(nt)))
                     }
                 }
             }
             CtxTermItem::TermItem2 { lform } => {
-                tree.add(None, GrNode::LForm(todo!()))
+                let bytes = lform.as_bytes();
+                let name_maybe = if bytes[2] == b'=' {
+                    let name = lform[3..lform.len() - 1].to_string();
+                    if name == self.curr_rulename {
+                        // that must be a right-recursive rule (to check later)
+                        None
+                    } else {
+                        Some(name)
+                    }
+                } else {
+                    None
+                };
+                let nt = if let Some(name) = name_maybe {
+                    // this form is used with * and +, and it defines the name of the iterative NT.
+                    // In RuleTreeSet::normalize_plus_or_star(), the NT index in LForm(NT) is used when the
+                    // iterative NT is created.
+                    assert!(!self.nt_reserved.contains_key(&name), "the rule name in <L={name}> has already been used as non-terminal in a rule");
+                    assert!(!self.symbols.contains_key(&name), "the rule name in <L={name}> is already defined");
+                    let nt = VarId::MAX - VarId::try_from(self.symbols.len()).expect("too many symbols");
+                    self.symbols.insert(name, Symbol::NT(nt));
+                    nt
+                } else {
+                    // this form is used with right-recursive rules, so it points to the current rule
+                    // FIXME: can we check later if it's right-recursive when LForm points to the same rule?
+                    self.curr_nt.expect("curr_nt must be defined")
+                };
+                tree.add(None, GrNode::LForm(nt))
             }
-            CtxTermItem::TermItem3 => {}
-            CtxTermItem::TermItem4 { prod } => {}
+            CtxTermItem::TermItem3 => {
+                let mut tree = self.curr.as_mut().expect("no current tree");
+                tree.add(None, GrNode::RAssoc)
+            }
+            CtxTermItem::TermItem4 { prod } => prod.0,
         };
         SynTermItem(id)
     }
