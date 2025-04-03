@@ -83,6 +83,8 @@
       - [ ] left/right-associativity
       - [x] ~~opcode builder based on flags~~
       - [ ] add option for loop value/end-of-loop call (+, *, r-rec)
+      - [ ] opcode + gram syntax for early rule attribute callback
+        - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
     - [ ] attach token information (text, line / col) to context items
       - [ ] replace SynVal by CtxVal in wrapper, with struct CtxVal { val: SynVal, text: String, line: usize, col: usize, .. }?
       - [x] ~~adapt lexer~~

@@ -10,15 +10,15 @@ pub(crate) mod gramparser {
     use super::gramparser_types::*;
 
     const PARSER_NUM_T: usize = 13;
-    const PARSER_NUM_NT: usize = 13;
+    const PARSER_NUM_NT: usize = 14;
     const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Id", None)];
-    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "prod", "prod_factor", "prod_term", "term_item", "prod_factor_1", "rules_1", "prod_1", "file_1", "prod_term_1"];
-    const SYMBOLS_NAMES: [(&str, VarId); 5] = [("file_1", 11), ("prod_1", 10), ("prod_factor_1", 8), ("prod_term_1", 12), ("rules_1", 9)];
-    const PARSING_FACTORS: [(VarId, &[Symbol]); 23] = [(0, &[Symbol::NT(1), Symbol::NT(2), Symbol::NT(11)]), (1, &[Symbol::T(8), Symbol::T(12), Symbol::T(6)]), (2, &[Symbol::NT(3), Symbol::NT(9)]), (3, &[Symbol::T(12), Symbol::T(0), Symbol::NT(4), Symbol::T(6)]), (4, &[Symbol::NT(5), Symbol::NT(10)]), (5, &[Symbol::NT(8)]), (6, &[Symbol::NT(7), Symbol::NT(12)]), (7, &[Symbol::T(12)]), (7, &[Symbol::T(10)]), (7, &[Symbol::T(11)]), (7, &[Symbol::T(1), Symbol::NT(4), Symbol::T(5)]), (8, &[Symbol::NT(6), Symbol::NT(8)]), (8, &[Symbol::Empty]), (9, &[Symbol::NT(3), Symbol::NT(9)]), (9, &[Symbol::Empty]), (10, &[Symbol::T(2), Symbol::NT(5), Symbol::NT(10)]), (10, &[Symbol::Empty]), (11, &[Symbol::T(9)]), (11, &[Symbol::Empty]), (12, &[Symbol::T(3)]), (12, &[Symbol::T(4)]), (12, &[Symbol::T(7)]), (12, &[Symbol::Empty])];
-    const PARSING_TABLE: [FactorId; 182] = [23, 23, 23, 23, 23, 23, 23, 23, 0, 23, 23, 23, 23, 24, 23, 23, 23, 23, 23, 23, 23, 23, 1, 23, 23, 23, 24, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 24, 23, 23, 2, 24, 23, 23, 23, 23, 23, 23, 23, 23, 23, 24, 23, 23, 3, 24, 23, 4, 4, 23, 23, 4, 4, 23, 23, 23, 4, 4, 4, 23, 23, 5, 5, 23, 23, 5, 5, 23, 23, 23, 5, 5, 5, 23, 23, 6, 24, 23, 23, 24, 24, 23, 23, 23, 6, 6, 6, 23, 23, 10, 24, 24, 24, 24, 24, 24, 23, 23, 8, 9, 7, 23, 23, 11, 12, 23, 23, 12, 12, 23, 23, 23, 11, 11, 11, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 14, 23, 23, 13, 14, 23, 23, 15, 23, 23, 16, 16, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 23, 17, 23, 23, 23, 18, 23, 22, 22, 19, 20, 22, 22, 21, 23, 23, 22, 22, 22, 23];
-    const FLAGS: [u32; 13] = [32, 0, 512, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64];
-    const PARENT: [Option<VarId>; 13] = [None, None, None, None, None, None, None, None, Some(5), Some(2), Some(4), Some(0), Some(6)];
-    const OPCODES: [&[OpCode]; 23] = [&[OpCode::NT(11), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(12), OpCode::T(8)], &[OpCode::NT(9), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::Exit(3), OpCode::T(6), OpCode::NT(4), OpCode::T(0), OpCode::T(12)], &[OpCode::NT(10), OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::NT(8)], &[OpCode::NT(12), OpCode::NT(7)], &[OpCode::Exit(7), OpCode::T(12)], &[OpCode::Exit(8), OpCode::T(10)], &[OpCode::Exit(9), OpCode::T(11)], &[OpCode::Exit(10), OpCode::T(5), OpCode::NT(4), OpCode::T(1)], &[OpCode::Loop(8), OpCode::Exit(11), OpCode::NT(6)], &[OpCode::Exit(12)], &[OpCode::Loop(9), OpCode::Exit(13), OpCode::NT(3)], &[OpCode::Exit(14)], &[OpCode::Loop(10), OpCode::Exit(15), OpCode::NT(5), OpCode::T(2)], &[OpCode::Exit(16)], &[OpCode::Exit(17), OpCode::T(9)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::T(3)], &[OpCode::Exit(20), OpCode::T(4)], &[OpCode::Exit(21), OpCode::T(7)], &[OpCode::Exit(22)]];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_factor", "prod_term", "term_item", "prod_factor_1", "rules_1", "prod_1", "file_1", "prod_term_1"];
+    const SYMBOLS_NAMES: [(&str, VarId); 5] = [("file_1", 12), ("prod_1", 11), ("prod_factor_1", 9), ("prod_term_1", 13), ("rules_1", 10)];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 24] = [(0, &[Symbol::NT(1), Symbol::NT(2), Symbol::NT(12)]), (1, &[Symbol::T(8), Symbol::T(12), Symbol::T(6)]), (2, &[Symbol::NT(3), Symbol::NT(10)]), (3, &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::T(6)]), (4, &[Symbol::T(12)]), (5, &[Symbol::NT(6), Symbol::NT(11)]), (6, &[Symbol::NT(9)]), (7, &[Symbol::NT(8), Symbol::NT(13)]), (8, &[Symbol::T(12)]), (8, &[Symbol::T(10)]), (8, &[Symbol::T(11)]), (8, &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)]), (9, &[Symbol::NT(7), Symbol::NT(9)]), (9, &[Symbol::Empty]), (10, &[Symbol::NT(3), Symbol::NT(10)]), (10, &[Symbol::Empty]), (11, &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)]), (11, &[Symbol::Empty]), (12, &[Symbol::T(9)]), (12, &[Symbol::Empty]), (13, &[Symbol::T(3)]), (13, &[Symbol::T(4)]), (13, &[Symbol::T(7)]), (13, &[Symbol::Empty])];
+    const PARSING_TABLE: [FactorId; 196] = [24, 24, 24, 24, 24, 24, 24, 24, 0, 24, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 1, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 25, 24, 24, 2, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 25, 24, 24, 3, 25, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 4, 24, 24, 5, 5, 24, 24, 5, 5, 24, 24, 24, 5, 5, 5, 24, 24, 6, 6, 24, 24, 6, 6, 24, 24, 24, 6, 6, 6, 24, 24, 7, 25, 24, 24, 25, 25, 24, 24, 24, 7, 7, 7, 24, 24, 11, 25, 25, 25, 25, 25, 25, 24, 24, 9, 10, 8, 24, 24, 12, 13, 24, 24, 13, 13, 24, 24, 24, 12, 12, 12, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 15, 24, 24, 14, 15, 24, 24, 16, 24, 24, 17, 17, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 18, 24, 24, 24, 19, 24, 23, 23, 20, 21, 23, 23, 22, 24, 24, 23, 23, 23, 24];
+    const FLAGS: [u32; 14] = [32, 0, 512, 0, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64];
+    const PARENT: [Option<VarId>; 14] = [None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(0), Some(7)];
+    const OPCODES: [&[OpCode]; 24] = [&[OpCode::NT(12), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(12), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::Exit(3), OpCode::T(6), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(12)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(12)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(12), OpCode::NT(7)], &[OpCode::Exit(13)], &[OpCode::Loop(10), OpCode::Exit(14), OpCode::NT(3)], &[OpCode::Exit(15)], &[OpCode::Loop(11), OpCode::Exit(16), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(17)], &[OpCode::Exit(18), OpCode::T(9)], &[OpCode::Exit(19)], &[OpCode::Exit(20), OpCode::T(3)], &[OpCode::Exit(21), OpCode::T(4)], &[OpCode::Exit(22), OpCode::T(7)], &[OpCode::Exit(23)]];
     const START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser {
@@ -62,8 +62,13 @@ pub(crate) mod gramparser {
     }
     #[derive(Debug)]
     pub enum CtxRule {
-        /// `rule -> Id : prod ;`
-        Rule { id: String, prod: SynProd },
+        /// `rule -> rule_name : prod ;`
+        Rule { rule_name: SynRuleName, prod: SynProd },
+    }
+    #[derive(Debug)]
+    pub enum CtxRuleName {
+        /// `rule_name -> Id`
+        RuleName { id: String },
     }
     #[derive(Debug)]
     pub enum CtxProd {
@@ -112,6 +117,8 @@ pub(crate) mod gramparser {
     // #[derive(Debug, PartialEq)] pub struct SynRules();
     // /// User-defined type for `rule`
     // #[derive(Debug, PartialEq)] pub struct SynRule();
+    // /// User-defined type for `rule_name`
+    // #[derive(Debug, PartialEq)] pub struct SynRuleName();
     // /// User-defined type for `prod`
     // #[derive(Debug, PartialEq)] pub struct SynProd();
     // /// User-defined type for `prod_factor`
@@ -125,7 +132,7 @@ pub(crate) mod gramparser {
     pub struct SynProdFactor1(pub Vec<SynProdTerm>);
 
     #[derive(Debug)]
-    enum SynValue { File(SynFile), Header(SynHeader), Rules(SynRules), Rule(SynRule), Prod(SynProd), ProdFactor(SynProdFactor), ProdTerm(SynProdTerm), TermItem(SynTermItem), ProdFactor1(SynProdFactor1) }
+    enum SynValue { File(SynFile), Header(SynHeader), Rules(SynRules), Rule(SynRule), RuleName(SynRuleName), Prod(SynProd), ProdFactor(SynProdFactor), ProdTerm(SynProdTerm), TermItem(SynTermItem), ProdFactor1(SynProdFactor1) }
 
     impl SynValue {
         fn get_file(self) -> SynFile {
@@ -139,6 +146,9 @@ pub(crate) mod gramparser {
         }
         fn get_rule(self) -> SynRule {
             if let SynValue::Rule(val) = self { val } else { panic!() }
+        }
+        fn get_rule_name(self) -> SynRuleName {
+            if let SynValue::RuleName(val) = self { val } else { panic!() }
         }
         fn get_prod(self) -> SynProd {
             if let SynValue::Prod(val) = self { val } else { panic!() }
@@ -168,6 +178,8 @@ pub(crate) mod gramparser {
         fn exit_rules(&mut self, _ctx: CtxRules) -> SynRules;
         fn init_rule(&mut self) {}
         fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule;
+        fn init_rule_name(&mut self) {}
+        fn exit_rule_name(&mut self, _ctx: CtxRuleName) -> SynRuleName;
         fn init_prod(&mut self) {}
         fn exit_prod(&mut self, _ctx: CtxProd) -> SynProd;
         fn init_prod_factor(&mut self) {}
@@ -198,47 +210,49 @@ pub(crate) mod gramparser {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_file(),             // file
-                        11 => {}                                    // file_1
+                        12 => {}                                    // file_1
                         1 => self.listener.init_header(),           // header
                         2 => self.listener.init_rules(),            // rules
-                        9 => {}                                     // rules_1
+                        10 => {}                                    // rules_1
                         3 => self.listener.init_rule(),             // rule
-                        4 => self.listener.init_prod(),             // prod
-                        10 => {}                                    // prod_1
-                        5 => self.listener.init_prod_factor(),      // prod_factor
-                        8 => self.init_prod_factor1(),              // prod_factor_1
-                        6 => self.listener.init_prod_term(),        // prod_term
-                        12 => {}                                    // prod_term_1
-                        7 => self.listener.init_term_item(),        // term_item
+                        4 => self.listener.init_rule_name(),        // rule_name
+                        5 => self.listener.init_prod(),             // prod
+                        11 => {}                                    // prod_1
+                        6 => self.listener.init_prod_factor(),      // prod_factor
+                        9 => self.init_prod_factor1(),              // prod_factor_1
+                        7 => self.listener.init_prod_term(),        // prod_term
+                        13 => {}                                    // prod_term_1
+                        8 => self.listener.init_term_item(),        // term_item
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        17 |                                        // file -> header rules EOF
-                        18 => self.exit_file(factor_id),            // file -> header rules
+                        18 |                                        // file -> header rules EOF
+                        19 => self.exit_file(factor_id),            // file -> header rules
                      /* 0 */                                        // file -> header rules | header rules EOF (never called)
                         1 => self.exit_header(),                    // header -> grammar Id ;
                         2 => self.init_rules(),                     // rules -> rule
-                        13 |                                        // rules -> rules rule
-                        14 => self.exit_rules1(factor_id),          // end of iterations in rules -> rules rule
-                        3 => self.exit_rule(),                      // rule -> Id : prod ;
-                        4 => self.init_prod(),                      // prod -> prod_factor
-                        15 |                                        // prod -> prod | prod_factor
-                        16 => self.exit_prod1(factor_id),           // end of iterations in prod -> prod | prod_factor
-                        5 => self.exit_prod_factor(),               // prod_factor -> [prod_term]*
-                        11 => self.exit_prod_factor1(),             // [prod_term]* item in prod_factor ->  ► [prod_term]* ◄
-                        12 => {}                                    // end of [prod_term]* items in prod_factor ->  ► [prod_term]* ◄
-                        19 |                                        // prod_term -> term_item +
-                        20 |                                        // prod_term -> term_item ?
-                        21 |                                        // prod_term -> term_item *
-                        22 => self.exit_prod_term(factor_id),       // prod_term -> term_item
-                     /* 6 */                                        // prod_term -> term_item | term_item + | term_item ? | term_item * (never called)
-                        7 |                                         // term_item -> Id
-                        8 |                                         // term_item -> Lform
-                        9 |                                         // term_item -> <R>
-                        10 => self.exit_term_item(factor_id),       // term_item -> ( prod )
+                        14 |                                        // rules -> rules rule
+                        15 => self.exit_rules1(factor_id),          // end of iterations in rules -> rules rule
+                        3 => self.exit_rule(),                      // rule -> rule_name : prod ;
+                        4 => self.exit_rule_name(),                 // rule_name -> Id
+                        5 => self.init_prod(),                      // prod -> prod_factor
+                        16 |                                        // prod -> prod | prod_factor
+                        17 => self.exit_prod1(factor_id),           // end of iterations in prod -> prod | prod_factor
+                        6 => self.exit_prod_factor(),               // prod_factor -> [prod_term]*
+                        12 => self.exit_prod_factor1(),             // [prod_term]* item in prod_factor ->  ► [prod_term]* ◄
+                        13 => {}                                    // end of [prod_term]* items in prod_factor ->  ► [prod_term]* ◄
+                        20 |                                        // prod_term -> term_item +
+                        21 |                                        // prod_term -> term_item ?
+                        22 |                                        // prod_term -> term_item *
+                        23 => self.exit_prod_term(factor_id),       // prod_term -> term_item
+                     /* 7 */                                        // prod_term -> term_item | term_item + | term_item ? | term_item * (never called)
+                        8 |                                         // term_item -> Id
+                        9 |                                         // term_item -> Lform
+                        10 |                                        // term_item -> <R>
+                        11 => self.exit_term_item(factor_id),       // term_item -> ( prod )
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -286,12 +300,12 @@ pub(crate) mod gramparser {
 
         fn exit_file(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                17 => {
+                18 => {
                     let rules = self.stack.pop().unwrap().get_rules();
                     let header = self.stack.pop().unwrap().get_header();
                     CtxFile::File1 { header, rules }
                 }
-                18 => {
+                19 => {
                     let rules = self.stack.pop().unwrap().get_rules();
                     let header = self.stack.pop().unwrap().get_header();
                     CtxFile::File2 { header, rules }
@@ -316,12 +330,12 @@ pub(crate) mod gramparser {
 
         fn exit_rules1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                13 => {
+                14 => {
                     let rule = self.stack.pop().unwrap().get_rule();
                     let rules = self.stack.pop().unwrap().get_rules();
                     CtxRules::Rules2 { rules, rule }
                 }
-                14 => {
+                15 => {
                     let rules = self.stack.pop().unwrap().get_rules();
                     CtxRules::Rules3 { rules }
                 }
@@ -333,9 +347,15 @@ pub(crate) mod gramparser {
 
         fn exit_rule(&mut self) {
             let prod = self.stack.pop().unwrap().get_prod();
-            let id = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_rule(CtxRule::Rule { id, prod });
+            let rule_name = self.stack.pop().unwrap().get_rule_name();
+            let val = self.listener.exit_rule(CtxRule::Rule { rule_name, prod });
             self.stack.push(SynValue::Rule(val));
+        }
+
+        fn exit_rule_name(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_rule_name(CtxRuleName::RuleName { id });
+            self.stack.push(SynValue::RuleName(val));
         }
 
         fn init_prod(&mut self) {
@@ -346,12 +366,12 @@ pub(crate) mod gramparser {
 
         fn exit_prod1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                15 => {
+                16 => {
                     let prod_factor = self.stack.pop().unwrap().get_prod_factor();
                     let prod = self.stack.pop().unwrap().get_prod();
                     CtxProd::Prod2 { prod, prod_factor }
                 }
-                16 => {
+                17 => {
                     let prod = self.stack.pop().unwrap().get_prod();
                     CtxProd::Prod3 { prod }
                 }
@@ -381,19 +401,19 @@ pub(crate) mod gramparser {
 
         fn exit_prod_term(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                19 => {
+                20 => {
                     let term_item = self.stack.pop().unwrap().get_term_item();
                     CtxProdTerm::ProdTerm1 { term_item }
                 }
-                20 => {
+                21 => {
                     let term_item = self.stack.pop().unwrap().get_term_item();
                     CtxProdTerm::ProdTerm2 { term_item }
                 }
-                21 => {
+                22 => {
                     let term_item = self.stack.pop().unwrap().get_term_item();
                     CtxProdTerm::ProdTerm3 { term_item }
                 }
-                22 => {
+                23 => {
                     let term_item = self.stack.pop().unwrap().get_term_item();
                     CtxProdTerm::ProdTerm4 { term_item }
                 }
@@ -405,18 +425,18 @@ pub(crate) mod gramparser {
 
         fn exit_term_item(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                7 => {
+                8 => {
                     let id = self.stack_t.pop().unwrap();
                     CtxTermItem::TermItem1 { id }
                 }
-                8 => {
+                9 => {
                     let lform = self.stack_t.pop().unwrap();
                     CtxTermItem::TermItem2 { lform }
                 }
-                9 => {
+                10 => {
                     CtxTermItem::TermItem3
                 }
-                10 => {
+                11 => {
                     let prod = self.stack.pop().unwrap().get_prod();
                     CtxTermItem::TermItem4 { prod }
                 }
@@ -441,12 +461,14 @@ pub(crate) mod gramparser_types {
     #[derive(Debug, PartialEq)] pub struct SynRules();
     /// User-defined type for `rule`
     #[derive(Debug, PartialEq)] pub struct SynRule();
+    /// User-defined type for `rule_name`
+    #[derive(Debug, PartialEq)] pub struct SynRuleName(pub String);
     /// User-defined type for `prod`
-    #[derive(Debug, PartialEq)] pub struct SynProd(usize);
+    #[derive(Debug, PartialEq)] pub struct SynProd(pub usize);
     /// User-defined type for `prod_factor`
-    #[derive(Debug, PartialEq)] pub struct SynProdFactor(usize);
+    #[derive(Debug, PartialEq)] pub struct SynProdFactor(pub usize);
     /// User-defined type for `prod_term`
-    #[derive(Debug, PartialEq)] pub struct SynProdTerm(usize);
+    #[derive(Debug, PartialEq)] pub struct SynProdTerm(pub usize);
     /// User-defined type for `term_item`
-    #[derive(Debug, PartialEq)] pub struct SynTermItem(usize);
+    #[derive(Debug, PartialEq)] pub struct SynTermItem(pub usize);
 }

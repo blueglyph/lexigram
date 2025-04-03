@@ -98,7 +98,11 @@ rules:
 ;
 
 rule:
-    Id Colon prod Semicolon
+    ruleName Colon prod Semicolon
+;
+
+ruleName:
+    Id
 ;
 
 prod:

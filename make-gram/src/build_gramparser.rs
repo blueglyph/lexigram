@@ -59,21 +59,23 @@ enum NT {
     Header,             // 1
     Rules,              // 2
     Rule,               // 3
-    Prod,               // 4
-    ProdFactor,         // 5
-    ProdTerm,           // 6
-    TermItem,           // 7
+    RuleName,           // 4
+    Prod,               // 5
+    ProdFactor,         // 6
+    ProdTerm,           // 7
+    TermItem,           // 8
 }
 
-const NON_TERMINALS: [&str; 8] = [
+const NON_TERMINALS: [&str; 9] = [
     "file",             // 0
     "header",           // 1
     "rules",            // 2
     "rule",             // 3
-    "prod",             // 4
-    "prod_factor",      // 5
-    "prod_term",        // 6
-    "term_item",        // 7
+    "rule_name",        // 4
+    "prod",             // 5
+    "prod_factor",      // 6
+    "prod_term",        // 7
+    "term_item",        // 8
 ];
 
 // [non_terminal_symbols]
@@ -115,12 +117,18 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::Rules), gnode!(nt NT::Rule)]);
 
     // rule:
-    //     Id Colon prod Semicolon
+    //     ruleName Colon prod Semicolon
     // ;
     //
     let tree = rules.get_tree_mut(NT::Rule as VarId);
     let cc = tree.add_root(gnode!(&));
-    tree.add_iter(Some(cc), [gnode!(t T::Id), gnode!(t T::Colon), gnode!(nt NT::Prod), gnode!(t T::Semicolon)]);
+    tree.add_iter(Some(cc), [gnode!(nt NT::RuleName), gnode!(t T::Colon), gnode!(nt NT::Prod), gnode!(t T::Semicolon)]);
+
+    // ruleName:
+    //     Id
+    // ;
+    let tree = rules.get_tree_mut(NT::RuleName as VarId);
+    tree.add_root(gnode!(t T::Id));
 
     // prod:
     //     prodFactor
@@ -235,7 +243,7 @@ mod tests {
 
     #[test]
     fn test_source() {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         let result_src = gramparser_source(4, VERBOSE);
         if !cfg!(miri) {
             let expected_src = get_tagged_source(GRAMPARSER_FILENAME, GRAMPARSER_TAG).unwrap_or(String::new());
