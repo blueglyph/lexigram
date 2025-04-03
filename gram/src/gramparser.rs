@@ -442,11 +442,11 @@ pub(crate) mod gramparser_types {
     /// User-defined type for `rule`
     #[derive(Debug, PartialEq)] pub struct SynRule();
     /// User-defined type for `prod`
-    #[derive(Debug, PartialEq)] pub struct SynProd();
+    #[derive(Debug, PartialEq)] pub struct SynProd(usize);
     /// User-defined type for `prod_factor`
-    #[derive(Debug, PartialEq)] pub struct SynProdFactor();
+    #[derive(Debug, PartialEq)] pub struct SynProdFactor(usize);
     /// User-defined type for `prod_term`
-    #[derive(Debug, PartialEq)] pub struct SynProdTerm();
+    #[derive(Debug, PartialEq)] pub struct SynProdTerm(usize);
     /// User-defined type for `term_item`
-    #[derive(Debug, PartialEq)] pub struct SynTermItem();
+    #[derive(Debug, PartialEq)] pub struct SynTermItem(usize);
 }

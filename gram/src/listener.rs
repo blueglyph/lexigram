@@ -1,9 +1,9 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use lexigram::{CollectJoin, General};
-use lexigram::grammar::{GrTree, GrTreeExt, RuleTreeSet, Symbol, VarId};
+use lexigram::grammar::{GrTree, GrNode, GrTreeExt, RuleTreeSet, Symbol, VarId};
 use lexigram::log::{BufLog, Logger};
 use lexigram::symbol_table::SymbolTable;
 use crate::gramparser::gramparser::*;
@@ -14,8 +14,10 @@ pub struct GramListener {
     name: String,
     log: BufLog,
     curr: Option<GrTree>,
+    curr_has_or: bool,
     rules: RuleTreeSet<General>,
     symbols: HashMap<String, Symbol>,
+    nt_reserved: HashMap<String, VarId>,
     num_nt: VarId,
     num_t: VarId,
 }
@@ -29,8 +31,10 @@ impl GramListener {
             name: String::new(),
             log: BufLog::new(),
             curr: None,
+            curr_has_or: false,
             rules,
             symbols: HashMap::new(),
+            nt_reserved: HashMap::new(),
             num_nt: 0,
             num_t: 0,
         }
@@ -116,6 +120,7 @@ impl GramParserListener for GramListener {
     fn init_prod(&mut self) {
         assert!(self.curr.is_none(), "remnant tree in self.curr: {self:?}");
         self.curr = Some(GrTree::new());
+        self.curr_has_or = false;
     }
 
     // prod:
@@ -128,21 +133,21 @@ impl GramParserListener for GramListener {
             CtxProd::Prod2 { prod, prod_factor } => {}
             CtxProd::Prod3 { prod } => { /* end of iterations */ }
         }
-        SynProd()
+        SynProd(todo!())
     }
 
     // prodFactor:
     //     prodTerm*
     // ;
     fn exit_prod_factor(&mut self, _ctx: CtxProdFactor) -> SynProdFactor {
-        SynProdFactor()
+        SynProdFactor(todo!())
     }
 
     // prodTerm:
     //     termItem (Plus | Star | Question)?
     // ;
     fn exit_prod_term(&mut self, _ctx: CtxProdTerm) -> SynProdTerm {
-        SynProdTerm()
+        SynProdTerm(todo!())
     }
 
     // termItem:
@@ -151,8 +156,28 @@ impl GramParserListener for GramListener {
     // |   Rform
     // |   Lparen prod Rparen
     // ;
-    fn exit_term_item(&mut self, _ctx: CtxTermItem) -> SynTermItem {
-        SynTermItem()
+    fn exit_term_item(&mut self, ctx: CtxTermItem) -> SynTermItem {
+        let mut tree = self.curr.as_mut().expect("no current tree");
+        let id = match ctx {
+            CtxTermItem::TermItem1 { id } => {
+                match self.symbols.get(&id) {
+                    Some(s @ Symbol::NT(_)) |
+                    Some(s @ Symbol::T(_)) => tree.add(None, GrNode::Symbol(*s)),
+                    Some(unexpected) => panic!("unexpected symbol: {unexpected:?}"),
+                    None => {
+                        // new NT
+                        let nt = *self.nt_reserved.entry(id).or_insert(VarId::MAX - self.nt_reserved.len().try_into().expect("too many reserved symbols"));
+                        tree.add(None, GrNode::Symbol(Symbol::NT(nt)))
+                    }
+                }
+            }
+            CtxTermItem::TermItem2 { lform } => {
+                tree.add(None, GrNode::LForm(todo!()))
+            }
+            CtxTermItem::TermItem3 => {}
+            CtxTermItem::TermItem4 { prod } => {}
+        };
+        SynTermItem(id)
     }
 }
 
