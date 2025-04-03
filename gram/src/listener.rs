@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use lexigram::{CollectJoin, General};
 use lexigram::grammar::{GrTree, GrNode, GrTreeExt, RuleTreeSet, Symbol, VarId};
@@ -16,12 +16,11 @@ pub struct GramListener {
     curr: Option<GrTree>,
     curr_rulename: String,
     curr_nt: Option<VarId>,
-    curr_has_or: bool,
     rules: RuleTreeSet<General>,
     symbols: HashMap<String, Symbol>,
     nt_reserved: HashMap<String, VarId>,
-    num_nt: VarId,
-    num_t: VarId,
+    // num_nt: VarId,
+    // num_t: VarId,
 }
 
 impl GramListener {
@@ -35,12 +34,11 @@ impl GramListener {
             curr: None,
             curr_rulename: String::new(),
             curr_nt: None,
-            curr_has_or: false,
             rules,
             symbols: HashMap::new(),
             nt_reserved: HashMap::new(),
-            num_nt: 0,
-            num_t: 0,
+            // num_nt: 0,
+            // num_t: 0,
         }
     }
 
@@ -145,7 +143,6 @@ impl GramParserListener for GramListener {
     fn init_prod(&mut self) {
         assert!(self.curr.is_none(), "remnant tree in self.curr: {self:?}");
         self.curr = Some(GrTree::new());
-        self.curr_has_or = false;
     }
 
     // prod:
@@ -153,26 +150,50 @@ impl GramParserListener for GramListener {
     // |   prod Or prodFactor
     // ;
     fn exit_prod(&mut self, ctx: CtxProd) -> SynProd {
-        match ctx {
-            CtxProd::Prod1 { prod_factor } => {}
-            CtxProd::Prod2 { prod, prod_factor } => {}
-            CtxProd::Prod3 { prod } => { /* end of iterations */ }
-        }
-        SynProd(todo!())
+        let tree = self.curr.as_mut().expect("no current tree");
+        let id = match ctx {
+            CtxProd::Prod1 { prod_factor } => prod_factor.0,            // first iteration
+            CtxProd::Prod2 { prod, prod_factor } => {                   // next iterations
+                if matches!(tree.get(prod.0), &GrNode::Or) {
+                    // if there's already an |, adds another child
+                    tree.attach_child(prod.0, prod_factor.0);
+                    prod.0
+                } else {
+                    // creates an | with the previous and current factors as children
+                    tree.addci_iter(None, GrNode::Or, [prod.0, prod_factor.0])
+                }
+            }
+            CtxProd::Prod3 { prod } => prod.0,                          // end of iterations
+        };
+        SynProd(id)
     }
 
     // prodFactor:
     //     prodTerm*
     // ;
-    fn exit_prod_factor(&mut self, _ctx: CtxProdFactor) -> SynProdFactor {
-        SynProdFactor(todo!())
+    fn exit_prod_factor(&mut self, ctx: CtxProdFactor) -> SynProdFactor {
+        let tree = self.curr.as_mut().expect("no current tree");
+        let CtxProdFactor::ProdFactor { star: SynProdFactor1(terms) } = ctx;
+        let id = if terms.len() > 1 {
+            tree.addci_iter(None, GrNode::Concat, terms.iter().map(|t| t.0))
+        } else {
+            terms[0].0
+        };
+        SynProdFactor(id)
     }
 
     // prodTerm:
     //     termItem (Plus | Star | Question)?
     // ;
-    fn exit_prod_term(&mut self, _ctx: CtxProdTerm) -> SynProdTerm {
-        SynProdTerm(todo!())
+    fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm {
+        let tree = self.curr.as_mut().expect("no current tree");
+        let id = match ctx {
+            CtxProdTerm::ProdTerm1 { term_item } => tree.addci(None, GrNode::Plus, term_item.0),    // termItem +
+            CtxProdTerm::ProdTerm2 { term_item } => tree.addci(None, GrNode::Maybe, term_item.0),   // termItem ?
+            CtxProdTerm::ProdTerm3 { term_item } => tree.addci(None, GrNode::Star, term_item.0),    // termItem *
+            CtxProdTerm::ProdTerm4 { term_item } => term_item.0,                                    // termItem
+        };
+        SynProdTerm(id)
     }
 
     // termItem:
@@ -182,7 +203,7 @@ impl GramParserListener for GramListener {
     // |   Lparen prod Rparen
     // ;
     fn exit_term_item(&mut self, ctx: CtxTermItem) -> SynTermItem {
-        let mut tree = self.curr.as_mut().expect("no current tree");
+        let tree = self.curr.as_mut().expect("no current tree");
         let id = match ctx {
             CtxTermItem::TermItem1 { id } => {
                 match self.symbols.get(&id) {
@@ -192,6 +213,7 @@ impl GramParserListener for GramListener {
                     None => {
                         // new NT
                         let nt = self.reserve_nt(id);
+                        let tree = self.curr.as_mut().expect("no current tree");    // <== necessary because of borrow checker
                         tree.add(None, GrNode::Symbol(Symbol::NT(nt)))
                     }
                 }
@@ -226,7 +248,6 @@ impl GramParserListener for GramListener {
                 tree.add(None, GrNode::LForm(nt))
             }
             CtxTermItem::TermItem3 => {
-                let mut tree = self.curr.as_mut().expect("no current tree");
                 tree.add(None, GrNode::RAssoc)
             }
             CtxTermItem::TermItem4 { prod } => prod.0,

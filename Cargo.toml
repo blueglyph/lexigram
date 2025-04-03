@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 iter-index = "0.1.1"
-vectree = "0.1.4"
+vectree = "0.1.5"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
