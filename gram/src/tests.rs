@@ -88,7 +88,7 @@ mod listener {
             let text = format!("test {test_id} failed");
 
             // grammar parser
-            let mut gram = Gram::new();
+            let mut gram = Gram::new(sym_table.clone());
             let grammar_stream = CharReader::new(Cursor::new(grammar));
             let result = gram.build(grammar_stream);
             let listener = gram.wrapper.listener();

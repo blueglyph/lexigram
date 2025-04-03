@@ -1,8 +1,11 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fmt::{Debug, Formatter};
-use lexigram::CollectJoin;
+use lexigram::{CollectJoin, General};
+use lexigram::grammar::{GrTree, GrTreeExt, RuleTreeSet, Symbol, VarId};
 use lexigram::log::{BufLog, Logger};
+use lexigram::symbol_table::SymbolTable;
 use crate::gramparser::gramparser::*;
 use crate::gramparser::gramparser_types::*;
 
@@ -10,14 +13,26 @@ pub struct GramListener {
     verbose: bool,
     name: String,
     log: BufLog,
+    curr: Option<GrTree>,
+    rules: RuleTreeSet<General>,
+    symbols: HashMap<String, Symbol>,
+    num_nt: VarId,
+    num_t: VarId,
 }
 
 impl GramListener {
-    pub fn new() -> Self {
+    pub fn new(symbol_table: SymbolTable) -> Self {
+        let mut rules = RuleTreeSet::new();
+        rules.set_symbol_table(symbol_table);
         GramListener {
             verbose: false,
             name: String::new(),
             log: BufLog::new(),
+            curr: None,
+            rules,
+            symbols: HashMap::new(),
+            num_nt: 0,
+            num_t: 0,
         }
     }
 
@@ -32,6 +47,11 @@ impl GramListener {
     pub fn get_log(&self) -> &BufLog {
         &self.log
     }
+
+    pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
+        self.rules.get_symbol_table()
+    }
+
 }
 
 impl Debug for GramListener {
@@ -39,6 +59,15 @@ impl Debug for GramListener {
         writeln!(f, "GramListener {{")?;
         writeln!(f, "  name = {}", self.name)?;
         writeln!(f, "  log:{}", self.log.get_messages().map(|s| format!("\n    - {s:?}")).join(""))?;
+        writeln!(f, "  curr: {}", if let Some(t) = &self.curr { format!("{t:?}") } else { "none".to_string() })?;
+        let symb_nt = self.symbols.iter().filter_map(|(name, s)| if let Symbol::NT(nt) = s { Some((nt, name)) } else { None }).collect::<BTreeMap<_, _>>();
+        let symb_t = self.symbols.iter().filter_map(|(name, s)| if let Symbol::T(t) = s { Some((t, name)) } else { None }).collect::<BTreeMap<_, _>>();
+        writeln!(f, "  rules:{}",
+                 self.rules.get_trees_iter().map(|(v, t)|
+                     format!("\n  - {}: {}", symb_nt.get(&v).unwrap(), t.to_str(None, self.get_symbol_table()))
+                 ).join(""))?;
+        writeln!(f, "  symbols:\n  - NT: {}\n  - T : {}",
+                 symb_nt.into_iter().map(|(nt, s)| format!("{nt}={s}")).join(", "), symb_t.into_iter().map(|(t, s)| format!("{t}={s}")).join(", "))?;
         writeln!(f, "}}")
     }
 }
@@ -48,35 +77,82 @@ impl GramParserListener for GramListener {
         &mut self.log
     }
 
+    // file:
+    //     header rules SymEOF?
+    // ;
     fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
         SynFile()
     }
 
-    fn exit_header(&mut self, _ctx: CtxHeader) -> SynHeader {
+    // header:
+    //     Grammar Id Semicolon
+    // ;
+    fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader {
+        let CtxHeader::Header { id } = ctx;
+        self.name = id;
         SynHeader()
     }
 
-    fn exit_rules(&mut self, _ctx: CtxRules) -> SynRules {
+    // rules:
+    //     rule
+    // |   rules rule
+    // ;
+    fn exit_rules(&mut self, ctx: CtxRules) -> SynRules {
+        match ctx {
+            CtxRules::Rules1 { rule } => {}
+            CtxRules::Rules2 { rules, rule } => {}
+            CtxRules::Rules3 { rules } => { /* end of iterations */ }
+        }
         SynRules()
     }
 
+    // rule:
+    //     Id Colon prod Semicolon
+    // ;
     fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule {
         SynRule()
     }
 
-    fn exit_prod(&mut self, _ctx: CtxProd) -> SynProd {
+    fn init_prod(&mut self) {
+        assert!(self.curr.is_none(), "remnant tree in self.curr: {self:?}");
+        self.curr = Some(GrTree::new());
+    }
+
+    // prod:
+    //     prodFactor
+    // |   prod Or prodFactor
+    // ;
+    fn exit_prod(&mut self, ctx: CtxProd) -> SynProd {
+        match ctx {
+            CtxProd::Prod1 { prod_factor } => {}
+            CtxProd::Prod2 { prod, prod_factor } => {}
+            CtxProd::Prod3 { prod } => { /* end of iterations */ }
+        }
         SynProd()
     }
 
+    // prodFactor:
+    //     prodTerm*
+    // ;
     fn exit_prod_factor(&mut self, _ctx: CtxProdFactor) -> SynProdFactor {
         SynProdFactor()
     }
 
+    // prodTerm:
+    //     termItem (Plus | Star | Question)?
+    // ;
     fn exit_prod_term(&mut self, _ctx: CtxProdTerm) -> SynProdTerm {
         SynProdTerm()
     }
 
+    // termItem:
+    //     Id
+    // |   Lform
+    // |   Rform
+    // |   Lparen prod Rparen
+    // ;
     fn exit_term_item(&mut self, _ctx: CtxTermItem) -> SynTermItem {
         SynTermItem()
     }
 }
+

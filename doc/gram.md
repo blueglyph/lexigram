@@ -88,13 +88,13 @@ grammar GramParser;
 
 file: header rules SymEOF?;
 
+header:
+    Grammar Id Semicolon
+;
+
 rules:
     rule
 |   rules rule
-;
-
-header:
-    Grammar Id Semicolon
 ;
 
 rule:

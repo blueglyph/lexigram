@@ -5,6 +5,7 @@ use lexigram::io::CharReader;
 use lexigram::log::Logger;
 use lexigram::lexer::{Lexer, TokenSpliterator};
 use lexigram::parser::{Parser, ParserError};
+use lexigram::symbol_table::SymbolTable;
 use crate::gramlexer::gramlexer::build_lexer;
 use crate::gramparser::gramparser::{build_parser, Wrapper};
 use crate::listener::GramListener;
@@ -21,8 +22,8 @@ impl<R: Read> Gram<R> {
     const VERBOSE_DETAILS: bool = false;
     const VERBOSE_LISTENER: bool = false;
 
-    pub fn new() -> Self {
-        let listener = GramListener::new();
+    pub fn new(symbol_table: SymbolTable) -> Self {
+        let listener = GramListener::new(symbol_table);
         let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
         wrapper.get_mut_listener().set_verbose(Self::VERBOSE_LISTENER);
         let mut gramlexer = build_lexer();

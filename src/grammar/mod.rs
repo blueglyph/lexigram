@@ -191,7 +191,7 @@ impl std::fmt::Debug for Dup {
 
 // ---------------------------------------------------------------------------------------------
 
-type GrTree = VecTree<GrNode>;
+pub type GrTree = VecTree<GrNode>;
 
 /// Adds methods to GrTree.
 ///
