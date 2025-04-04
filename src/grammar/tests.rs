@@ -256,7 +256,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let or2 = tree.add(Some(cc), gnode!(|));
             tree.add(Some(or2), gnode!(t 1));
             tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 2), gnode!(R)]);
-            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(L 0)]);
+            tree.addc(Some(or2), gnode!(&), gnode!(t 3));
             tree.add(Some(cc), gnode!(nt 0));
             tree.add(Some(or), gnode!(t 4));
         }
@@ -276,10 +276,10 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc2), gnode!(t 2));
             tree.add(Some(cc), gnode!(t 3));
         }
-        18 => { // a | b <L=A> | c
+        18 => { // a | b | c
             let or = tree.add_root(gnode!(|));
             tree.add(Some(or), gnode!(t 0));
-            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 1), gnode!(L 0)]);
+            tree.addc(Some(or), gnode!(&), gnode!(t 1));
             tree.add(Some(or), gnode!(t 2));
         }
         19 => { // A (b <L=B>)* c | d
@@ -558,7 +558,7 @@ fn rts_normalize() {
         (11, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, 1), ε)"]),
         (12, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), ε)"]),
         (13, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:4, 1), ε)"]),
-        (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, <L=0>, 0), :4)"]),
+        (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, 0), :4)"]),
         (17, btreemap![0 => "&(:0, 2, :3)", 1 => "|(&(:1, 1), :1)", 2 => "|(&(1, :2, 2), &(1, :2))"]),
     ];
     const VERBOSE: bool = false;
@@ -640,7 +640,7 @@ fn rts_prodrule_from() {
         ], vec![0], vec![None]),
         (15, btreemap![
             0 => prod!(nt 0, t 1, nt 0; #R, nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4)
-        ], vec![128], vec![None]),
+        ], vec![0], vec![None]),
         (17, btreemap![
             0 => prod!(t 0, nt 2, t 3),
             1 => prod!(t 1, nt 1; t 1),
@@ -2610,7 +2610,7 @@ fn rts_prs_flags() {
          btreemap![],
          btreemap![1 => 0],
          btreemap![]),
-        (T::RTS(15), 0, btreemap![0 => 1664, 1 => 12],
+        (T::RTS(15), 0, btreemap![0 => 1536, 1 => 12],
          btreemap![2 => 256],
          btreemap![1 => 0],
          btreemap![]),
@@ -2622,7 +2622,7 @@ fn rts_prs_flags() {
          btreemap![],
          btreemap![1 => 2, 2 => 0, 3 => 1, 4 => 2],
          btreemap![]),
-        (T::RTS(18), 0, btreemap![0 => 128], btreemap![], btreemap![],
+        (T::RTS(18), 0, btreemap![], btreemap![], btreemap![],
          btreemap![]),
         // 0: A (b <L=B>)* c | d       0: A -> d A_1
         // 1: (B)                  ->  1: AIter1 -> b AIter1 | ε

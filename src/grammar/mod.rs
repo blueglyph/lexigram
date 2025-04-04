@@ -1549,6 +1549,18 @@ impl<T> ProdRuleSet<T> {
             }
         }
     }
+
+    fn check_flags(&mut self) {
+        const FLAG_CHECK_MASK: u32 = ruleflag::L_FORM | ruleflag::CHILD_REPEAT | ruleflag::R_RECURSION;
+        for v in 0..self.num_nt {
+            if self.flags[v] & FLAG_CHECK_MASK == ruleflag::L_FORM {
+                self.log.add_error(format!("{} has an illegal flag L-Form (only used with +, *, or right recursion): {}",
+                                           Symbol::NT(v as VarId).to_str(self.get_symbol_table()),
+                                           ruleflag::to_string(self.flags[v]).join(" ")
+                ));
+            }
+        }
+    }
 }
 
 impl ProdRuleSet<LL1> {
@@ -1717,8 +1729,6 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var).to_str(prules.get_symbol_table()))
                 };
                 if prod.iter().any(|f| f.flags & ruleflag::L_FORM != 0) {
-                    let mut nt = var;
-
                     // We keep the L flag on the child of +* normalization if it's intended only for that normalization.
                     // For example:
                     // - A -> (b <L>)+ A | c
@@ -1731,8 +1741,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     // while let Some(parent) = prules.get_parent(nt) {
                     //     nt = parent;
                     // }
-
-                    prules.set_flags(nt as VarId, ruleflag::L_FORM);
+                    prules.set_flags(var, ruleflag::L_FORM);
                     // not really necessary, but cleaner:
                     for f in prod.iter_mut() {
                         f.flags &= !ruleflag::L_FORM;
@@ -1761,6 +1770,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
         rules.remove_left_recursion();
         rules.left_factorize();
         rules.transfer_factor_flags();
+        rules.check_flags();
         ProdRuleSet::<LL1> {
             prods: rules.prods,
             num_nt: rules.num_nt,
@@ -1780,6 +1790,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
     fn from(mut rules: ProdRuleSet<General>) -> Self {
         rules.remove_ambiguity();
         rules.transfer_factor_flags();
+        rules.check_flags();
         ProdRuleSet::<LR> {
             prods: rules.prods,
             num_nt: rules.num_nt,
