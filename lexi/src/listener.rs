@@ -549,10 +549,10 @@ impl LexiParserListener for LexiListener {
     fn exit_alt_items(&mut self, ctx: CtxAltItems) -> SynAltItems {
         if self.verbose { print!("- exit_alt_items({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
-        let CtxAltItems::AltItems { alt_item, star } = ctx;
-        let (id, const_literal) = if !star.0.is_empty() {
+        let CtxAltItems::AltItems { alt_item, star: SynAltItems1(alt_items) } = ctx;
+        let (id, const_literal) = if !alt_items.is_empty() {
             let id = tree.addci(None, node!(|), alt_item.0.0);
-            tree.attach_children(id, star.0.into_iter().map(|i| i.0.0));
+            tree.attach_children(id, alt_items.into_iter().map(|i| i.0.0));
             (id, None)
         } else {
             alt_item.0
