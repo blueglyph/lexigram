@@ -1,23 +1,27 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::io::Read;
+use std::marker::PhantomData;
+use lexigram::grammar::ProdRuleSet;
 use lexigram::io::CharReader;
 use lexigram::log::Logger;
 use lexigram::lexer::{Lexer, TokenSpliterator};
+use lexigram::LL1;
 use lexigram::parser::{Parser, ParserError};
 use lexigram::symbol_table::SymbolTable;
 use crate::gramlexer::gramlexer::build_lexer;
 use crate::gramparser::gramparser::{build_parser, Wrapper};
 use crate::listener::GramListener;
 
-pub struct Gram<R: Read> {
+pub struct Gram<T, R: Read> {
     pub gramlexer: Lexer<R>,
     pub gramparser: Parser,
-    pub wrapper: Wrapper<GramListener>
+    pub wrapper: Wrapper<GramListener>,
+    _phantom: PhantomData<T>
 }
 
 #[allow(unused)]
-impl<R: Read> Gram<R> {
+impl<T, R: Read> Gram<T, R> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
     const VERBOSE_LISTENER: bool = false;
@@ -31,7 +35,8 @@ impl<R: Read> Gram<R> {
         Gram {
             gramlexer,
             gramparser: build_parser(),
-            wrapper
+            wrapper,
+            _phantom: PhantomData
         }
     }
 
@@ -61,5 +66,14 @@ impl<R: Read> Gram<R> {
         } else {
             Ok(r)
         } )
+    }
+}
+
+impl<R: Read> Gram<LL1, R> {
+    pub fn build_ll1(mut self, lexicon: CharReader<R>) -> ProdRuleSet<LL1> {
+        self.build(lexicon).expect("manage errors");
+        let listener = self.wrapper.listener();
+        let prs = listener.build_prs();
+        prs.into()
     }
 }

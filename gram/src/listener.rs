@@ -2,8 +2,10 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
+use iter_index::IndexerIterator;
+use vectree::VecTree;
 use lexigram::{CollectJoin, General};
-use lexigram::grammar::{GrTree, GrNode, GrTreeExt, RuleTreeSet, Symbol, VarId};
+use lexigram::grammar::{GrTree, GrNode, GrTreeExt, RuleTreeSet, Symbol, VarId, ProdRuleSet};
 use lexigram::log::{BufLog, Logger};
 use lexigram::symbol_table::SymbolTable;
 use crate::gramparser::gramparser::*;
@@ -14,31 +16,46 @@ pub struct GramListener {
     name: String,
     log: BufLog,
     curr: Option<GrTree>,
-    curr_rulename: String,
+    curr_rulename: Option<String>,
     curr_nt: Option<VarId>,
-    rules: RuleTreeSet<General>,
+    rules: Vec<VecTree<GrNode>>,
+    start_rule: Option<VarId>,
+    symbol_table: SymbolTable,
+    /// T symbols pre-defined in the symbol table; the listener adds the NT symbols.
     symbols: HashMap<String, Symbol>,
+    /// NT references found in the grammar that haven't been defined yet (future rules).
+    /// They get a VarId > num_nt, starting at VarId::MAX, VarId::MAX - 1, ... and must
+    /// be renumbered in the rules later on when the true VarId is known.
+    /// OPTIMIZE: because of this 1-pass system that preserves the ID order of the grammar file,
+    /// we use more space in the VarId range: |defined| + |reserved| instead of |defined|.
     nt_reserved: HashMap<String, VarId>,
-    // num_nt: VarId,
-    // num_t: VarId,
+    num_nt: usize,
 }
 
 impl GramListener {
+    /// Gram listener used for parsing grammar files.
+    ///
+    /// `symbol_table` must contain the terminal symbols from the lexicon corresponding to the grammar.
     pub fn new(symbol_table: SymbolTable) -> Self {
-        let mut rules = RuleTreeSet::new();
-        rules.set_symbol_table(symbol_table);
+        // copies the NT and T from the symbol table
+        let symbols = symbol_table.get_terminals()
+            .into_iter().index::<VarId>()
+            .map(|(t, (s, _))| (s.clone(), Symbol::T(t)))
+            .collect::<HashMap<_,_>>();
+        assert_eq!(symbol_table.get_num_nt(), 0, "the symbol table cannot contain non-terminals");
         GramListener {
             verbose: false,
             name: String::new(),
             log: BufLog::new(),
             curr: None,
-            curr_rulename: String::new(),
+            curr_rulename: None,
             curr_nt: None,
-            rules,
-            symbols: HashMap::new(),
+            rules: Vec::new(),
+            start_rule: None,
+            symbol_table,
+            symbols,
             nt_reserved: HashMap::new(),
-            // num_nt: 0,
-            // num_t: 0,
+            num_nt: 0,
         }
     }
 
@@ -54,19 +71,36 @@ impl GramListener {
         &self.log
     }
 
-    pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
-        self.rules.get_symbol_table()
+    pub fn build_prs(mut self) -> ProdRuleSet<General> {
+        if self.log.num_errors() > 0 {
+            panic!("Errors when parsing grammar:{}", self.log.get_messages().map(|m| format!("\n- {m:?}")).join(""));
+        }
+        let mut rts = RuleTreeSet::<General>::new();
+        for (v, rule) in self.rules.into_iter().index::<VarId>() {
+            rts.set_tree(v, rule);
+        }
+        rts.set_symbol_table(std::mem::take(&mut self.symbol_table));
+        rts.into()
     }
 
-    fn reserve_nt(&mut self, id: String) -> VarId {
+    fn reserve_nt_symbol(&mut self, id: String) -> VarId {
         let len = self.nt_reserved.len();
         if let Some(v) = self.nt_reserved.get(&id) {
             *v
         } else {
             let v = VarId::MAX - VarId::try_from(len).expect("too many reserved symbols");
+            if self.num_nt > v as usize { panic!("not enough space for defined + reserved non-terminals") }
             self.nt_reserved.insert(id, v);
             v
         }
+    }
+
+    fn add_nt_symbol(&mut self, name: &str) -> VarId {
+        let nt = VarId::try_from(self.num_nt).expect("too many non-terminals");
+        assert_eq!(self.symbols.insert(name.to_string(), Symbol::NT(nt)), None, "non-terminal '{name}' already defined");
+        self.symbol_table.add_non_terminal(name);
+        self.num_nt += 1;
+        nt
     }
 }
 
@@ -75,12 +109,14 @@ impl Debug for GramListener {
         writeln!(f, "GramListener {{")?;
         writeln!(f, "  name = {}", self.name)?;
         writeln!(f, "  log:{}", self.log.get_messages().map(|s| format!("\n    - {s:?}")).join(""))?;
-        writeln!(f, "  curr: {}", if let Some(t) = &self.curr { format!("{t:?}") } else { "none".to_string() })?;
+        writeln!(f, "  curr: {} -> {}",
+                 if let Some(nm) = &self.curr_rulename { nm } else { "?" },
+                 if let Some(t) = &self.curr { format!("{t:?}") } else { "none".to_string() })?;
         let symb_nt = self.symbols.iter().filter_map(|(name, s)| if let Symbol::NT(nt) = s { Some((nt, name)) } else { None }).collect::<BTreeMap<_, _>>();
         let symb_t = self.symbols.iter().filter_map(|(name, s)| if let Symbol::T(t) = s { Some((t, name)) } else { None }).collect::<BTreeMap<_, _>>();
         writeln!(f, "  rules:{}",
-                 self.rules.get_trees_iter().map(|(v, t)|
-                     format!("\n  - {}: {}", symb_nt.get(&v).unwrap(), t.to_str(None, self.get_symbol_table()))
+                 self.rules.iter().index::<VarId>().map(|(v, t)|
+                     format!("\n  - {}: {}", symb_nt.get(&v).unwrap(), t.to_str(None, Some(&self.symbol_table)))
                  ).join(""))?;
         writeln!(f, "  symbols:\n  - NT: {}\n  - T : {}",
                  symb_nt.into_iter().map(|(nt, s)| format!("{nt}={s}")).join(", "), symb_t.into_iter().map(|(t, s)| format!("{t}={s}")).join(", "))?;
@@ -97,6 +133,24 @@ impl GramParserListener for GramListener {
     //     header rules SymEOF?
     // ;
     fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
+        let mut old_new = HashMap::new();
+        for (name, old_nt) in &self.nt_reserved {
+            if let Some(Symbol::NT(new_nt)) = self.symbols.get(name) {
+                old_new.insert(old_nt, *new_nt);
+            } else {
+                self.log.add_error(format!("'{name}' has been used but is not defined, neither as terminal or non-terminal"));
+            };
+        }
+        // OPTIMIZE: we could have tagged the rules containing reserved NTs; here, we'll have to scan everything
+        for rule in self.rules.iter_mut() {
+            for mut node in rule.iter_depth_simple_mut() {
+                if let GrNode::Symbol(Symbol::NT(old)) = *node {
+                    if let Some(new) = old_new.get(&old) {
+                        *node = GrNode::Symbol(Symbol::NT(*new));
+                    }
+                }
+            }
+        }
         SynFile()
     }
 
@@ -113,31 +167,32 @@ impl GramParserListener for GramListener {
     //     rule
     // |   rules rule
     // ;
-    fn exit_rules(&mut self, ctx: CtxRules) -> SynRules {
-        match ctx {
-            CtxRules::Rules1 { rule } => {}
-            CtxRules::Rules2 { rules, rule } => {}
-            CtxRules::Rules3 { rules } => { /* end of iterations */ }
-        }
+    fn exit_rules(&mut self, _ctx: CtxRules) -> SynRules {
         SynRules()
     }
 
     // rule:
     //     Id Colon prod Semicolon
     // ;
-    fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule {
+    fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
+        let CtxRule::Rule { prod: SynProd(id), .. } = ctx;
+        let mut tree = self.curr.take().expect("self.curr should have a tree");
+        tree.set_root(id);
+        self.rules.push(tree);
         self.curr_nt = None;
-        todo!();
         SynRule()
     }
 
     fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName {
-        let CtxRuleName::RuleName { id } = ctx;
-        self.curr_rulename = id.clone();
-        let nt = VarId::MAX - VarId::try_from(self.symbols.len()).expect("too many reserved symbols");
-        assert_eq!(self.symbols.insert(id.clone(), Symbol::NT(nt)), None, "rule name {id} already defined");
+        let CtxRuleName::RuleName { id: name } = ctx;
+        self.curr_rulename = Some(name.clone());
+        let nt = self.add_nt_symbol(&name);
         self.curr_nt = Some(nt);
-        SynRuleName(id)
+        if self.start_rule.is_none() {
+            // the start rule is the first to be defined
+            self.start_rule = Some(nt);
+        }
+        SynRuleName(name)
     }
 
     fn init_prod(&mut self) {
@@ -203,18 +258,16 @@ impl GramParserListener for GramListener {
     // |   Lparen prod Rparen
     // ;
     fn exit_term_item(&mut self, ctx: CtxTermItem) -> SynTermItem {
-        let tree = self.curr.as_mut().expect("no current tree");
         let id = match ctx {
             CtxTermItem::TermItem1 { id } => {
                 match self.symbols.get(&id) {
                     Some(s @ Symbol::NT(_)) |
-                    Some(s @ Symbol::T(_)) => tree.add(None, GrNode::Symbol(*s)),
+                    Some(s @ Symbol::T(_)) => self.curr.as_mut().unwrap().add(None, GrNode::Symbol(*s)),
                     Some(unexpected) => panic!("unexpected symbol: {unexpected:?}"),
                     None => {
-                        // new NT
-                        let nt = self.reserve_nt(id);
-                        let tree = self.curr.as_mut().expect("no current tree");    // <== necessary because of borrow checker
-                        tree.add(None, GrNode::Symbol(Symbol::NT(nt)))
+                        // reserve new NT
+                        let nt = self.reserve_nt_symbol(id);
+                        self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(nt)))
                     }
                 }
             }
@@ -222,7 +275,7 @@ impl GramParserListener for GramListener {
                 let bytes = lform.as_bytes();
                 let name_maybe = if bytes[2] == b'=' {
                     let name = lform[3..lform.len() - 1].to_string();
-                    if name == self.curr_rulename {
+                    if &name == self.curr_rulename.as_ref().expect("self.curr_rulename should contain the rule name") {
                         // that must be a right-recursive rule (to check later)
                         None
                     } else {
@@ -237,18 +290,15 @@ impl GramParserListener for GramListener {
                     // iterative NT is created.
                     assert!(!self.nt_reserved.contains_key(&name), "the rule name in <L={name}> has already been used as non-terminal in a rule");
                     assert!(!self.symbols.contains_key(&name), "the rule name in <L={name}> is already defined");
-                    let nt = VarId::MAX - VarId::try_from(self.symbols.len()).expect("too many symbols");
-                    self.symbols.insert(name, Symbol::NT(nt));
-                    nt
+                    self.add_nt_symbol(&name)
                 } else {
                     // this form is used with right-recursive rules, so it points to the current rule
-                    // FIXME: can we check later if it's right-recursive when LForm points to the same rule?
                     self.curr_nt.expect("curr_nt must be defined")
                 };
-                tree.add(None, GrNode::LForm(nt))
+                self.curr.as_mut().unwrap().add(None, GrNode::LForm(nt))
             }
             CtxTermItem::TermItem3 => {
-                tree.add(None, GrNode::RAssoc)
+                self.curr.as_mut().unwrap().add(None, GrNode::RAssoc)
             }
             CtxTermItem::TermItem4 { prod } => prod.0,
         };

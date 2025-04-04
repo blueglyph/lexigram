@@ -108,11 +108,11 @@ pub struct LexiListener {
     pub(crate) terminals: Vec<VecTree<ReNode>>,
     /// Optional constant literal for terminal keywords; e.g. `COMMA: ',';` -> Some(',')
     pub(crate) terminal_literals: Vec<Option<String>>,
-    /// true if the corresponding terminal is returned by the lexer (either directly by a rule or as the target of a `type(T)`)
+    /// True if the corresponding terminal is returned by the lexer (either directly by a rule or as the target of a `type(T)`)
     terminal_ret: Vec<bool>,
-    /// future tokens reserved by `type(T)`. The value is the first token referring to it with `type(T)`
+    /// Future tokens reserved by `type(T)`. The value is the first token referring to it with `type(T)`
     terminal_reserved: HashMap<String, TokenId>, // FIXME: change to HashSet
-    /// terminal token IDs that need to be remapped (from key to value)
+    /// Terminal token IDs that need to be remapped (from key to value)
     terminal_remap: HashMap<TokenId, TokenId>,
     channels: HashMap<String, ChannelId>,
     modes: HashMap<String, ModeId>,

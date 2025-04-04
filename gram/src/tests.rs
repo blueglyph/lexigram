@@ -35,7 +35,7 @@ const TXT_GRAM1: &str = r#"
 
 mod listener {
     use std::io::Cursor;
-    use lexigram::CollectJoin;
+    use lexigram::{CollectJoin, General};
     use lexigram::io::CharReader;
     // use lexigram::log::{BufLog, Logger};
     // use lexigram::parser::ListenerWrapper;
@@ -88,7 +88,7 @@ mod listener {
             let text = format!("test {test_id} failed");
 
             // grammar parser
-            let mut gram = Gram::new(sym_table.clone());
+            let mut gram = Gram::<General, _>::new(sym_table.clone());
             let grammar_stream = CharReader::new(Cursor::new(grammar));
             let result = gram.build(grammar_stream);
             let listener = gram.wrapper.listener();
