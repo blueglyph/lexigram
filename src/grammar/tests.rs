@@ -506,7 +506,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
                     GrNode::Symbol(Symbol::T(t)) => {
                         if *t >= num_t { num_t = *t + 1 }
                     }
-                    GrNode::LForm(nt) => {
+                    GrNode::LForm(nt) if *nt != v => {
                         lforms.insert(*nt, format!("{}Iter{iter}", char::from(v as u8 + 65)));
                         num_iter += 1;
                         iter += 1;
