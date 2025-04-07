@@ -35,7 +35,7 @@ const TXT_GRAM1: &str = r#"
 
 mod listener {
     use std::io::Cursor;
-    use lexigram::{CollectJoin, General};
+    use lexigram::{CollectJoin, LL1};
     use lexigram::io::CharReader;
     // use lexigram::log::{BufLog, Logger};
     // use lexigram::parser::ListenerWrapper;
@@ -43,6 +43,7 @@ mod listener {
     use lexigram::grammar::Symbol;
     use lexigram::lexer::Lexer;
     use lexigram::lexergen::LexerGen;
+    use lexigram::log::Logger;
     use crate::gram::Gram;
     use super::*;
 
@@ -88,17 +89,17 @@ mod listener {
             let text = format!("test {test_id} failed");
 
             // grammar parser
-            let mut gram = Gram::<General, _>::new(sym_table.clone());
+            let mut gram = Gram::<LL1, _>::new(sym_table.clone());
             let grammar_stream = CharReader::new(Cursor::new(grammar));
-            let result = gram.build(grammar_stream);
+            gram.build(grammar_stream);
             let listener = gram.wrapper.listener();
+            let msg = listener.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
             if VERBOSE {
-                let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
-                    println!("Messages:\n{msg}");
+                    println!("Messages:{msg}");
                 }
             }
-            assert_eq!(result, Ok(()), "{text}: couldn't parse the grammar");
+            assert!(listener.get_log().has_no_errors(), "{text}: couldn't parse the grammar:{msg}");
 
             for input in inputs {
                 if VERBOSE { println!("- input '{input}'"); }

@@ -7,10 +7,10 @@ use lexigram::io::CharReader;
 use lexigram::log::Logger;
 use lexigram::lexer::{Lexer, TokenSpliterator};
 use lexigram::LL1;
-use lexigram::parser::{Parser, ParserError};
+use lexigram::parser::Parser;
 use lexigram::symbol_table::SymbolTable;
 use crate::gramlexer::gramlexer::build_lexer;
-use crate::gramparser::gramparser::{build_parser, Wrapper};
+use crate::gramparser::gramparser::{build_parser, GramParserListener, Wrapper};
 use crate::listener::GramListener;
 
 pub struct Gram<T, R: Read> {
@@ -48,30 +48,27 @@ impl<T, R: Read> Gram<T, R> {
         self.wrapper.get_listener()
     }
 
-    pub fn build(&mut self, lexicon: CharReader<R>) -> Result<(), ParserError> {
+    pub fn build(&mut self, lexicon: CharReader<R>) {
+        let mut channel_errors = vec![];
         self.gramlexer.attach_stream(lexicon);
-        let mut result_tokens = 0;
         let tokens = self.gramlexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
-            panic!("no channel {ch} in this test, line {line} col {col}, \"{text}\"")
-        ).inspect(|(tok, text, line, col)| {
-            result_tokens += 1;
-            if Self::VERBOSE_DETAILS {
-                println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
+            if channel_errors.len() < 5 {
+                channel_errors.push(format!("unexpected channel {ch} from lexer, line {line} col {col}, \"{text}\""));
             }
-        });
-        let result = self.gramparser.parse_stream(&mut self.wrapper, tokens);
-        result.and_then(|r| if self.wrapper.get_listener().get_log().num_errors() > 0 {
-            // in case the parser hasn't reported any error but the listener has
-            Err(ParserError::EncounteredErrors)
-        } else {
-            Ok(r)
-        } )
+        );
+        if let Err(e) = self.gramparser.parse_stream(&mut self.wrapper, tokens) {
+            self.get_mut_listener().get_mut_log().add_error(e.to_string());
+        }
+        for e in channel_errors {
+            // we can't report them earlier because there's already a unique borrow
+            self.get_mut_listener().get_mut_log().add_error(e);
+        }
     }
 }
 
 impl<R: Read> Gram<LL1, R> {
     pub fn build_ll1(mut self, lexicon: CharReader<R>) -> ProdRuleSet<LL1> {
-        self.build(lexicon).expect("manage errors");
+        self.build(lexicon);
         let listener = self.wrapper.listener();
         let prs = listener.build_prs();
         prs.into()

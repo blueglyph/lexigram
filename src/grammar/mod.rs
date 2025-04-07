@@ -363,6 +363,10 @@ pub struct RuleTreeSet<T> {
 // Methods for both General and Normalized forms. There can only be immutable methods
 // in the normalized form.
 impl<T> RuleTreeSet<T> {
+    pub fn get_log(&self) -> &BufLog {
+        &self.log
+    }
+
     pub fn get_tree(&self, var: VarId) -> Option<&GrTree> {
         self.trees.get(var as usize)
     }
@@ -408,13 +412,17 @@ impl<T> RuleTreeSet<T> {
 // Mutable methods for the General form.
 impl RuleTreeSet<General> {
     pub fn new() -> Self {
+        Self::with_log(BufLog::new())
+    }
+
+    pub fn with_log(log: BufLog) -> Self {
         RuleTreeSet {
             trees: Vec::new(),
             start: None,
             symbol_table: None,
             flags: Vec::new(),
             parent: Vec::new(),
-            log: BufLog::new(),
+            log,
             nt_conversion: HashMap::new(),
             _phantom: PhantomData,
         }
@@ -784,7 +792,12 @@ impl RuleTreeSet<General> {
 impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     /// Transforms a `General` ruleset to a `Normalized` ruleset
     fn from(mut rules: RuleTreeSet<General>) -> Self {
-        rules.normalize();
+        // We handle the errors by transmitting the log to the next construct rather than returning a `Result` type.
+        // This allows to cascade the transforms without getting a complicated error resolving system while preserving
+        // the information about the errors easily.
+        if rules.log.has_no_errors() {
+            rules.normalize();
+        }
         RuleTreeSet::<Normalized> {
             trees: rules.trees,
             start: rules.start,
@@ -1705,6 +1718,12 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
         prules.parent = rules.parent;
         prules.nt_conversion = rules.nt_conversion;
         prules.log = rules.log;
+        if !prules.log.has_no_errors() {
+            // We handle the errors by transmitting the log to the next construct rather than returning a `Result` type.
+            // This allows to cascade the transforms without getting a complicated error resolving system while preserving
+            // the information about the errors easily.
+            return prules;
+        }
         for (var, tree) in rules.trees.iter().index() {
             if !tree.is_empty() {
                 let root = tree.get_root().expect("tree {var} has no root");
@@ -1760,17 +1779,21 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
 impl From<RuleTreeSet<General>> for ProdRuleSet<General> {
     fn from(rules: RuleTreeSet<General>) -> Self {
         let mut prods = ProdRuleSet::from(RuleTreeSet::<Normalized>::from(rules));
-        prods.simplify();
+        if prods.log.has_no_errors() {
+            prods.simplify();
+        }
         prods
     }
 }
 
 impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
     fn from(mut rules: ProdRuleSet<General>) -> Self {
-        rules.remove_left_recursion();
-        rules.left_factorize();
-        rules.transfer_factor_flags();
-        rules.check_flags();
+        if rules.log.has_no_errors() {
+            rules.remove_left_recursion();
+            rules.left_factorize();
+            rules.transfer_factor_flags();
+            rules.check_flags();
+        }
         ProdRuleSet::<LL1> {
             prods: rules.prods,
             num_nt: rules.num_nt,
@@ -1788,9 +1811,11 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
 
 impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
     fn from(mut rules: ProdRuleSet<General>) -> Self {
-        rules.remove_ambiguity();
-        rules.transfer_factor_flags();
-        rules.check_flags();
+        if rules.log.has_no_errors() {
+            rules.remove_ambiguity();
+            rules.transfer_factor_flags();
+            rules.check_flags();
+        }
         ProdRuleSet::<LR> {
             prods: rules.prods,
             num_nt: rules.num_nt,

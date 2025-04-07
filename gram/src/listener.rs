@@ -71,36 +71,49 @@ impl GramListener {
         &self.log
     }
 
-    pub fn build_prs(mut self) -> ProdRuleSet<General> {
-        if self.log.num_errors() > 0 {
-            panic!("Errors when parsing grammar:{}", self.log.get_messages().map(|m| format!("\n- {m:?}")).join(""));
+    pub fn build_prs(self) -> ProdRuleSet<General> {
+        let mut rts = RuleTreeSet::<General>::with_log(self.log);
+        if rts.get_log().has_no_errors() {
+            for (v, rule) in self.rules.into_iter().index::<VarId>() {
+                rts.set_tree(v, rule);
+            }
+            rts.set_symbol_table(self.symbol_table);
         }
-        let mut rts = RuleTreeSet::<General>::new();
-        for (v, rule) in self.rules.into_iter().index::<VarId>() {
-            rts.set_tree(v, rule);
-        }
-        rts.set_symbol_table(std::mem::take(&mut self.symbol_table));
-        rts.into()
+        ProdRuleSet::<General>::from(rts)
     }
 
-    fn reserve_nt_symbol(&mut self, id: String) -> VarId {
-        let len = self.nt_reserved.len();
+    fn reserve_nt_symbol(&mut self, id: String) -> Option<VarId> {
         if let Some(v) = self.nt_reserved.get(&id) {
-            *v
+            Some(*v)
         } else {
-            let v = VarId::MAX - VarId::try_from(len).expect("too many reserved symbols");
-            if self.num_nt > v as usize { panic!("not enough space for defined + reserved non-terminals") }
-            self.nt_reserved.insert(id, v);
-            v
+            match VarId::try_from(self.nt_reserved.len()) {
+                Ok(len) => {
+                    let v = VarId::MAX - len;
+                    if self.num_nt > v as usize {
+                        self.log.add_error(format!("not enough space for defined ({}) + reserved non-terminals ({len}): can't reserve '{id}'", self.num_nt));
+                        None
+                    } else {
+                        self.nt_reserved.insert(id, v);
+                        Some(v)
+                    }
+                }
+                Err(_) => {
+                    self.log.add_error(format!("too many reserved symbols: can't reserve '{id}'"));
+                    None
+                }
+            }
         }
     }
 
-    fn add_nt_symbol(&mut self, name: &str) -> VarId {
-        let nt = VarId::try_from(self.num_nt).expect("too many non-terminals");
-        assert_eq!(self.symbols.insert(name.to_string(), Symbol::NT(nt)), None, "non-terminal '{name}' already defined");
+    fn add_nt_symbol(&mut self, name: &str) -> Option<VarId> {
+        let nt = VarId::try_from(self.num_nt).map_err(|_| self.log.add_error("too many non-terminals")).ok()?;
+        if self.symbols.insert(name.to_string(), Symbol::NT(nt)).is_some() {
+            self.log.add_error(format!("non-terminal '{name}' already defined"));
+            return None;
+        }
         self.symbol_table.add_non_terminal(name);
         self.num_nt += 1;
-        nt
+        Some(nt)
     }
 }
 
@@ -186,7 +199,7 @@ impl GramParserListener for GramListener {
     fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName {
         let CtxRuleName::RuleName { id: name } = ctx;
         self.curr_rulename = Some(name.clone());
-        let nt = self.add_nt_symbol(&name);
+        let nt = self.add_nt_symbol(&name).unwrap(); // FIXME: manage errors
         self.curr_nt = Some(nt);
         if self.start_rule.is_none() {
             // the start rule is the first to be defined
@@ -229,10 +242,11 @@ impl GramParserListener for GramListener {
     fn exit_prod_factor(&mut self, ctx: CtxProdFactor) -> SynProdFactor {
         let tree = self.curr.as_mut().expect("no current tree");
         let CtxProdFactor::ProdFactor { star: SynProdFactor1(terms) } = ctx;
-        let id = if terms.len() > 1 {
-            tree.addci_iter(None, GrNode::Concat, terms.iter().map(|t| t.0))
-        } else {
-            terms[0].0
+        let pt = terms.into_iter().filter_map(|SynProdTerm(t)| t).to_vec();
+        let id = match pt.len() {
+            0 => tree.add(None, GrNode::Symbol(Symbol::Empty)),
+            1 => pt[0],
+            _ => tree.addci_iter(None, GrNode::Concat, pt)
         };
         SynProdFactor(id)
     }
@@ -242,13 +256,14 @@ impl GramParserListener for GramListener {
     // ;
     fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm {
         let tree = self.curr.as_mut().expect("no current tree");
-        let id = match ctx {
-            CtxProdTerm::ProdTerm1 { term_item } => tree.addci(None, GrNode::Plus, term_item.0),    // termItem +
-            CtxProdTerm::ProdTerm2 { term_item } => tree.addci(None, GrNode::Maybe, term_item.0),   // termItem ?
-            CtxProdTerm::ProdTerm3 { term_item } => tree.addci(None, GrNode::Star, term_item.0),    // termItem *
-            CtxProdTerm::ProdTerm4 { term_item } => term_item.0,                                    // termItem
+        let id_maybe = match ctx {
+            CtxProdTerm::ProdTerm1 { term_item: SynTermItem(Some(term_item)) } => Some(tree.addci(None, GrNode::Plus, term_item)),    // termItem +
+            CtxProdTerm::ProdTerm2 { term_item: SynTermItem(Some(term_item)) } => Some(tree.addci(None, GrNode::Maybe, term_item)),   // termItem ?
+            CtxProdTerm::ProdTerm3 { term_item: SynTermItem(Some(term_item)) } => Some(tree.addci(None, GrNode::Star, term_item)),    // termItem *
+            CtxProdTerm::ProdTerm4 { term_item: SynTermItem(Some(term_item)) } => Some(term_item),                                    // termItem
+            _ => None
         };
-        SynProdTerm(id)
+        SynProdTerm(id_maybe)
     }
 
     // termItem:
@@ -266,8 +281,12 @@ impl GramParserListener for GramListener {
                     Some(unexpected) => panic!("unexpected symbol: {unexpected:?}"),
                     None => {
                         // reserve new NT
-                        let nt = self.reserve_nt_symbol(id);
-                        self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(nt)))
+                        if let Some(nt) = self.reserve_nt_symbol(id) {
+                            self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(nt)))
+                        } else {
+                            // failure
+                            return SynTermItem(None);
+                        }
                     }
                 }
             }
@@ -288,9 +307,17 @@ impl GramParserListener for GramListener {
                     // this form is used with * and +, and it defines the name of the iterative NT.
                     // In RuleTreeSet::normalize_plus_or_star(), the NT index in LForm(NT) is used when the
                     // iterative NT is created.
-                    assert!(!self.nt_reserved.contains_key(&name), "the rule name in <L={name}> has already been used as non-terminal in a rule");
-                    assert!(!self.symbols.contains_key(&name), "the rule name in <L={name}> is already defined");
-                    self.add_nt_symbol(&name)
+                    if let Some(sym @ Symbol::NT(_)) | Some(sym @ Symbol::T(_)) = self.symbols.get(&name) {
+                        self.log.add_error(format!("the rule name in <L={name}> is already defined as {}terminal", if sym.is_nt() { "non-" } else { "" }));
+                        return SynTermItem(None);
+                    } else if self.nt_reserved.contains_key(&name) {
+                        self.log.add_error(format!("the rule name in <L={name}> has already been used as non-terminal in a rule"));
+                        return SynTermItem(None);
+                    }
+                    match self.add_nt_symbol(&name) {
+                        Some(nt) => nt,
+                        None => return SynTermItem(None),   // failed
+                    }
                 } else {
                     // this form is used with right-recursive rules, so it points to the current rule
                     self.curr_nt.expect("curr_nt must be defined")
@@ -302,7 +329,7 @@ impl GramParserListener for GramListener {
             }
             CtxTermItem::TermItem4 { prod } => prod.0,
         };
-        SynTermItem(id)
+        SynTermItem(Some(id))
     }
 }
 

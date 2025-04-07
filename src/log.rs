@@ -8,6 +8,11 @@ pub trait Logger {
     fn num_notes(&self) -> usize;
     fn num_warnings(&self) -> usize;
     fn num_errors(&self) -> usize;
+    #[inline]
+    fn has_no_errors(&self) -> bool {
+        self.num_errors() == 0
+    }
+
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -133,5 +138,11 @@ impl Logger for BufLog {
 
     fn num_errors(&self) -> usize {
         self.num_errors
+    }
+}
+
+impl Default for BufLog {
+    fn default() -> Self {
+        BufLog::new()
     }
 }
