@@ -1809,6 +1809,15 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
 
+pub fn symbol_to_macro(s: &Symbol) -> String {
+    match s {
+        Symbol::Empty => "e".to_string(),
+        Symbol::T(x) => format!("t {x}"),
+        Symbol::NT(x) => format!("nt {x}"),
+        Symbol::End => "end".to_string(),
+    }
+}
+
 pub fn print_production_rules<T>(prods: &ProdRuleSet<T>, as_comment: bool) {
     let prefix = if as_comment { "            // " } else { "    " };
     println!("{prefix}{}", prods.get_prods_iter().map(|(var, p)|

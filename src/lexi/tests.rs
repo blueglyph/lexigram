@@ -14,8 +14,8 @@ use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt};
 use crate::grammar::print_production_rules;
 use crate::log::Logger;
-use crate::parsergen::ParserGen;
-use crate::parsergen::tests::{print_flags, print_items};
+use crate::parsergen::{print_items, ParserGen};
+use crate::parsergen::tests::print_flags;
 use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
 // ---------------------------------------------------------------------------------------------

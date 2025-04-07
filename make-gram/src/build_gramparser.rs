@@ -6,7 +6,7 @@ use lexigram::grammar::{print_ll1_table, GrTreeExt};
 use lexigram::{gnode, CollectJoin, General, LL1};
 use lexigram::grammar::{print_production_rules, ProdRuleSet, RuleTreeSet, VarId};
 use lexigram::log::Logger;
-use lexigram::parsergen::ParserGen;
+use lexigram::parsergen::{print_items, ParserGen};
 use lexigram::symbol_table::SymbolTable;
 use lexigram::test_tools::replace_tagged_source;
 use crate::*;
@@ -226,7 +226,12 @@ fn gramparser_source(indent: usize, verbose: bool) -> String {
         }
     }
     builder.add_lib("super::gramparser_types::*");
-    builder.build_source_code(indent, true)
+    let source = builder.build_source_code(indent, true);
+    if verbose {
+        println!("Ops:");
+        print_items(&builder, 4, false);
+    }
+    source
 }
 
 fn write_gramparser() {

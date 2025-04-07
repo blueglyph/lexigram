@@ -3,38 +3,9 @@
 #![cfg(test)]
 
 use iter_index::IndexerIterator;
-use crate::{columns_to_str, CollectJoin};
-use crate::grammar::{ruleflag, FactorId, Symbol};
-use crate::grammar::tests::symbol_to_macro;
+use crate::CollectJoin;
+use crate::grammar::{ruleflag, Symbol};
 use crate::parsergen::ParserGen;
-
-pub(crate) fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool) {
-    let tbl = builder.get_symbol_table();
-    let fields = (0..builder.parsing_table.factors.len())
-        .filter_map(|f| {
-            let f_id = f as FactorId;
-            let (v, factor) = &builder.parsing_table.factors[f];
-            let ops = &builder.opcodes[f];
-            if let Some(it) = builder.item_ops.get(&f_id) {
-                let mut cols = vec![];
-                if show_symbols {
-                    cols.push(format!("{f_id} => symbols![{}],", it.iter().map(|s| symbol_to_macro(s)).join(", ")));
-                }
-                cols.extend([
-                    format!("// {f_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), factor.iter().map(|s| s.to_str(tbl)).join(" ")),
-                    format!("| {}", ops.into_iter().map(|s| s.to_str(tbl)).join(" ")),
-                    format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
-                ]);
-                Some(cols)
-            } else {
-                None
-            }
-        }).to_vec();
-    let widths = if show_symbols { vec![40, 0, 0, 0] } else { vec![16, 0, 0] };
-    for l in columns_to_str(fields, Some(widths)) {
-        println!("{:indent$}{l}", "", indent = indent)
-    }
-}
 
 pub(crate) fn print_flags(builder: &ParserGen, indent: usize) {
     let tbl = builder.get_symbol_table();
@@ -501,13 +472,13 @@ mod opcodes {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use iter_index::IndexerIterator;
-    use crate::grammar::{ruleflag, FactorId, Symbol, VarId};
-    use crate::grammar::tests::{symbol_to_macro, T};
+    use crate::grammar::{ruleflag, symbol_to_macro, FactorId, Symbol, VarId};
+    use crate::grammar::tests::T;
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source};
     use crate::grammar::tests::T::{PRS, RTS};
-    use crate::parsergen::ParserGen;
+    use crate::parsergen::{print_items, ParserGen};
     use crate::dfa::TokenId;
-    use crate::parsergen::tests::{print_flags, print_items};
+    use crate::parsergen::tests::print_flags;
     use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 

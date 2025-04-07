@@ -9,18 +9,6 @@ use crate::{btreemap, gnode, hashmap, hashset, LL1, LR, prod, prodf, sym};
 use crate::grammar::NTConversion::Removed;
 
 // ---------------------------------------------------------------------------------------------
-// Supporting functions
-
-pub(crate) fn symbol_to_macro(s: &Symbol) -> String {
-    match s {
-        Symbol::Empty => "e".to_string(),
-        Symbol::T(x) => format!("t {x}"),
-        Symbol::NT(x) => format!("nt {x}"),
-        Symbol::End => "end".to_string(),
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
 
 #[test]
 fn gnode_macro() {

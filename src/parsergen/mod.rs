@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion};
+use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, symbol_to_macro};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
 use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
@@ -1870,3 +1870,35 @@ impl ParserGen {
         src
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// Supporting functions
+
+pub fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool) {
+    let tbl = builder.get_symbol_table();
+    let fields = (0..builder.parsing_table.factors.len())
+        .filter_map(|f| {
+            let f_id = f as FactorId;
+            let (v, factor) = &builder.parsing_table.factors[f];
+            let ops = &builder.opcodes[f];
+            if let Some(it) = builder.item_ops.get(&f_id) {
+                let mut cols = vec![];
+                if show_symbols {
+                    cols.push(format!("{f_id} => symbols![{}],", it.iter().map(|s| symbol_to_macro(s)).join(", ")));
+                }
+                cols.extend([
+                    format!("// {f_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), factor.iter().map(|s| s.to_str(tbl)).join(" ")),
+                    format!("| {}", ops.into_iter().map(|s| s.to_str(tbl)).join(" ")),
+                    format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
+                ]);
+                Some(cols)
+            } else {
+                None
+            }
+        }).to_vec();
+    let widths = if show_symbols { vec![40, 0, 0, 0] } else { vec![16, 0, 0] };
+    for l in columns_to_str(fields, Some(widths)) {
+        println!("{:indent$}{l}", "", indent = indent)
+    }
+}
+
