@@ -39,14 +39,14 @@ mod listener {
     // use lexigram::log::{BufLog, Logger};
     // use lexigram::parser::ListenerWrapper;
     use lexi::lexi::Lexi;
-    use lexigram::grammar::Symbol;
+    use lexigram::grammar::{print_ll1_table, Symbol};
     use lexigram::io::CharReader;
     use lexigram::lexer::Lexer;
     use lexigram::lexergen::LexerGen;
     use lexigram::log::Logger;
+    use lexigram::parsergen::ParserGen;
     use lexigram::{CollectJoin, LL1};
     use std::io::Cursor;
-
     // struct Stub(BufLog);
     // impl ListenerWrapper for Stub {
     //     fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -91,7 +91,7 @@ mod listener {
             // grammar parser
             let gram = Gram::<LL1, _>::new(sym_table.clone());
             let grammar_stream = CharReader::new(Cursor::new(grammar));
-            let ll1 = gram.build_ll1(grammar_stream);
+            let (ll1, name) = gram.build_ll1(grammar_stream);
             let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
             if VERBOSE {
                 if !msg.is_empty() {
@@ -99,6 +99,11 @@ mod listener {
                 }
             }
             assert!(ll1.get_log().has_no_errors(), "{text}: couldn't build the production rules:{msg}");
+            let builder = ParserGen::from_rules(ll1, name.clone());
+            if VERBOSE {
+                println!("Parsing table of grammar '{name}':");
+                print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
+            }
 
             for input in inputs {
                 if VERBOSE { println!("- input '{input}'"); }

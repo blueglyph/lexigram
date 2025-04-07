@@ -1,17 +1,17 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::io::Read;
-use std::marker::PhantomData;
-use lexigram::grammar::ProdRuleSet;
-use lexigram::io::CharReader;
-use lexigram::log::Logger;
-use lexigram::lexer::{Lexer, TokenSpliterator};
-use lexigram::LL1;
-use lexigram::parser::Parser;
-use lexigram::symbol_table::SymbolTable;
 use crate::gramlexer::gramlexer::build_lexer;
 use crate::gramparser::gramparser::{build_parser, GramParserListener, Wrapper};
 use crate::listener::GramListener;
+use lexigram::grammar::ProdRuleSet;
+use lexigram::io::CharReader;
+use lexigram::lexer::{Lexer, TokenSpliterator};
+use lexigram::log::Logger;
+use lexigram::parser::Parser;
+use lexigram::symbol_table::SymbolTable;
+use lexigram::LL1;
+use std::io::Read;
+use std::marker::PhantomData;
 
 pub struct Gram<T, R: Read> {
     pub gramlexer: Lexer<R>,
@@ -67,10 +67,11 @@ impl<T, R: Read> Gram<T, R> {
 }
 
 impl<R: Read> Gram<LL1, R> {
-    pub fn build_ll1(mut self, lexicon: CharReader<R>) -> ProdRuleSet<LL1> {
+    pub fn build_ll1(mut self, lexicon: CharReader<R>) -> (ProdRuleSet<LL1>, String) {
         self.build(lexicon);
         let listener = self.wrapper.listener();
+        let name = listener.get_name().to_string();
         let prs = listener.build_prs();
-        prs.into()
+        (prs.into(), name)
     }
 }

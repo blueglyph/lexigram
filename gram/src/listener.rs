@@ -67,6 +67,10 @@ impl GramListener {
         &self.name
     }
 
+    pub fn get_start_rule(&self) -> Option<VarId> {
+        self.start_rule
+    }
+
     pub fn get_log(&self) -> &BufLog {
         &self.log
     }
@@ -79,7 +83,9 @@ impl GramListener {
             }
             rts.set_symbol_table(self.symbol_table);
         }
-        ProdRuleSet::<General>::from(rts)
+        let mut prs = ProdRuleSet::<General>::from(rts);
+        prs.set_start(self.start_rule.unwrap());
+        prs
     }
 
     fn reserve_nt_symbol(&mut self, id: String) -> Option<VarId> {
