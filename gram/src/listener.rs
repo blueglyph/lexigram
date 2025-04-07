@@ -1,15 +1,15 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::collections::{BTreeMap, HashMap};
-use std::fmt::{Debug, Formatter};
-use iter_index::IndexerIterator;
-use vectree::VecTree;
-use lexigram::{CollectJoin, General};
-use lexigram::grammar::{GrTree, GrNode, GrTreeExt, RuleTreeSet, Symbol, VarId, ProdRuleSet};
-use lexigram::log::{BufLog, Logger};
-use lexigram::symbol_table::SymbolTable;
 use crate::gramparser::gramparser::*;
 use crate::gramparser::gramparser_types::*;
+use iter_index::IndexerIterator;
+use lexigram::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
+use lexigram::log::{BufLog, Logger};
+use lexigram::symbol_table::SymbolTable;
+use lexigram::{CollectJoin, General};
+use std::collections::{BTreeMap, HashMap};
+use std::fmt::{Debug, Formatter};
+use vectree::VecTree;
 
 pub struct GramListener {
     verbose: bool,
@@ -146,6 +146,7 @@ impl GramParserListener for GramListener {
     //     header rules SymEOF?
     // ;
     fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
+        if self.verbose { println!("- exit_file({_ctx:?})"); }
         let mut old_new = HashMap::new();
         for (name, old_nt) in &self.nt_reserved {
             if let Some(Symbol::NT(new_nt)) = self.symbols.get(name) {
@@ -171,6 +172,7 @@ impl GramParserListener for GramListener {
     //     Grammar Id Semicolon
     // ;
     fn exit_header(&mut self, ctx: CtxHeader) -> SynHeader {
+        if self.verbose { println!("- exit_header({ctx:?}"); }
         let CtxHeader::Header { id } = ctx;
         self.name = id;
         SynHeader()
@@ -181,13 +183,21 @@ impl GramParserListener for GramListener {
     // |   rules rule
     // ;
     fn exit_rules(&mut self, _ctx: CtxRules) -> SynRules {
+        if self.verbose { println!("exit_rules({_ctx:?})"); }
         SynRules()
+    }
+
+    fn init_rule(&mut self) {
+        if self.verbose { println!("init_rule()"); }
+        assert!(self.curr.is_none(), "remnant tree in self.curr: {self:?}");
+        self.curr = Some(GrTree::new());
     }
 
     // rule:
     //     Id Colon prod Semicolon
     // ;
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
+        if self.verbose { println!("exit_rule({ctx:?})"); }
         let CtxRule::Rule { prod: SynProd(id), .. } = ctx;
         let mut tree = self.curr.take().expect("self.curr should have a tree");
         tree.set_root(id);
@@ -197,6 +207,7 @@ impl GramParserListener for GramListener {
     }
 
     fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName {
+        if self.verbose { println!("exit_rule_name({ctx:?})"); }
         let CtxRuleName::RuleName { id: name } = ctx;
         self.curr_rulename = Some(name.clone());
         let nt = self.add_nt_symbol(&name).unwrap(); // FIXME: manage errors
@@ -208,16 +219,12 @@ impl GramParserListener for GramListener {
         SynRuleName(name)
     }
 
-    fn init_prod(&mut self) {
-        assert!(self.curr.is_none(), "remnant tree in self.curr: {self:?}");
-        self.curr = Some(GrTree::new());
-    }
-
     // prod:
     //     prodFactor
     // |   prod Or prodFactor
     // ;
     fn exit_prod(&mut self, ctx: CtxProd) -> SynProd {
+        if self.verbose { println!("exit_prod({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let id = match ctx {
             CtxProd::Prod1 { prod_factor } => prod_factor.0,            // first iteration
@@ -240,6 +247,7 @@ impl GramParserListener for GramListener {
     //     prodTerm*
     // ;
     fn exit_prod_factor(&mut self, ctx: CtxProdFactor) -> SynProdFactor {
+        if self.verbose { println!("exit_prod_factor({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let CtxProdFactor::ProdFactor { star: SynProdFactor1(terms) } = ctx;
         let pt = terms.into_iter().filter_map(|SynProdTerm(t)| t).to_vec();
@@ -255,6 +263,7 @@ impl GramParserListener for GramListener {
     //     termItem (Plus | Star | Question)?
     // ;
     fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm {
+        if self.verbose { println!("exit_prod_term({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let id_maybe = match ctx {
             CtxProdTerm::ProdTerm1 { term_item: SynTermItem(Some(term_item)) } => Some(tree.addci(None, GrNode::Plus, term_item)),    // termItem +
@@ -273,6 +282,7 @@ impl GramParserListener for GramListener {
     // |   Lparen prod Rparen
     // ;
     fn exit_term_item(&mut self, ctx: CtxTermItem) -> SynTermItem {
+        if self.verbose { println!("exit_term_item({ctx:?})"); }
         let id = match ctx {
             CtxTermItem::TermItem1 { id } => {
                 match self.symbols.get(&id) {

@@ -28,24 +28,24 @@ const TXT_GRAM1: &str = r#"
         Let Id Equal expr
     |   Print expr;
     expr:
-        term (Plus term)*;
+        term (Add term)*;
     term:
         Id | Int;
 "#;
 
 mod listener {
-    use std::io::Cursor;
-    use lexigram::{CollectJoin, LL1};
-    use lexigram::io::CharReader;
+    use super::*;
+    use crate::gram::Gram;
     // use lexigram::log::{BufLog, Logger};
     // use lexigram::parser::ListenerWrapper;
     use lexi::lexi::Lexi;
     use lexigram::grammar::Symbol;
+    use lexigram::io::CharReader;
     use lexigram::lexer::Lexer;
     use lexigram::lexergen::LexerGen;
     use lexigram::log::Logger;
-    use crate::gram::Gram;
-    use super::*;
+    use lexigram::{CollectJoin, LL1};
+    use std::io::Cursor;
 
     // struct Stub(BufLog);
     // impl ListenerWrapper for Stub {
@@ -89,17 +89,16 @@ mod listener {
             let text = format!("test {test_id} failed");
 
             // grammar parser
-            let mut gram = Gram::<LL1, _>::new(sym_table.clone());
+            let gram = Gram::<LL1, _>::new(sym_table.clone());
             let grammar_stream = CharReader::new(Cursor::new(grammar));
-            gram.build(grammar_stream);
-            let listener = gram.wrapper.listener();
-            let msg = listener.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
+            let ll1 = gram.build_ll1(grammar_stream);
+            let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
             if VERBOSE {
                 if !msg.is_empty() {
                     println!("Messages:{msg}");
                 }
             }
-            assert!(listener.get_log().has_no_errors(), "{text}: couldn't parse the grammar:{msg}");
+            assert!(ll1.get_log().has_no_errors(), "{text}: couldn't build the production rules:{msg}");
 
             for input in inputs {
                 if VERBOSE { println!("- input '{input}'"); }
