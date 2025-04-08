@@ -92,7 +92,7 @@ mod listener {
                 ]
             )
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const VERBOSE_WRAPPER: bool = false;
 
         // parses the test lexicon
@@ -147,7 +147,7 @@ mod listener {
                 stub.set_verbose(VERBOSE_WRAPPER);
                 let result_parser = parser.parse_stream(&mut stub, lexer.tokens().keep_channel0());
                 let msg = format!("{text}, input '{input}'");
-                if !stub.get_log().is_empty() {
+                if VERBOSE && !stub.get_log().is_empty() {
                     println!("Messages:{}", stub.get_log().get_messages().map(|m| format!("\n- {m:?}")).join(""));
                 }
                 assert_eq!(result_parser.is_ok(), expected_success, "{msg}: {result_parser:?} instead of {}", if expected_success { "success" } else { "failure" });

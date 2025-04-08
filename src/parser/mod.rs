@@ -183,10 +183,10 @@ impl Parser {
                         let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_factor_id)
                             .into_iter().map(|t| format!("'{}'", Symbol::T(t).to_str(self.get_symbol_table())))
                             .join(", ");
-                        let msg = format!("syntax error on input '{}' while parsing '{}'{}{}",
-                                          stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                          if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() },
-                                          if expected.len() > 0 { format!("; expected one of: {expected}") } else { String::new() });
+                        let stream_sym_txt = if stream_sym.is_end() { "end of stream".to_string() } else { format!("input '{}'", stream_sym.to_str(sym_table)) };
+                        let msg = format!("syntax error: found {stream_sym_txt} instead of {expected} while parsing '{}'{}",
+                                          stack_sym.to_str(sym_table),
+                                          if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
                             wrapper.get_mut_log().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
@@ -206,8 +206,8 @@ impl Parser {
                         if VERBOSE { println!("!NT {} <-> {}, factor_id = {factor_id}", stack_sym.to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
                         if factor_id == error_skip_factor_id {
                             if stream_sym == Symbol::End {
-                                let msg = format!("(recovering) irrecoverable, reached end of stream");
-                                if VERBOSE { println!("{msg}"); }
+                                let msg = "irrecoverable error, reached end of stream".to_string();
+                                if VERBOSE { println!("(recovering) {msg}"); }
                                 wrapper.get_mut_log().add_error(msg);
                                 wrapper.abort();
                                 return Err(ParserError::Irrecoverable);
@@ -254,7 +254,7 @@ impl Parser {
                 }
                 (OpCode::T(sk), Symbol::T(sr)) => {
                     if !recover_mode && sk != sr {
-                        let msg = format!("unexpected character: '{}' instead of '{}'{}", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
+                        let msg = format!("syntax error: found input '{}' instead of '{}'{}", stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
                                           if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
                         if self.try_recover {
                             wrapper.get_mut_log().add_error(msg);
@@ -297,17 +297,17 @@ impl Parser {
                     break;
                 }
                 (OpCode::End, _) => {
-                    wrapper.get_mut_log().add_error(format!("extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
+                    wrapper.get_mut_log().add_error(format!("syntax error: found extra symbol '{}' after end of parsing", stream_sym.to_str(sym_table)));
                     wrapper.abort();
                     return Err(ParserError::ExtraSymbol);
                 }
                 (_, Symbol::End) => {
-                    wrapper.get_mut_log().add_error(format!("end of stream while expecting a '{}'", stack_sym.to_str(sym_table)));
+                    wrapper.get_mut_log().add_error(format!("syntax error: found end of stream instead of '{}'", stack_sym.to_str(sym_table)));
                     wrapper.abort();
                     return Err(ParserError::UnexpectedEOS);
                 }
                 (_, _) => {
-                    wrapper.get_mut_log().add_error(format!("unexpected situation: input '{}' while expecting '{}'{}",
+                    wrapper.get_mut_log().add_error(format!("unexpected syntax error: input '{}' while expecting '{}'{}",
                                                             stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
                                                             if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() }));
                     wrapper.abort();

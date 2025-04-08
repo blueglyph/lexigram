@@ -248,7 +248,7 @@ mod tests {
 
     #[test]
     fn test_source() {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         let result_src = gramparser_source(4, VERBOSE);
         if !cfg!(miri) {
             let expected_src = get_tagged_source(GRAMPARSER_FILENAME, GRAMPARSER_TAG).unwrap_or(String::new());
