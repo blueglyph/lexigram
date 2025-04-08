@@ -25,8 +25,8 @@ const TXT_GRAM1: &str = r#"
     prog:
         instr+;
     instr:
-        Let Id Equal expr
-    |   Print expr;
+        Let Id Equal expr Semicolon
+    |   Print expr Semicolon;
     expr:
         term (Add term)*;
     term:
@@ -36,23 +36,49 @@ const TXT_GRAM1: &str = r#"
 mod listener {
     use super::*;
     use crate::gram::Gram;
-    // use lexigram::log::{BufLog, Logger};
-    // use lexigram::parser::ListenerWrapper;
+    use lexigram::log::{BufLog, Logger};
+    use lexigram::parser::{Call, ListenerWrapper};
     use lexi::lexi::Lexi;
-    use lexigram::grammar::{print_ll1_table, Symbol};
+    use lexigram::grammar::{print_ll1_table, FactorId, VarId};
     use lexigram::io::CharReader;
-    use lexigram::lexer::Lexer;
+    use lexigram::lexer::{Lexer, TokenSpliterator};
     use lexigram::lexergen::LexerGen;
-    use lexigram::log::Logger;
     use lexigram::parsergen::ParserGen;
     use lexigram::{CollectJoin, LL1};
     use std::io::Cursor;
-    // struct Stub(BufLog);
-    // impl ListenerWrapper for Stub {
-    //     fn get_mut_log(&mut self) -> &mut impl Logger {
-    //         &mut self.0
-    //     }
-    // }
+
+    struct Stub {
+        log: BufLog,
+        verbose: bool
+    }
+
+    impl Stub {
+        pub fn new() -> Self {
+            Stub { log: BufLog::new(), verbose: false }
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        pub fn get_log(&self) -> &BufLog {
+            &self.log
+        }
+    }
+
+    impl ListenerWrapper for Stub {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!(":: {call:?} nt={nt} factor_id={factor_id}{}",
+                         if let Some(t) = t_data { format!(" - {}", t.iter().join(",")) } else { String::new() });
+            }
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            &mut self.log
+        }
+
+    }
 
     #[test]
     fn just_parsing() {
@@ -60,11 +86,14 @@ mod listener {
             (
                 TXT_GRAM1,
                 vec![
-                    "let a = 1; let b = 2; print a + b + 5;"
+                    ("let a = 1; let b = 2; print a + b + 5;", true),
+                    ("let c = 10 + 11 + 12;", true),
+                    ("let d = a; let e = d + 1 print e; print d; print a", false),
                 ]
             )
         ];
         const VERBOSE: bool = true;
+        const VERBOSE_WRAPPER: bool = false;
 
         // parses the test lexicon
         let lexicon_stream = CharReader::new(Cursor::new(TXT_LEXI1));
@@ -104,18 +133,25 @@ mod listener {
                 println!("Parsing table of grammar '{name}':");
                 print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
             }
+            let mut parser = builder.make_parser();
 
-            for input in inputs {
+            for (input, expected_success) in inputs {
                 if VERBOSE { println!("- input '{input}'"); }
                 let input_stream = CharReader::new(Cursor::new(input));
                 lexer.attach_stream(input_stream);
-                let tokens = lexer.tokens().to_vec();
-                let n = tokens.len();
-                if VERBOSE { println!("  {n} tokens: {}", tokens.iter().map(|t| Symbol::T(t.0).to_str(Some(&sym_table))).join(" ")); }
-                assert!(n > 0, "{text}: no token extracted from input '{input}'");
-                assert!(!lexer.has_error(), "lexer errors: {}", lexer.get_error());
-
-                // we don't have the test parser yet
+                // let tokens = lexer.tokens().to_vec();
+                // let n = tokens.len();
+                // if VERBOSE { println!("  {n} tokens: {}", tokens.iter().map(|t| Symbol::T(t.0).to_str(Some(&sym_table))).join(" ")); }
+                // assert!(n > 0, "{text}: no token extracted from input '{input}'");
+                let mut stub = Stub::new();
+                stub.set_verbose(VERBOSE_WRAPPER);
+                let result_parser = parser.parse_stream(&mut stub, lexer.tokens().keep_channel0());
+                let msg = format!("{text}, input '{input}'");
+                if !stub.get_log().is_empty() {
+                    println!("Messages:{}", stub.get_log().get_messages().map(|m| format!("\n- {m:?}")).join(""));
+                }
+                assert_eq!(result_parser.is_ok(), expected_success, "{msg}: {result_parser:?} instead of {}", if expected_success { "success" } else { "failure" });
+                assert!(!lexer.has_error(), "{msg}: lexer errors: {}", lexer.get_error());
             }
         }
     }
