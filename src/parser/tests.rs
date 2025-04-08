@@ -235,7 +235,7 @@ fn parser_parse_stream_id() {
             ])),
             ("[ 1 * 2 ; [ ( 3 * 4 ) * ] ; [ 5 * 6 ] ;", Some(vec![
                 "unexpected character: ';' instead of ']', line 1, col 5",
-                "syntax error on input ']' while parsing '►FACTOR', line 1, col 13"
+                "syntax error on input ']' while parsing '►FACTOR', line 1, col 13; expected one of: '(', 'id', 'int'"
             ])),
         ]),
     ];

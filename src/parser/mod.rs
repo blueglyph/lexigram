@@ -180,9 +180,13 @@ impl Parser {
                                  });
                     }
                     if !recover_mode && factor_id >= error_skip_factor_id {
-                        let msg = format!("syntax error on input '{}' while parsing '{}'{}",
+                        let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_factor_id)
+                            .into_iter().map(|t| format!("'{}'", Symbol::T(t).to_str(self.get_symbol_table())))
+                            .join(", ");
+                        let msg = format!("syntax error on input '{}' while parsing '{}'{}{}",
                                           stream_sym.to_str(sym_table), stack_sym.to_str(sym_table),
-                                          if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() });
+                                          if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() },
+                                          if expected.len() > 0 { format!("; expected one of: {expected}") } else { String::new() });
                         if self.try_recover {
                             wrapper.get_mut_log().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
