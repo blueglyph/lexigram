@@ -31,6 +31,9 @@ pub enum Call { Enter, Loop, Exit, End }
 pub trait ListenerWrapper {
     /// Calls the listener to execute Enter, Loop, Exit, and End actions.
     fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {}
+    /// Checks if the wrapper requests an abort. This happens if an error is too difficult to recover from
+    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+    fn check_abort_request(&self) -> bool { false }
     /// Aborts the parsing.
     fn abort(&mut self) {}
     /// Gets access to the listener's log to report possible errors and information about the parsing.
@@ -50,6 +53,7 @@ pub enum ParserError {
     UnexpectedEOS,
     UnexpectedError,
     EncounteredErrors,
+    AbortRequest,
 }
 
 impl Display for ParserError {
@@ -62,6 +66,7 @@ impl Display for ParserError {
             ParserError::UnexpectedEOS => "unexpected end of stream",
             ParserError::UnexpectedError => "unexpected error",
             ParserError::EncounteredErrors => "encountered errors",
+            ParserError::AbortRequest => "abort request",
         })
     }
 }
@@ -313,6 +318,10 @@ impl Parser {
                     wrapper.abort();
                     return Err(ParserError::UnexpectedError);
                 }
+            }
+            if wrapper.check_abort_request() {
+                wrapper.abort();
+                return Err(ParserError::AbortRequest);
             }
         }
         assert!(stack_t.is_empty(), "stack_t: {}", stack_t.join(", "));

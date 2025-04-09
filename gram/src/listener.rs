@@ -15,6 +15,7 @@ pub struct GramListener {
     verbose: bool,
     name: String,
     log: BufLog,
+    abort: bool,
     curr: Option<GrTree>,
     curr_rulename: Option<String>,
     curr_nt: Option<VarId>,
@@ -46,6 +47,7 @@ impl GramListener {
         GramListener {
             verbose: false,
             name: String::new(),
+            abort: false,
             log: BufLog::new(),
             curr: None,
             curr_rulename: None,
@@ -144,6 +146,10 @@ impl Debug for GramListener {
 }
 
 impl GramParserListener for GramListener {
+    fn check_abort_request(&self) -> bool {
+        self.abort
+    }
+
     fn get_mut_log(&mut self) -> &mut impl Logger {
         &mut self.log
     }
@@ -216,7 +222,10 @@ impl GramParserListener for GramListener {
         if self.verbose { println!("exit_rule_name({ctx:?})"); }
         let CtxRuleName::RuleName { id: name } = ctx;
         self.curr_rulename = Some(name.clone());
-        let nt = self.add_nt_symbol(&name).unwrap(); // FIXME: manage errors
+        let Some(nt) = self.add_nt_symbol(&name) else {
+            self.abort = true;
+            return SynRuleName(String::new());
+        };
         self.curr_nt = Some(nt);
         if self.start_rule.is_none() {
             // the start rule is the first to be defined
@@ -290,7 +299,7 @@ impl GramParserListener for GramListener {
     fn exit_term_item(&mut self, ctx: CtxTermItem) -> SynTermItem {
         if self.verbose { println!("exit_term_item({ctx:?})"); }
         let id = match ctx {
-            CtxTermItem::TermItem1 { id } => {
+            CtxTermItem::TermItem1 { id } => {                  // term_item -> Id
                 match self.symbols.get(&id) {
                     Some(s @ Symbol::NT(_)) |
                     Some(s @ Symbol::T(_)) => self.curr.as_mut().unwrap().add(None, GrNode::Symbol(*s)),
@@ -301,12 +310,13 @@ impl GramParserListener for GramListener {
                             self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(nt)))
                         } else {
                             // failure
+                            self.abort = true;
                             return SynTermItem(None);
                         }
                     }
                 }
             }
-            CtxTermItem::TermItem2 { lform } => {
+            CtxTermItem::TermItem2 { lform } => {               // term_item -> Lform
                 let bytes = lform.as_bytes();
                 let name_maybe = if bytes[2] == b'=' {
                     let name = lform[3..lform.len() - 1].to_string();
@@ -325,14 +335,19 @@ impl GramParserListener for GramListener {
                     // iterative NT is created.
                     if let Some(sym @ Symbol::NT(_)) | Some(sym @ Symbol::T(_)) = self.symbols.get(&name) {
                         self.log.add_error(format!("the rule name in <L={name}> is already defined as {}terminal", if sym.is_nt() { "non-" } else { "" }));
+                        self.abort = true;
                         return SynTermItem(None);
                     } else if self.nt_reserved.contains_key(&name) {
                         self.log.add_error(format!("the rule name in <L={name}> has already been used as non-terminal in a rule"));
+                        self.abort = true;
                         return SynTermItem(None);
                     }
                     match self.add_nt_symbol(&name) {
                         Some(nt) => nt,
-                        None => return SynTermItem(None),   // failed
+                        None => {
+                            self.abort = true;
+                            return SynTermItem(None)
+                        }
                     }
                 } else {
                     // this form is used with right-recursive rules, so it points to the current rule
@@ -340,10 +355,10 @@ impl GramParserListener for GramListener {
                 };
                 self.curr.as_mut().unwrap().add(None, GrNode::LForm(nt))
             }
-            CtxTermItem::TermItem3 => {
+            CtxTermItem::TermItem3 => {                         // term_item -> <R>
                 self.curr.as_mut().unwrap().add(None, GrNode::RAssoc)
             }
-            CtxTermItem::TermItem4 { prod } => prod.0,
+            CtxTermItem::TermItem4 { prod } => prod.0,          // term_item -> ( prod )
         };
         SynTermItem(Some(id))
     }

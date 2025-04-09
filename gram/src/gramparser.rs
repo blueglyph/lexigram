@@ -168,6 +168,9 @@ pub(crate) mod gramparser {
     }
 
     pub trait GramParserListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _file: SynFile) {}
         fn init_file(&mut self) {}
@@ -265,6 +268,10 @@ pub(crate) mod gramparser {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
