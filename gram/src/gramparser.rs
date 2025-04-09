@@ -475,7 +475,7 @@ pub(crate) mod gramparser_types {
     /// User-defined type for `prod_factor`
     #[derive(Debug, PartialEq)] pub struct SynProdFactor(pub usize);
     /// User-defined type for `prod_term`
-    #[derive(Debug, PartialEq)] pub struct SynProdTerm(pub Option<usize>);
+    #[derive(Debug, PartialEq)] pub struct SynProdTerm(pub usize);
     /// User-defined type for `term_item`
-    #[derive(Debug, PartialEq)] pub struct SynTermItem(pub Option<usize>);
+    #[derive(Debug, PartialEq)] pub struct SynTermItem(pub usize);
 }

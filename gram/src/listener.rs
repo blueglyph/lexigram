@@ -265,7 +265,7 @@ impl GramParserListener for GramListener {
         if self.verbose { println!("exit_prod_factor({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
         let CtxProdFactor::ProdFactor { star: SynProdFactor1(terms) } = ctx;
-        let pt = terms.into_iter().filter_map(|SynProdTerm(t)| t).to_vec();
+        let pt = terms.into_iter().map(|SynProdTerm(t)| t).to_vec();
         let id = match pt.len() {
             0 => tree.add(None, GrNode::Symbol(Symbol::Empty)),
             1 => pt[0],
@@ -280,14 +280,13 @@ impl GramParserListener for GramListener {
     fn exit_prod_term(&mut self, ctx: CtxProdTerm) -> SynProdTerm {
         if self.verbose { println!("exit_prod_term({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
-        let id_maybe = match ctx {
-            CtxProdTerm::ProdTerm1 { term_item: SynTermItem(Some(term_item)) } => Some(tree.addci(None, GrNode::Plus, term_item)),    // termItem +
-            CtxProdTerm::ProdTerm2 { term_item: SynTermItem(Some(term_item)) } => Some(tree.addci(None, GrNode::Maybe, term_item)),   // termItem ?
-            CtxProdTerm::ProdTerm3 { term_item: SynTermItem(Some(term_item)) } => Some(tree.addci(None, GrNode::Star, term_item)),    // termItem *
-            CtxProdTerm::ProdTerm4 { term_item: SynTermItem(Some(term_item)) } => Some(term_item),                                    // termItem
-            _ => None
+        let id = match ctx {
+            CtxProdTerm::ProdTerm1 { term_item: SynTermItem(term_item) } => tree.addci(None, GrNode::Plus, term_item),    // termItem +
+            CtxProdTerm::ProdTerm2 { term_item: SynTermItem(term_item) } => tree.addci(None, GrNode::Maybe, term_item),   // termItem ?
+            CtxProdTerm::ProdTerm3 { term_item: SynTermItem(term_item) } => tree.addci(None, GrNode::Star, term_item),    // termItem *
+            CtxProdTerm::ProdTerm4 { term_item: SynTermItem(term_item) } => term_item,                                    // termItem
         };
-        SynProdTerm(id_maybe)
+        SynProdTerm(id)
     }
 
     // termItem:
@@ -311,7 +310,7 @@ impl GramParserListener for GramListener {
                         } else {
                             // failure
                             self.abort = true;
-                            return SynTermItem(None);
+                            return SynTermItem(0 /* don't care */);
                         }
                     }
                 }
@@ -336,17 +335,17 @@ impl GramParserListener for GramListener {
                     if let Some(sym @ Symbol::NT(_)) | Some(sym @ Symbol::T(_)) = self.symbols.get(&name) {
                         self.log.add_error(format!("the rule name in <L={name}> is already defined as {}terminal", if sym.is_nt() { "non-" } else { "" }));
                         self.abort = true;
-                        return SynTermItem(None);
+                        return SynTermItem(0 /* don't care */);
                     } else if self.nt_reserved.contains_key(&name) {
                         self.log.add_error(format!("the rule name in <L={name}> has already been used as non-terminal in a rule"));
                         self.abort = true;
-                        return SynTermItem(None);
+                        return SynTermItem(0 /* don't care */);
                     }
                     match self.add_nt_symbol(&name) {
                         Some(nt) => nt,
                         None => {
                             self.abort = true;
-                            return SynTermItem(None)
+                            return SynTermItem(0 /* don't care */)
                         }
                     }
                 } else {
@@ -360,7 +359,7 @@ impl GramParserListener for GramListener {
             }
             CtxTermItem::TermItem4 { prod } => prod.0,          // term_item -> ( prod )
         };
-        SynTermItem(Some(id))
+        SynTermItem(id)
     }
 }
 
