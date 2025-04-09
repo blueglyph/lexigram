@@ -186,7 +186,7 @@ impl Parser {
                     }
                     if !recover_mode && factor_id >= error_skip_factor_id {
                         let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_factor_id)
-                            .into_iter().map(|t| format!("'{}'", Symbol::T(t).to_str(self.get_symbol_table())))
+                            .into_iter().map(|t| format!("'{}'", if t < end_var_id { Symbol::T(t).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() }))
                             .join(", ");
                         let stream_sym_txt = if stream_sym.is_end() { "end of stream".to_string() } else { format!("input '{}'", stream_sym.to_str(sym_table)) };
                         let msg = format!("syntax error: found {stream_sym_txt} instead of {expected} while parsing '{}'{}",
