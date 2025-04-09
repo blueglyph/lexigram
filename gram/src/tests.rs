@@ -90,7 +90,7 @@ mod listener {
         let tests = vec![
             (
                 TXT_GRAM1,
-                vec![],
+                vec![], true,
                 vec![
                     ("let a = 1; let b = 2; print a + b + 5;", true),
                     ("let c = 10 + 11 + 12;", true),
@@ -99,7 +99,7 @@ mod listener {
             ),
            (
                 TXT_GRAM2,
-                vec!["rule name in <L=Id> is already defined as terminal", "abort request"],
+                vec!["rule name in <L=Id> is already defined as terminal", "abort request"], false,
                 vec![]
             )
          ];
@@ -124,8 +124,8 @@ mod listener {
         let sym_table = listener.build_symbol_table();
         let mut lexer: Lexer<Cursor<&str>> = LexerGen::from(dfa).make_lexer();
 
-        for (test_id, (grammar, mut expected_grammar_errors, inputs)) in tests.into_iter().enumerate() {
-            if VERBOSE { println!("test {test_id}"); }
+        for (test_id, (grammar, mut expected_grammar_errors, expected_warnings, inputs)) in tests.into_iter().enumerate() {
+            if VERBOSE { println!("\ntest {test_id}"); }
             let text = format!("test {test_id} failed");
 
             // grammar parser
@@ -133,13 +133,13 @@ mod listener {
             let grammar_stream = CharReader::new(Cursor::new(grammar));
             let (ll1, name) = gram.build_ll1(grammar_stream);
             let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
-            if VERBOSE {
+            let should_succeed = expected_grammar_errors.is_empty();
+            if VERBOSE && !should_succeed {
                 if !msg.is_empty() {
                     println!("Messages:{msg}");
                 }
             }
-            let should_succeed = expected_grammar_errors.is_empty();
-            assert_eq!(ll1.get_log().has_no_errors(), should_succeed,
+            assert_eq!(ll1.get_log().has_no_errors() && ll1.get_log().has_no_warnings(), should_succeed,
                        "{text}: was expecting grammar parsing to {}:{msg}", if expected_grammar_errors.is_empty() { "succeed" } else { "fail" });
             for m in ll1.get_log().get_errors() {
                 let mut i = 0;
@@ -156,26 +156,27 @@ mod listener {
                     expected_grammar_errors.iter().map(|s| format!("\n- {s}")).join(""));
             if should_succeed {
                 let builder = ParserGen::from_rules(ll1, name.clone());
+                let msg = builder.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
                 if VERBOSE {
+                    if !builder.get_log().is_empty() {
+                        println!("Messages:{msg}");
+                    }
                     println!("Parsing table of grammar '{name}':");
                     print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
                 }
+                assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
                 let mut parser = builder.make_parser();
 
                 for (input, expected_success) in inputs {
                     if VERBOSE { println!("- input '{input}'"); }
                     let input_stream = CharReader::new(Cursor::new(input));
                     lexer.attach_stream(input_stream);
-                    // let tokens = lexer.tokens().to_vec();
-                    // let n = tokens.len();
-                    // if VERBOSE { println!("  {n} tokens: {}", tokens.iter().map(|t| Symbol::T(t.0).to_str(Some(&sym_table))).join(" ")); }
-                    // assert!(n > 0, "{text}: no token extracted from input '{input}'");
                     let mut stub = Stub::new();
                     stub.set_verbose(VERBOSE_WRAPPER);
                     let result_parser = parser.parse_stream(&mut stub, lexer.tokens().keep_channel0());
                     let msg = format!("{text}, input '{input}'");
                     if VERBOSE && !stub.get_log().is_empty() {
-                        println!("Messages:{}", stub.get_log().get_messages().map(|m| format!("\n- {m:?}")).join(""));
+                        println!("  Messages:{}", stub.get_log().get_messages().map(|m| format!("\n  - {m:?}")).join(""));
                     }
                     assert_eq!(result_parser.is_ok(), expected_success, "{msg}: {result_parser:?} instead of {}", if expected_success { "success" } else { "failure" });
                     assert!(!lexer.has_error(), "{msg}: lexer errors: {}", lexer.get_error());

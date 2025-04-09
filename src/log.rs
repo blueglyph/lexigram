@@ -12,7 +12,10 @@ pub trait Logger {
     fn has_no_errors(&self) -> bool {
         self.num_errors() == 0
     }
-
+    #[inline]
+    fn has_no_warnings(&self) -> bool {
+        self.num_warnings() == 0
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
