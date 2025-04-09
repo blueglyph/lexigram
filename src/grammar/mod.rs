@@ -1863,6 +1863,17 @@ pub fn print_factors<T>(rules: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor
     ).join("\n"));
 }
 
+pub fn print_prs_factors<T>(rules: &ProdRuleSet<T>) {
+    println!("Factors:\n{}",
+             rules.get_factors().enumerate().map(|(id, (v, f))|
+                 format!("    // - {id}: {} -> {}{}",
+                         Symbol::NT(v).to_str(rules.get_symbol_table()),
+                         f.iter().map(|s| s.to_str(rules.get_symbol_table())).join(" "),
+                         if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
+                 )
+    ).join("\n"));
+}
+
 pub fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsingTable, indent: usize) {
     let LLParsingTable { num_nt, num_t, factors, table, flags, parent } = parsing_table;
     let error_skip = factors.len() as FactorId;

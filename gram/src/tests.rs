@@ -26,11 +26,32 @@ const TXT_GRAM1: &str = r#"
         instr+;
     instr:
         Let Id Equal expr Semicolon
-    |   Print expr Semicolon;
+    |   Print expr Semicolon
+    |   empty_instr Semicolon;
+    empty_instr:
+        Sub empty_instr<L>
+    |   ;
     expr:
-        term (Add term)*;
+        term ((Add|Sub) term <L>)*;
     term:
-        Id | Int;
+        Id | Sub? Int | Lparen expr Rparen;
+"#;
+
+const TXT_GRAM1b: &str = r#"
+    grammar A;
+    prog:
+        instr+;
+    instr:
+        Let Id Equal expr Semicolon
+    |   Print expr Semicolon
+    |   empty_instr Semicolon;
+    empty_instr:
+        Sub empty_instr<L>
+    |   ;
+    expr:
+        term ((Add|Sub) term <L=expr_item>)*;
+    term:
+        Id | Sub? Int | Lparen expr Rparen;
 "#;
 
 const TXT_GRAM2: &str = r#"
@@ -44,7 +65,7 @@ mod listener {
     use lexigram::log::{BufLog, Logger};
     use lexigram::parser::{Call, ListenerWrapper};
     use lexi::lexi::Lexi;
-    use lexigram::grammar::{print_ll1_table, FactorId, VarId};
+    use lexigram::grammar::{print_ll1_table, print_prs_factors, FactorId, VarId};
     use lexigram::io::CharReader;
     use lexigram::lexer::{Lexer, TokenSpliterator};
     use lexigram::lexergen::LexerGen;
@@ -90,10 +111,19 @@ mod listener {
         let tests = vec![
             (
                 TXT_GRAM1,
-                vec![], true,
+                vec![], false,
                 vec![
-                    ("let a = 1; let b = 2; print a + b + 5;", true),
-                    ("let c = 10 + 11 + 12;", true),
+                    ("let a = 1; let b = 2; print a + (b - 5);", true),
+                    ("let c = 10 + 11 + -12; ----;;", true),
+                    ("let d = a; let e = d + 1 print e; print d; print a", false),
+                ]
+            ),
+            (
+                TXT_GRAM1b,
+                vec![], false,
+                vec![
+                    ("let a = 1; let b = 2; print a + (b - 5);", true),
+                    ("let c = 10 + 11 + -12; ----;;", true),
                     ("let d = a; let e = d + 1 print e; print d; print a", false),
                 ]
             ),
@@ -134,9 +164,12 @@ mod listener {
             let (ll1, name) = gram.build_ll1(grammar_stream);
             let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
             let should_succeed = expected_grammar_errors.is_empty();
-            if VERBOSE && !should_succeed {
-                if !msg.is_empty() {
-                    println!("Messages:{msg}");
+            if VERBOSE {
+                print_prs_factors(&ll1);
+                if !should_succeed {
+                    if !msg.is_empty() {
+                        println!("Messages:{msg}");
+                    }
                 }
             }
             assert_eq!(ll1.get_log().has_no_errors() && ll1.get_log().has_no_warnings(), should_succeed,
@@ -158,11 +191,11 @@ mod listener {
                 let builder = ParserGen::from_rules(ll1, name.clone());
                 let msg = builder.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
                 if VERBOSE {
+                    println!("Parsing table of grammar '{name}':");
+                    print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
                     if !builder.get_log().is_empty() {
                         println!("Messages:{msg}");
                     }
-                    println!("Parsing table of grammar '{name}':");
-                    print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
                 }
                 assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
                 let mut parser = builder.make_parser();
