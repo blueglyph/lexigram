@@ -1660,7 +1660,7 @@ impl ProdRuleSet<LL1> {
                         self.log.add_warning(
                             format!("calc_table: ambiguity for NT '{}', T '{}': {} => <{}> has been chosen",
                                     Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
-                                    Symbol::T(t_id as VarId).to_str(self.get_symbol_table()),
+                                    if t_id < self.num_t { Symbol::T(t_id as VarId).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() },
                                     table[pos].iter().map(|f_id|
                                         format!("<{}>", factors[*f_id as usize].1.to_str(self.get_symbol_table()))).join(" or "),
                                     factors[chosen as usize].1.to_str(self.get_symbol_table())
