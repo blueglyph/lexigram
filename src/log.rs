@@ -1,5 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+use std::fmt::{Display, Formatter};
+
 /// Common log functionalities
 pub trait Logger {
     fn add_note<T: Into<String>>(&mut self, msg: T);
@@ -64,6 +66,15 @@ impl Logger for PrintLog {
 #[derive(Clone, Debug)]
 pub enum LogMsg { Note(String), Warning(String), Error(String) }
 
+impl Display for LogMsg {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            LogMsg::Note(s) => write!(f, "Note: {s}"),
+            LogMsg::Warning(s) => write!(f, "Warning: {s}"),
+            LogMsg::Error(s) => write!(f, "ERROR: {s}"),
+        }
+    }
+}
 /// Log system that stores the messages
 #[derive(Clone, Debug)]
 pub struct BufLog {

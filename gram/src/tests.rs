@@ -193,7 +193,7 @@ mod listener {
             let gram = Gram::<LL1, _>::new(sym_table.clone());
             let grammar_stream = CharReader::new(Cursor::new(grammar));
             let (ll1, name) = gram.build_ll1(grammar_stream);
-            let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
+            let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
             let should_succeed = expected_grammar_errors.is_empty();
             if VERBOSE {
                 print_prs_factors(&ll1);
@@ -220,7 +220,7 @@ mod listener {
                     expected_grammar_errors.iter().map(|s| format!("\n- {s}")).join(""));
             if should_succeed {
                 let builder = ParserGen::from_rules(ll1, name.clone());
-                let msg = builder.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
+                let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
                 if VERBOSE {
                     print_flags(&builder, 4);
                     println!("Parsing table of grammar '{name}':");
@@ -241,7 +241,7 @@ mod listener {
                     let result_parser = parser.parse_stream(&mut stub, lexer.tokens().keep_channel0());
                     let msg = format!("{text}, input '{input}'");
                     if VERBOSE && !stub.get_log().is_empty() {
-                        println!("  Messages:{}", stub.get_log().get_messages().map(|m| format!("\n  - {m:?}")).join(""));
+                        println!("  Messages:{}", stub.get_log().get_messages().map(|m| format!("\n  - {m}")).join(""));
                     }
                     assert_eq!(result_parser.is_ok(), expected_parser_success, "{msg}: {result_parser:?} instead of {}", if expected_parser_success { "success" } else { "failure" });
                     assert_eq!(!lexer.has_error(), expected_lexer_success, "{msg}: lexer errors: {}", lexer.get_error());
