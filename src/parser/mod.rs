@@ -234,7 +234,7 @@ impl Parser {
                         if self.try_recover {
                             wrapper.get_mut_log().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
-                                wrapper.get_mut_log().add_error(format!("too many errors ({nbr_recovers}), giving up"));
+                                wrapper.get_mut_log().add_note(format!("too many errors ({nbr_recovers}), giving up"));
                                 wrapper.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
@@ -252,7 +252,7 @@ impl Parser {
                             if stream_sym == Symbol::End {
                                 let msg = "irrecoverable error, reached end of stream".to_string();
                                 if VERBOSE { println!("(recovering) {msg}"); }
-                                wrapper.get_mut_log().add_error(msg);
+                                wrapper.get_mut_log().add_note(msg);
                                 wrapper.abort();
                                 return Err(ParserError::Irrecoverable);
                             }
@@ -264,7 +264,10 @@ impl Parser {
                         } else {
                             if factor_id < error_skip_factor_id {
                                 recover_mode = false;
-                                if VERBOSE { println!("(recovering) resynchronized"); }
+                                let pos_str = if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
+                                wrapper.get_mut_log().add_note(format!("resynchronized on '{}'{pos_str}",
+                                                                       stream_sym.to_str(self.get_symbol_table())));
+                                if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
                             } else {
                                 panic!("illegal factor_id {factor_id}")
                             }
@@ -303,7 +306,7 @@ impl Parser {
                         if self.try_recover {
                             wrapper.get_mut_log().add_error(msg);
                             if nbr_recovers >= Self::MAX_NBR_RECOVERS {
-                                wrapper.get_mut_log().add_error(format!("too many errors ({nbr_recovers}), giving up"));
+                                wrapper.get_mut_log().add_note(format!("too many errors ({nbr_recovers}), giving up"));
                                 wrapper.abort();
                                 return Err(ParserError::TooManyErrors);
                             }
@@ -319,7 +322,10 @@ impl Parser {
                         if VERBOSE { println!("!T {} <-> {}", stack_sym.to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
                         if sk == sr {
                             recover_mode = false;
-                            if VERBOSE { println!("(recovering) resynchronized"); }
+                            let pos_str = if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
+                            wrapper.get_mut_log().add_note(format!("resynchronized on '{}'{pos_str}",
+                                                                   stream_sym.to_str(self.get_symbol_table())));
+                            if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
                         } else {
                             if VERBOSE { println!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table())); }
                             stack_sym = stack.pop().unwrap();
