@@ -37,26 +37,19 @@ const TXT_GRAM1: &str = r#"
         Id | Sub? Int | Lparen expr Rparen;
 "#;
 
-const TXT_GRAM1B: &str = r#"
-    grammar A;
-    prog:
-        instr+;
-    instr:
-        Let Id Equal expr Semicolon
-    |   Print expr Semicolon
-    |   empty_instr Semicolon;
-    empty_instr:
-        Sub empty_instr<L>
-    |   ;
-    expr:
-        term ((Add|Sub) term <L=expr_item>)*;
-    term:
-        Id | Sub? Int | Lparen expr Rparen;
-"#;
-
 const TXT_GRAM2: &str = r#"
     grammar B;
+    tests: (test Semicolon)*;
+    test: a | b | c;
+    a: <L=a> Add Id a |;
+    b: (<L=b_iter> Sub Id)+;
+    c: Let Id Equal Int <R>;
+"#;
+
+const TXT_GRAM3: &str = r#"
+    grammar B;
     a: <L=Id> Id;
+    b: (<L=b_iter> Id)+;
 "#;
 
 mod listener {
@@ -127,26 +120,27 @@ mod listener {
                 TXT_GRAM1,
                 vec![], false,
                 vec![
-                    ("let a = 1; let b = 2; print a + (b - 5);", true),
-                    ("let c = 10 + 11 + -12; ----;;", true),
-                    ("let d = a; let e = d + 1 print e; print d; print a", false),
+                    // (input, lexer ok, parser ok)
+                    ("let a = 1; let b = 2; print a + (b - 5);", true, true),
+                    ("let c = 10 + 11 + -12; ----;;", true, true),
+                    ("let d = a; let e = d + 1 print e; print d; print a", true, false),
+                    ("", false, false),
+                    ("( print x;", true, false),
                 ]
             ),
             (
-                TXT_GRAM1B,
-                vec![], false,
+                TXT_GRAM2,
+                vec![], true,
                 vec![
-                    ("let a = 1; let b = 2; print a + (b - 5);", true),
-                    ("let c = 10 + 11 + -12; ----;;", true),
-                    ("let d = a; let e = d + 1 print e; print d; print a", false),
+                    ("; + a; + a + b; - a; -a-b; let x=2;", true, true),
                 ]
             ),
-           (
-                TXT_GRAM2,
+            (
+                TXT_GRAM3,
                 vec!["rule name in <L=Id> is already defined as terminal", "abort request"], false,
                 vec![]
             )
-         ];
+        ];
         const VERBOSE: bool = true;
         const VERBOSE_WRAPPER: bool = false;
 
@@ -215,7 +209,7 @@ mod listener {
                 assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
                 let mut parser = builder.make_parser();
 
-                for (input, expected_success) in inputs {
+                for (input, expected_lexer_success, expected_parser_success) in inputs {
                     if VERBOSE { println!("- input '{input}'"); }
                     let input_stream = CharReader::new(Cursor::new(input));
                     lexer.attach_stream(input_stream);
@@ -226,8 +220,8 @@ mod listener {
                     if VERBOSE && !stub.get_log().is_empty() {
                         println!("  Messages:{}", stub.get_log().get_messages().map(|m| format!("\n  - {m:?}")).join(""));
                     }
-                    assert_eq!(result_parser.is_ok(), expected_success, "{msg}: {result_parser:?} instead of {}", if expected_success { "success" } else { "failure" });
-                    assert!(!lexer.has_error(), "{msg}: lexer errors: {}", lexer.get_error());
+                    assert_eq!(result_parser.is_ok(), expected_parser_success, "{msg}: {result_parser:?} instead of {}", if expected_parser_success { "success" } else { "failure" });
+                    assert_eq!(!lexer.has_error(), expected_lexer_success, "{msg}: lexer errors: {}", lexer.get_error());
                 }
             }
         }
