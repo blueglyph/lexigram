@@ -90,13 +90,12 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
 
     // grammar GramParser;
     //
-    // file: header rules SymEOF?;
+    // file: header rules;
     //
     let tree = rules.get_tree_mut(NT::File as VarId);
     let cc = tree.add_root(gnode!(&));
     tree.add(Some(cc), gnode!(nt NT::Header));
     tree.add(Some(cc), gnode!(nt NT::Rules));
-    tree.addc(Some(cc), gnode!(?), gnode!(t T::SymEof));
 
     // header:
     //     Grammar Id Semicolon
@@ -117,12 +116,14 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::Rules), gnode!(nt NT::Rule)]);
 
     // rule:
-    //     ruleName Colon prod Semicolon
+    //     ruleName Colon prod SymEOF? Semicolon
     // ;
     //
     let tree = rules.get_tree_mut(NT::Rule as VarId);
     let cc = tree.add_root(gnode!(&));
-    tree.add_iter(Some(cc), [gnode!(nt NT::RuleName), gnode!(t T::Colon), gnode!(nt NT::Prod), gnode!(t T::Semicolon)]);
+    tree.add_iter(Some(cc), [gnode!(nt NT::RuleName), gnode!(t T::Colon), gnode!(nt NT::Prod)]);
+    tree.addc(Some(cc), gnode!(?), gnode!(t T::SymEof));
+    tree.add(Some(cc), gnode!(t T::Semicolon));
 
     // ruleName:
     //     Id

@@ -86,7 +86,7 @@ Id              : ID;
 ```
 grammar GramParser;
 
-file: header rules SymEOF?;
+file: header rules;
 
 header:
     Grammar Id Semicolon
@@ -98,7 +98,7 @@ rules:
 ;
 
 rule:
-    ruleName Colon prod Semicolon
+    ruleName Colon prod SymEOF? Semicolon
 ;
 
 ruleName:

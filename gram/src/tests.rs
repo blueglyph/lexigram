@@ -159,8 +159,20 @@ mod listener {
                 vec!["found input 'EOF' instead of 'Id'", "found input 'Id' instead of ':'"], false,
                 vec![]
             ),
+            (
+                "grammar E; a: b* EOF; b: Id ( Equal Int )? Semicolon;",
+                vec![], true,
+                vec![
+                    ("a; b = 1; c = 2;", true, true),
+                ]
+            ),
+            (
+                "grammar E; a: b*; b: Id EOF;       // EOF can only be in the first rule",
+                vec!["EOF can only be put in the top rule"], false,
+                vec![]
+            ),
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const VERBOSE_WRAPPER: bool = false;
 
         // parses the test lexicon

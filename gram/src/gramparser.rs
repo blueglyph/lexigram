@@ -12,13 +12,13 @@ pub(crate) mod gramparser {
     const PARSER_NUM_T: usize = 13;
     const PARSER_NUM_NT: usize = 14;
     const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Id", None)];
-    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_factor", "prod_term", "term_item", "prod_factor_1", "rules_1", "prod_1", "file_1", "prod_term_1"];
-    const SYMBOLS_NAMES: [(&str, VarId); 5] = [("file_1", 12), ("prod_1", 11), ("prod_factor_1", 9), ("prod_term_1", 13), ("rules_1", 10)];
-    const PARSING_FACTORS: [(VarId, &[Symbol]); 24] = [(0, &[Symbol::NT(1), Symbol::NT(2), Symbol::NT(12)]), (1, &[Symbol::T(8), Symbol::T(12), Symbol::T(6)]), (2, &[Symbol::NT(3), Symbol::NT(10)]), (3, &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::T(6)]), (4, &[Symbol::T(12)]), (5, &[Symbol::NT(6), Symbol::NT(11)]), (6, &[Symbol::NT(9)]), (7, &[Symbol::NT(8), Symbol::NT(13)]), (8, &[Symbol::T(12)]), (8, &[Symbol::T(10)]), (8, &[Symbol::T(11)]), (8, &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)]), (9, &[Symbol::NT(7), Symbol::NT(9)]), (9, &[Symbol::Empty]), (10, &[Symbol::NT(3), Symbol::NT(10)]), (10, &[Symbol::Empty]), (11, &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)]), (11, &[Symbol::Empty]), (12, &[Symbol::T(9)]), (12, &[Symbol::Empty]), (13, &[Symbol::T(3)]), (13, &[Symbol::T(4)]), (13, &[Symbol::T(7)]), (13, &[Symbol::Empty])];
-    const PARSING_TABLE: [FactorId; 196] = [24, 24, 24, 24, 24, 24, 24, 24, 0, 24, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 1, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 25, 24, 24, 2, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 25, 24, 24, 3, 25, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 4, 24, 24, 5, 5, 24, 24, 5, 5, 24, 24, 24, 5, 5, 5, 24, 24, 6, 6, 24, 24, 6, 6, 24, 24, 24, 6, 6, 6, 24, 24, 7, 25, 24, 24, 25, 25, 24, 24, 24, 7, 7, 7, 24, 24, 11, 25, 25, 25, 25, 25, 25, 24, 24, 9, 10, 8, 24, 24, 12, 13, 24, 24, 13, 13, 24, 24, 24, 12, 12, 12, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 15, 24, 24, 14, 15, 24, 24, 16, 24, 24, 17, 17, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 18, 24, 24, 24, 19, 24, 23, 23, 20, 21, 23, 23, 22, 24, 24, 23, 23, 23, 24];
-    const FLAGS: [u32; 14] = [32, 0, 512, 0, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64];
-    const PARENT: [Option<VarId>; 14] = [None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(0), Some(7)];
-    const OPCODES: [&[OpCode]; 24] = [&[OpCode::NT(12), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(12), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::Exit(3), OpCode::T(6), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(12)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(12)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(12), OpCode::NT(7)], &[OpCode::Exit(13)], &[OpCode::Loop(10), OpCode::Exit(14), OpCode::NT(3)], &[OpCode::Exit(15)], &[OpCode::Loop(11), OpCode::Exit(16), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(17)], &[OpCode::Exit(18), OpCode::T(9)], &[OpCode::Exit(19)], &[OpCode::Exit(20), OpCode::T(3)], &[OpCode::Exit(21), OpCode::T(4)], &[OpCode::Exit(22), OpCode::T(7)], &[OpCode::Exit(23)]];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_factor", "prod_term", "term_item", "prod_factor_1", "rules_1", "prod_1", "rule_1", "prod_term_1"];
+    const SYMBOLS_NAMES: [(&str, VarId); 5] = [("prod_1", 11), ("prod_factor_1", 9), ("prod_term_1", 13), ("rule_1", 12), ("rules_1", 10)];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 24] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(8), Symbol::T(12), Symbol::T(6)]), (2, &[Symbol::NT(3), Symbol::NT(10)]), (3, &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::NT(12)]), (4, &[Symbol::T(12)]), (5, &[Symbol::NT(6), Symbol::NT(11)]), (6, &[Symbol::NT(9)]), (7, &[Symbol::NT(8), Symbol::NT(13)]), (8, &[Symbol::T(12)]), (8, &[Symbol::T(10)]), (8, &[Symbol::T(11)]), (8, &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)]), (9, &[Symbol::NT(7), Symbol::NT(9)]), (9, &[Symbol::Empty]), (10, &[Symbol::NT(3), Symbol::NT(10)]), (10, &[Symbol::Empty]), (11, &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)]), (11, &[Symbol::Empty]), (12, &[Symbol::T(6)]), (12, &[Symbol::T(9), Symbol::T(6)]), (13, &[Symbol::T(3)]), (13, &[Symbol::T(4)]), (13, &[Symbol::T(7)]), (13, &[Symbol::Empty])];
+    const PARSING_TABLE: [FactorId; 196] = [24, 24, 24, 24, 24, 24, 24, 24, 0, 24, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 1, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 2, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 3, 25, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 4, 24, 24, 5, 5, 24, 24, 5, 5, 24, 24, 5, 5, 5, 5, 24, 24, 6, 6, 24, 24, 6, 6, 24, 24, 6, 6, 6, 6, 24, 24, 7, 25, 24, 24, 25, 25, 24, 24, 25, 7, 7, 7, 24, 24, 11, 25, 25, 25, 25, 25, 25, 24, 25, 9, 10, 8, 24, 24, 12, 13, 24, 24, 13, 13, 24, 24, 13, 12, 12, 12, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 14, 15, 24, 24, 16, 24, 24, 17, 17, 24, 24, 17, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 18, 24, 24, 19, 24, 24, 25, 25, 24, 23, 23, 20, 21, 23, 23, 22, 24, 23, 23, 23, 23, 24];
+    const FLAGS: [u32; 14] = [0, 0, 512, 32, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64];
+    const PARENT: [Option<VarId>; 14] = [None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(3), Some(7)];
+    const OPCODES: [&[OpCode]; 24] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(12), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(12)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(12)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(12), OpCode::NT(7)], &[OpCode::Exit(13)], &[OpCode::Loop(10), OpCode::Exit(14), OpCode::NT(3)], &[OpCode::Exit(15)], &[OpCode::Loop(11), OpCode::Exit(16), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(17)], &[OpCode::Exit(18), OpCode::T(6)], &[OpCode::Exit(19), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(20), OpCode::T(3)], &[OpCode::Exit(21), OpCode::T(4)], &[OpCode::Exit(22), OpCode::T(7)], &[OpCode::Exit(23)]];
     const START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser {
@@ -41,10 +41,8 @@ pub(crate) mod gramparser {
 
     #[derive(Debug)]
     pub enum CtxFile {
-        /// `file -> header rules EOF`
-        File1 { header: SynHeader, rules: SynRules },
         /// `file -> header rules`
-        File2 { header: SynHeader, rules: SynRules },
+        File { header: SynHeader, rules: SynRules },
     }
     #[derive(Debug)]
     pub enum CtxHeader {
@@ -63,7 +61,9 @@ pub(crate) mod gramparser {
     #[derive(Debug)]
     pub enum CtxRule {
         /// `rule -> rule_name : prod ;`
-        Rule { rule_name: SynRuleName, prod: SynProd },
+        Rule1 { rule_name: SynRuleName, prod: SynProd },
+        /// `rule -> rule_name : prod EOF ;`
+        Rule2 { rule_name: SynRuleName, prod: SynProd },
     }
     #[derive(Debug)]
     pub enum CtxRuleName {
@@ -213,11 +213,11 @@ pub(crate) mod gramparser {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_file(),             // file
-                        12 => {}                                    // file_1
                         1 => self.listener.init_header(),           // header
                         2 => self.listener.init_rules(),            // rules
                         10 => {}                                    // rules_1
                         3 => self.listener.init_rule(),             // rule
+                        12 => {}                                    // rule_1
                         4 => self.listener.init_rule_name(),        // rule_name
                         5 => self.listener.init_prod(),             // prod
                         11 => {}                                    // prod_1
@@ -232,14 +232,14 @@ pub(crate) mod gramparser {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        18 |                                        // file -> header rules EOF
-                        19 => self.exit_file(factor_id),            // file -> header rules
-                     /* 0 */                                        // file -> header rules | header rules EOF (never called)
+                        0 => self.exit_file(),                      // file -> header rules
                         1 => self.exit_header(),                    // header -> grammar Id ;
                         2 => self.init_rules(),                     // rules -> rule
                         14 |                                        // rules -> rules rule
                         15 => self.exit_rules1(factor_id),          // end of iterations in rules -> rules rule
-                        3 => self.exit_rule(),                      // rule -> rule_name : prod ;
+                        18 |                                        // rule -> rule_name : prod ;
+                        19 => self.exit_rule(factor_id),            // rule -> rule_name : prod EOF ;
+                     /* 3 */                                        // rule -> rule_name : prod ; | rule_name : prod EOF ; (never called)
                         4 => self.exit_rule_name(),                 // rule_name -> Id
                         5 => self.init_prod(),                      // prod -> prod_factor
                         16 |                                        // prod -> prod | prod_factor
@@ -305,21 +305,10 @@ pub(crate) mod gramparser {
             self.listener.exit(file);
         }
 
-        fn exit_file(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                18 => {
-                    let rules = self.stack.pop().unwrap().get_rules();
-                    let header = self.stack.pop().unwrap().get_header();
-                    CtxFile::File1 { header, rules }
-                }
-                19 => {
-                    let rules = self.stack.pop().unwrap().get_rules();
-                    let header = self.stack.pop().unwrap().get_header();
-                    CtxFile::File2 { header, rules }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_file")
-            };
-            let val = self.listener.exit_file(ctx);
+        fn exit_file(&mut self) {
+            let rules = self.stack.pop().unwrap().get_rules();
+            let header = self.stack.pop().unwrap().get_header();
+            let val = self.listener.exit_file(CtxFile::File { header, rules });
             self.stack.push(SynValue::File(val));
         }
 
@@ -352,10 +341,21 @@ pub(crate) mod gramparser {
             self.stack.push(SynValue::Rules(val));
         }
 
-        fn exit_rule(&mut self) {
-            let prod = self.stack.pop().unwrap().get_prod();
-            let rule_name = self.stack.pop().unwrap().get_rule_name();
-            let val = self.listener.exit_rule(CtxRule::Rule { rule_name, prod });
+        fn exit_rule(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                18 => {
+                    let prod = self.stack.pop().unwrap().get_prod();
+                    let rule_name = self.stack.pop().unwrap().get_rule_name();
+                    CtxRule::Rule1 { rule_name, prod }
+                }
+                19 => {
+                    let prod = self.stack.pop().unwrap().get_prod();
+                    let rule_name = self.stack.pop().unwrap().get_rule_name();
+                    CtxRule::Rule2 { rule_name, prod }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_rule")
+            };
+            let val = self.listener.exit_rule(ctx);
             self.stack.push(SynValue::Rule(val));
         }
 

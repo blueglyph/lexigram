@@ -226,10 +226,19 @@ impl GramParserListener for GramListener {
     // ;
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
         if self.verbose { println!("exit_rule({ctx:?})"); }
-        let CtxRule::Rule { prod: SynProd(id), .. } = ctx;
         let mut tree = self.curr.take().expect("self.curr should have a tree");
-        tree.set_root(id);
         let curr_nt = self.curr_nt.take().unwrap();
+        let id = match ctx {
+            CtxRule::Rule1 { prod: SynProd(id), .. } => id,      // rule -> rule_name : prod ;
+            CtxRule::Rule2 { prod: SynProd(id), .. } => {        // rule -> rule_name : prod EOF ;
+                if curr_nt > 0 {
+                    self.log.add_error(format!("rule '{}': EOF can only be put in the top rule", self.curr_rulename.as_ref().unwrap()));
+                }
+                // we don't add Symbol::End to the tree because it's not necessary nor, in fact, even allowed)
+                id
+            }
+        };
+        tree.set_root(id);
         if self.rules.len() < curr_nt as usize {
             self.rules.resize(curr_nt as usize, VecTree::new());
         }
