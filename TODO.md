@@ -24,12 +24,14 @@
 - [x] ~~define lexer file basic syntax (1st step)~~
 - error reporting
   - [ ] when creating the lexer
+    - [x] Lexi's listener
     - [x] Logger in DfaBuilder, Dfa 
       - [ ] populate
     - [x] Logger in LexerGen
       - [ ] populate
   - [ ] when creating the parser
-    - [x] PargerGen
+    - [x] ~~Gram's listener~~
+    - [ ] ParserGen
       - [ ] populate log with info (& warnings, errors?)
   - [ ] when using the lexer / parser
     - ~~Lexer~~ not necessary: returns an error code 
@@ -44,8 +46,8 @@
 - [x] lexi
 - [x] make-lexi
 - ~~[ ] dependancies point to git + version instead of directories~~ Too cumbersome and problematic
-- [ ] gram
-- [ ] make-gram
+- [x] gram
+- [x] make-gram
 - [ ] lexigram bin
 - [ ] separate libs
   - small lib for parser/lexer (for generated parser)
@@ -129,9 +131,9 @@
       - right-associative: A -> δ β A | δ
 - basic gram
   - parser text -> RuleTree
-    - [ ] generate lexer tree with basic rlexer (lexicon file)
-    - [ ] adapt rlexer's top-down parser (manually)
-    - [ ] transform AST to top-down (or LR?) data
+    - [x] ~~generate lexer tree with basic rlexer (lexicon file)~~
+    - [x] ~~adapt rlexer's top-down parser (manually)~~
+    - [x] ~~transform AST to top-down (or LR?) data~~
   - [ ] make binary application
 - dynamic parser
   - [ ] create a universal Listener implementation to simulate / test grammar 
