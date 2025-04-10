@@ -644,7 +644,7 @@ fn rts_prodrule_from() {
     const VERBOSE: bool = false;
     for (test_id, expected, expected_flags, expected_parent) in tests {
         if VERBOSE {
-            println!("test {test_id}:");
+            println!("\ntest {test_id}:");
         }
         let trees = build_rts(test_id);
         let mut rules = ProdRuleSet::from(trees);
@@ -655,6 +655,11 @@ fn rts_prodrule_from() {
             println!("=>");
             print_production_rules(&rules, true);
             print_expected_code(&result);
+            println!("  Flags: {}", rules.flags.iter().index::<VarId>().map(|(nt, flag)| format!("\n  - {}: {}",
+                Symbol::NT(nt).to_str(rules.get_symbol_table()), ruleflag::to_string(*flag).join(" "))).join(""));
+            if !rules.log.is_empty() {
+                println!("  Messages:{}", rules.log.get_messages().map(|m| format!("\n  - {m:?}")).join(""));
+            }
         }
         assert_eq!(result, expected, "test {test_id} failed");
         assert_eq!(rules.flags, expected_flags, "test {test_id} failed (flags)");
@@ -2654,6 +2659,22 @@ fn rts_prs_flags() {
          btreemap![],
          btreemap![2 => 0],
          btreemap![1 => MovedTo(2), 2 => MovedTo(1)]),
+        // - 0: A -> a AIter1 d
+        // - 1: AIter2 -> b AIter2
+        // - 2: AIter2 -> ε
+        // - 3: AIter1 -> AIter2 c AIter1
+        // - 4: AIter1 -> ε
+        // - NT flags:
+        //   - A: parent_+_or_* (2048)
+        //   - AIter2: child_+_or_* | L-form (129)
+        //   - AIter1: child_+_or_* | L-form | parent_+_or_* (2177)
+        // - parents:
+        //   - AIter2 -> AIter1
+        //   - AIter1 -> A
+        (T::RTS(39), 0, btreemap![0 => 2048, 1 => 129, 2 => 2177],
+         btreemap![],
+         btreemap![1 => 2, 2 => 0],
+         btreemap![]),
         (T::PRS(0), 0, btreemap![0 => 544, 1 => 4, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 0],

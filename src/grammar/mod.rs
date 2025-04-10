@@ -343,7 +343,9 @@ pub mod ruleflag {
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum NTConversion {
+    /// Removed because not used
     Removed,
+    /// + or * child moved to L-form holder
     MovedTo(VarId)
 }
 
@@ -1190,10 +1192,16 @@ impl<T> ProdRuleSet<T> {
                 }
             }
         }
-        if symbols.iter().filter(|s| matches!(s, Symbol::NT(_))).count() != self.num_nt {
-            self.log.add_warning(format!("calc_first: unused non-terminals: {}",
-                                 (0..self.num_nt).map(|v| Symbol::NT(v as VarId)).filter_map(|s|
-                                     if symbols.contains(&s) { None } else { Some(format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))) }).join(", ")));
+        if symbols.iter().filter(|s| matches!(s, Symbol::NT(v))).count() != self.num_nt {
+            let nt_removed = (0..self.num_nt as VarId)
+                // warnings about symbols that are not used but that have not been moved because of a */+ L-form:
+                .filter(|v| !symbols.contains(&Symbol::NT(*v)) && !matches!(self.nt_conversion.get(v), Some(MovedTo(_))))
+                .map(|v| Symbol::NT(v))
+                .to_vec();
+            if !nt_removed.is_empty() {
+                self.log.add_warning(format!("calc_first: unused non-terminals: {}",
+                                             nt_removed.into_iter().map(|s| format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))).join(", ")));
+            }
             self.cleanup_symbols(&mut symbols);
         }
 
