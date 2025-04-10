@@ -7,7 +7,7 @@ use crate::CollectJoin;
 use crate::grammar::{ruleflag, Symbol};
 use crate::parsergen::ParserGen;
 
-pub(crate) fn print_flags(builder: &ParserGen, indent: usize) {
+pub fn print_flags(builder: &ParserGen, indent: usize) {
     let tbl = builder.get_symbol_table();
     let prefix = format!("{:width$}//", "", width=indent);
     let nt_flags = builder.parsing_table.flags.iter().index().filter_map(|(nt, &f)|

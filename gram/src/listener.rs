@@ -137,10 +137,11 @@ impl Debug for GramListener {
         let symb_t = self.symbols.iter().filter_map(|(name, s)| if let Symbol::T(t) = s { Some((t, name)) } else { None }).collect::<BTreeMap<_, _>>();
         writeln!(f, "  rules:{}",
                  self.rules.iter().index::<VarId>().map(|(v, t)|
-                     format!("\n  - {}: {}", symb_nt.get(&v).unwrap(), t.to_str(None, Some(&self.symbol_table)))
+                     format!("\n  - {}: {}", symb_nt.get(&v).unwrap(), if t.is_empty() { String::new() } else { t.to_str(None, Some(&self.symbol_table)) })
                  ).join(""))?;
         writeln!(f, "  symbols:\n  - NT: {}\n  - T : {}",
                  symb_nt.into_iter().map(|(nt, s)| format!("{nt}={s}")).join(", "), symb_t.into_iter().map(|(t, s)| format!("{t}={s}")).join(", "))?;
+        writeln!(f, "  nt_reserved: {}", self.nt_reserved.iter().map(|(n, v)| format!("{n}={v}")).join(", "))?;
         writeln!(f, "}}")
     }
 }
@@ -213,8 +214,11 @@ impl GramParserListener for GramListener {
         let CtxRule::Rule { prod: SynProd(id), .. } = ctx;
         let mut tree = self.curr.take().expect("self.curr should have a tree");
         tree.set_root(id);
+        let curr_nt = self.curr_nt.take().unwrap();
+        if self.rules.len() < curr_nt as usize {
+            self.rules.resize(curr_nt as usize, VecTree::new());
+        }
         self.rules.push(tree);
-        self.curr_nt = None;
         SynRule()
     }
 

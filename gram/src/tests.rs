@@ -32,12 +32,12 @@ const TXT_GRAM1: &str = r#"
         Sub empty_instr<L>
     |   ;
     expr:
-        term ((Add|Sub) term <L>)*;
+        term ((Add|Sub) term)*;
     term:
         Id | Sub? Int | Lparen expr Rparen;
 "#;
 
-const TXT_GRAM1b: &str = r#"
+const TXT_GRAM1B: &str = r#"
     grammar A;
     prog:
         instr+;
@@ -65,13 +65,14 @@ mod listener {
     use lexigram::log::{BufLog, Logger};
     use lexigram::parser::{Call, ListenerWrapper};
     use lexi::lexi::Lexi;
-    use lexigram::grammar::{print_ll1_table, print_prs_factors, FactorId, VarId};
+    use lexigram::grammar::{print_ll1_table, print_prs_factors, ruleflag, FactorId, Symbol, VarId};
     use lexigram::io::CharReader;
     use lexigram::lexer::{Lexer, TokenSpliterator};
     use lexigram::lexergen::LexerGen;
     use lexigram::parsergen::ParserGen;
     use lexigram::{CollectJoin, LL1};
     use std::io::Cursor;
+    use iter_index::IndexerIterator;
 
     struct Stub {
         log: BufLog,
@@ -106,6 +107,19 @@ mod listener {
 
     }
 
+    pub fn print_flags(builder: &ParserGen, indent: usize) {
+        let tbl = builder.get_symbol_table();
+        let prefix = format!("{:width$}//", "", width = indent);
+        let nt_flags = builder.get_parsing_table().flags.iter().index().filter_map(|(nt, &f)|
+            if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
+        ).join("\n");
+        let parents = builder.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
+            if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
+        ).join("\n");
+        println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
+        println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
+    }
+
     #[test]
     fn just_parsing() {
         let tests = vec![
@@ -119,7 +133,7 @@ mod listener {
                 ]
             ),
             (
-                TXT_GRAM1b,
+                TXT_GRAM1B,
                 vec![], false,
                 vec![
                     ("let a = 1; let b = 2; print a + (b - 5);", true),
@@ -191,6 +205,7 @@ mod listener {
                 let builder = ParserGen::from_rules(ll1, name.clone());
                 let msg = builder.get_log().get_messages().map(|s| format!("\n- {s:?}")).join("");
                 if VERBOSE {
+                    print_flags(&builder, 4);
                     println!("Parsing table of grammar '{name}':");
                     print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
                     if !builder.get_log().is_empty() {
