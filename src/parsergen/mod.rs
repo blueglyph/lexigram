@@ -1741,6 +1741,9 @@ impl ParserGen {
         // Writes the listener trait declaration
         src.add_space();
         src.push(format!("pub trait {}Listener {{", self.name));
+        src.push(format!("    /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from"));
+        src.push(format!("    /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`."));
+        src.push(format!("    fn check_abort_request(&self) -> bool {{ false }}"));
         src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger;"));
         if self.nt_value[self.start as usize] {
             src.push(format!("    fn exit(&mut self, _{}: {}) {{}}", nt_name[self.start as usize].as_ref().unwrap().2, self.get_nt_type(self.start)));
@@ -1813,6 +1816,10 @@ impl ParserGen {
         src.push(format!("            println!(\"> stack_t:   {{}}\", self.stack_t.join(\", \"));"));
         src.push(format!("            println!(\"> stack:     {{}}\", self.stack.iter().map(|it| format!(\"{{it:?}}\")).join(\", \"));"));
         src.push(format!("        }}"));
+        src.push(format!("    }}"));
+        src.push(format!(""));
+        src.push(format!("    fn check_abort_request(&self) -> bool {{"));
+        src.push(format!("        self.listener.check_abort_request()"));
         src.push(format!("    }}"));
         src.push(format!(""));
         src.push(format!("    fn get_mut_log(&mut self) -> &mut impl Logger {{"));

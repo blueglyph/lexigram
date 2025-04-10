@@ -70,6 +70,9 @@ pub(crate) mod rules_prs_34_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _s: SynS) {}
         fn init_s(&mut self) {}
@@ -122,6 +125,10 @@ pub(crate) mod rules_prs_34_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -249,6 +256,9 @@ pub(crate) mod rules_rts_21_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -297,6 +307,10 @@ pub(crate) mod rules_rts_21_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -402,6 +416,9 @@ pub(crate) mod rules_rts_21_2 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -450,6 +467,10 @@ pub(crate) mod rules_rts_21_2 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -554,6 +575,9 @@ pub(crate) mod rules_rts_22_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -604,6 +628,10 @@ pub(crate) mod rules_rts_22_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -726,6 +754,9 @@ pub(crate) mod rules_rts_22_2 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -776,6 +807,10 @@ pub(crate) mod rules_rts_22_2 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -893,6 +928,9 @@ pub(crate) mod rules_rts_22_3 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -943,6 +981,10 @@ pub(crate) mod rules_rts_22_3 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -1067,6 +1109,9 @@ pub(crate) mod rules_rts_22_4 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
@@ -1117,6 +1162,10 @@ pub(crate) mod rules_rts_22_4 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -1243,6 +1292,9 @@ pub(crate) mod rules_rts_32_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -1296,6 +1348,10 @@ pub(crate) mod rules_rts_32_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -1425,6 +1481,9 @@ pub(crate) mod rules_rts_25_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -1473,6 +1532,10 @@ pub(crate) mod rules_rts_25_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -1574,6 +1637,9 @@ pub(crate) mod rules_rts_23_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -1624,6 +1690,10 @@ pub(crate) mod rules_rts_23_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -1750,6 +1820,9 @@ pub(crate) mod rules_rts_27_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -1804,6 +1877,10 @@ pub(crate) mod rules_rts_27_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -1939,6 +2016,9 @@ pub(crate) mod rules_rts_28_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -1993,6 +2073,10 @@ pub(crate) mod rules_rts_28_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -2117,6 +2201,9 @@ pub(crate) mod rules_rts_24_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
@@ -2169,6 +2256,10 @@ pub(crate) mod rules_rts_24_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -2283,6 +2374,9 @@ pub(crate) mod rules_rts_24_2 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
@@ -2335,6 +2429,10 @@ pub(crate) mod rules_rts_24_2 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -2445,6 +2543,9 @@ pub(crate) mod rules_rts_24_3 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
@@ -2497,6 +2598,10 @@ pub(crate) mod rules_rts_24_3 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -2614,6 +2719,9 @@ pub(crate) mod rules_rts_24_4 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
@@ -2666,6 +2774,10 @@ pub(crate) mod rules_rts_24_4 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -2800,6 +2912,9 @@ pub(crate) mod rules_rts_29_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -2855,6 +2970,10 @@ pub(crate) mod rules_rts_29_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -2996,6 +3115,9 @@ pub(crate) mod rules_rts_29_2 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -3051,6 +3173,10 @@ pub(crate) mod rules_rts_29_2 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -3182,6 +3308,9 @@ pub(crate) mod rules_rts_29_3 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
@@ -3237,6 +3366,10 @@ pub(crate) mod rules_rts_29_3 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -3383,6 +3516,9 @@ pub(crate) mod rules_rts_39_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -3438,6 +3574,10 @@ pub(crate) mod rules_rts_39_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -3602,6 +3742,9 @@ pub(crate) mod rules_rts_40_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -3655,6 +3798,10 @@ pub(crate) mod rules_rts_40_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -3824,6 +3971,9 @@ pub(crate) mod rules_rts_30_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -3883,6 +4033,10 @@ pub(crate) mod rules_rts_30_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -4036,6 +4190,9 @@ pub(crate) mod rules_rts_30_2 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
@@ -4095,6 +4252,10 @@ pub(crate) mod rules_rts_30_2 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -4297,6 +4458,9 @@ pub(crate) mod rules_rts_34_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -4372,6 +4536,10 @@ pub(crate) mod rules_rts_34_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -4555,6 +4723,9 @@ pub(crate) mod rules_prs_28_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -4608,6 +4779,10 @@ pub(crate) mod rules_prs_28_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -4741,6 +4916,9 @@ pub(crate) mod rules_prs_31_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
@@ -4793,6 +4971,10 @@ pub(crate) mod rules_prs_31_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -4920,6 +5102,9 @@ pub(crate) mod rules_prs_31_2 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_e(&mut self) {}
@@ -4972,6 +5157,10 @@ pub(crate) mod rules_prs_31_2 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -5095,6 +5284,9 @@ pub(crate) mod rules_prs_36_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
@@ -5148,6 +5340,10 @@ pub(crate) mod rules_prs_36_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -5282,6 +5478,9 @@ pub(crate) mod rules_prs_33_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -5333,6 +5532,10 @@ pub(crate) mod rules_prs_33_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -5466,6 +5669,9 @@ pub(crate) mod rules_prs_38_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -5518,6 +5724,10 @@ pub(crate) mod rules_prs_38_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -5659,6 +5869,9 @@ pub(crate) mod rules_prs_39_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -5713,6 +5926,10 @@ pub(crate) mod rules_prs_39_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -5861,6 +6078,9 @@ pub(crate) mod rules_prs_32_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
@@ -5916,6 +6136,10 @@ pub(crate) mod rules_prs_32_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -6054,6 +6278,9 @@ pub(crate) mod rules_rts_38_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -6109,6 +6336,10 @@ pub(crate) mod rules_rts_38_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -6253,6 +6484,9 @@ pub(crate) mod rules_rts_38_2 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -6308,6 +6542,10 @@ pub(crate) mod rules_rts_38_2 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -6438,6 +6676,9 @@ pub(crate) mod rules_rts_38_3 {
     enum SynValue {  }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self) {}
         fn init_a(&mut self) {}
@@ -6493,6 +6734,10 @@ pub(crate) mod rules_rts_38_3 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -6610,6 +6855,9 @@ pub(crate) mod rules_prs_20_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
@@ -6660,6 +6908,10 @@ pub(crate) mod rules_prs_20_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -6775,6 +7027,9 @@ pub(crate) mod rules_prs_20_2 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
@@ -6825,6 +7080,10 @@ pub(crate) mod rules_prs_20_2 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -6947,6 +7206,9 @@ pub(crate) mod rules_prs_37_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
@@ -7000,6 +7262,10 @@ pub(crate) mod rules_prs_37_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -7123,6 +7389,9 @@ pub(crate) mod rules_prs_30_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
@@ -7173,6 +7442,10 @@ pub(crate) mod rules_prs_30_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -7294,6 +7567,9 @@ pub(crate) mod rules_prs_30_2 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _struct: SynStruct) {}
         fn init_struct(&mut self) {}
@@ -7344,6 +7620,10 @@ pub(crate) mod rules_prs_30_2 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -7464,6 +7744,9 @@ pub(crate) mod rules_rts_26_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -7515,6 +7798,10 @@ pub(crate) mod rules_rts_26_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -7653,6 +7940,9 @@ pub(crate) mod rules_rts_16_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -7706,6 +7996,10 @@ pub(crate) mod rules_rts_16_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -7832,6 +8126,9 @@ pub(crate) mod rules_prs_35_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
@@ -7881,6 +8178,10 @@ pub(crate) mod rules_prs_35_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -8014,6 +8315,9 @@ pub(crate) mod rules_rts_33_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _a: SynMyA) {}
         fn init_a(&mut self) {}
@@ -8067,6 +8371,10 @@ pub(crate) mod rules_rts_33_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
@@ -8507,6 +8815,9 @@ pub(crate) mod rules_rts_100_1 {
     }
 
     pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _file: SynFile) {}
         fn init_file(&mut self) {}
@@ -8668,6 +8979,10 @@ pub(crate) mod rules_rts_100_1 {
                 println!("> stack_t:   {}", self.stack_t.join(", "));
                 println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
             }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
         }
 
         fn get_mut_log(&mut self) -> &mut impl Logger {
