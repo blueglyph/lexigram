@@ -125,6 +125,44 @@ impl Parser {
         &self.opcodes
     }
 
+    /// Determines with a quick simulation if `sym` is accepted by the grammar with the current
+    /// `stack` and current stack symbol `stack_sym`.
+    fn simulate(&self, stream_sym: Symbol, mut stack: Vec<OpCode>, mut stack_sym: OpCode) -> bool {
+        const VERBOSE: bool = false;
+        let error_skip_factor_id = self.factors.len() as FactorId;
+        let end_var_id = (self.num_t - 1) as VarId;
+        if VERBOSE { print!("  next symbol could be: {}?", stream_sym.to_str(self.get_symbol_table())); }
+
+        let ok = loop {
+            match (stack_sym, stream_sym) {
+                (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {
+                    let sr = if let Symbol::T(sr) = stream_sym { sr } else { end_var_id };
+                    let factor_id = self.table[var as usize * self.num_t + sr as usize];
+                    if factor_id >= error_skip_factor_id {
+                        break false;
+                    }
+                    let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
+                    stack.extend(self.opcodes[factor_id as usize].clone());
+                    stack_sym = stack.pop().unwrap();
+                }
+                (OpCode::Exit(_), _) => {
+                    stack_sym = stack.pop().unwrap();
+                }
+                (OpCode::T(sk), Symbol::T(sr)) => {
+                    break sk == sr;
+                }
+                (OpCode::End, Symbol::End) => {
+                    break true;
+                }
+                (_, _) => {
+                    break false;
+                }
+            }
+        };
+        if VERBOSE { println!(" {}", if ok { "yes" } else { "no" }); }
+        ok
+    }
+
     /// Parses an entire `stream` using the `listener`, and returns `Ok(())` if the whole stream could
     /// be successfully parsed, or an error if it couldn't.
     ///
@@ -186,6 +224,7 @@ impl Parser {
                     }
                     if !recover_mode && factor_id >= error_skip_factor_id {
                         let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_factor_id)
+                            .filter(|t| self.simulate(Symbol::T(*t), stack.clone(), stack_sym))
                             .into_iter().map(|t| format!("'{}'", if t < end_var_id { Symbol::T(t).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() }))
                             .join(", ");
                         let stream_sym_txt = if stream_sym.is_end() { "end of stream".to_string() } else { format!("input '{}'", stream_sym.to_str(sym_table)) };
