@@ -79,14 +79,17 @@ impl GramListener {
 
     pub fn build_prs(self) -> ProdRuleSet<General> {
         let mut rts = RuleTreeSet::<General>::with_log(self.log);
-        if rts.get_log().has_no_errors() {
+        let no_error = rts.get_log().has_no_errors();
+        if no_error {
             for (v, rule) in self.rules.into_iter().index::<VarId>() {
                 rts.set_tree(v, rule);
             }
             rts.set_symbol_table(self.symbol_table);
         }
         let mut prs = ProdRuleSet::<General>::from(rts);
-        prs.set_start(self.start_rule.unwrap());
+        if no_error {
+            prs.set_start(self.start_rule.unwrap());
+        }
         prs
     }
 
@@ -115,13 +118,25 @@ impl GramListener {
 
     fn add_nt_symbol(&mut self, name: &str) -> Option<VarId> {
         let nt = VarId::try_from(self.num_nt).map_err(|_| self.log.add_error("too many non-terminals")).ok()?;
-        if self.symbols.insert(name.to_string(), Symbol::NT(nt)).is_some() {
-            self.log.add_error(format!("non-terminal '{name}' already defined"));
-            return None;
+        match self.symbols.insert(name.to_string(), Symbol::NT(nt)) {
+            Some(Symbol::NT(_)) => {
+                self.log.add_error(format!("non-terminal '{name}' already defined"));
+                None
+            },
+            Some(Symbol::T(_)) => {
+                self.log.add_error(format!("'{name}' is a terminal and cannot be used as a rule name"));
+                None
+            }
+            Some(sym) => {
+                self.log.add_error(format!("'{}' cannot be used as rule name", sym.to_str(Some(&self.symbol_table))));
+                None
+            }
+            None => {
+                self.symbol_table.add_non_terminal(name);
+                self.num_nt += 1;
+                Some(nt)
+            }
         }
-        self.symbol_table.add_non_terminal(name);
-        self.num_nt += 1;
-        Some(nt)
     }
 }
 

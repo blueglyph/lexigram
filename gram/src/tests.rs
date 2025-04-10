@@ -4,10 +4,14 @@
 
 const TXT_LEXI1: &str = r#"
     lexicon A;
+    //
     fragment ID     : [a-zA-Z][a-zA-Z_0-9]*;
     fragment NUM    : [0-9]+;
     fragment WS     : [ \n\r\t]+;
+    //
     WhiteSpace      : WS -> skip;
+    Comment         : '/*' .*? '*/' -> skip;
+    LineComment     : '//' ~[\r\n]* -> skip;
     Add             : '+';
     Equal           : '=';
     Lparen          : '(';
@@ -22,34 +26,29 @@ const TXT_LEXI1: &str = r#"
 
 const TXT_GRAM1: &str = r#"
     grammar A;
+    /**---- comments ----**/
     prog:
-        instr+;
+        instr+;                             // [Plus]
     instr:
         Let Id Equal expr Semicolon
     |   Print expr Semicolon
     |   empty_instr Semicolon;
     empty_instr:
-        Sub empty_instr<L>
-    |   ;
+        Sub empty_instr<L>                  // [<L>] on right recursion
+    |   ;                                   // [prodFactor: prodTerm*] when empty -> ε
     expr:
-        term ((Add|Sub) term)*;
+        term ((Add|Sub) term)*;             // [Star] and [|] inside Plus/Star (RTS to PRS)
     term:
-        Id | Sub? Int | Lparen expr Rparen;
+        Id | Sub? Int | Lparen expr Rparen; // [?]
 "#;
 
 const TXT_GRAM2: &str = r#"
     grammar B;
     tests: (test Semicolon)*;
     test: a | b | c;
-    a: <L=a> Add Id a |;
-    b: (<L=b_iter> Sub Id)+;
-    c: Let Id Equal Int <R>;
-"#;
-
-const TXT_GRAM3: &str = r#"
-    grammar B;
-    a: <L=Id> Id;
-    b: (<L=b_iter> Id)+;
+    a: <L=a> Add Id a |;                    // [<L=own Id>] on right recursion
+    b: (<L=b_iter> Sub Id)+;                // [<L=Id>] inside Plus/Star
+    c: Let Id Equal Int <R>;                // [<R>] (not used yet in ParserGen)
 "#;
 
 mod listener {
@@ -132,14 +131,34 @@ mod listener {
                 TXT_GRAM2,
                 vec![], true,
                 vec![
-                    ("; + a; + a + b; - a; -a-b; let x=2;", true, true),
+                    ("/* a */; + a; + a + b; /* b */ - a; -a-b; // 1st line\n/* c */ let x=2; // end", true, true),
                 ]
             ),
             (
-                TXT_GRAM3,
+                "grammar C; a: <L=Id> Id;           // error: [<L=Id>] with Id of terminal",
                 vec!["rule name in <L=Id> is already defined as terminal", "abort request"], false,
                 vec![]
-            )
+            ),
+            (
+                "grammar D; a: b;                   // error: undefined symbol",
+                vec!["has been used but is not defined, neither as terminal or non-terminal"], false,
+                vec![]
+            ),
+            (
+                "grammar E; Id: Int Plus Int;       // error: terminal used as rule name",
+                vec!["is a terminal and cannot be used as a rule name"], false,
+                vec![]
+            ),
+            (
+                "grammar E; a: Int; a: Plus Int;    // error: non-terminal already defined",
+                vec!["non-terminal 'a' already defined"], false,
+                vec![]
+            ),
+            (
+                "grammar E; EOF: Plus Int;          // EOF as rule name, should be interesting",
+                vec!["found input 'EOF' instead of 'Id'", "found input 'Id' instead of ':'"], false,
+                vec![]
+            ),
         ];
         const VERBOSE: bool = true;
         const VERBOSE_WRAPPER: bool = false;
@@ -160,6 +179,10 @@ mod listener {
         // builds the lexer for the test lexicon
         let dfa = listener.make_dfa().optimize();
         let sym_table = listener.build_symbol_table();
+        if VERBOSE {
+            println!("Lexer symbol table:\n- T: {}",
+                     sym_table.get_terminals().iter().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
+        }
         let mut lexer: Lexer<Cursor<&str>> = LexerGen::from(dfa).make_lexer();
 
         for (test_id, (grammar, mut expected_grammar_errors, expected_warnings, inputs)) in tests.into_iter().enumerate() {
