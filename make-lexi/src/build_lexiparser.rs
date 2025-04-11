@@ -2,11 +2,11 @@
 
 #![allow(unused)]
 
-use lexigram::grammar::GrTreeExt;
+use lexigram::grammar::{print_ll1_table, GrTreeExt};
 use lexigram::{gnode, CollectJoin, General, LL1};
 use lexigram::grammar::{print_production_rules, ProdRuleSet, RuleTreeSet, VarId};
 use lexigram::log::Logger;
-use lexigram::parsergen::ParserGen;
+use lexigram::parsergen::{print_items, ParserGen};
 use lexigram::symbol_table::SymbolTable;
 use lexigram::test_tools::replace_tagged_source;
 use crate::*;
@@ -103,33 +103,37 @@ enum NT {
     Declaration,        // 3
     Option,             // 4
     Rule,               // 5
-    Actions,            // 6
-    Action,             // 7
-    Match,              // 8
-    AltItems,           // 9
-    AltItem,            // 10
-    RepeatItem,         // 11
-    Item,               // 12
-    CharSet,            // 13
-    CharSetOne,         // 14
+    RuleFragmentName,   // 6
+    RuleTerminalName,   // 7
+    Actions,            // 8
+    Action,             // 9
+    Match,              // 10
+    AltItems,           // 11
+    AltItem,            // 12
+    RepeatItem,         // 13
+    Item,               // 14
+    CharSet,            // 15
+    CharSetOne,         // 16
 }
 
-const NON_TERMINALS: [&str; 15] = [
-    "file",             // 0
-    "file_item",        // 1
-    "header",           // 2
-    "declaration",      // 3
-    "option",           // 4
-    "rule",             // 5
-    "actions",          // 6
-    "action",           // 7
-    "match",            // 8
-    "alt_items",        // 9
-    "alt_item",         // 10
-    "repeat_item",      // 11
-    "item",             // 12
-    "char_set",         // 13
-    "char_set_one",     // 14
+const NON_TERMINALS: [&str; 17] = [
+    "file",                 // 0
+    "file_item",            // 1
+    "header",               // 2
+    "declaration",          // 3
+    "option",               // 4
+    "rule",                 // 5
+    "rule_fragment_name",   // 6
+    "rule_terminal_name",   // 7
+    "actions",              // 8
+    "action",               // 9
+    "match",                // 10
+    "alt_items",            // 11
+    "alt_item",             // 12
+    "repeat_item",          // 13
+    "item",                 // 14
+    "char_set",             // 15
+    "char_set_one",         // 16
 ];
 
 // [non_terminal_symbols]
@@ -187,17 +191,33 @@ pub(crate) fn build_rts() -> RuleTreeSet<General> {
     tree.add(Some(cc), gnode!(t T::Rbracket));
 
     // rule:
-    //     FRAGMENT ID COLON match SEMICOLON
-    // |   ID COLON match (ARROW actions)? SEMICOLON
+    //     rule_fragment_name COLON match SEMICOLON
+    // |   rule_terminal_name COLON match (ARROW actions)? SEMICOLON
     // ;
     //
     let tree = rules.get_tree_mut(NT::Rule as VarId);
     let or = tree.add_root(gnode!(|));
-    tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::Fragment), gnode!(t T::Id), gnode!(t T::Colon), gnode!(nt NT::Match), gnode!(t T::Semicolon)]);
-    let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(t T::Id), gnode!(t T::Colon), gnode!(nt NT::Match)]);
+    tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::RuleFragmentName), gnode!(t T::Colon), gnode!(nt NT::Match), gnode!(t T::Semicolon)]);
+    let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt NT::RuleTerminalName), gnode!(t T::Colon), gnode!(nt NT::Match)]);
     let maybe2 = tree.add(Some(cc1), gnode!(?));
     tree.addc_iter(Some(maybe2), gnode!(&), [gnode!(t T::Arrow), gnode!(nt NT::Actions)]);
     tree.add(Some(cc1), gnode!(t T::Semicolon));
+
+    // rule_fragment_name:
+    //   FRAGMENT ID
+    // ;
+    //
+    let tree = rules.get_tree_mut(NT::RuleFragmentName as VarId);
+    let cc = tree.add_root(gnode!(&));
+    tree.add_iter(Some(cc), [gnode!(t T::Fragment), gnode!(t T::Id)]);
+
+    // rule_terminal_name:
+    //   ID
+    // ;
+    //
+    let tree = rules.get_tree_mut(NT::RuleTerminalName as VarId);
+    let cc = tree.add_root(gnode!(&));
+    tree.add(Some(cc), gnode!(t T::Id));
 
     // actions:
     //     action (COMMA action)*
@@ -330,7 +350,6 @@ fn lexiparser_source(indent: usize, verbose: bool) -> String {
         let st_num_nt = rules.get_symbol_table().unwrap().get_num_nt();
         println!("rules, num_nt = {}, NT symbols: {}", rules.get_num_nt(), st_num_nt);
         println!("- {}", (0..st_num_nt).map(|i| rules.get_symbol_table().unwrap().get_nt_name(i as VarId)).join(", "));
-        print_production_rules(&rules, true);
         let msg = rules.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
             println!("Messages:\n{msg}");
@@ -351,6 +370,10 @@ fn lexiparser_source(indent: usize, verbose: bool) -> String {
     }
     assert_eq!(ll1.get_log().num_errors(), 0);
     let mut builder = ParserGen::from_rules(ll1, "LexiParser".to_string());
+    if verbose {
+        println!("Parsing table:");
+        print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
+    }
     for v in 0..builder.get_symbol_table().unwrap().get_num_nt() as VarId {
         // print!("- {}: ", Symbol::NT(v).to_str(builder.get_symbol_table()));
         if builder.get_nt_parent(v).is_none() {
@@ -361,11 +384,16 @@ fn lexiparser_source(indent: usize, verbose: bool) -> String {
         }
     }
     builder.add_lib("super::lexiparser_types::*");
-    builder.build_source_code(indent, true)
+    let source = builder.build_source_code(indent, true);
+    if verbose {
+        println!("Ops:");
+        print_items(&builder, 4, false);
+    }
+    source
 }
 
 fn write_lexiparser() {
-    let result_src = lexiparser_source(4, false);
+    let result_src = lexiparser_source(4, true);
     replace_tagged_source(LEXIPARSER_FILENAME, LEXIPARSER_TAG, &result_src)
         .expect("parser source replacement failed");
 }

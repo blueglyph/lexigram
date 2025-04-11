@@ -60,12 +60,12 @@ impl LexAction {
         })
     }
 
-    pub fn try_add(self, rhs: LexAction) -> Result<LexAction, String> {
+    pub fn try_add(self, rhs: LexAction) -> Result<LexAction, (String, LexAction)> {
         if (self.option != LexActionOption::None && rhs.option != LexActionOption::None) ||
             (self.channel.is_some() && rhs.channel.is_some()) ||
             (!self.mode.is_none() && !rhs.mode.is_none())
         {
-            return Err(format!("can't add {self:?} and {rhs:?}"))
+            return Err((format!("can't add {self:?} and {rhs:?}"), self))
         }
         Ok(LexAction {
             option: if self.option == LexActionOption::None { rhs.option } else { self.option },
@@ -82,7 +82,7 @@ impl Add for LexAction {
     fn add(self, rhs: Self) -> Self::Output {
         match self.try_add(rhs) {
             Ok(a) => a,
-            Err(s) => panic!("{s}")
+            Err(s) => panic!("{}", s.0)
         }
     }
 }
@@ -98,6 +98,8 @@ pub struct LexiListener {
     name: String,
     curr: Option<VecTree<ReNode>>,
     curr_mode: ModeId,
+    /// Current fragment or terminal name when parsing a rule, otherwise `None`
+    curr_name: Option<String>,
     /// Dictionary of terminals and fragments
     pub(crate) rules: HashMap<String, RuleType>,
     /// VecTree of each fragment.
@@ -119,6 +121,7 @@ pub struct LexiListener {
     /// Range of terminals defined in `fragments` for each mode.
     mode_terminals: Vec<Range<TokenId>>,
     log: BufLog,
+    abort: bool,
 }
 
 impl LexiListener {
@@ -128,6 +131,7 @@ impl LexiListener {
             name: String::new(),
             curr: None,
             curr_mode: 0,
+            curr_name: None,
             rules: HashMap::new(),
             fragments: Vec::new(),
             fragment_literals: Vec::new(),
@@ -139,7 +143,8 @@ impl LexiListener {
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
             mode_terminals: vec![0..0],
-            log: BufLog::new()
+            log: BufLog::new(),
+            abort: false,
         }
     }
 
@@ -265,6 +270,63 @@ impl LexiListener {
                  width=title.len() + 5
         )
     }
+
+    /// Checks that the reserved IDs don't become lower than terminal IDs, which would yield identical IDs for
+    /// different terminals. This method assumes that either of them is about to be added, and so that either
+    /// length is about to increase (as such, the sum of both lengths being MAX + 1 would be fine).
+    fn check_reserve_boundary(&mut self) {
+        if self.terminals.len() + self.terminal_reserved.len() > TokenId::MAX as usize {
+            self.log.add_error("collision between terminals and reserved terminals (too many of them)".to_string());
+            self.abort = true;
+        }
+    }
+
+    fn add_fragment_or_abort(&mut self) -> TokenId {
+        TokenId::try_from(self.fragments.len()).unwrap_or_else(|_| {
+            self.log.add_error(format!("too many fragments, max {}", TokenId::MAX));
+            self.abort = true;
+            0
+        })
+    }
+
+    fn add_terminal_or_abort(&mut self) -> TokenId {
+        self.check_reserve_boundary();
+        TokenId::try_from(self.terminals.len()).unwrap_or_else(|_| {
+            self.log.add_error(format!("too many terminals, max {}", TokenId::MAX));
+            self.abort = true;
+            0
+        })
+    }
+
+    fn add_terminal_reserved_or_abort(&mut self) -> TokenId {
+        self.check_reserve_boundary();
+        if self.terminal_reserved.len() > TokenId::MAX as usize {
+            self.log.add_error(format!("too many terminals reserved, max {}", TokenId::MAX));
+            self.abort = true;
+            0
+        } else {
+            TokenId::MAX - self.terminal_reserved.len() as TokenId
+        }
+    }
+
+    /// Gets the mode id if it exists, otherwise adds it. Generates an abort if there are too many of them.
+    fn get_add_mode_or_abort(&mut self, mode_name: String) -> ModeId {
+        if let Some(id) = self.modes.get(&mode_name) {
+            *id
+        } else {
+            match ModeId::try_from(self.modes.len()) {
+                Ok(id) => {
+                    self.modes.insert(mode_name, id);
+                    id
+                }
+                Err(_) => {
+                    self.log.add_error(format!("too many modes, max {}", ModeId::MAX));
+                    self.abort = true;
+                    0
+                }
+            }
+        }
+    }
 }
 
 impl Debug for LexiListener {
@@ -290,6 +352,10 @@ impl Debug for LexiListener {
 }
 
 impl LexiParserListener for LexiListener {
+    fn check_abort_request(&self) -> bool {
+        self.abort
+    }
+
     fn get_mut_log(&mut self) -> &mut impl Logger {
         &mut self.log
     }
@@ -371,28 +437,28 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_declaration(&mut self, ctx: CtxDeclaration) -> SynDeclaration {
-        // FIXME: manage errors (may panic)
         if self.verbose { print!("- exit_declaration({ctx:?}), modes: {:?}", self.modes); }
         let CtxDeclaration::Declaration { id: mode_name } = ctx;    // declaration -> mode Id ;
-        let n = self.modes.len();
-        let mode_id = *self.modes.entry(mode_name.clone()).or_insert_with(||
-            ModeId::try_from(n).expect(&format!("max {} modes", ModeId::MAX)));
-        self.curr_mode = mode_id;
-        if self.verbose { println!(" -> mode {mode_id}, mode_terminals: {:?}", self.mode_terminals)}
-        let next_token = TokenId::try_from(self.terminals.len())
-            .expect(&format!("no room left for any terminal in mode {mode_name}, max {} allowed", TokenId::MAX));
-        self.mode_terminals.insert(mode_id as usize, next_token..next_token);
+        let mode_id = self.get_add_mode_or_abort(mode_name);
+        if !self.abort {
+            self.curr_mode = mode_id;
+            if self.verbose { println!(" -> mode {mode_id}, mode_terminals: {:?}", self.mode_terminals) }
+            let next_token = self.add_terminal_or_abort();
+            self.mode_terminals.insert(mode_id as usize, next_token..next_token);
+        }
         SynDeclaration()
     }
 
     fn exit_option(&mut self, ctx: CtxOption) -> SynOption {
-        // FIXME: manage errors (may panic)
         if self.verbose { println!("- exit_option({ctx:?})"); }
-        let CtxOption::Option { id, mut star } = ctx;
+        let CtxOption::Option { id, mut star } = ctx;       // option -> channels { Id [, Id]* }
         star.0.insert(0, id);
         for ch in star.0 {
-            assert!(!self.channels.contains_key(&ch), "channel '{ch}' defined twice");
-            self.channels.insert(ch, self.channels.len() as ChannelId);
+            if self.channels.contains_key(&ch) {
+                self.log.add_error(format!("channel '{ch}' defined twice"));
+            } else {
+                self.channels.insert(ch, self.channels.len() as ChannelId);
+            }
         }
         SynOption()
     }
@@ -400,26 +466,24 @@ impl LexiParserListener for LexiListener {
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
         if self.verbose { println!("- exit_rule({ctx:?})"); }
         let (id, rule_type, action_maybe, const_literal) = match ctx {
-            // FIXME: manage errors (may panic)
-            CtxRule::Rule1 { id, match1 } => {              // rule -> fragment Id : match ;
-                let rule_id = TokenId::try_from(self.fragments.len()).expect(&format!("max {} fragments", TokenId::MAX));
+            CtxRule::Rule1 { rule_fragment_name: SynRuleFragmentName(id), match1 } => {             // rule -> rule_fragment_name : match ;
+                let rule_id = self.add_fragment_or_abort();
                 (id, RuleType::Fragment(rule_id), None, match1.0)
             }
-            CtxRule::Rule2 { id, match1, actions } => {     // rule -> Id : match -> actions ;
-                let rule_id = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
+            CtxRule::Rule2 { rule_terminal_name: SynRuleTerminalName(id), match1, actions } => {    // rule -> rule_terminal_name : match -> actions ;
+                let rule_id = self.add_terminal_or_abort();
                 (id, RuleType::Terminal(rule_id), Some(actions.0), match1.0)
             }
-            CtxRule::Rule3 { id, match1 } => {              // rule -> Id : match ;
-                let rule_id = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
+            CtxRule::Rule3 { rule_terminal_name: SynRuleTerminalName(id), match1 } => {             // rule -> rule_terminal_name : match ;
+                let rule_id = self.add_terminal_or_abort();
                 (id, RuleType::Terminal(rule_id), None, match1.0)
             }
         };
+        if self.abort { return SynRule() }
         let was_reserved = if let Some(RuleType::Terminal(reserved_id)) = self.rules.get_mut(&id) {
             // checks that it's indeed reserved and not a simple conflict with another terminal name
             if self.terminal_reserved.contains(&id) {
                 // reserved_id is a temporary, reserved TokenId introduced by an action `-> type(X)`
-                assert!(self.terminals.len() <= *reserved_id as usize,
-                        "collision between token IDs and reserved IDs: {} > {reserved_id} (for {id})", self.terminals.len());
                 let RuleType::Terminal(rule_id) = rule_type else { panic!() };
                 if self.verbose { println!("terminal {id} was reserved as {reserved_id}; will now be {rule_id}"); }
                 self.terminal_remap.insert(*reserved_id, rule_id);
@@ -432,8 +496,8 @@ impl LexiParserListener for LexiListener {
             false       // fragment or doesn't exist yet
         };
         if !was_reserved && self.rules.contains_key(&id) {
-            self.log.add_error(format!("Symbol '{id}' is already defined"));
-            self.curr = None;
+            self.log.add_error(format!("rule {}: Symbol '{id}' is already defined", self.curr_name.as_ref().unwrap()));
+            self.abort = true;
         } else {
             let mut rule = self.curr.take().unwrap();
             match rule_type {
@@ -463,14 +527,31 @@ impl LexiParserListener for LexiListener {
                 self.rules.insert(id, rule_type);
             }
         }
+        self.curr_name = None;
+        // CAUTION! There are aborts above: don't add code here that could trigger secondary errors
         SynRule()
+    }
+
+    fn exit_rule_fragment_name(&mut self, ctx: CtxRuleFragmentName) -> SynRuleFragmentName {
+        let CtxRuleFragmentName::RuleFragmentName { id } = ctx;
+        self.curr_name = Some(id.clone());
+        SynRuleFragmentName(id)
+    }
+
+    fn exit_rule_terminal_name(&mut self, ctx: CtxRuleTerminalName) -> SynRuleTerminalName {
+        let CtxRuleTerminalName::RuleTerminalName { id } = ctx;
+        self.curr_name = Some(id.clone());
+        SynRuleTerminalName(id)
     }
 
     fn exit_actions(&mut self, ctx: CtxActions) -> SynActions {
         let CtxActions::Actions { action, star } = ctx;
         let mut action = action.0;
         for a in star.0 {
-            action = action + a.0; // FIXME: manage errors (may panic)
+            action = action.try_add(a.0).unwrap_or_else(|(e, action)| {
+                self.log.add_error(e);
+                action
+            })
         }
         SynActions(action)
     }
@@ -478,13 +559,11 @@ impl LexiParserListener for LexiListener {
     fn exit_action(&mut self, ctx: CtxAction) -> SynAction {
         let action = match ctx {
             CtxAction::Action1 { id } => {              // action -> mode ( Id )
-                let n = self.modes.len();
-                let id_val = *self.modes.entry(id).or_insert_with(|| ModeId::try_from(n).expect(&format!("max {} modes", ModeId::MAX)));
+                let id_val = self.get_add_mode_or_abort(id);
                 action!(mode id_val)
             }
             CtxAction::Action2 { id } => {              // action -> push ( Id )
-                let n = self.modes.len();
-                let id_val = *self.modes.entry(id).or_insert_with(|| ModeId::try_from(n).expect(&format!("max {} modes", ModeId::MAX)));
+                let id_val = self.get_add_mode_or_abort(id);
                 action!(push id_val)
             },
             CtxAction::Action3 => action!(pop),         // action -> pop
@@ -497,10 +576,7 @@ impl LexiParserListener for LexiListener {
                 // - most of the time, this wouldn't make sense and could even be misleading
                 let token = match self.rules.get(&id) {
                     None => {
-                        // TODO: we'll have to check at some point that there were no collisions between IDs and reserved IDs,
-                        //       in other words, `assert!(self.terminals.len() <= TokenId::MAX as usize - self.terminal_reserved.len())`
-                        assert!(self.terminal_reserved.len() < TokenId::MAX as usize, "max {} reserved tokens", TokenId::MAX);
-                        let reserved_token = TokenId::MAX - self.terminal_reserved.len() as TokenId;
+                        let reserved_token = self.add_terminal_reserved_or_abort();
                         self.terminal_reserved.insert(id.clone());
                         if self.verbose { println!("-> type({id}) : reserved ID {reserved_token}"); }
                         self.rules.insert(id, RuleType::Terminal(reserved_token));  // temporary token ID
@@ -511,7 +587,8 @@ impl LexiParserListener for LexiListener {
                             self.terminal_ret[*token as usize] = true;
                             *token as TokenId
                         } else {
-                            panic!("{id} is not a terminal; it's a fragment")   // FIXME: manage errors (may panic)
+                            self.log.add_error(format!("rule {}: {id} is not a terminal; it's a fragment", self.curr_name.as_ref().unwrap()));
+                            return SynAction(action!(nop));
                         }
                     }
                 };
@@ -519,10 +596,14 @@ impl LexiParserListener for LexiListener {
             }
             CtxAction::Action7 { id } => {              // action -> channel ( Id )
                 // we don't allow to define new channels here on the fly because typos would induce annoying errors
-                let channel = *self.channels.get(&id).unwrap(); // FIXME: manage errors (may panic)
+                let channel = *self.channels.get(&id).unwrap_or_else(|| {
+                    self.log.add_error(format!("rule {}: channel {id} undefined", self.curr_name.as_ref().unwrap()));
+                    &0
+                });
                 action!(# channel)
             }
         };
+        // CAUTION! There are aborts above: don't add code here that could trigger secondary errors
         SynAction(action)
     }
 
@@ -551,6 +632,8 @@ impl LexiParserListener for LexiListener {
             alt_item.0
         };
         if self.verbose { println!(" -> {}, {:?}", tree_to_string(tree, Some(id), false), const_literal); }
+        // Item types have both an id and a const_literal. The const_literal serves to determine
+        // whether the terminal is (sym, None) or (sym, Some(String)) in the symbol table.
         SynAltItems((id, const_literal))
     }
 
@@ -599,7 +682,6 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
-        // FIXME: manage errors (may panic)
         if self.verbose { print!("- exit_item({ctx:?})"); }
         let tree = self.curr.as_mut().unwrap();
         let (id, const_literal) = match ctx {
@@ -609,9 +691,9 @@ impl LexiParserListener for LexiListener {
             CtxItem::Item2 { item } => {            // item -> ~ item
                 let node = tree.get_mut(item.0.0);
                 if let ReType::CharRange(range) = node.get_mut_type() {
-                    *range = Box::new(range.not())
+                    *range = Box::new(range.not());
                 } else {
-                    panic!("~ can only be applied to a char set, not to '{node:?}'");
+                    self.log.add_error(format!("rule {}: ~ can only be applied to a char set, not to '{node:?}'", self.curr_name.as_ref().unwrap()));
                 }
                 (item.0.0, None)
             }
@@ -621,25 +703,37 @@ impl LexiParserListener for LexiListener {
                     let const_literal = self.fragment_literals.get(*f as usize).unwrap().clone();
                     (tree.add_from_tree(None, subtree, None), const_literal)
                 } else {
-                    panic!("unknown fragment '{id}'")
+                    self.log.add_error(format!("rule {}: unknown fragment '{id}'", self.curr_name.as_ref().unwrap()));
+                    let fake = format!("♫{id}♫"); // we make up the result to leave a chance to the parser to continue
+                    (tree.add(None, ReNode::string(&fake)), Some(fake))
                 }
             }
             CtxItem::Item4 { strlit } => {          // item -> StrLit
-                let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|s| panic!("{s}"));
+                let s = decode_str(&strlit[1..strlit.len() - 1]).unwrap_or_else(|e| {
+                    self.log.add_error(format!("rule {}: cannot decode the string literal {strlit}: {e}", self.curr_name.as_ref().unwrap()));
+                    format!("♫{strlit}♫") // we make up the result to leave a chance to the parser to continue
+                });
                 (tree.add(None, ReNode::string(&s)), Some(s))
             }
             CtxItem::Item5 { char_set } => {         // item -> char_set
                 (tree.add(None, ReNode::char_range(char_set.0)), None)
             }
             CtxItem::Item6 { charlit } => {         // item -> CharLit .. CharLit
-                let c1 = decode_char(&charlit[0][1..charlit[0].len() - 1]).unwrap_or_else(|s| panic!("{s}"));
-                let c2 = decode_char(&charlit[1][1..charlit[1].len() - 1]).unwrap_or_else(|s| panic!("{s}"));
-                (tree.add(None, ReNode::char_range(Segments::from((c1, c2)))), None)
+                let [first, last] = charlit.map(|clit| {
+                    decode_char(&clit[1..clit.len() - 1]).unwrap_or_else(|e| {
+                        self.log.add_error(format!("rule {}: cannot decode the character literal '{clit}': {e}", self.curr_name.as_ref().unwrap()));
+                        '♫' // we make up the result to leave a chance to the parser to continue
+                    })
+                });
+                (tree.add(None, ReNode::char_range(Segments::from((first, last)))), None)
             }
             CtxItem::Item7 { charlit } => {         // item -> CharLit
                 // charlit is always sourrounded by quotes:
                 // fragment CharLiteral	: '\'' Char '\'';
-                let c = decode_char(&charlit[1..charlit.len() - 1]).unwrap_or_else(|s| panic!("{s}"));
+                let c = decode_char(&charlit[1..charlit.len() - 1]).unwrap_or_else(|e| {
+                    self.log.add_error(format!("rule {}: cannot decode the character literal {charlit}: {e}", self.curr_name.as_ref().unwrap()));
+                    '♫' // we make up the result to leave a chance to the parser to continue
+                });
                 (tree.add(None, ReNode::char_range(Segments::from(c))), Some(c.to_string()))
             }
         };
@@ -661,7 +755,10 @@ impl LexiParserListener for LexiListener {
                 Segments::dot()
             }
             CtxCharSet::CharSet3 { fixedset } => {          // char_set -> FixedSet
-                decode_fixed_set(&fixedset).unwrap_or_else(|s| panic!("{s}"))
+                decode_fixed_set(&fixedset).unwrap_or_else(|e| {
+                    self.log.add_error(format!("rule {}: cannot decode the character set [{fixedset}]: {e}", self.curr_name.as_ref().unwrap()));
+                    segments!('♫') // we make up the result to leave a chance to the parser to continue
+                })
             }
         };
         if self.verbose { println!(" -> {seg}"); }
@@ -669,7 +766,6 @@ impl LexiParserListener for LexiListener {
     }
 
     fn exit_char_set_one(&mut self, ctx: CtxCharSetOne) -> SynCharSetOne {
-        // FIXME: manage errors (may panic)
         // char_set_one:
         //     SET_CHAR MINUS SET_CHAR
         // |   SET_CHAR
@@ -677,15 +773,25 @@ impl LexiParserListener for LexiListener {
         if self.verbose { print!("- exit_char_set_one({ctx:?})"); }
         let seg = match ctx {
             CtxCharSetOne::CharSetOne1 { fixedset } => {    // char_set_one -> FixedSet
-                decode_fixed_set(&fixedset).unwrap_or_else(|s| panic!("{s}"))
+                decode_fixed_set(&fixedset).unwrap_or_else(|e| {
+                    self.log.add_error(format!("rule {}: cannot decode the character set [{fixedset}]: {e}", self.curr_name.as_ref().unwrap()));
+                    segments!('♫') // we make up the result to leave a chance to the parser to continue
+                })
             }
             CtxCharSetOne::CharSetOne2 { setchar } => {     // char_set_one -> SetChar - SetChar
-                let first = decode_set_char(&setchar[0]).unwrap_or_else(|s| panic!("{s}"));
-                let last = decode_set_char(&setchar[1]).unwrap_or_else(|s| panic!("{s}"));
+                let [first, last] = setchar.map(|sc| {
+                    decode_set_char(&sc).unwrap_or_else(|e| {
+                        self.log.add_error(format!("rule {}: cannot decode the character '{sc}': {e}", self.curr_name.as_ref().unwrap()));
+                        '♫' // we make up the result to leave a chance to the parser to continue
+                    })
+                });
                 Segments::from((first, last))
             }
             CtxCharSetOne::CharSetOne3 { setchar } => {     // char_set_one -> SetChar
-                let single = decode_set_char(&setchar).unwrap_or_else(|s| panic!("{s}"));
+                let single = decode_set_char(&setchar).unwrap_or_else(|e| {
+                    self.log.add_error(format!("rule {}: cannot decode the character '{setchar}': {e}", self.curr_name.as_ref().unwrap()));
+                    '♫' // we make up the result to leave a chance to the parser to continue
+                });
                 Segments::from(single)
             }
         };
@@ -816,5 +922,6 @@ pub mod macros {
         (push $id:expr) =>   { $crate::listener::LexAction { option: crate::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false } };
         (pop) =>             { $crate::listener::LexAction { option: crate::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true  } };
         (# $id:expr) =>      { $crate::listener::LexAction { option: crate::listener::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false } };
+        (nop) =>             { $crate::listener::LexAction { option: crate::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false } };
     }
 }
