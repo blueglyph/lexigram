@@ -17,7 +17,7 @@ pub struct GramListener {
     log: BufLog,
     abort: bool,
     curr: Option<GrTree>,
-    curr_rulename: Option<String>,
+    curr_name: Option<String>,
     curr_nt: Option<VarId>,
     rules: Vec<VecTree<GrNode>>,
     start_rule: Option<VarId>,
@@ -50,7 +50,7 @@ impl GramListener {
             abort: false,
             log: BufLog::new(),
             curr: None,
-            curr_rulename: None,
+            curr_name: None,
             curr_nt: None,
             rules: Vec::new(),
             start_rule: None,
@@ -120,16 +120,15 @@ impl GramListener {
         let nt = VarId::try_from(self.num_nt).map_err(|_| self.log.add_error("too many non-terminals")).ok()?;
         match self.symbols.insert(name.to_string(), Symbol::NT(nt)) {
             Some(Symbol::NT(_)) => {
-                self.log.add_error(format!("non-terminal '{name}' already defined"));
+                self.log.add_error(format!("rule {}: non-terminal '{name}' already defined", self.curr_name.as_ref().unwrap()));
                 None
             },
             Some(Symbol::T(_)) => {
-                self.log.add_error(format!("'{name}' is a terminal and cannot be used as a rule name"));
+                self.log.add_error(format!("rule {}: '{name}' is a terminal and cannot be used as a rule name", self.curr_name.as_ref().unwrap()));
                 None
             }
             Some(sym) => {
-                self.log.add_error(format!("'{}' cannot be used as rule name", sym.to_str(Some(&self.symbol_table))));
-                None
+                self.log.add_error(format!("rule {}: '{}' cannot be used as rule name", self.curr_name.as_ref().unwrap(), sym.to_str(Some(&self.symbol_table))));                None
             }
             None => {
                 self.symbol_table.add_non_terminal(name);
@@ -146,7 +145,7 @@ impl Debug for GramListener {
         writeln!(f, "  name = {}", self.name)?;
         writeln!(f, "  log:{}", self.log.get_messages().map(|s| format!("\n    - {s:?}")).join(""))?;
         writeln!(f, "  curr: {} -> {}",
-                 if let Some(nm) = &self.curr_rulename { nm } else { "?" },
+                 if let Some(nm) = &self.curr_name { nm } else { "?" },
                  if let Some(t) = &self.curr { format!("{t:?}") } else { "none".to_string() })?;
         let symb_nt = self.symbols.iter().filter_map(|(name, s)| if let Symbol::NT(nt) = s { Some((nt, name)) } else { None }).collect::<BTreeMap<_, _>>();
         let symb_t = self.symbols.iter().filter_map(|(name, s)| if let Symbol::T(t) = s { Some((t, name)) } else { None }).collect::<BTreeMap<_, _>>();
@@ -232,7 +231,7 @@ impl GramParserListener for GramListener {
             CtxRule::Rule1 { prod: SynProd(id), .. } => id,      // rule -> rule_name : prod ;
             CtxRule::Rule2 { prod: SynProd(id), .. } => {        // rule -> rule_name : prod EOF ;
                 if curr_nt > 0 {
-                    self.log.add_error(format!("rule '{}': EOF can only be put in the top rule", self.curr_rulename.as_ref().unwrap()));
+                    self.log.add_error(format!("rule '{}': EOF can only be put in the top rule", self.curr_name.as_ref().unwrap()));
                 }
                 // we don't add Symbol::End to the tree because it's not necessary nor, in fact, even allowed)
                 id
@@ -243,13 +242,14 @@ impl GramParserListener for GramListener {
             self.rules.resize(curr_nt as usize, VecTree::new());
         }
         self.rules.push(tree);
+        self.curr_name = None;
         SynRule()
     }
 
     fn exit_rule_name(&mut self, ctx: CtxRuleName) -> SynRuleName {
         if self.verbose { println!("exit_rule_name({ctx:?})"); }
         let CtxRuleName::RuleName { id: name } = ctx;
-        self.curr_rulename = Some(name.clone());
+        self.curr_name = Some(name.clone());
         let Some(nt) = self.add_nt_symbol(&name) else {
             self.abort = true;
             return SynRuleName(String::new());
@@ -347,7 +347,7 @@ impl GramParserListener for GramListener {
                 let bytes = lform.as_bytes();
                 let name_maybe = if bytes[2] == b'=' {
                     let name = lform[3..lform.len() - 1].to_string();
-                    if &name == self.curr_rulename.as_ref().expect("self.curr_rulename should contain the rule name") {
+                    if &name == self.curr_name.as_ref().unwrap() {
                         // that must be a right-recursive rule (to check later)
                         None
                     } else {
@@ -361,11 +361,13 @@ impl GramParserListener for GramListener {
                     // In RuleTreeSet::normalize_plus_or_star(), the NT index in LForm(NT) is used when the
                     // iterative NT is created.
                     if let Some(sym @ Symbol::NT(_)) | Some(sym @ Symbol::T(_)) = self.symbols.get(&name) {
-                        self.log.add_error(format!("the rule name in <L={name}> is already defined as {}terminal", if sym.is_nt() { "non-" } else { "" }));
+                        self.log.add_error(format!("rule {}: the rule name in <L={name}> is already defined as {}terminal",
+                                                   self.curr_name.as_ref().unwrap(), if sym.is_nt() { "non-" } else { "" }));
                         self.abort = true;
                         return SynTermItem(0 /* don't care */);
                     } else if self.nt_reserved.contains_key(&name) {
-                        self.log.add_error(format!("the rule name in <L={name}> has already been used as non-terminal in a rule"));
+                        self.log.add_error(format!("rule {}: the rule name in <L={name}> has already been used as non-terminal in a rule",
+                                                   self.curr_name.as_ref().unwrap()));
                         self.abort = true;
                         return SynTermItem(0 /* don't care */);
                     }
