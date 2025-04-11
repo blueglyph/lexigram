@@ -399,7 +399,7 @@ impl LexiParserListener for LexiListener {
 
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
         if self.verbose { println!("- exit_rule({ctx:?})"); }
-        let (id, rule_type, mut action_maybe, const_literal) = match ctx {
+        let (id, rule_type, action_maybe, const_literal) = match ctx {
             // FIXME: manage errors (may panic)
             CtxRule::Rule1 { id, match1 } => {              // rule -> fragment Id : match ;
                 let rule_id = TokenId::try_from(self.fragments.len()).expect(&format!("max {} fragments", TokenId::MAX));
@@ -422,12 +422,6 @@ impl LexiParserListener for LexiListener {
                         "collision between token IDs and reserved IDs: {} > {reserved_id} (for {id})", self.terminals.len());
                 let RuleType::Terminal(rule_id) = rule_type else { panic!() };
                 if self.verbose { println!("terminal {id} was reserved by {first_ref_id} as {reserved_id}; will now be {rule_id}"); }
-                if *first_ref_id == rule_id {
-                    // type(T) pointing at itself
-                    if self.verbose { println!("    (so it was actually pointing at itself)"); }
-                    let Some(ref mut action) = action_maybe else { panic!() };
-                    action.option = LexActionOption::Token(rule_id)
-                }
                 self.terminal_remap.insert(*reserved_id, rule_id);
                 *reserved_id = rule_id;
                 true
