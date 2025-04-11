@@ -250,6 +250,56 @@ mod simple {
                 )
                 ]
             ),
+            (
+                TXT3, btreemap![
+                    0 => branch!('A'-'Z' => 1, 'a' => 2, 'b' => 3, 'c'-'z' => 4),
+                    1 => branch!('A'-'Z' => 1), // <end:1>
+                    2 => branch!('a'-'z' => 4), // <end:0>
+                    3 => branch!('a'-'z' => 4), // <end:2>
+                    4 => branch!('a'-'z' => 4), // <end:1>
+                ], btreemap![
+                    1 => term!(=1), 2 => term!(=0), 3 => term!(=2), 4 => term!(=1)
+                ], vec![]
+            ),
+            (
+                TXT4, btreemap![
+                    0 => branch!('a' => 1, 'b' => 2, 'c' => 3, 'd' => 4, 'e' => 5, 'f' => 6),
+                    1 => branch!(), // <end:1>
+                    2 => branch!(), // <end:0>
+                    3 => branch!(), // <skip>
+                    4 => branch!(), // <end:1>
+                    5 => branch!(), // <end:2>
+                    6 => branch!(), // <end:3>
+                ], btreemap![
+                    1 => term!(=1), 2 => term!(=0), 3 => term!(skip), 4 => term!(=1), 5 => term!(=2), 6 => term!(=3)
+                ], vec![]
+            ),
+            (
+                TXT5, btreemap![
+                    0 => branch!('a' => 2, 'b' => 3, 'c' => 4, 'd' => 5, 'e' => 6, 'f' => 7, 'g' => 8, 'h' => 9, 'i' => 10, 'j' => 11, 'k' => 12),
+                    1 => branch!('l' => 13, 'm' => 14, 'n' => 15, 'o' => 16, 'p' => 17, 'q' => 18, 'r' => 19),
+                    2 => branch!(), // <end:1>
+                    3 => branch!(), // <skip>
+                    4 => branch!(), // <end:0>
+                    5 => branch!(), // <skip>
+                    6 => branch!(), // <end:2>
+                    7 => branch!(), // <end:2>
+                    8 => branch!(), // <end:3>
+                    9 => branch!(), // <end:4>
+                    10 => branch!(), // <skip,mode(1,state 1)>
+                    11 => branch!(), // <end:8>
+                    12 => branch!(), // <end:6>
+                    13 => branch!(), // <end:7>
+                    14 => branch!(), // <end:5>
+                    15 => branch!(), // <end:6>
+                    16 => branch!(), // <end:9>
+                    17 => branch!(), // <end:11>
+                    18 => branch!(), // <end:10,mode(0,state 0)>
+                    19 => branch!(), // <skip>
+                ], btreemap![
+                    2 => term!(=1), 3 => term!(skip), 4 => term!(=0), 5 => term!(skip), 6 => term!(=2), 7 => term!(=2), 8 => term!(=3), 9 => term!(=4), 10 => term!(skip) + term!(mode 1) + term!(pushst 1), 11 => term!(=8), 12 => term!(=6), 13 => term!(=7), 14 => term!(=5), 15 => term!(=6), 16 => term!(=9), 17 => term!(=11), 18 => term!(=10) + term!(mode 0) + term!(pushst 0), 19 => term!(skip)
+                ], vec![]
+            ),
         ];
         const VERBOSE: bool = false;
 
