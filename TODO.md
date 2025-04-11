@@ -1,5 +1,43 @@
 # Lexigram
 
+- error reporting
+  - [ ] when creating the lexer
+    - [x] ~~Lexi's listener~~
+    - [x] Logger in DfaBuilder, Dfa 
+      - [ ] populate
+    - [x] Logger in LexerGen
+      - [ ] populate
+  - [ ] when creating the parser
+    - [x] ~~Gram's listener~~
+    - [ ] ParserGen
+      - [ ] populate log with info (& warnings, errors?)
+  - [ ] when using the lexer / parser
+    - ~~Lexer~~ not necessary: returns an error code 
+    - [x] ~~Lexer - Parser - wrapper - listener~~
+  - [ ] create info/warning/error ID numbers
+  - [ ] make messages parse-friendly and consistent (indentation structure, casing, ...)
+- AST tree builder
+  - [ ] create code (nodes, listener) that returns a VecTree
+  - [ ] add pre-order, depth-first search?
+  - [ ] procedural macro
+- dynamic parser
+  - [ ] create a universal Listener implementation to simulate / test grammar 
+
+# Packages
+
+- [x] lexigram lib
+- [x] lexi
+- [x] make-lexi
+- ~~[ ] dependancies point to git + version instead of directories~~ Too cumbersome and problematic
+- [x] gram
+- [x] make-gram
+- [ ] lexigram bin
+- [ ] separate libs
+  - small lib for parser/lexer (for generated parser)
+  - gen lib? other?
+
+# Lexer
+
 - basic lexi
   - [x] ~~create regex for rlexer's lexicon (manually)~~
   - [x] ~~replace struct Token(pub TokenId) by just a TokenId~~
@@ -7,6 +45,7 @@
   - [x] ~~transform regex AST to vectree~~
   - [x] ~~make binary application (lexicon file -> AST -> vectree -> dfa -> lexgen -> sources)~~
 - [ ] don't pour big ranges (.) into utf8 table
+- [ ] independence from reader type (Lexer<R: Read>)
 - improve robustness
   - [ ] detect dead ends without a terminal
   - [ ] detect missing terminals (present in vectree but not in dfa)
@@ -22,39 +61,15 @@
 - [x] ~~how to retrieve original text behind tokens?~~
 - [ ] lexer hooks? (using traits?)
 - [x] ~~define lexer file basic syntax (1st step)~~
-- error reporting
-  - [ ] when creating the lexer
-    - [x] Lexi's listener
-    - [x] Logger in DfaBuilder, Dfa 
-      - [ ] populate
-    - [x] Logger in LexerGen
-      - [ ] populate
-  - [ ] when creating the parser
-    - [x] ~~Gram's listener~~
-    - [ ] ParserGen
-      - [ ] populate log with info (& warnings, errors?)
-  - [ ] when using the lexer / parser
-    - ~~Lexer~~ not necessary: returns an error code 
-    - [x] ~~Lexer - Parser - wrapper - listener~~
-  - [ ] create info/warning/error ID numbers
-  - [ ] make messages parse-friendly and consistent (indentation structure, casing, ...)
-- [ ] independence from reader type (Lexer<R: Read>)
-
-# Packages
-
-- [x] lexigram lib
-- [x] lexi
-- [x] make-lexi
-- ~~[ ] dependancies point to git + version instead of directories~~ Too cumbersome and problematic
-- [x] gram
-- [x] make-gram
-- [ ] lexigram bin
-- [ ] separate libs
-  - small lib for parser/lexer (for generated parser)
-  - gen lib? other?
 
 # Parser
 
+- basic gram
+  - parser text -> RuleTree
+    - [x] ~~generate lexer tree with basic rlexer (lexicon file)~~
+    - [x] ~~adapt rlexer's top-down parser (manually)~~
+    - [x] ~~transform AST to top-down (or LR?) data~~
+  - [ ] make binary application
 - parser lib
   - RuleTreeSet to store the parsed production rules (as `VecTree<GrNode>`)
     - [x] ~~normalize~~
@@ -95,14 +110,14 @@
     - [ ] check if LL(1)
       - [ ] check indirect left recursion
     - [x] ~~build parsing table~~
-    - [ ] warning/error log system (for parsing table, lexer, ...)
+    - [x] warning/error log system (for parsing table, lexer, ...)
       - [x] ~~add log~~
       - [x] ~~check log and error issued in the whole chain (RTS -> PRS)~~
       - [ ] check if log reports errors correctly for each error type
     - [x] ~~predictive parsing algorithm~~
     - [x] ~~semantic analysis: how to link back to original RuleTree after removing left recursion/left factoring?~~
     - proper adapter link to lexer
-      - [ ] adapter for tokens
+      - [x] ~~adapters for tokens~~
       - [ ] SymbolTable
     - [ ] generate code
       - [x] ~~context~~
@@ -122,6 +137,9 @@
       - [ ] better names when creating enum options in contexts (ParserBuilder::source_wrapper)
       - [ ] option to generate or not last call after iterations in left_rec?
     - [ ] error recovery
+      - [x] basic resynchronization
+      - [ ] points of reactivation of the semantic analysis (instead of stopping it altogether)
+      - [ ] option to stop parsing on first error
   - bottom-up
     - [ ] decide algorithm (LALR?)
     - [ ] LR/CELR-attributed grammar
@@ -129,14 +147,6 @@
       - check left-/right-associativity
       - left-associative:  A -> A β δ | δ
       - right-associative: A -> δ β A | δ
-- basic gram
-  - parser text -> RuleTree
-    - [x] ~~generate lexer tree with basic rlexer (lexicon file)~~
-    - [x] ~~adapt rlexer's top-down parser (manually)~~
-    - [x] ~~transform AST to top-down (or LR?) data~~
-  - [ ] make binary application
-- dynamic parser
-  - [ ] create a universal Listener implementation to simulate / test grammar 
 
 ## Potential Features
 
