@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use lexigram::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
-use std::collections::{BTreeMap, HashMap};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Range};
 use iter_index::IndexerIterator;
@@ -110,8 +110,8 @@ pub struct LexiListener {
     pub(crate) terminal_literals: Vec<Option<String>>,
     /// True if the corresponding terminal is returned by the lexer (either directly by a rule or as the target of a `type(T)`)
     terminal_ret: Vec<bool>,
-    /// Future tokens reserved by `type(T)`. The value is the first token referring to it with `type(T)`
-    terminal_reserved: HashMap<String, TokenId>, // FIXME: change to HashSet
+    /// Future tokens reserved by `type(T)`.
+    terminal_reserved: HashSet<String>,
     /// Terminal token IDs that need to be remapped (from key to value)
     terminal_remap: HashMap<TokenId, TokenId>,
     channels: HashMap<String, ChannelId>,
@@ -134,7 +134,7 @@ impl LexiListener {
             terminals: Vec::new(),
             terminal_literals: Vec::new(),
             terminal_ret: Vec::new(),
-            terminal_reserved: HashMap::new(),
+            terminal_reserved: HashSet::new(),
             terminal_remap: HashMap::new(),
             channels: hashmap!("DEFAULT_CHANNEL".to_string() => 0),
             modes: hashmap!("DEFAULT_MODE".to_string() => 0),
@@ -279,7 +279,7 @@ impl Debug for LexiListener {
         writeln!(f, "  terminals: {}", self.terminals.len())?;
         writeln!(f, "  terminal_literals: {}", self.terminal_literals.len())?;
         writeln!(f, "  terminal_ret: {}", self.terminal_ret.len())?;
-        writeln!(f, "  terminal_reserved: {}", self.terminal_reserved.iter().map(|(s, _)| s.to_string()).join(", "))?;
+        writeln!(f, "  terminal_reserved: {}", self.terminal_reserved.iter().map(|s| s.to_string()).join(", "))?;
         let mut bremap = BTreeMap::<TokenId, TokenId>::new();
         bremap.extend(self.terminal_remap.iter().map(|(a, b)| (*a, *b)));
         let s = bremap.iter().map(|(a, b)| format!("{a} -> {b}")).join(", ");
@@ -299,7 +299,7 @@ impl LexiParserListener for LexiListener {
             println!("- exit_file({_ctx:?})");
             println!("terminal_reserved: {:?}", self.terminal_reserved);
         }
-        for (id, _first_id) in &self.terminal_reserved {
+        for id in &self.terminal_reserved {
             let Some(RuleType::Terminal(reserved_id)) = self.rules.get_mut(id) else { panic!("cannot find reserved {id}") };
             let rule_id = self.terminals.len();
             if *reserved_id as usize >= rule_id {
@@ -416,12 +416,12 @@ impl LexiParserListener for LexiListener {
         };
         let was_reserved = if let Some(RuleType::Terminal(reserved_id)) = self.rules.get_mut(&id) {
             // checks that it's indeed reserved and not a simple conflict with another terminal name
-            if let Some(first_ref_id) = self.terminal_reserved.get(&id) {
-                // reserved_id is a temporary, reserved TokenId introduced by terminal `first_ref_id` with `-> type(id)`
+            if self.terminal_reserved.contains(&id) {
+                // reserved_id is a temporary, reserved TokenId introduced by an action `-> type(X)`
                 assert!(self.terminals.len() <= *reserved_id as usize,
                         "collision between token IDs and reserved IDs: {} > {reserved_id} (for {id})", self.terminals.len());
                 let RuleType::Terminal(rule_id) = rule_type else { panic!() };
-                if self.verbose { println!("terminal {id} was reserved by {first_ref_id} as {reserved_id}; will now be {rule_id}"); }
+                if self.verbose { println!("terminal {id} was reserved as {reserved_id}; will now be {rule_id}"); }
                 self.terminal_remap.insert(*reserved_id, rule_id);
                 *reserved_id = rule_id;
                 true
@@ -501,8 +501,7 @@ impl LexiParserListener for LexiListener {
                         //       in other words, `assert!(self.terminals.len() <= TokenId::MAX as usize - self.terminal_reserved.len())`
                         assert!(self.terminal_reserved.len() < TokenId::MAX as usize, "max {} reserved tokens", TokenId::MAX);
                         let reserved_token = TokenId::MAX - self.terminal_reserved.len() as TokenId;
-                        let token = TokenId::try_from(self.terminals.len()).expect(&format!("max {} rules", TokenId::MAX));
-                        self.terminal_reserved.insert(id.clone(), token);           // first reference (this terminal rule)
+                        self.terminal_reserved.insert(id.clone());
                         if self.verbose { println!("-> type({id}) : reserved ID {reserved_token}"); }
                         self.rules.insert(id, RuleType::Terminal(reserved_token));  // temporary token ID
                         reserved_token
