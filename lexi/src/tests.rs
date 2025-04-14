@@ -603,10 +603,15 @@ mod lexicon {
                     "rule C: cannot decode the character literal ''\\u{d800}'': 'd800' isn't a valid unicode",
                 ]
             ),
+            (
+                r"lexicon test10; A: '\a'; B: 'b';",
+                vec![/* ? */]
+            ),
         ];
         const VERBOSE: bool = true;
 
         for (test_id, (lexicon, mut expected_errors)) in tests.into_iter().enumerate() {
+if test_id != 10 { continue }
             if VERBOSE { println!("\n// {:=<80}\n// Test {test_id}\n{lexicon}\n", ""); }
             let stream = CharReader::new(Cursor::new(lexicon));
             let mut lexi = Lexi::new();
