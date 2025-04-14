@@ -11,7 +11,7 @@ use iter_index::IndexerIterator;
 use crate::dfa::print_graph;
 use crate::{CollectJoin, escape_char, Normalized, indent_source};
 use crate::lexer::Lexer;
-use crate::log::BufLog;
+use crate::log::{BufLog, Logger};
 use crate::segments::{Segments, Seg, SegMap};
 use crate::symbol_table::SymbolTable;
 use super::dfa::*;
@@ -163,6 +163,23 @@ impl LexerGen {
             .filter_map(|(&st, t)| if st >= self.first_end_state { Some(t.clone()) } else { None })
             .to_vec();
         self.terminal_table = terminal_table.into_boxed_slice();
+        let max_token_maybe = self.terminal_table.iter().fold(None, { |acc, t|
+            if let Terminal { action: ActionOption::Token(tok), .. } = t {
+                Some(acc.unwrap_or(0).max(*tok))
+            } else {
+                acc
+            }
+        });
+        match max_token_maybe {
+            Some(max_token) => {
+                if max_token == TokenId::MAX {
+                    self.log.add_error(format!("the token {} is taken, but it's reserved for illegal characters", TokenId::MAX));
+                }
+            }
+            None => {
+                self.log.add_error("the lexer returns no tokens");
+            }
+        }
     }
     
     pub fn write_source_code(&self, file: Option<File>, indent: usize) -> Result<(), std::io::Error> {

@@ -182,7 +182,7 @@ pub mod segments {
 
     #[test]
     fn btree_seg() {
-         let map = SegMap::from_iter([(Seg(1, 10), 1), (Seg(15, 20), 2), (Seg(21, 25), 3), (Seg(30, 40), 4), (Seg(99, 99), 5)]);
+        let map = SegMap::from_iter([(Seg(1, 10), 1), (Seg(15, 20), 2), (Seg(21, 25), 3), (Seg(30, 40), 4), (Seg(99, 99), 5)]);
         let tests = vec![
             (0, 0), (5, 1), (10, 1), (12, 0), (15, 2), (99, 5), (100, 0), (50, 0), (35, 4), (100, 0)
         ];

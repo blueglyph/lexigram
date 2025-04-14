@@ -197,7 +197,14 @@ impl Parser {
                 (stream_sym, stream_str) = stream.next().map(|(t, s, line, col)| {
                     stream_pos = Some((line, col));
                     (Symbol::T(t), s)
-                }).unwrap_or((Symbol::End, String::new()));
+                }).unwrap_or_else(|| {
+                    // checks if there's an error code after the end
+                    if let Some((t, s, line, col)) = stream.next() {
+                        (Symbol::Empty, s)
+                    } else {
+                        (Symbol::End, String::new())
+                    }
+                });
                 advance_stream = false;
             }
             if VERBOSE {
@@ -210,6 +217,12 @@ impl Parser {
                          stack_sym.to_str(sym_table));
             }
             match (stack_sym, stream_sym) {
+                (_, Symbol::Empty) => {
+                    // lexer couldn't recognize the next symbol
+                    if VERBOSE { println!("lexer error: {stream_str}"); }
+                    wrapper.get_mut_log().add_error(format!("lexer error: {stream_str}"));
+                    advance_stream = true;
+                }
                 (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {
                     let sr = if let Symbol::T(sr) = stream_sym { sr } else { end_var_id };
                     let factor_id = self.table[var as usize * self.num_t + sr as usize];

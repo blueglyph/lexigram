@@ -44,9 +44,9 @@ impl Display for LexerError {
             LexerError::EndOfStream { info: LexerErrorInfo { pos, line, col, ..} } =>
                 write!(f, "end of stream, pos = {pos}, line {line}, col {col}"),
             LexerError::InvalidChar { info: LexerErrorInfo { pos, line, col, curr_char, .. } } =>
-                write!(f, "invalid character, pos = {pos}, line {line}, col {col}, chr = '{}'", curr_char.unwrap()),
+                write!(f, "invalid character '{}', pos = {pos}, line {line}, col {col}", curr_char.unwrap()),
             LexerError::UnrecognizedChar  { info: LexerErrorInfo { pos, line, col, curr_char, .. } } =>
-                write!(f, "unrecognized character, pos = {pos}, line {line}, col {col}, chr = '{}'", curr_char.unwrap()),
+                write!(f, "unrecognized character '{}', pos = {pos}, line {line}, col {col}", curr_char.unwrap()),
             LexerError::InfiniteLoop { pos } =>
                 write!(f, "infinite loop, pos = {pos}"),
             LexerError::EmptyStateStack { info: LexerErrorInfo { pos, line, col, curr_char, .. } } =>
@@ -152,7 +152,7 @@ impl<R: Read> Lexer<R> {
     }
 
     pub fn tokens(&mut self) -> LexInterpretIter<'_, R> {
-        LexInterpretIter { lexer: self }
+        LexInterpretIter { lexer: self, error_info: None, mode: LexInterpretIterMode::Normal }
     }
 
     // get_token flow:
@@ -384,13 +384,18 @@ impl<R: Read> Lexer<R> {
 
 }
 
+#[derive(Debug)]
+enum LexInterpretIterMode { Normal, Error }
+
 pub struct LexInterpretIter<'a, R> {
-    lexer: &'a mut Lexer<R>
+    lexer: &'a mut Lexer<R>,
+    error_info: Option<LexerErrorInfo>,
+    mode: LexInterpretIterMode
 }
 
 impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
-    type Item = (TokenId, ChannelId, String, CaretLine, CaretCol);
-
+    type Item = LexerToken; // (TokenId, ChannelId, String, CaretLine, CaretCol);
+/*
     fn next(&mut self) -> Option<Self::Item> {
         if self.lexer.is_eos {
             None
@@ -402,6 +407,38 @@ impl<'a, R: Read> Iterator for LexInterpretIter<'a, R> {
             }
         }
     }
+*/
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.lexer.is_eos {
+            None
+        } else {
+            match self.mode {
+                LexInterpretIterMode::Normal => {
+                    let t = self.lexer.get_token();
+                    match t {
+                        Ok(Some(token)) => Some(token),
+                        Err(LexerError::InvalidChar { info } | LexerError::UnrecognizedChar { info }) => {
+                            // in case of invalid or unrecognized character, the stream issues None then a special lexer tokens
+                            // that have a TokenId::MAX value and the error message in the text field
+                            self.error_info = Some(info);
+                            self.mode = LexInterpretIterMode::Error;
+                            None
+                        }
+                        _ => {
+                            None
+                        }
+                    }
+                }
+                LexInterpretIterMode::Error => {
+                    let info = self.error_info.as_ref().unwrap();
+                    self.mode = LexInterpretIterMode::Normal;
+                    let msg = format!("{}, scanned before = '{}'", self.lexer.get_error().to_string(), self.error_info.as_ref().unwrap().text);
+                    Some((TokenId::MAX, 0, msg, info.line, info.col))
+                }
+            }
+        }
+    }
+
 }
 
 // ---------------------------------------------------------------------------------------------

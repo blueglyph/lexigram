@@ -175,9 +175,14 @@ impl SymbolTable {
     }
 
     pub fn get_t_name(&self, token: TokenId) -> String {
-        // if *token as usize >= self.t.len() { return format!("??T({token})") }
-        let name = &self.t[token as usize];
-        name.1.as_ref().unwrap_or(&name.0).clone()
+        match token {
+            _ if (token as usize) < self.t.len() => {
+                let (name, literal) = &self.t[token as usize];
+                literal.as_ref().unwrap_or(name).clone()
+            }
+            TokenId::MAX => "<bad character>".to_string(),
+            _ => format!("T({token}?)")
+        }
     }
 
     pub fn set_t_name(&mut self, token: TokenId, name_maybe: Option<String>) {
