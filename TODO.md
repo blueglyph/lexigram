@@ -3,6 +3,7 @@
 - error reporting
   - [ ] when creating the lexer
     - [x] ~~Lexi's listener~~
+      - [ ] pretty print tree for errors and reporting
     - [x] Logger in DfaBuilder, Dfa 
       - [ ] populate
     - [x] Logger in LexerGen
@@ -44,6 +45,7 @@
   - [x] ~~create simple top-down parser for rlexer's grammar (manually)~~
   - [x] ~~transform regex AST to vectree~~
   - [x] ~~make binary application (lexicon file -> AST -> vectree -> dfa -> lexgen -> sources)~~
+  - [ ] verify it doesn't crash with erroneous lexicons
 - [ ] don't pour big ranges (.) into utf8 table
 - [ ] independence from reader type (Lexer<R: Read>)
 - improve robustness
