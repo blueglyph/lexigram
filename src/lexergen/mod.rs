@@ -56,6 +56,14 @@ impl LexerGen {
         }
     }
 
+    pub fn get_log(&self) -> &BufLog {
+        &self.log
+    }
+
+    pub fn get_mut_log(&mut self) -> &mut BufLog {
+        &mut self.log
+    }
+
     pub fn from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
         self.log.extend(std::mem::replace(&mut dfa.log, BufLog::new()));
         self.create_input_tables(&dfa);
