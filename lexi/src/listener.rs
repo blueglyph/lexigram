@@ -60,12 +60,12 @@ impl LexAction {
         })
     }
 
-    pub fn try_add(self, rhs: LexAction) -> Result<LexAction, (String, LexAction)> {
+    pub fn try_add(self, rhs: LexAction) -> Result<LexAction, (String, LexAction, LexAction)> {
         if (self.option != LexActionOption::None && rhs.option != LexActionOption::None) ||
             (self.channel.is_some() && rhs.channel.is_some()) ||
             (!self.mode.is_none() && !rhs.mode.is_none())
         {
-            return Err((format!("can't add {self:?} and {rhs:?}"), self))
+            return Err((format!("can't add {self:?} and {rhs:?}"), self, rhs))
         }
         Ok(LexAction {
             option: if self.option == LexActionOption::None { rhs.option } else { self.option },
@@ -73,6 +73,34 @@ impl LexAction {
             mode: if !self.mode.is_none() { self.mode } else { rhs.mode },
             pop: self.pop || rhs.pop,
         })
+    }
+
+    pub fn to_str<F, G>(&self, tok_to_str: F, mode_to_str: G) -> String
+    where F: Fn(TokenId) -> (String, bool),
+          G: Fn(ModeId) -> String
+    {
+        let mut result = Vec::<String>::new();
+        if let Some(ch) = self.channel {
+            result.push(format!("channel({ch})"))
+        }
+        match self.mode {
+            ModeOption::None => {}
+            ModeOption::Mode(m) => result.push(format!("mode({})", mode_to_str(m))),
+            ModeOption::Push(m) => result.push(format!("push({})", mode_to_str(m))),
+        }
+        if self.pop {
+            result.push("pop".to_string());
+        }
+        match self.option {
+            LexActionOption::None => {}
+            LexActionOption::Skip => result.push("skip".to_string()),
+            LexActionOption::Token(t) => {
+                let (name, is_self) = tok_to_str(t);
+                result.push(if is_self { name } else { format!("type({})", name) })
+            },
+            LexActionOption::More => result.push("more".to_string()),
+        }
+        result.join(", ")
     }
 }
 
@@ -125,6 +153,28 @@ pub struct LexiListener {
 }
 
 impl LexiListener {
+    // WARNING: this method isn't efficient; it's only used for error messages or test results. Don't use
+    //          it when performances are required.
+    fn token_to_string(&self, token: TokenId) -> (String, bool) {
+        for (name, ruletype) in &self.rules {
+            if matches!(ruletype, RuleType::Terminal(t) if t == &token) {
+                return (name.clone(), name == self.curr_name.as_ref().unwrap())
+            }
+        }
+        ("??".to_string(), false)
+    }
+
+    // WARNING: this method isn't efficient; it's only used for error messages or test results. Don't use
+    //          it when performances are required.
+    fn mode_to_string(&self, mode: ModeId) -> String {
+        for (name, m) in &self.modes {
+            if m == &mode {
+                return name.to_string();
+            }
+        }
+        format!("{mode}?")
+    }
+
     pub fn new() -> Self {
         LexiListener {
             verbose: false,
@@ -496,7 +546,7 @@ impl LexiParserListener for LexiListener {
             false       // fragment or doesn't exist yet
         };
         if !was_reserved && self.rules.contains_key(&id) {
-            self.log.add_error(format!("rule {}: Symbol '{id}' is already defined", self.curr_name.as_ref().unwrap()));
+            self.log.add_error(format!("rule {}: symbol '{id}' is already defined", self.curr_name.as_ref().unwrap()));
             self.abort = true;
         } else {
             let mut rule = self.curr.take().unwrap();
@@ -548,9 +598,11 @@ impl LexiParserListener for LexiListener {
         let CtxActions::Actions { action, star } = ctx;
         let mut action = action.0;
         for a in star.0 {
-            action = action.try_add(a.0).unwrap_or_else(|(e, action)| {
-                self.log.add_error(e);
-                action
+            action = action.try_add(a.0).unwrap_or_else(|(_e, left, right)| {
+                self.log.add_error(format!("can't add actions '{}' and '{}'",
+                                           left.to_str(|token| self.token_to_string(token), |mode| self.mode_to_string(mode)),
+                                           right.to_str(|token| self.token_to_string(token), |mode| self.mode_to_string(mode))));
+                left
             })
         }
         SynActions(action)
@@ -587,7 +639,7 @@ impl LexiParserListener for LexiListener {
                             self.terminal_ret[*token as usize] = true;
                             *token as TokenId
                         } else {
-                            self.log.add_error(format!("rule {}: {id} is not a terminal; it's a fragment", self.curr_name.as_ref().unwrap()));
+                            self.log.add_error(format!("action in rule {}: '{id}' is not a terminal; it's a fragment", self.curr_name.as_ref().unwrap()));
                             return SynAction(action!(nop));
                         }
                     }
@@ -597,7 +649,7 @@ impl LexiParserListener for LexiListener {
             CtxAction::Action7 { id } => {              // action -> channel ( Id )
                 // we don't allow to define new channels here on the fly because typos would induce annoying errors
                 let channel = *self.channels.get(&id).unwrap_or_else(|| {
-                    self.log.add_error(format!("rule {}: channel {id} undefined", self.curr_name.as_ref().unwrap()));
+                    self.log.add_error(format!("action in rule {}: channel '{id}' undefined", self.curr_name.as_ref().unwrap()));
                     &0
                 });
                 action!(# channel)
@@ -693,7 +745,7 @@ impl LexiParserListener for LexiListener {
                 if let ReType::CharRange(range) = node.get_mut_type() {
                     *range = Box::new(range.not());
                 } else {
-                    self.log.add_error(format!("rule {}: ~ can only be applied to a char set, not to '{node:?}'", self.curr_name.as_ref().unwrap()));
+                    self.log.add_error(format!("rule {}: ~ can only be applied to a char set, not to {}", self.curr_name.as_ref().unwrap(), node.get_type()));
                 }
                 (item.0.0, None)
             }
@@ -840,20 +892,24 @@ fn decode_char(char: &str) -> Result<char, String> {
     // fragment EscChar     : '\\' ([nrt'\\] | UnicodeEsc);
     // fragment UnicodeEsc  : 'u{' HexDigit+ '}';
     // fragment HexDigit    : [0-9a-fA-F];
-    let bytes = char.as_bytes();
-    if bytes[0] == b'\\' {
-        match bytes.get(1).ok_or("'\\' incomplete escape code in character literal".to_string())? {
-            b'n' => Ok('\n'),
-            b'r' => Ok('\r'),
-            b't' => Ok('\t'),
-            b'\'' => Ok('\''),
-            b'\\' => Ok('\\'),
-            b'u' => {
-                if bytes[2] != b'{' || !matches!(char.chars().last(), Some('}')) {
-                    return Err(format!("malformed unicode literal '{char}'"));
-                }
-                let hex = &char[3..char.len()];
-                let code = u32::from_str_radix(hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
+    let mut chars = char.chars();
+    let c = chars.next();
+    if c == Some('\\') {
+        match chars.next().ok_or("'\\' incomplete escape code in character literal".to_string())? {
+            'n' => Ok('\n'),
+            'r' => Ok('\r'),
+            't' => Ok('\t'),
+            '\'' => Ok('\''),
+            '\\' => Ok('\\'),
+            'u' => {
+                if !matches!(chars.next(), Some('{')) { return Err(format!("malformed unicode literal in string literal '{char}' (missing '{{')")); }
+                let mut hex = String::new();
+                loop {
+                    let Some(h) = chars.next() else { return Err(format!("malformed unicode literal in string literal '{char}' (missing '}}')")); };
+                    if h == '}' { break; }
+                    hex.push(h);
+                };
+                let code = u32::from_str_radix(&hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
                 let u = char::from_u32(code).ok_or(format!("'{hex}' isn't a valid unicode hexadecimal value"))?;
                 Ok(u)
             }
@@ -861,7 +917,7 @@ fn decode_char(char: &str) -> Result<char, String> {
         }
 
     } else {
-        char.chars().next().ok_or(format!("'{char}' is not a valid character literal"))
+        c.ok_or(format!("'{char}' is not a valid character literal"))
     }
 }
 

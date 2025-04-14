@@ -54,6 +54,9 @@ impl<R: Read> Lexi<R> {
             }
         });
         let result = self.lexiparser.parse_stream(&mut self.wrapper, tokens);
+        if Self::VERBOSE_DETAILS {
+            println!("Lexilexer: {:?}", self.lexilexer.get_error());
+        }
         result.and_then(|r| if self.wrapper.get_listener().get_log().num_errors() > 0 {
             // in case the parser hasn't reported any error but the listener has
             Err(ParserError::EncounteredErrors)

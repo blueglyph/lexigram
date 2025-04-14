@@ -222,6 +222,7 @@ mod listener {
                 while i < expected_grammar_errors.len() {
                     if m.contains(expected_grammar_errors[i]) {
                         expected_grammar_errors.remove(i);
+                        break;
                     } else {
                         i += 1;
                     }

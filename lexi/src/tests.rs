@@ -337,7 +337,6 @@ mod simple {
             }
             assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}");
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");
-            // assert_eq!(result_tokens, expected_tokens, "{text}");
 
             let mut lexer = LexerGen::from(dfa).make_lexer();
             for (input_id, (input, expected_tokens)) in test_strs.into_iter().enumerate() {
@@ -531,6 +530,116 @@ mod simple {
             }
             // checks that the Dfa can be built and optimized
             black_box(listener.make_dfa().optimize());
+        }
+    }
+}
+
+mod lexicon {
+    use std::io::Cursor;
+    use lexigram::CollectJoin;
+    use lexigram::io::CharReader;
+    use crate::lexi::Lexi;
+
+    #[test]
+    fn errors() {
+        let tests = vec![
+            (
+                r#"lexicon test0; channels { CH1, CH1 }"#,
+                vec!["channel 'CH1' defined twice"]
+            ),
+            (
+                r"lexicon test1; fragment A: 'a1'; fragment A: 'a2';",
+                vec!["symbol 'A' is already defined"]
+            ),
+            (
+                r"lexicon test2; fragment A: 'a1'; A: 'a2';",
+                vec!["symbol 'A' is already defined"]
+            ),
+            (
+                r"lexicon test3; A: 'a1'; A: 'a2';",
+                vec!["symbol 'A' is already defined"]
+            ),
+            (
+                r#"lexicon test4;
+                    R: 'fake';
+                    S: 'dummy';
+                    A: 'a' -> type(R), type(S);
+                    B: 'b' -> skip, type(R);
+                    C: 'c' -> skip, more, push(MODE_A);
+                    D: 'd' -> type(R), more, pop;
+                    E: 'e' -> mode(X), mode(Y), skip;"#,
+                vec![
+                    "can't add actions 'type(R)' and 'type(S)'",
+                    "can't add actions 'skip' and 'type(R)'",
+                    "can't add actions 'skip' and 'more'",
+                    "can't add actions 'type(R)' and 'more'",
+                    "can't add actions 'mode(X)' and 'mode(Y)",
+                ]
+            ),
+            (
+                r"lexicon test5; fragment A: 'a'; B: 'b' -> type(A);",
+                vec!["rule B: 'A' is not a terminal; it's a fragment"]
+            ),
+            (
+                r"lexicon test6; channels { CH1 } A: 'a' -> channel(CH2);",
+                vec!["rule A: channel 'CH2' undefined"]
+            ),
+            (
+                r"lexicon test7; A: ~'abc'; B: ~('ab'|'cd');",
+                vec![
+                    "rule A: ~ can only be applied to a char set, not to 'abc'",
+                    "rule B: ~ can only be applied to a char set, not to |", // not a great message...
+                ]
+            ),
+            (
+                r"lexicon test8; fragment A: B;",
+                vec!["rule A: unknown fragment 'B'"]
+            ),
+            (
+                r#"lexicon test9; A: ':\u{d800}'; B: '\u{110000}'; C: 'a'..'\u{d800}';"#,
+                vec![
+                    "rule A: cannot decode the string literal ':\\u{d800}': 'd800' isn't a valid unicode",
+                    "rule B: cannot decode the character literal '\\u{110000}': '110000' isn't a valid unicode",
+                    "rule C: cannot decode the character literal ''\\u{d800}'': 'd800' isn't a valid unicode",
+                ]
+            ),
+        ];
+        const VERBOSE: bool = true;
+
+        for (test_id, (lexicon, mut expected_errors)) in tests.into_iter().enumerate() {
+            if VERBOSE { println!("\n// {:=<80}\n// Test {test_id}\n{lexicon}\n", ""); }
+            let stream = CharReader::new(Cursor::new(lexicon));
+            let mut lexi = Lexi::new();
+            let _result = lexi.build(stream);
+            let listener = lexi.wrapper.listener();
+            let text = format!("test {test_id} failed");
+            let msg = listener.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
+            if VERBOSE {
+                if !msg.is_empty() {
+                    println!("Messages:{msg}");
+                }
+            }
+            let mut extra_errors = vec![];
+            for m in listener.get_log().get_errors() {
+                let mut i = 0;
+                let mut found = false;
+                while i < expected_errors.len() {
+                    if m.contains(expected_errors[i]) {
+                        expected_errors.remove(i);
+                        found = true;
+                        break;
+                    } else {
+                        i += 1;
+                    }
+                }
+                if !found {
+                    extra_errors.push(m.to_string());
+                }
+            }
+            assert!(expected_errors.is_empty(), "{text} was expecting to find those errors while parsing the lexicon:{}\nbut got those messages:{msg}",
+                    expected_errors.iter().map(|s| format!("\n- {s}")).join(""));
+            assert!(extra_errors.is_empty(), "{text} generated unforseen errors:{}",
+                    extra_errors.iter().map(|s| format!("\n- {s}")).join(""));
         }
     }
 }
