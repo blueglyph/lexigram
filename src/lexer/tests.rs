@@ -43,7 +43,8 @@ fn lexer_simple() {
             1 => (vec!["0.5", "0.1 ", "9876543210.0123456789"], vec!["0.5", "0.1", "9876543210.0123456789"]),
             2 => (vec!["0x0", "0xF ", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"], vec!["0x0", "0xF", "0x0123456789abcdef", "0x0123456789ABCDEF", "0xff"]),
          ],
-         vec![("a", 0, false), (".5", 0, false), ("()", 0, false), ("0xy", 2, false), ("0.a", 2, false), ("", 0, true), (" ", 1, true)],
+         vec![("a", Some(0), false), (".5", Some(0), false), ("()", Some(0), false), ("0xy", Some(2), false),
+              ("0.a", Some(2), false), ("", Some(0), true), (" ", Some(1), true)],
          vec![
              // note: col values are set on the first space character [ \t\n\t] since we don't skip them in another channel
              ("0 1 2 ", vec![(0, 1, 1), (0, 1, 2), (0, 1, 4)]),
@@ -62,7 +63,7 @@ fn lexer_simple() {
             4 => (vec!["+", "+5", "+a"], vec!["+", "+", "+"]),
             5 => (vec![";", ";a"], vec![";", ";"]),
          ],
-         vec![("0", 0, false), ("", 0, true), ("-", 0, false), ("*", 0, false)],
+         vec![("0", Some(0), false), ("", Some(0), true), ("-", Some(0), false), ("*", Some(0), false)],
          //     1-9012345678901234567890
          vec![("\ta = x; if i=j print b;\n", vec![(0, 1, 1), (3, 1, 10), (0, 1, 12), (5, 1, 14), (1, 1, 15), (0, 1, 18), (3, 1, 20), (0, 1, 21),
                                                   (2, 1, 22), (0, 1, 28), (5, 1, 30)])]
@@ -96,8 +97,8 @@ fn lexer_simple() {
             let token = eval(&result, VERBOSE);
             assert_eq!(token, None, "test {} failed for input '{}'", test_id, escape_string(input));
             if let Err(e) = result {
-                assert_eq!(lexer.pos, expected_pos, "test {} failed for input '{}', {:?}", test_id, escape_string(input), e);
-                assert_eq!(lexer.is_eos(), expected_eos, "test {} failed for input '{}', {:?}", test_id, escape_string(input), e);
+                assert_eq!(e.get_pos(), expected_pos, "test {} failed for input '{}', wrong pos, {:?}", test_id, escape_string(input), e);
+                assert_eq!(lexer.is_eos(), expected_eos, "test {} failed for input '{}', wrong eos flag, {:?}", test_id, escape_string(input), e);
             }
         }
         // gathering all the tokens, one at a time:

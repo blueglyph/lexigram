@@ -87,6 +87,7 @@ pub struct Parser {
 impl Parser {
     /// Maximum number of error recoveries attempted when meeting a syntax error
     pub const MAX_NBR_RECOVERS: u32 = 5;
+    pub const MAX_NBR_LEXER_ERRORS: u32 = 3;
     pub fn new(parsing_table: LLParsingTable, symbol_table: SymbolTable, opcodes: Vec<Vec<OpCode>>, start: VarId) -> Self {
         assert!(parsing_table.num_nt > start as usize);
         let mut parser = Parser {
@@ -182,6 +183,7 @@ impl Parser {
         if VERBOSE { println!("skip = {error_skip_factor_id}, pop = {error_pop_factor_id}"); }
         let mut recover_mode = false;
         let mut nbr_recovers = 0;
+        let mut nbr_lexer_errors = 0;
         let end_var_id = (self.num_t - 1) as VarId;
         stack.push(OpCode::End);
         stack.push(OpCode::NT(self.start));
@@ -220,7 +222,13 @@ impl Parser {
                 (_, Symbol::Empty) => {
                     // lexer couldn't recognize the next symbol
                     if VERBOSE { println!("lexer error: {stream_str}"); }
-                    wrapper.get_mut_log().add_error(format!("lexer error: {stream_str}"));
+                    wrapper.get_mut_log().add_error(format!("lexical error: {stream_str}"));
+                    nbr_lexer_errors += 1;
+                    if nbr_lexer_errors >= Self::MAX_NBR_LEXER_ERRORS {
+                        wrapper.get_mut_log().add_note(format!("too many lexical errors ({nbr_lexer_errors}), giving up"));
+                        wrapper.abort();
+                        return Err(ParserError::TooManyErrors);
+                    }
                     advance_stream = true;
                 }
                 (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {

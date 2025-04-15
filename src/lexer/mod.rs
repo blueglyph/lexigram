@@ -42,15 +42,39 @@ impl Display for LexerError {
             LexerError::None => write!(f, "no error"),
             LexerError::NoStreamAttached => write!(f, "no stream attached"),
             LexerError::EndOfStream { info: LexerErrorInfo { pos, line, col, ..} } =>
-                write!(f, "end of stream, pos = {pos}, line {line}, col {col}"),
+                write!(f, "end of stream, line {line}, col {col} (stream pos = {pos})"),
             LexerError::InvalidChar { info: LexerErrorInfo { pos, line, col, curr_char, .. } } =>
-                write!(f, "invalid character '{}', pos = {pos}, line {line}, col {col}", curr_char.unwrap()),
+                write!(f, "invalid character '{}', line {line}, col {col} (stream pos = {pos})", curr_char.unwrap()),
             LexerError::UnrecognizedChar  { info: LexerErrorInfo { pos, line, col, curr_char, .. } } =>
-                write!(f, "unrecognized character '{}', pos = {pos}, line {line}, col {col}", curr_char.unwrap()),
+                write!(f, "unrecognized character '{}', line {line}, col {col} (stream pos = {pos})", curr_char.unwrap()),
             LexerError::InfiniteLoop { pos } =>
-                write!(f, "infinite loop, pos = {pos}"),
+                write!(f, "infinite loop (stream pos = {pos})"),
             LexerError::EmptyStateStack { info: LexerErrorInfo { pos, line, col, curr_char, .. } } =>
-                write!(f, "pop from empty stack, pos = {pos}, line {line}, col {col}{}", if let Some(c) = curr_char { format!(", chr = '{c}'") } else { String::new() })
+                write!(f, "pop from empty stack, line {line}, col {col}{} (stream pos = {pos})",
+                       if let Some(c) = curr_char { format!(", chr = '{c}'") } else { String::new() })
+        }
+    }
+}
+
+impl LexerError {
+    pub fn get_pos(&self) -> Option<u64> {
+        match &self {
+            LexerError::EndOfStream { info: LexerErrorInfo { pos, .. } }
+            | LexerError::InvalidChar { info: LexerErrorInfo { pos, .. } }
+            | LexerError::UnrecognizedChar { info: LexerErrorInfo { pos, .. } }
+            | LexerError::InfiniteLoop { pos }
+            | LexerError::EmptyStateStack { info: LexerErrorInfo { pos, .. } } => Some(*pos),
+            _ => None
+        }
+    }
+
+    pub fn get_line_col(&self) -> Option<(CaretLine, CaretCol)> {
+        match &self {
+            LexerError::EndOfStream { info: LexerErrorInfo { line, col, .. } }
+            | LexerError::InvalidChar { info: LexerErrorInfo { line, col, .. } }
+            | LexerError::UnrecognizedChar { info: LexerErrorInfo { line, col, .. } }
+            | LexerError::EmptyStateStack { info: LexerErrorInfo { line, col, .. } } => Some((*line, *col)),
+            _ => None
         }
     }
 }
@@ -195,7 +219,8 @@ impl<R: Read> Lexer<R> {
         self.error = LexerError::None;
         let mut text = String::new();
         let mut more_text = String::new();  // keeps previously scanned text if `more` action
-        if let Some(input) = self.input.as_mut() {
+        // if let Some(input) = self.input.as_mut() {
+        if self.input.is_some() {
             let mut state = self.start_state;
             let (mut line, mut col) = (self.line, self.col);
             #[cfg(debug_assertions)] let mut last_state: Option<StateId> = None;
@@ -203,6 +228,7 @@ impl<R: Read> Lexer<R> {
             #[cfg(debug_assertions)] let mut infinite_loop_cnt = 0_u32;
             loop {
                 if VERBOSE { print!("- state = {state}"); }
+                let input = self.input.as_mut().unwrap();
                 #[cfg(debug_assertions)] {
                     if last_state.map(|st| st == state).unwrap_or(false) && last_offset.map(|offset| offset == input.get_offset()).unwrap_or(false) {
                         if infinite_loop_cnt > 3 {
@@ -293,8 +319,12 @@ impl<R: Read> Lexer<R> {
                     self.error = if is_eos {
                         LexerError::EndOfStream { info }
                     } else if group >= self.nbr_groups {
+                        let c = input.get_char().unwrap();   // removing the bad character (not accepting state)
+                        self.update_pos(c);
                         LexerError::UnrecognizedChar { info }
                     } else {
+                        let c = input.get_char().unwrap();   // removing the bad character (not accepting state)
+                        self.update_pos(c);
                         LexerError::InvalidChar { info }
                     };
                     if VERBOSE { println!(" => Err({})", self.error); }
@@ -302,33 +332,37 @@ impl<R: Read> Lexer<R> {
                 } else {
                     if let Some(c) = c_opt {
                         text.push(c);
-                        match c {
-                            '\t' => {
-                                //            ↓       ↓    (if self.tab_width = 8)
-                                //    1234567890123456789
-                                // 1) ..↑                  col = 3
-                                //    ..→→→→→→↑            col = 3 - 2%8 + 8 = 3 - 2 + 8 = 9
-                                // 2) .............↑       col = 14
-                                //    .............→→→↑    col = 14 - 13%8 + 8 = 14 - 5 + 8 = 17
-                                self.col = self.col - (self.col - 1) % self.tab_width as CaretCol + self.tab_width as CaretCol;
-                            }
-                            '\n' => {
-                                self.line += 1;
-                                self.col = 1;
-                            }
-                            '\r' => {}
-                            _ => self.col += 1,
-                        }
+                        self.update_pos(c);
                     }
                     if VERBOSE { println!(" => state {new_state}"); }
                     state = new_state;
-                    self.pos += 1;
                 }
             }
         }
         self.error = LexerError::NoStreamAttached;
         if VERBOSE { println!(" => Err({})", self.error); }
         Err(self.error.clone())
+    }
+
+    pub fn update_pos(&mut self, c: char) {
+        match c {
+            '\t' => {
+                //            ↓       ↓    (if self.tab_width = 8)
+                //    1234567890123456789
+                // 1) ..↑                  col = 3
+                //    ..→→→→→→↑            col = 3 - 2%8 + 8 = 3 - 2 + 8 = 9
+                // 2) .............↑       col = 14
+                //    .............→→→↑    col = 14 - 13%8 + 8 = 14 - 5 + 8 = 17
+                self.col = self.col - (self.col - 1) % self.tab_width as CaretCol + self.tab_width as CaretCol;
+            }
+            '\n' => {
+                self.line += 1;
+                self.col = 1;
+            }
+            '\r' => {}
+            _ => self.col += 1,
+        }
+        self.pos += 1;
     }
 
     pub fn get_error(&self) -> &LexerError {

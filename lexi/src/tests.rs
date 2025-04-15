@@ -605,7 +605,11 @@ mod lexicon {
             ),
             (
                 r#"lexicon test10; A: 'bad:\a'; B: 'b';"#,
-                vec!["lexer error: invalid character 'a'"]
+                vec!["lexical error: invalid character 'a'"]
+            ),
+            (
+                r#"lexicon test11; A: 'bad:\u100'; B: 'b';"#,
+                vec!["lexical error: invalid character '1'"]
             ),
         ];
         const VERBOSE: bool = false;
