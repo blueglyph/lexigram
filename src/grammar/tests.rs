@@ -1242,6 +1242,55 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 5; t 6; t 2, nt 2, t 3),
             ]);
         }
+        50 => {
+            // classical ambiguous arithmetic grammar
+            // E -> E '^' E | E '*' E | E '+' E | F;
+            // F -> ( E ) | NUM | ID
+            symbol_table.extend_terminals([
+                ("ABS".to_string(), Some("abs".to_string())),   // 0
+                ("NEG".to_string(), Some("-".to_string())),     // 1
+                ("EXP".to_string(), Some("^".to_string())),     // 2
+                ("MUL".to_string(), Some("*".to_string())),     // 3
+                ("ADD".to_string(), Some("+".to_string())),     // 4
+                ("LPAREN".to_string(), Some("(".to_string())),  // 5
+                ("RPAREN".to_string(), Some(")".to_string())),  // 6
+                ("NUM".to_string(), None),                      // 7
+                ("ID".to_string(), None)                        // 8
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
+            symbol_table.extend_non_terminals(["F".to_string()]);   // 1
+            prods.extend([
+                prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 4, nt 0; nt 1),
+                prod!(t 5, nt 0, t 6; t 7; t 8),
+            ]);
+        }
+        51 => {
+            // classical ambiguous arithmetic grammar
+            // E -> 'abs' E | E '^' E | E '*' E | '-' E | E '+' E | F;
+            // F -> ( E ) | NUM | ID
+            symbol_table.extend_terminals([
+                ("ABS".to_string(), Some("abs".to_string())),   // 0
+                ("NEG".to_string(), Some("-".to_string())),     // 1
+                ("EXP".to_string(), Some("^".to_string())),     // 2
+                ("MUL".to_string(), Some("*".to_string())),     // 3
+                ("ADD".to_string(), Some("+".to_string())),     // 4
+                ("LPAREN".to_string(), Some("(".to_string())),  // 5
+                ("RPAREN".to_string(), Some(")".to_string())),  // 6
+                ("NUM".to_string(), None),                      // 7
+                ("ID".to_string(), None)                        // 8
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
+            symbol_table.extend_non_terminals(["F".to_string()]);   // 1
+            prods.extend([
+                prod!(t 0, nt 0;
+                    nt 0, t 2, nt 0; nt 0, t 3, nt 0;
+                    t 1, nt 0;
+                    nt 0, t 4, nt 0;
+                    nt 1),
+                prod!(t 5, nt 0, t 6; t 7; t 8),
+            ]);
+        }
+
 
         // ambiguity?
         100 => {
@@ -2215,6 +2264,73 @@ fn prs_calc_table() {
               8,   9,   7,   9,   9,   5,   6,   8,   8,
         ]),
 
+        (50, 0, 1, vec![
+            // - 0: E -> F E_1
+            // - 1: F -> ( E )
+            // - 2: F -> NUM
+            // - 3: F -> ID
+            // - 4: E_1 -> ^ F E_1
+            // - 5: E_1 -> * F E_1
+            // - 6: E_1 -> + F E_1
+            // - 7: E_1 -> ε
+            (0, prodf!(nt 1, nt 2)),
+            (1, prodf!(t 5, nt 0, t 6)),
+            (1, prodf!(t 7)),
+            (1, prodf!(t 8)),
+            (2, prodf!(t 2, nt 1, nt 2)),
+            (2, prodf!(t 3, nt 1, nt 2)),
+            (2, prodf!(t 4, nt 1, nt 2)),
+            (2, prodf!(e)),
+        ], vec![
+            //     | abs  -   ^   *   +   (   )  NUM ID   $
+            // ----+-----------------------------------------
+            // E   |  .   .   .   .   .   0   p   0   0   p
+            // F   |  .   .   p   p   p   1   p   2   3   p
+            // E_1 |  .   .   4   5   6   .   7   .   .   7
+              8,   8,   8,   8,   8,   0,   9,   0,   0,   9,
+              8,   8,   9,   9,   9,   1,   9,   2,   3,   9,
+              8,   8,   4,   5,   6,   8,   7,   8,   8,   7,
+        ]),
+        (51, 0, 3, vec![
+            // - 0: E -> abs E E_2
+            // - 1: E -> - E E_2
+            // - 2: E -> F E_2
+            // - 3: F -> ( E )
+            // - 4: F -> NUM
+            // - 5: F -> ID
+            // - 6: E_1 -> abs E
+            // - 7: E_1 -> - E
+            // - 8: E_1 -> F
+            // - 9: E_2 -> ^ E_1 E_2
+            // - 10: E_2 -> * E_1 E_2
+            // - 11: E_2 -> + E_1 E_2
+            // - 12: E_2 -> ε
+            (0, prodf!(t 0, nt 0, nt 3)),
+            (0, prodf!(t 1, nt 0, nt 3)),
+            (0, prodf!(nt 1, nt 3)),
+            (1, prodf!(t 5, nt 0, t 6)),
+            (1, prodf!(t 7)),
+            (1, prodf!(t 8)),
+            (2, prodf!(t 0, nt 0)),
+            (2, prodf!(t 1, nt 0)),
+            (2, prodf!(nt 1)),
+            (3, prodf!(t 2, nt 2, nt 3)),
+            (3, prodf!(t 3, nt 2, nt 3)),
+            (3, prodf!(t 4, nt 2, nt 3)),
+            (3, prodf!(e)),
+        ], vec![
+            //     | abs  -   ^   *   +   (   )  NUM ID   $
+            // ----+-----------------------------------------
+            // E   |  0   1   p   p   p   2   p   2   2   p
+            // F   |  .   .   p   p   p   3   p   4   5   p
+            // E_1 |  6   7   p   p   p   8   p   8   8   p
+            // E_2 |  .   .   9  10  11   .  12   .   .  12
+              0,   1,  14,  14,  14,   2,  14,   2,   2,  14,
+             13,  13,  14,  14,  14,   3,  14,   4,   5,  14,
+              6,   7,  14,  14,  14,   8,  14,   8,   8,  14,
+             13,  13,   9,  10,  11,  13,  12,  13,  13,  12,
+        ]),
+
         (100, 0, 0, vec![
             // - 0: A -> c A_1
             // - 1: A_1 -> a A b A_1
@@ -2333,8 +2449,9 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
+if !hashset![51].contains(&ll_id) { continue; }
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
