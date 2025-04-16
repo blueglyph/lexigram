@@ -1438,9 +1438,17 @@ impl<T> ProdRuleSet<T> {
                     }
                     factor.push(symbol_prime);
                 }
-                for factor in &mut fine {
+                const NEW_METHOD: bool = true;
+                if NEW_METHOD && var_ambig.is_some() {
+                    // change A -> A_0 A_p
+                    let symbol_ambig = Symbol::NT(var_ambig.unwrap());
+                    fine.clear();
+                    fine.push(ProdFactor::new(vec![symbol_ambig, symbol_prime]));
+                } else {
                     // change A -> γ1 A_p | ... | γk A_p
-                    factor.push(symbol_prime.clone());
+                    for factor in &mut fine {
+                        factor.push(symbol_prime.clone());
+                    }
                 }
                 for factor in &mut left {
                     // add to prime: A_p -> α1 A_p | ... | αm A_p

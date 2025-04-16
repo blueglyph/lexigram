@@ -238,6 +238,13 @@ fn parser_parse_stream_id() {
                 "syntax error: found input ']' instead of '(', 'id', 'int' while parsing '►FACTOR', line 1, col 13"
             ])),
         ]),
+        (T::PRS(51), 0, 8, 7, vec![
+            // E -> 'abs' E | E '^' E | E '*' E | '-' E | E '+' E | F;
+            // F -> ( E ) | NUM | ID
+            ("1 ^ 2", None),
+            ("3 * - 4", None),
+            ("( 1 + 2 ) * ( 3 + abs i ) ^ 2", None)
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
