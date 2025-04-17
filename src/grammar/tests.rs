@@ -1266,7 +1266,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         }
         51 => {
             // classical ambiguous arithmetic grammar
-            // E -> 'abs' E | E '^' E | E '*' E | '-' E | E '+' E | F;
+            // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | F;
             // F -> ( E ) | NUM | ID
             symbol_table.extend_terminals([
                 ("ABS".to_string(), Some("abs".to_string())),   // 0
@@ -1277,13 +1277,16 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("LPAREN".to_string(), Some("(".to_string())),  // 5
                 ("RPAREN".to_string(), Some(")".to_string())),  // 6
                 ("NUM".to_string(), None),                      // 7
-                ("ID".to_string(), None)                        // 8
+                ("ID".to_string(), None),                       // 8
+                ("PRIME".to_string(), Some("'".to_string())),   // 9
             ]);
             symbol_table.extend_non_terminals(["E".to_string()]);   // 0
             symbol_table.extend_non_terminals(["F".to_string()]);   // 1
             prods.extend([
                 prod!(t 0, nt 0;
-                    nt 0, t 2, nt 0; nt 0, t 3, nt 0;
+                    nt 0, t 2, nt 0;
+                    nt 0, t 9;
+                    nt 0, t 3, nt 0;
                     t 1, nt 0;
                     nt 0, t 4, nt 0;
                     nt 1),
@@ -2316,7 +2319,7 @@ fn prs_calc_table() {
               8,   8,   9,   9,   9,   1,   9,   2,   3,   9,
               8,   8,   4,   5,   6,   8,   7,   8,   8,   7,
         ]),
-        (51, 0, 3, vec![
+        (51, 0, 4, vec![
             // - 0: E -> E_1 E_2
             // - 1: F -> ( E )
             // - 2: F -> NUM
@@ -2324,10 +2327,11 @@ fn prs_calc_table() {
             // - 4: E_1 -> abs E
             // - 5: E_1 -> - E
             // - 6: E_1 -> F
-            // - 7: E_2 -> ^ E_1 E_2
-            // - 8: E_2 -> * E_1 E_2
-            // - 9: E_2 -> + E_1 E_2
-            // - 10: E_2 -> ε
+            // - 7: E_2 -> ' E_2
+            // - 8: E_2 -> ^ E_1 E_2
+            // - 9: E_2 -> * E_1 E_2
+            // - 10: E_2 -> + E_1 E_2
+            // - 11: E_2 -> ε
             (0, prodf!(nt 2, nt 3)),
             (1, prodf!(t 5, nt 0, t 6)),
             (1, prodf!(t 7)),
@@ -2335,21 +2339,22 @@ fn prs_calc_table() {
             (2, prodf!(t 0, nt 0)),
             (2, prodf!(t 1, nt 0)),
             (2, prodf!(nt 1)),
+            (3, prodf!(t 9, nt 3)),
             (3, prodf!(t 2, nt 2, nt 3)),
             (3, prodf!(t 3, nt 2, nt 3)),
             (3, prodf!(t 4, nt 2, nt 3)),
             (3, prodf!(e)),
         ], vec![
-            //     | abs  -   ^   *   +   (   )  NUM ID   $
-            // ----+-----------------------------------------
-            // E   |  0   0   p   p   p   0   p   0   0   p
-            // F   |  .   .   p   p   p   1   p   2   3   p
-            // E_1 |  4   5   p   p   p   6   p   6   6   p
-            // E_2 |  .   .   7   8   9   .  10   .   .  10
-              0,   0,  12,  12,  12,   0,  12,   0,   0,  12,
-             11,  11,  12,  12,  12,   1,  12,   2,   3,  12,
-              4,   5,  12,  12,  12,   6,  12,   6,   6,  12,
-             11,  11,   7,   8,   9,  11,  10,  11,  11,  10,
+            //     | abs  -   ^   *   +   (   )  NUM ID   '   $ 
+            // ----+---------------------------------------------
+            // E   |  0   0   p   p   p   0   p   0   0   p   p 
+            // F   |  .   .   p   p   p   1   p   2   3   p   p 
+            // E_1 |  4   5   p   p   p   6   p   6   6   p   p 
+            // E_2 |  .   .   8   9  10   .  11   .   .   7  11 
+              0,   0,  13,  13,  13,   0,  13,   0,   0,  13,  13,
+             12,  12,  13,  13,  13,   1,  13,   2,   3,  13,  13,
+              4,   5,  13,  13,  13,   6,  13,   6,   6,  13,  13,
+             12,  12,   8,   9,  10,  12,  11,  12,  12,   7,  11,
         ]),
 
         (100, 0, 0, vec![
