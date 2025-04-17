@@ -28,7 +28,7 @@ mod gen_integration {
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
     use crate::symbol_table::SymbolTable;
-    use crate::test_tools::get_tagged_source;
+    use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub(crate) enum T { RTS(u32), PRS(u32) }
@@ -61,7 +61,7 @@ mod gen_integration {
             //         rules   indent  t_data   tag name                                      listener name
              0 => Some((PRS(13), 8,    false, "write_source_code_from_ll1",                   "None")),
              1 => Some((PRS( 4), 4,    false, "write_source_code_for_integration_listener",   "Expr")),
-             2 => Some((PRS(13), 4,    false, "write_source_code_for_integration_listener2",  "Expr")),
+             2 => Some((PRS(51), 4,    false, "write_source_code_for_integration_listener2",  "Expr")),
              3 => Some((PRS(20), 4,    false, "write_source_code_for_integration_listener3",  "Struct")),
              4 => Some((PRS(30), 4,    false, "write_source_code_for_integration_listener4",  "Struct")),
              5 => Some((PRS(31), 4,    false, "write_source_code_for_integration_listener5",  "Expr")),
@@ -76,17 +76,26 @@ mod gen_integration {
             _ => None
         }
     }
+    
+    enum Action { VerifySource, WriteSource }
 
-    fn do_test(id: u32, verbose: bool) -> bool {
+    fn do_test(id: u32, action: Action, verbose: bool) -> bool {
         const FILENAME: &str = "tests/integration/parser_examples.rs";
         if let Some((rule_id, indent, is_t_data, tag, name)) = get_test_data(id) {
-            let expected = get_source(rule_id, indent, is_t_data, name.to_string());
+            let source = get_source(rule_id, indent, is_t_data, name.to_string());
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
-                println!("{s}// [{tag}]\n{expected}{s}// [{tag}]");
+                println!("{s}// [{tag}]\n{source}{s}// [{tag}]");
             }
-            let result = get_tagged_source(FILENAME, tag).expect("");
-            assert_eq!(result, expected, "test failed for {id} / {rule_id:?} / {tag} ({name})");
+            match action {
+                Action::VerifySource => {
+                    let result = get_tagged_source(FILENAME, tag).expect("");
+                    assert_eq!(result, source, "test failed for {id} / {rule_id:?} / {tag} ({name})");
+                }
+                Action::WriteSource => {
+                    replace_tagged_source(FILENAME, tag, source.as_str()).expect(&format!("couldn't write {FILENAME} / {tag}"));
+                }
+            }
             true
         } else {
             false
@@ -97,7 +106,17 @@ mod gen_integration {
     #[cfg(not(miri))]
     fn verify_integration_sources() {
         for i in 0_u32.. {
-            if !do_test(i, false) { break }
+            if !do_test(i, Action::VerifySource, false) { break }
+            // println!("{i} OK");
+        }
+    }
+
+    #[ignore]
+    #[test]
+    #[cfg(not(miri))]
+    fn write_all_sources() {
+        for i in 0_u32.. {
+            if !do_test(i, Action::WriteSource, false) { break }
             // println!("{i} OK");
         }
     }
@@ -105,85 +124,85 @@ mod gen_integration {
     #[ignore]
     #[test]
     fn write_source_code_from_ll1() {
-        do_test(0, true);
+        do_test(0, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener1() {
-        do_test(1, true);
+        do_test(1, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener2() {
-        do_test(2, true);
+        do_test(2, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener3() {
-        do_test(3, true);
+        do_test(3, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener4() {
-        do_test(4, true);
+        do_test(4, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener5() {
-        do_test(5, true);
+        do_test(5, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener6() {
-        do_test(6, true);
+        do_test(6, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener7() {
-        do_test(7, true);
+        do_test(7, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener8() {
-        do_test(8, true);
+        do_test(8, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener9() {
-        do_test(9, true);
+        do_test(9, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener10() {
-        do_test(10, true);
+        do_test(10, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener11() {
-        do_test(11, true);
+        do_test(11, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener12() {
-        do_test(12, true);
+        do_test(12, Action::WriteSource, true);
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener13() {
-        do_test(13, true);
+        do_test(13, Action::WriteSource, true);
     }
 }
 
