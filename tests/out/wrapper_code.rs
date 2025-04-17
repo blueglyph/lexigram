@@ -528,3 +528,12 @@ pub(crate) mod code_rts_100_1 {
     /// User-defined type for `char_set_one`
     #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
 }
+
+pub(crate) mod code_prs_51_1 {
+    /// User-defined type for `E`
+    #[derive(Debug, PartialEq)]
+    pub struct SynE();
+    /// User-defined type for `F`
+    #[derive(Debug, PartialEq)]
+    pub struct SynF();
+}

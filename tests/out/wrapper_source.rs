@@ -9340,3 +9340,185 @@ pub(crate) mod rules_rts_100_1 {
     // [wrapper source for rule RTS(100) #1, start file]
     // ------------------------------------------------------------
 }
+
+pub(crate) mod rules_prs_51_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(51) #1, start E]
+
+    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_prs_51_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxE {
+        /// `E -> E_1`
+        E1,
+        /// `E_1 -> abs E`
+        E2 { e: SynE },
+        /// `E_1 -> - E`
+        E3 { e: SynE },
+        /// `E_1 -> F`
+        E4 { f: SynF },
+        /// `E -> E '`
+        E5 { e: SynE },
+        /// `E -> E ^ E_1`
+        E6 { e: SynE },
+        /// `E -> E * E_1`
+        E7 { e: SynE },
+        /// `E -> E + E_1`
+        E8 { e: SynE },
+        /// end of iterations in E -> E ' | E ^ E_1 | E * E_1 | E + E_1
+        E9 { e: SynE },
+    }
+    #[derive(Debug)]
+    pub enum CtxF {
+        /// `F -> ( E )`
+        F1 { e: SynE },
+        /// `F -> NUM`
+        F2 { num: String },
+        /// `F -> ID`
+        F3 { id: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `E`
+    // #[derive(Debug, PartialEq)] pub struct SynE();
+    // /// User-defined type for `F`
+    // #[derive(Debug, PartialEq)] pub struct SynF();
+
+    #[derive(Debug)]
+    enum SynValue { E(SynE), F(SynF) }
+
+    impl SynValue {
+        fn get_e(self) -> SynE {
+            if let SynValue::E(val) = self { val } else { panic!() }
+        }
+        fn get_f(self) -> SynF {
+            if let SynValue::F(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _e: SynE) {}
+        fn init_e(&mut self) {}
+        fn init_f(&mut self) {}
+        fn exit_f(&mut self, _ctx: CtxF) -> SynF;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_e(),                // E
+                        3 => {}                                     // E_2
+                        1 => self.listener.init_f(),                // F
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 => {}                                     // E -> E_1 (not used)
+                        4 => {}                                     // E_1 -> abs E (not used)
+                        5 => {}                                     // E_1 -> - E (not used)
+                        6 => {}                                     // E_1 -> F (not used)
+                        7 => {}                                     // E -> E ' (not used)
+                        8 => {}                                     // E -> E ^ E_1 (not used)
+                        9 => {}                                     // E -> E * E_1 (not used)
+                        10 => {}                                    // E -> E + E_1 (not used)
+                        11 => {}                                    // end of iterations in E -> E ' | E ^ E_1 | E * E_1 | E + E_1 (not used)
+                        1 |                                         // F -> ( E )
+                        2 |                                         // F -> NUM
+                        3 => self.exit_f(factor_id),                // F -> ID
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let e = self.stack.pop().unwrap().get_e();
+            self.listener.exit(e);
+        }
+
+        fn exit_f(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxF::F1 { e }
+                }
+                2 => {
+                    let num = self.stack_t.pop().unwrap();
+                    CtxF::F2 { num }
+                }
+                3 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxF::F3 { id }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_f")
+            };
+            let val = self.listener.exit_f(ctx);
+            self.stack.push(SynValue::F(val));
+        }
+    }
+
+    // [wrapper source for rule PRS(51) #1, start E]
+    // ------------------------------------------------------------
+}

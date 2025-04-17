@@ -1293,7 +1293,46 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 5, nt 0, t 6; t 7; t 8),
             ]);
         }
-
+        52 => {
+            // mimic test to see what an ambiguous transform on the right-recursive factors
+            // would look like:
+            // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | F;
+            // F -> ( E ) | NUM | ID
+            symbol_table.extend_terminals([
+                ("ABS".to_string(), Some("abs".to_string())),   // 0
+                ("NEG".to_string(), Some("-".to_string())),     // 1
+                ("EXP".to_string(), Some("^".to_string())),     // 2
+                ("MUL".to_string(), Some("*".to_string())),     // 3
+                ("ADD".to_string(), Some("+".to_string())),     // 4
+                ("LPAREN".to_string(), Some("(".to_string())),  // 5
+                ("RPAREN".to_string(), Some(")".to_string())),  // 6
+                ("NUM".to_string(), None),                      // 7
+                ("ID".to_string(), None),                       // 8
+                ("PRIME".to_string(), Some("'".to_string())),   // 9
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
+            symbol_table.extend_non_terminals(["F".to_string()]);   // 1
+            symbol_table.extend_non_terminals(["E1".to_string()]);  // 2
+            symbol_table.extend_non_terminals(["E2".to_string()]);  // 3
+            prods.extend([
+                prod!(
+                    nt 2, nt 3),
+                prod!(
+                    t 5, nt 0, t 6;
+                    t 7;
+                    t 8),
+                prod!(
+                    t 0, nt 2, nt 3;    // abs E1 E2 instead of abs E
+                    t 1, nt 2, nt 3;    // - E1 E2   instead of - E
+                    nt 1),
+                prod!(
+                    t 9, nt 3;
+                    t 2, nt 2, nt 3;
+                    t 3, nt 2, nt 3;
+                    t 4, nt 2, nt 3;
+                    e),
+            ]);
+        }
 
         // ambiguity?
         100 => {
@@ -2356,6 +2395,47 @@ fn prs_calc_table() {
               4,   5,  13,  13,  13,   6,  13,   6,   6,  13,  13,
              12,  12,   8,   9,  10,  12,  11,  12,  12,   7,  11,
         ]),
+        (52, 0, 4, vec![
+            // - 0: E -> E1 E2
+            // - 1: F -> ( E )
+            // - 2: F -> NUM
+            // - 3: F -> ID
+            // - 4: E1 -> abs E1 E2
+            // - 5: E1 -> - E1 E2
+            // - 6: E1 -> F
+            // - 7: E2 -> ' E2
+            // - 8: E2 -> ^ E1 E2
+            // - 9: E2 -> * E1 E2
+            // - 10: E2 -> + E1 E2
+            // - 11: E2 -> ε
+            (0, prodf!(nt 2, nt 3)),
+            (1, prodf!(t 5, nt 0, t 6)),
+            (1, prodf!(t 7)),
+            (1, prodf!(t 8)),
+            (2, prodf!(t 0, nt 2, nt 3)),
+            (2, prodf!(t 1, nt 2, nt 3)),
+            (2, prodf!(nt 1)),
+            (3, prodf!(t 9, nt 3)),
+            (3, prodf!(t 2, nt 2, nt 3)),
+            (3, prodf!(t 3, nt 2, nt 3)),
+            (3, prodf!(t 4, nt 2, nt 3)),
+            (3, prodf!(e)),
+        ], vec![
+            //    | abs  -   ^   *   +   (   )  NUM ID   '   $ 
+            // ---+---------------------------------------------
+            // E  |  0   0   .   .   .   0   p   0   0   .   p 
+            // F  |  .   .   p   p   p   1   p   2   3   p   p 
+            // E1 |  4   5   p   p   p   6   p   6   6   p   p 
+            // E2 |  .   .   8   9  10   .  11   .   .   7  11 
+              0,   0,  12,  12,  12,   0,  13,   0,   0,  12,  13,
+             12,  12,  13,  13,  13,   1,  13,   2,   3,  13,  13,
+              4,   5,  13,  13,  13,   6,  13,   6,   6,  13,  13,
+             12,  12,   8,   9,  10,  12,  11,  12,  12,   7,  11,
+            // calc_table: ambiguity for NT 'E2', T '^': <^ E1 E2> or <ε> => <^ E1 E2> has been chosen
+            // calc_table: ambiguity for NT 'E2', T '*': <* E1 E2> or <ε> => <* E1 E2> has been chosen
+            // calc_table: ambiguity for NT 'E2', T '+': <+ E1 E2> or <ε> => <+ E1 E2> has been chosen
+            // calc_table: ambiguity for NT 'E2', T ''': <' E2>    or <ε> => <' E2> has been chosen
+        ]),
 
         (100, 0, 0, vec![
             // - 0: A -> c A_1
@@ -2475,7 +2555,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
