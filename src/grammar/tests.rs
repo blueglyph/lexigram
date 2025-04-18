@@ -755,7 +755,10 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut symbol_table = SymbolTable::new();
     let prods = &mut rules.prods;
     let mut start = Some(0);
+    let mut flags = HashMap::<VarId, u32>::new();
+    let mut parents = HashMap::<VarId, VarId>::new();   // (child, parent)
     match id {
+        // misc tests ----------------------------------------------------------
         0 => {
             prods.extend([
                 prod!(nt 0, t 1; nt 0, t 2; t 3; t 3, t 4), // A -> A b | A c | d | d e
@@ -1242,6 +1245,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 5; t 6; t 2, nt 2, t 3),
             ]);
         }
+
+        // ambiguous grammar reconstruction tests ------------------------------
         50 => {
             // classical ambiguous arithmetic grammar
             // E -> E '^' E | E '*' E | E '+' E | F;
@@ -1332,9 +1337,16 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                     t 4, nt 2, nt 3;
                     e),
             ]);
+            // we must set the flags since we did the grammatical transformations manually:
+            flags = hashmap![
+                0 => ruleflag::PARENT_L_RECURSION | ruleflag::PARENT_AMBIGUITY,
+                2 => ruleflag::CHILD_INDEPENDENT_AMBIGUITY,
+                3 => ruleflag::CHILD_L_RECURSION | ruleflag::CHILD_AMBIGUITY
+            ];
+            parents = hashmap![2 => 0, 3 => 0];
         }
 
-        // ambiguity?
+        // ambiguity? ----------------------------------------------------------
         100 => {
             // A -> A a A b | c (amb removed)
             prods.extend([
@@ -1394,7 +1406,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
         }
 
-        // warnings and errors
+        // warnings and errors -------------------------------------------------
         1000 => { // A -> A a  (error: missing non-recursive factor)
             prods.extend([
                 prod!(nt 0, t 0)
@@ -1434,6 +1446,12 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         }
         _ => {}
     };
+    for (v, f) in flags {
+        rules.set_flags(v, f);
+    }
+    for (child, parent) in parents {
+        rules.set_parent(child, parent);
+    }
     rules.calc_num_symbols();
     complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt, is_t_data);
     rules.set_symbol_table(symbol_table);
@@ -2833,7 +2851,7 @@ fn rts_prs_flags() {
          btreemap![],
          btreemap![1 => 0],
          btreemap![]),
-        (T::RTS(15), 0, btreemap![0 => 1536, 1 => 12],
+        (T::RTS(15), 0, btreemap![0 => 1536, 1 => 142],
          btreemap![2 => 256],
          btreemap![1 => 0],
          btreemap![]),
@@ -2913,7 +2931,7 @@ fn rts_prs_flags() {
          btreemap![9 => 256],
          btreemap![1 => 0, 2 => 0, 3 => 1, 4 => 1],
          btreemap![]),
-        (T::PRS(22), 0, btreemap![0 => 1536, 1 => 44, 2 => 64],
+        (T::PRS(22), 0, btreemap![0 => 1536, 1 => 174, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 1],
          btreemap![]),
@@ -2925,7 +2943,7 @@ fn rts_prs_flags() {
          btreemap![],
          btreemap![1 => 0],
          btreemap![1 => Removed]),
-        (T::PRS(26), 1, btreemap![0 => 1536, 1 => 12],
+        (T::PRS(26), 1, btreemap![0 => 1536, 1 => 142],
          btreemap![],
          btreemap![1 => 0],
          btreemap![0 => Removed, 1 => MovedTo(0)]),

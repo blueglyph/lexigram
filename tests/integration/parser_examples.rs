@@ -25,7 +25,7 @@ mod parser_gen {
         const SYMBOLS_NAMES: [(&str, VarId); 1] = [("E_1", 2)];
         const PARSING_FACTORS: [(VarId, &[Symbol]); 11] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(4), Symbol::NT(0), Symbol::T(5)]), (1, &[Symbol::T(6)]), (1, &[Symbol::T(7)]), (2, &[Symbol::T(9), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(8), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(2), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(3), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(0), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::T(1), Symbol::NT(1), Symbol::NT(2)]), (2, &[Symbol::Empty])];
         const PARSING_TABLE: [FactorId; 33] = [11, 11, 11, 11, 0, 12, 0, 0, 11, 11, 12, 12, 12, 12, 12, 1, 12, 2, 3, 12, 12, 12, 8, 9, 6, 7, 11, 10, 11, 11, 5, 4, 10];
-        const FLAGS: [u32; 3] = [1536, 0, 12];
+        const FLAGS: [u32; 3] = [1536, 0, 142];
         const PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
         const OPCODES: [&[OpCode]; 11] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(6)], &[OpCode::Exit(3), OpCode::T(7)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(1), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(1), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(1), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(8), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(9), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(10)]];
         const START_SYMBOL: VarId = 0;
@@ -57,7 +57,7 @@ mod parser_gen {
 mod listener1 {
 
     // -------------------------------------------------------------------------
-    // [write_source_code_for_integration_listener]
+    // [write_source_code_for_integration_listener1]
 
     use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
@@ -91,7 +91,7 @@ mod listener1 {
         Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)
     }
 
-    // [write_source_code_for_integration_listener]
+    // [write_source_code_for_integration_listener1]
     // -------------------------------------------------------------------------
 }
 
@@ -121,7 +121,7 @@ mod listener2 {
     const SYMBOLS_NAMES: [(&str, VarId); 2] = [("E_1", 2), ("E_2", 3)];
     const PARSING_FACTORS: [(VarId, &[Symbol]); 12] = [(0, &[Symbol::NT(2), Symbol::NT(3)]), (1, &[Symbol::T(5), Symbol::NT(0), Symbol::T(6)]), (1, &[Symbol::T(7)]), (1, &[Symbol::T(8)]), (2, &[Symbol::T(0), Symbol::NT(0)]), (2, &[Symbol::T(1), Symbol::NT(0)]), (2, &[Symbol::NT(1)]), (3, &[Symbol::T(9), Symbol::NT(3)]), (3, &[Symbol::T(2), Symbol::NT(2), Symbol::NT(3)]), (3, &[Symbol::T(3), Symbol::NT(2), Symbol::NT(3)]), (3, &[Symbol::T(4), Symbol::NT(2), Symbol::NT(3)]), (3, &[Symbol::Empty])];
     const PARSING_TABLE: [FactorId; 44] = [0, 0, 13, 13, 13, 0, 13, 0, 0, 13, 13, 12, 12, 13, 13, 13, 1, 13, 2, 3, 13, 13, 4, 5, 13, 13, 13, 6, 13, 6, 6, 13, 13, 12, 12, 8, 9, 10, 12, 11, 12, 12, 7, 11];
-    const FLAGS: [u32; 4] = [1536, 0, 16, 12];
+    const FLAGS: [u32; 4] = [1536, 0, 16, 142];
     const PARENT: [Option<VarId>; 4] = [None, None, Some(0), Some(0)];
     const OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(3), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::T(6), OpCode::NT(0), OpCode::T(5)], &[OpCode::Exit(2), OpCode::T(7)], &[OpCode::Exit(3), OpCode::T(8)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(0)], &[OpCode::Exit(5), OpCode::NT(0), OpCode::T(1)], &[OpCode::Exit(6), OpCode::NT(1)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::T(9)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(9), OpCode::NT(2), OpCode::T(3)], &[OpCode::Loop(3), OpCode::Exit(10), OpCode::NT(2), OpCode::T(4)], &[OpCode::Exit(11)]];
     const START_SYMBOL: VarId = 0;

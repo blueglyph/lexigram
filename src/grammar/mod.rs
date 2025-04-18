@@ -320,6 +320,7 @@ pub mod ruleflag {
 
     pub const TRANSF_PARENT: u32 = R_RECURSION | PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
     pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACTOR;
+    pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
 
     pub fn to_string(flags: u32) -> Vec<String> {
         let names = btreemap![
@@ -1405,7 +1406,7 @@ impl<T> ProdRuleSet<T> {
                 };
                 let var_prime = new_var;
                 new_var += 1;
-                self.set_flags(var_prime, ruleflag::CHILD_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::CHILD_AMBIGUITY });
+                self.set_flags(var_prime, ruleflag::CHILD_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::TRANSF_CHILD_AMB });
                 self.set_flags(var, ruleflag::PARENT_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::PARENT_AMBIGUITY });
                 self.set_parent(var_prime, var);
                 if let Some(table) = &mut self.symbol_table {

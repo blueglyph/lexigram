@@ -60,7 +60,7 @@ mod gen_integration {
         match id {
             //         rules   indent  t_data   tag name                                      listener name
              0 => Some((PRS(13), 8,    false, "write_source_code_from_ll1",                   "None")),
-             1 => Some((PRS( 4), 4,    false, "write_source_code_for_integration_listener",   "Expr")),
+             1 => Some((PRS( 4), 4,    false, "write_source_code_for_integration_listener1",  "Expr")),
              2 => Some((PRS(51), 4,    false, "write_source_code_for_integration_listener2",  "Expr")),
              3 => Some((PRS(20), 4,    false, "write_source_code_for_integration_listener3",  "Struct")),
              4 => Some((PRS(30), 4,    false, "write_source_code_for_integration_listener4",  "Struct")),
@@ -1473,7 +1473,7 @@ mod wrapper_source {
 
         // test options
         const TEST_SOURCE: bool = true;
-        const TESTS_ALL: bool = true;
+        const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
         const REPLACE_SOURCE: bool = false;

@@ -1447,7 +1447,7 @@ impl ParserGen {
 
                 if self.parsing_table.parent[nt].is_none() {
                     let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
-                    if has_value && self.nt_has_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) {
+                    if has_value && self.nt_has_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) && !self.nt_has_flags(*var, ruleflag::CHILD_AMBIGUITY) {
                         src_wrapper_impl.push(String::new());
                         src_listener_decl.push(format!("    fn init_{npl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
@@ -1554,7 +1554,7 @@ impl ParserGen {
                 // - no transformation (or only left factorization)
                 // - no ambiguity, no +, no *
                 if flags & ruleflag::CHILD_L_FACTOR == 0 &&     // already taken by self.gather_factors
-                    (flags & ruleflag::R_RECURSION != 0 ||
+                    (flags & (ruleflag::R_RECURSION | ruleflag::CHILD_AMBIGUITY) == ruleflag::R_RECURSION ||
                         parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT & !ruleflag::PARENT_L_FACTOR == 0)
                 {
                     let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();

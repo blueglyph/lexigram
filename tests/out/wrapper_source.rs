@@ -9358,15 +9358,15 @@ pub(crate) mod rules_prs_51_1 {
         E3 { e: SynE },
         /// `E_1 -> F`
         E4 { f: SynF },
-        /// `E -> E '`
+        /// `E -> E ' <L>`
         E5 { e: SynE },
-        /// `E -> E ^ E_1`
+        /// `E -> E ^ E_1 <L>`
         E6 { e: SynE },
-        /// `E -> E * E_1`
+        /// `E -> E * E_1 <L>`
         E7 { e: SynE },
-        /// `E -> E + E_1`
+        /// `E -> E + E_1 <L>`
         E8 { e: SynE },
-        /// end of iterations in E -> E ' | E ^ E_1 | E * E_1 | E + E_1
+        /// end of iterations in E -> E ' <L> | E ^ E_1 <L> | E * E_1 <L> | E + E_1 <L>
         E9 { e: SynE },
     }
     #[derive(Debug)]
@@ -9441,11 +9441,11 @@ pub(crate) mod rules_prs_51_1 {
                         4 => {}                                     // E_1 -> abs E (not used)
                         5 => {}                                     // E_1 -> - E (not used)
                         6 => {}                                     // E_1 -> F (not used)
-                        7 => {}                                     // E -> E ' (not used)
-                        8 => {}                                     // E -> E ^ E_1 (not used)
-                        9 => {}                                     // E -> E * E_1 (not used)
-                        10 => {}                                    // E -> E + E_1 (not used)
-                        11 => {}                                    // end of iterations in E -> E ' | E ^ E_1 | E * E_1 | E + E_1 (not used)
+                        7 => {}                                     // E -> E ' <L> (not used)
+                        8 => {}                                     // E -> E ^ E_1 <L> (not used)
+                        9 => {}                                     // E -> E * E_1 <L> (not used)
+                        10 => {}                                    // E -> E + E_1 <L> (not used)
+                        11 => {}                                    // end of iterations in E -> E ' <L> | E ^ E_1 <L> | E * E_1 <L> | E + E_1 <L> (not used)
                         1 |                                         // F -> ( E )
                         2 |                                         // F -> NUM
                         3 => self.exit_f(factor_id),                // F -> ID
