@@ -1362,6 +1362,7 @@ impl<T> ProdRuleSet<T> {
     /// for an LL(1) grammar so we don't do it.
     pub fn remove_left_recursion(&mut self) {
         const VERBOSE: bool = false;
+        const NEW_METHOD: bool = true;  // new ambiguous transformations
         let mut extra = Vec::<ProdRule>::new();
         let mut new_var = self.get_next_available_var();
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
@@ -1378,6 +1379,9 @@ impl<T> ProdRuleSet<T> {
                     .partition(|factor| *factor.first().unwrap() == symbol);
                 let (mut ambiguous, mut left) : (Vec<_>, Vec<_>) = recursive.into_iter()
                     .partition(|factor| *factor.last().unwrap() == symbol);
+                // => ambiguous: factors with left & right recusion (A -> A α A)
+                //    left:      factors with left recursion        (A -> A β)
+                //    fine:      factors without left recursion     (A -> γ A | δ)
                 if fine.is_empty() || left.iter().any(|f| f.len() < 2) {
                     let mut msg = format!("remove_left_recursion: recursive production: {}", prod_to_string(prod, self.get_symbol_table()));
                     if fine.is_empty() {
@@ -1389,7 +1393,10 @@ impl<T> ProdRuleSet<T> {
                     self.log.add_error(msg);
                     continue;
                 }
-                // apply the transformation
+
+                // apply the transformations
+                // - if ambiguous: copies `fine` rule to new variable var_ambig (A_1 -> γ A | δ)
+                // - the ProdRule is pushed later into `extra`, the rules added after all the current rules
                 let var_ambig = if !ambiguous.is_empty() && fine.len() > 1 {
                     // if more than one independent factor, moves them in a new NT to simplify the resulting rules
                     let var_ambig = new_var;
@@ -1399,11 +1406,12 @@ impl<T> ProdRuleSet<T> {
                     self.set_flags(var_ambig, ruleflag::CHILD_INDEPENDENT_AMBIGUITY);
                     self.set_parent(var_ambig, var);
                     new_var += 1;
-                    extra.push(fine.clone());
                     Some(var_ambig)
                 } else {
                     None
                 };
+
+                // - creates a new var (new_var++) for `left` and, if non-empty, `ambiguous` rules that will be merged later
                 let var_prime = new_var;
                 new_var += 1;
                 self.set_flags(var_prime, ruleflag::CHILD_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::TRANSF_CHILD_AMB });
@@ -1413,6 +1421,31 @@ impl<T> ProdRuleSet<T> {
                     table.add_var_prime_name(var, var_prime, None);
                 }
                 let symbol_prime = Symbol::NT(var_prime);
+                if let Some(var_ambig) = var_ambig {
+                    // we need to know var_prime, so we can only create that rule content here:
+                    let independant = if NEW_METHOD {
+                        // `A_1 -> γ A | δ` becomes `A_1 -> γ A_1 A_2 | δ` because we must manage the priorities later in the parser.
+                        // If we leave `A`, then all the stricly left-recursive factors have a lower priority than all the ambiguous ones
+                        // (since `A` is entirely evaluated before `A_1 -> γ A`)
+                        let mut rule = ProdRule::new();
+                        for f in &fine {
+                            let mut new_f = Vec::<Symbol>::new();
+                            for s in &f.v {
+                                if s == &symbol {
+                                    new_f.push(Symbol::NT(var_ambig));
+                                    new_f.push(symbol_prime);
+                                } else {
+                                    new_f.push(*s);
+                                }
+                            }
+                            rule.push(ProdFactor::with_flags(new_f, f.flags));
+                        }
+                        rule
+                    } else {
+                        fine.clone()
+                    };
+                    extra.push(independant);
+                }
                 if VERBOSE {
                     print!("- adding non-terminal {var_prime} ({})", symbol_prime.to_str(self.get_symbol_table()));
                     if let Some(v) = var_ambig {
@@ -1420,6 +1453,8 @@ impl<T> ProdRuleSet<T> {
                     }
                     println!(", deriving from {var} ({})", symbol.to_str((self.get_symbol_table())));
                 }
+
+                // - if ambiguous, edits the factors in `ambiguous` rule:
                 for factor in &mut ambiguous {
                     factor.pop();
                     factor.remove(0);
@@ -1428,31 +1463,30 @@ impl<T> ProdRuleSet<T> {
                         continue;
                     }
                     if let Some(v) = var_ambig {
-                        // orig if k > 1:   A   -> A β1 A | ... | A βn A | γ1 | ... | γk | (non-recursive part)
-                        // => new:          A_0 -> γ1 | ... | γk
-                        // => add to prime: A_p -> β1 A_0 A_p | ... | βn A_0 A_p
+                        // orig if k > 1:   A   -> A α1 A | A α2 A | A β | γ A | δ (or k factors 'γi' and/or 'δj')
+                        // => new:          A_1 -> γ A | δ
+                        // => add to prime: A_2 -> α1 A_1 A_2 | α2 A_1 A_2 | β A_2
                         factor.push(Symbol::NT(v));
                     } else {
-                        // orig if k = 1:   A   -> A β1 A | ... | A βn A | γ | (non-recursive part)
-                        // => add to prime: A_p -> β1 γ A_p | ... | βn γ A_p
+                        // orig if k = 1:   A   -> A α1 A | A α2 A | A β | δ (or one factor 'γ A' instead of the factor 'δ')
+                        // => add to prime: A_2 -> α1 δ A_2 | α1 δ A_2 | β A_2
                         factor.v.extend(fine[0].v.clone());
                     }
                     factor.push(symbol_prime);
                 }
-                const NEW_METHOD: bool = true;
                 if NEW_METHOD && var_ambig.is_some() {
-                    // change A -> A_0 A_p
+                    // change A -> A_1 A_2
                     let symbol_ambig = Symbol::NT(var_ambig.unwrap());
                     fine.clear();
                     fine.push(ProdFactor::new(vec![symbol_ambig, symbol_prime]));
                 } else {
-                    // change A -> γ1 A_p | ... | γk A_p
+                    // change A -> γ A A_2 | δ A_2
                     for factor in &mut fine {
                         factor.push(symbol_prime.clone());
                     }
                 }
                 for factor in &mut left {
-                    // add to prime: A_p -> α1 A_p | ... | αm A_p
+                    // add strictly left-recursive factors to prime: A_2 -> β A_2
                     factor.remove(0);
                     if *factor.first().unwrap() == symbol {
                         self.log.add_error(format!("remove_left_recursion: cannot remove recursion from {}", prod_to_string(prod, self.get_symbol_table())));

@@ -1341,7 +1341,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             flags = hashmap![
                 0 => ruleflag::PARENT_L_RECURSION | ruleflag::PARENT_AMBIGUITY,
                 2 => ruleflag::CHILD_INDEPENDENT_AMBIGUITY,
-                3 => ruleflag::CHILD_L_RECURSION | ruleflag::CHILD_AMBIGUITY
+                3 => ruleflag::TRANSF_CHILD_AMB | ruleflag::CHILD_L_RECURSION
             ];
             parents = hashmap![2 => 0, 3 => 0];
         }
@@ -2381,8 +2381,8 @@ fn prs_calc_table() {
             // - 1: F -> ( E )
             // - 2: F -> NUM
             // - 3: F -> ID
-            // - 4: E_1 -> abs E
-            // - 5: E_1 -> - E
+            // - 4: E_1 -> abs E_1 E_2
+            // - 5: E_1 -> - E_1 E_2
             // - 6: E_1 -> F
             // - 7: E_2 -> ' E_2
             // - 8: E_2 -> ^ E_1 E_2
@@ -2393,8 +2393,8 @@ fn prs_calc_table() {
             (1, prodf!(t 5, nt 0, t 6)),
             (1, prodf!(t 7)),
             (1, prodf!(t 8)),
-            (2, prodf!(t 0, nt 0)),
-            (2, prodf!(t 1, nt 0)),
+            (2, prodf!(t 0, nt 2, nt 3)),
+            (2, prodf!(t 1, nt 2, nt 3)),
             (2, prodf!(nt 1)),
             (3, prodf!(t 9, nt 3)),
             (3, prodf!(t 2, nt 2, nt 3)),
@@ -2402,13 +2402,13 @@ fn prs_calc_table() {
             (3, prodf!(t 4, nt 2, nt 3)),
             (3, prodf!(e)),
         ], vec![
-            //     | abs  -   ^   *   +   (   )  NUM ID   '   $ 
+            //     | abs  -   ^   *   +   (   )  NUM ID   '   $
             // ----+---------------------------------------------
-            // E   |  0   0   p   p   p   0   p   0   0   p   p 
-            // F   |  .   .   p   p   p   1   p   2   3   p   p 
-            // E_1 |  4   5   p   p   p   6   p   6   6   p   p 
-            // E_2 |  .   .   8   9  10   .  11   .   .   7  11 
-              0,   0,  13,  13,  13,   0,  13,   0,   0,  13,  13,
+            // E   |  0   0   .   .   .   0   p   0   0   .   p
+            // F   |  .   .   p   p   p   1   p   2   3   p   p
+            // E_1 |  4   5   p   p   p   6   p   6   6   p   p
+            // E_2 |  .   .   8   9  10   .  11   .   .   7  11
+              0,   0,  12,  12,  12,   0,  13,   0,   0,  12,  13,
              12,  12,  13,  13,  13,   1,  13,   2,   3,  13,  13,
               4,   5,  13,  13,  13,   6,  13,   6,   6,  13,  13,
              12,  12,   8,   9,  10,  12,  11,  12,  12,   7,  11,

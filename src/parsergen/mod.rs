@@ -605,7 +605,7 @@ impl ParserGen {
             let flags = self.parsing_table.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);
             let mut new = self.parsing_table.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
-            if VERBOSE { println!("- {}", new.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+            if VERBOSE { println!("  - {}", new.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut opcode = Vec::<OpCode>::new();
             let parent = self.parsing_table.parent[*var_id as usize];
             if flags & ruleflag::CHILD_L_FACTOR != 0 {
@@ -638,11 +638,22 @@ impl ParserGen {
                 // swaps Exit(self) when it's in 2nd position (only happens in [Loop(_), Exit(self), ...],
                 // except right recursions that aren't left-form, because we let them unfold naturally (uses more stack)
                 opcode.swap(0, 1);
+                if VERBOSE { println!("  - swap 0, 1: {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             } else if parent_lrec_no_lfact {
                 // swaps Exit(self) and call to left recursive item so that the wrapper can issue an exit_NT
                 // with the correct context
                 opcode.swap(0, 1);
-
+                if VERBOSE { println!("  - swap 0, 1: {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+            } else if flags & ruleflag::CHILD_INDEPENDENT_AMBIGUITY != 0 && opcode.len() > 1 {
+                // E_1: ◄4 ►E_2 ►E_1 abs  =>  ●E_2 ◄4 ●E_1 abs (where var_prime E_2 has child_amb flag)
+                if let Some(OpCode::NT(var_prime)) = opcode.get(1) {
+                    let vp = *var_prime; // to work around borrow checker
+                    if self.nt_has_flags(vp, ruleflag::CHILD_AMBIGUITY) {
+                        opcode.swap(0, 1);
+                        opcode[0] = OpCode::Loop(vp);
+                        if VERBOSE { println!("  - child indep ambig: {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+                    }
+                }
             }
             if flags & ruleflag::CHILD_L_FACTOR != 0 {
                 if opcode.len() >= 2 {
@@ -676,7 +687,7 @@ impl ParserGen {
                     }
                 }
             });
-            if VERBOSE { println!("- {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+            if VERBOSE { println!("  -> {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             self.opcodes.push(opcode);
         }
     }

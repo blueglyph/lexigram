@@ -243,7 +243,7 @@ fn parser_parse_stream_id() {
             // F -> ( E ) | NUM | ID
             ("1 ^ 2", None),
             ("3 * - 4", None),
-            ("( 1 + 2 ) * ( 3 + abs i ) ^ 2", None)
+            ("( 1 + 2 ) * ( 3 + - abs i * - 5 + 6 ) ^ 2", None)
         ]),
     ];
     const VERBOSE: bool = false;

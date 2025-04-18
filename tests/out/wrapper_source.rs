@@ -9352,10 +9352,10 @@ pub(crate) mod rules_prs_51_1 {
     pub enum CtxE {
         /// `E -> E_1`
         E1,
-        /// `E_1 -> abs E`
-        E2 { e: SynE },
-        /// `E_1 -> - E`
-        E3 { e: SynE },
+        /// `E_1 -> abs E_1 E_2`
+        E2,
+        /// `E_1 -> - E_1 E_2`
+        E3,
         /// `E_1 -> F`
         E4 { f: SynF },
         /// `E -> E ' <L>`
@@ -9438,8 +9438,8 @@ pub(crate) mod rules_prs_51_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => {}                                     // E -> E_1 (not used)
-                        4 => {}                                     // E_1 -> abs E (not used)
-                        5 => {}                                     // E_1 -> - E (not used)
+                        4 => {}                                     // E_1 -> abs E_1 E_2 (not used)
+                        5 => {}                                     // E_1 -> - E_1 E_2 (not used)
                         6 => {}                                     // E_1 -> F (not used)
                         7 => {}                                     // E -> E ' <L> (not used)
                         8 => {}                                     // E -> E ^ E_1 <L> (not used)
