@@ -1345,6 +1345,28 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ];
             parents = hashmap![2 => 0, 3 => 0];
         }
+        53 => {
+            // same without the right-recursive terms:
+            // E -> E ! | E ^ E | E ' | E * E | E + E | F;
+            // F -> ( E ) | NUM | ID
+            symbol_table.extend_terminals([
+                ("FAC".to_string(), Some("!".to_string())),     // 0
+                ("PRIME".to_string(), Some("'".to_string())),   // 1
+                ("EXP".to_string(), Some("^".to_string())),     // 2
+                ("MUL".to_string(), Some("*".to_string())),     // 3
+                ("ADD".to_string(), Some("+".to_string())),     // 4
+                ("LPAREN".to_string(), Some("(".to_string())),  // 5
+                ("RPAREN".to_string(), Some(")".to_string())),  // 6
+                ("NUM".to_string(), None),                      // 7
+                ("ID".to_string(), None),                       // 8
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
+            symbol_table.extend_non_terminals(["F".to_string()]);   // 1
+            prods.extend([
+                prod!(nt 0, t 0; nt 0, t 2, nt 0; nt 0, t 1; nt 0, t 3, nt 0; nt 0, t 4, nt 0; nt 1),
+                prod!(t 5, nt 0, t 6; t 7; t 8),
+            ]);
+        }
 
         // ambiguity? ----------------------------------------------------------
         100 => {

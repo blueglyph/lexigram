@@ -1469,6 +1469,26 @@ mod wrapper_source {
                 10 => symbols![nt 0],                   // 10: E_2 -> + E_1 E_2   | ●E_2 ◄10 ►E_1 +  | E
                 11 => symbols![nt 0],                   // 11: E_2 -> ε           | ◄11              | E
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2, 3]]),
+            // NT flags:
+            //  - E: parent_left_rec | parent_amb (1536)
+            //  - E_1: right_rec | child_left_rec | child_amb | L-form (142)
+            // parents:
+            //  - E_1 -> E
+            (PRS(53), false, 0, btreemap![
+                0 => "SynE".to_string(),
+                1 => "SynF".to_string(),
+            ], btreemap![
+                0 => symbols![nt 1],                    //  0: E -> F E_1     | ►E_1 ◄0 ►F   | F
+                1 => symbols![nt 0],                    //  1: F -> ( E )     | ◄1 ) ►E (    | E
+                2 => symbols![t 7],                     //  2: F -> NUM       | ◄2 NUM!      | NUM
+                3 => symbols![t 8],                     //  3: F -> ID        | ◄3 ID!       | ID
+                4 => symbols![nt 0],                    //  4: E_1 -> ! E_1   | ●E_1 ◄4 !    | E
+                5 => symbols![nt 0],                    //  5: E_1 -> ' E_1   | ●E_1 ◄5 '    | E
+                6 => symbols![nt 0, nt 1],              //  6: E_1 -> ^ F E_1 | ●E_1 ◄6 ►F ^ | E F
+                7 => symbols![nt 0, nt 1],              //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | E F
+                8 => symbols![nt 0, nt 1],              //  8: E_1 -> + F E_1 | ●E_1 ◄8 ►F + | E F
+                9 => symbols![nt 0],                    //  9: E_1 -> ε       | ◄9           | E
+            ], Default, btreemap![0 => vec![0], 1 => vec![1, 2, 3]]),
 
             /*
             (PRS(), 0, btreemap![], btreemap![], Default, btreemap![]),
