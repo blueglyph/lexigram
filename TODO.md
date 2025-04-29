@@ -68,9 +68,9 @@
 
 - basic gram
   - parser text -> RuleTree
-    - [x] ~~generate lexer tree with basic rlexer (lexicon file)~~
-    - [x] ~~adapt rlexer's top-down parser (manually)~~
-    - [x] ~~transform AST to top-down (or LR?) data~~
+  - [x] ~~generate lexer tree with basic rlexer (lexicon file)~~
+  - [x] ~~adapt rlexer's top-down parser (manually)~~
+  - [x] ~~transform AST to top-down (or LR?) data~~
   - [ ] make binary application
 - parser lib
   - RuleTreeSet to store the parsed production rules (as `VecTree<GrNode>`)
@@ -97,6 +97,8 @@
         ... (remove ambiguity and left recursion in E, E_1
         ```
     - [ ] reconstruct semantic synthesis attributes during parsing
+      - [ ] better names when creating enum options in contexts (ParserBuilder::source_wrapper)
+        - based on T names and the number of NTs? E * E = Mul2, E - E = Sub2, - E = Sub1, ... => easier if collected before transformation
       - [x] ~~tags when transforming grammar (remove_left_recursion, left_factorize)~~
       - [x] ~~stack-based reconstruction~~
       - [ ] left/right-associativity
@@ -136,7 +138,6 @@
       - [ ] name fixer when creating children NTs (grammar/symbol_table) 
       - [ ] better names when creating children NTs (grammar/symbol_table)
       - [ ] name fixer when creating enum options in contexts (ParserBuilder::source_wrapper) 
-      - [ ] better names when creating enum options in contexts (ParserBuilder::source_wrapper)
       - [ ] option to generate or not last call after iterations in left_rec?
     - [ ] error recovery
       - [x] basic resynchronization
