@@ -1505,7 +1505,7 @@ mod wrapper_source {
             //  - E2_1 -> E2
             //  - E3_1 -> E3
             //  - E4_1 -> E4
-            (PRS(54), false, 0, btreemap![
+            (PRS(54), true, 0, btreemap![
                 0 => "SynE".to_string(),
                 1 => "SynE1".to_string(),
                 2 => "SynE2".to_string(),

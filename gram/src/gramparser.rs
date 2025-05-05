@@ -234,14 +234,14 @@ pub(crate) mod gramparser {
                     match factor_id {
                         0 => self.exit_file(),                      // file -> header rules
                         1 => self.exit_header(),                    // header -> grammar Id ;
-                        2 => self.init_rules(),                     // rules -> rule
+                        2 => self.inter_rules(),                    // rules -> rule
                         14 |                                        // rules -> rules rule
                         15 => self.exit_rules1(factor_id),          // end of iterations in rules -> rules rule
                         18 |                                        // rule -> rule_name : prod ;
                         19 => self.exit_rule(factor_id),            // rule -> rule_name : prod EOF ;
                      /* 3 */                                        // rule -> rule_name : prod ; | rule_name : prod EOF ; (never called)
                         4 => self.exit_rule_name(),                 // rule_name -> Id
-                        5 => self.init_prod(),                      // prod -> prod_factor
+                        5 => self.inter_prod(),                     // prod -> prod_factor
                         16 |                                        // prod -> prod | prod_factor
                         17 => self.exit_prod1(factor_id),           // end of iterations in prod -> prod | prod_factor
                         6 => self.exit_prod_factor(),               // prod_factor -> [prod_term]*
@@ -318,7 +318,7 @@ pub(crate) mod gramparser {
             self.stack.push(SynValue::Header(val));
         }
 
-        fn init_rules(&mut self) {
+        fn inter_rules(&mut self) {
             let rule = self.stack.pop().unwrap().get_rule();
             let val = self.listener.exit_rules(CtxRules::Rules1 { rule });
             self.stack.push(SynValue::Rules(val));
@@ -365,7 +365,7 @@ pub(crate) mod gramparser {
             self.stack.push(SynValue::RuleName(val));
         }
 
-        fn init_prod(&mut self) {
+        fn inter_prod(&mut self) {
             let prod_factor = self.stack.pop().unwrap().get_prod_factor();
             let val = self.listener.exit_prod(CtxProd::Prod1 { prod_factor });
             self.stack.push(SynValue::Prod(val));

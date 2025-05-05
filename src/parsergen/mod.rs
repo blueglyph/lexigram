@@ -1584,8 +1584,8 @@ impl ParserGen {
                     for f in &exit_factors {
                         exit_factor_done.insert(*f, true);
                     }
-                    let init_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("init_{npl}") } else { format!("exit_{npl}") };
-                    let fn_name = exit_fixer.get_unique_name(init_or_exit_name.clone());
+                    let inter_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("inter_{npl}") } else { format!("exit_{npl}") };
+                    let fn_name = exit_fixer.get_unique_name(inter_or_exit_name.clone());
                     let (is_factor_id, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method);
                     if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {

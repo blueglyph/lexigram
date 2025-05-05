@@ -537,3 +537,20 @@ pub(crate) mod code_prs_51_1 {
     #[derive(Debug, PartialEq)]
     pub struct SynF();
 }
+
+pub(crate) mod code_prs_54_1 {
+    /// User-defined type for `E`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+    /// User-defined type for `E1`
+    #[derive(Debug, PartialEq)] pub struct SynE1();
+    /// User-defined type for `E2`
+    #[derive(Debug, PartialEq)] pub struct SynE2();
+    /// User-defined type for `E3`
+    #[derive(Debug, PartialEq)] pub struct SynE3();
+    /// User-defined type for `E4`
+    #[derive(Debug, PartialEq)] pub struct SynE4();
+    /// User-defined type for `E5`
+    #[derive(Debug, PartialEq)] pub struct SynE5();
+    /// User-defined type for `F`
+    #[derive(Debug, PartialEq)] pub struct SynF();
+}
