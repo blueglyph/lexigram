@@ -1367,6 +1367,55 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 5, nt 0, t 6; t 7; t 8),
             ]);
         }
+        54 => {
+            // mimics a partial ambiguous transform (amb -> lrec / rrec / independants
+            // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | F;
+            // F -> ( E ) | NUM | ID
+            // =>
+            // E  -> E + E1 | E1
+            // E1 -> - E1 | E2
+            // E2 -> E2 * E3 | E3
+            // E3 -> E3 ' | E4
+            // E4 -> E4 ^ E5 | E5
+            // E5 -> abs E5 | F
+            symbol_table.extend_terminals([
+                ("ABS".to_string(), Some("abs".to_string())),   // 0
+                ("NEG".to_string(), Some("-".to_string())),     // 1
+                ("EXP".to_string(), Some("^".to_string())),     // 2
+                ("MUL".to_string(), Some("*".to_string())),     // 3
+                ("ADD".to_string(), Some("+".to_string())),     // 4
+                ("LPAREN".to_string(), Some("(".to_string())),  // 5
+                ("RPAREN".to_string(), Some(")".to_string())),  // 6
+                ("NUM".to_string(), None),                      // 7
+                ("ID".to_string(), None),                       // 8
+                ("PRIME".to_string(), Some("'".to_string())),   // 9
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
+            symbol_table.extend_non_terminals(["E1".to_string()]);  // 1
+            symbol_table.extend_non_terminals(["E2".to_string()]);  // 2
+            symbol_table.extend_non_terminals(["E3".to_string()]);  // 3
+            symbol_table.extend_non_terminals(["E4".to_string()]);  // 4
+            symbol_table.extend_non_terminals(["E5".to_string()]);  // 5
+            symbol_table.extend_non_terminals(["F".to_string()]);   // 6
+            prods.extend([
+                prod!(nt 0, t 4, nt 1; nt 1),       // E  (nt 0)
+                prod!(t 1, nt 1; nt 2),             // E1 (nt 1)
+                prod!(nt 2, t 3, nt 3; nt 3),       // E2 (nt 2)
+                prod!(nt 3, t 9; nt 4),             // E3 (nt 3)
+                prod!(nt 4, t 2, nt 5; nt 5),       // E4 (nt 4)
+                prod!(t 0, nt 5; nt 6),             // E5 (nt 5)
+                prod!(t 5, nt 0, t 6; t 7; t 8),    // F (nt 6)
+            ]);
+            // we must set the flags since we did the grammatical transformations manually:
+            flags = hashmap![
+                // 0 => ruleflag::PARENT_L_RECURSION | ruleflag::PARENT_AMBIGUITY,
+                // 2 => ruleflag::CHILD_INDEPENDENT_AMBIGUITY,
+                // 3 => ruleflag::TRANSF_CHILD_AMB | ruleflag::CHILD_L_RECURSION
+            ];
+            parents = hashmap![
+                // 2 => 0, 3 => 0
+            ];
+        }
 
         // ambiguity? ----------------------------------------------------------
         100 => {
