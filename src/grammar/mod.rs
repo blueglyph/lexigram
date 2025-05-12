@@ -8,12 +8,13 @@ pub(crate) mod tests;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
+use std::mem::take;
 use std::ops::{Deref, DerefMut};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::log::{BufLog, Logger};
 use crate::symbol_table::SymbolTable;
@@ -479,7 +480,7 @@ impl RuleTreeSet<General> {
         const VERBOSE_CC: bool = false;
         if VERBOSE { println!("normalize_var({})", Symbol::NT(var).to_str(self.get_symbol_table())); }
         let mut new_var = self.get_next_available_var();
-        let orig = std::mem::take(&mut self.trees[var as usize]);
+        let orig = take(&mut self.trees[var as usize]);
         let mut new = GrTree::new();
         let mut stack = Vec::<usize>::new();    // indices in new
         for sym in orig.iter_depth() {
@@ -899,6 +900,22 @@ impl DerefMut for ProdFactor {
     }
 }
 
+#[derive(Clone, Copy, PartialEq, Debug)]
+enum FactorType { None, Independant, RightRecursive, LeftRecusive, Ambiguous }
+
+impl FactorType {
+    fn from(nt: &Symbol, factor: &ProdFactor) -> Self {
+        let left = matches!(factor.first(), Some(var) if var == nt);
+        let right = factor.len() > 1 && matches!(factor.last(), Some(var) if var == nt);
+        match (left, right) {
+            (false, false) => FactorType::Independant,
+            (false, true)  => FactorType::RightRecursive,
+            (true, false)  => FactorType::LeftRecusive,
+            (true, true)   => FactorType::Ambiguous,
+        }
+    }
+}
+
 pub fn prod_to_string(prod: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
     prod.iter().map(|factor| factor.to_str(symbol_table)).join(" | ")
 }
@@ -988,11 +1005,11 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub fn give_symbol_table(&mut self) -> Option<SymbolTable> {
-        std::mem::take(&mut self.symbol_table)
+        take(&mut self.symbol_table)
     }
 
     pub fn give_nt_conversion(&mut self) -> HashMap<VarId, NTConversion> {
-        std::mem::take(&mut self.nt_conversion)
+        take(&mut self.nt_conversion)
     }
 
     /// Adds new flags to `flags[nt]` by or'ing them.
@@ -1361,12 +1378,14 @@ impl<T> ProdRuleSet<T> {
     /// other instances of `A` in the middle, like `A β1 A δ1`, but it's not strictly necessary
     /// for an LL(1) grammar so we don't do it.
     pub fn remove_left_recursion(&mut self) {
+        return self.remove_left_recursion2();
+
         const VERBOSE: bool = false;
         const NEW_METHOD: bool = true;  // new ambiguous transformations
         let mut extra = Vec::<ProdRule>::new();
         let mut new_var = self.get_next_available_var();
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
-        let mut prods = std::mem::take(&mut self.prods);
+        let mut prods = take(&mut self.prods);
         for (var, prod) in prods.iter_mut().index() {
             let symbol = Symbol::NT(var);
             if prod.iter().any(|p| *p.first().unwrap() == symbol) {
@@ -1379,9 +1398,9 @@ impl<T> ProdRuleSet<T> {
                     .partition(|factor| *factor.first().unwrap() == symbol);
                 let (mut ambiguous, mut left) : (Vec<_>, Vec<_>) = recursive.into_iter()
                     .partition(|factor| *factor.last().unwrap() == symbol);
-                // => ambiguous: factors with left & right recusion (A -> A α A)
-                //    left:      factors with left recursion        (A -> A β)
-                //    fine:      factors without left recursion     (A -> γ A | δ)
+                // => ambiguous: factors with left & right recursion (A -> A α A)
+                //    left:      factors with left recursion         (A -> A β)
+                //    fine:      factors without left recursion      (A -> γ A | δ)
                 if fine.is_empty() || left.iter().any(|f| f.len() < 2) {
                     let mut msg = format!("remove_left_recursion: recursive production: {}", prod_to_string(prod, self.get_symbol_table()));
                     if fine.is_empty() {
@@ -1511,6 +1530,146 @@ impl<T> ProdRuleSet<T> {
         self.num_nt = self.prods.len();
     }
 
+    pub fn remove_left_recursion2(&mut self) {
+        const VERBOSE: bool = false;
+        const NEW_METHOD: bool = true;  // new ambiguous transformations
+        let mut var_new = self.get_next_available_var() as usize;
+        let var_new0 = var_new;
+        // we must take prods out because of the borrow checker and other &mut borrows we need later...
+        let mut prods = take(&mut self.prods);
+        for var in 0..var_new0 {
+            let mut prod = prods.get_mut(var).unwrap();
+            let var = var as VarId;
+            let symbol = Symbol::NT(var);
+            if prod.iter().any(|p| !p.is_empty() && (p.first().unwrap() == &symbol || p.last().unwrap() == &symbol)) {
+                if VERBOSE {
+                    println!("processing: {}", format!("{} -> {}",
+                        Symbol::NT(var).to_str(self.get_symbol_table()),
+                        prod_to_string(prod, self.get_symbol_table())));
+                }
+                // orders the factors by priority order
+
+                // the factors that don't begin or end with the NT are independent; their priority is maximum
+                // since they're not attached to either left or right factors (even if they contain the NT)
+                // e.g. NUM, ID, and (E) in E -> E^E | E++ | -E | E*E | (E) | ID | NUM
+                let (indep, mut factors) : (Vec<_>, Vec<_>) = take(prod).into_iter()
+                    .partition(|factor| factor.first().unwrap() != &symbol && factor.last().unwrap() != &symbol);
+                assert!(factors.is_empty() || !indep.is_empty(), "recursive forms must have at least one independent factor");
+                factors.reverse(); // first factor has lowest priority; we'll start there
+                factors.extend(indep);
+
+                // Start:
+                //     prev = none
+                //     I = var, N = new_var = prods.len()
+                //
+                // Iteration(factor):
+                //     curr = type(factor)
+                //     if prev == right && (curr == left | ambig):
+                //         (I).app(N)
+                //         I = N
+                //     if I >= N: N = I+1
+                //
+                //               curr:| right              left                ambig                   indep
+                //     prev    factor:| A -> α A           A -> A β            A -> A γ A              A -> δ
+                //     ---------------+------------------  ----------------    --------------------    ----------
+                //     none           | (I).app(α I | N)   (I).app(N+1 N)      (I).app(N+1 N)          (I).app(δ)
+                //     | right        |                    (N).app(β N | ε)    (N).app(γ N+1 N | ε)
+                //     | left         |                    I = N+1             I = N+1
+                //     | ambig        |
+                //                    |
+                //     indep          | -                  -                   -                       (I).app(δ)
+                //
+                //     prev = curr
+                //
+                // Actual indices:     │ original prods (len = new_var0) │ new prods │ prods about to be added
+                //                     ├─────────────────────────────────┼───────────┼───── ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+                //                      A       B       C          ...     A_1 ...    B_1     B_2     B_3     B_4 ...
+                //                      ▲       ▲                          ▲          ▲
+                //                      │       │                          │          └─── [new_var]
+                //                      │       │                          └──── [new_var0]
+                //                      0       └──── var (symbol, prod: &mut ProdRule)
+
+                let mut prev = FactorType::None;
+                let mut var_i = var as usize;
+                for mut factor in factors {
+                    // print!("var_i: {var_i}, var_new: {var_new}, factor: {}, #prods: {}", factor.to_str(self.get_symbol_table()), prods.len());
+                    let curr = FactorType::from(&symbol, &factor);
+                    if prev == FactorType::RightRecursive && matches!(curr, FactorType::LeftRecusive | FactorType::Ambiguous) {
+                        prods[var_i].push(prodf!(nt var_new));
+                        var_i = var_new;
+                        // print!(" => var_i: {var_i}");
+                    }
+                    if var_i >= var_new {
+                        prods.push(ProdRule::new());
+                        self.flags.push(0);
+                        self.parent.push(Some(var));
+                        var_new = var_i + 1;
+                        // print!(" => var_new: {var_new}");
+                    }
+                    if let Some(ref mut table) = self.symbol_table {
+                        // println!("table: {} ({})", table.get_non_terminals().join(", "), table.get_num_nt());
+                        if table.get_num_nt() <= var_i {
+                            table.add_var_prime_name(var, var_i as VarId, None);
+                        }
+                    }
+                    match curr {
+                        FactorType::None => panic!("can't happen since a factor is never evaluated as None"),
+                        FactorType::RightRecursive => {
+                            factor.pop();                                           // -> α
+                            factor.push(sym!(nt var_i));                            // -> α I
+                            prods[var_i].push(factor);
+                            self.flags[var_i] |= ruleflag::R_RECURSION;
+                        }
+                        FactorType::LeftRecusive => {
+                            prods[var_i].push(prodf!(nt var_new + 1, nt var_new));  // I -> N+1 N
+                            factor.remove(0);
+                            let f = factor.clone();
+                            factor.push(sym!(nt var_new));                          // N -> β N
+                            prods.push(vec![factor, prodf!(e)]);                    // N -> ε
+                            if let Some(ref mut table) = self.symbol_table {
+                                table.add_var_prime_name(var, var_new as VarId, None);
+                            }
+                            self.flags[var_i] |= ruleflag::PARENT_L_RECURSION;
+                            self.flags.push(ruleflag::CHILD_L_RECURSION);
+                            self.parent.push(Some(var_i as VarId));
+                            var_i = var_new + 1;
+                        }
+                        FactorType::Ambiguous => {
+                            prods[var_i].push(prodf!(nt var_new + 1, nt var_new));  // I -> N+1 N
+                            factor.pop();
+                            factor.remove(0);
+                            factor.push(sym!(nt var_new + 1));
+                            factor.push(sym!(nt var_new));                          // N -> γ N+1 N
+                            prods.push(vec![factor, prodf!(e)]);                    // N -> ε
+                            if let Some(ref mut table) = self.symbol_table {
+                                table.add_var_prime_name(var, var_new as VarId, None);
+                            }
+                            self.flags[var_i] |= ruleflag::PARENT_AMBIGUITY;
+                            self.flags.push(ruleflag::CHILD_AMBIGUITY);
+                            self.parent.push(Some(var_i as VarId));
+                            var_i = var_new + 1;
+                        }
+                        FactorType::Independant => {
+                            prods[var_i].push(factor);
+                        }
+                    }
+                    // println!(" --> var_i: {var_i}, #prods: {}", prods.len());
+                    prev = curr;
+                }
+                var_new = prods.len();
+                if var_new - 1 > VarId::MAX as usize { panic!("too many nonterminals") }
+            }
+        }
+        println!("#prods: {}, #flags: {}, #parents:{}", prods.len(), self.flags.len(), self.parent.len());
+        if let Some(ref mut table) = self.symbol_table {
+            println!("table: {} ({})", table.get_non_terminals().join(", "), table.get_num_nt());
+        }
+        self.prods = prods;
+        self.num_nt = self.prods.len();
+        println!("FINAL:");
+        print_production_rules(&self, false);
+    }
+
     /// Factorizes all the left symbols that are common to several factors by rejecting the non-common part
     /// to a new non-terminal. Updates the symbol table if provided.
     ///
@@ -1532,7 +1691,7 @@ impl<T> ProdRuleSet<T> {
         const VERBOSE: bool = false;
         let mut new_var = self.get_next_available_var();
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
-        let mut prods = std::mem::take(&mut self.prods);
+        let mut prods = take(&mut self.prods);
         let mut i = 0;
         while i < prods.len() {
             let mut prod = &mut prods[i];
@@ -1897,7 +2056,7 @@ pub fn symbol_to_macro(s: &Symbol) -> String {
 pub fn print_production_rules<T>(prods: &ProdRuleSet<T>, as_comment: bool) {
     let prefix = if as_comment { "            // " } else { "    " };
     println!("{prefix}{}", prods.get_prods_iter().map(|(var, p)|
-        format!("{} -> {}",
+        format!("({var}) {} -> {}",
                 Symbol::NT(var).to_str(prods.get_symbol_table()),
                 prod_to_string(p, prods.get_symbol_table()))
     ).join(&format!("\n{prefix}")));
@@ -2004,8 +2163,8 @@ pub mod macros {
     /// assert_eq!(sym!(end), Symbol::End);
     #[macro_export(local_inner_macros)]
     macro_rules! sym {
-        (t $id:literal) => { $crate::grammar::Symbol::T($id as $crate::dfa::TokenId) };
-        (nt $id:literal) => { $crate::grammar::Symbol::NT($id as $crate::grammar::VarId) };
+        (t $id:expr) => { $crate::grammar::Symbol::T($id as $crate::dfa::TokenId) };
+        (nt $id:expr) => { $crate::grammar::Symbol::NT($id as $crate::grammar::VarId) };
         (e) => { $crate::grammar::Symbol::Empty };
         (end) => { $crate::grammar::Symbol::End };
     }
@@ -2039,12 +2198,12 @@ pub mod macros {
     #[macro_export(local_inner_macros)]
     macro_rules! prodf {
         () => { std::vec![] };
-        ($($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![$($a $($b $(: $num)?)?),+] };
-        ($($a:ident $($b:literal $(: $num:expr)?)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$(sym!($a $($b $(: $num)?)?)),*]) };
-        (#$f:literal, $($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![#$f, $($a $($b $(: $num)?)?),+] };
-        (#$f:literal, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], $f) };
-        (#$f:ident, $($a:ident $($b:literal $(: $num:expr)?)?,)+) => { prodf![#$f, $($a $($b $(: $num)?)?),+] };
-        (#$f:ident, $($a:ident $($b:literal $(: $num:expr)?)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b $(: $num)?)?)),*], prodflag!($f)) };
+        ($($a:ident $($b:expr)?,)+) => { prodf![$($a $($b)?),+] };
+        ($($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$(sym!($a $($b)?)),*]) };
+        (#$f:literal, $($a:ident $($b:expr)?,)+) => { prodf![#$f, $($a $($b)?),+] };
+        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b)?)),*], $f) };
+        (#$f:ident, $($a:ident $($b:expr)?,)+) => { prodf![#$f, $($a $($b)?),+] };
+        (#$f:ident, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b)?)),*], prodflag!($f)) };
     }
 
     #[macro_export(local_inner_macros)]

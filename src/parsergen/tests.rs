@@ -550,7 +550,7 @@ mod wrapper_source {
                 if is_valuable {
                     builder.symbol_table.set_t_name(t, None);
                 } else {
-                    let name = builder.symbol_table.get_t_name(t);
+                    let name = builder.symbol_table.get_t_str(t);
                     builder.symbol_table.set_t_name(t, Some(name));
                 }
             }
@@ -1446,28 +1446,49 @@ mod wrapper_source {
                 60 => symbols![nt 12],                  // 60: repeat_item_3 -> ε                     | ◄60                           | item
             ], Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 43, 44], 6 => vec![10], 7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![46, 48, 57, 58, 59, 60], 12 => vec![22, 23, 24, 26, 27, 49, 50], 13 => vec![28, 29, 30], 14 => vec![31, 51, 52]]),
             // NT flags:
-            //  - E: parent_left_rec | parent_amb (1536)
-            //  - E_1: child_ind_amb (16)
-            //  - E_2: right_rec | child_left_rec | child_amb | L-form (142)
+            //  - E: parent_amb (1024)
+            //  - E_1: child_amb (8)
+            //  - E_2: right_rec (2)
+            //  - E_3: parent_amb (1024)
+            //  - E_4: child_amb (8)
+            //  - E_5: parent_left_rec (512)
+            //  - E_6: child_left_rec (4)
+            //  - E_7: parent_amb (1024)
+            //  - E_8: child_amb (8)
+            //  - E_9: right_rec (2)
             // parents:
             //  - E_1 -> E
             //  - E_2 -> E
+            //  - E_3 -> E
+            //  - E_4 -> E_3
+            //  - E_5 -> E
+            //  - E_6 -> E_5
+            //  - E_7 -> E
+            //  - E_8 -> E_7
+            //  - E_9 -> E
             (PRS(51), true, 0, btreemap![
                 0 => "SynE".to_string(),
                 1 => "SynF".to_string(),
             ], btreemap![
-                0 => symbols![],                        //  0: E -> E_1 E_2       | ►E_2 ◄0 ►E_1     |
-                1 => symbols![nt 0],                    //  1: F -> ( E )         | ◄1 ) ►E (        | E
-                2 => symbols![t 7],                     //  2: F -> NUM           | ◄2 NUM!          | NUM
-                3 => symbols![t 8],                     //  3: F -> ID            | ◄3 ID!           | ID
-                4 => symbols![],                        //  4: E_1 -> abs E_1 E_2 | ●E_2 ◄4 ●E_1 abs |
-                5 => symbols![],                        //  5: E_1 -> - E_1 E_2   | ●E_2 ◄5 ●E_1 -   |
-                6 => symbols![nt 1],                    //  6: E_1 -> F           | ◄6 ►F            | F
-                7 => symbols![nt 0],                    //  7: E_2 -> ' E_2       | ●E_2 ◄7 '        | E
-                8 => symbols![nt 0],                    //  8: E_2 -> ^ E_1 E_2   | ●E_2 ◄8 ►E_1 ^   | E
-                9 => symbols![nt 0],                    //  9: E_2 -> * E_1 E_2   | ●E_2 ◄9 ►E_1 *   | E
-                10 => symbols![nt 0],                   // 10: E_2 -> + E_1 E_2   | ●E_2 ◄10 ►E_1 +  | E
-                11 => symbols![nt 0],                   // 11: E_2 -> ε           | ◄11              | E
+                0 => symbols![],                        //  0: E -> E_2 E_1     | ◄0 ►E_1 ►E_2    |
+                1 => symbols![nt 0],                    //  1: F -> ( E )       | ◄1 ) ►E (       | E
+                2 => symbols![t 7],                     //  2: F -> NUM         | ◄2 NUM!         | NUM
+                3 => symbols![t 8],                     //  3: F -> ID          | ◄3 ID!          | ID
+                4 => symbols![],                        //  4: E_1 -> + E_2 E_1 | ●E_1 ◄4 ►E_2 +  |
+                5 => symbols![],                        //  5: E_1 -> ε         | ◄5              |
+                6 => symbols![],                        //  6: E_2 -> - E_2     | ◄6 ►E_2 -       |
+                7 => symbols![],                        //  7: E_2 -> E_3       | ◄7 ►E_3         |
+                8 => symbols![],                        //  8: E_3 -> E_5 E_4   | ◄8 ►E_4 ►E_5    |
+                9 => symbols![],                        //  9: E_4 -> * E_5 E_4 | ●E_4 ◄9 ►E_5 *  |
+                10 => symbols![],                       // 10: E_4 -> ε         | ◄10             |
+                11 => symbols![],                       // 11: E_5 -> E_7 E_6   | ►E_6 ◄11 ►E_7   |
+                12 => symbols![],                       // 12: E_6 -> ' E_6     | ●E_6 ◄12 '      |
+                13 => symbols![],                       // 13: E_6 -> ε         | ◄13             |
+                14 => symbols![],                       // 14: E_7 -> E_9 E_8   | ◄14 ►E_8 ►E_9   |
+                15 => symbols![],                       // 15: E_8 -> ^ E_9 E_8 | ●E_8 ◄15 ►E_9 ^ |
+                16 => symbols![],                       // 16: E_8 -> ε         | ◄16             |
+                17 => symbols![],                       // 17: E_9 -> abs E_9   | ◄17 ►E_9 abs    |
+                18 => symbols![nt 1],                   // 18: E_9 -> F         | ◄18 ►F          | F
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2, 3]]),
             // NT flags:
             //  - E: parent_left_rec | parent_amb (1536)
@@ -1536,10 +1557,10 @@ mod wrapper_source {
             ], Default, btreemap![
                 0 => vec![0], 1 => vec![1, 2], 2 => vec![3], 3 => vec![4],
                 4 => vec![5], 5 => vec![6, 7], 6 => vec![8, 9, 10]]),
-
+            (PRS(55), false, 0, btreemap![], btreemap![], Default, btreemap![]),
             /*
-            (PRS(), 0, btreemap![], btreemap![], Default, btreemap![]),
-            (RTS(), 0, btreemap![], btreemap![], Default, btreemap![]),
+            (PRS(), false, 0, btreemap![], btreemap![], Default, btreemap![]),
+            (RTS(), false, 0, btreemap![], btreemap![], Default, btreemap![]),
             */
         ];
 
@@ -1549,7 +1570,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -1565,6 +1586,7 @@ mod wrapper_source {
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
+if rule_id != PRS(51) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
@@ -1617,7 +1639,7 @@ mod wrapper_source {
             let result_nt_type = builder.nt_type.iter().map(|(v, s)| (*v, s.clone())).collect::<BTreeMap<_, _>>();
             if VERBOSE {
                 print_flags(&builder, 12);
-                println!("            ({rule_id:?}, {start_nt}, btreemap![", );
+                println!("            ({rule_id:?}, {test_source}, {start_nt}, btreemap![", );
                 if !result_nt_type.is_empty() {
                     println!("{}", result_nt_type.iter().map(|(v, s)| format!("                {v} => \"{s}\".to_string(),")).join("\n"));
                 }

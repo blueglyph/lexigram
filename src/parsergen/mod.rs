@@ -63,7 +63,7 @@ impl OpCode {
         if let Some(t) = symbol_table {
             match self {
                 OpCode::Empty => "ε".to_string(),
-                OpCode::T(v) => format!("{}{}", t.get_t_name(*v), if t.is_t_data(*v) { "!" } else { "" }),
+                OpCode::T(v) => format!("{}{}", t.get_t_str(*v), if t.is_t_data(*v) { "!" } else { "" }),
                 OpCode::NT(v) => format!("►{}", t.get_nt_name(*v)),
                 OpCode::Loop(v) => format!("●{}", t.get_nt_name(*v)),
                 OpCode::Exit(f) => format!("◄{f}"),

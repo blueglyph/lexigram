@@ -9350,24 +9350,38 @@ pub(crate) mod rules_prs_51_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> E_1`
+        /// `E -> E_2 E_1`
         E1,
-        /// `E_1 -> abs E_1 E_2`
+        /// `E_1 -> + E_2 E_1`
         E2,
-        /// `E_1 -> - E_1 E_2`
+        /// `E_1 -> ε`
         E3,
-        /// `E_1 -> F`
-        E4 { f: SynF },
-        /// `E -> E ' <L>`
-        E5 { e: SynE },
-        /// `E -> E ^ E_1 <L>`
-        E6 { e: SynE },
-        /// `E -> E * E_1 <L>`
-        E7 { e: SynE },
-        /// `E -> E + E_1 <L>`
-        E8 { e: SynE },
-        /// end of iterations in E -> E ' <L> | E ^ E_1 <L> | E * E_1 <L> | E + E_1 <L>
-        E9 { e: SynE },
+        /// `E_2 -> - E_2`
+        E4,
+        /// `E_2 -> E_3`
+        E5,
+        /// `E_3 -> E_5 E_4`
+        E6,
+        /// `E_4 -> * E_5 E_4`
+        E7,
+        /// `E_4 -> ε`
+        E8,
+        /// `E -> E_7`
+        E9,
+        /// `E -> E '`
+        E10 { e: SynE },
+        /// end of iterations in E -> E '
+        E11 { e: SynE },
+        /// `E_7 -> E_9 E_8`
+        E12,
+        /// `E_8 -> ^ E_9 E_8`
+        E13,
+        /// `E_8 -> ε`
+        E14,
+        /// `E_9 -> abs E_9`
+        E15,
+        /// `E_9 -> F`
+        E16 { f: SynF },
     }
     #[derive(Debug)]
     pub enum CtxF {
@@ -9429,7 +9443,7 @@ pub(crate) mod rules_prs_51_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_e(),                // E
-                        3 => {}                                     // E_2
+                        7 => {}                                     // E_6
                         1 => self.listener.init_f(),                // F
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -9437,15 +9451,22 @@ pub(crate) mod rules_prs_51_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => {}                                     // E -> E_1 (not used)
-                        4 => {}                                     // E_1 -> abs E_1 E_2 (not used)
-                        5 => {}                                     // E_1 -> - E_1 E_2 (not used)
-                        6 => {}                                     // E_1 -> F (not used)
-                        7 => {}                                     // E -> E ' <L> (not used)
-                        8 => {}                                     // E -> E ^ E_1 <L> (not used)
-                        9 => {}                                     // E -> E * E_1 <L> (not used)
-                        10 => {}                                    // E -> E + E_1 <L> (not used)
-                        11 => {}                                    // end of iterations in E -> E ' <L> | E ^ E_1 <L> | E * E_1 <L> | E + E_1 <L> (not used)
+                        6 |                                         // E_2 -> - E_2
+                        7 => self.exit_e2(factor_id),               // E_2 -> E_3
+                        17 |                                        // E_9 -> abs E_9
+                        18 => self.exit_e9(factor_id),              // E_9 -> F
+                        0 => {}                                     // E -> E_2 E_1 (not used)
+                        4 => {}                                     // E_1 -> + E_2 E_1 (not used)
+                        5 => {}                                     // E_1 -> ε (not used)
+                        8 => {}                                     // E_3 -> E_5 E_4 (not used)
+                        9 => {}                                     // E_4 -> * E_5 E_4 (not used)
+                        10 => {}                                    // E_4 -> ε (not used)
+                        11 => {}                                    // E -> E_7 (not used)
+                        12 => {}                                    // E -> E ' (not used)
+                        13 => {}                                    // end of iterations in E -> E ' (not used)
+                        14 => {}                                    // E_7 -> E_9 E_8 (not used)
+                        15 => {}                                    // E_8 -> ^ E_9 E_8 (not used)
+                        16 => {}                                    // E_8 -> ε (not used)
                         1 |                                         // F -> ( E )
                         2 |                                         // F -> NUM
                         3 => self.exit_f(factor_id),                // F -> ID
@@ -9496,6 +9517,35 @@ pub(crate) mod rules_prs_51_1 {
         fn exit(&mut self) {
             let e = self.stack.pop().unwrap().get_e();
             self.listener.exit(e);
+        }
+
+        fn exit_e2(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                6 => {
+                    CtxE::E4
+                }
+                7 => {
+                    CtxE::E5
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e2")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+
+        fn exit_e9(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                17 => {
+                    CtxE::E15
+                }
+                18 => {
+                    let f = self.stack.pop().unwrap().get_f();
+                    CtxE::E16 { f }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e9")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
         }
 
         fn exit_f(&mut self, factor_id: FactorId) {

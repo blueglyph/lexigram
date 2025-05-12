@@ -174,7 +174,7 @@ impl SymbolTable {
         self.nt.push(name_prime);
     }
 
-    pub fn get_t_name(&self, token: TokenId) -> String {
+    pub fn get_t_str(&self, token: TokenId) -> String {
         match token {
             _ if (token as usize) < self.t.len() => {
                 let (name, literal) = &self.t[token as usize];
@@ -182,6 +182,14 @@ impl SymbolTable {
             }
             TokenId::MAX => "<bad character>".to_string(),
             _ => format!("T({token}?)")
+        }
+    }
+
+    pub fn get_t_name(&self, token: TokenId) -> String {
+        if token as usize >= self.t.len() {
+            format!("??T({token})")
+        } else {
+            self.t[token as usize].0.clone()
         }
     }
 
@@ -201,7 +209,7 @@ impl SymbolTable {
     pub fn get_name(&self, symbol: &Symbol) -> String {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),
-            Symbol::T(token) => self.get_t_name(*token),
+            Symbol::T(token) => self.get_t_str(*token),
             Symbol::NT(var) => self.get_nt_name(*var),
         }
     }

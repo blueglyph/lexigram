@@ -1416,6 +1416,39 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 // 2 => 0, 3 => 0
             ];
         }
+        55 => {
+            // classical ambiguous arithmetic grammar
+            // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | T;
+            // T -> T '!' | F;
+            // F -> ( E ) | NUM | ID
+            symbol_table.extend_terminals([
+                ("ABS".to_string(), Some("abs".to_string())),   // 0
+                ("NEG".to_string(), Some("-".to_string())),     // 1
+                ("EXP".to_string(), Some("^".to_string())),     // 2
+                ("MUL".to_string(), Some("*".to_string())),     // 3
+                ("ADD".to_string(), Some("+".to_string())),     // 4
+                ("LPAREN".to_string(), Some("(".to_string())),  // 5
+                ("RPAREN".to_string(), Some(")".to_string())),  // 6
+                ("NUM".to_string(), None),                      // 7
+                ("ID".to_string(), None),                       // 8
+                ("PRIME".to_string(), Some("'".to_string())),   // 9
+                ("FACT".to_string(), Some("!".to_string())),    // 10
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
+            symbol_table.extend_non_terminals(["T".to_string()]);   // 1
+            symbol_table.extend_non_terminals(["F".to_string()]);   // 2
+            prods.extend([
+                prod!(t 0, nt 0;
+                    nt 0, t 2, nt 0;
+                    nt 0, t 9;
+                    nt 0, t 3, nt 0;
+                    t 1, nt 0;
+                    nt 0, t 4, nt 0;
+                    nt 1),
+                prod!(nt 1, t 10; nt 2),
+                prod!(t 5, nt 0, t 6; t 7; t 8),
+            ]);
+        }
 
         // ambiguity? ----------------------------------------------------------
         100 => {
