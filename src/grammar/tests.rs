@@ -1826,6 +1826,10 @@ fn prs_lr_from() {
 fn prs_calc_first() {
     let tests: Vec<(u32, VarId, HashMap<Symbol, HashSet<Symbol>>)> = vec![
         (4, 0, hashmap![
+            // E -> E + T | E - T | T
+            // T -> T * F | T / F | F
+            // F -> ( E ) | NUM | ID
+            // ->
             // E -> T E_1
             // T -> F T_1
             // F -> ( E ) | NUM | ID
