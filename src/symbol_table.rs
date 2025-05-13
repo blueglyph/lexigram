@@ -115,10 +115,11 @@ impl SymbolTable {
     }
 
     pub fn remove_non_terminal(&mut self, v: VarId) {
-        self.nt.remove(v as usize);
+        let name = self.nt.remove(v as usize);
         for old_v in self.names.values_mut() {
             if *old_v >= v { *old_v -= 1; }
         }
+        self.names.remove(&name);
         self.primes = self.primes.iter()
             .filter(|&(child, parent)| *child != v && *parent != v)
             .map(|(&child, &parent)| (if child > v { child - 1 } else { child }, if parent > v { parent - 1 } else { parent }))

@@ -1166,7 +1166,6 @@ impl ParserGen {
     fn source_build_parser(&mut self) -> Vec<String> {
         let num_nt = self.symbol_table.get_non_terminals().len();
         let num_t = self.symbol_table.get_terminals().len();
-        let mut symbol_names = self.symbol_table.get_names().to_vec(); // hashmap: we want predictable outcome, so we sort names
         for lib in [
             "lexigram::grammar::ProdFactor",
             "lexigram::grammar::Symbol",
@@ -1179,7 +1178,6 @@ impl ParserGen {
             self.used_libs.add(lib);
         }
 
-        symbol_names.sort();
         vec![
             format!("const PARSER_NUM_T: usize = {num_t};"),
             format!("const PARSER_NUM_NT: usize = {num_nt};"),
@@ -1188,9 +1186,6 @@ impl ParserGen {
                          format!("(\"{s}\", {})", os.as_ref().map(|s| format!("Some(\"{s}\")")).unwrap_or("None".to_string()))).join(", ")),
             format!("const SYMBOLS_NT: [&str; PARSER_NUM_NT] = [{}];",
                      self.symbol_table.get_non_terminals().iter().map(|s| format!("\"{s}\"")).join(", ")),
-            format!("const SYMBOLS_NAMES: [(&str, VarId); {}] = [{}];",
-                     symbol_names.len(),
-                     symbol_names.into_iter().map(|(s, v)| format!("(\"{s}\", {v})")).join(", ")),
             format!("const PARSING_FACTORS: [(VarId, &[Symbol]); {}] = [{}];",
                      self.parsing_table.factors.len(),
                      self.parsing_table.factors.iter().map(|(v, f)| format!("({v}, &[{}])", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")),
@@ -1209,7 +1204,6 @@ impl ParserGen {
             format!("    let mut symbol_table = SymbolTable::new();"),
             format!("    symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));"),
             format!("    symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));"),
-            format!("    symbol_table.extend_names(SYMBOLS_NAMES.into_iter().map(|(s, v)| (s.to_string(), v)));"),
             format!("    let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();"),
             format!("    let table: Vec<FactorId> = PARSING_TABLE.into();"),
             format!("    let parsing_table = lexigram::grammar::LLParsingTable {{"),
