@@ -5,7 +5,7 @@
 
 pub(crate) mod tests;
 
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::mem::take;
@@ -884,6 +884,37 @@ impl ProdFactor {
         }
         new
     }
+
+    /// Reverses the items while preserving the relative order within left- and right-recursive chains of operations
+    /// relative to the NT `var`. The relative order of operations in left- and right-recursive operation is
+    /// not ambiguous and their priorities is given by the order of the symbols in the text, so it's not necessary
+    /// to reorder them like ambiguous terms. Furthermore, the resulting generated parser API will be more
+    /// confusing for the user if those operations have changed their relative place in the rule.
+    ///
+    /// # Example
+    ///
+    /// `[lrec1, lrec2, amb1, amb2, rrec1, rrec2, lrec3]` -> `[lrec3, rrec1, rrec2, amb2, amb1, lrec1, lrec2]`
+    fn reverse_factors_priority(mut factors: Vec<ProdFactor>, var: VarId) -> Vec<ProdFactor> {
+        let symbol = Symbol::NT(var);
+        let mut new_f = Vec::<ProdFactor>::new();
+        let mut tmp = VecDeque::<ProdFactor>::new();
+        let mut prev = FactorType::None;
+        while let Some(f) = factors.pop() {
+            let curr = FactorType::from(&symbol, &f);
+            if prev != curr {
+                new_f.extend(take(&mut tmp));
+            }
+            match curr {
+                FactorType::None | FactorType::Independant => panic!("can't happen in this context"),
+                FactorType::RightRecursive => tmp.push_front(f),
+                FactorType::LeftRecusive => tmp.push_front(f),
+                FactorType::Ambiguous => new_f.push(f),
+            }
+            prev = curr;
+        }
+        new_f.extend(take(&mut tmp));
+        new_f
+    }
 }
 
 impl Deref for ProdFactor {
@@ -1537,9 +1568,10 @@ impl<T> ProdRuleSet<T> {
         const VERBOSE: bool = false;
         const NEW_METHOD: bool = true;  // new ambiguous transformations
 
-        println!("ORIGINAL:");
-        print_production_rules(&self, false);
-
+        if VERBOSE {
+            println!("ORIGINAL:");
+            print_production_rules(&self, false);
+        }
         let mut var_new = self.get_next_available_var() as usize;
         let var_new0 = var_new;
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
@@ -1563,12 +1595,7 @@ impl<T> ProdRuleSet<T> {
                     .partition(|factor| factor.first().unwrap() != &symbol && factor.last().unwrap() != &symbol);
                 assert!(factors.is_empty() || !indep.is_empty(), "recursive forms must have at least one independent factor");
 
-                // FIXME: we should invert the items while preserving the order of lrec, rrec when they're chained
-                //        because it doesn't change the priority to invert those, and it makes it more confusing
-                //        in the generated listener.
-                //        [lrec1, lrec2, amb1, amb2, rrec1, rrec2, lrec3] -> [lrec3, rrec1, rrec2, amb2, amb1, lrec1, lrec2]
-                factors.reverse(); // first factor has lowest priority; we'll start there
-                // factors.extend(indep);
+                let mut factors = ProdFactor::reverse_factors_priority(factors, var);
 
                 // Start:
                 //     prev = none
@@ -1620,7 +1647,7 @@ impl<T> ProdRuleSet<T> {
                 // while let Some(mut factor) = iter_factor.next() {
                 let n_factors = factors.len();
                 for (i_factor, mut factor) in factors.into_iter().enumerate() {
-                    println!("var_i: {var_i}, var_new: {var_new}, factor: {}, #prods: {}", factor.to_str(self.get_symbol_table()), prods.len());
+                    if VERBOSE { println!("var_i: {var_i}, var_new: {var_new}, factor: {}, #prods: {}", factor.to_str(self.get_symbol_table()), prods.len()); }
                     let curr = FactorType::from(&symbol, &factor);
                     if prev == FactorType::RightRecursive && matches!(curr, FactorType::LeftRecusive | FactorType::Ambiguous) {
                         prods[var_i].push(prodf!(nt var_new));
@@ -1638,7 +1665,7 @@ impl<T> ProdRuleSet<T> {
                         // println!("table: {} ({})", table.get_non_terminals().join(", "), table.get_num_nt());
                         if table.get_num_nt() <= var_i {
                             table.add_var_prime_name(var, var_i as VarId, None);
-                            println!("created {}", table.get_nt_name(var_i as VarId));
+                            if VERBOSE { println!("created {}", table.get_nt_name(var_i as VarId)); }
                         }
                     }
                     match curr {
@@ -1737,16 +1764,20 @@ impl<T> ProdRuleSet<T> {
                 if var_new - 1 > VarId::MAX as usize { panic!("too many nonterminals") }
             }
         }
-        println!("#prods: {}, #flags: {}, #parents:{}", prods.len(), self.flags.len(), self.parent.len());
-        if let Some(ref mut table) = self.symbol_table {
-            println!("table: {} ({})", table.get_non_terminals().join(", "), table.get_num_nt());
+        if VERBOSE {
+            println!("#prods: {}, #flags: {}, #parents:{}", prods.len(), self.flags.len(), self.parent.len());
+            if let Some(ref mut table) = self.symbol_table {
+                println!("table: {} ({})", table.get_non_terminals().join(", "), table.get_num_nt());
+            }
         }
         self.prods = prods;
         self.num_nt = self.prods.len();
-        println!("FINAL:");
-        print_production_rules(&self, false);
-        println!("FLAGS:\n{}", self.flags.iter().index::<VarId>()
-            .map(|(v, f)| format!("- ({v:2}) {}: {}", Symbol::NT(v).to_str(self.get_symbol_table()), ruleflag::to_string(*f).join(", "))).join("\n"));
+        if VERBOSE {
+            println!("FINAL:");
+            print_production_rules(&self, false);
+            println!("FLAGS:\n{}", self.flags.iter().index::<VarId>()
+                .map(|(v, f)| format!("- ({v:2}) {}: {}", Symbol::NT(v).to_str(self.get_symbol_table()), ruleflag::to_string(*f).join(", "))).join("\n"));
+        }
     }
 
     /// Factorizes all the left symbols that are common to several factors by rejecting the non-common part
@@ -2277,11 +2308,11 @@ pub mod macros {
     #[macro_export(local_inner_macros)]
     macro_rules! prodf {
         () => { std::vec![] };
-        ($($a:ident $($b:expr)?,)+) => { prodf![$($a $($b)?),+] };
+        ($($a:ident $($b:expr)?,)+) => { prodf!($($a $($b)?),+) };
         ($($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$(sym!($a $($b)?)),*]) };
-        (#$f:literal, $($a:ident $($b:expr)?,)+) => { prodf![#$f, $($a $($b)?),+] };
+        (#$f:literal, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
         (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b)?)),*], $f) };
-        (#$f:ident, $($a:ident $($b:expr)?,)+) => { prodf![#$f, $($a $($b)?),+] };
+        (#$f:ident, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
         (#$f:ident, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b)?)),*], prodflag!($f)) };
     }
 

@@ -1299,154 +1299,22 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
         }
         52 => {
-            // mimic test to see what an ambiguous transform on the right-recursive factors
-            // would look like:
-            // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | F;
-            // F -> ( E ) | NUM | ID
+            // lrec chain:
+            // E -> E * E | E ! | E ' | E + E | F;
+            // F -> NUM | ID
             symbol_table.extend_terminals([
-                ("ABS".to_string(), Some("abs".to_string())),   // 0
-                ("NEG".to_string(), Some("-".to_string())),     // 1
-                ("EXP".to_string(), Some("^".to_string())),     // 2
-                ("MUL".to_string(), Some("*".to_string())),     // 3
-                ("ADD".to_string(), Some("+".to_string())),     // 4
-                ("LPAREN".to_string(), Some("(".to_string())),  // 5
-                ("RPAREN".to_string(), Some(")".to_string())),  // 6
-                ("NUM".to_string(), None),                      // 7
-                ("ID".to_string(), None),                       // 8
-                ("PRIME".to_string(), Some("'".to_string())),   // 9
-            ]);
-            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
-            symbol_table.extend_non_terminals(["F".to_string()]);   // 1
-            symbol_table.extend_non_terminals(["E1".to_string()]);  // 2
-            symbol_table.extend_non_terminals(["E2".to_string()]);  // 3
-            prods.extend([
-                prod!(
-                    nt 2, nt 3),
-                prod!(
-                    t 5, nt 0, t 6;
-                    t 7;
-                    t 8),
-                prod!(
-                    t 0, nt 2, nt 3;    // abs E1 E2 instead of abs E
-                    t 1, nt 2, nt 3;    // - E1 E2   instead of - E
-                    nt 1),
-                prod!(
-                    t 9, nt 3;
-                    t 2, nt 2, nt 3;
-                    t 3, nt 2, nt 3;
-                    t 4, nt 2, nt 3;
-                    e),
-            ]);
-            // we must set the flags since we did the grammatical transformations manually:
-            flags = hashmap![
-                0 => ruleflag::PARENT_L_RECURSION | ruleflag::PARENT_AMBIGUITY,
-                2 => ruleflag::CHILD_INDEPENDENT_AMBIGUITY,
-                3 => ruleflag::TRANSF_CHILD_AMB | ruleflag::CHILD_L_RECURSION
-            ];
-            parents = hashmap![2 => 0, 3 => 0];
-        }
-        53 => {
-            // same without the right-recursive terms:
-            // E -> E ! | E ^ E | E ' | E * E | E + E | F;
-            // F -> ( E ) | NUM | ID
-            symbol_table.extend_terminals([
-                ("FAC".to_string(), Some("!".to_string())),     // 0
-                ("PRIME".to_string(), Some("'".to_string())),   // 1
-                ("EXP".to_string(), Some("^".to_string())),     // 2
-                ("MUL".to_string(), Some("*".to_string())),     // 3
-                ("ADD".to_string(), Some("+".to_string())),     // 4
-                ("LPAREN".to_string(), Some("(".to_string())),  // 5
-                ("RPAREN".to_string(), Some(")".to_string())),  // 6
-                ("NUM".to_string(), None),                      // 7
-                ("ID".to_string(), None),                       // 8
+                ("MUL".to_string(), Some("*".to_string())),     // 0
+                ("FAC".to_string(), Some("!".to_string())),     // 1
+                ("PRIME".to_string(), Some("'".to_string())),   // 2
+                ("ADD".to_string(), Some("+".to_string())),     // 3
+                ("NUM".to_string(), None),                      // 4
+                ("ID".to_string(), None),                       // 5
             ]);
             symbol_table.extend_non_terminals(["E".to_string()]);   // 0
             symbol_table.extend_non_terminals(["F".to_string()]);   // 1
             prods.extend([
-                prod!(nt 0, t 0; nt 0, t 2, nt 0; nt 0, t 1; nt 0, t 3, nt 0; nt 0, t 4, nt 0; nt 1),
-                prod!(t 5, nt 0, t 6; t 7; t 8),
-            ]);
-        }
-        54 => {
-            // mimics a partial ambiguous transform (amb -> lrec / rrec / independants
-            // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | F;
-            // F -> ( E ) | NUM | ID
-            // =>
-            // E  -> E + E1 | E1
-            // E1 -> - E1 | E2
-            // E2 -> E2 * E3 | E3
-            // E3 -> E3 ' | E4
-            // E4 -> E4 ^ E5 | E5
-            // E5 -> abs E5 | F
-            symbol_table.extend_terminals([
-                ("ABS".to_string(), Some("abs".to_string())),   // 0
-                ("NEG".to_string(), Some("-".to_string())),     // 1
-                ("EXP".to_string(), Some("^".to_string())),     // 2
-                ("MUL".to_string(), Some("*".to_string())),     // 3
-                ("ADD".to_string(), Some("+".to_string())),     // 4
-                ("LPAREN".to_string(), Some("(".to_string())),  // 5
-                ("RPAREN".to_string(), Some(")".to_string())),  // 6
-                ("NUM".to_string(), None),                      // 7
-                ("ID".to_string(), None),                       // 8
-                ("PRIME".to_string(), Some("'".to_string())),   // 9
-            ]);
-            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
-            symbol_table.extend_non_terminals(["E1".to_string()]);  // 1
-            symbol_table.extend_non_terminals(["E2".to_string()]);  // 2
-            symbol_table.extend_non_terminals(["E3".to_string()]);  // 3
-            symbol_table.extend_non_terminals(["E4".to_string()]);  // 4
-            symbol_table.extend_non_terminals(["E5".to_string()]);  // 5
-            symbol_table.extend_non_terminals(["F".to_string()]);   // 6
-            prods.extend([
-                prod!(nt 0, t 4, nt 1; nt 1),       // E  (nt 0)
-                prod!(t 1, nt 1; nt 2),             // E1 (nt 1)
-                prod!(nt 2, t 3, nt 3; nt 3),       // E2 (nt 2)
-                prod!(nt 3, t 9; nt 4),             // E3 (nt 3)
-                prod!(nt 4, t 2, nt 5; nt 5),       // E4 (nt 4)
-                prod!(t 0, nt 5; nt 6),             // E5 (nt 5)
-                prod!(t 5, nt 0, t 6; t 7; t 8),    // F (nt 6)
-            ]);
-            // we must set the flags since we did the grammatical transformations manually:
-            flags = hashmap![
-                // 0 => ruleflag::PARENT_L_RECURSION | ruleflag::PARENT_AMBIGUITY,
-                // 2 => ruleflag::CHILD_INDEPENDENT_AMBIGUITY,
-                // 3 => ruleflag::TRANSF_CHILD_AMB | ruleflag::CHILD_L_RECURSION
-            ];
-            parents = hashmap![
-                // 2 => 0, 3 => 0
-            ];
-        }
-        55 => {
-            // classical ambiguous arithmetic grammar
-            // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | T;
-            // T -> T '!' | F;
-            // F -> ( E ) | NUM | ID
-            symbol_table.extend_terminals([
-                ("ABS".to_string(), Some("abs".to_string())),   // 0
-                ("NEG".to_string(), Some("-".to_string())),     // 1
-                ("EXP".to_string(), Some("^".to_string())),     // 2
-                ("MUL".to_string(), Some("*".to_string())),     // 3
-                ("ADD".to_string(), Some("+".to_string())),     // 4
-                ("LPAREN".to_string(), Some("(".to_string())),  // 5
-                ("RPAREN".to_string(), Some(")".to_string())),  // 6
-                ("NUM".to_string(), None),                      // 7
-                ("ID".to_string(), None),                       // 8
-                ("PRIME".to_string(), Some("'".to_string())),   // 9
-                ("FACT".to_string(), Some("!".to_string())),    // 10
-            ]);
-            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
-            symbol_table.extend_non_terminals(["T".to_string()]);   // 1
-            symbol_table.extend_non_terminals(["F".to_string()]);   // 2
-            prods.extend([
-                prod!(t 0, nt 0;
-                    nt 0, t 2, nt 0;
-                    nt 0, t 9;
-                    nt 0, t 3, nt 0;
-                    t 1, nt 0;
-                    nt 0, t 4, nt 0;
-                    nt 1),
-                prod!(nt 1, t 10; nt 2),
-                prod!(t 5, nt 0, t 6; t 7; t 8),
+                prod!(nt 0, t 0, nt 0; nt 0, t 1; nt 0, t 2; nt 0, t 3, nt 0; nt 1),
+                prod!(t 4; t 5),
             ]);
         }
 
@@ -2485,41 +2353,69 @@ fn prs_calc_table() {
               8,   8,   4,   5,   6,   8,   7,   8,   8,   7,
         ]),
         (51, 0, 4, vec![
-            // - 0: E -> E_1 E_2
+            // - 0: E -> E_2 E_1
             // - 1: F -> ( E )
             // - 2: F -> NUM
             // - 3: F -> ID
-            // - 4: E_1 -> abs E_1 E_2
-            // - 5: E_1 -> - E_1 E_2
-            // - 6: E_1 -> F
-            // - 7: E_2 -> ' E_2
-            // - 8: E_2 -> ^ E_1 E_2
-            // - 9: E_2 -> * E_1 E_2
-            // - 10: E_2 -> + E_1 E_2
-            // - 11: E_2 -> ε
-            (0, prodf!(nt 2, nt 3)),
+            // - 4: E_1 -> + E_2 E_1
+            // - 5: E_1 -> ε
+            // - 6: E_2 -> - E_2
+            // - 7: E_2 -> E_3
+            // - 8: E_3 -> E_5 E_4
+            // - 9: E_4 -> * E_5 E_4
+            // - 10: E_4 -> ε
+            // - 11: E_5 -> E_7 E_6
+            // - 12: E_6 -> ' E_6
+            // - 13: E_6 -> ε
+            // - 14: E_7 -> E_9 E_8
+            // - 15: E_8 -> ^ E_9 E_8
+            // - 16: E_8 -> ε
+            // - 17: E_9 -> abs E_9
+            // - 18: E_9 -> F
+            (0, prodf!(nt 3, nt 2)),
             (1, prodf!(t 5, nt 0, t 6)),
             (1, prodf!(t 7)),
             (1, prodf!(t 8)),
-            (2, prodf!(t 0, nt 2, nt 3)),
-            (2, prodf!(t 1, nt 2, nt 3)),
-            (2, prodf!(nt 1)),
-            (3, prodf!(t 9, nt 3)),
-            (3, prodf!(t 2, nt 2, nt 3)),
-            (3, prodf!(t 3, nt 2, nt 3)),
-            (3, prodf!(t 4, nt 2, nt 3)),
-            (3, prodf!(e)),
+            (2, prodf!(t 4, nt 3, nt 2)),
+            (2, prodf!(e)),
+            (3, prodf!(t 1, nt 3)),
+            (3, prodf!(nt 4)),
+            (4, prodf!(nt 6, nt 5)),
+            (5, prodf!(t 3, nt 6, nt 5)),
+            (5, prodf!(e)),
+            (6, prodf!(nt 8, nt 7)),
+            (7, prodf!(t 9, nt 7)),
+            (7, prodf!(e)),
+            (8, prodf!(nt 10, nt 9)),
+            (9, prodf!(t 2, nt 10, nt 9)),
+            (9, prodf!(e)),
+            (10, prodf!(t 0, nt 10)),
+            (10, prodf!(nt 1)),
         ], vec![
             //     | abs  -   ^   *   +   (   )  NUM ID   '   $
             // ----+---------------------------------------------
             // E   |  0   0   .   .   .   0   p   0   0   .   p
             // F   |  .   .   p   p   p   1   p   2   3   p   p
-            // E_1 |  4   5   p   p   p   6   p   6   6   p   p
-            // E_2 |  .   .   8   9  10   .  11   .   .   7  11
-              0,   0,  12,  12,  12,   0,  13,   0,   0,  12,  13,
-             12,  12,  13,  13,  13,   1,  13,   2,   3,  13,  13,
-              4,   5,  13,  13,  13,   6,  13,   6,   6,  13,  13,
-             12,  12,   8,   9,  10,  12,  11,  12,  12,   7,  11,
+            // E_1 |  .   .   .   .   4   .   5   .   .   .   5
+            // E_2 |  7   6   .   .   p   7   p   7   7   .   p
+            // E_3 |  8   .   .   .   p   8   p   8   8   .   p
+            // E_4 |  .   .   .   9  10   .  10   .   .   .  10
+            // E_5 | 11   .   .   p   p  11   p  11  11   .   p
+            // E_6 |  .   .   .  13  13   .  13   .   .  12  13
+            // E_7 | 14   .   .   p   p  14   p  14  14   p   p
+            // E_8 |  .   .  15  16  16   .  16   .   .  16  16
+            // E_9 | 17   .   p   p   p  18   p  18  18   p   p
+              0,   0,  19,  19,  19,   0,  20,   0,   0,  19,  20,
+             19,  19,  20,  20,  20,   1,  20,   2,   3,  20,  20,
+             19,  19,  19,  19,   4,  19,   5,  19,  19,  19,   5,
+              7,   6,  19,  19,  20,   7,  20,   7,   7,  19,  20,
+              8,  19,  19,  19,  20,   8,  20,   8,   8,  19,  20,
+             19,  19,  19,   9,  10,  19,  10,  19,  19,  19,  10,
+             11,  19,  19,  20,  20,  11,  20,  11,  11,  19,  20,
+             19,  19,  19,  13,  13,  19,  13,  19,  19,  12,  13,
+             14,  19,  19,  20,  20,  14,  20,  14,  14,  20,  20,
+             19,  19,  15,  16,  16,  19,  16,  19,  19,  16,  16,
+             17,  19,  20,  20,  20,  18,  20,  18,  18,  20,  20,
         ]),
         (52, 0, 4, vec![
             // - 0: E -> E1 E2
@@ -3118,5 +3014,52 @@ fn rts_prs_flags() {
         assert_eq!(result_fflags, expected_fflags, "test {test_id}/{rule_id:?}/{start_nt} failed");
         assert_eq!(result_parent, expected_parent, "test {test_id}/{rule_id:?}/{start_nt} failed");
         assert_eq!(result_nt_conversion, expected_nt_conversion, "test {test_id}/{rule_id:?}/{start_nt} failed");
+    }
+}
+
+mod priority {
+    use crate::grammar::{prod_to_string, ProdFactor};
+    use crate::prod;
+
+    #[test]
+    fn test_reverse_factors_priority() {
+        let tests = vec![
+            (
+                prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4, nt 0; t 5, nt 0; nt 0, t 6, nt 0),
+                prod!(nt 0, t 6, nt 0; t 4, nt 0; t 5, nt 0; nt 0, t 3, nt 0; nt 0, t 2, nt 0; nt 0, t 0; nt 0, t 1),
+            ),
+            (
+                prod!(nt 0, t 0, nt 0),
+                prod!(nt 0, t 0, nt 0),
+            ),
+            (
+                prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0),
+                prod!(nt 0, t 1, nt 0; nt 0, t 0, nt 0),
+            ),
+            (
+                prod!(nt 0, t 0),
+                prod!(nt 0, t 0),
+            ),
+            (
+                prod!(nt 0, t 0; nt 0, t 1),
+                prod!(nt 0, t 0; nt 0, t 1),
+            ),
+            (
+                prod!(t 0, nt 0),
+                prod!(t 0, nt 0),
+            ),
+            (
+                prod!(t 0, nt 0; t 1, nt 0),
+                prod!(t 0, nt 0; t 1, nt 0),
+            ),
+        ];
+
+        for (test_id, (prod, expected)) in tests.into_iter().enumerate() {
+            let prod_str = prod_to_string(&prod, None);
+            let result = ProdFactor::reverse_factors_priority(prod.clone(), 0);
+            let expected_str = prod_to_string(&expected, None);
+            let result_str = prod_to_string(&result, None);
+            assert_eq!(result, expected, "test {test_id} failed:\n- original: {prod_str}\n- expected: {expected_str}\n- result:   {result_str}");
+        }
     }
 }
