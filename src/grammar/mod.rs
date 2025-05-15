@@ -1411,7 +1411,7 @@ impl<T> ProdRuleSet<T> {
     pub fn remove_left_recursion(&mut self) {
         let method = 2;
         if method == 2 {
-            return self.remove_left_recursion2();
+            return self.remove_recursion();
         }
 
         const VERBOSE: bool = false;
@@ -1564,7 +1564,44 @@ impl<T> ProdRuleSet<T> {
         self.num_nt = self.prods.len();
     }
 
-    pub fn remove_left_recursion2(&mut self) {
+    // Does the following transformation for each var with left- or right-recursive factors
+    // General form: A -> α A | A β | A γ A | δ
+    // Start:
+    //     prev = none
+    //     I = var, N = new_var = prods.len()
+    //
+    // Iteration(factor):
+    //     curr = type(factor)
+    //     if prev == right && (curr == left | ambig):
+    //         (I).app(N)
+    //         I = N
+    //     if I >= N: N = I+1
+    //
+    //               curr:| right              left                    ambig                   indep
+    //     prev    factor:| A -> α A           A -> A β                A -> A γ A              A -> δ
+    //     ---------------+------------------  ----------------        --------------------    ----------
+    //     none           | (I).app(α I | N)   (I).app(N+1[*] N)       (I).app(N+1 N)          (I).app(δ)
+    //     | right        |                    (N).app(β N | ε)        (N).app(γ N+1 N | ε)
+    //     | ambig        |                    I = N+1                 I = N+1
+    //                    |
+    //     left           | (I).app(α I | N)   (N-1).app(β N-1 | ε)    (I).app(N+1 N)          (I).app(δ)
+    //                    |                                            (N).app(γ N+1 N | ε)
+    //                    |                                            I = N+1
+    //                    |
+    //     indep          | -                  -                       -                       (I).app(δ)
+    //
+    //     prev = curr
+    //
+    //     [*] if remaining factors are all left or independent => distribute independents on N to simplify prod
+    //
+    // Actual indices:     │ original prods (len = new_var0) │ new prods │ prods about to be added
+    //                     ├─────────────────────────────────┼───────────┼───── ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+    //                      A       B       C          ...     A_1 ...    B_1     B_2     B_3     B_4 ...
+    //                      ▲       ▲                          ▲          ▲
+    //                      │       │                          │          └─── [new_var]
+    //                      │       │                          └──── [new_var0]
+    //                      0       └──── var (symbol, prod: &mut ProdRule)
+    pub fn remove_recursion(&mut self) {
         const VERBOSE: bool = false;
         const NEW_METHOD: bool = true;  // new ambiguous transformations
 
@@ -1596,46 +1633,10 @@ impl<T> ProdRuleSet<T> {
                 assert!(factors.is_empty() || !indep.is_empty(), "recursive forms must have at least one independent factor");
 
                 let mut factors = ProdFactor::reverse_factors_priority(factors, var);
-
-                // Start:
-                //     prev = none
-                //     I = var, N = new_var = prods.len()
-                //
-                // Iteration(factor):
-                //     curr = type(factor)
-                //     if prev == right && (curr == left | ambig):
-                //         (I).app(N)
-                //         I = N
-                //     if I >= N: N = I+1
-                //
-                //               curr:| right              left                    ambig                   indep
-                //     prev    factor:| A -> α A           A -> A β                A -> A γ A              A -> δ
-                //     ---------------+------------------  ----------------        --------------------    ----------
-                //     none           | (I).app(α I | N)   (I).app(N+1[*] N)       (I).app(N+1 N)          (I).app(δ)
-                //     | right        |                    (N).app(β N | ε)        (N).app(γ N+1 N | ε)
-                //     | ambig        |                    I = N+1                 I = N+1
-                //                    |
-                //     left           | (I).app(α I | N)   (N-1).app(β N-1 | ε)    (I).app(N+1 N)          (I).app(δ)
-                //                    |                                            (N).app(γ N+1 N | ε)
-                //                    |                                            I = N+1
-                //                    |
-                //     indep          | -                  -                       -                       (I).app(δ)
-                //
-                //     prev = curr
-                //
-                //     [*] if remaining factors are all left or independent => distribute independents on N to simplify prod
-                //
-                // Actual indices:     │ original prods (len = new_var0) │ new prods │ prods about to be added
-                //                     ├─────────────────────────────────┼───────────┼───── ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
-                //                      A       B       C          ...     A_1 ...    B_1     B_2     B_3     B_4 ...
-                //                      ▲       ▲                          ▲          ▲
-                //                      │       │                          │          └─── [new_var]
-                //                      │       │                          └──── [new_var0]
-                //                      0       └──── var (symbol, prod: &mut ProdRule)
-
                 let mut prev = FactorType::None;
                 let mut var_i = var as usize;
-                let mut var_left_chain = factors.iter().enumerate()
+                // first index of last lrec chain:
+                let mut idx_last_lrec_chain = factors.iter().enumerate()
                     .fold(None, |acc, (i, f)| {
                         if FactorType::from(&symbol, f) == FactorType::LeftRecusive {
                             acc.or(Some(i))
@@ -1643,8 +1644,6 @@ impl<T> ProdRuleSet<T> {
                             None
                         }
                     });
-                // let mut iter_factor = factors.into_iter().peekable();
-                // while let Some(mut factor) = iter_factor.next() {
                 let n_factors = factors.len();
                 for (i_factor, mut factor) in factors.into_iter().enumerate() {
                     if VERBOSE { println!("var_i: {var_i}, var_new: {var_new}, factor: {}, #prods: {}", factor.to_str(self.get_symbol_table()), prods.len()); }
@@ -1652,17 +1651,14 @@ impl<T> ProdRuleSet<T> {
                     if prev == FactorType::RightRecursive && matches!(curr, FactorType::LeftRecusive | FactorType::Ambiguous) {
                         prods[var_i].push(prodf!(nt var_new));
                         var_i = var_new;
-                        // print!(" => var_i: {var_i}");
                     }
                     if var_i >= var_new {
                         prods.push(ProdRule::new());
                         self.flags.push(0);
                         self.parent.push(Some(var));
                         var_new = var_i + 1;
-                        // print!(" => var_new: {var_new}");
                     }
                     if let Some(ref mut table) = self.symbol_table {
-                        // println!("table: {} ({})", table.get_non_terminals().join(", "), table.get_num_nt());
                         if table.get_num_nt() <= var_i {
                             table.add_var_prime_name(var, var_i as VarId, None);
                             if VERBOSE { println!("created {}", table.get_nt_name(var_i as VarId)); }
@@ -1671,33 +1667,25 @@ impl<T> ProdRuleSet<T> {
                     match curr {
                         FactorType::None => panic!("can't happen since a factor is never evaluated as None"),
                         FactorType::RightRecursive => {
-                            factor.pop();                                           // -> α
-                            factor.push(sym!(nt var_i));                            // -> α I
+                            factor.pop();                                               // -> α
+                            factor.push(sym!(nt var_i));                                // -> α I
                             prods[var_i].push(factor);
                             if self.flags[var_i] & ruleflag::CHILD_REPEAT == 0 {
                                 self.flags[var_i] |= ruleflag::R_RECURSION;
                             }
                         }
                         FactorType::LeftRecusive => {
-                            // if i_factor == n_factors - 1 && indep.len() == 1 {
-                            //     let mut f = indep.pop().unwrap();
-                            //     f.push(sym!(nt var_new));
-                            //     prods[var_i].push(f);
-                            // } else {
-                            //     prods[var_i].push(prodf!(nt var_new + 1, nt var_new));  // I -> N+1 N
-                            // }
                             factor.remove(0);
-                            // let f = factor.clone();
                             if prev == FactorType::LeftRecusive {
                                 let i = prods[var_i - 1].len();
                                 factor.push(sym!(nt var_i - 1));
                                 prods[var_i - 1].insert(i - 1, factor);                 // N-1 -> β N-1
                             } else {
-                                if var_left_chain == Some(i_factor) {
+                                if idx_last_lrec_chain == Some(i_factor) {
                                     // remaining factors are lrec then independents
                                     for mut f in take(&mut indep) {
                                         f.push(sym!(nt var_new));
-                                        prods[var_i].push(f);
+                                        prods[var_i].push(f);                               // I -> δ N
                                     }
                                 } else {
                                     prods[var_i].push(prodf!(nt var_new + 1, nt var_new));  // I -> N+1 N
@@ -1710,21 +1698,16 @@ impl<T> ProdRuleSet<T> {
                                 self.flags[var_i] |= ruleflag::PARENT_L_RECURSION;
                                 self.flags.push(ruleflag::CHILD_L_RECURSION);
                                 self.parent.push(Some(var_i as VarId));
-                                // var_i = match var_left_chain {
-                                //     Some(i) if i < i_factor => var_i,
-                                //     Some(i) if i == i_factor => var_new,
-                                //     _ => var_new + 1,
-                                // };
                                 var_i = var_new + 1;
                             }
                         }
                         FactorType::Ambiguous => {
-                            prods[var_i].push(prodf!(nt var_new + 1, nt var_new));  // I -> N+1 N
+                            prods[var_i].push(prodf!(nt var_new + 1, nt var_new));      // I -> N+1 N
                             factor.pop();
                             factor.remove(0);
                             factor.push(sym!(nt var_new + 1));
-                            factor.push(sym!(nt var_new));                          // N -> γ N+1 N
-                            prods.push(vec![factor, prodf!(e)]);                    // N -> ε
+                            factor.push(sym!(nt var_new));                              // N -> γ N+1 N
+                            prods.push(vec![factor, prodf!(e)]);                        // N -> ε
                             if let Some(ref mut table) = self.symbol_table {
                                 table.add_var_prime_name(var, var_new as VarId, None);
                             }
@@ -1737,7 +1720,6 @@ impl<T> ProdRuleSet<T> {
                             prods[var_i].push(factor);
                         }
                     }
-                    // println!(" --> var_i: {var_i}, #prods: {}", prods.len());
                     prev = curr;
                 }
                 if prods.last().unwrap().is_empty() {
