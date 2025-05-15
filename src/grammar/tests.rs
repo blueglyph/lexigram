@@ -1317,6 +1317,131 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 4; t 5),
             ]);
         }
+        60 => {
+            // E -> E % E | E + E | ID;
+            symbol_table.extend_terminals([
+                ("MOD".to_string(), Some("%".to_string())),     // 0
+                ("ADD".to_string(), Some("+".to_string())),     // 1
+                ("ID".to_string(), None),                       // 2
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
+            prods.extend([
+                prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2),
+            ]);
+        }
+        61 => {
+            // E -> E % E | E + E | ID;
+            // expanded with Clarke's method (produces ambiguities in the table):
+            // E   -> id Eb
+            // Eb  -> % E4 Eb | + E3 Eb | ε
+            // E3  -> id E3b
+            // E3b -> % E4 E3b | ε
+            // E4  -> id
+            symbol_table.extend_terminals([
+                ("MOD".to_string(), Some("%".to_string())),     // 0
+                ("ADD".to_string(), Some("+".to_string())),     // 1
+                ("ID".to_string(), None),                       // 2
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+                "Eb".to_string(),       // 1
+                "E3".to_string(),       // 2
+                "E3b".to_string(),      // 3
+                "E4".to_string(),       // 4
+            ]);
+            prods.extend([
+                prod!(t 2, nt 1),
+                prod!(t 0, nt 4, nt 1; t 1, nt 2, nt 1; e),
+                prod!(t 2, nt 3),
+                prod!(t 0, nt 4, nt 3; e),
+                prod!(t 2),
+            ]);
+            flags.extend(hashmap![
+                0 => ruleflag::PARENT_L_RECURSION,
+                1 => ruleflag::CHILD_L_RECURSION,
+                2 => ruleflag::PARENT_L_RECURSION,
+                3 => ruleflag::CHILD_L_RECURSION,
+            ]);
+            parents.extend(hashmap![1 => 0, 3 => 2]);
+        }
+        62 => {
+            // E -> E * E | - E | E + E | ID;
+            symbol_table.extend_terminals([
+                ("MUL".to_string(), Some("*".to_string())),     // 0
+                ("NEG".to_string(), Some("-".to_string())),     // 1
+                ("ADD".to_string(), Some("+".to_string())),     // 2
+                ("ID".to_string(), None),                       // 3
+            ]);
+            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
+            prods.extend([
+                prod!(nt 0, t 0, nt 0; t 1, nt 0; nt 0, t 2, nt 0; t 3),
+            ]);
+        }
+        63 => {
+            // E -> E * E | - E | E + E | ID;
+            // expanded with Clarke's method (produces ambiguities in the table):
+            // E -> E * E5 | E + E3 | E5
+            // E3 -> E3 * E5 | E5
+            // E5 -> - E3 | ID
+            symbol_table.extend_terminals([
+                ("MUL".to_string(), Some("*".to_string())),     // 0
+                ("NEG".to_string(), Some("-".to_string())),     // 1
+                ("ADD".to_string(), Some("+".to_string())),     // 2
+                ("ID".to_string(), None),                       // 3
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+                "E3".to_string(),       // 1
+                "E5".to_string(),       // 2
+            ]);
+            prods.extend([
+                prod!(nt 0, t 0, nt 2; nt 0, t 2, nt 1; nt 2),
+                prod!(nt 1, t 0, nt 2; nt 2),
+                prod!(t 1, nt 1; t 3),
+            ]);
+        }
+        64 => {
+            // E -> E * E | - E | E + E | ID;
+            // expanded with Clarke's method (produces ambiguities in the table):
+            // E -> E5 Eb
+            // Eb -> * E5 Eb
+            //    -> + E3 Eb
+            //    -> ε
+            // E3 -> E5 E3b
+            // E3b -> * E5 E3b
+            //     -> ε
+            // E5 -> - E3
+            //    -> ID
+            symbol_table.extend_terminals([
+                ("MUL".to_string(), Some("*".to_string())),     // 0
+                ("NEG".to_string(), Some("-".to_string())),     // 1
+                ("ADD".to_string(), Some("+".to_string())),     // 2
+                ("ID".to_string(), None),                       // 3
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+                "Eb".to_string(),       // 1
+                "E3".to_string(),       // 2
+                "E3b".to_string(),      // 3
+                "E5".to_string(),       // 4
+            ]);
+            prods.extend([
+                prod!(nt 4, nt 1),
+                prod!(t 0, nt 4, nt 1; t 2, nt 2, nt 1; e),
+                prod!(nt 4, nt 3),
+                prod!(t 0, nt 4, nt 3; e),
+                prod!(t 1, nt 2; t 3),
+            ]);
+            flags.extend(hashmap![
+                0 => ruleflag::PARENT_L_RECURSION,
+                1 => ruleflag::CHILD_L_RECURSION,
+                2 => ruleflag::PARENT_L_RECURSION,
+                3 => ruleflag::CHILD_L_RECURSION,
+            ]);
+            parents.extend(hashmap![1 => 0, 3 => 2]);
+        }
+
+
 
         // ambiguity? ----------------------------------------------------------
         100 => {
@@ -2457,6 +2582,135 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'E2', T '*': <* E1 E2> or <ε> => <* E1 E2> has been chosen
             // calc_table: ambiguity for NT 'E2', T '+': <+ E1 E2> or <ε> => <+ E1 E2> has been chosen
             // calc_table: ambiguity for NT 'E2', T ''': <' E2>    or <ε> => <' E2> has been chosen
+        ]),
+        (60, 0, 0, vec![
+            // - 0: E -> E_2 E_1
+            // - 1: E_1 -> + E_2 E_1
+            // - 2: E_1 -> ε
+            // - 3: E_2 -> E_4 E_3
+            // - 4: E_3 -> % E_4 E_3
+            // - 5: E_3 -> ε
+            // - 6: E_4 -> ID
+            (0, prodf!(nt 2, nt 1)),
+            (1, prodf!(t 1, nt 2, nt 1)),
+            (1, prodf!(e)),
+            (2, prodf!(nt 4, nt 3)),
+            (3, prodf!(t 0, nt 4, nt 3)),
+            (3, prodf!(e)),
+            (4, prodf!(t 2)),
+        ], vec![
+            //     |  %   +  ID   $
+            // ----+-----------------
+            // E   |  .   .   0   p
+            // E_1 |  .   1   .   2
+            // E_2 |  .   p   3   p
+            // E_3 |  4   5   .   5
+            // E_4 |  p   p   6   p
+              7,   7,   0,   8,
+              7,   1,   7,   2,
+              7,   8,   3,   8,
+              4,   5,   7,   5,
+              8,   8,   6,   8,
+        ]),
+        (61, 0, 1, vec![
+            // - 0: E -> ID Eb
+            // - 1: Eb -> % E4 Eb
+            // - 2: Eb -> + E3 Eb
+            // - 3: Eb -> ε
+            // - 4: E3 -> ID E3b
+            // - 5: E3b -> % E4 E3b
+            // - 6: E3b -> ε
+            // - 7: E4 -> ID
+            (0, prodf!(t 2, nt 1)),
+            (1, prodf!(t 0, nt 4, nt 1)),
+            (1, prodf!(t 1, nt 2, nt 1)),
+            (1, prodf!(e)),
+            (2, prodf!(t 2, nt 3)),
+            (3, prodf!(t 0, nt 4, nt 3)),
+            (3, prodf!(e)),
+            (4, prodf!(t 2)),
+        ], vec![
+            //     |  %   +  ID   $
+            // ----+-----------------
+            // E   |  .   .   0   p
+            // Eb  |  1   2   .   3
+            // E3  |  p   p   4   p
+            // E3b |  5   6   .   6
+            // E4  |  p   p   7   p
+              8,   8,   0,   9,
+              1,   2,   8,   3,
+              9,   9,   4,   9,
+              5,   6,   8,   6,
+              9,   9,   7,   9,
+            // calc_table: ambiguity for NT 'E3b', T '%': <% E4 E3b> or <ε> => <% E4 E3b> has been chosen
+        ]),
+        (63, 0, 1, vec![
+            // - 0: E -> E5 E_1
+            // - 1: E3 -> E5 E3_1
+            // - 2: E5 -> - E3
+            // - 3: E5 -> ID
+            // - 4: E_1 -> * E5 E_1
+            // - 5: E_1 -> + E3 E_1
+            // - 6: E_1 -> ε
+            // - 7: E3_1 -> * E5 E3_1
+            // - 8: E3_1 -> ε
+            (0, prodf!(nt 2, nt 3)),
+            (1, prodf!(nt 2, nt 4)),
+            (2, prodf!(t 1, nt 1)),
+            (2, prodf!(t 3)),
+            (3, prodf!(t 0, nt 2, nt 3)),
+            (3, prodf!(t 2, nt 1, nt 3)),
+            (3, prodf!(e)),
+            (4, prodf!(t 0, nt 2, nt 4)),
+            (4, prodf!(e)),
+        ], vec![
+            //      |  *   -   +  ID   $
+            // -----+---------------------
+            // E    |  .   0   .   0   p
+            // E3   |  p   1   p   1   p
+            // E5   |  p   2   p   3   p
+            // E_1  |  4   .   5   .   6
+            // E3_1 |  7   .   8   .   8
+              9,   0,   9,   0,  10,
+             10,   1,  10,   1,  10,
+             10,   2,  10,   3,  10,
+              4,   9,   5,   9,   6,
+              7,   9,   8,   9,   8,
+            // calc_table: ambiguity for NT 'E3_1', T '*': <* E5 E3_1> or <ε> => <* E5 E3_1> has been chosen
+        ]),
+        (64, 0, 1, vec![
+            // - 0: E -> E5 Eb
+            // - 1: Eb -> * E5 Eb
+            // - 2: Eb -> + E3 Eb
+            // - 3: Eb -> ε
+            // - 4: E3 -> E5 E3b
+            // - 5: E3b -> * E5 E3b
+            // - 6: E3b -> ε
+            // - 7: E5 -> - E3
+            // - 8: E5 -> ID
+            (0, prodf!(nt 4, nt 1)),
+            (1, prodf!(t 0, nt 4, nt 1)),
+            (1, prodf!(t 2, nt 2, nt 1)),
+            (1, prodf!(e)),
+            (2, prodf!(nt 4, nt 3)),
+            (3, prodf!(t 0, nt 4, nt 3)),
+            (3, prodf!(e)),
+            (4, prodf!(t 1, nt 2)),
+            (4, prodf!(t 3)),
+        ], vec![
+            //     |  *   -   +  ID   $
+            // ----+---------------------
+            // E   |  .   0   .   0   p
+            // Eb  |  1   .   2   .   3
+            // E3  |  p   4   p   4   p
+            // E3b |  5   .   6   .   6
+            // E5  |  p   7   p   8   p
+              9,   0,   9,   0,  10,
+              1,   9,   2,   9,   3,
+             10,   4,  10,   4,  10,
+              5,   9,   6,   9,   6,
+             10,   7,  10,   8,  10,
+            // calc_table: ambiguity for NT 'E3b', T '*': <* E5 E3b> or <ε> => <* E5 E3b> has been chosen
         ]),
 
         (100, 0, 0, vec![

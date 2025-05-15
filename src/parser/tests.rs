@@ -238,6 +238,22 @@ fn parser_parse_stream_id() {
                 "syntax error: found input ']' instead of '(', 'id', 'int' while parsing '►FACTOR', line 1, col 13"
             ])),
         ]),
+        (T::PRS(61), 0, 2, 99, vec![
+            ("a % b", None),
+            ("a + b", None),
+            ("a + b % c", None),
+            ("a % b + c", None),
+            ("a % b + c % d", None),
+        ]),
+        (T::PRS(63), 0, 3, 99, vec![
+            ("a * b", None),
+            ("a + b", None),
+            ("- a", None),
+            ("a * b + c", None),
+            ("a + b * c", None),
+            ("- a * b", None),
+            ("a * - b", None),
+        ]),
         (T::PRS(51), 0, 8, 7, vec![
             // E -> 'abs' E | E '^' E | E '*' E | '-' E | E '+' E | F;
             // F -> ( E ) | NUM | ID
@@ -251,7 +267,6 @@ fn parser_parse_stream_id() {
     ];
     const VERBOSE: bool = true;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
-// if ll_id != T::PRS(51) { continue }
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
         let mut ll1 = ll_id.get_prs(test_id, start, false);
         let symbols = (0..ll1.get_num_t() as TokenId)

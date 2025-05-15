@@ -1114,3 +1114,42 @@ mod listener13 {
     // [write_source_code_for_integration_listener13]
     // -------------------------------------------------------------------------
 }
+
+#[allow(unused)]
+pub(crate) mod listener14 {
+    // -------------------------------------------------------------------------
+    // [write_source_code_for_integration_listener14]
+
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("MUL", Some("*")), ("NEG", Some("-")), ("ADD", Some("+")), ("ID", None)];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E3", "E5", "E_1", "E3_1"];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 9] = [(0, &[Symbol::NT(2), Symbol::NT(3)]), (1, &[Symbol::NT(2), Symbol::NT(4)]), (2, &[Symbol::T(1), Symbol::NT(1)]), (2, &[Symbol::T(3)]), (3, &[Symbol::T(0), Symbol::NT(2), Symbol::NT(3)]), (3, &[Symbol::T(2), Symbol::NT(1), Symbol::NT(3)]), (3, &[Symbol::Empty]), (4, &[Symbol::T(0), Symbol::NT(2), Symbol::NT(4)]), (4, &[Symbol::Empty])];
+    const PARSING_TABLE: [FactorId; 25] = [9, 0, 9, 0, 10, 10, 1, 10, 1, 10, 10, 2, 10, 3, 10, 4, 9, 5, 9, 6, 7, 9, 8, 9, 8];
+    const FLAGS: [u32; 5] = [512, 512, 0, 4, 4];
+    const PARENT: [Option<VarId>; 5] = [None, None, None, Some(0), Some(1)];
+    const OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(3), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::NT(4), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(3), OpCode::T(3)], &[OpCode::Loop(3), OpCode::Exit(4), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(1), OpCode::T(2)], &[OpCode::Exit(6)], &[OpCode::Loop(4), OpCode::Exit(7), OpCode::NT(2), OpCode::T(0)], &[OpCode::Exit(8)]];
+    const START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser {
+        let mut symbol_table = SymbolTable::new();
+        symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
+        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
+        let table: Vec<FactorId> = PARSING_TABLE.into();
+        let parsing_table = lexigram::grammar::LLParsingTable {
+            num_nt: PARSER_NUM_NT,
+            num_t: PARSER_NUM_T + 1,
+            factors,
+            table,
+            flags: FLAGS.into(),
+            parent: PARENT.into(),
+        };
+        Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)
+    }
+
+    // [write_source_code_for_integration_listener14]
+    // -------------------------------------------------------------------------
+}
