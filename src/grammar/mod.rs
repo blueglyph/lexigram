@@ -1869,10 +1869,13 @@ impl<T> ProdRuleSet<T> {
         const FLAG_CHECK_MASK: u32 = ruleflag::L_FORM | ruleflag::CHILD_REPEAT | ruleflag::R_RECURSION;
         for v in 0..self.num_nt {
             if self.flags[v] & FLAG_CHECK_MASK == ruleflag::L_FORM {
-                self.log.add_error(format!("{} has an illegal flag L-Form (only used with +, *, or right recursion): {}",
-                                           Symbol::NT(v as VarId).to_str(self.get_symbol_table()),
-                                           ruleflag::to_string(self.flags[v]).join(" ")
-                ));
+                // it's also fine to have L-form on a l-factor children of a right-recursive parent
+                if self.flags[v] & ruleflag::CHILD_L_FACTOR == 0 || self.flags[self.parent[v].unwrap() as usize] & ruleflag::R_RECURSION == 0 {
+                    self.log.add_error(format!("{} has an illegal flag L-Form (only used with +, *, or right recursion): {}",
+                                               Symbol::NT(v as VarId).to_str(self.get_symbol_table()),
+                                               ruleflag::to_string(self.flags[v]).join(" ")
+                    ));
+                }
             }
         }
     }
