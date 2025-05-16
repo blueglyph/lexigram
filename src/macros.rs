@@ -63,9 +63,9 @@ macro_rules! btreemap {
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! hashset {
-    () => { HashSet::new() };
+    () => { std::collections::HashSet::new() };
     ($($key:expr,)+) => { hashset!($($key),+) };
-    ($($key:expr),*) => { HashSet::from([ $($key,)* ]) };
+    ($($key:expr),*) => { std::collections::HashSet::from([ $($key,)* ]) };
 }
 
 /// Generates the code to initialize a [BTreeSet](std::collections::BTreeSet).
