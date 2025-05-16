@@ -1122,15 +1122,15 @@ pub(crate) mod listener14 {
 
     use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
 
-    const PARSER_NUM_T: usize = 4;
-    const PARSER_NUM_NT: usize = 5;
-    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("MUL", Some("*")), ("NEG", Some("-")), ("ADD", Some("+")), ("ID", None)];
-    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E3", "E5", "E_1", "E3_1"];
-    const PARSING_FACTORS: [(VarId, &[Symbol]); 9] = [(0, &[Symbol::NT(2), Symbol::NT(3)]), (1, &[Symbol::NT(2), Symbol::NT(4)]), (2, &[Symbol::T(1), Symbol::NT(1)]), (2, &[Symbol::T(3)]), (3, &[Symbol::T(0), Symbol::NT(2), Symbol::NT(3)]), (3, &[Symbol::T(2), Symbol::NT(1), Symbol::NT(3)]), (3, &[Symbol::Empty]), (4, &[Symbol::T(0), Symbol::NT(2), Symbol::NT(4)]), (4, &[Symbol::Empty])];
-    const PARSING_TABLE: [FactorId; 25] = [9, 0, 9, 0, 10, 10, 1, 10, 1, 10, 10, 2, 10, 3, 10, 4, 9, 5, 9, 6, 7, 9, 8, 9, 8];
-    const FLAGS: [u32; 5] = [512, 512, 0, 4, 4];
-    const PARENT: [Option<VarId>; 5] = [None, None, None, Some(0), Some(1)];
-    const OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(3), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::NT(4), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(3), OpCode::T(3)], &[OpCode::Loop(3), OpCode::Exit(4), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(1), OpCode::T(2)], &[OpCode::Exit(6)], &[OpCode::Loop(4), OpCode::Exit(7), OpCode::NT(2), OpCode::T(0)], &[OpCode::Exit(8)]];
+    const PARSER_NUM_T: usize = 5;
+    const PARSER_NUM_NT: usize = 7;
+    const SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("EXP", Some("^")), ("MUL", Some("*")), ("NEG", Some("-")), ("ADD", Some("+")), ("ID", None)];
+    const SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E3", "E5", "E6", "E_1", "E3_1", "E5_1"];
+    const PARSING_FACTORS: [(VarId, &[Symbol]); 14] = [(0, &[Symbol::NT(3), Symbol::NT(4)]), (1, &[Symbol::NT(3), Symbol::NT(5)]), (2, &[Symbol::NT(3), Symbol::NT(6)]), (3, &[Symbol::T(2), Symbol::NT(1)]), (3, &[Symbol::T(4)]), (4, &[Symbol::T(0), Symbol::NT(2), Symbol::NT(4)]), (4, &[Symbol::T(1), Symbol::NT(2), Symbol::NT(4)]), (4, &[Symbol::T(3), Symbol::NT(1), Symbol::NT(4)]), (4, &[Symbol::Empty]), (5, &[Symbol::T(0), Symbol::NT(2), Symbol::NT(5)]), (5, &[Symbol::T(1), Symbol::NT(2), Symbol::NT(5)]), (5, &[Symbol::Empty]), (6, &[Symbol::T(0), Symbol::NT(2)]), (6, &[Symbol::Empty])];
+    const PARSING_TABLE: [FactorId; 42] = [14, 14, 0, 14, 0, 15, 15, 15, 1, 15, 1, 15, 15, 15, 2, 15, 2, 15, 15, 15, 3, 15, 4, 15, 5, 6, 14, 7, 14, 8, 9, 10, 14, 11, 14, 11, 12, 13, 14, 13, 14, 13];
+    const FLAGS: [u32; 7] = [512, 512, 34, 0, 4, 4, 64];
+    const PARENT: [Option<VarId>; 7] = [None, None, None, None, Some(0), Some(1), Some(2)];
+    const OPCODES: [&[OpCode]; 14] = [&[OpCode::NT(4), OpCode::Exit(0), OpCode::NT(3)], &[OpCode::NT(5), OpCode::Exit(1), OpCode::NT(3)], &[OpCode::NT(6), OpCode::NT(3)], &[OpCode::Exit(3), OpCode::NT(1), OpCode::T(2)], &[OpCode::Exit(4), OpCode::T(4)], &[OpCode::Loop(4), OpCode::Exit(5), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(4), OpCode::Exit(6), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(4), OpCode::Exit(7), OpCode::NT(1), OpCode::T(3)], &[OpCode::Exit(8)], &[OpCode::Loop(5), OpCode::Exit(9), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(11)], &[OpCode::Loop(2), OpCode::Exit(12), OpCode::T(0)], &[OpCode::Exit(13)]];
     const START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser {

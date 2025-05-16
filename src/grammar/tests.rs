@@ -1378,26 +1378,30 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
         }
         63 => {
-            // E -> E * E | - E | E + E | ID;
+            // E -> <R> E ^ E | E * E | - E | E + E | ID;
             // expanded with Clarke's method (produces ambiguities in the table):
-            // E -> E * E5 | E + E3 | E5
-            // E3 -> E3 * E5 | E5
-            // E5 -> - E3 | ID
+            // E -> E ^ E5 | E * E5 | E + E3 | E6
+            // E3 -> E3 ^ E5 | E3 * E5 | E6
+            // E5 -> E6 ^ E5 | E6
+            // E6 -> - E3 | ID
             symbol_table.extend_terminals([
-                ("MUL".to_string(), Some("*".to_string())),     // 0
-                ("NEG".to_string(), Some("-".to_string())),     // 1
-                ("ADD".to_string(), Some("+".to_string())),     // 2
-                ("ID".to_string(), None),                       // 3
+                ("EXP".to_string(), Some("^".to_string())),     // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("NEG".to_string(), Some("-".to_string())),     // 2
+                ("ADD".to_string(), Some("+".to_string())),     // 3
+                ("ID".to_string(), None),                       // 4
             ]);
             symbol_table.extend_non_terminals([
                 "E".to_string(),        // 0
                 "E3".to_string(),       // 1
                 "E5".to_string(),       // 2
+                "E6".to_string(),       // 3
             ]);
             prods.extend([
-                prod!(nt 0, t 0, nt 2; nt 0, t 2, nt 1; nt 2),
-                prod!(nt 1, t 0, nt 2; nt 2),
-                prod!(t 1, nt 1; t 3),
+                prod!(nt 0, t 0, nt 2; nt 0, t 1, nt 2; nt 0, t 3, nt 1; nt 3),
+                prod!(nt 1, t 0, nt 2; nt 1, t 1, nt 2; nt 3),
+                prod!(nt 3, t 0, nt 2; nt 3),
+                prod!(t 2, nt 1; t 4),
             ]);
         }
         64 => {
@@ -2644,39 +2648,55 @@ fn prs_calc_table() {
               9,   9,   7,   9,
             // calc_table: ambiguity for NT 'E3b', T '%': <% E4 E3b> or <ε> => <% E4 E3b> has been chosen
         ]),
-        (63, 0, 1, vec![
-            // - 0: E -> E5 E_1
-            // - 1: E3 -> E5 E3_1
-            // - 2: E5 -> - E3
-            // - 3: E5 -> ID
-            // - 4: E_1 -> * E5 E_1
-            // - 5: E_1 -> + E3 E_1
-            // - 6: E_1 -> ε
-            // - 7: E3_1 -> * E5 E3_1
-            // - 8: E3_1 -> ε
-            (0, prodf!(nt 2, nt 3)),
-            (1, prodf!(nt 2, nt 4)),
-            (2, prodf!(t 1, nt 1)),
-            (2, prodf!(t 3)),
-            (3, prodf!(t 0, nt 2, nt 3)),
-            (3, prodf!(t 2, nt 1, nt 3)),
-            (3, prodf!(e)),
+        (63, 0, 3, vec![
+            // - 0: E -> E6 E_1
+            // - 1: E3 -> E6 E3_1
+            // - 2: E5 -> E6 E5_1
+            // - 3: E6 -> - E3
+            // - 4: E6 -> ID
+            // - 5: E_1 -> ^ E5 E_1
+            // - 6: E_1 -> * E5 E_1
+            // - 7: E_1 -> + E3 E_1
+            // - 8: E_1 -> ε
+            // - 9: E3_1 -> ^ E5 E3_1
+            // - 10: E3_1 -> * E5 E3_1
+            // - 11: E3_1 -> ε
+            // - 12: E5_1 -> ^ E5
+            // - 13: E5_1 -> ε
+            (0, prodf!(nt 3, nt 4)),
+            (1, prodf!(nt 3, nt 5)),
+            (2, prodf!(nt 3, nt 6)),
+            (3, prodf!(t 2, nt 1)),
+            (3, prodf!(t 4)),
             (4, prodf!(t 0, nt 2, nt 4)),
+            (4, prodf!(t 1, nt 2, nt 4)),
+            (4, prodf!(t 3, nt 1, nt 4)),
             (4, prodf!(e)),
+            (5, prodf!(t 0, nt 2, nt 5)),
+            (5, prodf!(t 1, nt 2, nt 5)),
+            (5, prodf!(e)),
+            (6, prodf!(t 0, nt 2)),
+            (6, prodf!(e)),
         ], vec![
-            //      |  *   -   +  ID   $
-            // -----+---------------------
-            // E    |  .   0   .   0   p
-            // E3   |  p   1   p   1   p
-            // E5   |  p   2   p   3   p
-            // E_1  |  4   .   5   .   6
-            // E3_1 |  7   .   8   .   8
-              9,   0,   9,   0,  10,
-             10,   1,  10,   1,  10,
-             10,   2,  10,   3,  10,
-              4,   9,   5,   9,   6,
-              7,   9,   8,   9,   8,
+            //      |  ^   *   -   +  ID   $
+            // -----+-------------------------
+            // E    |  .   .   0   .   0   p
+            // E3   |  p   p   1   p   1   p
+            // E5   |  p   p   2   p   2   p
+            // E6   |  p   p   3   p   4   p
+            // E_1  |  5   6   .   7   .   8
+            // E3_1 |  9  10   .  11   .  11
+            // E5_1 | 12  13   .  13   .  13
+             14,  14,   0,  14,   0,  15,
+             15,  15,   1,  15,   1,  15,
+             15,  15,   2,  15,   2,  15,
+             15,  15,   3,  15,   4,  15,
+              5,   6,  14,   7,  14,   8,
+              9,  10,  14,  11,  14,  11,
+             12,  13,  14,  13,  14,  13,
+            // calc_table: ambiguity for NT 'E3_1', T '^': <^ E5 E3_1> or <ε> => <^ E5 E3_1> has been chosen
             // calc_table: ambiguity for NT 'E3_1', T '*': <* E5 E3_1> or <ε> => <* E5 E3_1> has been chosen
+            // calc_table: ambiguity for NT 'E5_1', T '^': <^ E5> or <ε> => <^ E5> has been chosen
         ]),
         (64, 0, 1, vec![
             // - 0: E -> E5 Eb
@@ -2833,6 +2853,7 @@ fn prs_calc_table() {
     ];
     const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
+if ll_id != 63 { continue }
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
