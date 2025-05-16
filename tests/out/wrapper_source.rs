@@ -8452,6 +8452,8 @@ pub(crate) mod rules_rts_33_1 {
 #[cfg(test)]
 #[allow(unused)]
 pub(crate) mod rules_prs_63_1 {
+    use std::cmp::max;
+
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(63) #1, start E]
 
@@ -8683,12 +8685,31 @@ pub(crate) mod rules_prs_63_1 {
     // [wrapper source for rule PRS(63) #1, start E]
     // ------------------------------------------------------------
 
+    #[derive(Debug, PartialEq)]
+    struct LevelString(u32, String);
+
     /// User-defined type for `E`
-    #[derive(Debug, PartialEq)] pub struct SynE(String);
+    #[derive(Debug, PartialEq)] pub struct SynE(LevelString);
     /// User-defined type for `E3`
-    #[derive(Debug, PartialEq)] pub struct SynE3(String);
+    #[derive(Debug, PartialEq)] pub struct SynE3(LevelString);
     /// User-defined type for `E5`
-    #[derive(Debug, PartialEq)] pub struct SynE5(String);
+    #[derive(Debug, PartialEq)] pub struct SynE5(LevelString);
+
+    fn par(ls: LevelString) -> String {
+        if ls.0 > 0 {
+            format!("({})", ls.1)
+        } else {
+            ls.1
+        }
+    }
+
+    fn ls_unary_op(op: &str, ls: LevelString) -> LevelString {
+        LevelString(ls.0 + 1, format!("{op} {}", par(ls)))
+    }
+
+    fn ls_binary_op(op: &str, lsleft: LevelString, lsright: LevelString) -> LevelString {
+        LevelString(max(lsleft.0, lsright.0) + 1, format!("{} {op} {}", par(lsleft), par(lsright)))
+    }
 
     #[cfg(test)]
     mod test {
@@ -8721,7 +8742,7 @@ pub(crate) mod rules_prs_63_1 {
             }
 
             fn exit(&mut self, e: SynE) {
-                self.result = Some(e.0);
+                self.result = Some(e.0.1);
             }
 
             fn init_e(&mut self) {
@@ -8730,25 +8751,25 @@ pub(crate) mod rules_prs_63_1 {
 
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
-                    CtxE::E1 { e5 } => e5.0,
-                    CtxE::E2 { e, e5 } => format!("({}) * ({})", e.0, e5.0),
-                    CtxE::E3 { e, e3 } => format!("({}) + ({})", e.0, e3.0),
-                    CtxE::E4 { e } => e.0,
+                    CtxE::E2 { e: SynE(lsleft), e5: SynE5(lsright) } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::E3 { e: SynE(lsleft), e3: SynE3(lsright) } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::E1 { e5: SynE5(ls) }
+                    | CtxE::E4 { e: SynE(ls) } => ls,
                 })
             }
 
             fn exit_e3(&mut self, ctx: CtxE3) -> SynE3 {
                 SynE3(match ctx {
-                    CtxE3::E3_1 { e5 } => e5.0,
-                    CtxE3::E3_2 { e3, e5 } => format!("({}) * ({})", e3.0, e5.0),
-                    CtxE3::E3_3 { e3 } => e3.0,
+                    CtxE3::E3_2 { e3: SynE3(lsleft), e5: SynE5(lsright) } => ls_binary_op("*", lsleft, lsright),
+                    CtxE3::E3_1 { e5: SynE5(ls) }
+                    | CtxE3::E3_3 { e3: SynE3(ls) } => ls,
                 })
             }
 
             fn exit_e5(&mut self, ctx: CtxE5) -> SynE5 {
                 SynE5(match ctx {
-                    CtxE5::E5_1 { e3 } => format!("- ({})", e3.0),
-                    CtxE5::E5_2 { id } => id
+                    CtxE5::E5_1 { e3: SynE3(ls) } => ls_unary_op("-", ls),
+                    CtxE5::E5_2 { id } => LevelString(0, id)
                 })
             }
         }
@@ -8756,14 +8777,15 @@ pub(crate) mod rules_prs_63_1 {
         #[test]
         fn test() {
             let sequences = vec![
-                ("a * b", Some("(a) * (b)")),
-                ("a + b", Some("(a) + (b)")),
-                ("- a", Some("- (a)")),
-                ("a * b + c", Some("((a) * (b)) + (c)")),
-                ("a + b * c", Some("(a) + ((b) * (c))")),
-                ("- a * b", Some("- ((a) * (b))")),
-                ("- a + b", Some("(- (a)) + (b)")),
-                ("a * - b", Some("(a) * (- (b))")),
+                ("a + b + c + d + e", Some("(((a + b) + c) + d) + e")),
+                ("a * b", Some("a * b")),
+                ("a + b", Some("a + b")),
+                ("- a", Some("- a")),
+                ("a * b + c", Some("(a * b) + c")),
+                ("a + b * c", Some("a + (b * c)")),
+                ("- a * b", Some("- (a * b)")),
+                ("- a + b", Some("(- a) + b")),
+                ("a * - b", Some("a * (- b)")),
                 ("a * * b", None),
             ];
             const VERBOSE: bool = true;
