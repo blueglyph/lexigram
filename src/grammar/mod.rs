@@ -1409,7 +1409,7 @@ impl<T> ProdRuleSet<T> {
     /// other instances of `A` in the middle, like `A β1 A δ1`, but it's not strictly necessary
     /// for an LL(1) grammar so we don't do it.
     pub fn remove_left_recursion(&mut self) {
-        let method = 2;
+        let method = 1;
         if method == 2 {
             return self.remove_recursion();
         }

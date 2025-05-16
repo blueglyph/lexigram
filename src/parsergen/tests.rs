@@ -472,8 +472,8 @@ mod opcodes {
             ]),
             */
         ];
-        const VERBOSE: bool = false;
-        const TESTS_ALL: bool = false;
+        const VERBOSE: bool = true;
+        const TESTS_ALL: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
@@ -1557,6 +1557,73 @@ mod wrapper_source {
                 12 => symbols![nt 3],                   // 12: E5_1 -> ^ E5      | ●E5 ◄12 ^       | E6
                 13 => symbols![nt 3],                   // 13: E5_1 -> ε         | ◄13             | E6
             ], Default, btreemap![0 => vec![0], 1 => vec![1], 2 => vec![12, 13], 3 => vec![3, 4]]),
+
+            // A -> B a A | B
+            // B -> b
+            // NT flags:
+            //  - A: right_rec | parent_left_fact (34)
+            //  - A_1: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            (PRS(44), false, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+            ], btreemap![
+                0 => symbols![],                        //  0: A -> B A_1 | ►A_1 ►B  |
+                1 => symbols![t 1],                     //  1: B -> b     | ◄1 b!    | b
+                2 => symbols![nt 0, nt 1, t 0],         //  2: A_1 -> a A | ●A ◄2 a! | A B a
+                3 => symbols![nt 1],                    //  3: A_1 -> ε   | ◄3       | B
+            ], Default, btreemap![0 => vec![2, 3], 1 => vec![1]]),
+
+            // A -> B a A <L> | B
+            // B -> b
+            // NT flags:
+            //  - A: right_rec | parent_left_fact (34)
+            //  - A_1: child_left_fact | L-form (192)
+            // parents:
+            //  - A_1 -> A
+            (PRS(47), false, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+            ], btreemap![
+                0 => symbols![],                        //  0: A -> B A_1 | ►A_1 ►B  |
+                1 => symbols![t 1],                     //  1: B -> b     | ◄1 b!    | b
+                2 => symbols![nt 0, nt 1, t 0],         //  2: A_1 -> a A | ●A ◄2 a! | A B a
+                3 => symbols![nt 1],                    //  3: A_1 -> ε   | ◄3       | B
+            ], Default, btreemap![0 => vec![2, 3], 1 => vec![1]]),
+
+            // A -> a A | B
+            // B -> b
+            // NT flags:
+            //  - A: right_rec (2)
+            // parents:
+            //  - (nothing)
+            (PRS(45), false, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 0],               //  0: A -> a A | ◄0 ►A a! | a A
+                1 => symbols![nt 1],                    //  1: A -> B   | ◄1 ►B    | B
+                2 => symbols![t 1],                     //  2: B -> b   | ◄2 b!    | b
+            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2]]),
+
+            // A -> A B a | B
+            // B -> b
+            // NT flags:
+            //  - A: parent_left_rec (512)
+            //  - A_1: child_left_rec (4)
+            // parents:
+            //  - A_1 -> A
+            (PRS(46), false, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+            ], btreemap![
+                0 => symbols![nt 1],                    //  0: A -> B A_1     | ►A_1 ◄0 ►B    | B
+                1 => symbols![t 1],                     //  1: B -> b         | ◄1 b!         | b
+                2 => symbols![nt 0, nt 1, t 0],         //  2: A_1 -> B a A_1 | ●A_1 ◄2 a! ►B | A B a
+                3 => symbols![nt 0],                    //  3: A_1 -> ε       | ◄3            | A
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
             /*
             (PRS(), false, 0, btreemap![], btreemap![], Default, btreemap![]),
             (RTS(), false, 0, btreemap![], btreemap![], Default, btreemap![]),
@@ -1587,7 +1654,9 @@ mod wrapper_source {
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
 // if rule_id == PRS(51) || rule_id == PRS(55) { continue }
 // if rule_id != PRS(51) { continue }
-if rule_id != PRS(63) { continue }
+// if rule_id != PRS(63) { continue }
+// if !hashset!(PRS(44), PRS(45), PRS(46)).contains(&rule_id) { continue }
+if hashset!(PRS(51), PRS(52), PRS(63)).contains(&rule_id) { continue } // fix rrec+lfact bug
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);

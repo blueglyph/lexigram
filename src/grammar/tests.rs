@@ -1246,6 +1246,44 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
         }
 
+        // fixes ---------------------------------------------------------------
+        44 => {
+            // PRS(63) generated strange code for the rrec E5 -> E6 ^ E5 | E6:
+            // we compare here rrec and rrec + lfact, with another NT that has value
+
+            // A -> B a A | B
+            // B -> b
+            prods.extend([
+                prod!(nt 1, t 0, nt 0; nt 1),
+                prod!(t 1),
+            ])
+        }
+        45 => {
+            // A -> a A | B
+            // B -> b
+            prods.extend([
+                prod!(t 0, nt 0; nt 1),
+                prod!(t 1),
+            ])
+        }
+        46 => {
+            // A -> A B a | B
+            // B -> b
+            prods.extend([
+                prod!(nt 0, nt 1, t 0; nt 1),
+                prod!(t 1),
+            ])
+        }
+        47 => {
+            // same as 44 with <L>
+            // A -> B a A <L> | B
+            // B -> b
+            prods.extend([
+                prod!(#L, nt 1, t 0, nt 0; nt 1),
+                prod!(t 1),
+            ])
+        }
+
         // ambiguous grammar reconstruction tests ------------------------------
         50 => {
             // classical ambiguous arithmetic grammar

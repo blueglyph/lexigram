@@ -224,7 +224,7 @@ impl ParserGen {
     /// Declares the type of a non-terminal. The index of the NT, `org_var`, is the original index
     /// in the ruletree set, which is the index originally assigned when parsing the grammar file.
     pub fn add_nt_type<T: Into<String>>(&mut self, org_var: VarId, var_type: T) {
-        let var = self.conv_nt(org_var).expect("var {var} doesn't exist");
+        let var = self.conv_nt(org_var).expect(&format!("var {org_var} doesn't exist"));
         self.nt_type.insert(var, var_type.into());
     }
 
@@ -828,6 +828,7 @@ impl ParserGen {
                         Some(Symbol::NT(parent))
                     } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
                         Some(Symbol::NT(*var_id))
+                    // } else if flags & ruleflag::CHILD_L_FACTOR && self {
                     } else {
                         None
                     };
