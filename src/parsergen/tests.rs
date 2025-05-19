@@ -571,6 +571,8 @@ mod wrapper_source {
             BTreeMap<VarId, Vec<FactorId>>, // expected factor groups
         )> = vec![
             // --------------------------------------------------------------------------- NT/T simple mix
+            // S -> id = VAL | exit | return VAL
+            // VAL -> id | num
             // NT flags:
             //  - (nothing)
             // parents:
@@ -1195,6 +1197,35 @@ mod wrapper_source {
                 3 => symbols![t 5, t 5],                //  3: LIST_1 -> : id ; LIST      | ●LIST ◄3 ; id! :      | id id
                 4 => symbols![t 5],                     //  4: LIST_1 -> ; LIST           | ●LIST ◄4 ;            | id
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 3, 4]]),
+
+            // A -> a A | B
+            // B -> b
+            // NT flags:
+            //  - A: right_rec (2)
+            // parents:
+            //  - (nothing)
+            (PRS(45), true, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 0],               //  0: A -> a A | ◄0 ►A a! | a A
+                1 => symbols![nt 1],                    //  1: A -> B   | ◄1 ►B    | B
+                2 => symbols![t 1],                     //  2: B -> b   | ◄2 b!    | b
+            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2]]),
+            // A -> a A <L> | B
+            // B -> b
+            // NT flags:
+            //  - A: right_rec | L-form (130)
+            // parents:
+            //  - (nothing)
+            (PRS(48), true, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+            ], btreemap![
+                0 => symbols![nt 0, t 0],               //  0: A -> a A | ●A ◄0 a! | A a
+                1 => symbols![nt 0, nt 1],              //  1: A -> B   | ◄1 ►B    | A B
+                2 => symbols![t 1],                     //  2: B -> b   | ◄2 b!    | b
+            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2]]),
 
             // STRUCT -> 'struct' id '{' LIST
             // LIST -> <L> id ':' id ';' LIST | '}'

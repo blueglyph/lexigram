@@ -1283,6 +1283,14 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 1),
             ])
         }
+        48 => {
+            // A -> a A <L> | B
+            // B -> b
+            prods.extend([
+                prod!(#L, t 0, nt 0; nt 1),
+                prod!(t 1),
+            ])
+        }
 
         // ambiguous grammar reconstruction tests ------------------------------
         50 => {
