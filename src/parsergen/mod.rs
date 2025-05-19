@@ -614,6 +614,8 @@ impl ParserGen {
                 // (per construction, there can't be any factor going back to the grandparent or further up in a left factorization, so
                 //  we don't check that)
                 if new.get(0) == Some(&Symbol::NT(parent)) {
+                let parent_r_form_right_rec = self.parsing_table.flags[parent as usize] & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
+                if new.get(0) == Some(&Symbol::NT(parent)) && !parent_r_form_right_rec {
                     opcode.push(OpCode::Loop(parent));
                     new.remove(0);
                 }
@@ -634,6 +636,9 @@ impl ParserGen {
             }
             opcode.extend(new.into_iter().map(|s| OpCode::from(s)));
             let r_form_right_rec = flags & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
+            if VERBOSE { println!("  r_form_right_rec = {r_form_right_rec} = {} || {}",
+                                  flags & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0,
+                                  flags & ruleflag::CHILD_L_FACTOR != 0 && self.parsing_table.flags[parent.unwrap() as usize] & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0); }
             if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false) && !r_form_right_rec {
                 // swaps Exit(self) when it's in 2nd position (only happens in [Loop(_), Exit(self), ...],
                 // except right recursions that aren't left-form, because we let them unfold naturally (uses more stack)
@@ -828,7 +833,6 @@ impl ParserGen {
                         Some(Symbol::NT(parent))
                     } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
                         Some(Symbol::NT(*var_id))
-                    // } else if flags & ruleflag::CHILD_L_FACTOR && self {
                     } else {
                         None
                     };
