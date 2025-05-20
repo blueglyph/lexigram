@@ -7181,9 +7181,9 @@ pub(crate) mod rules_prs_37_1 {
         /// `LIST -> }`
         List1,
         /// `LIST -> id : id ; LIST`
-        List2 { id: [String; 2] },
+        List2 { list: SynList, id: [String; 2] },
         /// `LIST -> id ; LIST`
-        List3 { id: String },
+        List3 { list: SynList, id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -7314,11 +7314,13 @@ pub(crate) mod rules_prs_37_1 {
                 3 => {
                     let id_2 = self.stack_t.pop().unwrap();
                     let id_1 = self.stack_t.pop().unwrap();
-                    CtxList::List2 { id: [id_1, id_2] }
+                    let list = self.stack.pop().unwrap().get_list();
+                    CtxList::List2 { list, id: [id_1, id_2] }
                 }
                 4 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxList::List3 { id }
+                    let list = self.stack.pop().unwrap().get_list();
+                    CtxList::List3 { list, id }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_list")
             };
@@ -7341,7 +7343,7 @@ pub(crate) mod rules_prs_44_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> B a A`
-        A1 { b: SynB, a: String, a1: SynA },
+        A1 { a: SynA, b: SynB, a1: String },
         /// `A -> B`
         A2 { b: SynB },
     }
@@ -7466,10 +7468,10 @@ pub(crate) mod rules_prs_44_1 {
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 2 => {
-                    let a1 = self.stack.pop().unwrap().get_a();
-                    let a = self.stack_t.pop().unwrap();
+                    let a1 = self.stack_t.pop().unwrap();
                     let b = self.stack.pop().unwrap().get_b();
-                    CtxA::A1 { b, a, a1 }
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A1 { a, b, a1 }
                 }
                 3 => {
                     let b = self.stack.pop().unwrap().get_b();

@@ -613,7 +613,6 @@ impl ParserGen {
                 // replaces Enter by Loop when going back to left-factorization parent, typically when coupled with + or *
                 // (per construction, there can't be any factor going back to the grandparent or further up in a left factorization, so
                 //  we don't check that)
-                if new.get(0) == Some(&Symbol::NT(parent)) {
                 let parent_r_form_right_rec = self.parsing_table.flags[parent as usize] & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
                 if new.get(0) == Some(&Symbol::NT(parent)) && !parent_r_form_right_rec {
                     opcode.push(OpCode::Loop(parent));
@@ -826,23 +825,34 @@ impl ParserGen {
                     }
 
                     // Loop NTs which carry values are kept on the stack, too
-                    let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (!values.is_empty() || flags & ruleflag::L_FORM != 0) {
-                        Some(Symbol::NT(*var_id))
-                    } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
-                        let parent = info.parent[*var_id as usize].unwrap();
-                        Some(Symbol::NT(parent))
-                    } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
-                        Some(Symbol::NT(*var_id))
+                    let parent_is_rrec_lfact = self.nt_has_flags(g[0], ruleflag::R_RECURSION | ruleflag::PARENT_L_FACTOR);
+                    if parent_is_rrec_lfact {
+                        if self.nt_has_flags(*var_id, ruleflag::CHILD_L_FACTOR | ruleflag::L_FORM) {
+                            if VERBOSE { print!(" child_rrec_lform_lfact"); }
+                            items.get_mut(&factor_id).unwrap().insert(0, Symbol::NT(g[0]));
+                        } else if flags & ruleflag::CHILD_L_FACTOR != 0 && values.last() == Some(&Symbol::NT(g[0])) {
+                            if VERBOSE { print!(" swap rrec"); }
+                            let sym = values.pop().unwrap();
+                            items.get_mut(&factor_id).unwrap().insert(0, sym);
+                        }
                     } else {
-                        None
-                    };
-                    if let Some(s) = sym_maybe {
-                        if self.sym_has_value(&s) {
-                            if VERBOSE { print!(" | loop => {}", s.to_str(self.get_symbol_table())); }
-                            values.insert(0, s);
+                        let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (!values.is_empty() || flags & ruleflag::L_FORM != 0) {
+                            Some(Symbol::NT(*var_id))
+                        } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
+                            let parent = info.parent[*var_id as usize].unwrap();
+                            Some(Symbol::NT(parent))
+                        } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
+                            Some(Symbol::NT(*var_id))
+                        } else {
+                            None
+                        };
+                        if let Some(s) = sym_maybe {
+                            if self.sym_has_value(&s) {
+                                if VERBOSE { print!(" | loop => {}", s.to_str(self.get_symbol_table())); }
+                                values.insert(0, s);
+                            }
                         }
                     }
-
                     if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
                     if let Some(OpCode::NT(nt)) = opcode.get(0) {
                         // Take the values except the last NT
