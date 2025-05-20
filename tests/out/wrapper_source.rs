@@ -7181,9 +7181,9 @@ pub(crate) mod rules_prs_37_1 {
         /// `LIST -> }`
         List1,
         /// `LIST -> id : id ; LIST`
-        List2 { list: SynList, id: [String; 2] },
+        List2 { id: [String; 2], list: SynList },
         /// `LIST -> id ; LIST`
-        List3 { list: SynList, id: String },
+        List3 { id: String, list: SynList },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -7312,15 +7312,15 @@ pub(crate) mod rules_prs_37_1 {
                     CtxList::List1
                 }
                 3 => {
+                    let list = self.stack.pop().unwrap().get_list();
                     let id_2 = self.stack_t.pop().unwrap();
                     let id_1 = self.stack_t.pop().unwrap();
-                    let list = self.stack.pop().unwrap().get_list();
-                    CtxList::List2 { list, id: [id_1, id_2] }
+                    CtxList::List2 { id: [id_1, id_2], list }
                 }
                 4 => {
-                    let id = self.stack_t.pop().unwrap();
                     let list = self.stack.pop().unwrap().get_list();
-                    CtxList::List3 { list, id }
+                    let id = self.stack_t.pop().unwrap();
+                    CtxList::List3 { id, list }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_list")
             };
@@ -7343,7 +7343,7 @@ pub(crate) mod rules_prs_44_1 {
     #[derive(Debug)]
     pub enum CtxA {
         /// `A -> B a A`
-        A1 { a: SynA, b: SynB, a1: String },
+        A1 { b: SynB, a: String, a1: SynA },
         /// `A -> B`
         A2 { b: SynB },
     }
@@ -7468,10 +7468,10 @@ pub(crate) mod rules_prs_44_1 {
         fn exit_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 2 => {
-                    let a1 = self.stack_t.pop().unwrap();
+                    let a1 = self.stack.pop().unwrap().get_a();
+                    let a = self.stack_t.pop().unwrap();
                     let b = self.stack.pop().unwrap().get_b();
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A1 { a, b, a1 }
+                    CtxA::A1 { b, a, a1 }
                 }
                 3 => {
                     let b = self.stack.pop().unwrap().get_b();
@@ -8974,7 +8974,7 @@ pub(crate) mod rules_prs_63_1 {
     #[derive(Debug)]
     pub enum CtxE5 {
         /// `E5 -> E6 ^ E5`
-        E5_1 { e5: SynE5, e6: SynE6 },
+        E5_1 { e6: SynE6, e5: SynE5 },
         /// `E5 -> E6`
         E5_2 { e6: SynE6 },
     }
@@ -9190,9 +9190,9 @@ pub(crate) mod rules_prs_63_1 {
         fn exit_e5(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
                 12 => {
-                    let e6 = self.stack.pop().unwrap().get_e6();
                     let e5 = self.stack.pop().unwrap().get_e5();
-                    CtxE5::E5_1 { e5, e6 }
+                    let e6 = self.stack.pop().unwrap().get_e6();
+                    CtxE5::E5_1 { e6, e5 }
                 }
                 13 => {
                     let e6 = self.stack.pop().unwrap().get_e6();
@@ -9329,20 +9329,28 @@ pub(crate) mod rules_prs_63_1 {
         #[test]
         fn test() {
             let sequences = vec![
+                // priority: E -> <R> E ^ E | E * E | - E | E + E | ID;
                 ("a + b + c + d + e", Some("(((a + b) + c) + d) + e")),
                 ("a * b", Some("a * b")),
                 ("a + b", Some("a + b")),
                 ("- a", Some("- a")),
                 ("a * b + c", Some("(a * b) + c")),
                 ("a + b * c", Some("a + (b * c)")),
+                ("a * b * c", Some("(a * b) * c")),
                 ("- a * b", Some("- (a * b)")),
+                ("a * - b * c", Some("a * (- (b * c))")),   // ! because here p(-) < p(*)
                 ("- a + b", Some("(- a) + b")),
+                ("a + - b + c", Some("(a + (- b)) + c")),
                 ("a * - b", Some("a * (- b)")),
                 ("a * * b", None),
+                ("a ^ b", Some("a ^ b")),
+                ("a ^ b ^ c ^ d", Some("a ^ (b ^ (c ^ d))")),
+                ("a ^ b ^ - c", Some("a ^ (b ^ (- c))")),
+                ("a ^ - b ^ c", Some("a ^ (- (b ^ c))")),
             ];
-            const VERBOSE: bool = true;
+            const VERBOSE: bool = false;
             const VERBOSE_LISTENER: bool = false;
-            let id_id = 3;
+            let id_id = 4;
 
             let mut parser = build_parser();
             let table = parser.get_symbol_table().unwrap();

@@ -830,11 +830,11 @@ impl ParserGen {
                         if self.nt_has_flags(*var_id, ruleflag::CHILD_L_FACTOR | ruleflag::L_FORM) {
                             if VERBOSE { print!(" child_rrec_lform_lfact"); }
                             items.get_mut(&factor_id).unwrap().insert(0, Symbol::NT(g[0]));
-                        } else if flags & ruleflag::CHILD_L_FACTOR != 0 && values.last() == Some(&Symbol::NT(g[0])) {
+                        }/* else if flags & ruleflag::CHILD_L_FACTOR != 0 && values.last() == Some(&Symbol::NT(g[0])) {
                             if VERBOSE { print!(" swap rrec"); }
                             let sym = values.pop().unwrap();
                             items.get_mut(&factor_id).unwrap().insert(0, sym);
-                        }
+                        }*/
                     } else {
                         let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (!values.is_empty() || flags & ruleflag::L_FORM != 0) {
                             Some(Symbol::NT(*var_id))
