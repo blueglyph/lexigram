@@ -8974,7 +8974,7 @@ pub(crate) mod rules_prs_63_1 {
     #[derive(Debug)]
     pub enum CtxE5 {
         /// `E5 -> E6 ^ E5`
-        E5_1 { e6: SynE6 },
+        E5_1 { e5: SynE5, e6: SynE6 },
         /// `E5 -> E6`
         E5_2 { e6: SynE6 },
     }
@@ -9191,7 +9191,8 @@ pub(crate) mod rules_prs_63_1 {
             let ctx = match factor_id {
                 12 => {
                     let e6 = self.stack.pop().unwrap().get_e6();
-                    CtxE5::E5_1 { e6 }
+                    let e5 = self.stack.pop().unwrap().get_e5();
+                    CtxE5::E5_1 { e5, e6 }
                 }
                 13 => {
                     let e6 = self.stack.pop().unwrap().get_e6();
@@ -9311,7 +9312,7 @@ pub(crate) mod rules_prs_63_1 {
             fn exit_e5(&mut self, ctx: CtxE5) -> SynE5 {
                 SynE5(match ctx {
                     // E5 -> E6 ^ E5
-                    CtxE5::E5_1 { e6: SynE6(ls) } => todo!("fix rrec + left factorization {:?}", ls),
+                    CtxE5::E5_1 { e6: SynE6(lsleft), e5: SynE5(lsright) } => ls_binary_op("^", lsleft, lsright),
                     // E5 -> E6
                     CtxE5::E5_2 { e6: SynE6(ls) } => ls,
                 })

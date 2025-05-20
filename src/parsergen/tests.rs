@@ -205,6 +205,12 @@ mod gen_integration {
     fn write_source_code_for_integration_listener13() {
         do_test(13, Action::WriteSource, true);
     }
+
+    #[ignore]
+    #[test]
+    fn write_source_code_for_integration_listener14() {
+        do_test(14, Action::WriteSource, true);
+    }
 }
 
 mod opcodes {
@@ -496,7 +502,6 @@ mod opcodes {
         const TESTS_ALL: bool = true;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
-//if !crate::hashset!(T::PRS(44), T::PRS(45)).contains(&rule_id) { continue }
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, false);
             if VERBOSE {
@@ -1612,6 +1617,10 @@ mod wrapper_source {
                 11 => symbols![],                       // 11: E_5 -> ε         | ◄11             |
                 12 => symbols![nt 1],                   // 12: E_6 -> F         | ◄12 ►F          | F
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2], 7 => vec![12]]),
+            // E -> E ^ E5 | E * E5 | E + E3 | E6
+            // E3 -> E3 ^ E5 | E3 * E5 | E6
+            // E5 -> E6 ^ E5 | E6
+            // E6 -> - E3 | ID
             // NT flags:
             //  - E: parent_left_rec (512)
             //  - E3: parent_left_rec (512)
@@ -1641,7 +1650,7 @@ mod wrapper_source {
                 9 => symbols![nt 1, nt 2],              //  9: E3_1 -> ^ E5 E3_1 | ●E3_1 ◄9 ►E5 ^  | E3 E5
                 10 => symbols![nt 1, nt 2],             // 10: E3_1 -> * E5 E3_1 | ●E3_1 ◄10 ►E5 * | E3 E5
                 11 => symbols![nt 1],                   // 11: E3_1 -> ε         | ◄11             | E3
-                12 => symbols![nt 3],                   // 12: E5_1 -> ^ E5      | ●E5 ◄12 ^       | E6
+                12 => symbols![nt 2, nt 3],             // 12: E5_1 -> ^ E5      | ◄12 ►E5 ^       | E5 E6
                 13 => symbols![nt 3],                   // 13: E5_1 -> ε         | ◄13             | E6
             ], Default, btreemap![0 => vec![0], 1 => vec![1], 2 => vec![12, 13], 3 => vec![3, 4]]),
 
@@ -1692,9 +1701,9 @@ mod wrapper_source {
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
 // if rule_id == PRS(51) || rule_id == PRS(55) { continue }
 // if rule_id != PRS(44) { continue }
-// if rule_id != PRS(63) { continue }
+if rule_id != PRS(63) { continue }
 // if !hashset!(PRS(44), PRS(45), PRS(47), PRS(48)).contains(&rule_id) { continue }
-if hashset!(PRS(51), PRS(52), PRS(63)).contains(&rule_id) { continue } // fix rrec+lfact bug
+// if hashset!(PRS(51), PRS(52), PRS(63)).contains(&rule_id) { continue } // fix rrec+lfact bug
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
