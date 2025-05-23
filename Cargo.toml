@@ -18,3 +18,8 @@ disabled = []
 [workspace]
 members = [".", "gram", "lexi", "make-gram", "make-lexi"]
 default-members = [".", "gram", "lexi", "make-gram", "make-lexi"]
+
+# Temporary:
+
+[profile.dev]
+#debug = false

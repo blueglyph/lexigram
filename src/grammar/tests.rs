@@ -1490,6 +1490,55 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             parents.extend(hashmap![1 => 0, 3 => 2]);
         }
+        65 => {
+            // E -> <R> E ^ E | <R> E * E | - E | E + E | ID;
+            // expanded with Clarke's method (produces ambiguities in the table):
+            // E -> E5 (^ E4 | * E4 | + E3)*
+            // E3 -> E5 (^ E4 |* E4)*
+            // E4 -> E5 (^E4)*
+            // E5 -> - E3 | ID
+            //
+            // E   -> E5 Eb
+            // Eb  -> ^ E4 Eb | * E3 Eb | + E3 Eb | ε
+            // E3  -> E5 E3b
+            // E3b -> ^ E4 E3b | * E3 E3b | ε
+            // E4  -> E5 ^ E4 | E5
+            // E5  -> - E3 | ID
+            symbol_table.extend_terminals([
+                ("EXP".to_string(), Some("^".to_string())),     // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("NEG".to_string(), Some("-".to_string())),     // 2
+                ("ADD".to_string(), Some("+".to_string())),     // 3
+                ("ID".to_string(), None),                       // 4
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+                "Eb".to_string(),       // 1
+                "E3".to_string(),       // 2
+                "E3b".to_string(),      // 3
+                "E4".to_string(),       // 4
+                "E5".to_string(),       // 5
+            ]);
+            prods.extend([
+                prod!(nt 5, nt 1),
+                prod!(t 0, nt 4, nt 1; t 1, nt 2, nt 1; t 3, nt 2, nt 1; e),
+                prod!(nt 5, nt 3),
+                prod!(t 0, nt 4, nt 3; t 1, nt 2, nt 3; e),
+                prod!(nt 5, t 0, nt 4; nt 5),
+                prod!(t 2, nt 5; t 4),
+            ]);
+            // we set the flags & parents ourselves:
+            rules.dont_remove_recursion = true;
+            flags.extend(hashmap![
+                0 => ruleflag::PARENT_L_RECURSION,
+                1 => ruleflag::CHILD_L_RECURSION,
+                2 => ruleflag::PARENT_L_RECURSION,
+                3 => ruleflag::CHILD_L_RECURSION,
+                4 => ruleflag::R_RECURSION,
+                5 => ruleflag::R_RECURSION,
+            ]);
+            parents.extend(hashmap![1 => 0, 3 => 2]);
+        }
 
 
 

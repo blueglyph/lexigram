@@ -592,3 +592,7 @@ pub(crate) mod code_prs_54_1 {
 pub(crate) mod code_prs_63_1 {
     // types defined near the test in wrapper_source.rs
 }
+
+pub(crate) mod code_prs_65_1 {
+    // types defined near the test in wrapper_source.rs
+}
