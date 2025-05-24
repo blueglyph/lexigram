@@ -37,15 +37,15 @@ pub mod macros {
     /// assert_eq!(opcode!(end), OpCode::End);
     #[macro_export(local_inner_macros)]
     macro_rules! opcode {
-        (e) => { OpCode::Empty };
-        (t $id:expr) => { OpCode::T($id as TokenId) };
-        (nt $id:expr) => { OpCode::NT($id as VarId) };
-        (loop $id:expr) => { OpCode::Loop($id as VarId) };
-        (exit $id:expr) => { OpCode::Exit($id as VarId) };
-        (nt $id:expr) => { OpCode::NT($id as VarId, 0) };
-        (loop $id:expr) => { OpCode::Loop($id as VarId, 0) };
-        (exit $id:expr) => { OpCode::Exit($id as VarId, 0) };
-        (end) => { OpCode::End };
+        (e) => { $crate::parser::OpCode::Empty };
+        (t $id:expr) => { $crate::parser::OpCode::T($id as $crate::dfa::TokenId) };
+        (nt $id:expr) => { $crate::parser::OpCode::NT($id as $crate::grammar::VarId) };
+        (loop $id:expr) => { $crate::parser::OpCode::Loop($id as $crate::grammar::VarId) };
+        (exit $id:expr) => { $crate::parser::OpCode::Exit($id as $crate::grammar::VarId) };
+        (nt $id:expr) => { $crate::parser::OpCode::NT($id as $crate::grammar::VarId, 0) };
+        (loop $id:expr) => { $crate::parser::OpCode::Loop($id as $crate::grammar::VarId, 0) };
+        (exit $id:expr) => { $crate::parser::OpCode::Exit($id as $crate::grammar::VarId, 0) };
+        (end) => { $crate::parser::OpCode::End };
     }
 
     /// Generates an opcode strip. A strip is made up of `OpCode` items separated by a comma.

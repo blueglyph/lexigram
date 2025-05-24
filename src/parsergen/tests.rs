@@ -226,7 +226,6 @@ mod opcodes {
     use crate::{CollectJoin, strip, columns_to_str};
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::ParserGen;
-    use crate::dfa::TokenId;
 
     fn get_factors_str(parser: &Parser) -> Vec<String> {
         parser.get_factors().iter().enumerate().map(|(id, (v, f))|

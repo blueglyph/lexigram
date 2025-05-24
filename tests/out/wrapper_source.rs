@@ -9402,7 +9402,6 @@ pub(crate) mod rules_prs_65_1 {
     // [wrapper source for rule PRS(65) #1, start E]
 
     use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_prs_65_1::*;
 
     #[derive(Debug)]
     pub enum CtxE {

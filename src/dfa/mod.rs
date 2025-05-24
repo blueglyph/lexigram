@@ -1160,21 +1160,27 @@ pub mod macros {
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! node {
-        (chr $char:expr) => { ReNode::char($char) };
-        (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| ReNode::char(c)) };
-        ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::char_range(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
-        (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { ReNode::char_range(segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
+        (chr $char:expr) => { $crate::dfa::ReNode::char($char) };
+        (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| $crate::dfa::ReNode::char(c)) };
+        ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { $crate::dfa::ReNode::char_range(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
+        (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { $crate::dfa::ReNode::char_range(segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
         (.) => { node!([DOT]) };
-        (str $str:expr) => { ReNode::string($str) };
-        (&) => { ReNode::concat() };
-        (|) => { ReNode::or() };
-        (*) => { ReNode::star() };
-        (+) => { ReNode::plus() };
-        (e) => { ReNode::empty() };
-        (??) => { ReNode::lazy() };
+        (str $str:expr) => { $crate::dfa::ReNode::string($str) };
+        (&) => { $crate::dfa::ReNode::concat() };
+        (|) => { $crate::dfa::ReNode::or() };
+        (*) => { $crate::dfa::ReNode::star() };
+        (+) => { $crate::dfa::ReNode::plus() };
+        (e) => { $crate::dfa::ReNode::empty() };
+        (??) => { $crate::dfa::ReNode::lazy() };
         // actions:
-        (= $id:expr) => { ReNode::end($crate::dfa::Terminal { action: $crate::dfa::ActionOption::Token($id), channel: 0, mode: $crate::dfa::ModeOption::None, mode_state: None, pop: false }) };
-        ($id:expr) => { ReNode::end($id) };
+        (= $id:expr) => { $crate::dfa::ReNode::end($crate::dfa::Terminal {
+            action: $crate::dfa::ActionOption::Token($id),
+            channel: 0,
+            mode: $crate::dfa::ModeOption::None,
+            mode_state: None,
+            pop: false
+        }) };
+        ($id:expr) => { $crate::dfa::ReNode::end($id) };
         //
         ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!([$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
         (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!(~ [$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };

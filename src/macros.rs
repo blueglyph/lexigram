@@ -84,9 +84,9 @@ macro_rules! hashset {
 /// ```
 #[macro_export(local_inner_macros)]
 macro_rules! btreeset {
-    () => { BTreeSet::new() };
+    () => { std::collections::BTreeSet::new() };
     ($($key:expr,)+) => { btreeset!($($key),+) };
-    ($($key:expr),*) => { BTreeSet::from([ $($key,)* ]) };
+    ($($key:expr),*) => { std::collections::BTreeSet::from([ $($key,)* ]) };
 }
 
 #[cfg(test)]
