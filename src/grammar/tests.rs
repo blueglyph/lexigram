@@ -1502,7 +1502,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // Eb  -> ^ E4 Eb | * E3 Eb | + E3 Eb | ε
             // E3  -> E5 E3b
             // E3b -> ^ E4 E3b | * E3 E3b | ε
-            // E4  -> E5 ^ E4 | E5
+            // E4  -> E5 E4b
+            // E4b -> ^ E4 | ε
             // E5  -> - E3 | ID
             symbol_table.extend_terminals([
                 ("EXP".to_string(), Some("^".to_string())),     // 0
@@ -1517,15 +1518,17 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 "E3".to_string(),       // 2
                 "E3b".to_string(),      // 3
                 "E4".to_string(),       // 4
-                "E5".to_string(),       // 5
+                "E4b".to_string(),      // 5
+                "E5".to_string(),       // 6
             ]);
             prods.extend([
-                prod!(nt 5, nt 1),
+                prod!(nt 6, nt 1),
                 prod!(t 0, nt 4, nt 1; t 1, nt 2, nt 1; t 3, nt 2, nt 1; e),
-                prod!(nt 5, nt 3),
+                prod!(nt 6, nt 3),
                 prod!(t 0, nt 4, nt 3; t 1, nt 2, nt 3; e),
-                prod!(nt 5, t 0, nt 4; nt 5),
-                prod!(t 2, nt 5; t 4),
+                prod!(nt 6, nt 5),
+                prod!(t 0, nt 4; e),
+                prod!(t 2, nt 2; t 4),
             ]);
             // we set the flags & parents ourselves:
             rules.dont_remove_recursion = true;
@@ -1534,10 +1537,11 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 1 => ruleflag::CHILD_L_RECURSION,
                 2 => ruleflag::PARENT_L_RECURSION,
                 3 => ruleflag::CHILD_L_RECURSION,
-                4 => ruleflag::R_RECURSION,
-                5 => ruleflag::R_RECURSION,
+                4 => ruleflag::R_RECURSION | ruleflag::PARENT_L_FACTOR,
+                5 => ruleflag::CHILD_L_FACTOR,
+                6 => ruleflag::R_RECURSION,
             ]);
-            parents.extend(hashmap![1 => 0, 3 => 2]);
+            parents.extend(hashmap![1 => 0, 3 => 2, 5 => 4]);
         }
 
 

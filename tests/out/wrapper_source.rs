@@ -9396,12 +9396,15 @@ pub(crate) mod rules_prs_63_1 {
     }
 }
 
+#[cfg(test)]
+#[allow(unused)]
 pub(crate) mod rules_prs_65_1 {
     use std::cmp::max;
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(65) #1, start E]
 
     use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_prs_65_1::*;
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -9436,8 +9439,8 @@ pub(crate) mod rules_prs_65_1 {
     }
     #[derive(Debug)]
     pub enum CtxE5 {
-        /// `E5 -> - E5`
-        E5_1 { e5: SynE5 },
+        /// `E5 -> - E3`
+        E5_1 { e3: SynE3 },
         /// `E5 -> ID`
         E5_2 { id: String },
     }
@@ -9511,8 +9514,8 @@ pub(crate) mod rules_prs_65_1 {
                         2 => self.listener.init_e3(),               // E3
                         3 => {}                                     // E3b
                         4 => self.listener.init_e4(),               // E4
-                        6 => {}                                     // E4_1
-                        5 => self.listener.init_e5(),               // E5
+                        5 => {}                                     // E4b
+                        6 => self.listener.init_e5(),               // E5
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -9528,11 +9531,11 @@ pub(crate) mod rules_prs_65_1 {
                         6 |                                         // E3 -> E3 ^ E4
                         7 |                                         // E3 -> E3 * E3
                         8 => self.exit_e3b(factor_id),              // end of iterations in E3 -> E3 ^ E4 | E3 * E3
-                        12 |                                        // E4 -> E5 ^ E4
-                        13 => self.exit_e4(factor_id),              // E4 -> E5
+                        10 |                                        // E4 -> E5 ^ E4
+                        11 => self.exit_e4(factor_id),              // E4 -> E5
                      /* 9 */                                        // E4 -> E5 | E5 ^ E4 (never called)
-                        10 |                                        // E5 -> - E5
-                        11 => self.exit_e5(factor_id),              // E5 -> ID
+                        12 |                                        // E5 -> - E3
+                        13 => self.exit_e5(factor_id),              // E5 -> ID
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -9645,12 +9648,12 @@ pub(crate) mod rules_prs_65_1 {
 
         fn exit_e4(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                12 => {
+                10 => {
                     let e4 = self.stack.pop().unwrap().get_e4();
                     let e5 = self.stack.pop().unwrap().get_e5();
                     CtxE4::E4_1 { e5, e4 }
                 }
-                13 => {
+                11 => {
                     let e5 = self.stack.pop().unwrap().get_e5();
                     CtxE4::E4_2 { e5 }
                 }
@@ -9662,11 +9665,11 @@ pub(crate) mod rules_prs_65_1 {
 
         fn exit_e5(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                10 => {
-                    let e5 = self.stack.pop().unwrap().get_e5();
-                    CtxE5::E5_1 { e5 }
+                12 => {
+                    let e3 = self.stack.pop().unwrap().get_e3();
+                    CtxE5::E5_1 { e3 }
                 }
-                11 => {
+                13 => {
                     let id = self.stack_t.pop().unwrap();
                     CtxE5::E5_2 { id }
                 }
@@ -9775,7 +9778,7 @@ pub(crate) mod rules_prs_65_1 {
 
             fn exit_e5(&mut self, ctx: CtxE5) -> SynE5 {
                 SynE5(match ctx{
-                    CtxE5::E5_1 { e5: SynE5(ls) } => ls_unary_op("-", ls),
+                    CtxE5::E5_1 { e3: SynE3(ls) } => ls_unary_op("-", ls),
                     CtxE5::E5_2 { id } => LevelString(0, id)
                 })
             }
@@ -9827,9 +9830,9 @@ pub(crate) mod rules_prs_65_1 {
                         }
                     }
                 });
-                let mut listener = EListener::new();
+                let listener = EListener::new();
                 let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
-                let errors = match parser.parse_stream(&mut wrapper, stream) {
+                let _errors = match parser.parse_stream(&mut wrapper, stream) {
                     Ok(_) => {
                         if VERBOSE { println!("parsing completed successfully: {:?}", wrapper.listener.result); }
                         None
