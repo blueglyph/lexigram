@@ -5,7 +5,7 @@
 
 pub(crate) mod tests;
 
-use std::collections::{BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::mem::take;
@@ -933,7 +933,7 @@ impl DerefMut for ProdFactor {
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum FactorType { Independant, LeftAssoc, RightAssoc, Prefix, Suffix }
+enum FactorType { Independant, LeftAssoc, Prefix, RightAssoc, Suffix }
 
 impl FactorType {
     fn from(nt: &Symbol, factor: &ProdFactor) -> Self {
@@ -949,8 +949,8 @@ impl FactorType {
 }
 
 struct FactorInfo {
-    pred_priority: Option<u32>,
-    nt_priority: u32,
+    pred_priority: Option<VarId>,
+    var: VarId,
     ty: FactorType
 }
 
@@ -1594,10 +1594,10 @@ impl<T> ProdRuleSet<T> {
             let mut prod = prods.get_mut(var).unwrap();
             let var = var as VarId;
             let symbol = Symbol::NT(var);
+            let var_name = symbol.to_str(self.get_symbol_table());
             if prod.iter().any(|p| !p.is_empty() && (p.first().unwrap() == &symbol || p.last().unwrap() == &symbol)) {
                 if VERBOSE {
-                    println!("processing: {}", format!("{} -> {}",
-                        Symbol::NT(var).to_str(self.get_symbol_table()),
+                    println!("processing: {}", format!("{var_name} -> {}",
                         prod_to_string(prod, self.get_symbol_table())));
                 }
 
@@ -1611,86 +1611,46 @@ impl<T> ProdRuleSet<T> {
                     prod.extend(indep);
                     continue;
                 }
-                let mut finfo = factors.iter().index_start(1).map(|(i, f)| {
+                // below, the variable indices are mostly related to the variables that will be created to transform
+                // the current rule. E[0] is the current `var`, E[1], ..., E[n-1] the children.
+
+                let mut last_var = 0;        // last index of E[i] variable used in a rule (... | α[i] E[i] | ...)
+                let mut last_rule_var = 0;   // last index of E[i] variable defined as a rule (E[i] -> ...)
+                let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]]; // pr_rule[i] = factors present in E[i]
+                let mut indep_factors: Vec<FactorId> = vec![];
+                let mut pr_info: Vec<FactorInfo> = vec![];  // information on each factor: type, priority, ...
+
+                for (i, f) in factors.iter().index::<FactorId>() {
                     let ty = FactorType::from(&symbol, f);
-                    match ty {
+                    last_var = match ty {
+                            FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
+                            FactorType::LeftAssoc => last_var + 1,
+                            FactorType::Prefix
+                            | FactorType::RightAssoc => if last_var > last_rule_var { last_var } else { last_var + 1 },
+                            FactorType::Suffix => last_var,
+                    };
+                    let fact = FactorInfo {
+                        pred_priority: if ty == FactorType::Prefix { None } else { Some(i) },
+                        var: last_var,
+                        ty
+                    };
+                    pr_info.push(fact);
+                    let top_maybe = match ty {
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
-                        FactorType::LeftAssoc => FactorInfo { pred_priority: Some(i), nt_priority: i + 1, ty },
-                        FactorType::RightAssoc => FactorInfo { pred_priority: Some(i), nt_priority: i, ty },
-                        FactorType::Prefix => FactorInfo { pred_priority: None, nt_priority: i, ty },
-                        FactorType::Suffix => FactorInfo { pred_priority: Some(i), nt_priority: i, ty },
-                    }
-                }).to_vec();
-                // all the used pr_vars:
-                let mut all_used_pr_vars = finfo.iter()
-                    .filter_map(|fi| if fi.pred_priority.is_some() { Some(fi.nt_priority) } else { None })
-                    .collect::<HashSet<_>>();
-
-                // calculate the pr_vars found in the factors once they're in canonical form: Vi -> Vindep(op0 V0 | op1 V1 | ...)*
-                // and remove duplicate factors
-                let mut used_pr_in_f = Vec::<BTreeSet<u32>>::new();
-                let mut last_used_pr_vars = btreeset![];
-                let mut last_pr = None;
-                let mut pr_replace = Vec::<(u32, u32)>::new();
-                for (pr, f) in finfo.iter().index::<u32>() {
-                    if all_used_pr_vars.contains(&pr) {
-                        let used_pr_vars = finfo.iter().filter_map(|fi|
-                            if fi.pred_priority.map(|p| pr <= p).unwrap_or(false) { Some(fi.nt_priority) } else { None }
-                        ).collect::<BTreeSet<_>>();
-                        // check if the previous factors were identical
-                        if last_pr.is_some() && used_pr_vars == last_used_pr_vars {
-                            // we keep the last factor as is, and we'll replace pr with last_pr later
-                            used_pr_in_f.push(btreeset![]);
-                            pr_replace.push((pr, last_pr.unwrap()));
-                        } else {
-                            used_pr_in_f.push(used_pr_vars.clone());
-                            last_used_pr_vars = used_pr_vars;
-                            last_pr = Some(pr);
-                        }
+                        FactorType::LeftAssoc => Some(last_var - 1),    // uses factor in rules of < priority
+                        FactorType::Prefix => None,                     // uses factor in independent rule only
+                        FactorType::RightAssoc
+                        | FactorType::Suffix => Some(last_var),         // uses factor in rules of <= priority
+                    };
+                    if let Some(top) = top_maybe {
+                        var_factors.resize(1 + top as usize, vec![]);
+                        (0..=top).for_each(|v| var_factors[v as usize].push(i));
                     } else {
-                        used_pr_in_f.push(btreeset![]);
+                        indep_factors.push(i);
                     }
-                }
+                };
 
-                // replace variables that create duplicate factors:
-                for (old_pr, new_pr) in pr_replace {
-                    for fi in finfo.iter_mut() {
-                        if fi.nt_priority == old_pr {
-                            fi.nt_priority = new_pr;
-                        }
-                    }
-                    for used_pr in used_pr_in_f.iter_mut() {
-                        if used_pr.remove(&old_pr) {
-                            used_pr.insert(new_pr);
-                        }
-                    }
-                }
 
-                // translation pr var -> NT offset (we need two NT per factor)
-                let mut offset: usize = 0;
-                // TODO: offset(0) -> var; offset(i > 0) -> var_new + i - 1
-                let pr_to_nt = used_pr_in_f.iter().index::<u32>()
-                    .filter_map(|(i, used)| if used.is_empty() {
-                        None
-                    } else {
-                        let nt = Some((i, offset));
-                        offset += 2;
-                        nt
-                    }).collect::<HashMap::<_, _>>();
-                if var_new + offset - 1 > VarId::MAX as usize {
-                    self.log.add_error(format!("too many nonterminals added when removing recursion: {} > {}", var_new + offset - 1, VarId::MAX));
-                    continue;
-                }
-                for (i, used) in used_pr_in_f.into_iter().enumerate() {
-                    let fi = finfo.get(i).unwrap();
-                    let pr = fi.nt_priority;
-                    match fi.ty {
-                        FactorType::LeftAssoc => {},
-                        FactorType::RightAssoc => {},
-                        FactorType::Suffix => {},
-                        _ => {}
-                    }
-                }
             }
         }
         if VERBOSE {

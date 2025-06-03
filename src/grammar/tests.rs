@@ -1493,9 +1493,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         65 => {
             // E -> <R> E ^ E | <R> E * E | - E | E + E | ID;
             // expanded with Clarke's method (produces ambiguities in the table):
-            // E -> E5 (^ E4 | * E4 | + E3)*
-            // E3 -> E5 (^ E4 |* E4)*
-            // E4 -> E5 (^E4)*
+            // E  -> E5 (^ E4 | * E3 | + E3)*
+            // E3 -> E5 (^ E4 | * E3)*
+            // E4 -> E5 (^ E4)*
             // E5 -> - E3 | ID
             //
             // E   -> E5 Eb
