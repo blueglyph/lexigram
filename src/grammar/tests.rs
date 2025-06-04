@@ -1363,6 +1363,95 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 4; t 5),
             ]);
         }
+        53 => {
+            // E -> E ^ E <R> | E * E <R> | - E | E + E | F
+            // F ->  ID | NUM | ( E )
+            symbol_table.extend_terminals([
+                ("EXP".to_string(), Some("^".to_string())),     // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("NEG".to_string(), Some("-".to_string())),     // 2
+                ("ADD".to_string(), Some("+".to_string())),     // 3
+                ("ID".to_string(), None),                       // 4
+                ("NUM".to_string(), None),                      // 5
+                ("LPAREN".to_string(), Some("(".to_string())),  // 6
+                ("RPAREN".to_string(), Some(")".to_string())),  // 7
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+                "F".to_string(),        // 1
+            ]);
+            prods.extend([
+                prod!(#R, nt 0, t 0, nt 0; #R, nt 0, t 1, nt 0; t 2, nt 0; nt 0, t 3, nt 0; nt 1),
+                prod!(t 4; t 5; t 6, nt 0, t 7),
+            ]);
+        }
+        54 => {
+            // E -> E * E <R> | E ! | E -- | E + E <R> | ID | NUM
+            symbol_table.extend_terminals([
+                ("FACT".to_string(), Some("!".to_string())),    // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("DEC".to_string(), Some("--".to_string())),    // 2
+                ("ADD".to_string(), Some("+".to_string())),     // 3
+                ("ID".to_string(), None),                       // 4
+                ("NUM".to_string(), None),                      // 5
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+            ]);
+            prods.extend([
+                prod!(#R, nt 0, t 1, nt 0; nt 0, t 0; nt 0, t 2; #R, nt 0, t 3, nt 0; t 4; t 5)
+            ]);
+        }
+        55 => {
+            // E -> E * E | E -- | ! E | E + E | ID | NUM
+            symbol_table.extend_terminals([
+                ("FACT".to_string(), Some("!".to_string())),    // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("DEC".to_string(), Some("--".to_string())),    // 2
+                ("ADD".to_string(), Some("+".to_string())),     // 3
+                ("ID".to_string(), None),                       // 4
+                ("NUM".to_string(), None),                      // 5
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+            ]);
+            prods.extend([
+                prod!(nt 0, t 1, nt 0; nt 0, t 2; t 0, nt 0; nt 0, t 3, nt 0; t 5; t 5)
+            ]);
+        }
+        56 => {
+            // E -> E * E | ! E | E -- | E + E | ID | NUM
+            symbol_table.extend_terminals([
+                ("FACT".to_string(), Some("!".to_string())),    // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("DEC".to_string(), Some("--".to_string())),    // 2
+                ("ADD".to_string(), Some("+".to_string())),     // 3
+                ("ID".to_string(), None),                       // 4
+                ("NUM".to_string(), None),                      // 5
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+            ]);
+            prods.extend([
+                prod!(nt 0, t 1, nt 0; t 0, nt 0; nt 0, t 2; nt 0, t 3, nt 0; t 5; t 5)
+            ]);
+        }
+        57 => {
+            // E -> E ^ E | E * E | E + E | ID | NUM
+            symbol_table.extend_terminals([
+                ("EXP".to_string(), Some("^".to_string())),     // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("ADD".to_string(), Some("+".to_string())),     // 2
+                ("ID".to_string(), None),                       // 3
+                ("NUM".to_string(), None),                      // 4
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+            ]);
+            prods.extend([
+                prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 0, t 2, nt 0; t 3; t 4)
+            ]);
+        }
         60 => {
             // E -> E % E | E + E | ID;
             symbol_table.extend_terminals([
@@ -2688,6 +2777,11 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'E2', T '+': <+ E1 E2> or <ε> => <+ E1 E2> has been chosen
             // calc_table: ambiguity for NT 'E2', T ''': <' E2>    or <ε> => <' E2> has been chosen
         ]),
+        (53, 0, 0, vec![], vec![]),
+        (54, 0, 0, vec![], vec![]),
+        (55, 0, 0, vec![], vec![]),
+        (56, 0, 0, vec![], vec![]),
+        (57, 0, 0, vec![], vec![]),
 #[cfg(any())]
         (60, 0, 0, vec![
             // - 0: E -> E_2 E_1
@@ -2953,9 +3047,10 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
     ];
-    const VERBOSE: bool = false;
-println!("prs_calc_table: WARNING! tests disabled: 51, ...");
+    const VERBOSE: bool = true;
+// println!("prs_calc_table: WARNING! tests disabled: 51, ...");
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
+if !(53..=57).contains(&ll_id) { continue }
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");
