@@ -1633,6 +1633,25 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             parents.extend(hashmap![1 => 0, 3 => 2, 5 => 4]);
         }
 
+        // test of mixed recursions --------------------------------------------
+        70 => {
+            // E -> - E | E ! | F
+            // F ->  ID | NUM
+            symbol_table.extend_terminals([
+                ("NEG".to_string(), Some("-".to_string())),     // 0
+                ("FACT".to_string(), Some("!".to_string())),    // 1
+                ("ID".to_string(), None),                       // 2
+                ("NUM".to_string(), None),                      // 3
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+                "F".to_string(),        // 1
+            ]);
+            prods.extend([
+                prod!(t 0, nt 0; nt 0, t 1; nt 1),
+                prod!(t 2; t 3),
+            ]);
+        }
 
 
         // ambiguity? ----------------------------------------------------------
@@ -2777,6 +2796,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'E2', T '+': <+ E1 E2> or <ε> => <+ E1 E2> has been chosen
             // calc_table: ambiguity for NT 'E2', T ''': <' E2>    or <ε> => <' E2> has been chosen
         ]),
+        // (70, 0, 0, vec![], vec![]),
         (53, 0, 0, vec![], vec![]),
         (54, 0, 0, vec![], vec![]),
         (55, 0, 0, vec![], vec![]),
@@ -3050,7 +3070,7 @@ fn prs_calc_table() {
     const VERBOSE: bool = true;
 // println!("prs_calc_table: WARNING! tests disabled: 51, ...");
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
-if !(53..=57).contains(&ll_id) { continue }
+if !(53..=57).contains(&ll_id) && ll_id != 70 { continue }
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");

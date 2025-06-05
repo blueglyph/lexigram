@@ -1676,7 +1676,8 @@ impl<T> ProdRuleSet<T> {
                 let mut var_i_nt = Vec::<(VarId, VarId)>::with_capacity(last_var_i + 1);
                 var_i_nt.push((var, var_new as VarId));
                 var_i_nt.extend((0..last_var_i).map(|i| ((var_new + i*2 + 1) as VarId, (var_new + i*2 + 2) as VarId)));
-                var_new += last_var_i * 2 + 2;
+                var_new += last_rule_var_i * 2 + 2;
+                if VERBOSE { println!("adding {} variables", last_var_i * 2 + 2); }
                 let nt_indep = (var_new - 1) as VarId;
                 if var_new > VarId::MAX as usize {
                     self.log.add_error(format!("too many nonterminals when expanding {var_name}: {var_new} > {}", VarId::MAX));
