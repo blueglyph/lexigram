@@ -861,9 +861,9 @@ impl ProdFactor {
 
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
         let mut s = if self.flags & ruleflag::R_ASSOC != 0 { "<R> ".to_string() } else { String::new() };
-        s.extend(self.v.iter().map(|symbol|
+        s.push_str(&self.v.iter().map(|symbol|
             symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
-        ));
+        ).join(" "));
         s
     }
 
@@ -946,6 +946,15 @@ impl FactorType {
             (false, true)  => FactorType::Prefix,
             (true, false)  => FactorType::Suffix,
             (true, true)   => if factor.flags & ruleflag::R_ASSOC != 0 { FactorType::RightAssoc } else { FactorType::LeftAssoc },
+        }
+    }
+
+    fn get_parent_flag(&self) -> u32 {
+        match self {
+            FactorType::Independant => 0,
+            FactorType::LeftAssoc | FactorType::RightAssoc => ruleflag::PARENT_AMBIGUITY,
+            FactorType::Prefix => ruleflag::R_RECURSION,
+            FactorType::Suffix => ruleflag::PARENT_L_RECURSION,
         }
     }
 }
@@ -1606,6 +1615,7 @@ impl<T> ProdRuleSet<T> {
 
                 let (mut indep, mut factors) : (Vec<_>, Vec<_>) = take(prod).into_iter()
                     .partition(|factor| factor.first().unwrap() != &symbol && factor.last().unwrap() != &symbol);
+                factors.reverse();
                 if !factors.is_empty() && indep.is_empty() {
                     self.log.add_error(format!("recursive forms must have at least one independent factor: {} -> {}",
                                        Symbol::NT(var).to_str(self.get_symbol_table()),
@@ -1614,6 +1624,7 @@ impl<T> ProdRuleSet<T> {
                     prod.extend(indep);
                     continue;
                 }
+
                 // below, the variable indices are mostly related to the variables that will be created to transform
                 // the current rule. E[0] is the current `var`, E[1], ..., E[n-1] the children.
 
@@ -1646,10 +1657,17 @@ impl<T> ProdRuleSet<T> {
                         | FactorType::Suffix => Some(last_var_i),         // uses factor in rules of <= priority
                     };
                     if let Some(top) = top_maybe {
+                        last_rule_var_i = top;
                         var_factors.resize(1 + top, vec![]);
                         (0..=top).for_each(|v| var_factors[v].push(i));
                     } else {
                         indep_factors.push(i);
+                    }
+                    if VERBOSE {
+                        println!("- [{i:2}] {:10}: {:10} => last_var_i = {last_var_i:2}, last_rule_var_i = {last_rule_var_i:2}, {{{}}}",
+                                 f.to_str(self.get_symbol_table()),
+                                 format!("{ty:?}"), // "debug ignores width" bug https://github.com/rust-lang/rust/issues/55584
+                                 var_factors.iter().enumerate().map(|(i, vf)| format!("{i}: {}", vf.iter().join(","))).join("  "));
                     }
                 };
                 assert!(last_var_i <= last_rule_var_i + 1, "last_var_i = {last_var_i}, last_rule_var_i = {last_rule_var_i}");
@@ -1682,13 +1700,16 @@ impl<T> ProdRuleSet<T> {
                             }
                         }
                         FactorType::Suffix => {
-                            new_f = ProdFactor::new(f[1..f.len()].to_owned());
+                            new_f = ProdFactor::new(f.v[1..f.len()].to_owned());
                         }
-                        FactorType::Independant | FactorType::Prefix => panic!("{ty:?} shouldn't be in `pr_info`")
+                        FactorType::Prefix => {
+                            new_f = ProdFactor::new(f.v[..f.len() - 1].to_owned());
+                            new_f.v.push(Symbol::NT(nt_indep));
+                        }
+                        FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
                     }
                     new_f
                 }).to_vec();
-
                 for (i, fs) in var_factors.into_iter().enumerate() {
                     let (nt, nt_loop) = var_i_nt[i];
                     let mut prod_nt = prod!(nt nt_indep, nt nt_loop);
@@ -1707,11 +1728,31 @@ impl<T> ProdRuleSet<T> {
                     } else {
                         extra_prods.extend([prod_nt, prod_nt_loop]);
                         self.symbol_table.as_mut().map(|t| {
-                            t.add_non_terminal(format!("{var_name}_{i}b"));
+                            t.add_non_terminal(format!("{var_name}_{i}"));
                             t.add_non_terminal(format!("{var_name}_{i}b"));
                         });
                     }
                 }
+                self.symbol_table.as_mut().map(|t| t.add_non_terminal(format!("{var_name}_{}", last_rule_var_i + 1)));
+                if VERBOSE { println!("new factors: {}", new_factors.iter().enumerate()
+                    .filter_map(|(i, nf)| if nf.is_empty() { None } else { Some(format!("[{i}] {}", nf.to_str(self.get_symbol_table()))) }).join(", ")); }
+                self.set_flags(var, pr_info.iter().fold(0, |flag, f| flag | f.ty.get_parent_flag())); // TODO!
+                let mut prod_indep = new_factors.into_iter()
+                    .zip(pr_info)
+                    .filter_map(|(nf, FactorInfo { ty, .. })| if ty == FactorType::Prefix { Some(nf) } else { None })
+                    .to_vec();
+                for (nt, nt_prime) in var_i_nt {
+                    if nt != var {
+                        self.set_parent(nt, var);
+                        self.set_flags(nt, 0); // TODO!
+                    }
+                    self.set_parent(nt_prime, nt);
+                    self.set_flags(nt_prime, 0); // TODO!
+                }
+                prod_indep.extend(indep);
+                self.set_parent(nt_indep, var);
+                self.set_flags(nt_indep, 0); // TODO!
+                extra_prods.push(prod_indep);
             }
             prods.extend(extra_prods);
         }
@@ -1728,6 +1769,11 @@ impl<T> ProdRuleSet<T> {
             print_production_rules(&self, false);
             println!("FLAGS:\n{}", self.flags.iter().index::<VarId>()
                 .map(|(v, f)| format!("- ({v:2}) {}: {}", Symbol::NT(v).to_str(self.get_symbol_table()), ruleflag::to_string(*f).join(", "))).join("\n"));
+            if let Some(table) = &self.symbol_table {
+                println!("Symbol table:\n-NT: {}\n-T: {}",
+                         table.get_non_terminals().iter().enumerate().map(|(i, nt)| format!("{i}:{nt}")).join(", "),
+                         table.get_terminals().iter().enumerate().map(|(i, (t, txt))| format!("{i}:{t}{}", if let Some(st) = txt { format!(" ({st})") } else { String::new() })).join(", "))
+            }
         }
     }
 
@@ -2263,7 +2309,7 @@ pub mod macros {
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! prodf {
-        () => { std::vec![] };
+        () => { $crate::grammar::ProdFactor::new(std::vec![]) };
         ($($a:ident $($b:expr)?,)+) => { prodf!($($a $($b)?),+) };
         ($($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$(sym!($a $($b)?)),*]) };
         (#$f:literal, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
