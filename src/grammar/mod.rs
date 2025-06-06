@@ -1672,12 +1672,12 @@ impl<T> ProdRuleSet<T> {
                 };
                 assert!(last_var_i <= last_rule_var_i + 1, "last_var_i = {last_var_i}, last_rule_var_i = {last_rule_var_i}");
 
-                // (var, prime) for each rule except independent factors
+                // (var, prime) for each rule except independent factors. CAUTION! May include the independent NT
                 let mut var_i_nt = Vec::<(VarId, VarId)>::with_capacity(last_var_i + 1);
                 var_i_nt.push((var, var_new as VarId));
                 var_i_nt.extend((0..last_var_i).map(|i| ((var_new + i*2 + 1) as VarId, (var_new + i*2 + 2) as VarId)));
                 var_new += last_rule_var_i * 2 + 2;
-                if VERBOSE { println!("adding {} variables", last_var_i * 2 + 2); }
+                if VERBOSE { println!("adding {} variables (w/o independent factors)", last_rule_var_i * 2 + 2); }
                 let nt_indep = (var_new - 1) as VarId;
                 if var_new > VarId::MAX as usize {
                     self.log.add_error(format!("too many nonterminals when expanding {var_name}: {var_new} > {}", VarId::MAX));
@@ -1742,7 +1742,7 @@ impl<T> ProdRuleSet<T> {
                     .zip(pr_info)
                     .filter_map(|(nf, FactorInfo { ty, .. })| if ty == FactorType::Prefix { Some(nf) } else { None })
                     .to_vec();
-                for (nt, nt_prime) in var_i_nt {
+                for (nt, nt_prime) in var_i_nt.into_iter().take(last_rule_var_i + 1) {
                     if nt != var {
                         self.set_parent(nt, var);
                         self.set_flags(nt, 0); // TODO!
