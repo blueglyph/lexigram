@@ -1452,6 +1452,24 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 0, t 2, nt 0; t 3; t 4)
             ]);
         }
+        58 => {
+            // 57 with left factorization issues:
+            // E -> E @ ^ E | E @ * E | E @ + E | ID | NUM
+            symbol_table.extend_terminals([
+                ("EXP".to_string(), Some("^".to_string())),     // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("ADD".to_string(), Some("+".to_string())),     // 2
+                ("ID".to_string(), None),                       // 3
+                ("NUM".to_string(), None),                      // 4
+                ("AT".to_string(), Some("@".to_string())),      // 5
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+            ]);
+            prods.extend([
+                prod!(nt 0, t 5, t 0, nt 0; nt 0, t 5, t 1, nt 0; nt 0, t 5, t 2, nt 0; t 3; t 4)
+            ]);
+        }
         60 => {
             // E -> E % E | E + E | ID;
             symbol_table.extend_terminals([
@@ -2797,6 +2815,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'E2', T ''': <' E2>    or <ε> => <' E2> has been chosen
         ]),
         // (70, 0, 0, vec![], vec![]),
+        (57, 0, 0, vec![], vec![]),
         (53, 0, 0, vec![], vec![]),
         (54, 0, 0, vec![], vec![]),
         (55, 0, 0, vec![], vec![]),
@@ -3070,7 +3089,7 @@ fn prs_calc_table() {
     const VERBOSE: bool = true;
 // println!("prs_calc_table: WARNING! tests disabled: 51, ...");
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
-if !(53..=57).contains(&ll_id) && ll_id != 70 { continue }
+if !(53..=59).contains(&ll_id) && ll_id != 70 { continue }
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("test {test_id} with {ll_id}/{start}:");

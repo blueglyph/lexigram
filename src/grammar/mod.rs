@@ -318,10 +318,13 @@ pub mod ruleflag {
     pub const PARENT_REPEAT: u32 = 2048;
     /// CHILD_REPEAT and PARENT_REPEAT is +, not * (used with both flags)
     pub const REPEAT_PLUS: u32 = 4096;
+    /// GREEDY factor: is expected to generate an ambiguity in the parsing table
+    pub const GREEDY: u32 = 8192;
 
     pub const TRANSF_PARENT: u32 = R_RECURSION | PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
     pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACTOR;
     pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
+    pub const FACTOR_INFO: u32 = R_ASSOC | GREEDY;
 
     pub fn to_string(flags: u32) -> Vec<String> {
         static NAMES: [(u32, &str); 14] = [
@@ -341,6 +344,11 @@ pub mod ruleflag {
             (GREEDY                     , "greedy"),
         ];
         NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None } ).collect()
+    }
+
+    pub fn factor_info_to_string(flags: u32) -> Vec<String> {
+        static NAMES: [(u32, &str); 2] = [(R_ASSOC, "R"), (GREEDY, "G")];
+        NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None }).collect()
     }
 }
 
@@ -861,7 +869,11 @@ impl ProdFactor {
     }
 
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
-        let mut s = if self.flags & ruleflag::R_ASSOC != 0 { "<R> ".to_string() } else { String::new() };
+        let mut s = if self.flags & ruleflag::FACTOR_INFO != 0 {
+            format!("<{}>", ruleflag::factor_info_to_string(self.flags).join(","))
+        } else {
+            String::new()
+        };
         s.push_str(&self.v.iter().map(|symbol|
             symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
         ).join(" "));
@@ -918,6 +930,10 @@ impl ProdFactor {
         // }
         // new_f.extend(take(&mut tmp));
         new_f
+    }
+
+    fn is_greedy(&self) -> bool {
+        self.flags & ruleflag::GREEDY != 0
     }
 }
 
@@ -1712,14 +1728,23 @@ impl<T> ProdRuleSet<T> {
                     }
                     new_f
                 }).to_vec();
+                let mut used_sym = HashSet::<Symbol>::new();
                 for (i, fs) in var_factors.into_iter().enumerate() {
                     let (nt, nt_loop) = var_i_nt[i];
                     let mut prod_nt = prod!(nt nt_indep, nt nt_loop);
+                    let mut new_used_sym = Vec::<Symbol>::new();
                     let mut prod_nt_loop = fs.into_iter().map(|f_id| {
                         let mut f = new_factors[f_id as usize].clone();
                         f.v.push(Symbol::NT(nt_loop));
+                        let sym = f.first().unwrap();
+                        if used_sym.contains(sym) {
+                            f.flags |= ruleflag::GREEDY;
+                        } else {
+                            new_used_sym.push(*sym);
+                        }
                         f
                     }).to_vec();
+                    used_sym.extend(new_used_sym);
                     prod_nt_loop.push(prodf!(e));
                     if i == 0 {
                         *prod = prod_nt;
@@ -1830,6 +1855,9 @@ impl<T> ProdRuleSet<T> {
                 let stop = start + simi.len();
                 let mut factorized = ProdFactor::new(factors[start].v.iter().take(min).cloned().to_vec());
                 let mut child = factors.drain(start..=stop).to_vec();
+                if child.iter().all(|f| f.is_greedy()) {
+                    factorized.flags |= ruleflag::GREEDY;
+                }
                 for f in &mut child {
                     f.v.drain(0..min);
                 }
@@ -1977,18 +2005,33 @@ impl ProdRuleSet<LL1> {
                     1 => *table[pos].first().unwrap(),
                     _ => {
                         // we take the first item which isn't already in another position on the same NT row
-                        let row = (0..num_t).filter(|j| *j != t_id).flat_map(|j| &table[nt_id*num_t + j]).collect::<HashSet<_>>();
-                        let chosen = *table[pos].iter().find(|f| !row.contains(f)).unwrap_or(&table[pos][0]);
-                        self.log.add_warning(
-                            format!("calc_table: ambiguity for NT '{}', T '{}': {} => <{}> has been chosen",
-                                    Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
-                                    if t_id < self.num_t { Symbol::T(t_id as VarId).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() },
-                                    table[pos].iter().map(|f_id|
-                                        format!("<{}>", factors[*f_id as usize].1.to_str(self.get_symbol_table()))).join(" or "),
-                                    factors[chosen as usize].1.to_str(self.get_symbol_table())
-                            ));
-                        table[pos] = vec![chosen];
-                        chosen
+                        let greedies = table[pos].iter().filter(|&f_id| factors[*f_id as usize].1.is_greedy()).cloned().to_vec();
+                        if greedies.len() == 1 {
+                            let chosen = greedies[0];
+                            self.log.add_note(
+                                format!("calc_table: expected ambiguity for NT '{}', T '{}': {} => <{}> is specified as greedy and has been chosen",
+                                        Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
+                                        if t_id < self.num_t { Symbol::T(t_id as VarId).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() },
+                                        table[pos].iter().map(|f_id|
+                                            format!("<{}>", factors[*f_id as usize].1.to_str(self.get_symbol_table()))).join(" or "),
+                                        factors[chosen as usize].1.to_str(self.get_symbol_table())
+                                ));
+                            table[pos] = greedies;
+                            chosen
+                        } else {
+                            let row = (0..num_t).filter(|j| *j != t_id).flat_map(|j| &table[nt_id * num_t + j]).collect::<HashSet<_>>();
+                            let chosen = *table[pos].iter().find(|f| !row.contains(f)).unwrap_or(&table[pos][0]);
+                            self.log.add_warning(
+                                format!("calc_table: ambiguity for NT '{}', T '{}': {} => <{}> has been chosen",
+                                        Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
+                                        if t_id < self.num_t { Symbol::T(t_id as VarId).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() },
+                                        table[pos].iter().map(|f_id|
+                                            format!("<{}>", factors[*f_id as usize].1.to_str(self.get_symbol_table()))).join(" or "),
+                                        factors[chosen as usize].1.to_str(self.get_symbol_table())
+                                ));
+                            table[pos] = vec![chosen];
+                            chosen
+                        }
                     }
                 });
             }
