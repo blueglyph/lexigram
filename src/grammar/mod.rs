@@ -324,22 +324,23 @@ pub mod ruleflag {
     pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
 
     pub fn to_string(flags: u32) -> Vec<String> {
-        let names = btreemap![
-            CHILD_REPEAT                => "child_+_or_*".to_string(),
-            R_RECURSION                 => "right_rec".to_string(),
-            CHILD_L_RECURSION           => "child_left_rec".to_string(),
-            CHILD_AMBIGUITY             => "child_amb".to_string(),
-            CHILD_INDEPENDENT_AMBIGUITY => "child_ind_amb".to_string(),
-            PARENT_L_FACTOR             => "parent_left_fact".to_string(),
-            CHILD_L_FACTOR              => "child_left_fact".to_string(),
-            L_FORM                      => "L-form".to_string(),
-            R_ASSOC                     => "R-assoc".to_string(),
-            PARENT_L_RECURSION          => "parent_left_rec".to_string(),
-            PARENT_AMBIGUITY            => "parent_amb".to_string(),
-            PARENT_REPEAT               => "parent_+_or_*".to_string(),
-            REPEAT_PLUS                 => "plus".to_string(),
+        static NAMES: [(u32, &str); 14] = [
+            (CHILD_REPEAT               , "child_+_or_*"),
+            (R_RECURSION                , "right_rec"),
+            (CHILD_L_RECURSION          , "child_left_rec"),
+            (CHILD_AMBIGUITY            , "child_amb"),
+            (CHILD_INDEPENDENT_AMBIGUITY, "child_ind_amb"),
+            (PARENT_L_FACTOR            , "parent_left_fact"),
+            (CHILD_L_FACTOR             , "child_left_fact"),
+            (L_FORM                     , "L-form"),
+            (R_ASSOC                    , "R-assoc"),
+            (PARENT_L_RECURSION         , "parent_left_rec"),
+            (PARENT_AMBIGUITY           , "parent_amb"),
+            (PARENT_REPEAT              , "parent_+_or_*"),
+            (REPEAT_PLUS                , "plus"),
+            (GREEDY                     , "greedy"),
         ];
-        names.into_iter().filter_map(|(f, t)| if flags & f != 0 { Some(t) } else { None } ).collect::<_>()
+        NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None } ).collect()
     }
 }
 
