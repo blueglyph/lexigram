@@ -324,7 +324,7 @@ pub mod ruleflag {
     pub const TRANSF_PARENT: u32 = R_RECURSION | PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
     pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACTOR;
     pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
-    pub const FACTOR_INFO: u32 = R_ASSOC | GREEDY;
+    pub const FACTOR_INFO: u32 = L_FORM | R_ASSOC | GREEDY;
 
     pub fn to_string(flags: u32) -> Vec<String> {
         static NAMES: [(u32, &str); 14] = [
@@ -346,9 +346,19 @@ pub mod ruleflag {
         NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None } ).collect()
     }
 
-    pub fn factor_info_to_string(flags: u32) -> Vec<String> {
-        static NAMES: [(u32, &str); 2] = [(R_ASSOC, "R"), (GREEDY, "G")];
-        NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None }).collect()
+    pub fn factor_info_to_string(mut flags: u32) -> Vec<String> {
+        static NAMES: [(u32, &str); 3] = [(L_FORM, "L"), (R_ASSOC, "R"), (GREEDY, "G")];
+        let mut v: Vec<String> = NAMES.iter().filter_map(|(f, t)|
+            if flags & f != 0 {
+                flags &= !f;
+                Some(t.to_string())
+            } else {
+                None
+            }).collect();
+        if flags != 0 {
+            v.push(flags.to_string())
+        }
+        v
     }
 }
 
@@ -978,7 +988,7 @@ impl FactorType {
 
 struct FactorInfo {
     pred_priority: Option<FactorId>,
-    var: usize,
+    ivar: usize,
     ty: FactorType
 }
 
@@ -1633,7 +1643,7 @@ impl<T> ProdRuleSet<T> {
                 let (mut indep, mut factors) : (Vec<_>, Vec<_>) = take(prod).into_iter()
                     .partition(|factor| factor.first().unwrap() != &symbol && factor.last().unwrap() != &symbol);
                 factors.reverse();
-                if !factors.is_empty() && indep.is_empty() {
+                if indep.is_empty() {
                     self.log.add_error(format!("recursive forms must have at least one independent factor: {} -> {}",
                                        Symbol::NT(var).to_str(self.get_symbol_table()),
                                        prod_to_string(prod, self.get_symbol_table())));
@@ -1650,6 +1660,7 @@ impl<T> ProdRuleSet<T> {
                 let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]]; // pr_rule[i] = factors present in E[i]
                 let mut indep_factors = Vec::<FactorId>::new();
                 let mut pr_info = Vec::<FactorInfo>::new();  // information on each factor: type, priority, ...
+                let mut has_right_assoc_as_lowest = false;
 
                 for (i, f) in factors.iter().index::<FactorId>() {
                     let ty = FactorType::from(&symbol, f);
@@ -1657,14 +1668,15 @@ impl<T> ProdRuleSet<T> {
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
                         FactorType::LeftAssoc => last_var_i + 1,
                         FactorType::Prefix
-                        | FactorType::RightAssoc => if last_var_i > last_rule_var_i { last_var_i } else { last_var_i + 1 },
+                        | FactorType::RightAssoc => if last_var_i > last_rule_var_i || var_factors[last_var_i].is_empty() { last_var_i } else { last_var_i + 1 },
                         FactorType::Suffix => last_var_i,
                     };
                     let fact = FactorInfo {
                         pred_priority: if ty == FactorType::Prefix { None } else { Some(i) },
-                        var: last_var_i,
+                        ivar: last_var_i,
                         ty
                     };
+                    has_right_assoc_as_lowest |= last_var_i == 0 && ty == FactorType::RightAssoc;
                     pr_info.push(fact);
                     let top_maybe = match ty {
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
@@ -1689,12 +1701,14 @@ impl<T> ProdRuleSet<T> {
                 };
                 assert!(last_var_i <= last_rule_var_i + 1, "last_var_i = {last_var_i}, last_rule_var_i = {last_rule_var_i}");
 
-                // (var, prime) for each rule except independent factors. CAUTION! May include the independent NT
+                // (var, prime) for each rule except independent factors. CAUTION! Includes the independent NT if last op is left-assoc
+                let need_indep = indep.len() + indep_factors.len() > 1;
+                let num_indep = if need_indep { 1 } else { 0 };
                 let mut var_i_nt = Vec::<(VarId, VarId)>::with_capacity(last_var_i + 1);
                 var_i_nt.push((var, var_new as VarId));
                 var_i_nt.extend((0..last_var_i).map(|i| ((var_new + i*2 + 1) as VarId, (var_new + i*2 + 2) as VarId)));
-                var_new += last_rule_var_i * 2 + 2;
-                if VERBOSE { println!("adding {} variables (w/o independent factors)", last_rule_var_i * 2 + 2); }
+                var_new += last_rule_var_i * 2 + 1 + num_indep;
+                if VERBOSE { println!("adding {} variables (w/o independent factors)", last_rule_var_i * 2 + 1 + num_indep); }
                 let nt_indep = (var_new - 1) as VarId;
                 if var_new > VarId::MAX as usize {
                     self.log.add_error(format!("too many nonterminals when expanding {var_name}: {var_new} > {}", VarId::MAX));
@@ -1707,12 +1721,16 @@ impl<T> ProdRuleSet<T> {
 
                 // prepares the operation factor parts, which will be assembled in each rule according to their priority
                 // (the Ab[p] loop nonterminals will be added later since they're specific to each rule)
-                let new_factors = factors.iter().zip(&pr_info).map(|(f, FactorInfo { var, ty, .. })| {
+                let new_factors = factors.iter().zip(&pr_info).map(|(f, FactorInfo { ivar, ty, .. })| {
                     let mut new_f: ProdFactor;
                     match ty {
                         FactorType::LeftAssoc | FactorType::RightAssoc => {
                             new_f = ProdFactor::new(f.v[1..f.len() - 1].to_owned());
-                            new_f.v.push(Symbol::NT(var_i_nt[*var].0));
+                            if need_indep || *ivar <= last_rule_var_i {
+                                new_f.v.push(Symbol::NT(var_i_nt[*ivar].0));
+                            } else {
+                                new_f.v.extend(&indep[0].v);
+                            }
                             if ty == &FactorType::RightAssoc {
                                 new_f.flags = ruleflag::R_ASSOC;
                             }
@@ -1722,7 +1740,11 @@ impl<T> ProdRuleSet<T> {
                         }
                         FactorType::Prefix => {
                             new_f = ProdFactor::new(f.v[..f.len() - 1].to_owned());
-                            new_f.v.push(Symbol::NT(nt_indep));
+                            if need_indep || *ivar <= last_rule_var_i {
+                                new_f.v.push(Symbol::NT(var_i_nt[*ivar].0));
+                            } else {
+                                new_f.v.extend(&indep[0].v);
+                            }
                         }
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
                     }
@@ -1731,16 +1753,24 @@ impl<T> ProdRuleSet<T> {
                 let mut used_sym = HashSet::<Symbol>::new();
                 for (i, fs) in var_factors.into_iter().enumerate() {
                     let (nt, nt_loop) = var_i_nt[i];
-                    let mut prod_nt = prod!(nt nt_indep, nt nt_loop);
+                    let mut prod_nt = if need_indep {
+                        prod!(nt nt_indep, nt nt_loop)
+                    } else {
+                        let mut p = indep.clone();
+                        p[0].push(sym!(nt nt_loop));
+                        p
+                    };
                     let mut new_used_sym = Vec::<Symbol>::new();
                     let mut prod_nt_loop = fs.into_iter().map(|f_id| {
                         let mut f = new_factors[f_id as usize].clone();
                         f.v.push(Symbol::NT(nt_loop));
                         let sym = f.first().unwrap();
-                        if used_sym.contains(sym) {
-                            f.flags |= ruleflag::GREEDY;
-                        } else {
+                        let is_used_sym = used_sym.contains(sym);
+                        if !is_used_sym {
                             new_used_sym.push(*sym);
+                        }
+                        if is_used_sym || (has_right_assoc_as_lowest && i == 0) {
+                            f.flags |= ruleflag::GREEDY;
                         }
                         f
                     }).to_vec();
@@ -1776,10 +1806,12 @@ impl<T> ProdRuleSet<T> {
                     self.set_parent(nt_prime, nt);
                     self.set_flags(nt_prime, 0); // TODO!
                 }
-                prod_indep.extend(indep);
-                self.set_parent(nt_indep, var);
-                self.set_flags(nt_indep, 0); // TODO!
-                extra_prods.push(prod_indep);
+                if need_indep {
+                    prod_indep.extend(indep);
+                    self.set_parent(nt_indep, var);
+                    self.set_flags(nt_indep, 0); // TODO!
+                    extra_prods.push(prod_indep);
+                }
             }
             prods.extend(extra_prods);
         }
@@ -2328,8 +2360,9 @@ pub mod macros {
 
     #[macro_export(local_inner_macros)]
     macro_rules! prodflag {
-        (L) => { 128 };
-        (R) => { 256 };
+        (L) => { $crate::grammar::ruleflag::L_FORM };
+        (R) => { $crate::grammar::ruleflag::R_ASSOC };
+        (G) => { $crate::grammar::ruleflag::GREEDY };
         ($f:expr) => { $f };
     }
 
