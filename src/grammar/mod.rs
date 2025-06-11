@@ -1662,9 +1662,11 @@ impl<T> ProdRuleSet<T> {
                 let mut indep_factors = Vec::<FactorId>::new();
                 let mut pr_info = Vec::<FactorInfo>::new();  // information on each factor: type, priority, ...
                 let mut has_right_assoc_as_lowest = false;
+                let mut has_binary = false;
 
                 for (i, f) in factors.iter().index::<FactorId>() {
                     let ty = FactorType::from(&symbol, f);
+                    has_binary |= ty == FactorType::LeftAssoc || ty == FactorType::RightAssoc;
                     last_var_i = match ty {
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
                         FactorType::LeftAssoc => last_var_i + 1,
@@ -1703,7 +1705,7 @@ impl<T> ProdRuleSet<T> {
                 assert!(last_var_i <= last_rule_var_i + 1, "last_var_i = {last_var_i}, last_rule_var_i = {last_rule_var_i}");
 
                 // (var, prime) for each rule except independent factors. CAUTION! Includes the independent NT if last op is left-assoc
-                let need_indep = indep.len() + indep_factors.len() > 1;
+                let need_indep = indep.len() + indep_factors.len() > 1 && (indep.len() + indep_factors.len() > 2 || has_binary);
                 let num_indep = if need_indep { 1 } else { 0 };
                 let mut var_i_nt = Vec::<(VarId, VarId)>::with_capacity(last_var_i + 1);
                 var_i_nt.push((var, var_new as VarId));
@@ -1753,14 +1755,21 @@ impl<T> ProdRuleSet<T> {
                     new_f
                 }).to_vec();
                 let mut used_sym = HashSet::<Symbol>::new();
+                let mut prod_indep = new_factors.iter()
+                    .zip(&pr_info)
+                    .filter_map(|(nf, FactorInfo { ty, .. })| if ty == &FactorType::Prefix { Some(nf.clone()) } else { None })
+                    .to_vec();
                 for (i, fs) in var_factors.into_iter().enumerate() {
                     let (nt, nt_loop) = var_i_nt[i];
                     let mut prod_nt = if let Some(nt_indep) = nt_indep_maybe {
                         prod!(nt nt_indep, nt nt_loop)
                     } else {
-                        let mut p = indep.clone();
-                        p[0].push(sym!(nt nt_loop));
-                        p
+                        // distributes the independent factors (only works if there are no L/R types in the original rule)
+                        prod_indep.iter().chain(&indep).map(|f| {
+                            let mut new_f = f.clone();
+                            new_f.push(sym!(nt nt_loop));
+                            new_f
+                        }).collect()
                     };
                     let mut new_used_sym = Vec::<Symbol>::new();
                     let mut prod_nt_loop = fs.into_iter().rev().map(|f_id| {
@@ -1782,7 +1791,7 @@ impl<T> ProdRuleSet<T> {
                         *prod = prod_nt;
                         extra_prods.push(prod_nt_loop);
                         self.symbol_table.as_mut().map(|t| {
-                            t.add_non_terminal(format!("{var_name}_b"));
+                            t.add_non_terminal(format!("{var_name}_{}", if last_rule_var_i + num_indep > 0 { "b" } else { "1" }));
                         });
                     } else {
                         extra_prods.extend([prod_nt, prod_nt_loop]);
@@ -1798,10 +1807,6 @@ impl<T> ProdRuleSet<T> {
                 if VERBOSE { println!("new factors: {}", new_factors.iter().enumerate()
                     .filter_map(|(i, nf)| if nf.is_empty() { None } else { Some(format!("[{i}] {}", nf.to_str(self.get_symbol_table()))) }).join(", ")); }
                 self.set_flags(var, pr_info.iter().fold(0, |flag, f| flag | f.ty.get_parent_flag())); // TODO!
-                let mut prod_indep = new_factors.into_iter()
-                    .zip(pr_info)
-                    .filter_map(|(nf, FactorInfo { ty, .. })| if ty == FactorType::Prefix { Some(nf) } else { None })
-                    .to_vec();
                 for (nt, nt_prime) in var_i_nt.into_iter().take(last_rule_var_i + 1) {
                     if nt != var {
                         self.set_parent(nt, var);

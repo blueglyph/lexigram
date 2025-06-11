@@ -1467,6 +1467,19 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ])
         }
         59 => {
+            // E -> E + E | - E | 0
+            symbol_table.extend_terminals([
+                ("ADD".to_string(), Some("+".to_string())),     // 0
+                ("SUB".to_string(), Some("-".to_string())),     // 1
+                ("ZERO".to_string(), Some("0".to_string())),    // 2
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+            ]);
+            prods.extend([
+                prod!(nt 0, t 0, nt 0; t 1, nt 0; t 2)
+            ])
+/*
             // 57 with left factorization issues:
             // E -> E @ ^ E | E @ * E | E @ + E | ID | NUM
             symbol_table.extend_terminals([
@@ -1483,6 +1496,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(nt 0, t 5, t 0, nt 0; nt 0, t 5, t 1, nt 0; nt 0, t 5, t 2, nt 0; t 3; t 4)
             ]);
+*/
         }
         60 => {
             // E -> E % E | E + E | ID;
@@ -2943,15 +2957,33 @@ fn prs_calc_table() {
              10,  11,  11,  14,  14,  11,
              15,  15,  15,  12,  13,  15,
         ]),
-        (58, 0, 0, vec![
+        (58, 0, 1, vec![
             // E -> E + | - E | 0
+            // - 0: E -> - E E_1
+            // - 1: E -> 0 E_1
+            // - 2: E_1 -> + E_1
+            // - 3: E_1 -> ε
+            (0, prodf!(t 1, nt 0, nt 1)),
+            (0, prodf!(t 2, nt 1)),
+            (1, prodf!(t 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //     |  +   -   0   $
+            // ----+-----------------
+            // E   |  p   0   1   p
+            // E_1 |  2   .   .   3
+              5,   0,   1,   5,
+              2,   4,   4,   3,
+        ]),
+        (59, 0, 1, vec![
+            // E -> E + E | - E | 0
             // - 0: E -> E_1 E_b
-            // - 1: E_b -> + E_b
+            // - 1: E_b -> + E_1 E_b
             // - 2: E_b -> ε
             // - 3: E_1 -> - E
             // - 4: E_1 -> 0
             (0, prodf!(nt 2, nt 1)),
-            (1, prodf!(t 0, nt 1)),
+            (1, prodf!(t 0, nt 2, nt 1)),
             (1, prodf!(e)),
             (2, prodf!(t 1, nt 0)),
             (2, prodf!(t 2)),
