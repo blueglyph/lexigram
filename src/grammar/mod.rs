@@ -986,6 +986,7 @@ impl FactorType {
     }
 }
 
+#[derive(Debug, Clone)]
 struct FactorInfo {
     pred_priority: Option<FactorId>,
     ivar: usize,
@@ -1762,7 +1763,7 @@ impl<T> ProdRuleSet<T> {
                         p
                     };
                     let mut new_used_sym = Vec::<Symbol>::new();
-                    let mut prod_nt_loop = fs.into_iter().map(|f_id| {
+                    let mut prod_nt_loop = fs.into_iter().rev().map(|f_id| {
                         let mut f = new_factors[f_id as usize].clone();
                         f.v.push(Symbol::NT(nt_loop));
                         let sym = f.first().unwrap();
