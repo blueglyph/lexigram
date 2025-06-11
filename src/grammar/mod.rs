@@ -1708,8 +1708,9 @@ impl<T> ProdRuleSet<T> {
                 var_i_nt.push((var, var_new as VarId));
                 var_i_nt.extend((0..last_var_i).map(|i| ((var_new + i*2 + 1) as VarId, (var_new + i*2 + 2) as VarId)));
                 var_new += last_rule_var_i * 2 + 1 + num_indep;
-                if VERBOSE { println!("adding {} variables (w/o independent factors)", last_rule_var_i * 2 + 1 + num_indep); }
-                let nt_indep = (var_new - 1) as VarId;
+                if VERBOSE { println!("adding {} variables (w/o independent factors), need_indep = {need_indep}, var_new: {} -> {var_new}",
+                                      last_rule_var_i * 2 + 1 + num_indep, var_new - (last_rule_var_i * 2 + 1 + num_indep)); }
+                let nt_indep_maybe = if need_indep { Some(var_new as VarId - 1) } else { None };
                 if var_new > VarId::MAX as usize {
                     self.log.add_error(format!("too many nonterminals when expanding {var_name}: {var_new} > {}", VarId::MAX));
                     return;
@@ -1753,7 +1754,7 @@ impl<T> ProdRuleSet<T> {
                 let mut used_sym = HashSet::<Symbol>::new();
                 for (i, fs) in var_factors.into_iter().enumerate() {
                     let (nt, nt_loop) = var_i_nt[i];
-                    let mut prod_nt = if need_indep {
+                    let mut prod_nt = if let Some(nt_indep) = nt_indep_maybe {
                         prod!(nt nt_indep, nt nt_loop)
                     } else {
                         let mut p = indep.clone();
@@ -1790,7 +1791,9 @@ impl<T> ProdRuleSet<T> {
                         });
                     }
                 }
-                self.symbol_table.as_mut().map(|t| t.add_non_terminal(format!("{var_name}_{}", last_rule_var_i + 1)));
+                if need_indep {
+                    self.symbol_table.as_mut().map(|t| t.add_non_terminal(format!("{var_name}_{}", last_rule_var_i + 1)));
+                }
                 if VERBOSE { println!("new factors: {}", new_factors.iter().enumerate()
                     .filter_map(|(i, nf)| if nf.is_empty() { None } else { Some(format!("[{i}] {}", nf.to_str(self.get_symbol_table()))) }).join(", ")); }
                 self.set_flags(var, pr_info.iter().fold(0, |flag, f| flag | f.ty.get_parent_flag())); // TODO!
@@ -1806,7 +1809,7 @@ impl<T> ProdRuleSet<T> {
                     self.set_parent(nt_prime, nt);
                     self.set_flags(nt_prime, 0); // TODO!
                 }
-                if need_indep {
+                if let Some(nt_indep) = nt_indep_maybe {
                     prod_indep.extend(indep);
                     self.set_parent(nt_indep, var);
                     self.set_flags(nt_indep, 0); // TODO!
