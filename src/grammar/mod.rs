@@ -1635,7 +1635,7 @@ impl<T> ProdRuleSet<T> {
             let symbol = Symbol::NT(var);
             let var_name = symbol.to_str(self.get_symbol_table());
             let mut extra_prods = Vec::<ProdRule>::new();
-            if prod.iter().any(|p| !p.is_empty() && (p.first().unwrap() == &symbol || p.last().unwrap() == &symbol)) {
+            if prod.iter().any(|p| !p.is_empty() && (p.first().unwrap() == &symbol)) {
                 if VERBOSE {
                     println!("processing: {}", format!("{var_name} -> {}",
                         prod_to_string(prod, self.get_symbol_table())));
@@ -1816,6 +1816,8 @@ impl<T> ProdRuleSet<T> {
                     self.set_flags(nt_indep, 0); // TODO!
                     extra_prods.push(prod_indep);
                 }
+            } else if prod.iter().any(|p| !p.is_empty() && p.last().unwrap() == &symbol) {
+                self.set_flags(var, ruleflag::R_RECURSION);
             }
             prods.extend(extra_prods);
         }
