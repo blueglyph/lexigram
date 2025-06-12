@@ -976,6 +976,10 @@ impl FactorType {
         }
     }
 
+    fn is_binary(&self) -> bool {
+        self == &FactorType::LeftAssoc || self == &FactorType::RightAssoc
+    }
+
     fn get_parent_flag(&self) -> u32 {
         match self {
             FactorType::Independant => 0,
@@ -1661,7 +1665,6 @@ impl<T> ProdRuleSet<T> {
                 let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]]; // pr_rule[i] = factors present in E[i]
                 let mut indep_factors = Vec::<FactorId>::new();
                 let mut pr_info = Vec::<FactorInfo>::new();  // information on each factor: type, priority, ...
-                let mut has_right_assoc_as_lowest = false;
                 let mut has_binary = false;
 
                 for (i, f) in factors.iter().index::<FactorId>() {
@@ -1679,7 +1682,6 @@ impl<T> ProdRuleSet<T> {
                         ivar: last_var_i,
                         ty
                     };
-                    has_right_assoc_as_lowest |= last_var_i == 0 && ty == FactorType::RightAssoc;
                     pr_info.push(fact);
                     let top_maybe = match ty {
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
@@ -1772,7 +1774,8 @@ impl<T> ProdRuleSet<T> {
                         }).collect()
                     };
                     let mut new_used_sym = Vec::<Symbol>::new();
-                    let mut prod_nt_loop = fs.into_iter().rev().map(|f_id| {
+                    let prefix_prologue = i == 0 && pr_info[0].ty == FactorType::Prefix;
+                    let mut prod_nt_loop = fs.iter().enumerate().rev().map(|(j, &f_id)| {
                         let mut f = new_factors[f_id as usize].clone();
                         f.v.push(Symbol::NT(nt_loop));
                         let sym = f.first().unwrap();
@@ -1780,7 +1783,10 @@ impl<T> ProdRuleSet<T> {
                         if !is_used_sym {
                             new_used_sym.push(*sym);
                         }
-                        if is_used_sym || (has_right_assoc_as_lowest && i == 0) {
+                        let force_greedy = prefix_prologue && (
+                            (0..=j).all(|k| pr_info[fs[k] as usize].ty == FactorType::Suffix) ||
+                            (0..=j).all(|k| pr_info[fs[k] as usize].ty.is_binary()));
+                        if is_used_sym || force_greedy || (i == 0 && pr_info[0].ty == FactorType::RightAssoc) {
                             f.flags |= ruleflag::GREEDY;
                         }
                         f
