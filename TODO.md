@@ -1,5 +1,6 @@
 # Lexigram
 
+- [ ] clean-up of the unit & integration tests
 - error reporting
   - [ ] when creating the lexer
     - [x] ~~Lexi's listener~~

@@ -1623,7 +1623,7 @@ impl<T> ProdRuleSet<T> {
     // Does the following transformation for each var with left- or right-recursive factors
     // General form: A -> α A | A β | A γ A | δ
     pub fn remove_recursion(&mut self) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         if VERBOSE {
             println!("ORIGINAL:");

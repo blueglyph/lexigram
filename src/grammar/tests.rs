@@ -1510,6 +1510,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2),
             ]);
         }
+/*
         61 => {
             // E -> E % E | E + E | ID;
             // expanded with Clarke's method (produces ambiguities in the table):
@@ -1545,6 +1546,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             parents.extend(hashmap![1 => 0, 3 => 2]);
         }
+*/
         62 => {
             // E -> E * E | - E | E + E | ID;
             symbol_table.extend_terminals([
@@ -1585,6 +1587,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 2, nt 1; t 4),
             ]);
         }
+/*
         64 => {
             // E -> E * E | - E | E + E | ID;
             // expanded with Clarke's method (produces ambiguities in the table):
@@ -1625,6 +1628,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             parents.extend(hashmap![1 => 0, 3 => 2]);
         }
+*/
         65 => {
             // E -> <R> E ^ E | <R> E * E | - E | E + E | ID;
             // expanded with Clarke's method (produces ambiguities in the table):
@@ -2357,11 +2361,6 @@ fn prs_calc_table() {
               0,   4,
               1,   2,
         ]),
-/*
-        (15, 0, 0, vec![
-        ], vec![
-        ]),
-*/
         (17, 0, 0, vec![
             // - 0: A -> B
             // - 1: A -> a
@@ -2446,7 +2445,6 @@ fn prs_calc_table() {
         ]),
         (25, 0, 0, vec![
             // A -> A a b c | A a b d | A a e | f
-            //
             // - 0: A -> f A_1
             // - 1: A_1 -> a A_2
             // - 2: A_1 -> ε
@@ -2560,126 +2558,70 @@ fn prs_calc_table() {
               8,   9,   4,   9,   8,   4,   4,   8,   8,
               8,   9,   7,   9,   9,   5,   6,   8,   8,
         ]),
-
-        (11, 0, 0, vec![
-            // - 0: A -> A_1 A_2
-            // - 1: A_1 -> g
-            // - 2: A_1 -> h i
-            // - 3: A_2 -> a A_2
-            // - 4: A_2 -> b A_2
-            // - 5: A_2 -> c d A_1 A_2
-            // - 6: A_2 -> e f A_1 A_2
-            // - 7: A_2 -> ε
-            (0, prodf!(nt 1, nt 2)),
-            (1, prodf!(t 6)),
-            (1, prodf!(t 7, t 8)),
-            (2, prodf!(t 0, nt 2)),
-            (2, prodf!(t 1, nt 2)),
-            (2, prodf!(t 2, t 3, nt 1, nt 2)),
-            (2, prodf!(t 4, t 5, nt 1, nt 2)),
-            (2, prodf!(e)),
-        ], vec![
-            //     |  a   b   c   d   e   f   g   h   i   $
-            // ----+-----------------------------------------
-            // A   |  .   .   .   .   .   .   0   0   .   p
-            // A_1 |  p   p   p   .   p   .   1   2   .   p
-            // A_2 |  3   4   5   .   6   .   .   .   .   7
-              8,   8,   8,   8,   8,   8,   0,   0,   8,   9,
-              9,   9,   9,   8,   9,   8,   1,   2,   8,   9,
-              3,   4,   5,   8,   6,   8,   8,   8,   8,   7,
-        ]),
-        (50, 0, 1, vec![
-            // - 0: E -> F E_1
+        (51, 0, 0, vec![
+            // E -> abs E | E ^ E | E ' | E * E | - E | E + E | F
+            // F -> ( E ) | NUM | ID
+            // - 0: E -> E_3 E_b
             // - 1: F -> ( E )
             // - 2: F -> NUM
             // - 3: F -> ID
-            // - 4: E_1 -> ^ F E_1
-            // - 5: E_1 -> * F E_1
-            // - 6: E_1 -> + F E_1
-            // - 7: E_1 -> ε
-            (0, prodf!(nt 1, nt 2)),
+            // - 4: E_b -> ^ E_3 E_b
+            // - 5: E_b -> ' E_b
+            // - 6: E_b -> * E_2 E_b
+            // - 7: E_b -> + E_1 E_b
+            // - 8: E_b -> ε
+            // - 9: E_1 -> E_3 E_1b
+            // - 10: E_1b -> ^ E_3 E_1b     greedy (8192)
+            // - 11: E_1b -> ' E_1b     greedy (8192)
+            // - 12: E_1b -> * E_2 E_1b     greedy (8192)
+            // - 13: E_1b -> ε
+            // - 14: E_2 -> E_3 E_2b
+            // - 15: E_2b -> ^ E_3 E_2b     greedy (8192)
+            // - 16: E_2b -> ' E_2b     greedy (8192)
+            // - 17: E_2b -> ε
+            // - 18: E_3 -> - E_1
+            // - 19: E_3 -> abs E_3
+            // - 20: E_3 -> F
+            (0, prodf!(nt 7, nt 2)),
             (1, prodf!(t 5, nt 0, t 6)),
             (1, prodf!(t 7)),
             (1, prodf!(t 8)),
-            (2, prodf!(t 2, nt 1, nt 2)),
-            (2, prodf!(t 3, nt 1, nt 2)),
-            (2, prodf!(t 4, nt 1, nt 2)),
-            (2, prodf!(e)),
-        ], vec![
-            //     | abs  -   ^   *   +   (   )  NUM ID   $
-            // ----+-----------------------------------------
-            // E   |  .   .   .   .   .   0   p   0   0   p
-            // F   |  .   .   p   p   p   1   p   2   3   p
-            // E_1 |  .   .   4   5   6   .   7   .   .   7
-              8,   8,   8,   8,   8,   0,   9,   0,   0,   9,
-              8,   8,   9,   9,   9,   1,   9,   2,   3,   9,
-              8,   8,   4,   5,   6,   8,   7,   8,   8,   7,
-        ]),
-#[cfg(any())]
-        (51, 0, 4, vec![
-            // - 0: E -> E_2 E_1
-            // - 1: F -> ( E )
-            // - 2: F -> NUM
-            // - 3: F -> ID
-            // - 4: E_1 -> + E_2 E_1
-            // - 5: E_1 -> ε
-            // - 6: E_2 -> - E_2
-            // - 7: E_2 -> E_3
-            // - 8: E_3 -> E_5 E_4
-            // - 9: E_4 -> * E_5 E_4
-            // - 10: E_4 -> ε
-            // - 11: E_5 -> E_7 E_6
-            // - 12: E_6 -> ' E_6
-            // - 13: E_6 -> ε
-            // - 14: E_7 -> E_9 E_8
-            // - 15: E_8 -> ^ E_9 E_8
-            // - 16: E_8 -> ε
-            // - 17: E_9 -> abs E_9
-            // - 18: E_9 -> F
-            (0, prodf!(nt 3, nt 2)),
-            (1, prodf!(t 5, nt 0, t 6)),
-            (1, prodf!(t 7)),
-            (1, prodf!(t 8)),
+            (2, prodf!(t 2, nt 7, nt 2)),
+            (2, prodf!(t 9, nt 2)),
+            (2, prodf!(t 3, nt 5, nt 2)),
             (2, prodf!(t 4, nt 3, nt 2)),
             (2, prodf!(e)),
-            (3, prodf!(t 1, nt 3)),
-            (3, prodf!(nt 4)),
-            (4, prodf!(nt 6, nt 5)),
-            (5, prodf!(t 3, nt 6, nt 5)),
-            (5, prodf!(e)),
-            (6, prodf!(nt 8, nt 7)),
-            (7, prodf!(t 9, nt 7)),
-            (7, prodf!(e)),
-            (8, prodf!(nt 10, nt 9)),
-            (9, prodf!(t 2, nt 10, nt 9)),
-            (9, prodf!(e)),
-            (10, prodf!(t 0, nt 10)),
-            (10, prodf!(nt 1)),
+            (3, prodf!(nt 7, nt 4)),
+            (4, prodf!(#G, t 2, nt 7, nt 4)),
+            (4, prodf!(#G, t 9, nt 4)),
+            (4, prodf!(#G, t 3, nt 5, nt 4)),
+            (4, prodf!(e)),
+            (5, prodf!(nt 7, nt 6)),
+            (6, prodf!(#G, t 2, nt 7, nt 6)),
+            (6, prodf!(#G, t 9, nt 6)),
+            (6, prodf!(e)),
+            (7, prodf!(t 1, nt 3)),
+            (7, prodf!(t 0, nt 7)),
+            (7, prodf!(nt 1)),
         ], vec![
-            //     | abs  -   ^   *   +   (   )  NUM ID   '   $
-            // ----+---------------------------------------------
-            // E   |  0   0   .   .   .   0   p   0   0   .   p
-            // F   |  .   .   p   p   p   1   p   2   3   p   p
-            // E_1 |  .   .   .   .   4   .   5   .   .   .   5
-            // E_2 |  7   6   .   .   p   7   p   7   7   .   p
-            // E_3 |  8   .   .   .   p   8   p   8   8   .   p
-            // E_4 |  .   .   .   9  10   .  10   .   .   .  10
-            // E_5 | 11   .   .   p   p  11   p  11  11   .   p
-            // E_6 |  .   .   .  13  13   .  13   .   .  12  13
-            // E_7 | 14   .   .   p   p  14   p  14  14   p   p
-            // E_8 |  .   .  15  16  16   .  16   .   .  16  16
-            // E_9 | 17   .   p   p   p  18   p  18  18   p   p
-              0,   0,  19,  19,  19,   0,  20,   0,   0,  19,  20,
-             19,  19,  20,  20,  20,   1,  20,   2,   3,  20,  20,
-             19,  19,  19,  19,   4,  19,   5,  19,  19,  19,   5,
-              7,   6,  19,  19,  20,   7,  20,   7,   7,  19,  20,
-              8,  19,  19,  19,  20,   8,  20,   8,   8,  19,  20,
-             19,  19,  19,   9,  10,  19,  10,  19,  19,  19,  10,
-             11,  19,  19,  20,  20,  11,  20,  11,  11,  19,  20,
-             19,  19,  19,  13,  13,  19,  13,  19,  19,  12,  13,
-             14,  19,  19,  20,  20,  14,  20,  14,  14,  20,  20,
-             19,  19,  15,  16,  16,  19,  16,  19,  19,  16,  16,
-             17,  19,  20,  20,  20,  18,  20,  18,  18,  20,  20,
+            //      | abs  -   ^   *   +   (   )  NUM ID   '   $
+            // -----+---------------------------------------------
+            // E    |  0   0   .   .   .   0   p   0   0   .   p
+            // F    |  .   .   p   p   p   1   p   2   3   p   p
+            // E_b  |  .   .   4   6   7   .   8   .   .   5   8
+            // E_1  |  9   9   p   p   p   9   p   9   9   p   p
+            // E_1b |  .   .  10  12  13   .  13   .   .  11  13
+            // E_2  | 14  14   p   p   p  14   p  14  14   p   p
+            // E_2b |  .   .  15  17  17   .  17   .   .  16  17
+            // E_3  | 19  18   p   p   p  20   p  20  20   p   p
+              0,   0,  21,  21,  21,   0,  22,   0,   0,  21,  22,
+             21,  21,  22,  22,  22,   1,  22,   2,   3,  22,  22,
+             21,  21,   4,   6,   7,  21,   8,  21,  21,   5,   8,
+              9,   9,  22,  22,  22,   9,  22,   9,   9,  22,  22,
+             21,  21,  10,  12,  13,  21,  13,  21,  21,  11,  13,
+             14,  14,  22,  22,  22,  14,  22,  14,  14,  22,  22,
+             21,  21,  15,  17,  17,  21,  17,  21,  21,  16,  17,
+             19,  18,  22,  22,  22,  20,  22,  20,  20,  22,  22,
         ]),
         (52, 0, 0, vec![
             // E -> E * E | E ! | E ' | E + E | F;
@@ -2724,7 +2666,6 @@ fn prs_calc_table() {
              14,  14,  14,  14,   8,   8,  14,
               9,  10,  11,  12,  13,  13,  12,
         ]),
-        // (70, 0, 0, vec![], vec![]),
         (53, 0, 0, vec![
             // E -> <R>E ^ E | <R>E * E | - E | E + E | F
             // F -> ID | NUM | ( E )
@@ -2998,68 +2939,6 @@ fn prs_calc_table() {
               1,   5,   5,   2,
               6,   3,   4,   6,
         ]),
-#[cfg(any())]
-        (60, 0, 0, vec![
-            // - 0: E -> E_2 E_1
-            // - 1: E_1 -> + E_2 E_1
-            // - 2: E_1 -> ε
-            // - 3: E_2 -> E_4 E_3
-            // - 4: E_3 -> % E_4 E_3
-            // - 5: E_3 -> ε
-            // - 6: E_4 -> ID
-            (0, prodf!(nt 2, nt 1)),
-            (1, prodf!(t 1, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(t 0, nt 4, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(t 2)),
-        ], vec![
-            //     |  %   +  ID   $
-            // ----+-----------------
-            // E   |  .   .   0   p
-            // E_1 |  .   1   .   2
-            // E_2 |  .   p   3   p
-            // E_3 |  4   5   .   5
-            // E_4 |  p   p   6   p
-              7,   7,   0,   8,
-              7,   1,   7,   2,
-              7,   8,   3,   8,
-              4,   5,   7,   5,
-              8,   8,   6,   8,
-        ]),
-        (61, 0, 1, vec![
-            // - 0: E -> ID Eb
-            // - 1: Eb -> % E4 Eb
-            // - 2: Eb -> + E3 Eb
-            // - 3: Eb -> ε
-            // - 4: E3 -> ID E3b
-            // - 5: E3b -> % E4 E3b
-            // - 6: E3b -> ε
-            // - 7: E4 -> ID
-            (0, prodf!(t 2, nt 1)),
-            (1, prodf!(t 0, nt 4, nt 1)),
-            (1, prodf!(t 1, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(t 2, nt 3)),
-            (3, prodf!(t 0, nt 4, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(t 2)),
-        ], vec![
-            //     |  %   +  ID   $
-            // ----+-----------------
-            // E   |  .   .   0   p
-            // Eb  |  1   2   .   3
-            // E3  |  p   p   4   p
-            // E3b |  5   6   .   6
-            // E4  |  p   p   7   p
-              8,   8,   0,   9,
-              1,   2,   8,   3,
-              9,   9,   4,   9,
-              5,   6,   8,   6,
-              9,   9,   7,   9,
-            // calc_table: ambiguity for NT 'E3b', T '%': <% E4 E3b> or <ε> => <% E4 E3b> has been chosen
-        ]),
         (63, 0, 3, vec![
             // - 0: E -> E6 E_1
             // - 1: E3 -> E6 E3_1
@@ -3110,40 +2989,6 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'E3_1', T '*': <* E5 E3_1> or <ε> => <* E5 E3_1> has been chosen
             // calc_table: ambiguity for NT 'E5_1', T '^': <^ E5> or <ε> => <^ E5> has been chosen
         ]),
-        (64, 0, 1, vec![
-            // - 0: E -> E5 Eb
-            // - 1: Eb -> * E5 Eb
-            // - 2: Eb -> + E3 Eb
-            // - 3: Eb -> ε
-            // - 4: E3 -> E5 E3b
-            // - 5: E3b -> * E5 E3b
-            // - 6: E3b -> ε
-            // - 7: E5 -> - E3
-            // - 8: E5 -> ID
-            (0, prodf!(nt 4, nt 1)),
-            (1, prodf!(t 0, nt 4, nt 1)),
-            (1, prodf!(t 2, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(t 0, nt 4, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(t 1, nt 2)),
-            (4, prodf!(t 3)),
-        ], vec![
-            //     |  *   -   +  ID   $
-            // ----+---------------------
-            // E   |  .   0   .   0   p
-            // Eb  |  1   .   2   .   3
-            // E3  |  p   4   p   4   p
-            // E3b |  5   .   6   .   6
-            // E5  |  p   7   p   8   p
-              9,   0,   9,   0,  10,
-              1,   9,   2,   9,   3,
-             10,   4,  10,   4,  10,
-              5,   9,   6,   9,   6,
-             10,   7,  10,   8,  10,
-            // calc_table: ambiguity for NT 'E3b', T '*': <* E5 E3b> or <ε> => <* E5 E3b> has been chosen
-        ]),
 
         (100, 0, 0, vec![
             // - 0: A -> c A_1
@@ -3159,6 +3004,31 @@ fn prs_calc_table() {
             // A_1 |  1   2   .   2
               3,   4,   0,   4,
               1,   2,   3,   2,
+        ]),
+        (70, 0, 0, vec![
+            // E -> - E | E ! | F
+            // F -> ID | NUM
+            // - 0: E -> - F E_1
+            // - 1: E -> F E_1
+            // - 2: F -> ID
+            // - 3: F -> NUM
+            // - 4: E_1 -> ! E_1
+            // - 5: E_1 -> ε
+            (0, prodf!(t 0, nt 1, nt 2)),
+            (0, prodf!(nt 1, nt 2)),
+            (1, prodf!(t 2)),
+            (1, prodf!(t 3)),
+            (2, prodf!(t 1, nt 2)),
+            (2, prodf!(e)),
+        ], vec![
+            //     |  -   !  ID  NUM  $
+            // ----+---------------------
+            // E   |  0   .   1   1   p
+            // F   |  .   p   2   3   p
+            // E_1 |  .   4   .   .   5
+              0,   6,   1,   1,   7,
+              6,   7,   2,   3,   7,
+              6,   4,   6,   6,   5,
         ]),
         (101, 0, 0, vec![
             // - 0: A -> a A A
@@ -3267,7 +3137,7 @@ fn prs_calc_table() {
 // println!("prs_calc_table: WARNING! tests disabled: 51, ...");
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
 // if ll_id != 58 { continue }
-if !(52..=59).contains(&ll_id) && ll_id != 70 { continue }
+// if !(52..=59).contains(&ll_id) && ll_id != 70 { continue }
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {ll_id}/{start}:", "");
