@@ -1828,7 +1828,9 @@ impl<T> ProdRuleSet<T> {
                     extra_prods.push(prod_indep);
                 }
             } else if prod.iter().any(|p| !p.is_empty() && p.last().unwrap() == &symbol) {
-                self.set_flags(var, ruleflag::R_RECURSION);
+                if self.get_flags(var) & ruleflag::CHILD_REPEAT == 0 {
+                    self.set_flags(var, ruleflag::R_RECURSION);
+                }
             }
             prods.extend(extra_prods);
         }
