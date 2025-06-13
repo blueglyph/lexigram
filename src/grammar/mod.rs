@@ -1761,6 +1761,8 @@ impl<T> ProdRuleSet<T> {
                     .zip(&pr_info)
                     .filter_map(|(nf, FactorInfo { ty, .. })| if ty == &FactorType::Prefix { Some(nf.clone()) } else { None })
                     .to_vec();
+                // when the lowest priority factor is P or R, all the factors of the first variable rule will sprout an ambiguity:
+                let greedy_prologue = matches!(pr_info[0].ty, FactorType::Prefix | FactorType::RightAssoc);
                 for (i, fs) in var_factors.into_iter().enumerate() {
                     let (nt, nt_loop) = var_i_nt[i];
                     let mut prod_nt = if let Some(nt_indep) = nt_indep_maybe {
@@ -1774,7 +1776,6 @@ impl<T> ProdRuleSet<T> {
                         }).collect()
                     };
                     let mut new_used_sym = Vec::<Symbol>::new();
-                    let prefix_prologue = i == 0 && pr_info[0].ty == FactorType::Prefix;
                     let mut prod_nt_loop = fs.iter().enumerate().rev().map(|(j, &f_id)| {
                         let mut f = new_factors[f_id as usize].clone();
                         f.v.push(Symbol::NT(nt_loop));
@@ -1783,10 +1784,7 @@ impl<T> ProdRuleSet<T> {
                         if !is_used_sym {
                             new_used_sym.push(*sym);
                         }
-                        let force_greedy = prefix_prologue && (
-                            (0..=j).all(|k| pr_info[fs[k] as usize].ty == FactorType::Suffix) ||
-                            (0..=j).all(|k| pr_info[fs[k] as usize].ty.is_binary()));
-                        if is_used_sym || force_greedy || (i == 0 && pr_info[0].ty == FactorType::RightAssoc) {
+                        if is_used_sym || (i == 0 && greedy_prologue) {
                             f.flags |= ruleflag::GREEDY;
                         }
                         f
