@@ -1743,7 +1743,7 @@ println!("build_items: WARNING! tests disabled: 51, ...");
 // if rule_id == PRS(51) || rule_id == PRS(55) { continue }
 // if rule_id != PRS(44) { continue }
 // if rule_id != PRS(63) { continue }
-if rule_id != PRS(65) { continue }
+// if rule_id != PRS(65) { continue }
 // if !hashset!(PRS(44), PRS(45), PRS(47), PRS(48)).contains(&rule_id) { continue }
 // if hashset!(PRS(51), PRS(52), PRS(63)).contains(&rule_id) { continue } // fix rrec+lfact bug
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
