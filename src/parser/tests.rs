@@ -238,6 +238,7 @@ fn parser_parse_stream_id() {
                 "syntax error: found input ']' instead of '(', 'id', 'int' while parsing '►FACTOR', line 1, col 13"
             ])),
         ]),
+/*
         (T::PRS(61), 0, 2, 99, vec![
             ("a % b", None),
             ("a + b", None),
@@ -245,6 +246,7 @@ fn parser_parse_stream_id() {
             ("a % b + c", None),
             ("a % b + c % d", None),
         ]),
+*/
 #[cfg(any())]
         (T::PRS(63), 0, 3, 99, vec![
             ("a * b", None),

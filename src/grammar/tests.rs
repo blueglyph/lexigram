@@ -1514,6 +1514,22 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 0, t 1; nt 0, t 0, nt 0; nt 0, t 2; t 3, nt 0; t 4),
             ])
         }
+        61 => {
+            // compare to 58
+            // E -> E + | - E | 0 | 1
+            symbol_table.extend_terminals([
+                ("ADD".to_string(), Some("+".to_string())),     // 0
+                ("SUB".to_string(), Some("-".to_string())),     // 1
+                ("ZERO".to_string(), Some("0".to_string())),    // 2
+                ("ONE".to_string(), Some("1".to_string())),     // 3
+            ]);
+            symbol_table.extend_non_terminals([
+                "E".to_string(),        // 0
+            ]);
+            prods.extend([
+                prod!(nt 0, t 0; t 1, nt 0; t 2; t 3)
+            ])
+        }
 /*
         61 => {
             // E -> E % E | E + E | ID;
@@ -2920,6 +2936,25 @@ fn prs_calc_table() {
             // E_1 |  2   .   .   3
               5,   0,   1,   5,
               2,   4,   4,   3,
+        ]),
+        (61, 0, 0, vec![
+            // - 0: E -> - E E_1
+            // - 1: E -> 0 E_1
+            // - 2: E -> 1 E_1
+            // - 3: E_1 -> + E_1     greedy (8192)
+            // - 4: E_1 -> ε
+            (0, prodf!(t 1, nt 0, nt 1)),
+            (0, prodf!(t 2, nt 1)),
+            (0, prodf!(t 3, nt 1)),
+            (1, prodf!(#G, t 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //     |  +   -   0   1   $
+            // ----+---------------------
+            // E   |  p   0   1   2   p
+            // E_1 |  3   .   .   .   4
+              6,   0,   1,   2,   6,
+              3,   5,   5,   5,   4,
         ]),
         (59, 0, 0, vec![
             // E -> E + E | - E | 0

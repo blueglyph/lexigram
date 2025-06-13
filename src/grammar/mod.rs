@@ -1623,7 +1623,10 @@ impl<T> ProdRuleSet<T> {
     // Does the following transformation for each var with left- or right-recursive factors
     // General form: A -> α A | A β | A γ A | δ
     pub fn remove_recursion(&mut self) {
-        const VERBOSE: bool = false;
+        /// Maximum number of P/I factors that are distributed before creating a new nonterminal to hold them.
+        /// They are never distributed in presence of a binary (L/R) because it would likely induce left factorization.
+        const MAX_DISTRIB_LEN: Option<usize> = None; // always distributing makes for smaller tables
+        const VERBOSE: bool = true;
 
         if VERBOSE {
             println!("ORIGINAL:");
@@ -1707,7 +1710,8 @@ impl<T> ProdRuleSet<T> {
                 assert!(last_var_i <= last_rule_var_i + 1, "last_var_i = {last_var_i}, last_rule_var_i = {last_rule_var_i}");
 
                 // (var, prime) for each rule except independent factors. CAUTION! Includes the independent NT if last op is left-assoc
-                let need_indep = indep.len() + indep_factors.len() > 1 && (indep.len() + indep_factors.len() > 2 || has_binary);
+                let need_indep = indep.len() + indep_factors.len() > 1
+                    && (MAX_DISTRIB_LEN.map(|max| indep.len() + indep_factors.len() > max).unwrap_or(false) || has_binary);
                 let num_indep = if need_indep { 1 } else { 0 };
                 let mut var_i_nt = Vec::<(VarId, VarId)>::with_capacity(last_var_i + 1);
                 var_i_nt.push((var, var_new as VarId));
