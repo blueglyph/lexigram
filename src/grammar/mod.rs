@@ -1711,7 +1711,7 @@ impl<T> ProdRuleSet<T> {
 
                 // (var, prime) for each rule except independent factors. CAUTION! Includes the independent NT if last op is left-assoc
                 let need_indep = indep.len() + indep_factors.len() > 1
-                    && (MAX_DISTRIB_LEN.map(|max| indep.len() + indep_factors.len() > max).unwrap_or(false) || has_binary);
+                    && (MAX_DISTRIB_LEN.map(|max| indep.len() + indep_factors.len() > max).unwrap_or(false) || has_binary || last_rule_var_i < last_var_i);
                 let num_indep = if need_indep { 1 } else { 0 };
                 let mut var_i_nt = Vec::<(VarId, VarId)>::with_capacity(last_var_i + 1);
                 var_i_nt.push((var, var_new as VarId));
@@ -1750,10 +1750,12 @@ impl<T> ProdRuleSet<T> {
                         }
                         FactorType::Prefix => {
                             new_f = ProdFactor::new(f.v[..f.len() - 1].to_owned());
-                            if need_indep || *ivar <= last_rule_var_i {
+                            if need_indep || *ivar <= last_rule_var_i { // FIXME: try to remove `*ivar <= last_rule_var_i`
                                 new_f.v.push(Symbol::NT(var_i_nt[*ivar].0));
                             } else {
-                                new_f.v.extend(&indep[0].v);
+                                //??? new_f.v.extend(&indep[0].v);
+                                // new_f.v.push(symbol);
+                                new_f.v.push(Symbol::NT(var_i_nt[*ivar].0));
                             }
                         }
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
@@ -1773,11 +1775,12 @@ impl<T> ProdRuleSet<T> {
                         prod!(nt nt_indep, nt nt_loop)
                     } else {
                         // distributes the independent factors (only works if there are no L/R types in the original rule)
-                        prod_indep.iter().chain(&indep).map(|f| {
+                        prod_indep.iter().cloned()
+                            .chain(indep.iter().map(|f| {
                             let mut new_f = f.clone();
                             new_f.push(sym!(nt nt_loop));
                             new_f
-                        }).collect()
+                        })).collect()
                     };
                     let mut new_used_sym = Vec::<Symbol>::new();
                     let mut prod_nt_loop = fs.iter().enumerate().rev().map(|(j, &f_id)| {

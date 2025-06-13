@@ -1705,22 +1705,18 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
 
         // test of mixed recursions --------------------------------------------
         70 => {
-            // E -> - E | E ! | F
-            // F ->  ID | NUM
+            // E -> - E | E + | 0
             symbol_table.extend_terminals([
-                ("NEG".to_string(), Some("-".to_string())),     // 0
-                ("FACT".to_string(), Some("!".to_string())),    // 1
-                ("ID".to_string(), None),                       // 2
-                ("NUM".to_string(), None),                      // 3
+                ("ADD".to_string(), Some("+".to_string())),     // 0
+                ("SUB".to_string(), Some("-".to_string())),     // 1
+                ("ZERO".to_string(), Some("0".to_string())),    // 2
             ]);
             symbol_table.extend_non_terminals([
                 "E".to_string(),        // 0
-                "F".to_string(),        // 1
             ]);
             prods.extend([
-                prod!(t 0, nt 0; nt 0, t 1; nt 1),
-                prod!(t 2; t 3),
-            ]);
+                prod!(t 1, nt 0; nt 0, t 0; t 2)
+            ])
         }
 
 
@@ -2921,29 +2917,30 @@ fn prs_calc_table() {
         ]),
         (58, 0, 0, vec![
             // E -> E + | - E | 0
-            // - 0: E -> - E E_1
+            // - 0: E -> - E
             // - 1: E -> 0 E_1
-            // - 2: E_1 -> + E_1     greedy (8192)
+            // - 2: E_1 -> + E_1
             // - 3: E_1 -> ε
-            (0, prodf!(t 1, nt 0, nt 1)),
+            (0, prodf!(t 1, nt 0)),
             (0, prodf!(t 2, nt 1)),
             (1, prodf!(#G, t 0, nt 1)),
             (1, prodf!(e)),
         ], vec![
             //     |  +   -   0   $
             // ----+-----------------
-            // E   |  p   0   1   p
+            // E   |  .   0   1   p
             // E_1 |  2   .   .   3
-              5,   0,   1,   5,
+              4,   0,   1,   5,
               2,   4,   4,   3,
         ]),
         (61, 0, 0, vec![
-            // - 0: E -> - E E_1
+            // E -> E + | - E | 0 | 1
+            // - 0: E -> - E
             // - 1: E -> 0 E_1
             // - 2: E -> 1 E_1
             // - 3: E_1 -> + E_1     greedy (8192)
             // - 4: E_1 -> ε
-            (0, prodf!(t 1, nt 0, nt 1)),
+            (0, prodf!(t 1, nt 0)),
             (0, prodf!(t 2, nt 1)),
             (0, prodf!(t 3, nt 1)),
             (1, prodf!(#G, t 0, nt 1)),
@@ -2951,10 +2948,32 @@ fn prs_calc_table() {
         ], vec![
             //     |  +   -   0   1   $
             // ----+---------------------
-            // E   |  p   0   1   2   p
+            // E   |  .   0   1   2   p
             // E_1 |  3   .   .   .   4
-              6,   0,   1,   2,   6,
+              5,   0,   1,   2,   6,
               3,   5,   5,   5,   4,
+        ]),
+        (70, 0, 0, vec![
+            // E -> - E | E + | 0
+            // - 0: E -> E_1 E_b
+            // - 1: E_b -> + E_b
+            // - 2: E_b -> ε
+            // - 3: E_1 -> - E_1
+            // - 4: E_1 -> 0
+            (0, prodf!(nt 2, nt 1)),
+            (1, prodf!(t 0, nt 1)),
+            (1, prodf!(e)),
+            (2, prodf!(t 1, nt 2)),
+            (2, prodf!(t 2)),
+        ], vec![
+            //     |  +   -   0   $
+            // ----+-----------------
+            // E   |  .   0   0   p
+            // E_b |  1   .   .   2
+            // E_1 |  p   3   4   p
+              5,   0,   0,   6,
+              1,   5,   5,   2,
+              6,   3,   4,   6,
         ]),
         (59, 0, 0, vec![
             // E -> E + E | - E | 0
@@ -3079,31 +3098,6 @@ fn prs_calc_table() {
             // A_1 |  1   2   .   2
               3,   4,   0,   4,
               1,   2,   3,   2,
-        ]),
-        (70, 0, 0, vec![
-            // E -> - E | E ! | F
-            // F -> ID | NUM
-            // - 0: E -> - F E_1
-            // - 1: E -> F E_1
-            // - 2: F -> ID
-            // - 3: F -> NUM
-            // - 4: E_1 -> ! E_1
-            // - 5: E_1 -> ε
-            (0, prodf!(t 0, nt 1, nt 2)),
-            (0, prodf!(nt 1, nt 2)),
-            (1, prodf!(t 2)),
-            (1, prodf!(t 3)),
-            (2, prodf!(t 1, nt 2)),
-            (2, prodf!(e)),
-        ], vec![
-            //     |  -   !  ID  NUM  $
-            // ----+---------------------
-            // E   |  0   .   1   1   p
-            // F   |  .   p   2   3   p
-            // E_1 |  .   4   .   .   5
-              0,   6,   1,   1,   7,
-              6,   7,   2,   3,   7,
-              6,   4,   6,   6,   5,
         ]),
         (101, 0, 0, vec![
             // - 0: A -> a A A
