@@ -1762,7 +1762,7 @@ impl<T> ProdRuleSet<T> {
                     .filter_map(|(nf, FactorInfo { ty, .. })| if ty == &FactorType::Prefix { Some(nf.clone()) } else { None })
                     .to_vec();
                 // when the lowest priority factor is P or R, all the factors of the first variable rule will sprout an ambiguity:
-                let greedy_prologue = matches!(pr_info[0].ty, FactorType::Prefix | FactorType::RightAssoc);
+                let greedy_prologue = pr_info[0].ty == FactorType::Prefix && need_indep || pr_info[0].ty == FactorType::RightAssoc;
                 for (i, fs) in var_factors.into_iter().enumerate() {
                     let (nt, nt_loop) = var_i_nt[i];
                     let mut prod_nt = if let Some(nt_indep) = nt_indep_maybe {

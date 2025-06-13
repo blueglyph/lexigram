@@ -2923,7 +2923,7 @@ fn prs_calc_table() {
             // - 3: E_1 -> ε
             (0, prodf!(t 1, nt 0)),
             (0, prodf!(t 2, nt 1)),
-            (1, prodf!(#G, t 0, nt 1)),
+            (1, prodf!(t 0, nt 1)),
             (1, prodf!(e)),
         ], vec![
             //     |  +   -   0   $
@@ -2943,7 +2943,7 @@ fn prs_calc_table() {
             (0, prodf!(t 1, nt 0)),
             (0, prodf!(t 2, nt 1)),
             (0, prodf!(t 3, nt 1)),
-            (1, prodf!(#G, t 0, nt 1)),
+            (1, prodf!(t 0, nt 1)),
             (1, prodf!(e)),
         ], vec![
             //     |  +   -   0   1   $
