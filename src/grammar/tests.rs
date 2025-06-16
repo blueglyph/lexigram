@@ -131,11 +131,11 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
     let tree = rules.get_tree_mut(0);
 
     match id {
-        0 => {
+        0 => { // A -> |(b, c, D)
             let top = tree.addc_iter(None, gnode!(|), [gnode!(t 1), gnode!(t 2), gnode!(nt 3)]);
             tree.set_root(top);
         }
-        1 => {
+        1 => { // A -> |(&(B, C), d, e, &(F, G), h, i, &(J, K))
             let top = tree.add_root(gnode!(|));
             tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
             tree.addc_iter(Some(top), gnode!(|), [gnode!(t 3), gnode!(t 4)]);
@@ -143,14 +143,14 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let or = tree.addc_iter(Some(top), gnode!(|), [gnode!(t 7), gnode!(t 8)]);
             tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 9), gnode!(nt 10)]);
         }
-        2 => {
+        2 => { // A -> |(&(B, C, D, F, G, H), &(B, C, D, F, G, I), &(B, C, E, F, G, H), &(B, C, E, F, G, I))
             let top = tree.add_root(gnode!(&));
             tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
             tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
             tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
             tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 7), gnode!(nt 8)]);
         }
-        3 => {
+        3 => { // A -> |(&(B, C, D, F, G, H), &(B, C, D, F, I), &(B, C, E, F, G, H), &(B, C, E, F, I))
             let top = tree.add_root(gnode!(&));
             tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
             tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
@@ -159,7 +159,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
             tree.add(Some(or), gnode!(nt 8));
         }
-        4 => {
+        4 => { // A -> |(&(A, B, C, D, F, G, H), &(A, B, C, D, F, I), &(A, B, C, E, F, G, H), &(A, B, C, E, F, I))
             let top = tree.add_root(gnode!(&));
             let cc = tree.add(Some(top), gnode!(&));
             tree.addc_iter(Some(cc), gnode!(&), [gnode!(nt 0), gnode!(nt 1)]);
@@ -170,26 +170,26 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
             tree.add(Some(or), gnode!(nt 8));
         }
-        5 => {
+        5 => { // A -> |(B, ε)
             let top = tree.add_root(gnode!(?));
             tree.add(Some(top), gnode!(nt 1));
         }
-        6 => {
+        6 => { // A -> |(&(B, C), ε)
             let top = tree.add_root(gnode!(?));
             tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
         }
-        7 => {
+        7 => { // |(&(B, C), D, ε)
             let top = tree.add_root(gnode!(?));
             let or = tree.add(Some(top), gnode!(|));
             tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
             tree.add(Some(or), gnode!(nt 3));
         }
-        8 => { // :1:2+
+        8 => { // A -> c b+
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             tree.addc(Some(cc), gnode!(+), gnode!(t 2));
         }
-        9 => { // var (id ,)+
+        9 => { // A -> var (id ,)+
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(+));
@@ -204,7 +204,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             ]);
             rules.symbol_table = Some(table);
         }
-        10 => { // :1(:2:3|:4)+
+        10 => { // A -> b (c d|e)+
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(+));
@@ -212,18 +212,18 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
             tree.add(Some(or), gnode!(t 4));
         }
-        11 => { // :1:2*
+        11 => { // A -> b c*
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             tree.addc(Some(cc), gnode!(*), gnode!(t 2));
         }
-        12 => { // :1(:2:3)*
+        12 => { // A -> b (c d)*
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(*));
             tree.addc_iter(Some(p), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
         }
-        13 => { // :1(:2:3|:4)*
+        13 => { // A -> b (c d|e)*
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 1));
             let p = tree.add(Some(cc), gnode!(*));
@@ -231,13 +231,13 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
             tree.add(Some(or), gnode!(t 4));
         }
-        14 => { // :1?(:2|:3)?
+        14 => { // A -> b? (c|d)?
             let cc = tree.add_root(gnode!(&));
             tree.addc(Some(cc), gnode!(?), gnode!(t 1));
             let m = tree.add(Some(cc), gnode!(?));
             tree.addc_iter(Some(m), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
         }
-        15 => { // 0(:1|:2R|:3L0)0|:4
+        15 => { // A -> A (b|c <R>|d) A|e
             let or = tree.add_root(gnode!(|));
             let cc = tree.add(Some(or), gnode!(&));
             tree.add(Some(cc), gnode!(nt 0));
@@ -248,14 +248,14 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(nt 0));
             tree.add(Some(or), gnode!(t 4));
         }
-        16 => { // A (c)+ b | a
+        16 => { // A -> A (c)+ b | a
             let or = tree.add_root(gnode!(|));
             let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
             let p2 = tree.addc(Some(cc1), gnode!(+), gnode!(t 2));
             tree.add(Some(cc1), gnode!(t 1));
             tree.add(Some(or), gnode!(t 0));
         }
-        17 => { // a ( (b)+ c)+ d
+        17 => { // A -> a ( (b)+ c)+ d
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let p1 = tree.add(Some(cc), gnode!(+));
@@ -264,13 +264,13 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc2), gnode!(t 2));
             tree.add(Some(cc), gnode!(t 3));
         }
-        18 => { // a | b | c
+        18 => { // A -> a | b | c
             let or = tree.add_root(gnode!(|));
             tree.add(Some(or), gnode!(t 0));
             tree.addc(Some(or), gnode!(&), gnode!(t 1));
             tree.add(Some(or), gnode!(t 2));
         }
-        19 => { // A (b <L=B>)* c | d
+        19 => { // A -> A (b <L=B>)* c | d
             let or = tree.add_root(gnode!(|));
             let cc = tree.add(Some(or), gnode!(&));
             tree.add(Some(cc), gnode!(nt 0));
@@ -279,7 +279,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 2));
             tree.add(Some(or), gnode!(t 3));
         }
-        20 => { // A (b)* c | d
+        20 => { // A -> A (b)* c | d
             let or = tree.add_root(gnode!(|));
             let cc = tree.add(Some(or), gnode!(&));
             tree.add(Some(cc), gnode!(nt 0));
@@ -350,7 +350,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
         }
-        29 => { // a ( (B b)* c)* d
+        29 => { // A -> a ( (B b)* c)* d
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let p1 = tree.add(Some(cc), gnode!(*));
@@ -362,7 +362,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
         }
-        30 => { // a ( (B b)+ c)+ d
+        30 => { // A -> a ( (B b)+ c)+ d
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let p1 = tree.add(Some(cc), gnode!(+));
@@ -532,22 +532,22 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
 #[test]
 fn rts_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
-        (0, btreemap![0 => "|(:1, :2, 3)"]),
-        (1, btreemap![0 => "|(&(1, 2), :3, :4, &(5, 6), :7, :8, &(9, 10))"]),
-        (2, btreemap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 6, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 6, 8))"]),
-        (3, btreemap![0 => "|(&(1, 2, 3, 5, 6, 7), &(1, 2, 3, 5, 8), &(1, 2, 4, 5, 6, 7), &(1, 2, 4, 5, 8))"]),
-        (4, btreemap![0 => "|(&(0, 1, 2, 3, 5, 6, 7), &(0, 1, 2, 3, 5, 8), &(0, 1, 2, 4, 5, 6, 7), &(0, 1, 2, 4, 5, 8))"]),
-        (5, btreemap![0 => "|(1, ε)"]),
-        (6, btreemap![0 => "|(&(1, 2), ε)"]),
-        (7, btreemap![0 => "|(&(1, 2), 3, ε)"]),
-        (8, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, 1), :2)"]),
-        (9, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:2, :3))"]),
-        (10, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:2, :3), &(:4, 1), :4)"]),
-        (11, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, 1), ε)"]),
-        (12, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), ε)"]),
-        (13, btreemap![0 => "&(:1, 1)", 1 => "|(&(:2, :3, 1), &(:4, 1), ε)"]),
-        (15, btreemap![0 => "|(&(0, :1, 0), &(0, :2, <R>, 0), &(0, :3, 0), :4)"]),
-        (17, btreemap![0 => "&(:0, 2, :3)", 1 => "|(&(:1, 1), :1)", 2 => "|(&(1, :2, 2), &(1, :2))"]),
+        (0, btreemap![0 => "|(b, c, D)"]),
+        (1, btreemap![0 => "|(&(B, C), d, e, &(F, G), h, i, &(J, K))"]),
+        (2, btreemap![0 => "|(&(B, C, D, F, G, H), &(B, C, D, F, G, I), &(B, C, E, F, G, H), &(B, C, E, F, G, I))"]),
+        (3, btreemap![0 => "|(&(B, C, D, F, G, H), &(B, C, D, F, I), &(B, C, E, F, G, H), &(B, C, E, F, I))"]),
+        (4, btreemap![0 => "|(&(A, B, C, D, F, G, H), &(A, B, C, D, F, I), &(A, B, C, E, F, G, H), &(A, B, C, E, F, I))"]),
+        (5, btreemap![0 => "|(B, ε)"]),
+        (6, btreemap![0 => "|(&(B, C), ε)"]),
+        (7, btreemap![0 => "|(&(B, C), D, ε)"]),
+        (8, btreemap![0 => "&(b, A_1)", 1 => "|(&(c, A_1), c)"]),
+        (9, btreemap![0 => "&(var, A_1)", 1 => "|(&(id, ,, A_1), &(id, ,))"]),
+        (10, btreemap![0 => "&(b, A_1)", 1 => "|(&(c, d, A_1), &(c, d), &(e, A_1), e)"]),
+        (11, btreemap![0 => "&(b, A_1)", 1 => "|(&(c, A_1), ε)"]),
+        (12, btreemap![0 => "&(b, A_1)", 1 => "|(&(c, d, A_1), ε)"]),
+        (13, btreemap![0 => "&(b, A_1)", 1 => "|(&(c, d, A_1), &(e, A_1), ε)"]),
+        (15, btreemap![0 => "|(&(A, b, A), &(A, c, <R>, A), &(A, d, A), e)"]),
+        (17, btreemap![0 => "&(a, A_2, d)", 1 => "|(&(b, A_1), b)", 2 => "|(&(A_1, c, A_2), &(A_1, c))"]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -561,11 +561,12 @@ fn rts_normalize() {
         if let Some(err) = check_rts_sanity(&rules, VERBOSE) {
             panic!("test {test_id} failed:\n{}", err);
         }
-        let result = BTreeMap::from_iter(rules.get_trees_iter().map(|(id, t)| (id, format!("{}", t.to_str(None, None)))));
+        let result = BTreeMap::from_iter(rules.get_trees_iter().map(|(id, t)| (id, format!("{}", t.to_str(None, rules.get_symbol_table())))));
         if VERBOSE {
             println!("flags:  {:?}", rules.flags);
             println!("parent: {:?}", rules.parent);
-            println!("{}", rules.get_trees_iter().map(|(id, t)| format!("- {id} => {:#} (depth {})", t.to_str(None, None), t.depth().unwrap_or(0))).join("\n"));
+            println!("{}", rules.get_trees_iter().map(|(id, t)|
+                format!("- {id} => {:#} (depth {})", t.to_str(None, rules.get_symbol_table()), t.depth().unwrap_or(0))).join("\n"));
             println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
@@ -811,8 +812,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_non_terminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
             prods.extend([
                 prod!(nt 1, nt 2, t 2, t 2), // A -> A1 A2 ; ;
-                prod!(t 0, nt 1; e),    // A1 -> - A1 | ε
-                prod!(t 1, nt 2; e),    // A2 -> + A2 | ε
+                prod!(t 0, nt 1; e),         // A1 -> - A1 | ε
+                prod!(t 1, nt 2; e),         // A2 -> + A2 | ε
             ]);
         }
         6 => {
@@ -853,68 +854,10 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0, nt 0; t 1),    // A -> A a A | b
             ]);
         }
-        9 => {
-            // A -> A a A | A b A | c
-            prods.extend([
-                prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2),
-            ]);
-        }
-        10 => {
-            // A -> A a A | A b A | c | d
-            prods.extend([
-                prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2; t 3),
-            ]);
-        }
-        11 => {
-            // A -> A a | A b | A c d A | A e f A | g | h i
-            prods.extend([
-                prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, t 3, nt 0; nt 0, t 4, t 5, nt 0; t 6; t 7, t 8),
-            ]);
-        }
-        12 => {
-            // A -> A a | A b | A c d A | A e f A | g
-            prods.extend([
-                prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, t 3, nt 0; nt 0, t 4, t 5, nt 0; t 6),
-            ]);
-        }
-        13 => {
-            // classical ambiguous arithmetic grammar
-            // E -> E : E | E ^ E | E / E | E * E | E - E | E + E | F
-            // F -> ( E ) | NUM | ID
-            // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID, 8:^, 9::
-            // NT: 0:E, 1:F
-            def_arith_symbols(&mut symbol_table, false);
-            symbol_table.extend_terminals([
-                ("EXP".to_string(), Some("^".to_string())),  // exponent, right-associative
-                ("DUM".to_string(), Some(":".to_string())),  // dummy high-priority left-associative; a:b = max(a,b)
-            ]);
-            prods.extend([
-                prod!(nt 0, t 9, nt 0; nt 0, t 8, nt 0; nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 1),
-                prod!(t 4, nt 0, t 5; t 6; t 7),
-            ]);
-        }
         14 => {
-            // A -> A A | a (rec + amb removed)
+            // A -> A A | a
             prods.extend([
                 prod!(nt 0, nt 0; t 0)
-            ]);
-        }
-        15 => {
-            // classical ambiguous arithmetic grammar
-            // E -> E / E | E * E | E - E | E + E | - T | T
-            // T -> T : T | T ^ T | F
-            // F -> N | I | ( E )
-            // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID, 8:^, 9::
-            // NT: 0:E, 1:T, 2:F
-            def_arith_symbols(&mut symbol_table, true);
-            symbol_table.extend_terminals([
-                ("EXP".to_string(), Some("^".to_string())),  // exponent, right-associative
-                ("DUM".to_string(), Some(":".to_string())),  // dummy high-priority left-associative; a:b = max(a,b)
-            ]);
-            prods.extend([
-                prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 0, nt 1; nt 1),
-                prod!(nt 1, t 9, nt 1; nt 1, t 8, nt 1; nt 2),
-                prod!(t 6; t 7; t 4, nt 0, t 5),
             ]);
         }
         16 => {
@@ -972,64 +915,6 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 5, t 3, t 5, t 4, nt 1; t 2),
             ]);
         }
-        21 => {
-            //  A -> A a1 | A a2 | A b1 A | A b2 A | c1 | c2 [ | d1 A | d2 A ]
-            //       ^^^^^^^^^^^   ^^^^^^^^^^^^^^^               ^^^^^^^^^^^
-            symbol_table.extend_terminals([
-                ("a1".to_string(), Some("a1".to_string())), // 0
-                ("a2".to_string(), Some("a2".to_string())), // 1
-                ("b1".to_string(), Some("b1".to_string())), // 2
-                ("b2".to_string(), Some("b2".to_string())), // 3
-                ("c1".to_string(), Some("c1".to_string())), // 4
-                ("c2".to_string(), Some("c2".to_string())), // 5
-                ("d1".to_string(), Some("d1".to_string())), // 6
-                ("d2".to_string(), Some("d2".to_string())), // 7
-            ]);
-            if false {
-                // TODO: needs a new grammar change (polymorphic recursive rule)
-                prods.extend([
-                    prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4; t 5; t 6, nt 0; t 7, nt 0),
-                ]);
-            } else {
-                prods.extend([
-                    prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4; t 5),
-                ]);
-                //      A -> A a1 | A a2 | A b1 A | A b2 A | c1 | c2
-                // =>
-                //      A -> c1 A_2 | c2 A_2
-                //      A_1 -> c1 | c2
-                //      A_2 -> a1 A_2 | a2 A_2 | b1 A_1 A_2 | b2 A_1 A_2 | ε
-            }
-        }
-        22 => {
-            // E -> E * E | E '&' '*' E | E + E | E '&' '+' E | id
-            symbol_table.extend_terminals([
-                ("*".to_string(), Some("*".to_string())),
-                ("+".to_string(), Some("+".to_string())),
-                ("&".to_string(), Some("&".to_string())),
-                ("id".to_string(), None),
-            ]);
-            symbol_table.extend_non_terminals(["E".to_string()]);
-            prods.extend([
-                prod!(nt 0, t 0, nt 0; nt 0, t 2, t 0, nt 0; nt 0, t 1, nt 0; nt 0, t 2, t 1, nt 0; t 3),
-            ]);
-        }
-        23 => {
-            // E -> E * E | E '&' '*' E | E + E | E '&' '+' E | F
-            // F -> id | num
-            symbol_table.extend_terminals([
-                ("*".to_string(), Some("*".to_string())),
-                ("+".to_string(), Some("+".to_string())),
-                ("&".to_string(), Some("&".to_string())),
-                ("id".to_string(), None),
-                ("num".to_string(), None),
-            ]);
-            symbol_table.extend_non_terminals(["E".to_string(), "F".to_string()]);
-            prods.extend([
-                prod!(nt 0, t 0, nt 0; nt 0, t 2, t 0, nt 0; nt 0, t 1, nt 0; nt 0, t 2, t 1, nt 0; nt 1),
-                prod!(t 3; t 4),
-            ]);
-        }
         24 => {
             // A -> a (b c)+ d | e
             // =>
@@ -1044,14 +929,6 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // A -> A a b c | A a b d | A a e | f
             prods.extend([
                 prod!(nt 0, t 0, t 1, t 2; nt 0, t 0, t 1, t 3; nt 0, t 0, t 4; t 5)
-            ]);
-        }
-        26 => {
-            // A -> A a | b
-            // B -> B a B | b
-            prods.extend([
-                prod!(nt 0, t 0; t 1),
-                prod!(nt 1, t 0, nt 1; t 1),
             ]);
         }
         27 => {
@@ -1479,24 +1356,6 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             prods.extend([
                 prod!(nt 0, t 0, nt 0; t 1, nt 0; t 2)
             ])
-/*
-            // 57 with left factorization issues:
-            // E -> E @ ^ E | E @ * E | E @ + E | ID | NUM
-            symbol_table.extend_terminals([
-                ("EXP".to_string(), Some("^".to_string())),     // 0
-                ("MUL".to_string(), Some("*".to_string())),     // 1
-                ("ADD".to_string(), Some("+".to_string())),     // 2
-                ("ID".to_string(), None),                       // 3
-                ("NUM".to_string(), None),                      // 4
-                ("AT".to_string(), Some("@".to_string())),      // 5
-            ]);
-            symbol_table.extend_non_terminals([
-                "E".to_string(),        // 0
-            ]);
-            prods.extend([
-                prod!(nt 0, t 5, t 0, nt 0; nt 0, t 5, t 1, nt 0; nt 0, t 5, t 2, nt 0; t 3; t 4)
-            ]);
-*/
         }
         60 => {
             // E -> E ! | E * E | E + | - E | ID
@@ -1530,43 +1389,6 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0; t 1, nt 0; t 2; t 3)
             ])
         }
-/*
-        61 => {
-            // E -> E % E | E + E | ID;
-            // expanded with Clarke's method (produces ambiguities in the table):
-            // E   -> id Eb
-            // Eb  -> % E4 Eb | + E3 Eb | ε
-            // E3  -> id E3b
-            // E3b -> % E4 E3b | ε
-            // E4  -> id
-            symbol_table.extend_terminals([
-                ("MOD".to_string(), Some("%".to_string())),     // 0
-                ("ADD".to_string(), Some("+".to_string())),     // 1
-                ("ID".to_string(), None),                       // 2
-            ]);
-            symbol_table.extend_non_terminals([
-                "E".to_string(),        // 0
-                "Eb".to_string(),       // 1
-                "E3".to_string(),       // 2
-                "E3b".to_string(),      // 3
-                "E4".to_string(),       // 4
-            ]);
-            prods.extend([
-                prod!(t 2, nt 1),
-                prod!(t 0, nt 4, nt 1; t 1, nt 2, nt 1; e),
-                prod!(t 2, nt 3),
-                prod!(t 0, nt 4, nt 3; e),
-                prod!(t 2),
-            ]);
-            flags.extend(hashmap![
-                0 => ruleflag::PARENT_L_RECURSION,
-                1 => ruleflag::CHILD_L_RECURSION,
-                2 => ruleflag::PARENT_L_RECURSION,
-                3 => ruleflag::CHILD_L_RECURSION,
-            ]);
-            parents.extend(hashmap![1 => 0, 3 => 2]);
-        }
-*/
         62 => {
             // E -> E * E | - E | E + E | ID;
             symbol_table.extend_terminals([
@@ -1582,11 +1404,6 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         }
         63 => {
             // E -> <R> E ^ E | E * E | - E | E + E | ID;
-            // expanded with Clarke's method (produces ambiguities in the table):
-            // E -> E ^ E5 | E * E5 | E + E3 | E6
-            // E3 -> E3 ^ E5 | E3 * E5 | E6
-            // E5 -> E6 ^ E5 | E6
-            // E6 -> - E3 | ID
             symbol_table.extend_terminals([
                 ("EXP".to_string(), Some("^".to_string())),     // 0
                 ("MUL".to_string(), Some("*".to_string())),     // 1
@@ -1601,106 +1418,40 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 "E6".to_string(),       // 3
             ]);
             prods.extend([
-                prod!(nt 0, t 0, nt 2; nt 0, t 1, nt 2; nt 0, t 3, nt 1; nt 3),
-                prod!(nt 1, t 0, nt 2; nt 1, t 1, nt 2; nt 3),
-                prod!(nt 3, t 0, nt 2; nt 3),
-                prod!(t 2, nt 1; t 4),
+                prod!(#R, nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2, nt 0; nt 0, t 3, nt 0; t 4),
             ]);
         }
-/*
         64 => {
-            // E -> E * E | - E | E + E | ID;
-            // expanded with Clarke's method (produces ambiguities in the table):
-            // E -> E5 Eb
-            // Eb -> * E5 Eb
-            //    -> + E3 Eb
-            //    -> ε
-            // E3 -> E5 E3b
-            // E3b -> * E5 E3b
-            //     -> ε
-            // E5 -> - E3
-            //    -> ID
+            // E -> - E | E + E | 0
             symbol_table.extend_terminals([
-                ("MUL".to_string(), Some("*".to_string())),     // 0
-                ("NEG".to_string(), Some("-".to_string())),     // 1
-                ("ADD".to_string(), Some("+".to_string())),     // 2
-                ("ID".to_string(), None),                       // 3
+                ("ADD".to_string(), Some("+".to_string())),     // 0
+                ("SUB".to_string(), Some("-".to_string())),     // 1
+                ("ZERO".to_string(), Some("0".to_string())),    // 2
             ]);
             symbol_table.extend_non_terminals([
                 "E".to_string(),        // 0
-                "Eb".to_string(),       // 1
-                "E3".to_string(),       // 2
-                "E3b".to_string(),      // 3
-                "E5".to_string(),       // 4
             ]);
             prods.extend([
-                prod!(nt 4, nt 1),
-                prod!(t 0, nt 4, nt 1; t 2, nt 2, nt 1; e),
-                prod!(nt 4, nt 3),
-                prod!(t 0, nt 4, nt 3; e),
-                prod!(t 1, nt 2; t 3),
-            ]);
-            flags.extend(hashmap![
-                0 => ruleflag::PARENT_L_RECURSION,
-                1 => ruleflag::CHILD_L_RECURSION,
-                2 => ruleflag::PARENT_L_RECURSION,
-                3 => ruleflag::CHILD_L_RECURSION,
-            ]);
-            parents.extend(hashmap![1 => 0, 3 => 2]);
+                prod!(t 1, nt 0; nt 0, t 0, nt 0; t 2)
+            ])
         }
-*/
-        65 => {
-            // E -> <R> E ^ E | <R> E * E | - E | E + E | ID;
-            // expanded with Clarke's method (produces ambiguities in the table):
-            // E  -> E5 (^ E4 | * E3 | + E3)*
-            // E3 -> E5 (^ E4 | * E3)*
-            // E4 -> E5 (^ E4)*
-            // E5 -> - E3 | ID
-            //
-            // E   -> E5 Eb
-            // Eb  -> ^ E4 Eb | * E3 Eb | + E3 Eb | ε
-            // E3  -> E5 E3b
-            // E3b -> ^ E4 E3b | * E3 E3b | ε
-            // E4  -> E5 E4b
-            // E4b -> ^ E4 | ε
-            // E5  -> - E3 | ID
+        66 => {
+            // 57 with left factorization issues:
+            // E -> E @ ^ E | E @ * E | E @ + E | ID | NUM
             symbol_table.extend_terminals([
                 ("EXP".to_string(), Some("^".to_string())),     // 0
                 ("MUL".to_string(), Some("*".to_string())),     // 1
-                ("NEG".to_string(), Some("-".to_string())),     // 2
-                ("ADD".to_string(), Some("+".to_string())),     // 3
-                ("ID".to_string(), None),                       // 4
+                ("ADD".to_string(), Some("+".to_string())),     // 2
+                ("ID".to_string(), None),                       // 3
+                ("NUM".to_string(), None),                      // 4
+                ("AT".to_string(), Some("@".to_string())),      // 5
             ]);
             symbol_table.extend_non_terminals([
                 "E".to_string(),        // 0
-                "Eb".to_string(),       // 1
-                "E3".to_string(),       // 2
-                "E3b".to_string(),      // 3
-                "E4".to_string(),       // 4
-                "E4b".to_string(),      // 5
-                "E5".to_string(),       // 6
             ]);
             prods.extend([
-                prod!(nt 6, nt 1),
-                prod!(t 0, nt 4, nt 1; t 1, nt 2, nt 1; t 3, nt 2, nt 1; e),
-                prod!(nt 6, nt 3),
-                prod!(t 0, nt 4, nt 3; t 1, nt 2, nt 3; e),
-                prod!(nt 6, nt 5),
-                prod!(t 0, nt 4; e),
-                prod!(t 2, nt 2; t 4),
+                prod!(nt 0, t 5, t 0, nt 0; nt 0, t 5, t 1, nt 0; nt 0, t 5, t 2, nt 0; t 3; t 4)
             ]);
-            // we set the flags & parents ourselves:
-            rules.dont_remove_recursion = true;
-            flags.extend(hashmap![
-                0 => ruleflag::PARENT_L_RECURSION,
-                1 => ruleflag::CHILD_L_RECURSION,
-                2 => ruleflag::PARENT_L_RECURSION,
-                3 => ruleflag::CHILD_L_RECURSION,
-                4 => ruleflag::R_RECURSION | ruleflag::PARENT_L_FACTOR,
-                5 => ruleflag::CHILD_L_FACTOR,
-                6 => ruleflag::R_RECURSION,
-            ]);
-            parents.extend(hashmap![1 => 0, 3 => 2, 5 => 4]);
         }
 
         // test of mixed recursions --------------------------------------------
@@ -1836,23 +1587,23 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
 }
 
 #[test]
-fn prs_remove_left_recursion() {
+fn prs_remove_recursion() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
         (0, btreemap![
-            // A -> d A_1 | d e A_1
-            // B -> A f | g | h
-            // A_1 -> b A_1 | c A_1 | ε
+            // A -> A b | A c | d | d e     A -> d A_1 | d e A_1
+            // B -> A f | g | h             B -> A f | g | h
+            //                              A_1 -> b A_1 | c A_1 | ε
             0 => prod!(t 3, nt 2; t 3, t 4, nt 2),
             1 => prod!(nt 0, t 5; t 6; t 7),
             2 => prod!(t 1, nt 2; t 2, nt 2; e),
         ]),
         (2, btreemap![]),
         (4, btreemap![
-            // E -> T E_1
-            // T -> F T_1
-            // F -> ( E ) | NUM | ID
-            // E_1 -> + T E_1 | - T E_1 | ε
-            // T_1 -> * F T_1 | / F T_1 | ε
+            // E -> E - T | E + T | T     E -> T E_1
+            // T -> T / F | T * F | F     T -> F T_1
+            // F -> ( E ) | N | I         F -> ( E ) | NUM | ID
+            //                            E_1 -> + T E_1 | - T E_1 | ε
+            //                            T_1 -> * F T_1 | / F T_1 | ε
             0 => prod!(nt 1, nt 3),
             1 => prod!(nt 2, nt 4),
             2 => prod!(t 4, nt 0, t 5; t 6; t 7),
@@ -1860,63 +1611,17 @@ fn prs_remove_left_recursion() {
             4 => prod!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
         ]),
         (8, btreemap![
-            // A -> b A_1
-            // A_1 -> a b A_1 | ε
+            // A -> A a A | b     A -> b A_1
+            //                    A_1 -> a b A_1 | ε
             0 => prod!(t 1, nt 1),
             1 => prod!(t 0, t 1, nt 1; e),
-        ]),
-        (9, btreemap![ // A -> A a A | A b A | c
-            // A -> c A_1
-            // A_1 -> a c A_1 | b c A_1 | ε
-            0 => prod!(t 2, nt 1),
-            1 => prod!(t 0, t 2, nt 1; t 1, t 2, nt 1; e)
-        ]),
-        (10, btreemap![ // A -> A a A | A b A | c | d
-            // A -> A_1 A_2
-            // A_1 -> c | d
-            // A_2 -> a A_1 A_2 | b A_1 A_2 | ε
-            0 => prod!(nt 1, nt 2),
-            1 => prod!(t 2; t 3),
-            2 => prod!(t 0, nt 1, nt 2; t 1, nt 1, nt 2; e),
-        ]),
-        (11, btreemap![ // A -> A a | A b | A c d A | A e f A | g | h i
-            // A -> A_1 A_2
-            // A_1 -> g | h i
-            // A_2 -> a A_2 | b A_2 | c d A_1 A_2 | e f A_1 A_2 | ε
-            0 => prod!(nt 1, nt 2),
-            1 => prod!(t 6; t 7, t 8),
-            2 => prod!(t 0, nt 2; t 1, nt 2; t 2, t 3, nt 1, nt 2; t 4, t 5, nt 1, nt 2; e),
-        ]),
-        (12, btreemap![ // A -> A a | A b | A c d A | A e f A | g
-            // A -> g A_1
-            // A_1 -> a A_1 | b A_1 | c d g A_1 | e f g A_1 | ε
-            0 => prod!(t 6, nt 1),
-            1 => prod!(t 0, nt 1; t 1, nt 1; t 2, t 3, t 6, nt 1; t 4, t 5, t 6, nt 1; e)
-        ]),
-        (13, btreemap![
-            // E -> F E_1
-            // F -> ( E ) | N | I
-            // E_1 -> : F E_1 | ^ F E_1 | / F E_1 | * F E_1 | - F E_1 | + F E_1 | ε
-            0 => prod!(nt 1, nt 2),
-            1 => prod!(t 4, nt 0, t 5; t 6; t 7),
-            2 => prod!(t 9, nt 1, nt 2; t 8, nt 1, nt 2; t 2, nt 1, nt 2; t 3, nt 1, nt 2; t 0, nt 1, nt 2; t 1, nt 1, nt 2; e),
-        ]),
-        (21, btreemap![
-            // A -> A a1 | A a2 | A b1 A | A b2 A | c1 | c2
-            // =>
-            // A -> A_1 A_2
-            // A_1 -> c1 | c2
-            // A_2 -> a1 A_2 | a2 A_2 | b1 A_1 A_2 | b2 A_1 A_2 | ε
-            0 => prod!(nt 1, nt 2),
-            1 => prod!(t 4; t 5),
-            2 => prod!(t 0, nt 2; t 1, nt 2; t 2, nt 1, nt 2; t 3, nt 1, nt 2; e),
         ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
         let mut rules = build_prs(test_id, false);
         if VERBOSE {
-            println!("test {test_id}:");
+            println!("{:=<80}\ntest {test_id}:", "");
             print_production_rules(&rules, false);
         }
         rules.remove_left_recursion();
@@ -2046,12 +1751,6 @@ fn prs_ll1_from() {
             3 => prod!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
             4 => prod!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
         ]),
-        (8, btreemap![
-            // A -> b A_1
-            // A_1 -> a b A_1 | ε
-            0 => prod!(t 1, nt 1),
-            1 => prod!(t 0, t 1, nt 1; e),
-        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, expected) in tests {
@@ -2132,13 +1831,42 @@ fn prs_calc_first() {
             sym!(nt 1) => hashset![sym!(t 0), sym!(e)],
             sym!(nt 2) => hashset![sym!(t 1), sym!(e)]
         ]),
-        (8, 0, hashmap![
-            sym!(e) => hashset![sym!(e)],
+        (43, 0, hashmap![
             sym!(t 0) => hashset![sym!(t 0)],
             sym!(t 1) => hashset![sym!(t 1)],
-            sym!(nt 0) => hashset![sym!(t 1)],
-            sym!(nt 1) => hashset![sym!(e), sym!(t 0)],
-        ])
+            sym!(t 2) => hashset![sym!(t 2)],
+            sym!(t 3) => hashset![sym!(t 3)],
+            sym!(t 4) => hashset![sym!(t 4)],
+            sym!(t 5) => hashset![sym!(t 5)],
+            sym!(t 6) => hashset![sym!(t 6)],
+            sym!(t 7) => hashset![sym!(t 7)],
+            sym!(nt 0) => hashset![sym!(t 0), sym!(t 2), sym!(e)],
+            sym!(nt 1) => hashset![sym!(t 0), sym!(t 2)],
+            sym!(nt 2) => hashset![sym!(t 2), sym!(t 5), sym!(t 6)],
+            sym!(nt 3) => hashset![sym!(t 2), sym!(t 5), sym!(t 6)],
+            sym!(e) => hashset![sym!(e)],
+        ]),
+        (51, 0, hashmap![
+            sym!(t 0) => hashset![sym!(t 0)],
+            sym!(t 1) => hashset![sym!(t 1)],
+            sym!(t 2) => hashset![sym!(t 2)],
+            sym!(t 3) => hashset![sym!(t 3)],
+            sym!(t 4) => hashset![sym!(t 4)],
+            sym!(t 5) => hashset![sym!(t 5)],
+            sym!(t 6) => hashset![sym!(t 6)],
+            sym!(t 7) => hashset![sym!(t 7)],
+            sym!(t 8) => hashset![sym!(t 8)],
+            sym!(t 9) => hashset![sym!(t 9)],
+            sym!(nt 0) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(t 7), sym!(t 8)],
+            sym!(nt 1) => hashset![sym!(t 5), sym!(t 7), sym!(t 8)],
+            sym!(nt 2) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 9), sym!(e)],
+            sym!(nt 3) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(t 7), sym!(t 8)],
+            sym!(nt 4) => hashset![sym!(t 2), sym!(t 3), sym!(t 9), sym!(e)],
+            sym!(nt 5) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(t 7), sym!(t 8)],
+            sym!(nt 6) => hashset![sym!(t 2), sym!(t 9), sym!(e)],
+            sym!(nt 7) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(t 7), sym!(t 8)],
+            sym!(e) => hashset![sym!(e)],
+        ]),
     ];
     const VERBOSE: bool = false;
     for (test_id, start, expected) in tests {
@@ -2186,9 +1914,21 @@ fn prs_calc_follow() {
             sym!(nt 1) => hashset![sym!(t 1), sym!(t 2)],
             sym!(nt 2) => hashset![sym!(t 2)],
         ]),
-        (8, 0, hashmap![
+        (43, 0, hashmap![
             sym!(nt 0) => hashset![sym!(end)],
-            sym!(nt 1) => hashset![sym!(end)],
+            sym!(nt 1) => hashset![sym!(t 7)],
+            sym!(nt 2) => hashset![sym!(t 1), sym!(t 3)],
+            sym!(nt 3) => hashset![sym!(t 1), sym!(t 3), sym!(t 4)],
+        ]),
+        (51, 0, hashmap![
+            sym!(nt 0) => hashset![sym!(t 6), sym!(end)],
+            sym!(nt 1) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
+            sym!(nt 2) => hashset![sym!(t 6), sym!(end)],
+            sym!(nt 3) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
+            sym!(nt 4) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
+            sym!(nt 5) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
+            sym!(nt 6) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
+            sym!(nt 7) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
         ]),
     ];
     const VERBOSE: bool = false;
@@ -2363,6 +2103,7 @@ fn prs_calc_table() {
               1,   3,   2,
         ]),
         (14, 0, 0, vec![
+            // A -> A A | a
             // - 0: A -> a A_1
             // - 1: A_1 -> a A_1
             // - 2: A_1 -> ε
@@ -2915,6 +2656,62 @@ fn prs_calc_table() {
              10,  11,  11,  14,  14,  11,
              15,  15,  15,  12,  13,  15,
         ]),
+        (66, 0, 0, vec![
+            // E -> E @ ^ E | E @ * E | E @ + E | ID | NUM
+            // - 0: E -> E_3 E_b
+            // - 1: E_b -> @ E_b_1
+            // - 2: E_b -> ε
+            // - 3: E_1 -> E_3 E_1b
+            // - 4: E_1b -> @ E_1b_1     greedy (8192)
+            // - 5: E_1b -> ε
+            // - 6: E_2 -> E_3 E_2b
+            // - 7: E_2b -> @ ^ E_3 E_2b     greedy (8192)
+            // - 8: E_2b -> ε
+            // - 9: E_3 -> ID
+            // - 10: E_3 -> NUM
+            // - 11: E_b_1 -> ^ E_3 E_b
+            // - 12: E_b_1 -> * E_2 E_b
+            // - 13: E_b_1 -> + E_1 E_b
+            // - 14: E_1b_1 -> ^ E_3 E_1b     greedy (8192)
+            // - 15: E_1b_1 -> * E_2 E_1b     greedy (8192)
+            (0, prodf!(nt 6, nt 1)),
+            (1, prodf!(t 5, nt 7)),
+            (1, prodf!(e)),
+            (2, prodf!(nt 6, nt 3)),
+            (3, prodf!(#G, t 5, nt 8)),
+            (3, prodf!(e)),
+            (4, prodf!(nt 6, nt 5)),
+            (5, prodf!(#G, t 5, t 0, nt 6, nt 5)),
+            (5, prodf!(e)),
+            (6, prodf!(t 3)),
+            (6, prodf!(t 4)),
+            (7, prodf!(t 0, nt 6, nt 1)),
+            (7, prodf!(t 1, nt 4, nt 1)),
+            (7, prodf!(t 2, nt 2, nt 1)),
+            (8, prodf!(#G, t 0, nt 6, nt 3)),
+            (8, prodf!(#G, t 1, nt 4, nt 3)),
+        ], vec![
+            //        |  ^   *   +  ID  NUM  @   $
+            // -------+-----------------------------
+            // E      |  .   .   .   0   0   .   p
+            // E_b    |  .   .   .   .   .   1   2
+            // E_1    |  .   .   .   3   3   p   p
+            // E_1b   |  .   .   .   .   .   4   5
+            // E_2    |  .   .   .   6   6   p   p
+            // E_2b   |  .   .   .   .   .   7   8
+            // E_3    |  .   .   .   9  10   p   p
+            // E_b_1  | 11  12  13   .   .   .   p
+            // E_1b_1 | 14  15   .   .   .   p   p
+             16,  16,  16,   0,   0,  16,  17,
+             16,  16,  16,  16,  16,   1,   2,
+             16,  16,  16,   3,   3,  17,  17,
+             16,  16,  16,  16,  16,   4,   5,
+             16,  16,  16,   6,   6,  17,  17,
+             16,  16,  16,  16,  16,   7,   8,
+             16,  16,  16,   9,  10,  17,  17,
+             11,  12,  13,  16,  16,  16,  17,
+             14,  15,  16,  16,  16,  17,  17,
+        ]),
         (58, 0, 0, vec![
             // E -> E + | - E | 0
             // - 0: E -> - E
@@ -2997,6 +2794,28 @@ fn prs_calc_table() {
               1,   5,   5,   2,
               6,   3,   4,   6,
         ]),
+        (64, 0, 0, vec![
+            // E -> - E | E + E | 0
+            // - 0: E -> E_1 E_b
+            // - 1: E_b -> + E_1 E_b
+            // - 2: E_b -> ε
+            // - 3: E_1 -> - E_1
+            // - 4: E_1 -> 0
+            (0, prodf!(nt 2, nt 1)),
+            (1, prodf!(t 0, nt 2, nt 1)),
+            (1, prodf!(e)),
+            (2, prodf!(t 1, nt 2)),
+            (2, prodf!(t 2)),
+        ], vec![
+            //     |  +   -   0   $
+            // ----+-----------------
+            // E   |  .   0   0   p
+            // E_b |  1   .   .   2
+            // E_1 |  p   3   4   p
+              5,   0,   0,   6,
+              1,   5,   5,   2,
+              6,   3,   4,   6,
+        ]),
         (60, 0, 0, vec![
             // E -> E ! | E * E | E + | - E | ID
             // - 0: E -> E_2 E_b
@@ -3033,55 +2852,53 @@ fn prs_calc_table() {
               7,   6,   7,  10,  10,   7,
              11,  11,  11,   8,   9,  11,
         ]),
-        (63, 0, 3, vec![
-            // - 0: E -> E6 E_1
-            // - 1: E3 -> E6 E3_1
-            // - 2: E5 -> E6 E5_1
-            // - 3: E6 -> - E3
-            // - 4: E6 -> ID
-            // - 5: E_1 -> ^ E5 E_1
-            // - 6: E_1 -> * E5 E_1
-            // - 7: E_1 -> + E3 E_1
-            // - 8: E_1 -> ε
-            // - 9: E3_1 -> ^ E5 E3_1
-            // - 10: E3_1 -> * E5 E3_1
-            // - 11: E3_1 -> ε
-            // - 12: E5_1 -> ^ E5
-            // - 13: E5_1 -> ε
-            (0, prodf!(nt 3, nt 4)),
-            (1, prodf!(nt 3, nt 5)),
-            (2, prodf!(nt 3, nt 6)),
-            (3, prodf!(t 2, nt 1)),
-            (3, prodf!(t 4)),
-            (4, prodf!(t 0, nt 2, nt 4)),
-            (4, prodf!(t 1, nt 2, nt 4)),
-            (4, prodf!(t 3, nt 1, nt 4)),
-            (4, prodf!(e)),
-            (5, prodf!(t 0, nt 2, nt 5)),
-            (5, prodf!(t 1, nt 2, nt 5)),
+        (63, 0, 0, vec![
+            // E -> <R>E ^ E | E * E | - E | E + E | ID
+            // - 0: E -> E_1b E3
+            // - 1: E3 -> ^ E_b E3     R-assoc (256)
+            // - 2: E3 -> * E_b E3
+            // - 3: E3 -> + E5 E3
+            // - 4: E3 -> ε
+            // - 5: E5 -> E_1b E6
+            // - 6: E6 -> ^ E_b E6     R-assoc | greedy (8448)
+            // - 7: E6 -> * E_b E6     greedy (8192)
+            // - 8: E6 -> ε
+            // - 9: E_b -> E_1b E_1
+            // - 10: E_1 -> ^ E_b E_1     R-assoc | greedy (8448)
+            // - 11: E_1 -> ε
+            // - 12: E_1b -> - E5
+            // - 13: E_1b -> ID
+            (0, prodf!(nt 6, nt 1)),
+            (1, prodf!(#R, t 0, nt 4, nt 1)),
+            (1, prodf!(t 1, nt 4, nt 1)),
+            (1, prodf!(t 3, nt 2, nt 1)),
+            (1, prodf!(e)),
+            (2, prodf!(nt 6, nt 3)),
+            (3, prodf!(#8448, t 0, nt 4, nt 3)),
+            (3, prodf!(#G, t 1, nt 4, nt 3)),
+            (3, prodf!(e)),
+            (4, prodf!(nt 6, nt 5)),
+            (5, prodf!(#8448, t 0, nt 4, nt 5)),
             (5, prodf!(e)),
-            (6, prodf!(t 0, nt 2)),
-            (6, prodf!(e)),
+            (6, prodf!(t 2, nt 2)),
+            (6, prodf!(t 4)),
         ], vec![
             //      |  ^   *   -   +  ID   $
             // -----+-------------------------
             // E    |  .   .   0   .   0   p
-            // E3   |  p   p   1   p   1   p
-            // E5   |  p   p   2   p   2   p
-            // E6   |  p   p   3   p   4   p
-            // E_1  |  5   6   .   7   .   8
-            // E3_1 |  9  10   .  11   .  11
-            // E5_1 | 12  13   .  13   .  13
+            // E3   |  1   2   .   3   .   4
+            // E5   |  p   p   5   p   5   p
+            // E6   |  6   7   .   8   .   8
+            // E_b  |  p   p   9   p   9   p
+            // E_1  | 10  11   .  11   .  11
+            // E_1b |  p   p  12   p  13   p
              14,  14,   0,  14,   0,  15,
-             15,  15,   1,  15,   1,  15,
-             15,  15,   2,  15,   2,  15,
-             15,  15,   3,  15,   4,  15,
-              5,   6,  14,   7,  14,   8,
-              9,  10,  14,  11,  14,  11,
-             12,  13,  14,  13,  14,  13,
-            // calc_table: ambiguity for NT 'E3_1', T '^': <^ E5 E3_1> or <ε> => <^ E5 E3_1> has been chosen
-            // calc_table: ambiguity for NT 'E3_1', T '*': <* E5 E3_1> or <ε> => <* E5 E3_1> has been chosen
-            // calc_table: ambiguity for NT 'E5_1', T '^': <^ E5> or <ε> => <^ E5> has been chosen
+              1,   2,  14,   3,  14,   4,
+             15,  15,   5,  15,   5,  15,
+              6,   7,  14,   8,  14,   8,
+             15,  15,   9,  15,   9,  15,
+             10,  11,  14,  11,  14,  11,
+             15,  15,  12,  15,  13,  15,
         ]),
 
         (100, 0, 0, vec![
@@ -3202,9 +3019,8 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
-// if ll_id != 58 { continue }
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {ll_id}/{start}:", "");
@@ -3267,8 +3083,8 @@ fn prs_grammar_notes() {
     let tests: Vec<(u32, VarId, &[&str], &[&str])> = vec![
         //        warnings                                  errors
         //        -------------------------------------     -------------------------------------
-        (1000, 0, &[],                                      &["requires factors not starting with"]),
-        (1001, 0, &[],                                      &["cannot remove recursion from"]),
+        (1000, 0, &[],                                      &["recursive rules must have at least one independent factor"]),
+        // (1001, 0, &[],                                      &["cannot remove recursion from"]),
         (1002, 0, &["ambiguity for NT"],                    &[]),
         (1003, 0, &[],                                      &["no terminal in grammar"]),
         (1004, 0, &[],                                      &["no terminal used in the table"]),
@@ -3488,9 +3304,9 @@ fn rts_prs_flags() {
          btreemap![],
          btreemap![1 => 0],
          btreemap![]),
-        (T::RTS(15), 0, btreemap![0 => 1536, 1 => 142],
-         btreemap![2 => 256],
-         btreemap![1 => 0],
+        (T::RTS(15), 0, btreemap![0 => 1024],
+         btreemap![2 => 256, 6 => 8192, 7 => 8448],
+         btreemap![1 => 0, 2 => 0, 3 => 2],
          btreemap![]),
         (T::RTS(16), 0, btreemap![0 => 6656, 1 => 4129, 2 => 4, 3 => 64],
          btreemap![],
@@ -3568,22 +3384,10 @@ fn rts_prs_flags() {
          btreemap![9 => 256],
          btreemap![1 => 0, 2 => 0, 3 => 1, 4 => 1],
          btreemap![]),
-        (T::PRS(22), 0, btreemap![0 => 1536, 1 => 174, 2 => 64],
-         btreemap![],
-         btreemap![1 => 0, 2 => 1],
-         btreemap![]),
         (T::PRS(25), 0, btreemap![0 => 512, 1 => 36, 2 => 96, 3 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 1, 3 => 2],
          btreemap![]),
-        (T::PRS(26), 0, btreemap![0 => 512, 1 => 4],
-         btreemap![],
-         btreemap![1 => 0],
-         btreemap![1 => Removed]),
-        (T::PRS(26), 1, btreemap![0 => 1536, 1 => 142],
-         btreemap![],
-         btreemap![1 => 0],
-         btreemap![0 => Removed, 1 => MovedTo(0)]),
         (T::PRS(28), 0, btreemap![0 => 32, 1 => 96, 2 => 64],
          btreemap![],
          btreemap![1 => 0, 2 => 1],
@@ -3620,7 +3424,7 @@ fn rts_prs_flags() {
         (T::PRS(), 0, btreemap![], btreemap![], btreemap![], btreemap![]),
         */
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
     for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent, expected_nt_conversion)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
@@ -3651,52 +3455,5 @@ fn rts_prs_flags() {
         assert_eq!(result_fflags, expected_fflags, "test {test_id}/{rule_id:?}/{start_nt} failed");
         assert_eq!(result_parent, expected_parent, "test {test_id}/{rule_id:?}/{start_nt} failed");
         assert_eq!(result_nt_conversion, expected_nt_conversion, "test {test_id}/{rule_id:?}/{start_nt} failed");
-    }
-}
-
-mod priority {
-    use crate::grammar::{prod_to_string, ProdFactor};
-    use crate::prod;
-
-    #[test]
-    fn test_reverse_factors_priority() {
-        let tests = vec![
-            (
-                prod!(nt 0, t 0; nt 0, t 1; nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4, nt 0; t 5, nt 0; nt 0, t 6, nt 0),
-                prod!(nt 0, t 6, nt 0; t 4, nt 0; t 5, nt 0; nt 0, t 3, nt 0; nt 0, t 2, nt 0; nt 0, t 0; nt 0, t 1),
-            ),
-            (
-                prod!(nt 0, t 0, nt 0),
-                prod!(nt 0, t 0, nt 0),
-            ),
-            (
-                prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0),
-                prod!(nt 0, t 1, nt 0; nt 0, t 0, nt 0),
-            ),
-            (
-                prod!(nt 0, t 0),
-                prod!(nt 0, t 0),
-            ),
-            (
-                prod!(nt 0, t 0; nt 0, t 1),
-                prod!(nt 0, t 0; nt 0, t 1),
-            ),
-            (
-                prod!(t 0, nt 0),
-                prod!(t 0, nt 0),
-            ),
-            (
-                prod!(t 0, nt 0; t 1, nt 0),
-                prod!(t 0, nt 0; t 1, nt 0),
-            ),
-        ];
-
-        for (test_id, (prod, expected)) in tests.into_iter().enumerate() {
-            let prod_str = prod_to_string(&prod, None);
-            let result = ProdFactor::reverse_factors_priority(prod.clone(), 0);
-            let expected_str = prod_to_string(&expected, None);
-            let result_str = prod_to_string(&result, None);
-            assert_eq!(result, expected, "test {test_id} failed:\n- original: {prod_str}\n- expected: {expected_str}\n- result:   {result_str}");
-        }
     }
 }

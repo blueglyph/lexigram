@@ -181,30 +181,6 @@ fn parser_parse_stream_id() {
                 "syntax error: found input '}' instead of ';', line 1, col 15"
             ])),
         ]),
-        (T::PRS(22), 0, 3, 4, vec![
-            // - 0: E -> id E_1
-            // - 1: E_1 -> ε
-            // - 2: E_1 -> * id E_1
-            // - 3: E_1 -> + id E_1
-            // - 4: E_1 -> & E_2
-            // - 5: E_2 -> * id E_1
-            // - 6: E_2 -> + id E_1
-            ("a + b * c", None),
-            ("a + b & * c * d", None),
-        ]),
-        (T::PRS(23), 0, 3, 4, vec![
-            // - 0: E -> F E_1
-            // - 1: F -> id
-            // - 2: F -> num
-            // - 3: E_1 -> ε
-            // - 4: E_1 -> * F E_1
-            // - 5: E_1 -> + F E_1
-            // - 6: E_1 -> & E_2
-            // - 7: E_2 -> * F E_1
-            // - 8: E_2 -> + F E_1
-            ("1 + 2 * 3", None),
-            ("a + 1 & * b * 2", None),
-        ]),
         (T::PRS(100), 0, 999, 999, vec![
             ("c a c a c b b", None),
             ("c a c b a c b", None),

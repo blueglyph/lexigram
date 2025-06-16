@@ -910,38 +910,6 @@ impl ProdFactor {
         new
     }
 
-    /// Reverses the items while preserving the relative order within left- and right-recursive chains of operations
-    /// relative to the NT `var`. The relative order of operations in left- and right-recursive operation is
-    /// not ambiguous and their priorities is given by the order of the symbols in the text, so it's not necessary
-    /// to reorder them like ambiguous terms. Furthermore, the resulting generated parser API will be more
-    /// confusing for the user if those operations have changed their relative place in the rule.
-    ///
-    /// # Example
-    ///
-    /// `[lrec1, lrec2, amb1, amb2, rrec1, rrec2, lrec3]` -> `[lrec3, rrec1, rrec2, amb2, amb1, lrec1, lrec2]`
-    fn reverse_factors_priority(mut factors: Vec<ProdFactor>, var: VarId) -> Vec<ProdFactor> {
-        let symbol = Symbol::NT(var);
-        let mut new_f = Vec::<ProdFactor>::new();
-        todo!();
-        // let mut tmp = VecDeque::<ProdFactor>::new();
-        // let mut prev = FactorType::None;
-        // while let Some(f) = factors.pop() {
-        //     let curr = FactorType::from(&symbol, &f);
-        //     if prev != curr {
-        //         new_f.extend(take(&mut tmp));
-        //     }
-        //     match curr {
-        //         FactorType::None | FactorType::Independant => panic!("can't happen in this context"),
-        //         FactorType::RightRecursive => tmp.push_front(f),
-        //         FactorType::LeftRecusive => tmp.push_front(f),
-        //         FactorType::Ambiguous => new_f.push(f),
-        //     }
-        //     prev = curr;
-        // }
-        // new_f.extend(take(&mut tmp));
-        new_f
-    }
-
     fn is_greedy(&self) -> bool {
         self.flags & ruleflag::GREEDY != 0
     }
@@ -978,15 +946,6 @@ impl FactorType {
 
     fn is_binary(&self) -> bool {
         self == &FactorType::LeftAssoc || self == &FactorType::RightAssoc
-    }
-
-    fn get_parent_flag(&self) -> u32 {
-        match self {
-            FactorType::Independant => 0,
-            FactorType::LeftAssoc | FactorType::RightAssoc => ruleflag::PARENT_AMBIGUITY,
-            FactorType::Prefix => ruleflag::R_RECURSION,
-            FactorType::Suffix => ruleflag::PARENT_L_RECURSION,
-        }
     }
 }
 
@@ -1652,7 +1611,7 @@ impl<T> ProdRuleSet<T> {
                     .partition(|factor| factor.first().unwrap() != &symbol && factor.last().unwrap() != &symbol);
                 factors.reverse();
                 if indep.is_empty() {
-                    self.log.add_error(format!("recursive forms must have at least one independent factor: {} -> {}",
+                    self.log.add_error(format!("recursive rules must have at least one independent factor: {} -> {}",
                                        Symbol::NT(var).to_str(self.get_symbol_table()),
                                        prod_to_string(prod, self.get_symbol_table())));
                     prod.extend(factors);
@@ -1788,6 +1747,10 @@ impl<T> ProdRuleSet<T> {
                         if is_used_sym || (i == 0 && greedy_prologue) {
                             f.flags |= ruleflag::GREEDY;
                         }
+                        if !has_binary && pr_info[f_id as usize].ty == FactorType::Suffix {
+                            self.set_flags(nt, ruleflag::PARENT_L_RECURSION);
+                            self.set_flags(nt_loop, ruleflag::CHILD_L_RECURSION);
+                        }
                         f
                     }).to_vec();
                     used_sym.extend(new_used_sym);
@@ -1809,24 +1772,35 @@ impl<T> ProdRuleSet<T> {
                 if need_indep {
                     self.symbol_table.as_mut().map(|t| t.add_non_terminal(format!("{var_name}_{}", rule_var_i + 1)));
                 }
-                if VERBOSE { println!("new factors: {}", new_factors.iter().enumerate()
-                    .filter_map(|(i, nf)| if nf.is_empty() { None } else { Some(format!("[{i}] {}", nf.to_str(self.get_symbol_table()))) }).join(", ")); }
-                self.set_flags(var, pr_info.iter().fold(0, |flag, f| flag | f.ty.get_parent_flag())); // TODO!
-                let mut top_flag = 0;
+                if VERBOSE {
+                    println!("new factors: {}", new_factors.iter().enumerate()
+                        .filter_map(|(i, nf)| if nf.is_empty() { None } else { Some(format!("[{i}] {}", nf.to_str(self.get_symbol_table()))) }).join(", "));
+                    println!("vars: {}{}", var_i_nt.iter().take(rule_var_i + 1).enumerate().map(|(i, (v1, v2))|
+                        format!("[{i}]:{},{}", Symbol::NT(*v1).to_str(self.get_symbol_table()),
+                                Symbol::NT(*v2).to_str(self.get_symbol_table()))).join("  "),
+                                if need_indep { format!("  [{}]:{}", var_i, Symbol::NT(var_i_nt[var_i].0).to_str(self.get_symbol_table() )) } else { String::new() });
+                }
+                if has_binary {
+                    self.set_flags(var, ruleflag::PARENT_AMBIGUITY);
+                } else if !prod_indep.is_empty() && !need_indep {
+                    self.set_flags(var, ruleflag::R_RECURSION);
+                }
                 for (nt, nt_prime) in var_i_nt.into_iter().take(rule_var_i + 1) {
                     if nt != var {
                         self.set_parent(nt, var);
-                        self.set_flags(nt, 0); // TODO!
                     }
                     self.set_parent(nt_prime, nt);
-                    self.set_flags(nt_prime, 0); // TODO!
                 }
                 if let Some(nt_indep) = nt_indep_maybe {
+                    if !has_binary && prod_indep.iter().any(|p| p.last() == Some(&Symbol::NT(nt_indep))) {
+                        self.set_flags(nt_indep, ruleflag::R_RECURSION);
+                    }
                     prod_indep.extend(indep);
                     self.set_parent(nt_indep, var);
-                    self.set_flags(nt_indep, 0); // TODO!
                     extra_prods.push(prod_indep);
                 }
+                self.parent.resize(var_new, None);
+                self.flags.resize(var_new, 0);
             } else if prod.iter().any(|p| !p.is_empty() && p.last().unwrap() == &symbol) {
                 if self.get_flags(var) & ruleflag::CHILD_REPEAT == 0 {
                     self.set_flags(var, ruleflag::R_RECURSION);
