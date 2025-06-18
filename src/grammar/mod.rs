@@ -689,6 +689,7 @@ impl RuleTreeSet<General> {
 
     fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, var: VarId, new_var: &mut VarId, is_plus: bool) {
         const VERBOSE: bool = false;
+        self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.trees.len(), "number of nt in symbol table doesn't match num_nt"));
         let mut qtree = GrTree::new();
         let child = stack.pop().unwrap();
         let mut lform_nt = None;
@@ -708,7 +709,7 @@ impl RuleTreeSet<General> {
                 let or = qtree.add_root(gnode!(|));
                 let cc1 = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(child).inspect(|n| {
                     if let &GrNode::LForm(v) = n.deref() {
-                        lform_nt = Some(v);
+                        lform_nt = Some(v); // TODO: check that it's not already set (uniqueness)
                     }
                 }));
                 qtree.add(Some(cc1), gnode!(nt *new_var));
@@ -734,7 +735,7 @@ impl RuleTreeSet<General> {
                         GrNode::Concat => {
                             let cc = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(*id_child).inspect(|n| {
                                 if let &GrNode::LForm(v) = n.deref() {
-                                    lform_nt = Some(v);
+                                    lform_nt = Some(v); // TODO: check that it's not already set (uniqueness)
                                 }
                             }));
                             qtree.add(Some(cc), gnode!(nt *new_var));
@@ -762,9 +763,11 @@ impl RuleTreeSet<General> {
                     println!("table = {st:?}");
                     println!("L-FORM({v}) found, using name of NT({v}) = '{name}' for new NT({new_var})");
                 }
-                st.add_var_prime_name(var, *new_var, Some(name));
+                //st.add_var_prime_name(var, *new_var, Some(name));
+                assert_eq!(st.add_non_terminal(name), *new_var);
             } else {
-                st.add_var_prime_name(var, *new_var, None);
+                // st.add_var_prime_name(var, *new_var, None);
+                assert_eq!(st.add_child_nonterminal(var), *new_var);
             }
         });
         let id = new.add(None, gnode!(nt *new_var));
@@ -1473,7 +1476,8 @@ impl<T> ProdRuleSet<T> {
                     // if more than one independent factor, moves them in a new NT to simplify the resulting rules
                     let var_ambig = new_var;
                     if let Some(table) = &mut self.symbol_table {
-                        table.add_var_prime_name(var, new_var, None);
+                        // table.add_var_prime_name(var, new_var, None);
+                        assert_eq!(table.add_child_nonterminal(var), new_var);
                     }
                     self.set_flags(var_ambig, ruleflag::CHILD_INDEPENDENT_AMBIGUITY);
                     self.set_parent(var_ambig, var);
@@ -1490,7 +1494,8 @@ impl<T> ProdRuleSet<T> {
                 self.set_flags(var, ruleflag::PARENT_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::PARENT_AMBIGUITY });
                 self.set_parent(var_prime, var);
                 if let Some(table) = &mut self.symbol_table {
-                    table.add_var_prime_name(var, var_prime, None);
+                    // table.add_var_prime_name(var, var_prime, None);
+                    assert_eq!(table.add_child_nonterminal(var), var_prime);
                 }
                 let symbol_prime = Symbol::NT(var_prime);
                 if let Some(var_ambig) = var_ambig {
@@ -1589,8 +1594,9 @@ impl<T> ProdRuleSet<T> {
         /// Maximum number of P/I factors that are distributed before creating a new nonterminal to hold them.
         /// They are never distributed in presence of a binary (L/R) because it would likely induce left factorization.
         const MAX_DISTRIB_LEN: Option<usize> = None; // always distributing makes for smaller tables
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
+        self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.num_nt, "number of nt in symbol table doesn't match num_nt"));
         if VERBOSE {
             println!("ORIGINAL:");
             print_production_rules(&self, false);
@@ -1763,18 +1769,25 @@ impl<T> ProdRuleSet<T> {
                         *prod = prod_nt;
                         extra_prods.push(prod_nt_loop);
                         self.symbol_table.as_mut().map(|t| {
-                            t.add_non_terminal(format!("{var_name}_{}", if rule_var_i + num_indep > 0 { "b" } else { "1" }));
+                            // t.add_non_terminal(format!("{var_name}_{}", if rule_var_i + num_indep > 0 { "b" } else { "1" }));
+                            assert_eq!(t.add_child_nonterminal(var), var_i_nt[0].1);
                         });
                     } else {
                         extra_prods.extend([prod_nt, prod_nt_loop]);
                         self.symbol_table.as_mut().map(|t| {
-                            t.add_non_terminal(format!("{var_name}_{i}"));
-                            t.add_non_terminal(format!("{var_name}_{i}b"));
+                            // t.add_non_terminal(format!("{var_name}_{i}"));
+                            // t.add_non_terminal(format!("{var_name}_{i}b"));
+                            assert_eq!(t.add_child_nonterminal(var), var_i_nt[i].0);
+                            assert_eq!(t.add_child_nonterminal(var), var_i_nt[i].1);
                         });
                     }
                 }
                 if need_indep {
-                    self.symbol_table.as_mut().map(|t| t.add_non_terminal(format!("{var_name}_{}", rule_var_i + 1)));
+                    // self.symbol_table.as_mut().map(|t| t.add_non_terminal(format!("{var_name}_{}", rule_var_i + 1)));
+                    self.symbol_table.as_mut().map(|t| {
+                        // t.add_non_terminal(format!("{var_name}_{}", rule_var_i + 1))
+                        assert_eq!(t.add_child_nonterminal(var), nt_indep_maybe.unwrap());
+                    });
                 }
                 if VERBOSE {
                     println!("new factors: {}", new_factors.iter().enumerate()
@@ -1899,7 +1912,8 @@ impl<T> ProdRuleSet<T> {
                 self.set_flags(var, ruleflag::PARENT_L_FACTOR);
                 self.set_flags(var_prime, ruleflag::CHILD_L_FACTOR);
                 if let Some(table) = &mut self.symbol_table {
-                    table.add_var_prime_name(var, var_prime, None);
+                    // table.add_var_prime_name(var, var_prime, None);
+                    assert_eq!(table.add_child_nonterminal(var), var_prime);
                 }
                 self.set_parent(var_prime, var);
                 let symbol_prime = Symbol::NT(var_prime);

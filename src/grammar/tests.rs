@@ -1420,9 +1420,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             symbol_table.extend_non_terminals([
                 "E".to_string(),        // 0
-                "E3".to_string(),       // 1
-                "E5".to_string(),       // 2
-                "E6".to_string(),       // 3
+                // "E3".to_string(),       // 1
+                // "E5".to_string(),       // 2
+                // "E6".to_string(),       // 3
             ]);
             prods.extend([
                 prod!(#R, nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2, nt 0; nt 0, t 3, nt 0; t 4),
@@ -3026,7 +3026,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {

@@ -182,6 +182,7 @@ impl CharLen for str {
 // Source generation helper traits and types
 
 /// Dictionary-based helper that adapts names to guarantee they're unique.
+#[derive(Clone, Debug)]
 pub struct NameFixer {
     dic: HashSet<String>
 }
@@ -211,13 +212,19 @@ impl NameFixer {
         let dic = HashSet::<String>::new();
         NameFixer { dic }
     }
-
+    
     /// Adds a name to the internal dictionary without checking whether it already existed or not. Use this
     /// method to pre-fill existing names.
     pub fn add(&mut self, name: String) {
         self.dic.insert(name);
     }
 
+    /// Removes a name from the internal dictionary. Returns `true` if the name was in the dictionary.
+    pub fn remove(&mut self, name: &str) -> bool {
+        self.dic.remove(name)
+    } 
+    
+    /// Checks if a name is already in the internal dictionary.
     pub fn contains(&self, name: &str) -> bool {
         self.dic.contains(name)
     }
@@ -247,6 +254,12 @@ impl NameFixer {
         }
         self.dic.insert(name.clone());
         name
+    }
+    
+    /// Returns `name` followed by "_1" if it's unique, or finds another incremental suffix number to make sure it's unique.
+    pub fn get_unique_name_unum(&mut self, mut name: String) -> String {
+        name.push('_');
+        self.get_unique_name_num(name)
     }
 
     /// Adds `_{num}` or `{num}` to the string depending on its last character, whether it's respectivelly a digit or not.
@@ -497,6 +510,17 @@ mod libtests {
         assert_eq!(fixer.get_unique_name_num("a".to_string()), "a3");
         assert_eq!(fixer.get_unique_name_num("U2".to_string()), "U2_1");
         assert_eq!(fixer.get_unique_name_num("U2".to_string()), "U2_2");
+    }
+
+    #[test]
+    fn test_name_fixer_under_num() {
+        let mut fixer = NameFixer::new();
+        assert_eq!(fixer.get_unique_name_unum("a".to_string()), "a_1");
+        assert_eq!(fixer.get_unique_name_unum("a".to_string()), "a_2");
+        assert_eq!(fixer.get_unique_name_unum("b".to_string()), "b_1");
+        assert_eq!(fixer.get_unique_name_unum("a".to_string()), "a_3");
+        assert_eq!(fixer.get_unique_name_unum("U2".to_string()), "U2_1");
+        assert_eq!(fixer.get_unique_name_unum("U2".to_string()), "U2_2");
     }
 
     #[test]

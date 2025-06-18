@@ -1267,7 +1267,7 @@ impl ParserGen {
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
-        const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
+        const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = true;
 
         self.used_libs.extend([
             "lexigram::CollectJoin", "lexigram::grammar::VarId", "lexigram::parser::Call", "lexigram::parser::ListenerWrapper", "lexigram::grammar::FactorId",

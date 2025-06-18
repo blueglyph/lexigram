@@ -1406,7 +1406,7 @@ mod wrapper_source {
 
             // E -> E ^ E <R> | E * E <R> | - E | E + E | F
             // F ->  ID | NUM | ( E )
-            (PRS(53), true, 0, btreemap![
+            (PRS(53), false, 0, btreemap![
             ], btreemap![
             ], Default, btreemap![]),
             // E -> E : E | E ^ E | E / E | E * E | E - E | E + E | F
@@ -1594,7 +1594,7 @@ mod wrapper_source {
         // print sources
         const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
         const TEST_SOURCE: bool = true;
@@ -1607,14 +1607,9 @@ mod wrapper_source {
 
         let mut num_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
-println!("build_items: WARNING! tests disabled: 51, ...");
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-// if rule_id == PRS(51) || rule_id == PRS(55) { continue }
-// if rule_id != PRS(44) { continue }
-// if rule_id != PRS(63) { continue }
-// if rule_id != PRS(65) { continue }
-// if !hashset!(PRS(44), PRS(45), PRS(47), PRS(48)).contains(&rule_id) { continue }
-// if hashset!(PRS(51), PRS(52), PRS(63)).contains(&rule_id) { continue } // fix rrec+lfact bug
+// if rule_id != PRS(58) { continue }
+// if rule_id != PRS(33) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);

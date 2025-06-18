@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 use crate::dfa::TokenId;
 use crate::grammar::{Symbol, VarId};
+use crate::NameFixer;
 
 /// Stores the names of the terminal and non-terminal symbols.
 ///
@@ -49,7 +50,9 @@ pub struct SymbolTable {
     t: Vec<(String, Option<String>)>,
     nt: Vec<String>,
     names: HashMap<String, VarId>,
-    primes: HashMap<VarId, VarId>, // primes[A_1] = A
+    fixer_t: NameFixer,
+    fixer_nt: NameFixer,
+    // primes: HashMap<VarId, VarId>, // primes[A_1] = A
 }
 
 impl SymbolTable {
@@ -58,7 +61,9 @@ impl SymbolTable {
             t: Vec::new(),
             nt: Vec::new(),
             names: HashMap::new(),
-            primes: HashMap::new(),
+            fixer_t: NameFixer::new_empty(),
+            fixer_nt: NameFixer::new_empty(),
+            // primes: HashMap::new(),
         }
     }
 
@@ -79,7 +84,8 @@ impl SymbolTable {
     pub fn add_terminal<J: Into<String>>(&mut self, name: J, name_maybe: Option<J>) -> TokenId {
         let token = self.t.len();
         assert!(token < TokenId::MAX as usize);
-        self.t.push((name.into(), name_maybe.map(|n| n.into())));
+        let unique_name = self.fixer_t.get_unique_name(name.into());
+        self.t.push((unique_name, name_maybe.map(|n| n.into())));
         token as TokenId
     }
 
@@ -91,17 +97,29 @@ impl SymbolTable {
         self.t.len()
     }
 
-    pub fn extend_terminals<I: IntoIterator<Item=(J, Option<J>)>, J: Into<String>>(&mut self, iter: I) {
-        self.t.extend(iter.into_iter().map(|(s, maybe)| (s.into(), maybe.map(|s2| s2.into()))));
+    pub fn extend_terminals<I: IntoIterator<Item=(J, Option<J>)>, J: Into<String>>(&mut self, terminals: I) {
+        for (s, maybe) in terminals {
+            self.add_terminal(s, maybe);
+        }
     }
 
     pub fn add_non_terminal<J: Into<String>>(&mut self, name: J) -> VarId {
         let var = self.nt.len();
         assert!(var < VarId::MAX as usize);
-        self.nt.push(name.into());
+        let unique_name = self.fixer_nt.get_unique_name(name.into());
+        self.nt.push(unique_name);
         var as VarId
     }
 
+    pub fn add_child_nonterminal(&mut self, var: VarId) -> VarId {
+        let name = self.get_nt_name(var);
+        let var = self.nt.len();
+        assert!(var < VarId::MAX as usize);
+        let unique_name = self.fixer_nt.get_unique_name_unum(name);
+        self.nt.push(unique_name);
+        var as VarId
+    }
+    
     pub fn get_non_terminals(&self) -> &[String] {
         &self.nt
     }
@@ -110,8 +128,10 @@ impl SymbolTable {
         self.nt.len()
     }
 
-    pub fn extend_non_terminals<I: IntoIterator<Item=J>, J: Into<String>>(&mut self, iter: I) {
-        self.nt.extend(iter.into_iter().map(|s| s.into()));
+    pub fn extend_non_terminals<I: IntoIterator<Item=J>, J: Into<String>>(&mut self, nonterminals: I) {
+        for s in nonterminals {
+            self.add_non_terminal(s);
+        }
     }
 
     pub fn remove_non_terminal(&mut self, v: VarId) {
@@ -120,10 +140,11 @@ impl SymbolTable {
             if *old_v >= v { *old_v -= 1; }
         }
         self.names.remove(&name);
-        self.primes = self.primes.iter()
-            .filter(|&(child, parent)| *child != v && *parent != v)
-            .map(|(&child, &parent)| (if child > v { child - 1 } else { child }, if parent > v { parent - 1 } else { parent }))
-            .collect::<HashMap<_, _>>();
+        self.fixer_nt.remove(&name);
+        // self.primes = self.primes.iter()
+        //     .filter(|&(child, parent)| *child != v && *parent != v)
+        //     .map(|(&child, &parent)| (if child > v { child - 1 } else { child }, if parent > v { parent - 1 } else { parent }))
+        //     .collect::<HashMap<_, _>>();
     }
 
     pub fn get_names(&self) -> impl Iterator<Item=(&String, &VarId)> {
@@ -150,30 +171,30 @@ impl SymbolTable {
         noname
     }
 
-    /// Adds a new variable `var_prime` derived from another `var`. If `var` itself is
-    /// a prime, find the original ancestor as `var`. Use the name of `var` (or its ancestor)
-    /// and adds a numeric suffix, making sure the new name doesn't already exist.
-    pub fn add_var_prime_name(&mut self, mut var: VarId, var_prime: VarId, name: Option<String>) {
-        assert_eq!(self.nt.len(), var_prime as usize, "bad var_prime index {var_prime} (should be {})", self.nt.len());
-        while let Some(ancestor) = self.primes.get(&var) {
-            var = *ancestor;
-        }
-        let parent_name = &self.nt[var as usize].clone();
-        let name_prime = name.unwrap_or(
-            // if the name is not given, adds a number after the parent's name, checking that it's unique
-            (1..).find_map(|i| {
-                let attempt = format!("{parent_name}_{i}");
-                if !self.names.contains_key(&attempt) {
-                    Some(attempt)
-                } else {
-                    None
-                }
-            }).expect(&format!("couldn't find an associated name for '{parent_name}'"))
-        );
-        self.names.insert(name_prime.clone(), var_prime);
-        self.primes.insert(var_prime, var);
-        self.nt.push(name_prime);
-    }
+    // /// Adds a new variable `var_prime` derived from another `var`. If `var` itself is
+    // /// a prime, find the original ancestor as `var`. Use the name of `var` (or its ancestor)
+    // /// and adds a numeric suffix, making sure the new name doesn't already exist.
+    // pub fn add_var_prime_name(&mut self, mut var: VarId, var_prime: VarId, name: Option<String>) {
+    //     assert_eq!(self.nt.len(), var_prime as usize, "bad var_prime index {var_prime} (should be {})", self.nt.len());
+    //     while let Some(ancestor) = self.primes.get(&var) {
+    //         var = *ancestor;
+    //     }
+    //     let parent_name = &self.nt[var as usize].clone();
+    //     let name_prime = name.unwrap_or(
+    //         // if the name is not given, adds a number after the parent's name, checking that it's unique
+    //         (1..).find_map(|i| {
+    //             let attempt = format!("{parent_name}_{i}");
+    //             if !self.names.contains_key(&attempt) {
+    //                 Some(attempt)
+    //             } else {
+    //                 None
+    //             }
+    //         }).expect(&format!("couldn't find an associated name for '{parent_name}'"))
+    //     );
+    //     self.names.insert(name_prime.clone(), var_prime);
+    //     self.primes.insert(var_prime, var);
+    //     self.nt.push(name_prime);
+    // }
 
     pub fn get_t_str(&self, token: TokenId) -> String {
         match token {
@@ -224,7 +245,6 @@ impl Default for SymbolTable {
 
 #[cfg(test)]
 mod tests {
-    use crate::hashmap;
     use super::*;
 
     #[test]
@@ -232,34 +252,21 @@ mod tests {
         let mut st = SymbolTable::new();
         st.extend_non_terminals(["A".to_string(), "NOT_USED".to_string(), "E".to_string()]);
         let mut st2 = st.clone();
-        st.add_var_prime_name(0, 3, None);
+        assert_eq!(st.add_child_nonterminal(0), 3);
         assert_eq!(st.get_name(&Symbol::NT(3)), "A_1");
-        st.add_var_prime_name(3, 4, None);
+        assert_eq!(st.add_child_nonterminal(0), 4);
         assert_eq!(st.get_name(&Symbol::NT(4)), "A_2");
-        st.add_var_prime_name(2, 5, None);
+        assert_eq!(st.add_child_nonterminal(2), 5);
         assert_eq!(st.get_name(&Symbol::NT(5)), "E_1");
-        st.add_var_prime_name(1, 6, None);
-        assert_eq!(st.primes, hashmap![3 => 0, 4 => 0, 5 => 2, 6 => 1]);
+        assert_eq!(st.add_child_nonterminal(1), 6);
         st.remove_non_terminal(1);
-        assert_eq!(st.primes, hashmap![2 => 0, 3 => 0, 4 => 1]);
         assert_eq!(st.get_name(&Symbol::NT(2)), "A_1");
         assert_eq!(st.get_name(&Symbol::NT(3)), "A_2");
         assert_eq!(st.get_name(&Symbol::NT(4)), "E_1");
 
-        st2.add_var_prime_name(1, 3, None);
-        st2.add_var_prime_name(0, 4, None);
-        st2.add_var_prime_name(2, 5, None);
-        assert_eq!(st2.primes, hashmap![3 => 1, 4 => 0, 5 => 2]);
+        assert_eq!(st2.add_child_nonterminal(1), 3);
+        assert_eq!(st2.add_child_nonterminal(0), 4);
+        assert_eq!(st2.add_child_nonterminal(2), 5);
         st2.remove_non_terminal(3);
-        assert_eq!(st2.primes, hashmap![        3 => 0, 4 => 2]);
-    }
-
-    #[test]
-    #[should_panic(expected="bad var_prime index 2")]
-    fn overwrite_prime() {
-        let mut st = SymbolTable::new();
-        st.extend_non_terminals(["A".to_string(), "B".to_string()]);
-        st.add_var_prime_name(0, 2, None);
-        st.add_var_prime_name(1, 2, None);
     }
 }

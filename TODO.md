@@ -10,6 +10,9 @@
     - [x] Logger in LexerGen
       - [ ] populate
   - [ ] when creating the parser
+    - [ ] check there aren't multiple <L=...> (see lform_nt in normalize_plus_or_star)
+    - [ ] check that flags are not out of place
+    - [ ] check that rules are supported (cyclic recursive, ...?)
     - [x] ~~Gram's listener~~
     - [ ] ParserGen
       - [ ] populate log with info (& warnings, errors?)
