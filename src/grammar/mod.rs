@@ -890,6 +890,10 @@ impl ProdFactor {
         s
     }
 
+    pub fn to_rule_str(&self, nt: VarId, symbol_table: Option<&SymbolTable>) -> String {
+        format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), self.to_str(symbol_table))
+    }
+
     fn factor_first(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashSet<Symbol> {
         // factor.iter().map(|s| first.get(s).unwrap().clone()).take_until(|h| !h.contains(&Symbol::Empty)).flatten().collect()
         let mut new = HashSet::<Symbol>::new();

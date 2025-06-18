@@ -1267,6 +1267,7 @@ impl ParserGen {
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
+        const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
 
         self.used_libs.extend([
             "lexigram::CollectJoin", "lexigram::grammar::VarId", "lexigram::parser::Call", "lexigram::parser::ListenerWrapper", "lexigram::grammar::FactorId",
@@ -1599,7 +1600,11 @@ impl ParserGen {
                     if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {
                         let (v, pf) = &self.parsing_table.factors[*f as usize];
-                        format!("// {}", self.full_factor_str::<false>(*f, None, false))
+                        if MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS {
+                            format!("// {}", self.full_factor_str::<false>(*f, None, false))
+                        } else {
+                            format!("// {}", pf.to_rule_str(*v, self.get_symbol_table()))
+                        }
                     }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
                     if !no_method {
@@ -1748,8 +1753,12 @@ impl ParserGen {
             for (f, _) in exit_factor_done.iter().filter(|(_, done)| !**done) {
                 let is_called = self.opcodes[*f as usize].iter().any(|o| *o == OpCode::Exit(*f));
                 let (v, pf) = &self.parsing_table.factors[*f as usize];
-                let comment = format!("// {} ({})", self.full_factor_str::<false>(*f, None, false),
-                                      if is_called { "not used" } else { "never called" });
+                let factor_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS {
+                    self.full_factor_str::<false>(*f, None, false)
+                } else {
+                    pf.to_rule_str(*v, self.get_symbol_table())
+                };
+                let comment = format!("// {factor_str} ({})", if is_called { "not used" } else { "never called" });
                 if is_called {
                     src_exit.push(vec![format!("                    {f} => {{}}"), comment]);
                 } else {

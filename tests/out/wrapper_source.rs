@@ -9040,10 +9040,10 @@ pub(crate) mod rules_prs_58_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 |                                         // E -> -
-                        1 => self.inter_e(factor_id),               // E -> 0
-                        2 => {}                                     // E -> E + (not used)
-                        3 => {}                                     // end of iterations in E -> E + (not used)
+                        0 |                                         // E -> - E
+                        1 => self.inter_e(factor_id),               // E -> 0 E_1
+                        2 => {}                                     // E_1 -> + E_1 (not used)
+                        3 => {}                                     // E_1 -> ε (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
