@@ -854,6 +854,13 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 0, t 0, nt 0; t 1),    // A -> A a A | b
             ]);
         }
+        9 => {
+            // simple rules
+            prods.extend([
+                prod!(t 0, nt 1, t 2),          // A -> a B c
+                prod!(t 1; t 3),                // B -> b | d
+            ])
+        }
         14 => {
             // A -> A A | a
             prods.extend([

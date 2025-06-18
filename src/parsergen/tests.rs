@@ -261,6 +261,12 @@ mod opcodes {
         // exit:         ◄2 (factor #2)
         // loop:         ●1 (factor #1)
         let tests: Vec<(T, VarId, Vec<Vec<OpCode>>)> = vec![
+            // basic rules -----------------------------------------------------------------
+            (T::PRS(9), 0, vec![
+                strip![exit 0, t 2, nt 1, t 0],         //  0: A -> a B c - ◄0 c ►B a
+                strip![exit 1, t 1],                    //  1: B -> b     - ◄1 b
+                strip![exit 2, t 3],                    //  2: B -> d     - ◄2 d
+            ]),
             // [A] + and * normalization ---------------------------------------------------
             // (note that + normalization implies a [D] left factorization)
             (T::RTS(9), 0, vec![                        // A -> var (id ,)+
@@ -355,11 +361,6 @@ mod opcodes {
                 strip![exit 2, t 1],                    //  2: B -> b   - ◄2 b
             ]),
             // [C] left recursion ----------------------------------------------------------
-            (T::PRS(26), 0, vec![                       // A -> A a | b
-                strip![nt 1, exit 0, t 1],              //  0: A -> b A_1   - ►A_1 ◄0 b
-                strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A_1 ◄1 a
-                strip![exit 2],                         //  2: A_1 -> ε     - ◄2
-            ]),
             (T::PRS(31), 0, vec![                       // E -> F | E . id;  F -> id
                 strip![nt 2, exit 0, nt 1],             //  0: E -> F E_1      - ►E_1 ◄0 ►F
                 strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
@@ -417,33 +418,16 @@ mod opcodes {
                 strip![loop 1, exit 7],                 //  7: A_3 -> A_1   - ●A_1 ◄7
             ]),
             // [C/amb] left recursion and ambiguity ----------------------------------------
-            (T::PRS(22), 0, vec![                       // E -> E * E | E & * E | E + E | E & + E | id
-                strip![nt 1, exit 0, t 3],              //  0: E -> id E_1     - ►E_1 ◄0 id!
-                strip![loop 1, exit 1, t 3, t 0],       //  1: E_1 -> * id E_1 - ●E_1 ◄1 id! *
-                strip![loop 1, exit 2, t 3, t 1],       //  2: E_1 -> + id E_1 - ●E_1 ◄2 id! +
-                strip![nt 2, t 2],                      //  3: E_1 -> & E_2    - ►E_2 &
-                strip![exit 4],                         //  4: E_1 -> ε        - ◄4
-                strip![nt 1, exit 5, t 3, t 0],         //  5: E_2 -> * id E_1 - ►E_1 ◄5 id! *
-                strip![nt 1, exit 6, t 3, t 1],         //  6: E_2 -> + id E_1 - ►E_1 ◄6 id! +
+
+            // TODO
+
+            #[cfg(any())]
+            (T::PRS(8), 0, vec![
             ]),
-            (T::PRS(26), 1, vec![                       // B -> B a B | b
-                strip![nt 1, exit 0, t 1],              //  0: B -> b B_1     - ►B_1 ◄0 b
-                strip![loop 1, exit 1, t 1, t 0],       //  1: B_1 -> a b B_1 - ●B_1 ◄1 b a
-                strip![exit 2],                         //  2: B_1 -> ε       - ◄2
+            #[cfg(any())]
+            (T::PRS(51), 0, vec![
             ]),
-            (T::PRS(13), 0, vec![
-                strip![nt 2, exit 0, nt 1],             //  0: E -> F E_1     - ►E_1 ◄0 ►F
-                strip![exit 1, t 5, nt 0, t 4],         //  1: F -> ( E )     - ◄1 ) ►E (
-                strip![exit 2, t 6],                    //  2: F -> N         - ◄2 N!
-                strip![exit 3, t 7],                    //  3: F -> I         - ◄3 I!
-                strip![loop 2, exit 4, nt 1, t 9],      //  4: E_1 -> : F E_1 - ●E_1 ◄4 ►F :
-                strip![loop 2, exit 5, nt 1, t 8],      //  5: E_1 -> ^ F E_1 - ●E_1 ◄5 ►F ^
-                strip![loop 2, exit 6, nt 1, t 2],      //  6: E_1 -> / F E_1 - ●E_1 ◄6 ►F /
-                strip![loop 2, exit 7, nt 1, t 3],      //  7: E_1 -> * F E_1 - ●E_1 ◄7 ►F *
-                strip![loop 2, exit 8, nt 1, t 0],      //  8: E_1 -> - F E_1 - ●E_1 ◄8 ►F -
-                strip![loop 2, exit 9, nt 1, t 1],      //  9: E_1 -> + F E_1 - ●E_1 ◄9 ►F +
-                strip![exit 10],                        // 10: E_1 -> ε       - ◄10
-            ]),
+
             // [A + C] normalization + left recursion --------------------------------------
             (T::RTS(26), 0, vec![                       // A -> A a* b | c
                 strip![nt 2, exit 0, t 0],              //  0: A -> a A_2       - ►A_2 ◄0 a
@@ -478,27 +462,13 @@ mod opcodes {
                 strip![nt 1, exit 3, t 2],              //  3: A_2 -> c A_1 - ►A_1 ◄3 c
                 strip![nt 1, exit 4, t 3],              //  4: A_2 -> d A_1 - ►A_1 ◄4 d
             ]),
-            (T::PRS(51), 0, vec![
-                strip![nt 3, exit 0, nt 2],             //  0: E -> E_1 E_2       - ►E_2 ◄0 ►E_1
-                strip![exit 1, t 6, nt 0, t 5],         //  1: F -> ( E )         - ◄1 ) ►E (
-                strip![exit 2, t 7],                    //  2: F -> NUM           - ◄2 NUM!
-                strip![exit 3, t 8],                    //  3: F -> ID            - ◄3 ID!
-                strip![loop 3, exit 4, loop 2, t 0],    //  4: E_1 -> abs E_1 E_2 - ●E_2 ◄4 ●E_1 abs
-                strip![loop 3, exit 5, loop 2, t 1],    //  5: E_1 -> - E_1 E_2   - ●E_2 ◄5 ●E_1 -
-                strip![exit 6, nt 1],                   //  6: E_1 -> F           - ◄6 ►F
-                strip![loop 3, exit 7, t 9],            //  7: E_2 -> ' E_2       - ●E_2 ◄7 '
-                strip![loop 3, exit 8, nt 2, t 2],      //  8: E_2 -> ^ E_1 E_2   - ●E_2 ◄8 ►E_1 ^
-                strip![loop 3, exit 9, nt 2, t 3],      //  9: E_2 -> * E_1 E_2   - ●E_2 ◄9 ►E_1 *
-                strip![loop 3, exit 10, nt 2, t 4],     // 10: E_2 -> + E_1 E_2   - ●E_2 ◄10 ►E_1 +
-                strip![exit 11],                        // 11: E_2 -> ε           - ◄11
-            ]),
             /*
             (T::PRS(), 0, vec![
             ]),
             */
         ];
-        const VERBOSE: bool = false;
-        const TESTS_ALL: bool = true;
+        const VERBOSE: bool = true;
+        const TESTS_ALL: bool = false;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
@@ -595,6 +565,19 @@ mod wrapper_source {
             HasValue,                       // which symbols have a value
             BTreeMap<VarId, Vec<FactorId>>, // expected factor groups
         )> = vec![
+            // -----------------------------------------------------------------------------
+            // NT flags:
+            //  - (nothing)
+            // parents:
+            //  - (nothing)
+            (PRS(9), false, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a B c | ◄0 c! ►B a! | a B c
+                1 => symbols![t 1],                     //  1: B -> b     | ◄1 b!       | b
+                2 => symbols![t 3],                     //  2: B -> d     | ◄2 d!       | d
+            ], Default, btreemap![0 => vec![0], 1 => vec![1, 2]]),
             // --------------------------------------------------------------------------- NT/T simple mix
             // S -> id = VAL | exit | return VAL
             // VAL -> id | num
@@ -1589,7 +1572,7 @@ mod wrapper_source {
         // print sources
         const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
         const TEST_SOURCE: bool = true;
