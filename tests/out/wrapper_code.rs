@@ -500,6 +500,17 @@ pub(crate) mod code_rts_33_1 {
     pub struct SynB();
 }
 
+pub(crate) mod code_prs_58_1 {
+    // ------------------------------------------------------------
+    // wrapper source for rule RTS(58) #1, start E
+
+    use crate::out::wrapper_source::level_string::LevelString;
+
+    /// User-defined type for `E`
+    #[derive(Debug, PartialEq)]
+    pub struct SynE(pub LevelString);
+}
+
 pub(crate) mod code_rts_100_1 {
     // ------------------------------------------------------------
     // wrapper source for rule RTS(100) #1, start file

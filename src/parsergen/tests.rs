@@ -74,6 +74,7 @@ mod gen_integration {
             13 => Some((PRS(36), 4,    false, "write_source_code_for_integration_listener13",  "Expr")),
             14 => Some((PRS(63), 4,    false, "write_source_code_for_integration_listener14",  "Expr")),
             15 => Some((PRS(53), 4,    false, "write_source_code_for_integration_listener15",  "Expr")),
+            16 => Some((PRS(58), 4,    false, "write_source_code_for_integration_listener16",  "Expr")),
             _ => None
         }
     }
@@ -210,6 +211,12 @@ mod gen_integration {
     #[test]
     fn write_source_code_for_integration_listener15() {
         do_test(15, Action::WriteSource, true);
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source_code_for_integration_listener16() {
+        do_test(16, Action::WriteSource, true);
     }
 }
 
@@ -1366,7 +1373,42 @@ mod wrapper_source {
                 3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> B c A_1 | ●A_1 ◄3 c! ►B | A_1 B c
                 4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
             ], All, btreemap![0 => vec![0, 1], 1 => vec![2]]),
-            // --------------------------------------------------------------------------- left_rec + amb
+            // --------------------------------------------------------------------------- mix recursion
+            // E -> E + | - E | 0
+            // NT flags:
+            //  - E: right_rec | parent_left_rec (514)
+            //  - E_1: child_left_rec (4)
+            // parents:
+            //  - E_1 -> E
+            (PRS(58), true, 0, btreemap![
+                0 => "SynE".to_string(),
+            ], btreemap![
+                0 => symbols![nt 0],                    //  0: E -> - E     | ►E ◄0 -   | E
+                1 => symbols![],                        //  1: E -> 0 E_1   | ►E_1 ◄1 0 |
+                2 => symbols![nt 0],                    //  2: E_1 -> + E_1 | ●E_1 ◄2 + | E
+                3 => symbols![nt 0],                    //  3: E_1 -> ε     | ◄3        | E
+            ], Default, btreemap![0 => vec![0, 1]]),
+            // --------------------------------------------------------------------------- ambiguous
+            // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | F;
+            // F -> ( E ) | NUM | ID
+            (PRS(51), false, 0, btreemap![
+            ], btreemap![
+            ], Default, btreemap![0 => vec![0], 1 => vec![1, 2, 3]]),
+            // E -> E * E | E ! | E ' | E + E | F;
+            // F -> NUM | ID
+            (PRS(52), false, 0, btreemap![
+            ], btreemap![
+            ], Default, btreemap![0 => vec![0], 1 => vec![1, 2], 7 => vec![12]]),
+            // E -> <R> E ^ E | E * E | - E | E + E | ID;
+            (PRS(63), true, 0, btreemap![
+            ], btreemap![
+            ], Default, btreemap![0 => vec![0], 1 => vec![1], 2 => vec![12, 13], 3 => vec![3, 4]]),
+
+            // E -> E ^ E <R> | E * E <R> | - E | E + E | F
+            // F ->  ID | NUM | ( E )
+            (PRS(53), true, 0, btreemap![
+            ], btreemap![
+            ], Default, btreemap![]),
             // E -> E : E | E ^ E | E / E | E * E | E - E | E + E | F
             // F -> ( E ) | NUM | ID
             // NT flags:
@@ -1520,26 +1562,6 @@ mod wrapper_source {
                 59 => symbols![nt 12],                  // 59: repeat_item_3 -> ?                     | ◄59 ?                         | item
                 60 => symbols![nt 12],                  // 60: repeat_item_3 -> ε                     | ◄60                           | item
             ], Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 43, 44], 6 => vec![10], 7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![46, 48, 57, 58, 59, 60], 12 => vec![22, 23, 24, 26, 27, 49, 50], 13 => vec![28, 29, 30], 14 => vec![31, 51, 52]]),
-            // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | F;
-            // F -> ( E ) | NUM | ID
-            (PRS(51), false, 0, btreemap![
-            ], btreemap![
-            ], Default, btreemap![0 => vec![0], 1 => vec![1, 2, 3]]),
-            // E -> E * E | E ! | E ' | E + E | F;
-            // F -> NUM | ID
-            (PRS(52), false, 0, btreemap![
-            ], btreemap![
-            ], Default, btreemap![0 => vec![0], 1 => vec![1, 2], 7 => vec![12]]),
-            // E -> <R> E ^ E | E * E | - E | E + E | ID;
-            (PRS(63), true, 0, btreemap![
-            ], btreemap![
-            ], Default, btreemap![0 => vec![0], 1 => vec![1], 2 => vec![12, 13], 3 => vec![3, 4]]),
-
-            // E -> E ^ E <R> | E * E <R> | - E | E + E | F
-            // F ->  ID | NUM | ( E )
-            (PRS(53), true, 0, btreemap![
-            ], btreemap![
-            ], Default, btreemap![]),
 
             // A -> A B a | B
             // B -> b
