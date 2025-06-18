@@ -1096,6 +1096,14 @@ impl<T> ProdRuleSet<T> {
         }
     }
 
+    fn get_top_parent(&self, nt: VarId) -> VarId {
+        let mut var = nt;
+        while let Some(parent) = self.parent[var as usize] {
+            var = parent;
+        }
+        var
+    }
+
     /// Calculates `num_t` and `num_nt` (done right after importing rules).
     /// - `num_t` is calculated on the basis of the higher symbol found in the production rules,
     /// so we can drop any unused symbol that is higher and keep the table width down. We can't
@@ -1911,10 +1919,8 @@ impl<T> ProdRuleSet<T> {
                 new_var += 1;
                 self.set_flags(var, ruleflag::PARENT_L_FACTOR);
                 self.set_flags(var_prime, ruleflag::CHILD_L_FACTOR);
-                if let Some(table) = &mut self.symbol_table {
-                    // table.add_var_prime_name(var, var_prime, None);
-                    assert_eq!(table.add_child_nonterminal(var), var_prime);
-                }
+                let top = self.get_top_parent(var);
+                self.symbol_table.as_mut().map(|table| assert_eq!(table.add_child_nonterminal(top), var_prime));
                 self.set_parent(var_prime, var);
                 let symbol_prime = Symbol::NT(var_prime);
                 factorized.v.push(symbol_prime);

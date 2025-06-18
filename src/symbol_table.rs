@@ -151,24 +151,26 @@ impl SymbolTable {
         self.names.iter()
     }
 
-    pub fn extend_names<I: IntoIterator<Item=(String, VarId)>>(&mut self, iter: I) {
-        self.names.extend(iter);
-    }
+    // pub fn extend_names<I: IntoIterator<Item=(String, VarId)>>(&mut self, iter: I) {
+    //     self.names.extend(iter);
+    // }
 
     /// Removes the name assigned to NT `var` and returns it. Internally, the name of the NT is
     /// replaced by another unique string. The NT is expected to be removed later.
     pub fn remove_nt_name(&mut self, var: VarId) -> String {
-        let mut noname = String::new();
-        for i in 0.. {
-            noname = format!("{var}_noname{}", if i == 0 { "".to_string() } else { i.to_string() });
-            if !self.names.contains_key(&noname) {
-                self.names.insert(noname.clone(), var);
-                break;
-            }
-        }
-        std::mem::swap(&mut self.nt[var as usize], &mut noname);
-        self.names.remove(&noname);
-        noname
+        // let mut noname = String::new();
+        // for i in 0.. {
+        //     noname = format!("{var}_noname{}", if i == 0 { "".to_string() } else { i.to_string() });
+        //     if !self.names.contains_key(&noname) {
+        //         self.names.insert(noname.clone(), var);
+        //         break;
+        //     }
+        // }
+        let mut removed = self.fixer_nt.get_unique_name_num(format!("{var}_removed"));
+        std::mem::swap(&mut self.nt[var as usize], &mut removed);
+        self.names.remove(&removed);
+        self.fixer_nt.remove(&removed);
+        removed
     }
 
     // /// Adds a new variable `var_prime` derived from another `var`. If `var` itself is
