@@ -2315,7 +2315,7 @@ pub mod macros {
     /// assert_eq!(gnode!(L 3), GrNode::LForm(3));
     /// assert_eq!(gnode!(R), GrNode::RAssoc);
     /// ```
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! gnode {
         ([$id:expr]) => { gnode!(t $id) };
         (t $id:expr) => { $crate::grammar::GrNode::Symbol($crate::grammar::Symbol::T($id as $crate::dfa::TokenId)) };
@@ -2343,7 +2343,7 @@ pub mod macros {
     /// assert_eq!(sym!(nt 3), Symbol::NT(3 as VarId));
     /// assert_eq!(sym!(e), Symbol::Empty);
     /// assert_eq!(sym!(end), Symbol::End);
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! sym {
         (t $id:expr) => { $crate::grammar::Symbol::T($id as $crate::dfa::TokenId) };
         (nt $id:expr) => { $crate::grammar::Symbol::NT($id as $crate::grammar::VarId) };
@@ -2351,7 +2351,7 @@ pub mod macros {
         (end) => { $crate::grammar::Symbol::End };
     }
 
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! prodflag {
         (L) => { $crate::grammar::ruleflag::L_FORM };
         (R) => { $crate::grammar::ruleflag::R_ASSOC };
@@ -2378,22 +2378,22 @@ pub mod macros {
     /// assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
     /// assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
     /// ```
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! prodf {
         () => { $crate::grammar::ProdFactor::new(std::vec![]) };
         ($($a:ident $($b:expr)?,)+) => { prodf!($($a $($b)?),+) };
-        ($($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$(sym!($a $($b)?)),*]) };
+        ($($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
         (#$f:literal, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
-        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b)?)),*], $f) };
+        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$($crate::sym!($a $($b)?)),*], $f) };
         (#$f:ident, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
-        (#$f:ident, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$(sym!($a $($b)?)),*], prodflag!($f)) };
+        (#$f:ident, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$($crate::sym!($a $($b)?)),*], $crate::prodflag!($f)) };
     }
 
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! symbols {
         () => { std::vec![] };
         ($($a:ident $($b:literal $(: $num:expr)?)?,)+) => { symbols![$($a $($b $(: $num)?)?),+] };
-        ($($a:ident $($b:literal $(: $num:expr)?)?),*) => { std::vec![$(sym!($a $($b $(: $num)?)?)),*] };
+        ($($a:ident $($b:literal $(: $num:expr)?)?),*) => { std::vec![$($crate::sym!($a $($b $(: $num)?)?)),*] };
     }
 
     /// Generates a production rule. It is made up of factors separated by a semicolon.
@@ -2416,12 +2416,12 @@ pub mod macros {
     ///                 ProdFactor::with_flags(vec![sym!(nt  2)], 128),
     ///                 ProdFactor::new(vec![sym!(e)])]);
     /// ```
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! prod {
         () => { std::vec![] };
         ($($(#$f:literal,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
-        ($($(#$f:literal,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$(prodf![$(#$f,)? $($a $($b)?),+]),*]};
+        ($($(#$f:literal,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $($a $($b)?),+]),*]};
         ($($(#$f:ident,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
-        ($($(#$f:ident,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$(prodf![$(#$f,)? $($a $($b)?),+]),*]};
+        ($($(#$f:ident,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $($a $($b)?),+]),*]};
     }
 }
