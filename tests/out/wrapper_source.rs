@@ -8978,7 +8978,7 @@ pub(crate) mod rules_prs_58_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> -`
+        /// `E -> - E`
         E1 { e: SynE },
         /// `E -> 0`
         E2,

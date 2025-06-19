@@ -437,7 +437,11 @@ impl ParserGen {
             // initial value of left recursion loop
             left = parent;
             for f in facts.iter_mut() {
-                f.pop();
+                if let Some(Symbol::NT(x)) = f.last() {
+                    if self.nt_has_flags(*x, ruleflag::CHILD_L_RECURSION) {
+                        f.pop();
+                    }
+                }
             }
         } else if self.nt_has_flags(v_par_lf, ruleflag::CHILD_L_RECURSION) {
             // loop

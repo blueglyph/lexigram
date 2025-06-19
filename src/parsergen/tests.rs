@@ -1941,6 +1941,15 @@ mod wrapper_source {
                 11 => vec![(6, 0)],
                 12 => vec![(6, 0)],
             ]),
+            (PRS(58), vec![
+                ("E -> - E",                        "E -> - E"),                      // 0: E -> - E
+                ("E -> 0 E_1",                      "E -> 0"),                        // 1: E -> 0 E_1
+                ("E_1 -> + E_1",                    "E -> E +"),                      // 2: E_1 -> + E_1
+                ("E_1 -> ε",                        "end of iterations in E -> E +"), // 3: E_1 -> ε
+            ], btreemap![
+                0 => vec![],
+                1 => vec![(1, 1)],
+            ]),
             /*
             (PRS(), vec![
             ], btreemap![
