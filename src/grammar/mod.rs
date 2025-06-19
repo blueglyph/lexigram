@@ -355,9 +355,9 @@ pub mod ruleflag {
             } else {
                 None
             }).collect();
-        if flags != 0 {
-            v.push(flags.to_string())
-        }
+        // if flags != 0 {
+        //     v.push(flags.to_string())
+        // }
         v
     }
 }
@@ -883,7 +883,7 @@ impl ProdFactor {
 
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
         let mut s = if self.flags & ruleflag::FACTOR_INFO != 0 {
-            format!("<{}>", ruleflag::factor_info_to_string(self.flags).join(","))
+            format!("<{}> ", ruleflag::factor_info_to_string(self.flags).join(","))
         } else {
             String::new()
         };
@@ -893,8 +893,14 @@ impl ProdFactor {
         s
     }
 
-    pub fn to_rule_str(&self, nt: VarId, symbol_table: Option<&SymbolTable>) -> String {
-        format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), self.to_str(symbol_table))
+    pub fn to_rule_str(&self, nt: VarId, symbol_table: Option<&SymbolTable>, mut extra_flags: u32) -> String {
+        extra_flags = (extra_flags | self.flags) & ruleflag::FACTOR_INFO;
+        let s = if extra_flags != 0 {
+            format!("<{}> ", ruleflag::factor_info_to_string(extra_flags).join(","))
+        } else {
+            String::new()
+        };
+        format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), self.to_str(symbol_table))
     }
 
     fn factor_first(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashSet<Symbol> {

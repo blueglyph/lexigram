@@ -292,9 +292,9 @@ pub(crate) mod rules_rts_21_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [b]* c
-                        1 => self.exit_a1(),                        // [b]* item in A -> a  ► [b]* ◄  c
-                        2 => {}                                     // end of [b]* items in A -> a  ► [b]* ◄  c
+                        0 => self.exit_a(),                         // A -> a A_1 c
+                        1 => self.exit_a1(),                        // A_1 -> b A_1
+                        2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -452,9 +452,9 @@ pub(crate) mod rules_rts_21_2 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [b]* c
-                        1 |                                         // [b]* item in A -> a  ► [b]* ◄  c
-                        2 => {}                                     // end of [b]* items in A -> a  ► [b]* ◄  c
+                        0 => self.exit_a(),                         // A -> a A_1 c
+                        1 |                                         // A_1 -> b A_1
+                        2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -613,9 +613,9 @@ pub(crate) mod rules_rts_22_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a (b <L>)* c
-                        1 |                                         // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
-                        2 => self.exit_aiter1(factor_id),           // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
+                        0 => self.exit_a(),                         // A -> a AIter1 c
+                        1 |                                         // AIter1 -> <L> b AIter1
+                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -792,9 +792,9 @@ pub(crate) mod rules_rts_22_2 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a (b <L>)* c
-                        1 |                                         // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
-                        2 => self.exit_aiter1(factor_id),           // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
+                        0 => self.exit_a(),                         // A -> a AIter1 c
+                        1 |                                         // AIter1 -> <L> b AIter1
+                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -966,9 +966,9 @@ pub(crate) mod rules_rts_22_3 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a (b <L>)* c
-                        1 |                                         // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
-                        2 => self.exit_aiter1(factor_id),           // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
+                        0 => self.exit_a(),                         // A -> a AIter1 c
+                        1 |                                         // AIter1 -> <L> b AIter1
+                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1147,9 +1147,9 @@ pub(crate) mod rules_rts_22_4 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a (b <L>)* c
-                        1 |                                         // (b <L>)* iteration in A -> a  ► (b <L>)* ◄  c
-                        2 => self.exit_aiter1(factor_id),           // end of (b <L>)* iterations in A -> a  ► (b <L>)* ◄  c
+                        0 => self.exit_a(),                         // A -> a AIter1 c
+                        1 |                                         // AIter1 -> <L> b AIter1
+                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1331,11 +1331,11 @@ pub(crate) mod rules_rts_32_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        3 |                                         // A -> a a (b <L>)* c
-                        4 => self.exit_a(factor_id),                // A -> a c (b <L>)* c
-                        1 |                                         // (b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ...
-                        2 => self.exit_aiter1(factor_id),           // end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c | ...
-                     /* 0 */                                        // A -> a a (b <L>)* c | a c (b <L>)* c (never called)
+                        3 |                                         // A_1 -> a AIter1 c
+                        4 => self.exit_a(factor_id),                // A_1 -> c AIter1 c
+                        1 |                                         // AIter1 -> <L> b AIter1
+                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
+                     /* 0 */                                        // A -> a A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1517,9 +1517,9 @@ pub(crate) mod rules_rts_25_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [#]* c
-                        1 |                                         // [#]* item in A -> a  ► [#]* ◄  c
-                        2 => {}                                     // end of [#]* items in A -> a  ► [#]* ◄  c
+                        0 => self.exit_a(),                         // A -> a A_1 c
+                        1 |                                         // A_1 -> # A_1
+                        2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1674,10 +1674,10 @@ pub(crate) mod rules_rts_23_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [b]+ c
-                        2 |                                         // [b]+ item in A -> a  ► [b]+ ◄  c
-                        3 => self.exit_a1(),                        // end of [b]+ items in A -> a  ► [b]+ ◄  c
-                     /* 1 */                                        // [b]+ item in A -> a  ► [b]+ ◄  c (never called)
+                        0 => self.exit_a(),                         // A -> a A_1 c
+                        2 |                                         // A_2 -> A_1
+                        3 => self.exit_a1(),                        // A_2 -> ε
+                     /* 1 */                                        // A_1 -> b A_2 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1860,10 +1860,10 @@ pub(crate) mod rules_rts_27_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [B]+ c
-                        3 |                                         // [B]+ item in A -> a  ► [B]+ ◄  c
-                        4 => self.exit_a1(),                        // end of [B]+ items in A -> a  ► [B]+ ◄  c
-                     /* 2 */                                        // [B]+ item in A -> a  ► [B]+ ◄  c (never called)
+                        0 => self.exit_a(),                         // A -> a A_1 c
+                        3 |                                         // A_2 -> A_1
+                        4 => self.exit_a1(),                        // A_2 -> ε
+                     /* 2 */                                        // A_1 -> B A_2 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2056,10 +2056,10 @@ pub(crate) mod rules_rts_28_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> [a B]+ c
-                        3 |                                         // [a B]+ item in A ->  ► [a B]+ ◄  c
-                        4 => self.exit_a1(),                        // end of [a B]+ items in A ->  ► [a B]+ ◄  c
-                     /* 2 */                                        // [a B]+ item in A ->  ► [a B]+ ◄  c (never called)
+                        0 => self.exit_a(),                         // A -> A_1 c
+                        3 |                                         // A_2 -> A_1
+                        4 => self.exit_a1(),                        // A_2 -> ε
+                     /* 2 */                                        // A_1 -> a B A_2 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -2240,10 +2240,10 @@ pub(crate) mod rules_rts_24_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a (b <L>)+ c
-                        2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
-                        3 => self.exit_aiter1(factor_id),           // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
-                     /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
+                        0 => self.exit_a(),                         // A -> a AIter1 c
+                        2 |                                         // A_1 -> AIter1
+                        3 => self.exit_aiter1(factor_id),           // A_1 -> ε
+                     /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2413,10 +2413,10 @@ pub(crate) mod rules_rts_24_2 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a (b <L>)+ c
-                        2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
-                        3 => self.exit_aiter1(factor_id),           // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
-                     /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
+                        0 => self.exit_a(),                         // A -> a AIter1 c
+                        2 |                                         // A_1 -> AIter1
+                        3 => self.exit_aiter1(factor_id),           // A_1 -> ε
+                     /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2582,10 +2582,10 @@ pub(crate) mod rules_rts_24_3 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a (b <L>)+ c
-                        2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
-                        3 => self.exit_aiter1(factor_id),           // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
-                     /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
+                        0 => self.exit_a(),                         // A -> a AIter1 c
+                        2 |                                         // A_1 -> AIter1
+                        3 => self.exit_aiter1(factor_id),           // A_1 -> ε
+                     /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2758,10 +2758,10 @@ pub(crate) mod rules_rts_24_4 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a (b <L>)+ c
-                        2 |                                         // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c
-                        3 => self.exit_aiter1(factor_id),           // end of (b <L>)+ iterations in A -> a  ► (b <L>)+ ◄  c
-                     /* 1 */                                        // (b <L>)+ iteration in A -> a  ► (b <L>)+ ◄  c (never called)
+                        0 => self.exit_a(),                         // A -> a AIter1 c
+                        2 |                                         // A_1 -> AIter1
+                        3 => self.exit_aiter1(factor_id),           // A_1 -> ε
+                     /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -2952,11 +2952,11 @@ pub(crate) mod rules_rts_29_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [[B b]* c]* d
-                        2 => self.exit_a1(),                        // [B b]* item in A -> a [ ► [B b]* ◄  c]* d
-                        3 => {}                                     // end of [B b]* items in A -> a [ ► [B b]* ◄  c]* d
-                        4 => self.exit_a2(),                        // [[B b]* c]* item in A -> a  ► [[B b]* c]* ◄  d
-                        5 => {}                                     // end of [[B b]* c]* items in A -> a  ► [[B b]* c]* ◄  d
+                        0 => self.exit_a(),                         // A -> a A_2 d
+                        2 => self.exit_a1(),                        // A_1 -> B b A_1
+                        3 => {}                                     // A_1 -> ε
+                        4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
+                        5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -3155,11 +3155,11 @@ pub(crate) mod rules_rts_29_2 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [[B b]* c]* d
-                        2 |                                         // [B b]* item in A -> a [ ► [B b]* ◄  c]* d
-                        3 => {}                                     // end of [B b]* items in A -> a [ ► [B b]* ◄  c]* d
-                        4 => self.exit_a2(),                        // [[B b]* c]* item in A -> a  ► [[B b]* c]* ◄  d
-                        5 => {}                                     // end of [[B b]* c]* items in A -> a  ► [[B b]* c]* ◄  d
+                        0 => self.exit_a(),                         // A -> a A_2 d
+                        2 |                                         // A_1 -> B b A_1
+                        3 => {}                                     // A_1 -> ε
+                        4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
+                        5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -3348,11 +3348,11 @@ pub(crate) mod rules_rts_29_3 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [[B b]* c]* d
-                        2 => self.exit_a1(),                        // [B b]* item in A -> a [ ► [B b]* ◄  c]* d
-                        3 => {}                                     // end of [B b]* items in A -> a [ ► [B b]* ◄  c]* d
-                        4 => self.exit_a2(),                        // [[B b]* c]* item in A -> a  ► [[B b]* c]* ◄  d
-                        5 => {}                                     // end of [[B b]* c]* items in A -> a  ► [[B b]* c]* ◄  d
+                        0 => self.exit_a(),                         // A -> a A_2 d
+                        2 => self.exit_a1(),                        // A_1 -> B b A_1
+                        3 => {}                                     // A_1 -> ε
+                        4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
+                        5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -3557,11 +3557,11 @@ pub(crate) mod rules_rts_39_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a ((b <L>)* c <L>)* d
-                        1 |                                         // (b <L>)* iteration in A -> a ( ► (b <L>)* ◄  c <L>)* d
-                        2 => self.exit_aiter2(factor_id),           // end of (b <L>)* iterations in A -> a ( ► (b <L>)* ◄  c <L>)* d
-                        3 |                                         // ((b <L>)* c <L>)* iteration in A -> a  ► ((b <L>)* c <L>)* ◄  d
-                        4 => self.exit_aiter1(factor_id),           // end of ((b <L>)* c <L>)* iterations in A -> a  ► ((b <L>)* c <L>)* ◄  d
+                        0 => self.exit_a(),                         // A -> a AIter1 d
+                        1 |                                         // AIter2 -> <L> b AIter2
+                        2 => self.exit_aiter2(factor_id),           // AIter2 -> <L> ε
+                        3 |                                         // AIter1 -> <L> AIter2 c AIter1
+                        4 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3781,11 +3781,11 @@ pub(crate) mod rules_rts_40_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [(b <L>)* c]* d
-                        1 |                                         // (b <L>)* iteration in A -> a [ ► (b <L>)* ◄  c]* d
-                        2 => self.exit_aiter1(factor_id),           // end of (b <L>)* iterations in A -> a [ ► (b <L>)* ◄  c]* d
-                        3 => self.exit_a1(),                        // [(b <L>)* c]* item in A -> a  ► [(b <L>)* c]* ◄  d
-                        4 => {}                                     // end of [(b <L>)* c]* items in A -> a  ► [(b <L>)* c]* ◄  d
+                        0 => self.exit_a(),                         // A -> a A_1 d
+                        1 |                                         // AIter1 -> <L> b AIter1
+                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
+                        3 => self.exit_a1(),                        // A_1 -> AIter1 c A_1
+                        4 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -4013,13 +4013,13 @@ pub(crate) mod rules_rts_30_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [[B b]+ c]+ d
-                        4 |                                         // [B b]+ item in A -> a [ ► [B b]+ ◄  c]+ d
-                        5 => self.exit_a1(),                        // end of [B b]+ items in A -> a [ ► [B b]+ ◄  c]+ d
-                        6 |                                         // [[B b]+ c]+ item in A -> a  ► [[B b]+ c]+ ◄  d
-                        7 => self.exit_a2(),                        // end of [[B b]+ c]+ items in A -> a  ► [[B b]+ c]+ ◄  d
-                     /* 2 */                                        // [B b]+ item in A -> a [ ► [B b]+ ◄  c]+ d (never called)
-                     /* 3 */                                        // [[B b]+ c]+ item in A -> a  ► [[B b]+ c]+ ◄  d (never called)
+                        0 => self.exit_a(),                         // A -> a A_2 d
+                        4 |                                         // A_3 -> A_1
+                        5 => self.exit_a1(),                        // A_3 -> ε
+                        6 |                                         // A_4 -> A_2
+                        7 => self.exit_a2(),                        // A_4 -> ε
+                     /* 2 */                                        // A_1 -> B b A_3 (never called)
+                     /* 3 */                                        // A_2 -> A_1 c A_4 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -4232,13 +4232,13 @@ pub(crate) mod rules_rts_30_2 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [[B b]+ c]+ d
-                        4 |                                         // [B b]+ item in A -> a [ ► [B b]+ ◄  c]+ d
-                        5 => self.exit_a1(),                        // end of [B b]+ items in A -> a [ ► [B b]+ ◄  c]+ d
-                        6 |                                         // [[B b]+ c]+ item in A -> a  ► [[B b]+ c]+ ◄  d
-                        7 => self.exit_a2(),                        // end of [[B b]+ c]+ items in A -> a  ► [[B b]+ c]+ ◄  d
-                     /* 2 */                                        // [B b]+ item in A -> a [ ► [B b]+ ◄  c]+ d (never called)
-                     /* 3 */                                        // [[B b]+ c]+ item in A -> a  ► [[B b]+ c]+ ◄  d (never called)
+                        0 => self.exit_a(),                         // A -> a A_2 d
+                        4 |                                         // A_3 -> A_1
+                        5 => self.exit_a1(),                        // A_3 -> ε
+                        6 |                                         // A_4 -> A_2
+                        7 => self.exit_a2(),                        // A_4 -> ε
+                     /* 2 */                                        // A_1 -> B b A_3 (never called)
+                     /* 3 */                                        // A_2 -> A_1 c A_4 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -4505,25 +4505,25 @@ pub(crate) mod rules_rts_34_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.exit_a(),                         // A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d
-                        7 |                                         // [b]+ item in A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d
-                        8 => self.exit_a1(),                        // end of [b]+ items in A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d
-                        9 |                                         // [b]+ item in A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d
-                        10 => self.exit_a2(),                       // end of [b]+ items in A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d
-                        11 |                                        // [[b]+ [b]+]+ item in A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d
-                        12 => self.exit_a3(),                       // end of [[b]+ [b]+]+ items in A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d
-                        13 |                                        // [b]+ item in A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d
-                        14 => self.exit_a4(),                       // end of [b]+ items in A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d
-                        15 |                                        // [b]+ item in A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d
-                        16 => self.exit_a5(),                       // end of [b]+ items in A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d
-                        17 |                                        // [[b]+ [b]+]+ item in A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d
-                        18 => self.exit_a6(),                       // end of [[b]+ [b]+]+ items in A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d
-                     /* 1 */                                        // [b]+ item in A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d (never called)
-                     /* 2 */                                        // [b]+ item in A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d (never called)
-                     /* 3 */                                        // [[b]+ [b]+]+ item in A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d (never called)
-                     /* 4 */                                        // [b]+ item in A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d (never called)
-                     /* 5 */                                        // [b]+ item in A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d (never called)
-                     /* 6 */                                        // [[b]+ [b]+]+ item in A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d (never called)
+                        0 => self.exit_a(),                         // A -> a A_3 c A_6 d
+                        7 |                                         // A_7 -> A_1
+                        8 => self.exit_a1(),                        // A_7 -> ε
+                        9 |                                         // A_8 -> A_2
+                        10 => self.exit_a2(),                       // A_8 -> ε
+                        11 |                                        // A_9 -> A_3
+                        12 => self.exit_a3(),                       // A_9 -> ε
+                        13 |                                        // A_10 -> A_4
+                        14 => self.exit_a4(),                       // A_10 -> ε
+                        15 |                                        // A_11 -> A_5
+                        16 => self.exit_a5(),                       // A_11 -> ε
+                        17 |                                        // A_12 -> A_6
+                        18 => self.exit_a6(),                       // A_12 -> ε
+                     /* 1 */                                        // A_1 -> b A_7 (never called)
+                     /* 2 */                                        // A_2 -> b A_8 (never called)
+                     /* 3 */                                        // A_3 -> A_1 A_2 A_9 (never called)
+                     /* 4 */                                        // A_4 -> b A_10 (never called)
+                     /* 5 */                                        // A_5 -> b A_11 (never called)
+                     /* 6 */                                        // A_6 -> A_4 A_5 A_12 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -4761,12 +4761,12 @@ pub(crate) mod rules_prs_28_1 {
                 Call::Exit => {
                     match factor_id {
                         1 |                                         // A -> e
-                        3 |                                         // A -> a
-                        4 |                                         // A -> a b c
-                        5 |                                         // A -> a b d
-                        6 => self.exit_a(factor_id),                // A -> a b
-                     /* 0 */                                        // A -> a | a b | a b c | a b d (never called)
-                     /* 2 */                                        // A -> a b | a b c | a b d (never called)
+                        3 |                                         // A_1 -> ε
+                        4 |                                         // A_2 -> c
+                        5 |                                         // A_2 -> d
+                        6 => self.exit_a(factor_id),                // A_2 -> ε
+                     /* 0 */                                        // A -> a A_1 (never called)
+                     /* 2 */                                        // A_1 -> b A_2 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -4955,9 +4955,9 @@ pub(crate) mod rules_prs_31_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.inter_e(),                        // E -> F
-                        2 |                                         // E -> E . id
-                        3 => self.exit_e1(factor_id),               // end of iterations in E -> E . id
+                        0 => self.inter_e(),                        // E -> F E_1
+                        2 |                                         // E_1 -> . id E_1
+                        3 => self.exit_e1(factor_id),               // E_1 -> ε
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -5141,9 +5141,9 @@ pub(crate) mod rules_prs_31_2 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.inter_e(),                        // E -> F
-                        2 |                                         // E -> E . id
-                        3 => self.exit_e1(factor_id),               // end of iterations in E -> E . id
+                        0 => self.inter_e(),                        // E -> F E_1
+                        2 |                                         // E_1 -> . id E_1
+                        3 => self.exit_e1(factor_id),               // E_1 -> ε
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -5323,10 +5323,10 @@ pub(crate) mod rules_prs_36_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 |                                         // E -> F
-                        1 => self.inter_e(factor_id),               // E -> num
-                        3 |                                         // E -> E . id
-                        4 => self.exit_e1(factor_id),               // end of iterations in E -> E . id
+                        0 |                                         // E -> F E_1
+                        1 => self.inter_e(factor_id),               // E -> num E_1
+                        3 |                                         // E_1 -> . id E_1
+                        4 => self.exit_e1(factor_id),               // E_1 -> ε
                         2 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -5515,11 +5515,11 @@ pub(crate) mod rules_prs_33_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        3 |                                         // A -> b c
-                        4 => self.inter_a(factor_id),               // A -> b d
-                        1 |                                         // A -> A a
-                        2 => self.exit_a1(factor_id),               // end of iterations in A -> A a
-                     /* 0 */                                        // A -> b c | b d (never called)
+                        3 |                                         // A_2 -> c A_1
+                        4 => self.inter_a(factor_id),               // A_2 -> d A_1
+                        1 |                                         // A_1 -> a A_1
+                        2 => self.exit_a1(factor_id),               // A_1 -> ε
+                     /* 0 */                                        // A -> b A_2 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -5706,12 +5706,12 @@ pub(crate) mod rules_prs_38_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        4 |                                         // A -> b c
-                        5 => self.inter_a(factor_id),               // A -> b d
-                        1 |                                         // A -> A a
-                        2 |                                         // A -> A b
-                        3 => self.exit_a1(factor_id),               // end of iterations in A -> A a | A b
-                     /* 0 */                                        // A -> b c | b d (never called)
+                        4 |                                         // A_2 -> c A_1
+                        5 => self.inter_a(factor_id),               // A_2 -> d A_1
+                        1 |                                         // A_1 -> a A_1
+                        2 |                                         // A_1 -> b A_1
+                        3 => self.exit_a1(factor_id),               // A_1 -> ε
+                     /* 0 */                                        // A -> b A_2 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -5907,13 +5907,13 @@ pub(crate) mod rules_prs_39_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        3 |                                         // A -> b c
-                        4 => self.inter_a(factor_id),               // A -> b d
-                        2 |                                         // end of iterations in A -> A a b | A a c
-                        5 |                                         // A -> A a b
-                        6 => self.exit_a1(factor_id),               // A -> A a c
-                     /* 0 */                                        // A -> b c | b d (never called)
-                     /* 1 */                                        // A -> A a b | A a c (never called)
+                        3 |                                         // A_2 -> c A_1
+                        4 => self.inter_a(factor_id),               // A_2 -> d A_1
+                        2 |                                         // A_1 -> ε
+                        5 |                                         // A_3 -> b A_1
+                        6 => self.exit_a1(factor_id),               // A_3 -> c A_1
+                     /* 0 */                                        // A -> b A_2 (never called)
+                     /* 1 */                                        // A_1 -> a A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -6118,11 +6118,11 @@ pub(crate) mod rules_prs_32_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.inter_e(),                        // E -> F
-                        3 |                                         // end of iterations in E -> E . id ( ) | E . id
-                        4 |                                         // E -> E . id ( )
-                        5 => self.exit_e1(factor_id),               // E -> E . id
-                     /* 2 */                                        // E -> E . id ( ) | E . id (never called)
+                        0 => self.inter_e(),                        // E -> F E_1
+                        3 |                                         // E_1 -> ε
+                        4 |                                         // E_2 -> ( ) E_1
+                        5 => self.exit_e1(factor_id),               // E_2 -> E_1
+                     /* 2 */                                        // E_1 -> . id E_2 (never called)
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -6316,14 +6316,14 @@ pub(crate) mod rules_rts_38_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.inter_a(),                        // A -> d
-                        3 |                                         // end of iterations in A -> A a c | A a | A b c | A b
-                        4 |                                         // A -> A a c
-                        5 |                                         // A -> A a
-                        6 |                                         // A -> A b c
-                        7 => self.exit_a1(factor_id),               // A -> A b
-                     /* 1 */                                        // A -> A a c | A a (never called)
-                     /* 2 */                                        // A -> A b c | A b (never called)
+                        0 => self.inter_a(),                        // A -> d A_1
+                        3 |                                         // A_1 -> ε
+                        4 |                                         // A_2 -> c A_1
+                        5 |                                         // A_2 -> A_1
+                        6 |                                         // A_3 -> c A_1
+                        7 => self.exit_a1(factor_id),               // A_3 -> A_1
+                     /* 1 */                                        // A_1 -> a A_2 (never called)
+                     /* 2 */                                        // A_1 -> b A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -6522,14 +6522,14 @@ pub(crate) mod rules_rts_38_2 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.inter_a(),                        // A -> d
-                        3 |                                         // end of iterations in A -> A a c | A a | A b c | A b
-                        4 |                                         // A -> A a c
-                        5 |                                         // A -> A a
-                        6 |                                         // A -> A b c
-                        7 => self.exit_a1(factor_id),               // A -> A b
-                     /* 1 */                                        // A -> A a c | A a (never called)
-                     /* 2 */                                        // A -> A b c | A b (never called)
+                        0 => self.inter_a(),                        // A -> d A_1
+                        3 |                                         // A_1 -> ε
+                        4 |                                         // A_2 -> c A_1
+                        5 |                                         // A_2 -> A_1
+                        6 |                                         // A_3 -> c A_1
+                        7 => self.exit_a1(factor_id),               // A_3 -> A_1
+                     /* 1 */                                        // A_1 -> a A_2 (never called)
+                     /* 2 */                                        // A_1 -> b A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -6714,14 +6714,14 @@ pub(crate) mod rules_rts_38_3 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.inter_a(),                        // A -> d
-                        3 |                                         // end of iterations in A -> A a c | A a | A b c | A b
-                        4 |                                         // A -> A a c
-                        5 |                                         // A -> A a
-                        6 |                                         // A -> A b c
-                        7 => self.exit_a1(factor_id),               // A -> A b
-                     /* 1 */                                        // A -> A a c | A a (never called)
-                     /* 2 */                                        // A -> A b c | A b (never called)
+                        0 => self.inter_a(),                        // A -> d A_1
+                        3 |                                         // A_1 -> ε
+                        4 |                                         // A_2 -> c A_1
+                        5 |                                         // A_2 -> A_1
+                        6 |                                         // A_3 -> c A_1
+                        7 => self.exit_a1(factor_id),               // A_3 -> A_1
+                     /* 1 */                                        // A_1 -> a A_2 (never called)
+                     /* 2 */                                        // A_1 -> b A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -7247,9 +7247,9 @@ pub(crate) mod rules_prs_37_1 {
                     match factor_id {
                         0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> }
-                        3 |                                         // LIST -> id : id ; LIST
-                        4 => self.exit_list(factor_id),             // LIST -> id ; LIST
-                     /* 2 */                                        // LIST -> id : id ; LIST | id ; LIST (never called)
+                        3 |                                         // LIST_1 -> : id ; LIST
+                        4 => self.exit_list(factor_id),             // LIST_1 -> ; LIST
+                     /* 2 */                                        // LIST -> id LIST_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -7412,9 +7412,9 @@ pub(crate) mod rules_prs_44_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        2 |                                         // A -> B a A
-                        3 => self.exit_a(factor_id),                // A -> B
-                     /* 0 */                                        // A -> B | B a A (never called)
+                        2 |                                         // A_1 -> a A
+                        3 => self.exit_a(factor_id),                // A_1 -> ε
+                     /* 0 */                                        // A -> B A_1 (never called)
                         1 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -7731,8 +7731,8 @@ pub(crate) mod rules_prs_48_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 |                                         // A -> a A <L>
-                        1 => self.exit_a(factor_id),                // A -> B <L>
+                        0 |                                         // A -> <L> a A
+                        1 => self.exit_a(factor_id),                // A -> <L> B
                         2 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -7915,8 +7915,8 @@ pub(crate) mod rules_prs_30_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
-                        1 |                                         // LIST -> id : id ; LIST <L>
-                        2 => self.exit_list(factor_id),             // LIST -> } <L>
+                        1 |                                         // LIST -> <L> id : id ; LIST
+                        2 => self.exit_list(factor_id),             // LIST -> <L> }
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -8093,8 +8093,8 @@ pub(crate) mod rules_prs_30_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
-                        1 |                                         // LIST -> id : id ; LIST <L>
-                        2 => self.exit_list(factor_id),             // LIST -> } <L>
+                        1 |                                         // LIST -> <L> id : id ; LIST
+                        2 => self.exit_list(factor_id),             // LIST -> <L> }
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -8268,11 +8268,11 @@ pub(crate) mod rules_rts_26_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.inter_a(),                        // A -> a
-                        1 => self.exit_a1(),                        // [c]* item in A -> A  ► [c]* ◄  b
-                        2 => {}                                     // end of [c]* items in A -> A  ► [c]* ◄  b
-                        3 |                                         // A -> A [c]* b
-                        4 => self.exit_a2(factor_id),               // end of iterations in A -> A [c]* b
+                        0 => self.inter_a(),                        // A -> a A_2
+                        1 => self.exit_a1(),                        // A_1 -> c A_1
+                        2 => {}                                     // A_1 -> ε
+                        3 |                                         // A_2 -> A_1 b A_2
+                        4 => self.exit_a2(factor_id),               // A_2 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -8465,12 +8465,12 @@ pub(crate) mod rules_rts_16_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.inter_a(),                        // A -> a
-                        4 |                                         // [c]+ item in A -> A  ► [c]+ ◄  b
-                        5 => self.exit_a1(),                        // end of [c]+ items in A -> A  ► [c]+ ◄  b
-                        2 |                                         // A -> A [c]+ b
-                        3 => self.exit_a2(factor_id),               // end of iterations in A -> A [c]+ b
-                     /* 1 */                                        // [c]+ item in A -> A  ► [c]+ ◄  b (never called)
+                        0 => self.inter_a(),                        // A -> a A_2
+                        4 |                                         // A_3 -> A_1
+                        5 => self.exit_a1(),                        // A_3 -> ε
+                        2 |                                         // A_2 -> A_1 b A_2
+                        3 => self.exit_a2(factor_id),               // A_2 -> ε
+                     /* 1 */                                        // A_1 -> c A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -8649,10 +8649,10 @@ pub(crate) mod rules_prs_35_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        1 |                                         // A -> a b b
-                        2 |                                         // A -> a c c
-                        3 => self.exit_a(factor_id),                // A -> a
-                     /* 0 */                                        // A -> a | a b b | a c c (never called)
+                        1 |                                         // A_1 -> b b
+                        2 |                                         // A_1 -> c c
+                        3 => self.exit_a(factor_id),                // A_1 -> ε
+                     /* 0 */                                        // A -> a A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -8841,10 +8841,10 @@ pub(crate) mod rules_rts_33_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 |                                         // A -> [B c]* b
+                        0 |                                         // A -> A_1 b
                         1 => self.exit_a(factor_id),                // A -> a
-                        3 => self.exit_a1(),                        // [B c]* item in A ->  ► [B c]* ◄  b
-                        4 => {}                                     // end of [B c]* items in A ->  ► [B c]* ◄  b
+                        3 => self.exit_a1(),                        // A_1 -> B c A_1
+                        4 => {}                                     // A_1 -> ε
                         2 => self.exit_b(),                         // B -> b
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -10118,25 +10118,25 @@ pub(crate) mod rules_rts_100_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 |                                         // file -> header [file_item]*
-                        1 => self.exit_file(factor_id),             // file -> [file_item]*
-                        33 => self.exit_file1(),                    // [file_item]* item in file -> header  ► [file_item]* ◄  | ...
-                        34 => {}                                    // end of [file_item]* items in file -> header  ► [file_item]* ◄  | ...
+                        0 |                                         // file -> header file_1
+                        1 => self.exit_file(factor_id),             // file -> file_1
+                        33 => self.exit_file1(),                    // file_1 -> file_item file_1
+                        34 => {}                                    // file_1 -> ε
                         2 |                                         // file_item -> option
                         3 |                                         // file_item -> declaration
                         4 => self.exit_file_item(factor_id),        // file_item -> rule
                         5 => self.exit_header(),                    // header -> lexicon Id ;
                         6 => self.exit_declaration(),               // declaration -> mode Id ;
-                        7 => self.exit_option(),                    // option -> channels { Id [, Id]* }
-                        35 => self.exit_option1(),                  // [, Id]* item in option -> channels { Id  ► [, Id]* ◄  }
-                        36 => {}                                    // end of [, Id]* items in option -> channels { Id  ► [, Id]* ◄  }
+                        7 => self.exit_option(),                    // option -> channels { Id option_1 }
+                        35 => self.exit_option1(),                  // option_1 -> , Id option_1
+                        36 => {}                                    // option_1 -> ε
                         8 |                                         // rule -> fragment Id : match ;
-                        43 |                                        // rule -> Id : match -> actions ;
-                        44 => self.exit_rule(factor_id),            // rule -> Id : match ;
-                     /* 9 */                                        // rule -> Id : match -> actions ; | Id : match ; (never called)
-                        10 => self.exit_actions(),                  // actions -> action [, action]*
-                        37 => self.exit_actions1(),                 // [, action]* item in actions -> action  ► [, action]* ◄
-                        38 => {}                                    // end of [, action]* items in actions -> action  ► [, action]* ◄
+                        43 |                                        // rule_1 -> -> actions ;
+                        44 => self.exit_rule(factor_id),            // rule_1 -> ;
+                     /* 9 */                                        // rule -> Id : match rule_1 (never called)
+                        10 => self.exit_actions(),                  // actions -> action actions_1
+                        37 => self.exit_actions1(),                 // actions_1 -> , action actions_1
+                        38 => {}                                    // actions_1 -> ε
                         11 |                                        // action -> mode ( Id )
                         12 |                                        // action -> push ( Id )
                         13 |                                        // action -> pop
@@ -10145,40 +10145,40 @@ pub(crate) mod rules_rts_100_1 {
                         16 |                                        // action -> type ( Id )
                         17 => self.exit_action(factor_id),          // action -> channel ( Id )
                         18 => self.exit_match(),                    // match -> alt_items
-                        19 => self.exit_alt_items(),                // alt_items -> alt_item [| alt_item]*
-                        39 => self.exit_alt_items1(),               // [| alt_item]* item in alt_items -> alt_item  ► [| alt_item]* ◄
-                        40 => {}                                    // end of [| alt_item]* items in alt_items -> alt_item  ► [| alt_item]* ◄
-                        20 => self.exit_alt_item(),                 // alt_item -> [repeat_item]+
-                        53 |                                        // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄
-                        54 => self.exit_alt_item1(),                // end of [repeat_item]+ items in alt_item ->  ► [repeat_item]+ ◄
-                     /* 41 */                                       // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄  (never called)
-                        46 |                                        // repeat_item -> item ?
-                        48 |                                        // repeat_item -> item
-                        57 |                                        // repeat_item -> item + ?
-                        58 |                                        // repeat_item -> item +
-                        59 |                                        // repeat_item -> item * ?
-                        60 => self.exit_repeat_item(factor_id),     // repeat_item -> item *
-                     /* 21 */                                       // repeat_item -> item | item + | item + ? | item ? | item * | item * ? (never called)
-                     /* 45 */                                       // repeat_item -> item + | item + ? (never called)
-                     /* 47 */                                       // repeat_item -> item * | item * ? (never called)
+                        19 => self.exit_alt_items(),                // alt_items -> alt_item alt_items_1
+                        39 => self.exit_alt_items1(),               // alt_items_1 -> | alt_item alt_items_1
+                        40 => {}                                    // alt_items_1 -> ε
+                        20 => self.exit_alt_item(),                 // alt_item -> alt_item_1
+                        53 |                                        // alt_item_2 -> alt_item_1
+                        54 => self.exit_alt_item1(),                // alt_item_2 -> ε
+                     /* 41 */                                       // alt_item_1 -> repeat_item alt_item_2 (never called)
+                        46 |                                        // repeat_item_1 -> ?
+                        48 |                                        // repeat_item_1 -> ε
+                        57 |                                        // repeat_item_2 -> ?
+                        58 |                                        // repeat_item_2 -> ε
+                        59 |                                        // repeat_item_3 -> ?
+                        60 => self.exit_repeat_item(factor_id),     // repeat_item_3 -> ε
+                     /* 21 */                                       // repeat_item -> item repeat_item_1 (never called)
+                     /* 45 */                                       // repeat_item_1 -> + repeat_item_2 (never called)
+                     /* 47 */                                       // repeat_item_1 -> * repeat_item_3 (never called)
                         22 |                                        // item -> ( alt_items )
                         23 |                                        // item -> ~ item
                         24 |                                        // item -> Id
                         26 |                                        // item -> StrLit
                         27 |                                        // item -> char_set
-                        49 |                                        // item -> CharLit .. CharLit
-                        50 => self.exit_item(factor_id),            // item -> CharLit
-                     /* 25 */                                       // item -> CharLit | CharLit .. CharLit (never called)
-                        28 |                                        // char_set -> [ [char_set_one]+ ]
+                        49 |                                        // item_1 -> .. CharLit
+                        50 => self.exit_item(factor_id),            // item_1 -> ε
+                     /* 25 */                                       // item -> CharLit item_1 (never called)
+                        28 |                                        // char_set -> [ char_set_1 ]
                         29 |                                        // char_set -> .
                         30 => self.exit_char_set(factor_id),        // char_set -> FixedSet
-                        55 |                                        // [char_set_one]+ item in char_set -> [  ► [char_set_one]+ ◄  ]
-                        56 => self.exit_char_set1(),                // end of [char_set_one]+ items in char_set -> [  ► [char_set_one]+ ◄  ]
-                     /* 42 */                                       // [char_set_one]+ item in char_set -> [  ► [char_set_one]+ ◄  ] (never called)
+                        55 |                                        // char_set_2 -> char_set_1
+                        56 => self.exit_char_set1(),                // char_set_2 -> ε
+                     /* 42 */                                       // char_set_1 -> char_set_one char_set_2 (never called)
                         31 |                                        // char_set_one -> FixedSet
-                        51 |                                        // char_set_one -> SetChar - SetChar
-                        52 => self.exit_char_set_one(factor_id),    // char_set_one -> SetChar
-                     /* 32 */                                       // char_set_one -> SetChar | SetChar - SetChar (never called)
+                        51 |                                        // char_set_one_1 -> - SetChar
+                        52 => self.exit_char_set_one(factor_id),    // char_set_one_1 -> ε
+                     /* 32 */                                       // char_set_one -> SetChar char_set_one_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }

@@ -3052,7 +3052,7 @@ fn prs_calc_table() {
             println!("{}",
                      factors.iter().enumerate().map(|(id, (v, f))| {
                          let flags = if f.flags != 0 {
-                             let mut vf = ruleflag::factor_info_to_string(f.flags & ruleflag::FACTOR_INFO);
+                             let mut vf = ruleflag::factor_info_to_string(f.flags);
                              format!("#{}, ", if vf.len() == 1 { vf.pop().unwrap() } else { f.flags.to_string() })
                          } else {
                              String::new()

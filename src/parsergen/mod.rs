@@ -1270,7 +1270,7 @@ impl ParserGen {
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
-        const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = true;
+        const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
 
         self.used_libs.extend([
             "lexigram::CollectJoin", "lexigram::grammar::VarId", "lexigram::parser::Call", "lexigram::parser::ListenerWrapper", "lexigram::grammar::FactorId",
@@ -1606,7 +1606,7 @@ impl ParserGen {
                         if MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS {
                             format!("// {}", self.full_factor_str::<false>(*f, None, false))
                         } else {
-                            format!("// {}", pf.to_rule_str(*v, self.get_symbol_table()))
+                            format!("// {}", pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize]))
                         }
                     }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
@@ -1759,7 +1759,7 @@ impl ParserGen {
                 let factor_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS {
                     self.full_factor_str::<false>(*f, None, false)
                 } else {
-                    pf.to_rule_str(*v, self.get_symbol_table())
+                    pf.to_rule_str(*v, self.get_symbol_table(), self.parsing_table.flags[*v as usize])
                 };
                 let comment = format!("// {factor_str} ({})", if is_called { "not used" } else { "never called" });
                 if is_called {
