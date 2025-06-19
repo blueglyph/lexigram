@@ -1,9 +1,12 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+#[cfg(any())]
 use std::collections::HashMap;
 use crate::dfa::TokenId;
 use crate::grammar::{Symbol, VarId};
 use crate::NameFixer;
+
+// NOTE: nonterminal-to-ID functionality currently disabled by #[cfg(any())]
 
 /// Stores the names of the terminal and nonterminal symbols.
 ///
@@ -54,6 +57,7 @@ pub struct SymbolTable {
     t: Vec<(String, Option<String>)>,   // terminal identifiers and optional representation
     fixer_t: NameFixer,                 // keeps terminal identifiers unique
     nt: Vec<String>,                    // nt to nonterminal identifier
+    #[cfg(any())]
     names: HashMap<String, VarId>,      // nonterminal identifier to nt
     fixer_nt: NameFixer,                // keeps nonterminal identifiers unique
 }
@@ -64,6 +68,7 @@ impl SymbolTable {
             t: Vec::new(),
             fixer_t: NameFixer::new_empty(),
             nt: Vec::new(),
+            #[cfg(any())]
             names: HashMap::new(),
             fixer_nt: NameFixer::new_empty(),
         }
@@ -143,6 +148,7 @@ impl SymbolTable {
     fn add_nt(&mut self, unique_name: String) -> VarId {
         let var = self.nt.len();
         assert!(var < VarId::MAX as usize);
+        #[cfg(any())]
         self.names.insert(unique_name.clone(), var as VarId);
         self.nt.push(unique_name);
         var as VarId
@@ -164,6 +170,7 @@ impl SymbolTable {
         }
     }
 
+    #[cfg(any())]
     pub fn find_nonterminal(&self, name: &str) -> Option<VarId> {
         self.names.get(name).cloned()
     }
@@ -178,10 +185,13 @@ impl SymbolTable {
 
     pub fn remove_nonterminal(&mut self, v: VarId) {
         let name = self.nt.remove(v as usize);
-        for old_v in self.names.values_mut() {
-            if *old_v >= v { *old_v -= 1; }
+        #[cfg(any())]
+        {
+            for old_v in self.names.values_mut() {
+                if *old_v >= v { *old_v -= 1; }
+            }
+            self.names.remove(&name);
         }
-        self.names.remove(&name);
         self.fixer_nt.remove(&name);
     }
 
@@ -199,6 +209,7 @@ impl SymbolTable {
     pub fn remove_nt_name(&mut self, var: VarId) -> String {
         let mut removed = self.fixer_nt.get_unique_name_num(format!("{var}_removed"));
         std::mem::swap(&mut self.nt[var as usize], &mut removed);
+        #[cfg(any())]
         self.names.remove(&removed);
         self.fixer_nt.remove(&removed);
         removed
@@ -240,12 +251,15 @@ mod tests {
         assert_eq!(st.get_name(&Symbol::NT(2)), "A_1");
         assert_eq!(st.get_name(&Symbol::NT(3)), "A_2");
         assert_eq!(st.get_name(&Symbol::NT(4)), "E_1");
+        #[cfg(any())]
         assert_eq!(st.find_nonterminal("A_1"), Some(2));
         assert!(st.nt.contains(&"A_2".to_string()));
+        #[cfg(any())]
         assert!(st.names.contains_key("A_2"));
         assert!(st.fixer_nt.contains("A_2"));
         st.remove_nt_name(3);
         assert!(!st.nt.contains(&"A_2".to_string()));
+        #[cfg(any())]
         assert!(!st.names.contains_key("A_2"));
         assert!(!st.fixer_nt.contains("A_2"));
     }
