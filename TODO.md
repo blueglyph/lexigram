@@ -10,6 +10,7 @@
     - [x] Logger in LexerGen
       - [ ] populate
   - [ ] when creating the parser
+    - [ ] PRS(58) + L-form rrec 
     - [ ] check there aren't multiple <L=...> (see lform_nt in normalize_plus_or_star)
     - [ ] check that flags are not out of place
     - [ ] check that rules are supported (cyclic recursive, ...?)

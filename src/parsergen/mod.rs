@@ -719,7 +719,9 @@ impl ParserGen {
         explore.push_back(nt);
         while !explore.is_empty() {
             let var = explore.pop_front().unwrap();
-            if VERBOSE { println!("{var}: alt = {} | explore = {}", alt.iter().join(", "), explore.iter().join(", ")); }
+            if VERBOSE { println!("{var}: alt = {} | explore = {} | factors: {}",
+                                  alt.iter().join(", "), explore.iter().join(", "),
+                                  &self.var_factors[var as usize].iter().join(", ")); }
             for f in &self.var_factors[var as usize] {
                 let (_, prodfactor) = &self.parsing_table.factors[*f as usize];
                 if let Some(Symbol::NT(last)) = prodfactor.symbols().last() {
@@ -1582,8 +1584,8 @@ impl ParserGen {
                 // - no transformation (or only left factorization)
                 // - no ambiguity, no +, no *
                 if flags & ruleflag::CHILD_L_FACTOR == 0 &&     // already taken by self.gather_factors
-                    (flags & (ruleflag::R_RECURSION | ruleflag::CHILD_AMBIGUITY) == ruleflag::R_RECURSION ||
-                        parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT & !ruleflag::PARENT_L_FACTOR == 0)
+                    (flags & (ruleflag::R_RECURSION | ruleflag::CHILD_AMBIGUITY) == ruleflag::R_RECURSION
+                        || parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT & !ruleflag::PARENT_L_FACTOR == 0)
                 {
                     let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
                     let (pnu, pnl, pnpl) = nt_name[parent_nt].as_ref().unwrap();

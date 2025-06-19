@@ -1160,7 +1160,7 @@ pub(crate) mod listener16 {
     const PARSING_TABLE: [FactorId; 8] = [4, 0, 1, 5, 2, 4, 4, 3];
     const FLAGS: [u32; 2] = [514, 4];
     const PARENT: [Option<VarId>; 2] = [None, Some(0)];
-    const OPCODES: [&[OpCode]; 4] = [&[OpCode::NT(0), OpCode::Exit(0), OpCode::T(1)], &[OpCode::NT(1), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(0)], &[OpCode::Exit(3)]];
+    const OPCODES: [&[OpCode]; 4] = [&[OpCode::Exit(0), OpCode::NT(0), OpCode::T(1)], &[OpCode::NT(1), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(0)], &[OpCode::Exit(3)]];
     const START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser {

@@ -1396,7 +1396,7 @@ mod wrapper_source {
             (PRS(58), true, 0, btreemap![
                 0 => "SynE".to_string(),
             ], btreemap![
-                0 => symbols![nt 0],                    //  0: E -> - E     | ►E ◄0 -   | E
+                0 => symbols![nt 0],                    //  0: E -> - E     | ◄0 ►E -   | E
                 1 => symbols![],                        //  1: E -> 0 E_1   | ►E_1 ◄1 0 |
                 2 => symbols![nt 0],                    //  2: E_1 -> + E_1 | ●E_1 ◄2 + | E
                 3 => symbols![nt 0],                    //  3: E_1 -> ε     | ◄3        | E
@@ -1416,7 +1416,6 @@ mod wrapper_source {
             (PRS(63), true, 0, btreemap![
             ], btreemap![
             ], Default, btreemap![0 => vec![0], 1 => vec![1], 2 => vec![12, 13], 3 => vec![3, 4]]),
-
             // E -> E ^ E <R> | E * E <R> | - E | E + E | F
             // F ->  ID | NUM | ( E )
             (PRS(53), false, 0, btreemap![
@@ -1622,7 +1621,7 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
 // if rule_id != PRS(58) { continue }
-if rule_id == PRS(63) { continue }
+// if rule_id == PRS(63) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);

@@ -9042,8 +9042,8 @@ pub(crate) mod rules_prs_58_1 {
                     match factor_id {
                         0 |                                         // E -> - E
                         1 => self.inter_e(factor_id),               // E -> 0 E_1
-                        2 => {}                                     // E_1 -> + E_1 (not used)
-                        3 => {}                                     // E_1 -> ε (not used)
+                        2 |                                         // E_1 -> + E_1
+                        3 => self.exit_e1(factor_id),               // E_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -9103,6 +9103,22 @@ pub(crate) mod rules_prs_58_1 {
                     CtxE::E2
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn inter_e")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+
+        fn exit_e1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                2 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E3 { e }
+                }
+                3 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E4 { e }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -9169,9 +9185,17 @@ pub(crate) mod rules_prs_58_1 {
         fn test() {
             let sequences = vec![
                 // priority: E -> E + | - E | 0
-                ("- - 0 + +", Some("-(-((0+)+))")),
+                ("- - 0 + +", Some("- (- ((0 +) +))")),
+                ("0 +", Some("0 +")),
+                ("- 0", Some("- 0")),
+                ("0", Some("0")),
+                ("- +", None),
+                ("-", None),
+                ("+", None),
+                ("", None),
+                ("- 0 0 +", None),
             ];
-            const VERBOSE: bool = true;
+            const VERBOSE: bool = false;
             const VERBOSE_LISTENER: bool = false;
             let id_id = 4;
 

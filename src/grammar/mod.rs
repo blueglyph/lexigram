@@ -321,7 +321,7 @@ pub mod ruleflag {
     /// GREEDY factor: is expected to generate an ambiguity in the parsing table
     pub const GREEDY: u32 = 8192;
 
-    pub const TRANSF_PARENT: u32 = R_RECURSION | PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
+    pub const TRANSF_PARENT: u32 = /*R_RECURSION |*/ PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
     pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACTOR;
     pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
     pub const FACTOR_INFO: u32 = L_FORM | R_ASSOC | GREEDY;
