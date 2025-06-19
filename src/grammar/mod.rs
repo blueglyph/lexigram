@@ -764,7 +764,7 @@ impl RuleTreeSet<General> {
                     println!("L-FORM({v}) found, using name of NT({v}) = '{name}' for new NT({new_var})");
                 }
                 //st.add_var_prime_name(var, *new_var, Some(name));
-                assert_eq!(st.add_non_terminal(name), *new_var);
+                assert_eq!(st.add_nonterminal(name), *new_var);
             } else {
                 // st.add_var_prime_name(var, *new_var, None);
                 assert_eq!(st.add_child_nonterminal(var), *new_var);
@@ -1202,7 +1202,7 @@ impl<T> ProdRuleSet<T> {
                 nt_content.remove(i);
                 self.prods.remove(i);
                 self.start = self.start.map(|s| if s >= v { s - 1 } else { s });
-                self.symbol_table.as_mut().map(|t| t.remove_non_terminal(v));
+                self.symbol_table.as_mut().map(|t| t.remove_nonterminal(v));
                 self.flags.remove(i);
                 self.parent.remove(i);
             } else {
@@ -1836,7 +1836,7 @@ impl<T> ProdRuleSet<T> {
         if VERBOSE {
             println!("#prods: {}, #flags: {}, #parents:{}", prods.len(), self.flags.len(), self.parent.len());
             if let Some(ref mut table) = self.symbol_table {
-                println!("table: {} ({})", table.get_non_terminals().join(", "), table.get_num_nt());
+                println!("table: {} ({})", table.get_nonterminals().join(", "), table.get_num_nt());
             }
         }
         self.prods = prods;
@@ -1848,8 +1848,9 @@ impl<T> ProdRuleSet<T> {
                 .map(|(v, f)| format!("- ({v:2}) {}: {}", Symbol::NT(v).to_str(self.get_symbol_table()), ruleflag::to_string(*f).join(", "))).join("\n"));
             if let Some(table) = &self.symbol_table {
                 println!("Symbol table:\n-NT: {}\n-T: {}",
-                         table.get_non_terminals().iter().enumerate().map(|(i, nt)| format!("{i}:{nt}")).join(", "),
-                         table.get_terminals().iter().enumerate().map(|(i, (t, txt))| format!("{i}:{t}{}", if let Some(st) = txt { format!(" ({st})") } else { String::new() })).join(", "))
+                         table.get_nonterminals().enumerate().map(|(i, nt)| format!("{i}:{nt}")).join(", "),
+                         table.get_terminals().enumerate()
+                             .map(|(i, (t, txt))| format!("{i}:{t}{}", if let Some(st) = txt { format!(" ({st})") } else { String::new() })).join(", "))
             }
         }
     }

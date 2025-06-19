@@ -474,7 +474,7 @@ const NON_TERMINALS: [&str; 15] = [
 
 pub(crate) fn build_rts() -> RuleTreeSet<General> {
     let mut symbol_table = SymbolTable::new();
-    symbol_table.extend_non_terminals(NON_TERMINALS);
+    symbol_table.extend_nonterminals(NON_TERMINALS);
     symbol_table.extend_terminals(TERMINALS);
     let mut rules = RuleTreeSet::new();
     rules.set_symbol_table(symbol_table);

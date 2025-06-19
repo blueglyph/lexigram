@@ -193,7 +193,7 @@ mod listener {
         let sym_table = listener.build_symbol_table();
         if VERBOSE {
             println!("Lexer symbol table:\n- T: {}",
-                     sym_table.get_terminals().iter().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
+                     sym_table.get_terminals().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
         }
         let mut lexer: Lexer<Cursor<&str>> = LexerGen::from(dfa).make_lexer();
 

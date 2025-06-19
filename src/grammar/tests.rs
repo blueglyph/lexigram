@@ -68,7 +68,7 @@ fn symbol_to_str() {
         ("Colon".to_string(), Some(":".to_string())),
         ("Id".to_string(), None),
     ]);
-    symtable.extend_non_terminals((0_u8..26).map(|i| format!("{}", char::from(i + 65))));
+    symtable.extend_nonterminals((0_u8..26).map(|i| format!("{}", char::from(i + 65))));
     let tests = vec![
         (sym!(t 0), vec!["->", ":0"]),
         (sym!(t 1), vec![":", ":1"]),
@@ -195,7 +195,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let p = tree.add(Some(cc), gnode!(+));
             tree.addc_iter(Some(p), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
             let mut table = SymbolTable::new();
-            table.extend_non_terminals(["A".to_string()]);
+            table.extend_nonterminals(["A".to_string()]);
             table.extend_terminals([
                 ("-".to_string(), None), // not used
                 ("var".to_string(), Some("var".to_string())),
@@ -503,10 +503,10 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
                 }
             }
         }
-        table.extend_non_terminals((0..num_nt).map(|v| char::from(v as u8 + 65).to_string()));
+        table.extend_nonterminals((0..num_nt).map(|v| char::from(v as u8 + 65).to_string()));
         for (nt, name) in lforms {
             if nt >= num_nt {
-                table.extend_non_terminals((num_nt..=nt).map(|v| if v < nt { "???".to_string() } else { name.clone() }));
+                table.extend_nonterminals((num_nt..=nt).map(|v| if v < nt { "???".to_string() } else { name.clone() }));
                 num_nt = nt + 1;
                 rules.set_tree(nt, GrTree::new());
             } else {
@@ -724,11 +724,11 @@ fn def_arith_symbols(symbol_table: &mut SymbolTable, has_term: bool) {
         ("N".to_string(), None),
         ("I".to_string(), None)
     ]);
-    symbol_table.extend_non_terminals(["E".to_string()]);
+    symbol_table.extend_nonterminals(["E".to_string()]);
     if has_term {
-        symbol_table.extend_non_terminals(["T".to_string()]);
+        symbol_table.extend_nonterminals(["T".to_string()]);
     }
-    symbol_table.extend_non_terminals(["F".to_string()]);
+    symbol_table.extend_nonterminals(["F".to_string()]);
 }
 
 impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
@@ -739,14 +739,14 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
 }
 
 pub(crate) fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize, num_nt: usize, is_t_data: bool) {
-    if symbol_table.get_terminals().is_empty() {
+    if symbol_table.get_num_t() == 0 {
         assert!(num_t <= 26);
         symbol_table.extend_terminals((0..num_t).map(|i| (format!("{}", char::from(i as u8 + 97)),
                                                           if is_t_data { None } else { Some(format!("{}", char::from(i as u8 + 97))) })));
     }
-    if symbol_table.get_non_terminals().is_empty() {
+    if symbol_table.get_num_nt() == 0 {
         assert!(num_nt <= 26);
-        symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
+        symbol_table.extend_nonterminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
     }
 
 }
@@ -809,7 +809,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ADD".to_string(), Some("+".to_string())),
                 ("SEMI".to_string(), Some(";".to_string()))
             ]);
-            symbol_table.extend_non_terminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
+            symbol_table.extend_nonterminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
             prods.extend([
                 prod!(nt 1, nt 2, t 2, t 2), // A -> A1 A2 ; ;
                 prod!(t 0, nt 1; e),         // A1 -> - A1 | ε
@@ -823,7 +823,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ADD".to_string(), Some("+".to_string())),
                 ("SEMI".to_string(), Some(";".to_string()))
             ]);
-            symbol_table.extend_non_terminals(["A1".to_string(), "A".to_string(), "A2".to_string()]);
+            symbol_table.extend_nonterminals(["A1".to_string(), "A".to_string(), "A2".to_string()]);
             prods.extend([
                 prod!(t 0, nt 0; e),    // A1 -> - A1 | ε
                 prod!(nt 0, nt 2, t 2), // A -> A1 A2 ;     <-- start
@@ -839,7 +839,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ADD".to_string(), Some("+".to_string())),
                 ("SEMI".to_string(), Some(";".to_string()))
             ]);
-            symbol_table.extend_non_terminals(["A1".to_string(), "X".to_string(), "A".to_string(), "A2".to_string()]);
+            symbol_table.extend_nonterminals(["A1".to_string(), "X".to_string(), "A".to_string(), "A2".to_string()]);
             prods.extend([
                 prod!(t 1, nt 0; e),    // A1 -> - A1 | ε
                 prod!(t 0, nt 2),       // X -> > A         <-- start I
@@ -913,7 +913,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 /* 4 */ (";".to_string(), Some(";".to_string())),
                 /* 5 */ ("id".to_string(), None),
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 /* 0 */ "STRUCT".to_string(),
                 /* 1 */ "LIST".to_string(),
             ]);
@@ -970,7 +970,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 /* 4 */ (";".to_string(), Some(";".to_string())),
                 /* 5 */ ("id".to_string(), None),
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 /* 0 */ "STRUCT".to_string(),
                 /* 1 */ "LIST".to_string(),
             ]);
@@ -987,7 +987,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 1; nt 0, t 0, t 1),
                 prod!(t 1),
             ]);
-            symbol_table.extend_non_terminals(["E".to_string(), "F".to_string()]);
+            symbol_table.extend_nonterminals(["E".to_string(), "F".to_string()]);
             symbol_table.extend_terminals([
                 (".".to_string(), Some(".".to_string())),
                 ("id".to_string(), None),
@@ -1000,7 +1000,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 1; nt 0, t 0, t 1; nt 0, t 0, t 1, t 2, t 3),
                 prod!(t 1),
             ]);
-            symbol_table.extend_non_terminals(["E".to_string(), "F".to_string()]);
+            symbol_table.extend_nonterminals(["E".to_string(), "F".to_string()]);
             symbol_table.extend_terminals([
                 (".".to_string(), Some(".".to_string())),
                 ("id".to_string(), None),
@@ -1021,7 +1021,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 0, t 2, nt 1; t 3; t 4, nt 1),
                 prod!(t 0; t 1),
             ]);
-            symbol_table.extend_non_terminals(["S".to_string(), "VAL".to_string()]);
+            symbol_table.extend_nonterminals(["S".to_string(), "VAL".to_string()]);
             symbol_table.extend_terminals([
                 ("id".to_string(), None),
                 ("num".to_string(), None),
@@ -1043,7 +1043,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(nt 1; t 2; nt 0, t 0, t 1),
                 prod!(t 1),
             ]);
-            symbol_table.extend_non_terminals(["E".to_string(), "F".to_string()]);
+            symbol_table.extend_nonterminals(["E".to_string(), "F".to_string()]);
             symbol_table.extend_terminals([
                 (".".to_string(), Some(".".to_string())),
                 ("id".to_string(), None),
@@ -1061,7 +1061,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 /* 4 */ (";".to_string(), Some(";".to_string())),
                 /* 5 */ ("id".to_string(), None),
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 /* 0 */ "STRUCT".to_string(),
                 /* 1 */ "LIST".to_string(),
             ]);
@@ -1116,7 +1116,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("int".to_string(), None),                  // 6
                 (";".to_string(), Some(";".to_string())),   // 7
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "BATCH".to_string(),                        // 0
                 "GROUP".to_string(),                        // 1
                 "EXPR".to_string(),                         // 2
@@ -1192,8 +1192,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("NUM".to_string(), None),                      // 7
                 ("ID".to_string(), None)                        // 8
             ]);
-            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
-            symbol_table.extend_non_terminals(["F".to_string()]);   // 1
+            symbol_table.extend_nonterminals(["E".to_string()]);   // 0
+            symbol_table.extend_nonterminals(["F".to_string()]);   // 1
             prods.extend([
                 prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 4, nt 0; nt 1),
                 prod!(t 5, nt 0, t 6; t 7; t 8),
@@ -1215,8 +1215,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ID".to_string(), None),                       // 8
                 ("PRIME".to_string(), Some("'".to_string())),   // 9
             ]);
-            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
-            symbol_table.extend_non_terminals(["F".to_string()]);   // 1
+            symbol_table.extend_nonterminals(["E".to_string()]);   // 0
+            symbol_table.extend_nonterminals(["F".to_string()]);   // 1
             prods.extend([
                 prod!(t 0, nt 0;
                     nt 0, t 2, nt 0;
@@ -1240,8 +1240,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("NUM".to_string(), None),                      // 4
                 ("ID".to_string(), None),                       // 5
             ]);
-            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
-            symbol_table.extend_non_terminals(["F".to_string()]);   // 1
+            symbol_table.extend_nonterminals(["E".to_string()]);   // 0
+            symbol_table.extend_nonterminals(["F".to_string()]);   // 1
             prods.extend([
                 prod!(nt 0, t 0, nt 0; nt 0, t 1; nt 0, t 2; nt 0, t 3, nt 0; nt 1),
                 prod!(t 4; t 5),
@@ -1260,7 +1260,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("LPAREN".to_string(), Some("(".to_string())),  // 6
                 ("RPAREN".to_string(), Some(")".to_string())),  // 7
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
                 "F".to_string(),        // 1
             ]);
@@ -1279,7 +1279,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ID".to_string(), None),                       // 4
                 ("NUM".to_string(), None),                      // 5
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1296,7 +1296,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ID".to_string(), None),                       // 4
                 ("NUM".to_string(), None),                      // 5
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1313,7 +1313,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ID".to_string(), None),                       // 4
                 ("NUM".to_string(), None),                      // 5
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1329,7 +1329,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ID".to_string(), None),                       // 3
                 ("NUM".to_string(), None),                      // 4
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1343,7 +1343,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("SUB".to_string(), Some("-".to_string())),     // 1
                 ("ZERO".to_string(), Some("0".to_string())),    // 2
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1357,7 +1357,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("SUB".to_string(), Some("-".to_string())),     // 1
                 ("ZERO".to_string(), Some("0".to_string())),    // 2
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1373,7 +1373,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("SUB".to_string(), Some("-".to_string())),     // 3
                 ("ID".to_string(), None),                       // 4
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1389,7 +1389,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ZERO".to_string(), Some("0".to_string())),    // 2
                 ("ONE".to_string(), Some("1".to_string())),     // 3
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1404,7 +1404,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ADD".to_string(), Some("+".to_string())),     // 2
                 ("ID".to_string(), None),                       // 3
             ]);
-            symbol_table.extend_non_terminals(["E".to_string()]);   // 0
+            symbol_table.extend_nonterminals(["E".to_string()]);   // 0
             prods.extend([
                 prod!(nt 0, t 0, nt 0; t 1, nt 0; nt 0, t 2, nt 0; t 3),
             ]);
@@ -1418,7 +1418,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ADD".to_string(), Some("+".to_string())),     // 3
                 ("ID".to_string(), None),                       // 4
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
                 // "E3".to_string(),       // 1
                 // "E5".to_string(),       // 2
@@ -1435,7 +1435,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("SUB".to_string(), Some("-".to_string())),     // 1
                 ("ZERO".to_string(), Some("0".to_string())),    // 2
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1453,7 +1453,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("NUM".to_string(), None),                      // 4
                 ("AT".to_string(), Some("@".to_string())),      // 5
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1469,7 +1469,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("SUB".to_string(), Some("-".to_string())),     // 1
                 ("ZERO".to_string(), Some("0".to_string())),    // 2
             ]);
-            symbol_table.extend_non_terminals([
+            symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
             prods.extend([
@@ -1570,7 +1570,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         },
         1005 => { // (warnings: unused terminals, unused non-terminals)
             symbol_table.extend_terminals([("a".to_string(), None), ("b".to_string(), None)]);
-            symbol_table.extend_non_terminals(["A".to_string(), "B".to_string()]);
+            symbol_table.extend_nonterminals(["A".to_string(), "B".to_string()]);
             prods.extend([
                 prod!(t 1),
                 prod!(t 1),
@@ -3175,12 +3175,12 @@ fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
         rts.set_tree(i, t);
     }
     let num_t = rts.get_terminals().iter().max().map(|n| *n + 1).unwrap_or(0);
-    if symbol_table.get_terminals().is_empty() {
+    if symbol_table.get_num_t() == 0 {
         symbol_table.extend_terminals((0..num_t).map(|i| (format!("{}", char::from(i as u8 + 97)), None)));
     }
-    if symbol_table.get_non_terminals().is_empty() {
+    if symbol_table.get_num_nt() == 0 {
         assert!(num_nt <= 26);
-        symbol_table.extend_non_terminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
+        symbol_table.extend_nonterminals((0..num_nt as u8).map(|i| format!("{}", char::from(i + 65))));
     }
     rts.set_symbol_table(symbol_table);
     if let Some(start) = start {

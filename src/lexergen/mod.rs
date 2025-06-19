@@ -196,14 +196,14 @@ impl LexerGen {
     pub fn build_symbols_source_code(&self, indent: usize) -> Option<String> {
         self.symbol_table.as_ref().map(|table| {
             let mut source = Vec::<String>::new();
-            let (max_n, max_option) = table.get_terminals().iter().fold((0, 0), |(n, option), t| {
+            let (max_n, max_option) = table.get_terminals().fold((0, 0), |(n, option), t| {
                 (n.max(t.0.len()), option.max(t.1.as_ref().map_or(0, |o| o.len())))
             });
             // Arrow = 0,  // 0
             // Colon,      // 1
             source.push("#[repr(u16)]".to_string());
             source.push("enum T {".to_string());
-            for (i, (n, _option)) in table.get_terminals().iter().enumerate() {
+            for (i, (n, _option)) in table.get_terminals().enumerate() {
                 source.push(format!("    {n:max_n$}{} // {i}", if i == 0 { " = 0," } else { ",    " }));
             }
             source.push("}".to_string());
@@ -211,7 +211,7 @@ impl LexerGen {
             // ("Arrow",     Some("->")),          // 0
             // ("Colon",     Some(":")),           // 1
             source.push(format!("pub const TERMINALS: [(&str, Option<&str>); {}] = [", table.get_num_t()));
-            for (i, (n, option)) in table.get_terminals().iter().enumerate() {
+            for (i, (n, option)) in table.get_terminals().enumerate() {
                 source.push(format!("    (\"{n}\",{:w1$}{}),{:w2$} // {i}",
                                     "",
                                     if let Some(o) = option { format!("Some(\"{o}\")") } else { "None".to_string() },

@@ -25,7 +25,7 @@ mod listener1 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -76,7 +76,7 @@ mod listener2 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -659,7 +659,7 @@ mod listener3 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -698,7 +698,7 @@ mod listener4 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -737,7 +737,7 @@ mod listener5 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -776,7 +776,7 @@ mod listener6 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -815,7 +815,7 @@ mod listener7 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -854,7 +854,7 @@ mod listener8 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -893,7 +893,7 @@ mod listener9 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -932,7 +932,7 @@ mod listener10 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -971,7 +971,7 @@ mod listener11 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -1010,7 +1010,7 @@ mod listener12 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -1049,7 +1049,7 @@ mod listener13 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -1088,7 +1088,7 @@ pub(crate) mod listener14 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -1127,7 +1127,7 @@ pub(crate) mod listener15 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {
@@ -1166,7 +1166,7 @@ pub(crate) mod listener16 {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {

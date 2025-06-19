@@ -5,7 +5,7 @@ use crate::dfa::TokenId;
 use crate::grammar::{Symbol, VarId};
 use crate::NameFixer;
 
-/// Stores the names of the terminal and non-terminal symbols.
+/// Stores the names of the terminal and nonterminal symbols.
 ///
 /// Terminals are defined in the lexicon and don't change. They have two parts to their name:
 /// - the identifier in the lexicon
@@ -14,17 +14,21 @@ use crate::NameFixer;
 /// For example:
 /// ```lexicon
 /// Arrow : '->';
+/// ...
 /// ID    : [a-zA-Z][a-zA-Z_0-9]*;
 /// ```
 ///
-/// If `Arrow` is 0 and `ID` is 24 (simplifying the strings to &str),
+/// If `Arrow`'s token ID is 0 and `ID`'s is 24 (simplifying the strings to &str),
 /// ```ignore
 /// t[0] = ("Arrow", Some("->"));
 /// t[24] = ("ID", None);
 /// ```
 ///
-/// Non-terminals are first taken from the grammar, then completed when processing the
-/// production rules.
+/// They're added to the symbol table with [`add_terminal()`](SymbolTable::add_terminal).
+///
+/// Nonterminals are defined in the grammar, and possibly completed by new ones when
+/// the rules are adapted to the target parser. For example, recursive rules are
+/// transformed for LL(1) parsers, which usually adds extra rules.
 ///
 /// ```grammar
 /// expr: expr Plus term | term;
@@ -34,45 +38,53 @@ use crate::NameFixer;
 /// nt[0] = "expr";
 /// nt[1] = "term";
 /// ```
-/// After removing the left recursion, this production rule is modified:
-/// ```grammar
-/// expr: term expr_0;
-/// expr_0: Plus term expr_0 | ε;
-/// ```
-/// and this non-terminal is added:
+/// They're added with [`add_nonterminal`](SymbolTable::add_nonterminal).
+///
+/// The new rules are called "children" of the transformed rules, and can be added
+/// with [`add_child_nonterminal()`](SymbolTable::add_child_nonterminal). The name
+/// is the parent's name followed by "_<number>". For example, adding a child to
+/// nonterminal 0 creates
+///
 /// ```ignore
-/// nt[2] = "expr_0";
+/// nt[2] = "expr_1"
 /// ```
 ///
 #[derive(Clone, Debug)]
 pub struct SymbolTable {
-    // todo: find more efficient storage for terminals
-    t: Vec<(String, Option<String>)>,
-    nt: Vec<String>,
-    names: HashMap<String, VarId>,
-    fixer_t: NameFixer,
-    fixer_nt: NameFixer,
-    // primes: HashMap<VarId, VarId>, // primes[A_1] = A
+    t: Vec<(String, Option<String>)>,   // terminal identifiers and optional representation
+    fixer_t: NameFixer,                 // keeps terminal identifiers unique
+    nt: Vec<String>,                    // nt to nonterminal identifier
+    names: HashMap<String, VarId>,      // nonterminal identifier to nt
+    fixer_nt: NameFixer,                // keeps nonterminal identifiers unique
 }
 
 impl SymbolTable {
     pub fn new() -> Self {
         SymbolTable {
             t: Vec::new(),
+            fixer_t: NameFixer::new_empty(),
             nt: Vec::new(),
             names: HashMap::new(),
-            fixer_t: NameFixer::new_empty(),
             fixer_nt: NameFixer::new_empty(),
-            // primes: HashMap::new(),
         }
     }
 
+    // -------------------------------------------------------------------------
+
     /// Does `Symbol::T(token)` hold lexer string data?
-    pub fn is_t_data(&self, token: TokenId) -> bool {
+    ///
+    /// Terminals are divided into two categories: fixed and variable content. When the
+    /// terminal is defined with choices and ranges of characters, like `ID: [a-z]+`, it
+    /// contains variable content: data like the ID specifier.
+    pub fn is_token_data(&self, token: TokenId) -> bool {
         self.t[token as usize].1.is_none()
     }
 
     /// Is `symbol` a terminal holding lexer string data?
+    ///
+    /// Terminals are divided into two categories: fixed and variable content. When the
+    /// terminal is defined with choices and ranges of characters, like `ID: [a-z]+`, it
+    /// contains variable content: data like the ID specifier.
     pub fn is_symbol_t_data(&self, symbol: &Symbol) -> bool {
         if let Symbol::T(token) = symbol {
             self.t[*token as usize].1.is_none()
@@ -81,7 +93,7 @@ impl SymbolTable {
         }
     }
 
-    pub fn add_terminal<J: Into<String>>(&mut self, name: J, name_maybe: Option<J>) -> TokenId {
+    pub fn add_terminal<T: Into<String>>(&mut self, name: T, name_maybe: Option<T>) -> TokenId {
         let token = self.t.len();
         assert!(token < TokenId::MAX as usize);
         let unique_name = self.fixer_t.get_unique_name(name.into());
@@ -89,114 +101,27 @@ impl SymbolTable {
         token as TokenId
     }
 
-    pub fn get_terminals(&self) -> &[(String, Option<String>)] {
-        &self.t
+    pub fn extend_terminals<I: IntoIterator<Item=(T, Option<T>)>, T: Into<String>>(&mut self, terminals: I) {
+        for (s, maybe) in terminals {
+            self.add_terminal(s, maybe);
+        }
+    }
+
+    pub fn get_terminals(&self) -> impl Iterator<Item = &(String, Option<String>)> {
+        self.t.iter()
     }
 
     pub fn get_num_t(&self) -> usize {
         self.t.len()
     }
 
-    pub fn extend_terminals<I: IntoIterator<Item=(J, Option<J>)>, J: Into<String>>(&mut self, terminals: I) {
-        for (s, maybe) in terminals {
-            self.add_terminal(s, maybe);
+    pub fn get_t_name(&self, token: TokenId) -> String {
+        if token as usize >= self.t.len() {
+            format!("??T({token})")
+        } else {
+            self.t[token as usize].0.clone()
         }
     }
-
-    pub fn add_non_terminal<J: Into<String>>(&mut self, name: J) -> VarId {
-        let var = self.nt.len();
-        assert!(var < VarId::MAX as usize);
-        let unique_name = self.fixer_nt.get_unique_name(name.into());
-        self.nt.push(unique_name);
-        var as VarId
-    }
-
-    pub fn add_child_nonterminal(&mut self, var: VarId) -> VarId {
-        let name = self.get_nt_name(var);
-        let var = self.nt.len();
-        assert!(var < VarId::MAX as usize);
-        let unique_name = self.fixer_nt.get_unique_name_unum(name);
-        self.nt.push(unique_name);
-        var as VarId
-    }
-    
-    pub fn get_non_terminals(&self) -> &[String] {
-        &self.nt
-    }
-
-    pub fn get_num_nt(&self) -> usize {
-        self.nt.len()
-    }
-
-    pub fn extend_non_terminals<I: IntoIterator<Item=J>, J: Into<String>>(&mut self, nonterminals: I) {
-        for s in nonterminals {
-            self.add_non_terminal(s);
-        }
-    }
-
-    pub fn remove_non_terminal(&mut self, v: VarId) {
-        let name = self.nt.remove(v as usize);
-        for old_v in self.names.values_mut() {
-            if *old_v >= v { *old_v -= 1; }
-        }
-        self.names.remove(&name);
-        self.fixer_nt.remove(&name);
-        // self.primes = self.primes.iter()
-        //     .filter(|&(child, parent)| *child != v && *parent != v)
-        //     .map(|(&child, &parent)| (if child > v { child - 1 } else { child }, if parent > v { parent - 1 } else { parent }))
-        //     .collect::<HashMap<_, _>>();
-    }
-
-    pub fn get_names(&self) -> impl Iterator<Item=(&String, &VarId)> {
-        self.names.iter()
-    }
-
-    // pub fn extend_names<I: IntoIterator<Item=(String, VarId)>>(&mut self, iter: I) {
-    //     self.names.extend(iter);
-    // }
-
-    /// Removes the name assigned to NT `var` and returns it. Internally, the name of the NT is
-    /// replaced by another unique string. The NT is expected to be removed later.
-    pub fn remove_nt_name(&mut self, var: VarId) -> String {
-        // let mut noname = String::new();
-        // for i in 0.. {
-        //     noname = format!("{var}_noname{}", if i == 0 { "".to_string() } else { i.to_string() });
-        //     if !self.names.contains_key(&noname) {
-        //         self.names.insert(noname.clone(), var);
-        //         break;
-        //     }
-        // }
-        let mut removed = self.fixer_nt.get_unique_name_num(format!("{var}_removed"));
-        std::mem::swap(&mut self.nt[var as usize], &mut removed);
-        self.names.remove(&removed);
-        self.fixer_nt.remove(&removed);
-        removed
-    }
-
-    // /// Adds a new variable `var_prime` derived from another `var`. If `var` itself is
-    // /// a prime, find the original ancestor as `var`. Use the name of `var` (or its ancestor)
-    // /// and adds a numeric suffix, making sure the new name doesn't already exist.
-    // pub fn add_var_prime_name(&mut self, mut var: VarId, var_prime: VarId, name: Option<String>) {
-    //     assert_eq!(self.nt.len(), var_prime as usize, "bad var_prime index {var_prime} (should be {})", self.nt.len());
-    //     while let Some(ancestor) = self.primes.get(&var) {
-    //         var = *ancestor;
-    //     }
-    //     let parent_name = &self.nt[var as usize].clone();
-    //     let name_prime = name.unwrap_or(
-    //         // if the name is not given, adds a number after the parent's name, checking that it's unique
-    //         (1..).find_map(|i| {
-    //             let attempt = format!("{parent_name}_{i}");
-    //             if !self.names.contains_key(&attempt) {
-    //                 Some(attempt)
-    //             } else {
-    //                 None
-    //             }
-    //         }).expect(&format!("couldn't find an associated name for '{parent_name}'"))
-    //     );
-    //     self.names.insert(name_prime.clone(), var_prime);
-    //     self.primes.insert(var_prime, var);
-    //     self.nt.push(name_prime);
-    // }
 
     pub fn get_t_str(&self, token: TokenId) -> String {
         match token {
@@ -209,16 +134,55 @@ impl SymbolTable {
         }
     }
 
-    pub fn get_t_name(&self, token: TokenId) -> String {
-        if token as usize >= self.t.len() {
-            format!("??T({token})")
-        } else {
-            self.t[token as usize].0.clone()
+    pub fn set_t_name(&mut self, token: TokenId, name_maybe: Option<String>) {
+        self.t[token as usize].1 = name_maybe
+    }
+
+    // -------------------------------------------------------------------------
+
+    fn add_nt(&mut self, unique_name: String) -> VarId {
+        let var = self.nt.len();
+        assert!(var < VarId::MAX as usize);
+        self.names.insert(unique_name.clone(), var as VarId);
+        self.nt.push(unique_name);
+        var as VarId
+    }
+
+    pub fn add_nonterminal<T: Into<String>>(&mut self, name: T) -> VarId {
+        let unique_name = self.fixer_nt.get_unique_name(name.into());
+        self.add_nt(unique_name)
+    }
+
+    pub fn add_child_nonterminal(&mut self, var: VarId) -> VarId {
+        let unique_name = self.fixer_nt.get_unique_name_unum(self.nt[var as usize].clone());
+        self.add_nt(unique_name)
+    }
+    
+    pub fn extend_nonterminals<I: IntoIterator<Item=T>, T: Into<String>>(&mut self, nonterminals: I) {
+        for s in nonterminals {
+            self.add_nonterminal(s);
         }
     }
 
-    pub fn set_t_name(&mut self, token: TokenId, name_maybe: Option<String>) {
-        self.t[token as usize].1 = name_maybe
+    pub fn find_nonterminal(&self, name: &str) -> Option<VarId> {
+        self.names.get(name).cloned()
+    }
+
+    pub fn get_nonterminals(&self) -> impl Iterator<Item = &String> {
+        self.nt.iter()
+    }
+
+    pub fn get_num_nt(&self) -> usize {
+        self.nt.len()
+    }
+
+    pub fn remove_nonterminal(&mut self, v: VarId) {
+        let name = self.nt.remove(v as usize);
+        for old_v in self.names.values_mut() {
+            if *old_v >= v { *old_v -= 1; }
+        }
+        self.names.remove(&name);
+        self.fixer_nt.remove(&name);
     }
 
     pub fn get_nt_name(&self, var: VarId) -> String {
@@ -229,6 +193,18 @@ impl SymbolTable {
     pub fn set_nt_name(&mut self, var: VarId, name: String) {
         self.nt[var as usize] = name;
     }
+
+    /// Removes the name assigned to NT `var` and returns it. Internally, the name of the NT is
+    /// replaced by another unique string. The NT is expected to be removed later.
+    pub fn remove_nt_name(&mut self, var: VarId) -> String {
+        let mut removed = self.fixer_nt.get_unique_name_num(format!("{var}_removed"));
+        std::mem::swap(&mut self.nt[var as usize], &mut removed);
+        self.names.remove(&removed);
+        self.fixer_nt.remove(&removed);
+        removed
+    }
+
+    // -------------------------------------------------------------------------
 
     pub fn get_name(&self, symbol: &Symbol) -> String {
         match symbol {
@@ -250,10 +226,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn primes() {
+    fn general() {
         let mut st = SymbolTable::new();
-        st.extend_non_terminals(["A".to_string(), "NOT_USED".to_string(), "E".to_string()]);
-        let mut st2 = st.clone();
+        st.extend_nonterminals(["A".to_string(), "NOT_USED".to_string(), "E".to_string()]);
         assert_eq!(st.add_child_nonterminal(0), 3);
         assert_eq!(st.get_name(&Symbol::NT(3)), "A_1");
         assert_eq!(st.add_child_nonterminal(0), 4);
@@ -261,14 +236,17 @@ mod tests {
         assert_eq!(st.add_child_nonterminal(2), 5);
         assert_eq!(st.get_name(&Symbol::NT(5)), "E_1");
         assert_eq!(st.add_child_nonterminal(1), 6);
-        st.remove_non_terminal(1);
+        st.remove_nonterminal(1);
         assert_eq!(st.get_name(&Symbol::NT(2)), "A_1");
         assert_eq!(st.get_name(&Symbol::NT(3)), "A_2");
         assert_eq!(st.get_name(&Symbol::NT(4)), "E_1");
-
-        assert_eq!(st2.add_child_nonterminal(1), 3);
-        assert_eq!(st2.add_child_nonterminal(0), 4);
-        assert_eq!(st2.add_child_nonterminal(2), 5);
-        st2.remove_non_terminal(3);
+        assert_eq!(st.find_nonterminal("A_1"), Some(2));
+        assert!(st.nt.contains(&"A_2".to_string()));
+        assert!(st.names.contains_key("A_2"));
+        assert!(st.fixer_nt.contains("A_2"));
+        st.remove_nt_name(3);
+        assert!(!st.nt.contains(&"A_2".to_string()));
+        assert!(!st.names.contains_key("A_2"));
+        assert!(!st.fixer_nt.contains("A_2"));
     }
 }

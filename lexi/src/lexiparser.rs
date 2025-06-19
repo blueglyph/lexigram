@@ -23,7 +23,7 @@ pub(crate) mod lexiparser {
     pub fn build_parser() -> Parser {
         let mut symbol_table = SymbolTable::new();
         symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_non_terminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {

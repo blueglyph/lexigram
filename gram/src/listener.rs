@@ -40,7 +40,7 @@ impl GramListener {
     pub fn new(symbol_table: SymbolTable) -> Self {
         // copies the NT and T from the symbol table
         let symbols = symbol_table.get_terminals()
-            .into_iter().index::<VarId>()
+            .index::<VarId>()
             .map(|(t, (s, _))| (s.clone(), Symbol::T(t)))
             .collect::<HashMap<_,_>>();
         assert_eq!(symbol_table.get_num_nt(), 0, "the symbol table cannot contain non-terminals");
@@ -131,7 +131,7 @@ impl GramListener {
                 self.log.add_error(format!("rule {}: '{}' cannot be used as rule name", self.curr_name.as_ref().unwrap(), sym.to_str(Some(&self.symbol_table))));                None
             }
             None => {
-                self.symbol_table.add_non_terminal(name);
+                self.symbol_table.add_nonterminal(name);
                 self.num_nt += 1;
                 Some(nt)
             }

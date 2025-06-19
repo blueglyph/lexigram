@@ -506,7 +506,7 @@ mod simple {
             }
             let symbol_table = listener.build_symbol_table();
             let expected_sym = expected_sym.into_iter().map(|s| s.to_string()).to_vec();
-            let result_sym = symbol_table.get_terminals().iter().map(|(s, _)| s.to_string()).to_vec();
+            let result_sym = symbol_table.get_terminals().map(|(s, _)| s.to_string()).to_vec();
             let result_end = listener.terminals.iter().enumerate().filter_map(|(id, t)| {
                 t.iter_depth_simple().find_map(|n|
                     // unfortunately, we can't destructure entirely because term is a Box

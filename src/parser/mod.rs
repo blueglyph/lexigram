@@ -354,7 +354,7 @@ impl Parser {
                     }
                     if !recover_mode {
                         if VERBOSE { println!("- MATCH {}", stream_sym.to_str(sym_table)); }
-                        if self.symbol_table.is_t_data(sk) {
+                        if self.symbol_table.is_token_data(sk) {
                             stack_t.push(std::mem::take(&mut stream_str)); // must use take() to comply with borrow checker
                         }
                         stack_sym = stack.pop().unwrap();

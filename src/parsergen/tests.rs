@@ -543,13 +543,13 @@ mod wrapper_source {
                 if let All = has_value {
                     valuables.extend(0..num_t);
                 } else /* Default */ {
-                    valuables.extend((0..num_t).filter(|t| builder.symbol_table.is_t_data(*t)));
+                    valuables.extend((0..num_t).filter(|t| builder.symbol_table.is_token_data(*t)));
                 }
             }
         }
         for t in 0..num_t {
             let is_valuable = valuables.contains(&t);
-            if builder.symbol_table.is_t_data(t) != is_valuable {
+            if builder.symbol_table.is_token_data(t) != is_valuable {
                 if is_valuable {
                     builder.symbol_table.set_t_name(t, None);
                 } else {
@@ -1609,7 +1609,6 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
 // if rule_id != PRS(58) { continue }
-// if rule_id != PRS(33) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.get_prs(test_id, start_nt, true);
