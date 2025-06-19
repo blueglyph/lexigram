@@ -167,3 +167,77 @@ impl NameTransformer for str {
         result
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_name_fixer() {
+        let mut fixer = NameFixer::new();
+        assert_eq!(fixer.get_unique_name("a".to_string()), "a");
+        assert_eq!(fixer.get_unique_name("a".to_string()), "a1");
+        assert_eq!(fixer.get_unique_name("b".to_string()), "b");
+        assert_eq!(fixer.get_unique_name("a".to_string()), "a2");
+        assert_eq!(fixer.get_unique_name("U2".to_string()), "U2");
+        assert_eq!(fixer.get_unique_name("U2".to_string()), "U2_1");
+    }
+
+    #[test]
+    fn test_name_fixer_num() {
+        let mut fixer = NameFixer::new();
+        assert_eq!(fixer.get_unique_name_num("a".to_string()), "a1");
+        assert_eq!(fixer.get_unique_name_num("a".to_string()), "a2");
+        assert_eq!(fixer.get_unique_name_num("b".to_string()), "b1");
+        assert_eq!(fixer.get_unique_name_num("a".to_string()), "a3");
+        assert_eq!(fixer.get_unique_name_num("U2".to_string()), "U2_1");
+        assert_eq!(fixer.get_unique_name_num("U2".to_string()), "U2_2");
+    }
+
+    #[test]
+    fn test_name_fixer_under_num() {
+        let mut fixer = NameFixer::new();
+        assert_eq!(fixer.get_unique_name_unum("a".to_string()), "a_1");
+        assert_eq!(fixer.get_unique_name_unum("a".to_string()), "a_2");
+        assert_eq!(fixer.get_unique_name_unum("b".to_string()), "b_1");
+        assert_eq!(fixer.get_unique_name_unum("a".to_string()), "a_3");
+        assert_eq!(fixer.get_unique_name_unum("U2".to_string()), "U2_1");
+        assert_eq!(fixer.get_unique_name_unum("U2".to_string()), "U2_2");
+    }
+
+    #[test]
+    fn test_to_camel_case() {
+        let tests = vec![
+            ("A", "A"),
+            ("AA", "Aa"),
+            ("AB1", "Ab1"),
+            ("A_1", "A1"),
+            ("NUM_VAL", "NumVal"),
+            ("a", "A"),
+            ("ab_cd_ef", "AbCdEf"),
+        ];
+        for (str, expected) in tests {
+            let result = str.to_string().to_camelcase();
+            assert_eq!(result, expected);
+        }
+    }
+
+    #[test]
+    fn test_to_underscore() {
+        let tests = vec![
+            ("a", "a", "A"),
+            ("AA", "a_a", "A_A"),
+            ("A1", "a1", "A1"),
+            ("aB1", "a_b1", "A_B1"),
+            ("A", "a", "A"),
+            ("AbCdEf", "ab_cd_ef", "AB_CD_EF"),
+            ("ANewTest", "a_new_test", "A_NEW_TEST"),
+        ];
+        for (str, expected_lower, expected_upper) in tests {
+            let result_lower = str.to_string().to_underscore_lowercase();
+            let result_upper = str.to_string().to_underscore_uppercase();
+            assert_eq!(result_lower, expected_lower);
+            assert_eq!(result_upper, expected_upper);
+        }
+    }
+}
