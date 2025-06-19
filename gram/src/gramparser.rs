@@ -232,24 +232,24 @@ pub(crate) mod gramparser {
                     match factor_id {
                         0 => self.exit_file(),                      // file -> header rules
                         1 => self.exit_header(),                    // header -> grammar Id ;
-                        2 => self.inter_rules(),                    // rules -> rule
-                        14 |                                        // rules -> rules rule
-                        15 => self.exit_rules1(factor_id),          // end of iterations in rules -> rules rule
-                        18 |                                        // rule -> rule_name : prod ;
-                        19 => self.exit_rule(factor_id),            // rule -> rule_name : prod EOF ;
-                     /* 3 */                                        // rule -> rule_name : prod ; | rule_name : prod EOF ; (never called)
+                        2 => self.inter_rules(),                    // rules -> rule rules_1
+                        14 |                                        // rules_1 -> rule rules_1
+                        15 => self.exit_rules1(factor_id),          // rules_1 -> ε
+                        18 |                                        // rule_1 -> ;
+                        19 => self.exit_rule(factor_id),            // rule_1 -> EOF ;
+                     /* 3 */                                        // rule -> rule_name : prod rule_1 (never called)
                         4 => self.exit_rule_name(),                 // rule_name -> Id
-                        5 => self.inter_prod(),                     // prod -> prod_factor
-                        16 |                                        // prod -> prod | prod_factor
-                        17 => self.exit_prod1(factor_id),           // end of iterations in prod -> prod | prod_factor
-                        6 => self.exit_prod_factor(),               // prod_factor -> [prod_term]*
-                        12 => self.exit_prod_factor1(),             // [prod_term]* item in prod_factor ->  ► [prod_term]* ◄
-                        13 => {}                                    // end of [prod_term]* items in prod_factor ->  ► [prod_term]* ◄
-                        20 |                                        // prod_term -> term_item +
-                        21 |                                        // prod_term -> term_item ?
-                        22 |                                        // prod_term -> term_item *
-                        23 => self.exit_prod_term(factor_id),       // prod_term -> term_item
-                     /* 7 */                                        // prod_term -> term_item | term_item + | term_item ? | term_item * (never called)
+                        5 => self.inter_prod(),                     // prod -> prod_factor prod_1
+                        16 |                                        // prod_1 -> | prod_factor prod_1
+                        17 => self.exit_prod1(factor_id),           // prod_1 -> ε
+                        6 => self.exit_prod_factor(),               // prod_factor -> prod_factor_1
+                        12 => self.exit_prod_factor1(),             // prod_factor_1 -> prod_term prod_factor_1
+                        13 => {}                                    // prod_factor_1 -> ε
+                        20 |                                        // prod_term_1 -> +
+                        21 |                                        // prod_term_1 -> ?
+                        22 |                                        // prod_term_1 -> *
+                        23 => self.exit_prod_term(factor_id),       // prod_term_1 -> ε
+                     /* 7 */                                        // prod_term -> term_item prod_term_1 (never called)
                         8 |                                         // term_item -> Id
                         9 |                                         // term_item -> Lform
                         10 |                                        // term_item -> <R>

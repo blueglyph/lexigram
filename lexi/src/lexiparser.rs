@@ -403,27 +403,27 @@ pub(crate) mod lexiparser {
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 |                                         // file -> header [file_item]*
-                        1 => self.exit_file(factor_id),             // file -> [file_item]*
-                        35 => self.exit_file1(),                    // [file_item]* item in file -> header  ► [file_item]* ◄  | ...
-                        36 => {}                                    // end of [file_item]* items in file -> header  ► [file_item]* ◄  | ...
+                        0 |                                         // file -> header file_1
+                        1 => self.exit_file(factor_id),             // file -> file_1
+                        35 => self.exit_file1(),                    // file_1 -> file_item file_1
+                        36 => {}                                    // file_1 -> ε
                         2 |                                         // file_item -> option
                         3 |                                         // file_item -> declaration
                         4 => self.exit_file_item(factor_id),        // file_item -> rule
                         5 => self.exit_header(),                    // header -> lexicon Id ;
                         6 => self.exit_declaration(),               // declaration -> mode Id ;
-                        7 => self.exit_option(),                    // option -> channels { Id [, Id]* }
-                        37 => self.exit_option1(),                  // [, Id]* item in option -> channels { Id  ► [, Id]* ◄  }
-                        38 => {}                                    // end of [, Id]* items in option -> channels { Id  ► [, Id]* ◄  }
+                        7 => self.exit_option(),                    // option -> channels { Id option_1 }
+                        37 => self.exit_option1(),                  // option_1 -> , Id option_1
+                        38 => {}                                    // option_1 -> ε
                         8 |                                         // rule -> rule_fragment_name : match ;
-                        45 |                                        // rule -> rule_terminal_name : match -> actions ;
-                        46 => self.exit_rule(factor_id),            // rule -> rule_terminal_name : match ;
-                     /* 9 */                                        // rule -> rule_terminal_name : match -> actions ; | rule_terminal_name : match ; (never called)
+                        45 |                                        // rule_1 -> -> actions ;
+                        46 => self.exit_rule(factor_id),            // rule_1 -> ;
+                     /* 9 */                                        // rule -> rule_terminal_name : match rule_1 (never called)
                         10 => self.exit_rule_fragment_name(),       // rule_fragment_name -> fragment Id
                         11 => self.exit_rule_terminal_name(),       // rule_terminal_name -> Id
-                        12 => self.exit_actions(),                  // actions -> action [, action]*
-                        39 => self.exit_actions1(),                 // [, action]* item in actions -> action  ► [, action]* ◄
-                        40 => {}                                    // end of [, action]* items in actions -> action  ► [, action]* ◄
+                        12 => self.exit_actions(),                  // actions -> action actions_1
+                        39 => self.exit_actions1(),                 // actions_1 -> , action actions_1
+                        40 => {}                                    // actions_1 -> ε
                         13 |                                        // action -> mode ( Id )
                         14 |                                        // action -> push ( Id )
                         15 |                                        // action -> pop
@@ -432,40 +432,40 @@ pub(crate) mod lexiparser {
                         18 |                                        // action -> type ( Id )
                         19 => self.exit_action(factor_id),          // action -> channel ( Id )
                         20 => self.exit_match(),                    // match -> alt_items
-                        21 => self.exit_alt_items(),                // alt_items -> alt_item [| alt_item]*
-                        41 => self.exit_alt_items1(),               // [| alt_item]* item in alt_items -> alt_item  ► [| alt_item]* ◄
-                        42 => {}                                    // end of [| alt_item]* items in alt_items -> alt_item  ► [| alt_item]* ◄
-                        22 => self.exit_alt_item(),                 // alt_item -> [repeat_item]+
-                        55 |                                        // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄
-                        56 => self.exit_alt_item1(),                // end of [repeat_item]+ items in alt_item ->  ► [repeat_item]+ ◄
-                     /* 43 */                                       // [repeat_item]+ item in alt_item ->  ► [repeat_item]+ ◄  (never called)
-                        48 |                                        // repeat_item -> item ?
-                        50 |                                        // repeat_item -> item
-                        59 |                                        // repeat_item -> item + ?
-                        60 |                                        // repeat_item -> item +
-                        61 |                                        // repeat_item -> item * ?
-                        62 => self.exit_repeat_item(factor_id),     // repeat_item -> item *
-                     /* 23 */                                       // repeat_item -> item | item + | item + ? | item ? | item * | item * ? (never called)
-                     /* 47 */                                       // repeat_item -> item + | item + ? (never called)
-                     /* 49 */                                       // repeat_item -> item * | item * ? (never called)
+                        21 => self.exit_alt_items(),                // alt_items -> alt_item alt_items_1
+                        41 => self.exit_alt_items1(),               // alt_items_1 -> | alt_item alt_items_1
+                        42 => {}                                    // alt_items_1 -> ε
+                        22 => self.exit_alt_item(),                 // alt_item -> alt_item_1
+                        55 |                                        // alt_item_2 -> alt_item_1
+                        56 => self.exit_alt_item1(),                // alt_item_2 -> ε
+                     /* 43 */                                       // alt_item_1 -> repeat_item alt_item_2 (never called)
+                        48 |                                        // repeat_item_1 -> ?
+                        50 |                                        // repeat_item_1 -> ε
+                        59 |                                        // repeat_item_2 -> ?
+                        60 |                                        // repeat_item_2 -> ε
+                        61 |                                        // repeat_item_3 -> ?
+                        62 => self.exit_repeat_item(factor_id),     // repeat_item_3 -> ε
+                     /* 23 */                                       // repeat_item -> item repeat_item_1 (never called)
+                     /* 47 */                                       // repeat_item_1 -> + repeat_item_2 (never called)
+                     /* 49 */                                       // repeat_item_1 -> * repeat_item_3 (never called)
                         24 |                                        // item -> ( alt_items )
                         25 |                                        // item -> ~ item
                         26 |                                        // item -> Id
                         28 |                                        // item -> StrLit
                         29 |                                        // item -> char_set
-                        51 |                                        // item -> CharLit .. CharLit
-                        52 => self.exit_item(factor_id),            // item -> CharLit
-                     /* 27 */                                       // item -> CharLit | CharLit .. CharLit (never called)
-                        30 |                                        // char_set -> [ [char_set_one]+ ]
+                        51 |                                        // item_1 -> .. CharLit
+                        52 => self.exit_item(factor_id),            // item_1 -> ε
+                     /* 27 */                                       // item -> CharLit item_1 (never called)
+                        30 |                                        // char_set -> [ char_set_1 ]
                         31 |                                        // char_set -> .
                         32 => self.exit_char_set(factor_id),        // char_set -> FixedSet
-                        57 |                                        // [char_set_one]+ item in char_set -> [  ► [char_set_one]+ ◄  ]
-                        58 => self.exit_char_set1(),                // end of [char_set_one]+ items in char_set -> [  ► [char_set_one]+ ◄  ]
-                     /* 44 */                                       // [char_set_one]+ item in char_set -> [  ► [char_set_one]+ ◄  ] (never called)
+                        57 |                                        // char_set_2 -> char_set_1
+                        58 => self.exit_char_set1(),                // char_set_2 -> ε
+                     /* 44 */                                       // char_set_1 -> char_set_one char_set_2 (never called)
                         33 |                                        // char_set_one -> FixedSet
-                        53 |                                        // char_set_one -> SetChar - SetChar
-                        54 => self.exit_char_set_one(factor_id),    // char_set_one -> SetChar
-                     /* 34 */                                       // char_set_one -> SetChar | SetChar - SetChar (never called)
+                        53 |                                        // char_set_one_1 -> - SetChar
+                        54 => self.exit_char_set_one(factor_id),    // char_set_one_1 -> ε
+                     /* 34 */                                       // char_set_one -> SetChar char_set_one_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
