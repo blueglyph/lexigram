@@ -647,10 +647,14 @@ impl ParserGen {
                 opcode.swap(0, 1);
                 if VERBOSE { println!("  - swap 0, 1: {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             } else if parent_lrec_no_lfact {
-                // swaps Exit(self) and call to left recursive item so that the wrapper can issue an exit_NT
-                // with the correct context
-                opcode.swap(0, 1);
-                if VERBOSE { println!("  - swap 0, 1: {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+                if let Some(OpCode::NT(x)) = opcode.get(1) {
+                    if self.nt_has_flags(*x, ruleflag::CHILD_L_RECURSION) {
+                        // swaps Exit(self) and call to left recursive item so that the wrapper can issue an exit_NT
+                        // with the correct context
+                        opcode.swap(0, 1);
+                        if VERBOSE { println!("  - swap 0, 1: {}", opcode.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+                    }
+                }
             } else if flags & ruleflag::CHILD_INDEPENDENT_AMBIGUITY != 0 && opcode.len() > 1 {
                 // E_1: ◄4 ►E_2 ►E_1 abs  =>  ●E_2 ◄4 ●E_1 abs (where var_prime E_2 has child_amb flag)
                 if let Some(OpCode::NT(var_prime)) = opcode.get(1) {

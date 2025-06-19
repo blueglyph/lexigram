@@ -468,12 +468,26 @@ mod opcodes {
                 strip![nt 1, exit 3, t 2],              //  3: A_2 -> c A_1 - ►A_1 ◄3 c
                 strip![nt 1, exit 4, t 3],              //  4: A_2 -> d A_1 - ►A_1 ◄4 d
             ]),
+            // E -> E + | - E | 0
+            // - 0: E -> - E
+            // - 1: E -> 0 E_1
+            // - 2: E_1 -> + E_1
+            // - 3: E_1 -> ε
+            // - NT flags:
+            //   - E: right_rec | parent_left_rec (514)
+            //   - E_1: child_left_rec (4)
+            (T::PRS(58), 0, vec![
+                strip![exit 0, nt 0, t 1],              //  0: E -> - E     - ◄0 ►E -
+                strip![nt 1, exit 1, t 2],              //  1: E -> 0 E_1   - ►E_1 ◄1 0
+                strip![loop 1, exit 2, t 0],            //  2: E_1 -> + E_1 - ●E_1 ◄2 +
+                strip![exit 3],                         //  3: E_1 -> ε     - ◄3
+            ]),
             /*
             (T::PRS(), 0, vec![
             ]),
             */
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const TESTS_ALL: bool = false;
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
