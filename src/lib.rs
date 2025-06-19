@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::collections::{BTreeSet, HashSet};
+use std::collections::BTreeSet;
 use std::ops::Deref;
 use vectree::VecTree;
 
@@ -14,11 +14,13 @@ pub mod lexergen;
 pub mod lexer;
 pub mod lexi;
 pub mod grammar;
-pub mod symbol_table;
 pub mod parsergen;
 pub mod parser;
 pub mod log;
 pub mod test_tools;
+
+mod symbol_table;
+pub use symbol_table::SymbolTable;
 
 // Regular expressions / DFA, See:
 // - https://blog.burntsushi.net/regex-internals/

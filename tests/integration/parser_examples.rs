@@ -9,7 +9,7 @@ mod listener1 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener1]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 8;
     const PARSER_NUM_NT: usize = 5;
@@ -60,7 +60,7 @@ mod listener2 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener2]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 10;
     const PARSER_NUM_NT: usize = 4;
@@ -643,7 +643,7 @@ mod listener3 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener3]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 6;
     const PARSER_NUM_NT: usize = 2;
@@ -682,7 +682,7 @@ mod listener4 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener4]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 6;
     const PARSER_NUM_NT: usize = 2;
@@ -721,7 +721,7 @@ mod listener5 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener5]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 2;
     const PARSER_NUM_NT: usize = 3;
@@ -760,7 +760,7 @@ mod listener6 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener6]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 4;
@@ -799,7 +799,7 @@ mod listener7 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener7]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
@@ -838,7 +838,7 @@ mod listener8 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener8]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
@@ -877,7 +877,7 @@ mod listener9 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener9]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 4;
@@ -916,7 +916,7 @@ mod listener10 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener10]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 3;
@@ -955,7 +955,7 @@ mod listener11 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener11]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 4;
@@ -994,7 +994,7 @@ mod listener12 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener12]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 4;
     const PARSER_NUM_NT: usize = 3;
@@ -1033,7 +1033,7 @@ mod listener13 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener13]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 3;
@@ -1072,7 +1072,7 @@ pub(crate) mod listener14 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener14]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 7;
@@ -1111,7 +1111,7 @@ pub(crate) mod listener15 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener15]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 8;
     const PARSER_NUM_NT: usize = 8;
@@ -1150,7 +1150,7 @@ pub(crate) mod listener16 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener16]
 
-    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}, SymbolTable};
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;

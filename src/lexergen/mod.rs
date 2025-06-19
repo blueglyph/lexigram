@@ -9,11 +9,10 @@ use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 #[cfg(test)]
 use crate::dfa::print_graph;
-use crate::{CollectJoin, escape_char, Normalized, indent_source};
+use crate::{CollectJoin, escape_char, Normalized, indent_source, SymbolTable};
 use crate::lexer::Lexer;
 use crate::log::{BufLog, Logger};
 use crate::segments::{Segments, Seg, SegMap};
-use crate::symbol_table::SymbolTable;
 use super::dfa::*;
 
 pub type GroupId = u32;

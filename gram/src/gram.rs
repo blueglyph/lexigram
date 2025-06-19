@@ -8,8 +8,7 @@ use lexigram::io::CharReader;
 use lexigram::lexer::{Lexer, TokenSpliterator};
 use lexigram::log::Logger;
 use lexigram::parser::Parser;
-use lexigram::symbol_table::SymbolTable;
-use lexigram::LL1;
+use lexigram::{LL1, SymbolTable};
 use std::io::Read;
 use std::marker::PhantomData;
 

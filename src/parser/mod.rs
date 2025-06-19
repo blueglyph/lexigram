@@ -4,12 +4,11 @@
 
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use crate::CollectJoin;
+use crate::{CollectJoin, SymbolTable};
 use crate::dfa::TokenId;
 use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId, FactorId};
 use crate::lexer::{CaretCol, CaretLine};
 use crate::log::{BufLog, Logger};
-use crate::symbol_table::SymbolTable;
 
 mod tests;
 

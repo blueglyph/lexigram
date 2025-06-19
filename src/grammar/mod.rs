@@ -17,7 +17,7 @@ use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, btreeset, prod};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::log::{BufLog, Logger};
-use crate::symbol_table::SymbolTable;
+use crate::SymbolTable;
 use crate::take_until::TakeUntilIterator;
 
 pub type VarId = u16;

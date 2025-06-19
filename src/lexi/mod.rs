@@ -8,9 +8,8 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::dfa::{ModeId, ReNode, ReType, TokenId};
 use crate::segments::{Seg, Segments};
-use crate::{gnode, node, term, General};
+use crate::{gnode, node, term, General, SymbolTable};
 use crate::grammar::{RuleTreeSet, VarId, GrNode, Symbol};
-use crate::symbol_table::SymbolTable;
 
 // ---------------------------------------------------------------------------------------------
 // Lexer

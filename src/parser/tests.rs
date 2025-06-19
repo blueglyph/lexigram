@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use iter_index::IndexerIterator;
-use crate::{CollectJoin, LL1};
+use crate::{CollectJoin, LL1, SymbolTable};
 use crate::dfa::TokenId;
 use crate::grammar::{ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, T};
@@ -12,7 +12,6 @@ use crate::lexer::{CaretCol, LexerToken};
 use crate::log::{BufLog, Logger, PrintLog};
 use crate::parser::ListenerWrapper;
 use crate::parsergen::ParserGen;
-use crate::symbol_table::SymbolTable;
 
 // ---------------------------------------------------------------------------------------------
 // Macros

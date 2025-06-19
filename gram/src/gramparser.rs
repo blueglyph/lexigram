@@ -6,7 +6,7 @@ pub(crate) mod gramparser {
     // -------------------------------------------------------------------------
     // [gramparser]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}, symbol_table::SymbolTable};
+    use lexigram::{CollectJoin, SymbolTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::gramparser_types::*;
 
     const PARSER_NUM_T: usize = 13;

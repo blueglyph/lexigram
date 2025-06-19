@@ -23,11 +23,10 @@ pub fn print_flags(builder: &ParserGen, indent: usize) {
 mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
-    use crate::{CollectJoin, LL1};
+    use crate::{CollectJoin, LL1, SymbolTable};
     use crate::log::Logger;
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
-    use crate::symbol_table::SymbolTable;
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
     #[derive(Debug, Clone, Copy, PartialEq)]
@@ -1649,7 +1648,7 @@ mod wrapper_source {
             if VERBOSE_TYPE {
                 println!("pub(crate) mod code_{rule_name} {{");
                 println!("    // {0:-<60}\n    // {test_name}", "");
-                let st: &crate::symbol_table::SymbolTable = builder.get_symbol_table().unwrap();
+                let st: &crate::SymbolTable = builder.get_symbol_table().unwrap();
                 for v in 0..(st.get_num_nt() as VarId) {
                     if let Some((_s, src)) = builder.get_nt_extra_info(v) {
                         println!();

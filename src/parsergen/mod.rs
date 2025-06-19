@@ -8,10 +8,9 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, symbol_to_macro};
-use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
+use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
 use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
-use crate::symbol_table::SymbolTable;
 
 pub(crate) mod tests;
 
@@ -1188,7 +1187,7 @@ impl ParserGen {
             "lexigram::grammar::FactorId",
             "lexigram::parser::OpCode",
             "lexigram::parser::Parser",
-            "lexigram::symbol_table::SymbolTable",
+            "lexigram::SymbolTable",
         ] {
             self.used_libs.add(lib);
         }
