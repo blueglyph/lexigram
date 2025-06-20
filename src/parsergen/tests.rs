@@ -468,6 +468,7 @@ mod opcodes {
                 strip![nt 1, exit 3, t 2],              //  3: A_2 -> c A_1 - ►A_1 ◄3 c
                 strip![nt 1, exit 4, t 3],              //  4: A_2 -> d A_1 - ►A_1 ◄4 d
             ]),
+            // [B + C] left/right recursion -----------------------------------------------
             // E -> E + | - E | 0
             // - 0: E -> - E
             // - 1: E -> 0 E_1
@@ -478,6 +479,20 @@ mod opcodes {
             //   - E_1: child_left_rec (4)
             (T::PRS(58), 0, vec![
                 strip![exit 0, nt 0, t 1],              //  0: E -> - E     - ◄0 ►E -
+                strip![nt 1, exit 1, t 2],              //  1: E -> 0 E_1   - ►E_1 ◄1 0
+                strip![loop 1, exit 2, t 0],            //  2: E_1 -> + E_1 - ●E_1 ◄2 +
+                strip![exit 3],                         //  3: E_1 -> ε     - ◄3
+            ]),
+            // E -> E + | <L> - E | 0
+            // - 0: E -> - E
+            // - 1: E -> 0 E_1
+            // - 2: E_1 -> + E_1
+            // - 3: E_1 -> ε
+            // - NT flags:
+            //   - E: right_rec | L-form | parent_left_rec (642)
+            //   - E_1: child_left_rec (4)
+            (T::PRS(60), 0, vec![
+                strip![loop 0, exit 0, t 1],            //  0: E -> - E     - ●E ◄0 -
                 strip![nt 1, exit 1, t 2],              //  1: E -> 0 E_1   - ►E_1 ◄1 0
                 strip![loop 1, exit 2, t 0],            //  2: E_1 -> + E_1 - ●E_1 ◄2 +
                 strip![exit 3],                         //  3: E_1 -> ε     - ◄3
@@ -1398,6 +1413,20 @@ mod wrapper_source {
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: E -> - E     | ◄0 ►E -   | E
                 1 => symbols![],                        //  1: E -> 0 E_1   | ►E_1 ◄1 0 |
+                2 => symbols![nt 0],                    //  2: E_1 -> + E_1 | ●E_1 ◄2 + | E
+                3 => symbols![nt 0],                    //  3: E_1 -> ε     | ◄3        | E
+            ], Default, btreemap![0 => vec![0, 1]]),
+            // E -> E + | <L> - E | 0
+            // NT flags:
+            //  - E: right_rec | L-form | parent_left_rec (642)
+            //  - E_1: child_left_rec (4)
+            // parents:
+            //  - E_1 -> E
+            (PRS(60), true, 0, btreemap![
+                0 => "SynE".to_string(),
+            ], btreemap![
+                0 => symbols![nt 0],                    //  0: E -> - E     | ●E ◄0 -   | E
+                1 => symbols![nt 0],                    //  1: E -> 0 E_1   | ►E_1 ◄1 0 | E
                 2 => symbols![nt 0],                    //  2: E_1 -> + E_1 | ●E_1 ◄2 + | E
                 3 => symbols![nt 0],                    //  3: E_1 -> ε     | ◄3        | E
             ], Default, btreemap![0 => vec![0, 1]]),

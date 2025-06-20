@@ -9245,6 +9245,289 @@ pub(crate) mod rules_prs_58_1 {
 
 #[cfg(test)]
 #[allow(unused)]
+pub(crate) mod rules_prs_60_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(60) #1, start E]
+
+    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_prs_60_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxE {
+        /// `E -> - E <L>`
+        E1 { e: SynE },
+        /// `E -> 0 <L>`
+        E2 { e: SynE },
+        /// `E -> E +`
+        E3 { e: SynE },
+        /// end of iterations in E -> E +
+        E4 { e: SynE },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `E`
+    // #[derive(Debug, PartialEq)] pub struct SynE();
+
+    #[derive(Debug)]
+    enum SynValue { E(SynE) }
+
+    impl SynValue {
+        fn get_e(self) -> SynE {
+            let SynValue::E(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _e: SynE) {}
+        fn init_e(&mut self) -> SynE;
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.init_e(),                         // E
+                        1 => {}                                     // E_1
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        0 |                                         // E -> <L> - E
+                        1 => self.inter_e(factor_id),               // E -> <L> 0 E_1
+                        2 |                                         // E_1 -> + E_1
+                        3 => self.exit_e1(factor_id),               // E_1 -> ε
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let e = self.stack.pop().unwrap().get_e();
+            self.listener.exit(e);
+        }
+
+        fn init_e(&mut self) {
+            let val = self.listener.init_e();
+            self.stack.push(SynValue::E(val));
+        }
+
+        fn inter_e(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                0 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E1 { e }
+                }
+                1 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E2 { e }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn inter_e")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+
+        fn exit_e1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                2 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E3 { e }
+                }
+                3 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E4 { e }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+    }
+
+    // [wrapper source for rule PRS(60) #1, start E]
+    // ------------------------------------------------------------
+
+    #[cfg(test)]
+    mod test {
+        use std::collections::HashMap;
+        use iter_index::IndexerIterator;
+        use lexigram::dfa::TokenId;
+        use lexigram::grammar::Symbol;
+        use lexigram::lexer::CaretCol;
+        use lexigram::log::BufLog;
+        use crate::integration::parser_examples::listener16::build_parser;
+        use crate::out::wrapper_source::level_string::{ls_prefix_op, ls_suffix_op, LevelString};
+        use super::*;
+
+        struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl EListener {
+            fn new() -> Self {
+                EListener {
+                    log: BufLog::new(),
+                    result: None,
+                }
+            }
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) -> SynE {
+                self.result = None;
+                SynE(LevelString(0, "".to_string()))
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // E -> - E <L>
+                    CtxE::E1 { e: SynE(ls) } => ls_prefix_op("-", ls),
+                    // E -> 0
+                    CtxE::E2 { e: SynE(ls) } => LevelString(0, "0".to_string()),
+                    // E -> E +
+                    CtxE::E3 { e: SynE(ls) } => ls_suffix_op("+", ls),
+                    // end of iterations in E -> E +
+                    CtxE::E4 { e: SynE(ls) } => ls,
+                })
+            }
+        }
+
+        #[test]
+        fn test() {
+            let sequences = vec![
+                // priority: E -> E + | - E | 0
+                ("- - 0 + +", Some("- (- ((0 +) +))")),
+                ("0 +", Some("0 +")),
+                ("- 0", Some("- 0")),
+                ("0", Some("0")),
+                ("- +", None),
+                ("-", None),
+                ("+", None),
+                ("", None),
+                ("- 0 0 +", None),
+            ];
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
+            let id_id = 4;
+
+            let mut parser = build_parser();
+            let table = parser.get_symbol_table().unwrap();
+            let symbols = (0..table.get_num_t() as TokenId)
+                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
+                .collect::<HashMap<_, _>>();
+            for (input, expected_result) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) {
+                        (*s, w.to_string(), 1, i)
+                    } else {
+                        if w.chars().next().unwrap().is_ascii_digit() {
+                            // (num_id, w.to_string(), 1, i)
+                            panic!("numbers not supported")
+                        } else {
+                            (id_id, w.to_string(), 1, i)
+                        }
+                    }
+                });
+                let mut listener = EListener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
+                let errors = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully: {:?}", wrapper.listener.result); }
+                        None
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        Some(wrapper.listener.log.get_errors().map(|s| s.as_str()).to_vec())
+                    }
+                };
+                if VERBOSE {
+                    let msg = wrapper.listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
+                }
+                let listener = wrapper.get_listener();
+                assert_eq!(listener.result, expected_result.map(|s| s.to_string()), "test failed for input {input}");
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+#[allow(unused)]
 pub(crate) mod rules_prs_63_1 {
     use crate::out::wrapper_source::level_string::LevelString;
 

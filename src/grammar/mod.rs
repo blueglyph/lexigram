@@ -1737,6 +1737,7 @@ impl<T> ProdRuleSet<T> {
                         }
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
                     }
+                    new_f.flags |= f.flags & ruleflag::FACTOR_INFO;
                     new_f
                 }).to_vec();
                 let mut used_sym = HashSet::<Symbol>::new();
@@ -2280,7 +2281,7 @@ pub fn print_factors<T>(rules: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor
              factors.iter().enumerate().map(|(id, (v, f))|
                  format!("            // - {id}: {} -> {}{}",
                          Symbol::NT(*v).to_str(rules.get_symbol_table()),
-                         f.iter().map(|s| s.to_str(rules.get_symbol_table())).join(" "),
+                         f.to_str(rules.get_symbol_table()),
                          if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
                  )
     ).join("\n"));
