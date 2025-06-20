@@ -77,10 +77,13 @@ mod gen_integration {
             _ => None
         }
     }
-    
-    enum Action { VerifySource, WriteSource }
 
-    fn do_test(id: u32, action: Action, verbose: bool) -> bool {
+    #[derive(Debug, Clone, Copy)]
+    enum Action { VerifySource, WriteSource }
+    #[derive(Debug, Clone, Copy)]
+    enum SourceTestError { NoSuchTest, SourceNotFound, SourceDiffer }
+
+    fn do_test(id: u32, action: Action, verbose: bool) -> Result<(), SourceTestError> {
         const FILENAME: &str = "tests/integration/parser_examples.rs";
         if let Some((rule_id, indent, is_t_data, tag, name)) = get_test_data(id) {
             let source = get_source(rule_id, indent, is_t_data, name.to_string());
@@ -90,26 +93,37 @@ mod gen_integration {
             }
             match action {
                 Action::VerifySource => {
-                    let result = get_tagged_source(FILENAME, tag).expect("");
-                    assert_eq!(result, source, "test failed for {id} / {rule_id:?} / {tag} ({name})");
+                    let result = get_tagged_source(FILENAME, tag).ok_or_else(|| {
+                        println!("source not found for {id} / {rule_id:?} / {tag} ({name})");
+                        SourceTestError::SourceNotFound
+                    })?;
+                    if result != source {
+                        println!("source mismatch for {id} / {rule_id:?} / {tag} ({name})");
+                        return Err(SourceTestError::SourceDiffer);
+                    }
                 }
                 Action::WriteSource => {
                     replace_tagged_source(FILENAME, tag, source.as_str()).expect(&format!("couldn't write {FILENAME} / {tag}"));
                 }
             }
-            true
+            Ok(())
         } else {
-            false
+            Err(SourceTestError::NoSuchTest)
         }
     }
 
     #[test]
     #[cfg(not(miri))]
     fn verify_integration_sources() {
+        let mut nbr_error = 0;
         for i in 1_u32.. {
-            if !do_test(i, Action::VerifySource, false) { break }
-            // println!("{i} OK");
+            match do_test(i, Action::VerifySource, false) {
+                Err(SourceTestError::NoSuchTest) => break,
+                Err(_) => nbr_error += 1,
+                Ok(_) => {}
+            }
         }
+        if nbr_error > 0 { panic!("verification failed with {nbr_error} error(s)"); }
     }
 
     #[ignore]
@@ -117,105 +131,108 @@ mod gen_integration {
     #[cfg(not(miri))]
     fn write_all_sources() {
         for i in 1_u32.. {
-            if !do_test(i, Action::WriteSource, false) { break }
-            // println!("{i} OK");
+            match do_test(i, Action::WriteSource, false) {
+                Ok(_) => println!("writing source for test {i}"),
+                Err(SourceTestError::NoSuchTest) => break,
+                Err(e) => panic!("error while writing source for test {i}: {e:?}"),
+            }
         }
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener1() {
-        do_test(1, Action::WriteSource, true);
+        do_test(1, Action::WriteSource, true).expect("couldn't write source #1");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener2() {
-        do_test(2, Action::WriteSource, true);
+        do_test(2, Action::WriteSource, true).expect("couldn't write source #2");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener3() {
-        do_test(3, Action::WriteSource, true);
+        do_test(3, Action::WriteSource, true).expect("couldn't write source #3");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener4() {
-        do_test(4, Action::WriteSource, true);
+        do_test(4, Action::WriteSource, true).expect("couldn't write source #4");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener5() {
-        do_test(5, Action::WriteSource, true);
+        do_test(5, Action::WriteSource, true).expect("couldn't write source #5");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener6() {
-        do_test(6, Action::WriteSource, true);
+        do_test(6, Action::WriteSource, true).expect("couldn't write source #6");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener7() {
-        do_test(7, Action::WriteSource, true);
+        do_test(7, Action::WriteSource, true).expect("couldn't write source #7");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener8() {
-        do_test(8, Action::WriteSource, true);
+        do_test(8, Action::WriteSource, true).expect("couldn't write source #8");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener9() {
-        do_test(9, Action::WriteSource, true);
+        do_test(9, Action::WriteSource, true).expect("couldn't write source #9");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener10() {
-        do_test(10, Action::WriteSource, true);
+        do_test(10, Action::WriteSource, true).expect("couldn't write source #10");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener11() {
-        do_test(11, Action::WriteSource, true);
+        do_test(11, Action::WriteSource, true).expect("couldn't write source #11");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener12() {
-        do_test(12, Action::WriteSource, true);
+        do_test(12, Action::WriteSource, true).expect("couldn't write source #12");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener13() {
-        do_test(13, Action::WriteSource, true);
+        do_test(13, Action::WriteSource, true).expect("couldn't write source #13");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener14() {
-        do_test(14, Action::WriteSource, true);
+        do_test(14, Action::WriteSource, true).expect("couldn't write source #14");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener15() {
-        do_test(15, Action::WriteSource, true);
+        do_test(15, Action::WriteSource, true).expect("couldn't write source #15");
     }
 
     #[ignore]
     #[test]
     fn write_source_code_for_integration_listener16() {
-        do_test(16, Action::WriteSource, true);
+        do_test(16, Action::WriteSource, true).expect("couldn't write source #16");
     }
 }
 
