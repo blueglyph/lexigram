@@ -524,7 +524,7 @@ mod opcodes {
         let mut num_errors = 0;
         for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
-            let ll1 = rule_id.get_prs(test_id, start_nt, false);
+            let ll1 = rule_id.build_prs(test_id, start_nt, false);
             if VERBOSE {
                 print!("- ");
                 print_prs_summary(&ll1);
@@ -1572,33 +1572,7 @@ mod wrapper_source {
                 15 => symbols![],                       // 15: E_6 -> - E_2     | ◄15 ►E_2 -      |
                 16 => symbols![nt 1],                   // 16: E_6 -> F         | ◄16 ►F          | F
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2, 3]]),
-            // E -> E : E | E ^ E | E / E | E * E | E - E | E + E | F
-            // F -> ( E ) | NUM | ID
-            // NT flags:
-            //  - E: parent_left_rec | parent_amb (1536)
-            //  - E_1: child_left_rec | child_amb (12)
-            // parents:
-            //  - E_1 -> E
-            /*
-            (PRS(13), true, 0, btreemap![
-                0 => symbols![nt 1],                    //  0: E -> F E_1     | ►E_1 ◄0 ►F   | F
-                1 => symbols![nt 0],                    //  1: F -> ( E )     | ◄1 ) ►E (    | E
-                2 => symbols![t 6],                     //  2: F -> N         | ◄2 N!        | N
-                3 => symbols![t 7],                     //  3: F -> I         | ◄3 I!        | I
-                4 => symbols![nt 0, nt 1],              //  4: E_1 -> : F E_1 | ●E_1 ◄4 ►F : | E F  // ?? asm, not sure yet
-                5 => symbols![nt 0, nt 1],              //  5: E_1 -> ^ F E_1 | ●E_1 ◄5 ►F ^ | E F
-                6 => symbols![nt 0, nt 1],              //  6: E_1 -> / F E_1 | ●E_1 ◄6 ►F / | E F
-                7 => symbols![nt 0, nt 1],              //  7: E_1 -> * F E_1 | ●E_1 ◄7 ►F * | E F
-                8 => symbols![nt 0, nt 1],              //  8: E_1 -> - F E_1 | ●E_1 ◄8 ►F - | E F
-                9 => symbols![nt 0, nt 1],              //  9: E_1 -> + F E_1 | ●E_1 ◄9 ►F + | E F
-                10 => symbols![],                       // 10: E_1 -> ε       | ◄10          |
-            ], Default, btreemap![
-            ]),
-            */
             // (PRS(9), true, 0, btreemap![]),
-            // (PRS(10), true, 0, btreemap![]),
-            // (PRS(15), true, 0, btreemap![]),
-            // (RTS(31), true, 0, btreemap![], Default),  // TODO: reports error, not supported, user must create NT for OR under + or *
             // ---------------------------------------------------------------------------
             // NT flags:
             //  - file: parent_+_or_* (2048)
@@ -1775,7 +1749,7 @@ mod wrapper_source {
 // if rule_id == PRS(63) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
-            let ll1 = rule_id.get_prs(test_id, start_nt, true);
+            let ll1 = rule_id.build_prs(test_id, start_nt, true);
             let mut builder = ParserGen::from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
             if VERBOSE {
@@ -2129,7 +2103,7 @@ mod wrapper_source {
 
             let expected_expanded = expected_expanded_full.iter().map(|(a, _)| a.to_string()).to_vec();
             let expected_full = expected_expanded_full.iter().map(|(_, b)| b.to_string()).to_vec();
-            let ll1 = rule_id.get_prs(test_id, 0, true);
+            let ll1 = rule_id.build_prs(test_id, 0, true);
             let builder = ParserGen::from_rules(ll1, "Test".to_string());
             let mut result_expanded = vec![];
             let mut result_full = vec![];

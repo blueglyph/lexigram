@@ -374,14 +374,6 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
         }
-        31 => { // A -> (a | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
-            let cc = tree.add_root(gnode!(&));
-            let p1 = tree.add(Some(cc), gnode!(*));
-            tree.addc_iter(Some(p1), gnode!(|), [gnode!(t 0), gnode!(nt 1)]);
-            tree.add(Some(cc), gnode!(t 2));
-            let b_tree = rules.get_tree_mut(1);
-            b_tree.add_root(gnode!(t 1));
-        }
         32 => { // A -> a (a | c) (b <L=B>)* c
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
@@ -467,6 +459,25 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc2), gnode!(t 2));
             tree.add(Some(cc), gnode!(t 3));
             let _b_tree = rules.get_tree_mut(1);
+        }
+
+        50 => { // A -> (a | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(p1), gnode!(|), [gnode!(t 0), gnode!(nt 1)]);
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        51 => { // A -> (<L=2> a | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            let o2 = tree.add(Some(p1), gnode!(|));
+            tree.addc_iter(Some(o2), gnode!(&), [gnode!(L 2), gnode!(t 0)]);
+            tree.add(Some(o2), gnode!(nt 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
         }
 
         100 => {
@@ -3101,28 +3112,29 @@ fn prs_calc_table() {
 
 #[test]
 fn prs_grammar_notes() {
-    let tests: Vec<(u32, VarId, &[&str], &[&str])> = vec![
+    let tests: Vec<(T, VarId, Vec<&str>, Vec<&str>)> = vec![
         //        warnings                                  errors
         //        -------------------------------------     -------------------------------------
-        (1000, 0, &[],                                      &["recursive rules must have at least one independent factor"]),
-        // (1001, 0, &[],                                      &["cannot remove recursion from"]),
-        (1002, 0, &["ambiguity for NT"],                    &[]),
-        (1003, 0, &[],                                      &["no terminal in grammar"]),
-        (1004, 0, &[],                                      &["no terminal used in the table"]),
-        (1005, 0, &["unused non-terminals",
-                    "unused terminals"],                    &[]),
+        (T::RTS(50),   0, vec![],                           vec![]),
+        (T::RTS(51),   0, vec![],                           vec![]),
+        (T::PRS(1000), 0, vec![],                           vec!["recursive rules must have at least one independent factor"]),
+        // (T::PRS(1001), 0, vec![],                           vec!["cannot remove recursion from"]),
+        (T::PRS(1002), 0, vec!["ambiguity for NT"],         vec![]),
+        (T::PRS(1003), 0, vec![],                           vec!["no terminal in grammar"]),
+        (T::PRS(1004), 0, vec![],                           vec!["no terminal used in the table"]),
+        (T::PRS(1005), 0, vec!["unused non-terminals",
+                               "unused terminals"],         vec![]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
-        let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
-            println!("test {test_id} with {ll_id}/{start}:");
+            println!("{:=<80}\ntest {test_id} with {ll_id:?}/{start}:", "");
         }
+        let mut ll1 = ll_id.try_build_prs(test_id, start, false);
         if VERBOSE {
-            print_production_rules(&rules_lr, false);
+            print_production_rules(&ll1, false);
+            print_logs(&ll1);
         }
-        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
-        ll1.set_start(start);
         let mut parsing_table = None;
         let first = ll1.calc_first();
         if ll1.log.num_errors() == 0 {
@@ -3141,16 +3153,16 @@ fn prs_grammar_notes() {
             }
             print_logs(&ll1);
         }
-        assert_eq!(ll1.log.num_errors(), expected_errors.len(), "test {test_id}/{ll_id}/{start} failed on # errors");
-        assert_eq!(ll1.log.num_warnings(), expected_warnings.len(), "test {test_id}/{ll_id}/{start} failed on # warnings");
+        assert_eq!(ll1.log.num_errors(), expected_errors.len(), "test {test_id}/{ll_id:?}/{start} failed on # errors");
+        assert_eq!(ll1.log.num_warnings(), expected_warnings.len(), "test {test_id}/{ll_id:?}/{start} failed on # warnings");
         let err_discr = ll1.log.get_errors().zip(expected_errors).filter_map(|(e, ee)|
             if !e.contains(ee) { Some(format!("- \"{e}\" doesn't contain \"{ee}\"")) } else { None }
         ).to_vec();
-        assert!(err_discr.is_empty(), "test {test_id}/{ll_id}/{start} has discrepancies in the expected error messages:\n{}", err_discr.join("\n"));
+        assert!(err_discr.is_empty(), "test {test_id}/{ll_id:?}/{start} has discrepancies in the expected error messages:\n{}", err_discr.join("\n"));
         let warn_discr = ll1.log.get_warnings().zip(expected_warnings).filter_map(|(w, ew)|
             if !w.contains(ew) { Some(format!("- \"{w}\" doesn't contain \"{ew}\"")) } else { None }
         ).to_vec();
-        assert!(warn_discr.is_empty(), "test {test_id}/{ll_id}/{start} has discrepancies in the expected warning messages:\n{}", warn_discr.join("\n"));
+        assert!(warn_discr.is_empty(), "test {test_id}/{ll_id:?}/{start} has discrepancies in the expected warning messages:\n{}", warn_discr.join("\n"));
    }
 }
 
@@ -3274,7 +3286,8 @@ pub(crate) fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
 pub(crate) enum T { RTS(u32), PRS(u32) }
 
 impl T {
-    pub(crate) fn get_prs(&self, test_id: usize, start_nt: VarId, is_t_data: bool) -> ProdRuleSet<LL1> {
+    /// Build a PRS from RTS or PRS rules, does not verify if there are errors in the log
+    pub(crate) fn try_build_prs(&self, test_id: usize, start_nt: VarId, is_t_data: bool) -> ProdRuleSet<LL1> {
         const VERBOSE: bool = false;
         let mut ll1 = match self {
             T::RTS(id) => {
@@ -3287,7 +3300,6 @@ impl T {
                     rts.set_symbol_table(symbol_table);
                 }
                 let mut rules = ProdRuleSet::from(rts);
-                assert_eq!(rules.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
                 if VERBOSE {
                     print!("General rules\n- ");
                     print_prs_summary(&rules);
@@ -3296,16 +3308,21 @@ impl T {
             }
             T::PRS(id) => {
                 let general = build_prs(*id, is_t_data);
-                assert_eq!(general.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", general.get_log().get_errors().join("\n- "));
                 if VERBOSE {
                     print!("General rules\n- ");
                     print_prs_summary(&general);
                 }
-                ProdRuleSet::<LL1>::from(general.clone())
+                ProdRuleSet::<LL1>::from(general)
             }
         };
-        assert_eq!(ll1.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", ll1.get_log().get_errors().join("\n- "));
         ll1.set_start(start_nt);
+        ll1
+    }
+
+    /// Build a PRS from RTS or PRS rules and verifies there are no errors in the log
+    pub(crate) fn build_prs(&self, test_id: usize, start_nt: VarId, is_t_data: bool) -> ProdRuleSet<LL1> {
+        let ll1 = self.try_build_prs(test_id, start_nt, is_t_data);
+        assert_eq!(ll1.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", ll1.get_log().get_errors().join("\n- "));
         ll1
     }
 }
@@ -3449,7 +3466,7 @@ fn rts_prs_flags() {
     const VERBOSE_DETAILS: bool = false;
     for (test_id, (rule_id, start_nt, expected_flags, expected_fflags, expected_parent, expected_nt_conversion)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
-        let mut ll1 = rule_id.get_prs(test_id, start_nt, true);
+        let mut ll1 = rule_id.build_prs(test_id, start_nt, true);
         if VERBOSE && VERBOSE_DETAILS {
             print!("Before table creation:\n- ");
             print_prs_summary(&ll1);

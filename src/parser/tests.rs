@@ -248,7 +248,7 @@ fn parser_parse_stream_id() {
 println!("parser_parse_stream_id: WARNING! tests disabled: 51, ...");
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
-        let mut ll1 = ll_id.get_prs(test_id, start, false);
+        let mut ll1 = ll_id.build_prs(test_id, start, false);
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
