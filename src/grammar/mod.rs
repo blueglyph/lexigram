@@ -688,15 +688,17 @@ impl RuleTreeSet<General> {
     }
 
     fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, var: VarId, new_var: &mut VarId, is_plus: bool) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.trees.len(), "number of nt in symbol table doesn't match num_nt"));
         let mut qtree = GrTree::new();
-        let child = stack.pop().unwrap();
+        let mut rtree = GrTree::new();
+        let mut use_rtree = false;
+        let id_child = stack.pop().unwrap();
         let mut lform_nt = None;
         // See comments in `normalize` near the calls to this method for details about the operations below
-        match new.get(child) {
+        match new.get(id_child) {
             GrNode::Symbol(s) => {
-                if VERBOSE { print!("({child}:{s}) "); }
+                if VERBOSE { print!("({id_child}:{s}) "); }
                 // note: we cannot use the child id in qtree!
                 let or = qtree.add_root(gnode!(|));
                 let cc = qtree.addc(Some(or), gnode!(&), GrNode::Symbol(s.clone()));
@@ -704,53 +706,71 @@ impl RuleTreeSet<General> {
                 qtree.add(Some(or), if is_plus { GrNode::Symbol(s.clone()) } else { gnode!(e) });
             }
             GrNode::Concat => {
-                let children = new.children(child);
-                if VERBOSE { print!("({child}:&({})) ", children.iter().join(", ")); }
+                let id_grchildren = new.children(id_child);
+                if VERBOSE { print!("({id_child}:&({})) ", id_grchildren.iter().join(", ")); }
                 let or = qtree.add_root(gnode!(|));
-                let cc1 = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(child).inspect(|n| {
+                let cc1 = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(id_child).inspect(|n| {
                     if let &GrNode::LForm(v) = n.deref() {
                         lform_nt = Some(v); // TODO: check that it's not already set (uniqueness)
                     }
                 }));
                 qtree.add(Some(cc1), gnode!(nt *new_var));
                 if is_plus {
-                    qtree.add_from_tree(Some(or), &new, Some(child));
+                    qtree.add_from_tree(Some(or), &new, Some(id_child));
                 } else {
                     qtree.add(Some(or), gnode!(e));
                 }
             }
             GrNode::Or => {
-                let children = new.children(child);
-                if VERBOSE { print!("({child}:|({})) ", children.iter().join(", ")); }
+                // P -> αβ*γ becomes P -> αQγ         P -> α(β)+γ becomes P -> αQγ
+                //                   Q -> βQ | ε                          Q -> βR
+                // β can be β1|β2|..., which is distributed               R -> Q | ε
+                //
+                // self             new(Q=new_var)                   simpler format
+                // ---------------------------------------------------------------------------------
+                // *(|(&(A,B),C))   |(&(A,B,Q),&(C,Q'),ε)            Q -> ABQ|CQ | ε
+                // +(|(&(A,B),C))   |(&(A,B,Q),&(C,Q'),&(A',B'),C')  Q -> ABQ|CQ | AB|C
+                //
+                // new method:
+                // *(|(&(A,B),C))   |(&(A,B,Q),&(C,Q'),ε)            Q -> ABQ|CQ | ε
+                // +(|(&(A,B),C))   |(&(A,B,Q),&(C,Q'))              Q -> ABR|CR         R -> Q | ε
+                let id_grchildren = new.children(id_child);
+                if VERBOSE { print!("({id_child}:|({})) ", id_grchildren.iter().join(", ")); }
                 let or = qtree.add_root(gnode!(|));
-                for id_child in children {
-                    let child = new.get(*id_child);
-                    match child {
+                for id_grchild in id_grchildren {
+                    let grchild = new.get(*id_grchild);
+                    match grchild {
                         GrNode::Symbol(s) => {
-                            qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)]);
                             if is_plus {
-                                qtree.add(Some(or), GrNode::Symbol(s.clone()));
+                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt *new_var + 1)]);
+                                use_rtree = true;
+                            } else {
+                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)]);
                             }
                         }
                         GrNode::Concat => {
-                            let cc = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(*id_child).inspect(|n| {
+                            let cc = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(*id_grchild).inspect(|n| {
                                 if let &GrNode::LForm(v) = n.deref() {
                                     lform_nt = Some(v); // TODO: check that it's not already set (uniqueness)
                                 }
                             }));
-                            qtree.add(Some(cc), gnode!(nt *new_var));
                             if is_plus {
-                                qtree.add_from_tree(Some(or), &new, Some(*id_child));
+                                qtree.add(Some(cc), gnode!(nt *new_var + 1));
+                            } else {
+                                qtree.add(Some(cc), gnode!(nt *new_var));
                             }
                         }
                         x => panic!("unexpected node type under a | node: {x}"),
                     }
                 }
-                if !is_plus {
+                if use_rtree {
+                    let or1 = rtree.add_root(gnode!(|));
+                    rtree.add_iter(Some(or1), [gnode!(nt *new_var), gnode!(e)]);
+                } else if !is_plus {
                     qtree.add(Some(or), gnode!(e));
                 }
             }
-            _ => panic!("Unexpected node type under a + node: {}", new.get(child))
+            _ => panic!("Unexpected node type under a + node: {}", new.get(id_child))
         }
         if let Some(v) = lform_nt {
             // `new_var` replaces `v`
@@ -760,7 +780,6 @@ impl RuleTreeSet<General> {
             if let Some(v) = lform_nt {
                 let name = st.remove_nt_name(v);
                 if VERBOSE {
-                    println!("table = {st:?}");
                     println!("L-FORM({v}) found, using name of NT({v}) = '{name}' for new NT({new_var})");
                 }
                 //st.add_var_prime_name(var, *new_var, Some(name));
@@ -769,9 +788,13 @@ impl RuleTreeSet<General> {
                 // st.add_var_prime_name(var, *new_var, None);
                 assert_eq!(st.add_child_nonterminal(var), *new_var);
             }
+            if use_rtree {
+                assert_eq!(st.add_child_nonterminal(var), *new_var + 1);
+            }
         });
         let id = new.add(None, gnode!(nt *new_var));
         assert!(*new_var as usize >= self.trees.len() || self.trees[*new_var as usize].is_empty(), "overwriting tree {new_var}");
+        if VERBOSE { println!("qtree: {}", qtree.to_str(None, self.get_symbol_table())); }
         self.set_tree(*new_var, qtree);
         self.flags.resize(*new_var as usize + 1, 0);
         self.parent.resize(*new_var as usize + 1, None);
@@ -779,11 +802,22 @@ impl RuleTreeSet<General> {
         self.flags[*new_var as usize] = ruleflag::CHILD_REPEAT | plus_flag;
         self.flags[var as usize] |= ruleflag::PARENT_REPEAT | plus_flag;
         self.parent[*new_var as usize] = Some(var);
+        if use_rtree {
+            self.set_tree(*new_var + 1, rtree);
+            self.flags.resize(*new_var as usize + 2, 0);
+            self.parent.resize(*new_var as usize + 2, None);
+            self.flags[*new_var as usize + 1] |= ruleflag::CHILD_L_FACTOR;
+            self.parent[*new_var as usize + 1] = Some(*new_var);
+            self.flags[*new_var as usize] |= ruleflag::PARENT_L_FACTOR;
+        }
         if VERBOSE {
-            println!("=> {}: parent {}, child {}",
+            println!("=> new sizes, flags = {}, parent = {}, trees = {} (new_var = {new_var})", self.flags.len(), self.parent.len(), self.trees.len());
+            println!("=> {}: parent {}, child {}{}",
                      if is_plus { "+" } else { "*" },
                      Symbol::NT(var).to_str(self.get_symbol_table()),
-                     Symbol::NT(*new_var).to_str(self.get_symbol_table()));
+                     Symbol::NT(*new_var).to_str(self.get_symbol_table()),
+                     if use_rtree { format!(", child {}", Symbol::NT(*new_var + 1).to_str(self.get_symbol_table())) } else { String::new() }
+            );
         }
         // We rectify the parent/child relationship in case of cascaded + or *. Since we perform a
         // bottom-up reconstruction, a rule like A -> ( ( a )+ b )+ will yield
@@ -810,7 +844,7 @@ impl RuleTreeSet<General> {
                          Symbol::NT(*new_var).to_str(self.get_symbol_table()));
             }
         }
-        *new_var += 1;
+        *new_var = self.get_next_available_var();
         stack.push(id);
     }
 }

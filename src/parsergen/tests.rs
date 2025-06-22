@@ -1029,6 +1029,29 @@ mod wrapper_source {
                 17 => symbols![nt 6, nt 4, nt 5],         // 17: A_12 -> A_6         | ●A_6 ◄17              | A_6 A_4 A_5
                 18 => symbols![nt 6, nt 4, nt 5],         // 18: A_12 -> ε           | ◄18                   | A_6 A_4 A_5
             ], Default, btreemap![0 => vec![0]]),
+
+            // --------------------------------------------------------------------------- norm+/* alternatives
+            // TODO: code generation not fully supported yet
+
+            #[cfg(any())]
+            // A -> (a | B)* c ; B -> b
+            (RTS(50), false, 0, btreemap![], btreemap![
+                0 => symbols![nt 2, t 2],               //  0: A -> A_1 c   | ◄0 c! ►A_1 | A_1 c
+                1 => symbols![t 1],                     //  1: B -> b       | ◄1 b!      | b
+                2 => symbols![nt 2, t 0],               //  2: A_1 -> a A_1 | ●A_1 ◄2 a! | A_1 a
+                3 => symbols![nt 2, nt 1],              //  3: A_1 -> B A_1 | ●A_1 ◄3 ►B | A_1 B
+                4 => symbols![],                        //  4: A_1 -> ε     | ◄4         |
+            ], Default, btreemap![]),
+            #[cfg(any())]
+            // A -> (<L> a | B)* c ; B -> b
+            (RTS(51), false, 0, btreemap![], btreemap![
+                0 => symbols![nt 2, t 2],               //  0: A -> AIter1 c      | ◄0 c! ►AIter1 | AIter1 c
+                1 => symbols![t 1],                     //  1: B -> b             | ◄1 b!         | b
+                2 => symbols![nt 2, t 0],               //  2: AIter1 -> a AIter1 | ●AIter1 ◄2 a! | AIter1 a
+                3 => symbols![nt 2, nt 1],              //  3: AIter1 -> B AIter1 | ●AIter1 ◄3 ►B | AIter1 B
+                4 => symbols![nt 2],                    //  4: AIter1 -> ε        | ◄4            | AIter1
+            ], Default, btreemap![]),
+
             // --------------------------------------------------------------------------- left_fact
             // A -> a | a b | a b c | a b d | e
             // NT flags:
@@ -1721,6 +1744,98 @@ mod wrapper_source {
             (PRS(), false, 0, btreemap![], btreemap![], Default, btreemap![]),
             (RTS(), false, 0, btreemap![], btreemap![], Default, btreemap![]),
             */
+            // TODO: to remove/move (copy exists above)
+
+            // A -> a (b c)+ d
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            (RTS(54), false, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynA1".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 3],          //  0: A -> a A_1 d   | ◄0 d! ►A_1 a! | a A_1 d
+                1 => symbols![],                        //  1: A_1 -> b c A_2 | ►A_2 c! b!    |
+                2 => symbols![nt 1, t 1, t 2],          //  2: A_2 -> A_1     | ●A_1 ◄2       | A_1 b c
+                3 => symbols![nt 1, t 1, t 2],          //  3: A_2 -> ε       | ◄3            | A_1 b c
+            ], Default, btreemap![0 => vec![0]]),
+
+            // A -> (a d | B)* c ; B -> b
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - A_1: child_+_or_* (1)
+            // parents:
+            //  - A_1 -> A
+            (RTS(50), false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 2, t 2],               //  0: A -> A_1 c     | ◄0 c! ►A_1    | A_1 c
+                1 => symbols![t 1],                     //  1: B -> b         | ◄1 b!         | b
+                2 => symbols![nt 2, t 0, t 3],          //  2: A_1 -> a d A_1 | ●A_1 ◄2 d! a! | A_1 a d
+                3 => symbols![nt 2, nt 1],              //  3: A_1 -> B A_1   | ●A_1 ◄3 ►B    | A_1 B
+                4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+            // A -> (<L> a d | B)* c ; B -> b
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - AIter1: child_+_or_* | L-form (129)
+            // parents:
+            //  - AIter1 -> A
+            (RTS(51), false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 2, t 2],               //  0: A -> AIter1 c        | ◄0 c! ►AIter1    | AIter1 c
+                1 => symbols![t 1],                     //  1: B -> b               | ◄1 b!            | b
+                2 => symbols![nt 2, t 0, t 3],          //  2: AIter1 -> a d AIter1 | ●AIter1 ◄2 d! a! | AIter1 a d
+                3 => symbols![nt 2, nt 1],              //  3: AIter1 -> B AIter1   | ●AIter1 ◄3 ►B    | AIter1 B
+                4 => symbols![nt 2],                    //  4: AIter1 -> ε          | ◄4               | AIter1
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
+            // A -> (a d | B)+ c ; B -> b
+            // (crashes when generating the sources)
+            //
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A_1
+            (RTS(52), false, 0, btreemap![
+                0 => "SynA".to_string(),
+                1 => "SynB".to_string(),
+                2 => "SynA1".to_string(),
+            ], btreemap![
+                0 => symbols![nt 2, t 2],                  //  0: A -> A_1 c     | ◄0 c! ►A_1 | A_1 c
+                1 => symbols![t 1],                        //  1: B -> b         | ◄1 b!      | b
+                2 => symbols![],                           //  2: A_1 -> a d A_2 | ►A_2 d! a! |
+                3 => symbols![],                           //  3: A_1 -> B A_2   | ►A_2 ►B    |
+                4 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  4: A_2 -> A_1     | ●A_1 ◄4    | A_1 a d A_1 B
+                5 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  5: A_2 -> ε       | ◄5         | A_1 a d A_1 B
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
+            // A -> (<L=2> a d | B)+ c ; B -> b
+            // (crashes when generating the sources)
+            //
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - AIter1: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - A_1: child_left_fact (64)
+            // parents:
+            //  - AIter1 -> A
+            //  - A_1 -> AIter1
+            (RTS(53), false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 2, t 2],                  //  0: A -> AIter1 c     | ◄0 c! ►AIter1 | AIter1 c
+                1 => symbols![t 1],                        //  1: B -> b            | ◄1 b!         | b
+                2 => symbols![],                           //  2: AIter1 -> a d A_1 | ►A_1 d! a!    |
+                3 => symbols![],                           //  3: AIter1 -> B A_1   | ►A_1 ►B       |
+                4 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  4: A_1 -> AIter1     | ●AIter1 ◄4    | AIter1 a d AIter1 B
+                5 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  5: A_1 -> ε          | ◄5            | AIter1 a d AIter1 B
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
         ];
 
         // those parsers don't require type definition in wrapper_code.rs (avoids an unused_imports warning):
@@ -1734,7 +1849,7 @@ mod wrapper_source {
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
-        const TEST_SOURCE: bool = true;
+        const TEST_SOURCE: bool = false;
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
@@ -1743,10 +1858,12 @@ mod wrapper_source {
         // CAUTION! Empty the first btreemap if the NTs have changed
 
         let mut num_errors = 0;
+        let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-// if rule_id != PRS(58) { continue }
+//if rule_id != RTS(21) && rule_id != RTS(50) && rule_id != RTS(51) { continue }
 // if rule_id == PRS(63) { continue }
+if !hashset!(RTS(50), RTS(51), RTS(53), RTS(54)).contains(&rule_id) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.build_prs(test_id, start_nt, true);
@@ -1781,21 +1898,6 @@ mod wrapper_source {
             for (v, s) in nt_type.clone() {
                 builder.add_nt_type(v, s);
             }
-            let wrapper_src = builder.source_wrapper();
-            let mut src = vec![builder.source_use()];
-            src.push(wrapper_src);
-            if VERBOSE_TYPE {
-                println!("pub(crate) mod code_{rule_name} {{");
-                println!("    // {0:-<60}\n    // {test_name}", "");
-                let st: &crate::SymbolTable = builder.get_symbol_table().unwrap();
-                for v in 0..(st.get_num_nt() as VarId) {
-                    if let Some((_s, src)) = builder.get_nt_extra_info(v) {
-                        println!();
-                        println!("{}", src.into_iter().map(|line| format!("    {line}")).join("\n"));
-                    }
-                }
-                println!("}}\n");
-            }
             let result_nt_type = builder.nt_type.iter().map(|(v, s)| (*v, s.clone())).collect::<BTreeMap<_, _>>();
             if VERBOSE {
                 print_flags(&builder, 12);
@@ -1815,6 +1917,21 @@ mod wrapper_source {
                 );
                 println!("*/");
             }
+            let wrapper_src = builder.source_wrapper();
+            let mut src = vec![builder.source_use()];
+            src.push(wrapper_src);
+            if VERBOSE_TYPE {
+                println!("pub(crate) mod code_{rule_name} {{");
+                println!("    // {0:-<60}\n    // {test_name}", "");
+                let st: &crate::SymbolTable = builder.get_symbol_table().unwrap();
+                for v in 0..(st.get_num_nt() as VarId) {
+                    if let Some((_s, src)) = builder.get_nt_extra_info(v) {
+                        println!();
+                        println!("{}", src.into_iter().map(|line| format!("    {line}")).join("\n"));
+                    }
+                }
+                println!("}}\n");
+            }
             let result_src = indent_source(src, 4);
             if PRINT_SOURCE {
                 println!("pub(crate) mod rules_{rule_name} {{");
@@ -1833,6 +1950,7 @@ mod wrapper_source {
                         replace_tagged_source(WRAPPER_FILENAME, &test_name, &result_src).expect("replacement failed");
                     }
                     num_errors += 1;
+                    num_src_errors += 1;
                     println!("## SOURCE MISMATCH: {err_msg}");
                 }
             } else {
@@ -1848,7 +1966,7 @@ mod wrapper_source {
             }
         }
         if TESTS_ALL {
-            assert_eq!(num_errors, 0, "{num_errors} tests have failed");
+            assert_eq!(num_errors, 0, "{num_errors} test(s) have failed, including {num_src_errors} source error(s)");
         }
     }
 

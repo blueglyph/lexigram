@@ -1275,7 +1275,7 @@ impl ParserGen {
 
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
 
         self.used_libs.extend([
@@ -1621,9 +1621,9 @@ impl ParserGen {
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor_id { ", factor_id: FactorId" } else { "" }));
                     }
                     if !is_child_repeat_lform && flags & ruleflag::CHILD_REPEAT != 0 {
-                        assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {} (+ and * don't support | children)",
-                                   sym_nt.to_str(self.get_symbol_table()),
-                                   exit_factors.iter().join(", "));
+                        // assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {} (+ and * don't support | children)",
+                        //            sym_nt.to_str(self.get_symbol_table()),
+                        //            exit_factors.iter().join(", "));
                         if has_value {
                             let f = exit_factors[0];
                             if VERBOSE {

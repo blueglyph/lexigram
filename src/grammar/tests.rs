@@ -461,23 +461,55 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let _b_tree = rules.get_tree_mut(1);
         }
 
-        50 => { // A -> (a | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+        50 => { // A -> (a d | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
             let cc = tree.add_root(gnode!(&));
             let p1 = tree.add(Some(cc), gnode!(*));
-            tree.addc_iter(Some(p1), gnode!(|), [gnode!(t 0), gnode!(nt 1)]);
+            let or2 = tree.add(Some(p1), gnode!(|));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 0), gnode!(t 3)]);
+            tree.add(Some(or2), gnode!(nt 1));
             tree.add(Some(cc), gnode!(t 2));
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
         }
-        51 => { // A -> (<L=2> a | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+        51 => { // A -> (<L=2> a d | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
             let cc = tree.add_root(gnode!(&));
             let p1 = tree.add(Some(cc), gnode!(*));
             let o2 = tree.add(Some(p1), gnode!(|));
-            tree.addc_iter(Some(o2), gnode!(&), [gnode!(L 2), gnode!(t 0)]);
+            tree.addc_iter(Some(o2), gnode!(&), [gnode!(L 2), gnode!(t 0), gnode!(t 3)]);
             tree.add(Some(o2), gnode!(nt 1));
             tree.add(Some(cc), gnode!(t 2));
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
+            let _b_tree = rules.get_tree_mut(2);
+        }
+        52 => { // A -> (a d | B)+ c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let or2 = tree.add(Some(p1), gnode!(|));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 0), gnode!(t 3)]);
+            tree.add(Some(or2), gnode!(nt 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        53 => { // A -> (<L=2> a d | B)+ c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let o2 = tree.add(Some(p1), gnode!(|));
+            tree.addc_iter(Some(o2), gnode!(&), [gnode!(L 2), gnode!(t 0), gnode!(t 3)]);
+            tree.add(Some(o2), gnode!(nt 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+            let _b_tree = rules.get_tree_mut(2);
+        }
+
+        54 => { // A -> a (b c)+ d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(t 2)]);
+            tree.add(Some(cc), gnode!(t 3));
         }
 
         100 => {
