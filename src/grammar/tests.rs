@@ -511,6 +511,18 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(t 2)]);
             tree.add(Some(cc), gnode!(t 3));
         }
+        55 => { // A -> a ( (b c | d)+ e)+ f
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            let p2 = tree.add(Some(cc2), gnode!(+));
+            let or3 = tree.add(Some(p2), gnode!(|));
+            tree.addc_iter(Some(or3), gnode!(&), [gnode!(t 1), gnode!(t 2)]);
+            tree.add(Some(or3), gnode!(t 3));
+            tree.add(Some(cc2), gnode!(t 4));
+            tree.add(Some(cc), gnode!(t 5));
+        }
 
         100 => {
             // lexiparser

@@ -1812,7 +1812,7 @@ mod wrapper_source {
                 1 => symbols![t 1],                        //  1: B -> b         | ◄1 b!      | b
                 2 => symbols![],                           //  2: A_1 -> a d A_2 | ►A_2 d! a! |
                 3 => symbols![],                           //  3: A_1 -> B A_2   | ►A_2 ►B    |
-                4 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  4: A_2 -> A_1     | ●A_1 ◄4    | A_1 a d A_1 B
+                4 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  4: A_2 -> A_1     | ●A_1 ◄4    | A_1 a d A_1 B  <-- problem
                 5 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  5: A_2 -> ε       | ◄5         | A_1 a d A_1 B
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
@@ -1832,10 +1832,33 @@ mod wrapper_source {
                 1 => symbols![t 1],                        //  1: B -> b            | ◄1 b!         | b
                 2 => symbols![],                           //  2: AIter1 -> a d A_1 | ►A_1 d! a!    |
                 3 => symbols![],                           //  3: AIter1 -> B A_1   | ►A_1 ►B       |
-                4 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  4: A_1 -> AIter1     | ●AIter1 ◄4    | AIter1 a d AIter1 B
+                4 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  4: A_1 -> AIter1     | ●AIter1 ◄4    | AIter1 a d AIter1 B  <-- problem
                 5 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  5: A_1 -> ε          | ◄5            | AIter1 a d AIter1 B
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
+            // A -> a ( (b c | d)+ e)+ f
+            // NT flags:
+            //  - A: parent_+_or_* | plus (6144)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_left_fact (64)
+            //  - A_3: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
+            //  - A_4: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A_3
+            //  - A_2 -> A_1
+            //  - A_3 -> A
+            //  - A_4 -> A_3
+            (RTS(55), false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![t 0, nt 3, t 5],            //  0: A -> a A_3 f     | ◄0 f! ►A_3 a! | a A_3 f
+                1 => symbols![],                          //  1: A_1 -> b c A_2   | ►A_2 c! b!    |
+                2 => symbols![],                          //  2: A_1 -> d A_2     | ►A_2 d!       |
+                3 => symbols![nt 1, t 1, t 2, nt 1, t 3], //  3: A_2 -> A_1       | ●A_1 ◄3       | A_1 b c A_1 d  <-- problem
+                4 => symbols![nt 1, t 1, t 2, nt 1, t 3], //  4: A_2 -> ε         | ◄4            | A_1 b c A_1 d
+                5 => symbols![],                          //  5: A_3 -> A_1 e A_4 | ►A_4 e! ►A_1  |
+                6 => symbols![nt 3, nt 1, t 4],           //  6: A_4 -> A_3       | ●A_3 ◄6       | A_3 A_1 e
+                7 => symbols![nt 3, nt 1, t 4],           //  7: A_4 -> ε         | ◄7            | A_3 A_1 e
+            ], Default, btreemap![0 => vec![0]]),
         ];
 
         // those parsers don't require type definition in wrapper_code.rs (avoids an unused_imports warning):
@@ -1849,7 +1872,7 @@ mod wrapper_source {
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
-        const TEST_SOURCE: bool = false;
+        const TEST_SOURCE: bool = true;
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
@@ -1863,7 +1886,8 @@ mod wrapper_source {
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
 //if rule_id != RTS(21) && rule_id != RTS(50) && rule_id != RTS(51) { continue }
 // if rule_id == PRS(63) { continue }
-if !hashset!(RTS(50), RTS(51), RTS(53), RTS(54)).contains(&rule_id) { continue }
+// if !hashset!(RTS(50), RTS(51), RTS(52), RTS(53), RTS(54), RTS(55)).contains(&rule_id) { continue }
+if !matches!(rule_id, RTS(x) if x >= 50 && x < 60) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.build_prs(test_id, start_nt, true);
