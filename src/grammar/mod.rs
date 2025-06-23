@@ -688,7 +688,8 @@ impl RuleTreeSet<General> {
     }
 
     fn normalize_plus_or_star(&mut self, stack: &mut Vec<usize>, new: &mut VecTree<GrNode>, var: VarId, new_var: &mut VarId, is_plus: bool) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
+        const OPTIMIZE_SUB_OR: bool = false;
         self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.trees.len(), "number of nt in symbol table doesn't match num_nt"));
         let mut qtree = GrTree::new();
         let mut rtree = GrTree::new();
@@ -721,7 +722,38 @@ impl RuleTreeSet<General> {
                     qtree.add(Some(or), gnode!(e));
                 }
             }
-            GrNode::Or => {
+            GrNode::Or => if !OPTIMIZE_SUB_OR {
+                let id_grchildren = new.children(id_child);
+                if VERBOSE { print!("({id_child}:|({})) ", id_grchildren.iter().join(", ")); }
+                let or = qtree.add_root(gnode!(|));
+                for id_child in id_grchildren {
+                    let grchild = new.get(*id_child);
+                    match grchild {
+                        GrNode::Symbol(s) => {
+                            qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)]);
+                            if is_plus {
+                                qtree.add(Some(or), GrNode::Symbol(s.clone()));
+                            }
+                        }
+                        GrNode::Concat => {
+                            let cc = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(*id_child).inspect(|n| {
+                                if let &GrNode::LForm(v) = n.deref() {
+                                    lform_nt = Some(v); // TODO: check that it's not already set (uniqueness)
+                                }
+                            }));
+                            qtree.add(Some(cc), gnode!(nt *new_var));
+                            if is_plus {
+                                qtree.add_from_tree(Some(or), &new, Some(*id_child));
+                            }
+                        }
+                        x => panic!("unexpected node type under a | node: {x}"),
+                    }
+                }
+                if !is_plus {
+                    qtree.add(Some(or), gnode!(e));
+                }
+            }
+            GrNode::Or => if OPTIMIZE_SUB_OR {
                 // P -> αβ*γ becomes P -> αQγ         P -> α(β)+γ becomes P -> αQγ
                 //                   Q -> βQ | ε                          Q -> βR
                 // β can be β1|β2|..., which is distributed               R -> Q | ε

@@ -1765,6 +1765,8 @@ mod wrapper_source {
             ], Default, btreemap![0 => vec![0]]),
 
             // A -> (a d | B)* c ; B -> b
+            // (sources are completely wrong)
+            //
             // NT flags:
             //  - A: parent_+_or_* (2048)
             //  - A_1: child_+_or_* (1)
@@ -1794,26 +1796,30 @@ mod wrapper_source {
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
             // A -> (a d | B)+ c ; B -> b
-            // (crashes when generating the sources)
+            // (sources are completely wrong)
             //
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
             //  - A_2: child_left_fact (64)
+            //  - A_3: child_left_fact (64)
             // parents:
             //  - A_1 -> A
             //  - A_2 -> A_1
+            //  - A_3 -> A_1
             (RTS(52), false, 0, btreemap![
                 0 => "SynA".to_string(),
                 1 => "SynB".to_string(),
                 2 => "SynA1".to_string(),
             ], btreemap![
-                0 => symbols![nt 2, t 2],                  //  0: A -> A_1 c     | ◄0 c! ►A_1 | A_1 c
-                1 => symbols![t 1],                        //  1: B -> b         | ◄1 b!      | b
-                2 => symbols![],                           //  2: A_1 -> a d A_2 | ►A_2 d! a! |
-                3 => symbols![],                           //  3: A_1 -> B A_2   | ►A_2 ►B    |
-                4 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  4: A_2 -> A_1     | ●A_1 ◄4    | A_1 a d A_1 B  <-- problem
-                5 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  5: A_2 -> ε       | ◄5         | A_1 a d A_1 B
+                0 => symbols![nt 2, t 2],               //  0: A -> A_1 c     | ◄0 c! ►A_1 | A_1 c
+                1 => symbols![t 1],                     //  1: B -> b         | ◄1 b!      | b
+                2 => symbols![],                        //  2: A_1 -> a d A_2 | ►A_2 d! a! |
+                3 => symbols![],                        //  3: A_1 -> B A_3   | ►A_3 ►B    |
+                4 => symbols![nt 2, t 0, t 3],          //  4: A_2 -> A_1     | ●A_1 ◄4    | A_1 a d
+                5 => symbols![nt 2, t 0, t 3],          //  5: A_2 -> ε       | ◄5         | A_1 a d
+                6 => symbols![nt 2, nt 1],              //  6: A_3 -> A_1     | ●A_1 ◄6    | A_1 B
+                7 => symbols![nt 2, nt 1],              //  7: A_3 -> ε       | ◄7         | A_1 B
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
             // A -> (<L=2> a d | B)+ c ; B -> b
@@ -1823,42 +1829,51 @@ mod wrapper_source {
             //  - A: parent_+_or_* | plus (6144)
             //  - AIter1: child_+_or_* | parent_left_fact | L-form | plus (4257)
             //  - A_1: child_left_fact (64)
+            //  - A_2: child_left_fact (64)
             // parents:
             //  - AIter1 -> A
             //  - A_1 -> AIter1
+            //  - A_2 -> AIter1
             (RTS(53), false, 0, btreemap![
             ], btreemap![
-                0 => symbols![nt 2, t 2],                  //  0: A -> AIter1 c     | ◄0 c! ►AIter1 | AIter1 c
-                1 => symbols![t 1],                        //  1: B -> b            | ◄1 b!         | b
-                2 => symbols![],                           //  2: AIter1 -> a d A_1 | ►A_1 d! a!    |
-                3 => symbols![],                           //  3: AIter1 -> B A_1   | ►A_1 ►B       |
-                4 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  4: A_1 -> AIter1     | ●AIter1 ◄4    | AIter1 a d AIter1 B  <-- problem
-                5 => symbols![nt 2, t 0, t 3, nt 2, nt 1], //  5: A_1 -> ε          | ◄5            | AIter1 a d AIter1 B
+                0 => symbols![nt 2, t 2],               //  0: A -> AIter1 c     | ◄0 c! ►AIter1 | AIter1 c
+                1 => symbols![t 1],                     //  1: B -> b            | ◄1 b!         | b
+                2 => symbols![],                        //  2: AIter1 -> a d A_1 | ►A_1 d! a!    |
+                3 => symbols![],                        //  3: AIter1 -> B A_2   | ►A_2 ►B       |
+                4 => symbols![nt 2, t 0, t 3],          //  4: A_1 -> AIter1     | ●AIter1 ◄4    | AIter1 a d
+                5 => symbols![nt 2, t 0, t 3],          //  5: A_1 -> ε          | ◄5            | AIter1 a d
+                6 => symbols![nt 2, nt 1],              //  6: A_2 -> AIter1     | ●AIter1 ◄6    | AIter1 B
+                7 => symbols![nt 2, nt 1],              //  7: A_2 -> ε          | ◄7            | AIter1 B
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
 
             // A -> a ( (b c | d)+ e)+ f
             // NT flags:
             //  - A: parent_+_or_* | plus (6144)
             //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
-            //  - A_2: child_left_fact (64)
-            //  - A_3: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
+            //  - A_2: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
+            //  - A_3: child_left_fact (64)
             //  - A_4: child_left_fact (64)
+            //  - A_5: child_left_fact (64)
             // parents:
-            //  - A_1 -> A_3
-            //  - A_2 -> A_1
-            //  - A_3 -> A
-            //  - A_4 -> A_3
+            //  - A_1 -> A_2
+            //  - A_2 -> A
+            //  - A_3 -> A_1
+            //  - A_4 -> A_1
+            //  - A_5 -> A_2
             (RTS(55), false, 0, btreemap![
             ], btreemap![
-                0 => symbols![t 0, nt 3, t 5],            //  0: A -> a A_3 f     | ◄0 f! ►A_3 a! | a A_3 f
-                1 => symbols![],                          //  1: A_1 -> b c A_2   | ►A_2 c! b!    |
-                2 => symbols![],                          //  2: A_1 -> d A_2     | ►A_2 d!       |
-                3 => symbols![nt 1, t 1, t 2, nt 1, t 3], //  3: A_2 -> A_1       | ●A_1 ◄3       | A_1 b c A_1 d  <-- problem
-                4 => symbols![nt 1, t 1, t 2, nt 1, t 3], //  4: A_2 -> ε         | ◄4            | A_1 b c A_1 d
-                5 => symbols![],                          //  5: A_3 -> A_1 e A_4 | ►A_4 e! ►A_1  |
-                6 => symbols![nt 3, nt 1, t 4],           //  6: A_4 -> A_3       | ●A_3 ◄6       | A_3 A_1 e
-                7 => symbols![nt 3, nt 1, t 4],           //  7: A_4 -> ε         | ◄7            | A_3 A_1 e
+                0 => symbols![t 0, nt 2, t 5],          //  0: A -> a A_2 f     | ◄0 f! ►A_2 a! | a A_2 f
+                1 => symbols![],                        //  1: A_1 -> b c A_3   | ►A_3 c! b!    |
+                2 => symbols![],                        //  2: A_1 -> d A_4     | ►A_4 d!       |
+                3 => symbols![],                        //  3: A_2 -> A_1 e A_5 | ►A_5 e! ►A_1  |
+                4 => symbols![nt 1, t 1, t 2],          //  4: A_3 -> A_1       | ●A_1 ◄4       | A_1 b c
+                5 => symbols![nt 1, t 1, t 2],          //  5: A_3 -> ε         | ◄5            | A_1 b c
+                6 => symbols![nt 1, t 3],               //  6: A_4 -> A_1       | ●A_1 ◄6       | A_1 d
+                7 => symbols![nt 1, t 3],               //  7: A_4 -> ε         | ◄7            | A_1 d
+                8 => symbols![nt 2, nt 1, t 4],         //  8: A_5 -> A_2       | ●A_2 ◄8       | A_2 A_1 e
+                9 => symbols![nt 2, nt 1, t 4],         //  9: A_5 -> ε         | ◄9            | A_2 A_1 e
             ], Default, btreemap![0 => vec![0]]),
+
         ];
 
         // those parsers don't require type definition in wrapper_code.rs (avoids an unused_imports warning):
@@ -1869,7 +1884,7 @@ mod wrapper_source {
         // print sources
         const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
         const TEST_SOURCE: bool = true;
