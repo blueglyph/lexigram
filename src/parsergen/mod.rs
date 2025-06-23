@@ -1621,9 +1621,14 @@ impl ParserGen {
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor_id { ", factor_id: FactorId" } else { "" }));
                     }
                     if !is_child_repeat_lform && flags & ruleflag::CHILD_REPEAT != 0 {
-                        // assert_eq!(exit_factors.len(), 2, "unexpected number of exit factors for CHILD_REPEAT {}: {} (+ and * don't support | children)",
-                        //            sym_nt.to_str(self.get_symbol_table()),
-                        //            exit_factors.iter().join(", "));
+                        if exit_factors.len() > 2 {
+                            self.log.add_error(format!("alternatives in * and + are not supported: in {}. {} has too many factors: {}",
+                                                       Symbol::NT(parent_nt as VarId).to_str(self.get_symbol_table()),
+                                                       sym_nt.to_str(self.get_symbol_table()),
+                                                       exit_factors.iter().join(", ")));
+                            continue;
+                        }
+
                         if has_value {
                             let f = exit_factors[0];
                             if VERBOSE {

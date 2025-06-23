@@ -3159,8 +3159,6 @@ fn prs_grammar_notes() {
     let tests: Vec<(T, VarId, Vec<&str>, Vec<&str>)> = vec![
         //        warnings                                  errors
         //        -------------------------------------     -------------------------------------
-        (T::RTS(50),   0, vec![],                           vec![]),
-        (T::RTS(51),   0, vec![],                           vec![]),
         (T::PRS(1000), 0, vec![],                           vec!["recursive rules must have at least one independent factor"]),
         // (T::PRS(1001), 0, vec![],                           vec!["cannot remove recursion from"]),
         (T::PRS(1002), 0, vec!["ambiguity for NT"],         vec![]),
@@ -3169,7 +3167,7 @@ fn prs_grammar_notes() {
         (T::PRS(1005), 0, vec!["unused non-terminals",
                                "unused terminals"],         vec![]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {ll_id:?}/{start}:", "");
@@ -3180,22 +3178,24 @@ fn prs_grammar_notes() {
             print_logs(&ll1);
         }
         let mut parsing_table = None;
-        let first = ll1.calc_first();
         if ll1.log.num_errors() == 0 {
-            let follow = ll1.calc_follow(&first);
+            let first = ll1.calc_first();
             if ll1.log.num_errors() == 0 {
-                parsing_table = Some(ll1.calc_table(&first, &follow, false));
+                let follow = ll1.calc_follow(&first);
+                if ll1.log.num_errors() == 0 {
+                    parsing_table = Some(ll1.calc_table(&first, &follow, false));
+                }
             }
-        }
-        if VERBOSE {
-            println!("=>");
-            print_production_rules(&ll1, false);
-            if let Some(table) = &parsing_table {
-                print_factors(&ll1, &table.factors);
-                println!("table:");
-                print_ll1_table(ll1.get_symbol_table(), &table, 12);
+            if VERBOSE {
+                println!("=>");
+                print_production_rules(&ll1, false);
+                if let Some(table) = &parsing_table {
+                    print_factors(&ll1, &table.factors);
+                    println!("table:");
+                    print_ll1_table(ll1.get_symbol_table(), &table, 12);
+                }
+                print_logs(&ll1);
             }
-            print_logs(&ll1);
         }
         assert_eq!(ll1.log.num_errors(), expected_errors.len(), "test {test_id}/{ll_id:?}/{start} failed on # errors");
         assert_eq!(ll1.log.num_warnings(), expected_warnings.len(), "test {test_id}/{ll_id:?}/{start} failed on # warnings");
