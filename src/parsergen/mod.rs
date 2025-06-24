@@ -759,6 +759,8 @@ impl ParserGen {
             // takes all the factors in the group (and their NT ID):
             let group = self.get_group_factors(g);
             let mut change = true;
+            let g_top = g[0];
+            let is_ambig = self.nt_has_flags(g_top, ruleflag::PARENT_AMBIGUITY);
             while change {
                 change = false;
                 let mut nt_used = HashSet::<VarId>::new();
@@ -791,10 +793,14 @@ impl ParserGen {
                         .filter_map(|s| {
                             let sym_maybe = match s {
                                 OpCode::T(t) => Some(Symbol::T(*t)),
-                                OpCode::NT(nt) => {
-                                    nt_used.insert(*nt);
-                                    Some(Symbol::NT(*nt))
+                                OpCode::NT(mut nt) => {
+                                    if is_ambig && self.get_nt_parent(nt) == Some(g_top) && !self.nt_has_flags(nt, ruleflag::CHILD_L_RECURSION) {
+                                        nt = g_top;
+                                    }
+                                    nt_used.insert(nt);
+                                    Some(Symbol::NT(nt))
                                 },
+                                OpCode::Loop(_) if is_ambig => Some(Symbol::NT(g_top)),
                                 _ => {
                                     if VERBOSE { print!(" | {} dropped", s.to_str(self.get_symbol_table())); }
                                     None
@@ -802,98 +808,99 @@ impl ParserGen {
                             };
                             sym_maybe.and_then(|s| if self.sym_has_value(&s) { Some(s) } else { None })
                         }).to_vec();
-
-                    // Looks if a child_repeat has a value
-                    if !values.is_empty() && self.parsing_table.parent[*var_id as usize].is_some() {
-                        let mut top_nt = *var_id as usize;
-                        // print!(" [{}, so {}?", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "), Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()));
-                        while self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT == 0 {
-                            if let Some(parent) = self.parsing_table.parent[top_nt] {
-                                top_nt = parent as usize;
-                            } else {
-                                break;
+                    if !is_ambig {
+                        // Looks if a child_repeat has a value
+                        if !values.is_empty() && self.parsing_table.parent[*var_id as usize].is_some() {
+                            let mut top_nt = *var_id as usize;
+                            // print!(" [{}, so {}?", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "), Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()));
+                            while self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT == 0 {
+                                if let Some(parent) = self.parsing_table.parent[top_nt] {
+                                    top_nt = parent as usize;
+                                } else {
+                                    break;
+                                }
                             }
-                        }
-                        // +* non-lform children have the same value as their parent, but +* lform children's "valueness" is independent from their parent's
-                        if self.parsing_table.flags[top_nt] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
-                            if VERBOSE && !self.nt_value[top_nt] {
-                                print!(" | {} is now valued {}",
-                                       Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()),
-                                       if nt_used.contains(&(top_nt as VarId)) { "and was used before" } else { "but wasn't used before" }
-                                );
+                            // +* non-lform children have the same value as their parent, but +* lform children's "valueness" is independent from their parent's
+                            if self.parsing_table.flags[top_nt] & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
+                                if VERBOSE && !self.nt_value[top_nt] {
+                                    print!(" | {} is now valued {}",
+                                           Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()),
+                                           if nt_used.contains(&(top_nt as VarId)) { "and was used before" } else { "but wasn't used before" }
+                                    );
+                                }
+                                change |= !self.nt_value[top_nt] && nt_used.contains(&(top_nt as VarId));
+                                self.nt_value[top_nt] = true;
                             }
-                            change |= !self.nt_value[top_nt] && nt_used.contains(&(top_nt as VarId));
-                            self.nt_value[top_nt] = true;
+                            // print!("]");
                         }
-                        // print!("]");
-                    }
-                    if change {
-                        // the nt_value of one item has been set.
-                        if VERBOSE { println!("\nnt_value changed, redoing this group"); }
-                        break;
-                    }
+                        if change {
+                            // the nt_value of one item has been set.
+                            if VERBOSE { println!("\nnt_value changed, redoing this group"); }
+                            break;
+                        }
 
-                    // Loop NTs which carry values are kept on the stack, too
-                    let parent_is_rrec_lfact = self.nt_has_flags(g[0], ruleflag::R_RECURSION | ruleflag::PARENT_L_FACTOR);
-                    if parent_is_rrec_lfact {
-                        if self.nt_has_flags(*var_id, ruleflag::CHILD_L_FACTOR | ruleflag::L_FORM) {
-                            if VERBOSE { print!(" child_rrec_lform_lfact"); }
-                            items.get_mut(&factor_id).unwrap().insert(0, Symbol::NT(g[0]));
-                        }/* else if flags & ruleflag::CHILD_L_FACTOR != 0 && values.last() == Some(&Symbol::NT(g[0])) {
+                        // Loop NTs which carry values are kept on the stack, too
+                        let parent_is_rrec_lfact = self.nt_has_flags(g[0], ruleflag::R_RECURSION | ruleflag::PARENT_L_FACTOR);
+                        if parent_is_rrec_lfact {
+                            if self.nt_has_flags(*var_id, ruleflag::CHILD_L_FACTOR | ruleflag::L_FORM) {
+                                if VERBOSE { print!(" child_rrec_lform_lfact"); }
+                                items.get_mut(&factor_id).unwrap().insert(0, Symbol::NT(g[0]));
+                            }/* else if flags & ruleflag::CHILD_L_FACTOR != 0 && values.last() == Some(&Symbol::NT(g[0])) {
                             if VERBOSE { print!(" swap rrec"); }
                             let sym = values.pop().unwrap();
                             items.get_mut(&factor_id).unwrap().insert(0, sym);
                         }*/
-                    } else {
-                        let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (!values.is_empty() || flags & ruleflag::L_FORM != 0) {
-                            Some(Symbol::NT(*var_id))
-                        } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
-                            let parent = info.parent[*var_id as usize].unwrap();
-                            Some(Symbol::NT(parent))
-                        } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
-                            Some(Symbol::NT(*var_id))
                         } else {
-                            None
-                        };
-                        if let Some(s) = sym_maybe {
-                            if self.sym_has_value(&s) {
-                                if VERBOSE { print!(" | loop => {}", s.to_str(self.get_symbol_table())); }
-                                values.insert(0, s);
+                            let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (!values.is_empty() || flags & ruleflag::L_FORM != 0) {
+                                Some(Symbol::NT(*var_id))
+                            } else if flags & ruleflag::CHILD_L_RECURSION != 0 {
+                                let parent = info.parent[*var_id as usize].unwrap();
+                                Some(Symbol::NT(parent))
+                            } else if flags & (ruleflag::R_RECURSION | ruleflag::L_FORM) == ruleflag::R_RECURSION | ruleflag::L_FORM {
+                                Some(Symbol::NT(*var_id))
+                            } else {
+                                None
+                            };
+                            if let Some(s) = sym_maybe {
+                                if self.sym_has_value(&s) {
+                                    if VERBOSE { print!(" | loop => {}", s.to_str(self.get_symbol_table())); }
+                                    values.insert(0, s);
+                                }
                             }
                         }
-                    }
-                    if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
-                    if let Some(OpCode::NT(nt)) = opcode.get(0) {
-                        // Take the values except the last NT
-                        let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {
-                            Some(values.pop().unwrap())
-                        } else {
-                            None
-                        };
-                        if nt != var_id && self.nt_has_flags(*nt, ruleflag::CHILD_L_RECURSION) {
-                            if VERBOSE { println!("  CHILD_L_RECURSION"); }
-                            // exit_<var_id>(context = values) before entering child loop
-                            items.get_mut(&factor_id).unwrap().extend(values);
-                            continue;
-                        }
-                        if flags & ruleflag::PARENT_L_FACTOR != 0 {
-                            if VERBOSE {
-                                println!("  PARENT_L_FACTOR: moving {} to child {}",
-                                         values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
-                                         Symbol::NT(*nt).to_str(self.get_symbol_table()));
+                        if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+                        if let Some(OpCode::NT(nt)) = opcode.get(0) {
+                            // Take the values except the last NT
+                            let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {
+                                Some(values.pop().unwrap())
+                            } else {
+                                None
+                            };
+                            if nt != var_id && self.nt_has_flags(*nt, ruleflag::CHILD_L_RECURSION) {
+                                if VERBOSE { println!("  CHILD_L_RECURSION"); }
+                                // exit_<var_id>(context = values) before entering child loop
+                                items.get_mut(&factor_id).unwrap().extend(values);
+                                continue;
                             }
-                            // factorization reports all the values to the children
-                            if let Some(pre) = items.get_mut(&factor_id) {
-                                // pre-pends values that already exist for factor_id (and empties factor_id)
-                                values.splice(0..0, std::mem::take(pre));
+                            if flags & ruleflag::PARENT_L_FACTOR != 0 {
+                                if VERBOSE {
+                                    println!("  PARENT_L_FACTOR: moving {} to child {}",
+                                             values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                                             Symbol::NT(*nt).to_str(self.get_symbol_table()));
+                                }
+                                // factorization reports all the values to the children
+                                if let Some(pre) = items.get_mut(&factor_id) {
+                                    // pre-pends values that already exist for factor_id (and empties factor_id)
+                                    values.splice(0..0, std::mem::take(pre));
+                                }
+                                for f_id in self.var_factors[*nt as usize].iter() {
+                                    items.get_mut(f_id).unwrap().extend(values.clone());
+                                }
+                                continue;
                             }
-                            for f_id in self.var_factors[*nt as usize].iter() {
-                                items.get_mut(f_id).unwrap().extend(values.clone());
+                            if let Some(sym) = backup {
+                                values.push(sym);
                             }
-                            continue;
-                        }
-                        if let Some(sym) = backup {
-                            values.push(sym);
                         }
                     }
                     if let Some(current) = items.get_mut(&factor_id) {
@@ -1275,7 +1282,7 @@ impl ParserGen {
 
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
 
         self.used_libs.extend([

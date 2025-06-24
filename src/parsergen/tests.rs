@@ -1077,7 +1077,7 @@ mod wrapper_source {
             //  - AIter1: child_+_or_* | L-form (129)
             // parents:
             //  - AIter1 -> A
-            // #[cfg(any())]
+            #[cfg(any())]
             (RTS(51), false, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 2, t 2],               //  0: A -> AIter1 c        | ◄0 c! ►AIter1    | AIter1 c
@@ -1124,7 +1124,7 @@ mod wrapper_source {
             //  - AIter1 -> A
             //  - A_1 -> AIter1
             //  - A_2 -> AIter1
-            // #[cfg(any())]
+            #[cfg(any())]
             (RTS(53), false, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 2, t 2],               //  0: A -> AIter1 c     | ◄0 c! ►AIter1 | AIter1 c
@@ -1585,6 +1585,35 @@ mod wrapper_source {
                 3 => symbols![nt 0],                    //  3: E_1 -> ε     | ◄3        | E
             ], Default, btreemap![0 => vec![0, 1]]),
             // --------------------------------------------------------------------------- ambiguous
+            // // E -> E * E | E -- | ! E | E + E | ID | NUM
+            // NT flags:
+            //  - E: parent_amb (1024)
+            // parents:
+            //  - E_1 -> E
+            //  - E_2 -> E
+            //  - E_3 -> E_2
+            //  - E_4 -> E
+            (PRS(55), false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![],                        //  0: E -> E_4 E_1     | ◄0 ►E_1 ►E_4   |
+                1 => symbols![],                        //  1: E_1 -> * E_4 E_1 | ●E_1 ◄1 ►E_4 * |
+                2 => symbols![],                        //  2: E_1 -> -- E_1    | ●E_1 ◄2 --     |
+                3 => symbols![],                        //  3: E_1 -> + E_2 E_1 | ●E_1 ◄3 ►E_2 + |
+                4 => symbols![],                        //  4: E_1 -> ε         | ◄4             |
+                5 => symbols![],                        //  5: E_2 -> E_4 E_3   | ◄5 ►E_3 ►E_4   |
+                6 => symbols![],                        //  6: E_3 -> * E_4 E_3 | ●E_3 ◄6 ►E_4 * |
+                7 => symbols![],                        //  7: E_3 -> -- E_3    | ●E_3 ◄7 --     |
+                8 => symbols![],                        //  8: E_3 -> ε         | ◄8             |
+                9 => symbols![],                        //  9: E_4 -> ! E_2     | ◄9 ►E_2 !      |
+                10 => symbols![t 4],                    // 10: E_4 -> ID        | ◄10 ID!        | ID
+                11 => symbols![t 5],                    // 11: E_4 -> NUM       | ◄11 NUM!       | NUM
+            ], Default, btreemap![0 => vec![0]]),
+
+            // E -> E @ ^ E | E @ * E | E @ + E | ID | NUM
+            (PRS(66), false, 0, btreemap![
+            ], btreemap![
+            ], Default, btreemap![0 => vec![0]]),
+
             // E -> 'abs' E | E '^' E | E '\'' | E '*' E | '-' E | E '+' E | F;
             // F -> ( E ) | NUM | ID
             // NT flags:
@@ -1883,9 +1912,8 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-//if rule_id != RTS(21) && rule_id != RTS(50) && rule_id != RTS(51) { continue }
-// if rule_id == PRS(63) { continue }
- if !hashset!(RTS(50), RTS(51), RTS(52), RTS(53), RTS(54), RTS(55)).contains(&rule_id) { continue }
+if rule_id != PRS(55) && rule_id != PRS(66) { continue }
+// if !hashset!(RTS(51), RTS(53)).contains(&rule_id) { continue }
 //if !matches!(rule_id, RTS(x) if x >= 50 && x < 60) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
