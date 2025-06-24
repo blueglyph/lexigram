@@ -1862,6 +1862,10 @@ impl<T> ProdRuleSet<T> {
                             assert_eq!(t.add_child_nonterminal(var), var_i_nt[i].1);
                         });
                     }
+                    if has_binary {
+                        self.set_flags(nt, ruleflag::PARENT_L_RECURSION);
+                        self.set_flags(nt_loop, ruleflag::CHILD_L_RECURSION);
+                    }
                 }
                 if need_indep {
                     // self.symbol_table.as_mut().map(|t| t.add_non_terminal(format!("{var_name}_{}", rule_var_i + 1)));
@@ -1890,7 +1894,9 @@ impl<T> ProdRuleSet<T> {
                     self.set_parent(nt_prime, nt);
                 }
                 if let Some(nt_indep) = nt_indep_maybe {
-                    if !has_binary && prod_indep.iter().any(|p| p.last() == Some(&Symbol::NT(nt_indep))) {
+                    if !has_binary && prod_indep.iter().any(|p| p.last() == Some(&Symbol::NT(nt_indep)))
+                        || has_binary && !prod_indep.is_empty()
+                    {
                         self.set_flags(nt_indep, ruleflag::R_RECURSION);
                     }
                     prod_indep.extend(indep);
