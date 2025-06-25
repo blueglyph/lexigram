@@ -1613,7 +1613,20 @@ mod wrapper_source {
                 11 => symbols![t 5],                    // 11: E_4 -> NUM       | ◄11 NUM!       | NUM
             ], Default, btreemap![0 => vec![0]]),
 
-            // E -> E @ ^ E | E @ * E | E @ + E | ID | NUM
+            // E -> E . * E | E -- | E . + E | ! E | ID
+            // NT flags:
+            //  - E: parent_left_rec | parent_amb (1536)
+            //  - E_1: child_left_rec | parent_left_fact (36)
+            //  - E_2: parent_left_rec (512)
+            //  - E_3: child_left_rec (4)
+            //  - E_4: right_rec (2)
+            //  - E_5: child_left_fact (64)
+            // parents:
+            //  - E_1 -> E
+            //  - E_2 -> E
+            //  - E_3 -> E_2
+            //  - E_4 -> E
+            //  - E_5 -> E_1
             (PRS(66), false, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: E -> E_4 E_1       | ►E_1 ◄0 ►E_4     | E
