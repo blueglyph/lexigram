@@ -1674,6 +1674,8 @@ impl<T> ProdRuleSet<T> {
         /// Maximum number of P/I factors that are distributed before creating a new nonterminal to hold them.
         /// They are never distributed in presence of a binary (L/R) because it would likely induce left factorization.
         const MAX_DISTRIB_LEN: Option<usize> = None; // always distributing makes for smaller tables
+        const DONT_DISTRIB_IN_AMBIG: bool = true;   // E -> E * E | E + E | F  will keep F in an independent NT
+
         const VERBOSE: bool = false;
 
         self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.num_nt, "number of nt in symbol table doesn't match num_nt"));
@@ -1717,11 +1719,11 @@ impl<T> ProdRuleSet<T> {
                 let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]]; // pr_rule[i] = factors present in E[i]
                 let mut indep_factors = Vec::<FactorId>::new();
                 let mut pr_info = Vec::<FactorInfo>::new();  // information on each factor: type, priority, ...
-                let mut has_binary = false;
+                let mut has_ambig = false;
 
                 for (i, f) in factors.iter().index::<FactorId>() {
                     let ty = FactorType::from(&symbol, f);
-                    has_binary |= ty == FactorType::LeftAssoc || ty == FactorType::RightAssoc;
+                    has_ambig |= ty == FactorType::LeftAssoc || ty == FactorType::RightAssoc;
                     var_i = match ty {
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
                         FactorType::LeftAssoc => var_i + 1,
@@ -1759,8 +1761,10 @@ impl<T> ProdRuleSet<T> {
                 assert!(var_i <= rule_var_i + 1, "var_i = {var_i}, rule_var_i = {rule_var_i}");
 
                 // (var, prime) for each rule except independent factors. CAUTION! Includes the independent NT if last op is left-assoc
-                let need_indep = indep.len() + indep_factors.len() > 1 &&
-                    (MAX_DISTRIB_LEN.map(|max| indep.len() + indep_factors.len() > max).unwrap_or(false) || has_binary || rule_var_i < var_i);
+
+                let need_indep = indep.len() + indep_factors.len() > 1
+                    && (MAX_DISTRIB_LEN.map(|max| indep.len() + indep_factors.len() > max).unwrap_or(false) || has_ambig || rule_var_i < var_i)
+                    || DONT_DISTRIB_IN_AMBIG && has_ambig;
                 let num_indep = if need_indep { 1 } else { 0 };
                 let mut var_i_nt = Vec::<(VarId, VarId)>::with_capacity(var_i + 1);
                 var_i_nt.push((var, var_new as VarId));
@@ -1838,7 +1842,7 @@ impl<T> ProdRuleSet<T> {
                         if is_used_sym || (i == 0 && greedy_prologue) {
                             f.flags |= ruleflag::GREEDY;
                         }
-                        if !has_binary && pr_info[f_id as usize].ty == FactorType::Suffix {
+                        if !has_ambig && pr_info[f_id as usize].ty == FactorType::Suffix {
                             self.set_flags(nt, ruleflag::PARENT_L_RECURSION);
                             self.set_flags(nt_loop, ruleflag::CHILD_L_RECURSION);
                         }
@@ -1862,7 +1866,7 @@ impl<T> ProdRuleSet<T> {
                             assert_eq!(t.add_child_nonterminal(var), var_i_nt[i].1);
                         });
                     }
-                    if has_binary {
+                    if has_ambig {
                         self.set_flags(nt, ruleflag::PARENT_L_RECURSION);
                         self.set_flags(nt_loop, ruleflag::CHILD_L_RECURSION);
                     }
@@ -1882,7 +1886,7 @@ impl<T> ProdRuleSet<T> {
                                 Symbol::NT(*v2).to_str(self.get_symbol_table()))).join("  "),
                                 if need_indep { format!("  [{}]:{}", var_i, Symbol::NT(var_i_nt[var_i].0).to_str(self.get_symbol_table() )) } else { String::new() });
                 }
-                if has_binary {
+                if has_ambig {
                     self.set_flags(var, ruleflag::PARENT_AMBIGUITY);
                 } else if !prod_indep.is_empty() && !need_indep {
                     self.set_flags(var, ruleflag::R_RECURSION);
@@ -1894,8 +1898,8 @@ impl<T> ProdRuleSet<T> {
                     self.set_parent(nt_prime, nt);
                 }
                 if let Some(nt_indep) = nt_indep_maybe {
-                    if !has_binary && prod_indep.iter().any(|p| p.last() == Some(&Symbol::NT(nt_indep)))
-                        || has_binary && !prod_indep.is_empty()
+                    if !has_ambig && prod_indep.iter().any(|p| p.last() == Some(&Symbol::NT(nt_indep)))
+                        || has_ambig && !prod_indep.is_empty()
                     {
                         self.set_flags(nt_indep, ruleflag::R_RECURSION);
                     }
