@@ -460,6 +460,28 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc), gnode!(t 3));
             let _b_tree = rules.get_tree_mut(1);
         }
+        41 => { // A -> A x A | A * [(NUM)+] | - A | ID
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 0), gnode!(t 0), gnode!(nt 0)]);
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 0), gnode!(t 1), gnode!(t 3)]);
+            tree.addc(Some(cc1), gnode!(+), gnode!(t 5));
+            tree.add(Some(cc1), gnode!(t 4));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(nt 0)]);
+            tree.add(Some(or), gnode!(t 6));
+
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["A".to_string()]);
+            table.extend_terminals([
+                ("CROSS".to_string(), Some("x".to_string())),   // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("NEG".to_string(), Some("-".to_string())),     // 2
+                ("LB".to_string(), Some("[".to_string())),      // 3
+                ("RB".to_string(), Some("]".to_string())),      // 4
+                ("NUM".to_string(), None),                      // 5
+                ("ID".to_string(), None),                       // 6
+            ]);
+            rules.symbol_table = Some(table);
+        }
 
         50 => { // A -> (a d | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
             let cc = tree.add_root(gnode!(&));
