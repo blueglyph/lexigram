@@ -1684,10 +1684,9 @@ impl<T> ProdRuleSet<T> {
             print_production_rules(&self, false);
         }
         let mut var_new = self.get_next_available_var() as usize;
-        let var_new0 = var_new;
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
         let mut prods = take(&mut self.prods);
-        for var in 0..var_new0 {
+        for var in 0..var_new {
             let mut prod = prods.get_mut(var).unwrap();
             let var = var as VarId;
             let symbol = Symbol::NT(var);

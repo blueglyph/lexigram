@@ -1088,7 +1088,7 @@ impl ParserGen {
                                 vec![ItemInfo {
                                     name: nt_name[owner as usize].as_ref().map(|n| n.1.clone()).unwrap(),
                                     sym: Symbol::NT(owner),
-                                    owner: owner,
+                                    owner,
                                     is_vec: false,
                                     index: None,
                                 }]
