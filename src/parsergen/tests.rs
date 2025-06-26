@@ -661,7 +661,7 @@ mod wrapper_source {
             ], btreemap![
                 0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
                 1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
-                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+                2 => symbols![nt 1],                    //  2: A_1 -> ε     | ◄2            | A_1
             ], All, btreemap![0 => vec![0]]),
             (RTS(21), true, 0, btreemap![
                 0 => "SynA".to_string(),
@@ -883,9 +883,9 @@ mod wrapper_source {
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
                 1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!           | b
                 2 => symbols![nt 2, nt 1, t 1],         //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 B b
-                3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
+                3 => symbols![nt 2],                    //  3: A_1 -> ε         | ◄3              | A_1
                 4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
-                5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
+                5 => symbols![nt 3],                    //  5: A_2 -> ε         | ◄5              | A_2
             ], All, btreemap![0 => vec![0], 1 => vec![1]]),
             (RTS(29), true, 0, btreemap![
                 0 => "SynA".to_string(),
@@ -896,7 +896,7 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: A_1 -> B b A_1   | ●A_1 ◄2 b ►B    |
                 3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
                 4 => symbols![nt 3, t 2],               //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 c
-                5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
+                5 => symbols![nt 3],                    //  5: A_2 -> ε         | ◄5              | A_2
             ], Set(symbols![nt 0, t 0, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
             (RTS(29), true, 0, btreemap![
                 2 => "SynA1".to_string(),
@@ -905,9 +905,9 @@ mod wrapper_source {
                 0 => symbols![t 0, nt 3, t 3],          //  0: A -> a A_2 d     | ◄0 d! ►A_2 a!   | a A_2 d
                 1 => symbols![t 1],                     //  1: B -> b           | ◄1 b!           | b
                 2 => symbols![nt 2, t 1],               //  2: A_1 -> B b A_1   | ●A_1 ◄2 b! ►B   | A_1 b
-                3 => symbols![],                        //  3: A_1 -> ε         | ◄3              |
+                3 => symbols![nt 2],                    //  3: A_1 -> ε         | ◄3              | A_1
                 4 => symbols![nt 3, nt 2, t 2],         //  4: A_2 -> A_1 c A_2 | ●A_2 ◄4 c! ►A_1 | A_2 A_1 c
-                5 => symbols![],                        //  5: A_2 -> ε         | ◄5              |
+                5 => symbols![nt 3],                    //  5: A_2 -> ε         | ◄5              | A_2
             ], Set(symbols![t 0, t 1, t 2, t 3]), btreemap![0 => vec![0], 1 => vec![1]]),
 
             // A -> a (<L=AIter1> (<L=AIter2> b)* c)* d
@@ -947,7 +947,7 @@ mod wrapper_source {
                 1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1  | ●AIter1 ◄1 b!      | AIter1 b
                 2 => symbols![nt 1],                    //  2: AIter1 -> ε         | ◄2                 | AIter1
                 3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> AIter1 c A_1 | ●A_1 ◄3 c! ►AIter1 | A_1 AIter1 c
-                4 => symbols![],                        //  4: A_1 -> ε            | ◄4                 |
+                4 => symbols![nt 2],                    //  4: A_1 -> ε            | ◄4                 | A_1
             ], Default, btreemap![0 => vec![0]]),
 
             // A -> a ( (B b)+ c)+ d
@@ -1495,7 +1495,7 @@ mod wrapper_source {
             ], btreemap![
                 0 => symbols![t 0],                     //  0: A -> a A_2       | ►A_2 ◄0 a!      | a
                 1 => symbols![nt 1, t 2],               //  1: A_1 -> c A_1     | ●A_1 ◄1 c!      | A_1 c
-                2 => symbols![],                        //  2: A_1 -> ε         | ◄2              |
+                2 => symbols![nt 1],                    //  2: A_1 -> ε         | ◄2              | A_1
                 3 => symbols![nt 0, nt 1, t 1],         //  3: A_2 -> A_1 b A_2 | ●A_2 ◄3 b! ►A_1 | A A_1 b
                 4 => symbols![nt 0],                    //  4: A_2 -> ε         | ◄4              | A
             ], Default, btreemap![0 => vec![0]]),
@@ -1553,7 +1553,7 @@ mod wrapper_source {
                 1 => symbols![t 0],                     //  1: A -> a         | ◄1 a!         | a
                 2 => symbols![t 1],                     //  2: B -> b         | ◄2 b!         | b
                 3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> B c A_1 | ●A_1 ◄3 c! ►B | A_1 B c
-                4 => symbols![],                        //  4: A_1 -> ε       | ◄4            |
+                4 => symbols![nt 2],                    //  4: A_1 -> ε       | ◄4            | A_1
             ], All, btreemap![0 => vec![0, 1], 1 => vec![2]]),
             // --------------------------------------------------------------------------- mix recursion
             // E -> E + | - E | 0
@@ -1912,13 +1912,13 @@ mod wrapper_source {
                 31 => symbols![t 30],                   // 31: char_set_one -> FixedSet               | ◄31 FixedSet!                 | FixedSet
                 32 => symbols![],                       // 32: char_set_one -> SetChar char_set_one_1 | ►char_set_one_1 SetChar!      |
                 33 => symbols![nt 15, nt 1],            // 33: file_1 -> file_item file_1             | ●file_1 ◄33 ►file_item        | file_1 file_item
-                34 => symbols![],                       // 34: file_1 -> ε                            | ◄34                           |
+                34 => symbols![nt 15],                  // 34: file_1 -> ε                            | ◄34                           | file_1
                 35 => symbols![nt 16, t 27],            // 35: option_1 -> , Id option_1              | ●option_1 ◄35 Id! ,           | option_1 Id
-                36 => symbols![],                       // 36: option_1 -> ε                          | ◄36                           |
+                36 => symbols![nt 16],                  // 36: option_1 -> ε                          | ◄36                           | option_1
                 37 => symbols![nt 17, nt 7],            // 37: actions_1 -> , action actions_1        | ●actions_1 ◄37 ►action ,      | actions_1 action
-                38 => symbols![],                       // 38: actions_1 -> ε                         | ◄38                           |
+                38 => symbols![nt 17],                  // 38: actions_1 -> ε                         | ◄38                           | actions_1
                 39 => symbols![nt 18, nt 10],           // 39: alt_items_1 -> | alt_item alt_items_1  | ●alt_items_1 ◄39 ►alt_item |  | alt_items_1 alt_item
-                40 => symbols![],                       // 40: alt_items_1 -> ε                       | ◄40                           |
+                40 => symbols![nt 18],                  // 40: alt_items_1 -> ε                       | ◄40                           | alt_items_1
                 41 => symbols![],                       // 41: alt_item_1 -> repeat_item alt_item_2   | ►alt_item_2 ►repeat_item      |
                 42 => symbols![],                       // 42: char_set_1 -> char_set_one char_set_2  | ►char_set_2 ►char_set_one     |
                 43 => symbols![t 27, nt 8, nt 6],       // 43: rule_1 -> -> actions ;                 | ◄43 ; ►actions ->             | Id match actions
@@ -1987,6 +1987,7 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
+// if rule_id != RTS(41) { continue }
 // if rule_id != PRS(55) && rule_id != PRS(66) { continue }
 // if !hashset!(RTS(51), RTS(53)).contains(&rule_id) { continue }
 //if !matches!(rule_id, RTS(x) if x >= 50 && x < 60) { continue }

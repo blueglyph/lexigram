@@ -857,7 +857,7 @@ impl ParserGen {
                         items.get_mut(&factor_id).unwrap().insert(0, sym);
                     }*/
                     } else {
-                        let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (!values.is_empty() || flags & ruleflag::L_FORM != 0) {
+                        let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (self.nt_value[*var_id as usize] || flags & ruleflag::L_FORM != 0) {
                             Some(Symbol::NT(*var_id))
                         } else if !is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 {
                             let parent = info.parent[*var_id as usize].unwrap();
