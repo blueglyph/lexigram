@@ -1790,7 +1790,30 @@ mod wrapper_source {
                 15 => symbols![nt 0],                   // 15: E_6 -> - E_2     | ◄15 ►E_2 -      | E
                 16 => symbols![nt 1],                   // 16: E_6 -> F         | ◄16 ►F          | F
             ], Default, btreemap![0 => vec![0], 1 => vec![1, 2, 3]]),
-            // (PRS(9), true, 0, btreemap![]),
+            // A -> A x A | A * [(NUM)+] | - A | ID
+            // NT flags:
+            //  - A: parent_left_rec | parent_amb | parent_+_or_* | plus (7680)
+            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - A_2: child_left_rec (4)
+            //  - A_3: right_rec (2)
+            //  - A_4: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            //  - A_3 -> A
+            //  - A_4 -> A_1
+            (RTS(41), false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 0],                    //  0: A -> A_3 A_2         | ►A_2 ◄0 ►A_3       | A
+                1 => symbols![],                        //  1: A_1 -> NUM A_4       | ►A_4 NUM!          |
+                2 => symbols![nt 0, nt 0],              //  2: A_2 -> x A_3 A_2     | ●A_2 ◄2 ►A_3 x     | A A
+                3 => symbols![nt 0, nt 0],              //  3: A_2 -> * [ A_1 ] A_2 | ●A_2 ◄3 ] ►A_1 [ * | A A
+                4 => symbols![nt 0],                    //  4: A_2 -> ε             | ◄4                 | A
+                5 => symbols![nt 0],                    //  5: A_3 -> - A           | ◄5 ►A -            | A
+                6 => symbols![t 6],                     //  6: A_3 -> ID            | ◄6 ID!             | ID
+                7 => symbols![nt 1, t 5],               //  7: A_4 -> A_1           | ●A_1 ◄7            | A_1 NUM
+                8 => symbols![nt 1, t 5],               //  8: A_4 -> ε             | ◄8                 | A_1 NUM
+            ], Default, btreemap![0 => vec![0]]),
             // ---------------------------------------------------------------------------
             // NT flags:
             //  - file: parent_+_or_* (2048)
