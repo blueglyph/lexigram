@@ -1807,7 +1807,7 @@ mod wrapper_source {
                 0 => symbols![nt 0],                    //  0: A -> A_3 A_2         | ►A_2 ◄0 ►A_3       | A
                 1 => symbols![],                        //  1: A_1 -> NUM A_4       | ►A_4 NUM!          |
                 2 => symbols![nt 0, nt 0],              //  2: A_2 -> x A_3 A_2     | ●A_2 ◄2 ►A_3 x     | A A
-                3 => symbols![nt 0, nt 0],              //  3: A_2 -> * [ A_1 ] A_2 | ●A_2 ◄3 ] ►A_1 [ * | A A
+                3 => symbols![nt 0, nt 1],              //  3: A_2 -> * [ A_1 ] A_2 | ●A_2 ◄3 ] ►A_1 [ * | A A_1
                 4 => symbols![nt 0],                    //  4: A_2 -> ε             | ◄4                 | A
                 5 => symbols![nt 0],                    //  5: A_3 -> - A           | ◄5 ►A -            | A
                 6 => symbols![t 6],                     //  6: A_3 -> ID            | ◄6 ID!             | ID

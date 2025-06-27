@@ -801,7 +801,7 @@ impl ParserGen {
                                 OpCode::T(t) => Some(Symbol::T(*t)),
                                 OpCode::NT(nt) => {
                                     let is_ambig_top = is_ambig && self.get_nt_parent(*nt) == Some(g_top)
-                                        && !self.nt_has_any_flags(*nt, ruleflag::CHILD_L_RECURSION | ruleflag::PARENT_REPEAT);
+                                        && !self.nt_has_any_flags(*nt, ruleflag::CHILD_L_RECURSION | ruleflag::CHILD_REPEAT);
                                     let var = if is_ambig_top { g_top } else { *nt };
                                     nt_used.insert(var);
                                     Some(Symbol::NT(var))
