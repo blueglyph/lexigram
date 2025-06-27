@@ -799,16 +799,13 @@ impl ParserGen {
                         .filter_map(|s| {
                             let sym_maybe = match s {
                                 OpCode::T(t) => Some(Symbol::T(*t)),
-                                OpCode::NT(mut nt) => {
-                                    if is_ambig && self.get_nt_parent(nt) == Some(g_top)
-                                        && !self.nt_has_any_flags(nt, ruleflag::CHILD_L_RECURSION | ruleflag::PARENT_REPEAT)
-                                    {
-                                        nt = g_top;
-                                    }
-                                    nt_used.insert(nt);
-                                    Some(Symbol::NT(nt))
+                                OpCode::NT(nt) => {
+                                    let is_ambig_top = is_ambig && self.get_nt_parent(*nt) == Some(g_top)
+                                        && !self.nt_has_any_flags(*nt, ruleflag::CHILD_L_RECURSION | ruleflag::PARENT_REPEAT);
+                                    let var = if is_ambig_top { g_top } else { *nt };
+                                    nt_used.insert(var);
+                                    Some(Symbol::NT(var))
                                 },
-                                // OpCode::Loop(_) if is_ambig => Some(Symbol::NT(g_top)),
                                 _ => {
                                     if VERBOSE { print!(" | {} dropped", s.to_str(self.get_symbol_table())); }
                                     None
@@ -819,7 +816,6 @@ impl ParserGen {
                     // Looks if a child_repeat has a value
                     if !values.is_empty() && self.parsing_table.parent[*var_id as usize].is_some() {
                         let mut top_nt = *var_id as usize;
-                        // print!(" [{}, so {}?", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "), Symbol::NT(top_nt as VarId).to_str(self.get_symbol_table()));
                         while self.parsing_table.flags[top_nt] & ruleflag::CHILD_REPEAT == 0 {
                             if let Some(parent) = self.parsing_table.parent[top_nt] {
                                 top_nt = parent as usize;
@@ -838,7 +834,6 @@ impl ParserGen {
                             change |= !self.nt_value[top_nt] && nt_used.contains(&(top_nt as VarId));
                             self.nt_value[top_nt] = true;
                         }
-                        // print!("]");
                     }
                     if change {
                         // the nt_value of one item has been set.
@@ -851,11 +846,7 @@ impl ParserGen {
                         if self.nt_has_all_flags(*var_id, ruleflag::CHILD_L_FACTOR | ruleflag::L_FORM) {
                             if VERBOSE { print!(" child_rrec_lform_lfact"); }
                             items.get_mut(&factor_id).unwrap().insert(0, Symbol::NT(g[0]));
-                        }/* else if flags & ruleflag::CHILD_L_FACTOR != 0 && values.last() == Some(&Symbol::NT(g[0])) {
-                        if VERBOSE { print!(" swap rrec"); }
-                        let sym = values.pop().unwrap();
-                        items.get_mut(&factor_id).unwrap().insert(0, sym);
-                    }*/
+                        }
                     } else {
                         let sym_maybe = if flags & ruleflag::CHILD_REPEAT != 0 && (self.nt_value[*var_id as usize] || flags & ruleflag::L_FORM != 0) {
                             Some(Symbol::NT(*var_id))

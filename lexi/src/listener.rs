@@ -454,7 +454,7 @@ impl LexiParserListener for LexiListener {
             // changes all the temporary references since that first one
             for mut node in tree.iter_depth_simple_mut() {
                 let x: &mut ReType = node.get_mut_type();
-                if let ReType::End(ref mut term) = x {
+                if let ReType::End(term) = x {
                     if let ActionOption::Token(old_id) = term.action {
                         if let Some(new_id) = remap.get(&old_id) {
                             term.action = ActionOption::Token(*new_id);
