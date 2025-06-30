@@ -2042,6 +2042,13 @@ mod wrapper_source {
                 println!("            ], {has_value_str}, btreemap![{}]),",
                     if result_factors.is_empty() { "".to_string() } else { result_factors.iter().map(|(v, factors)| format!("{v} => vec![{}]", factors.iter().join(", "))).join(", ") }
                 );
+                let nbr_factors = builder.parsing_table.factors.len();
+                let original = (0..nbr_factors)
+                    .filter_map(|i| builder.get_original_factor_str(i as FactorId, builder.get_symbol_table()).and_then(|s| Some(format!("- {i:3}: {s}"))))
+                    .join("\n");
+                if !original.is_empty() {
+                    println!("Original factors:\n{original}");
+                }
                 println!("*/");
             }
             let wrapper_src = builder.source_wrapper();

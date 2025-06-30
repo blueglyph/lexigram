@@ -912,39 +912,31 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
 
 // ---------------------------------------------------------------------------------------------
 
-/// Stores a normalized production rule, where each factor (e.g. `BC`) is stored in
-/// a `Vec<GrNode>` and all the factors are stored in a `Vec`.
-///
-/// ## Example
-/// `A -> BC | D | ε`
-///
-/// where A=0, B=1, C=2, D=3, is stored as:
-///
-/// `[[gnode!(nt 1), gnode!(nt 2)],[gnode!(nt 3)],[gnode!(e)]]`
-///
-/// (where the representation of vectors has been simplified to square brackets).
-pub type ProdRule = Vec<ProdFactor>;
-
 /// Stores a factor of a normalized production rule, along with accompanying flags.
 /// The `ProdFactor` type behaves like a `Vec<Symbol>` (`Deref` / `DerefMut`), but must be
 /// created with `ProdFactor::new(f: Vec<Symbol)`.
 #[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
 pub struct ProdFactor {
     v: Vec<Symbol>,
-    flags: u32          // only for L_FORM and R_ASSOC
+    flags: u32,          // only for L_FORM and R_ASSOC
+    original_factor_id: Option<FactorId>,
 }
 
 impl ProdFactor {
     pub fn new(v: Vec<Symbol>) -> Self {
-        ProdFactor { v, flags: 0 }
+        ProdFactor { v, flags: 0, original_factor_id: None }
     }
 
     pub fn with_flags(v: Vec<Symbol>, flags: u32) -> Self {
-        ProdFactor { v, flags }
+        ProdFactor { v, flags, original_factor_id: None }
     }
 
     pub fn symbols(&self) -> &Vec<Symbol> {
         &self.v
+    }
+
+    pub fn get_original_factor_id(&self) -> Option<FactorId> {
+        self.original_factor_id
     }
 
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
@@ -1008,6 +1000,23 @@ impl DerefMut for ProdFactor {
     }
 }
 
+/// Stores a normalized production rule, where each factor (e.g. `BC`) is stored in
+/// a `Vec<GrNode>` and all the factors are stored in a `Vec`.
+///
+/// ## Example
+/// `A -> BC | D | ε`
+///
+/// where A=0, B=1, C=2, D=3, is stored as:
+///
+/// `[[gnode!(nt 1), gnode!(nt 2)],[gnode!(nt 3)],[gnode!(e)]]`
+///
+/// (where the representation of vectors has been simplified to square brackets).
+pub type ProdRule = Vec<ProdFactor>;
+
+pub fn prod_to_string(prod: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
+    prod.iter().map(|factor| factor.to_str(symbol_table)).join(" | ")
+}
+
 #[derive(Clone, Copy, PartialEq, Debug)]
 enum FactorType { Independant, LeftAssoc, Prefix, RightAssoc, Suffix }
 
@@ -1035,10 +1044,6 @@ struct FactorInfo {
     ty: FactorType
 }
 
-pub fn prod_to_string(prod: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
-    prod.iter().map(|factor| factor.to_str(symbol_table)).join(" | ")
-}
-
 #[derive(Debug)]
 pub struct LLParsingTable {
     pub num_nt: usize,
@@ -1062,6 +1067,7 @@ impl LLParsingTable {
 #[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
+    original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
     num_nt: usize,
     num_t: usize,
     symbol_table: Option<SymbolTable>,
@@ -1130,6 +1136,10 @@ impl<T> ProdRuleSet<T> {
 
     pub fn give_nt_conversion(&mut self) -> HashMap<VarId, NTConversion> {
         take(&mut self.nt_conversion)
+    }
+
+    pub fn give_original_factors(&mut self) -> Vec<ProdFactor> {
+        take(&mut self.original_factors)
     }
 
     /// Adds new flags to `flags[nt]` by or'ing them.
@@ -1458,6 +1468,7 @@ impl<T> ProdRuleSet<T> {
     pub fn new() -> Self {
         Self {
             prods: Vec::new(),
+            original_factors: Vec::new(),
             num_nt: 0,
             num_t: 0,
             symbol_table: None,
@@ -1474,6 +1485,7 @@ impl<T> ProdRuleSet<T> {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             prods: Vec::with_capacity(capacity),
+            original_factors: Vec::new(),
             num_nt: 0,
             num_t: 0,
             symbol_table: None,
@@ -1807,6 +1819,8 @@ impl<T> ProdRuleSet<T> {
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
                     }
                     new_f.flags |= f.flags & ruleflag::FACTOR_INFO;
+                    new_f.original_factor_id = Some(self.original_factors.len() as FactorId);
+                    self.original_factors.push(f.clone());
                     new_f
                 }).to_vec();
                 let mut used_sym = HashSet::<Symbol>::new();
@@ -2293,6 +2307,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
         }
         ProdRuleSet::<LL1> {
             prods: rules.prods,
+            original_factors: rules.original_factors,
             num_nt: rules.num_nt,
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,
@@ -2316,6 +2331,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
         }
         ProdRuleSet::<LR> {
             prods: rules.prods,
+            original_factors: rules.original_factors,
             num_nt: rules.num_nt,
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,
@@ -2374,7 +2390,7 @@ pub fn print_prs_factors<T>(rules: &ProdRuleSet<T>) {
 }
 
 pub fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsingTable, indent: usize) {
-    let LLParsingTable { num_nt, num_t, factors, table, flags, parent } = parsing_table;
+    let LLParsingTable { num_nt, num_t, factors, table, flags, parent, .. } = parsing_table;
     let error_skip = factors.len() as FactorId;
     let error_pop = error_skip + 1;
     let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();

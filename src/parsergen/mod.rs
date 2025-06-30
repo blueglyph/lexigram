@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, symbol_to_macro};
+use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, symbol_to_macro, ProdFactor};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
 use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
@@ -140,6 +140,7 @@ pub struct ParserGen {
     /// `nt_parent[v]` is the vector of all variables having `v` has top parent (including `v` itself)
     nt_parent: Vec<Vec<VarId>>,
     var_factors: Vec<Vec<FactorId>>,
+    original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
     item_ops: HashMap<FactorId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId,
@@ -169,6 +170,7 @@ impl ParserGen {
         for (factor_id, (var_id, _)) in parsing_table.factors.iter().index() {
             var_factors[*var_id as usize].push(factor_id);
         }
+        let original_factors = ll1_rules.give_original_factors();
         let mut nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
         for var_id in 0..num_nt {
             let top_var_id = parsing_table.get_top_parent(var_id as VarId) as usize;
@@ -181,6 +183,7 @@ impl ParserGen {
             nt_value: vec![false; num_nt],
             nt_parent,
             var_factors,
+            original_factors,
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
             start,
@@ -258,6 +261,15 @@ impl ParserGen {
     #[inline]
     pub fn get_nt_parent(&self, v: VarId) -> Option<VarId> {
         self.parsing_table.parent[v as usize]
+    }
+
+    fn get_original_factor_str(&self, f_id: FactorId, symbol_table: Option<&SymbolTable>) -> Option<String> {
+        let (var, f) = &self.parsing_table.factors[f_id as usize];
+        f.get_original_factor_id().and_then(|orig_id| {
+            let o_f = &self.original_factors[orig_id as usize];
+            let parent = self.parsing_table.get_top_parent(*var);
+            Some(format!("{} -> {}", Symbol::NT(parent).to_str(symbol_table), o_f.to_str(symbol_table)))
+        })
     }
 
     /// Converts the original index of an NT to its current index.
