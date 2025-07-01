@@ -915,7 +915,7 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
 /// Stores a factor of a normalized production rule, along with accompanying flags.
 /// The `ProdFactor` type behaves like a `Vec<Symbol>` (`Deref` / `DerefMut`), but must be
 /// created with `ProdFactor::new(f: Vec<Symbol)`.
-#[derive(Clone, PartialEq, Eq, PartialOrd, Ord, Debug)]
+#[derive(Clone, Eq, PartialOrd, Ord, Debug)]
 pub struct ProdFactor {
     v: Vec<Symbol>,
     flags: u32,          // only for L_FORM and R_ASSOC
@@ -983,6 +983,13 @@ impl ProdFactor {
 
     fn is_greedy(&self) -> bool {
         self.flags & ruleflag::GREEDY != 0
+    }
+}
+
+// we exclude `original_factor_id` from the equality test
+impl PartialEq for ProdFactor {
+    fn eq(&self, other: &Self) -> bool {
+        self.flags == other.flags && self.v == other.v
     }
 }
 
