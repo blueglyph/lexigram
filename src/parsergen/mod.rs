@@ -1590,13 +1590,11 @@ impl ParserGen {
                     }).join(", ")
                 }
 
-                // - right recursion
-                // - parent left recursion
-                // - no transformation (or only left factorization)
-                // - no ambiguity, no +, no *
-                if flags & ruleflag::CHILD_L_FACTOR == 0 &&     // already taken by self.gather_factors
-                    (flags & (ruleflag::R_RECURSION | ruleflag::CHILD_AMBIGUITY) == ruleflag::R_RECURSION
-                        || parent_flags & ruleflag::TRANSF_PARENT & !ruleflag::PARENT_L_RECURSION & !ruleflag::PARENT_REPEAT & !ruleflag::PARENT_L_FACTOR == 0)
+                // handles most rules except
+                // - children of left factorization (already taken by self.gather_factors)
+                // - ambiguity (for now)
+                if flags & (ruleflag::CHILD_L_FACTOR | ruleflag::CHILD_AMBIGUITY) == 0
+                    && flags & ruleflag::CHILD_AMBIGUITY == 0 && parent_flags & ruleflag::PARENT_AMBIGUITY == 0
                 {
                     let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
                     let (pnu, pnl, pnpl) = nt_name[parent_nt].as_ref().unwrap();
@@ -1631,7 +1629,7 @@ impl ParserGen {
                         src_wrapper_impl.push(String::new());
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor_id { ", factor_id: FactorId" } else { "" }));
                     }
-                    if !is_child_repeat_lform && flags & ruleflag::CHILD_REPEAT != 0 {
+                    if flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
                         if exit_factors.len() > 2 {
                             self.log.add_error(format!("alternatives in * and + are not supported: in {}. {} has too many factors: {}",
                                                        Symbol::NT(parent_nt as VarId).to_str(self.get_symbol_table()),
@@ -1661,7 +1659,7 @@ impl ParserGen {
                                     name
                                 };
                                 if let Symbol::NT(v) = item.sym {
-                                    let mut_s = if !is_child_repeat_lform && v as usize == nt { "mut " } else { "" };
+                                    let mut_s = if /*!is_child_repeat_lform &&*/ v as usize == nt { "mut " } else { "" };
                                     src_wrapper_impl.push(format!("        let {mut_s}{varname} = self.stack.pop().unwrap().get_{}();",
                                                                   nt_name[v as usize].as_ref().unwrap().2));
                                 } else {
@@ -1669,6 +1667,7 @@ impl ParserGen {
                                 }
                             }
                             if is_child_repeat_lform {
+                                panic!("shouldn't get here");
                                 let ctx_params = get_var_params(&item_info[f as usize], 0, &indices, &mut non_indices);
                                 let ctx = if ctx_params.is_empty() {
                                     format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap().1)
@@ -1697,7 +1696,7 @@ impl ParserGen {
                             }
                         }
                     } else {
-                        // no_method is irrelevant here
+                        // no_method is not expected here (only used in +* with no lform)
                         assert!(!no_method);
                         let has_last_flag = is_child_repeat_lform && flags & ruleflag::REPEAT_PLUS != 0; // special last flag
                         let last_factor_id = if has_last_flag {
