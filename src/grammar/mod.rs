@@ -2099,7 +2099,7 @@ impl ProdRuleSet<LL1> {
         }
         const VERBOSE: bool = false;
         const DISABLE_FILTER: bool = false;
-        let factors = self.prods.iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
+        let mut factors = self.prods.iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
             .flat_map(|(v, x)| x.iter().map(move |f| (v, f.clone()))).to_vec();
         let error_skip = factors.len() as FactorId; // table entry for syntactic error; recovery by skipping input symbol
         let error_pop = error_skip + 1;             // table entry for syntactic error; recovery by popping T or NT from stack
@@ -2195,6 +2195,9 @@ impl ProdRuleSet<LL1> {
         }
         if !(0..num_t - 1).any(|t_id| (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] < error_skip)) {
             self.log.add_error("calc_table: no terminal used in the table".to_string());
+        }
+        for (_, f) in &mut factors {
+            f.flags &= !ruleflag::GREEDY;
         }
         LLParsingTable { num_nt, num_t, factors, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() }
     }
