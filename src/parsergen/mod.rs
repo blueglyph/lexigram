@@ -981,9 +981,18 @@ impl ParserGen {
         let mut nt_repeat = HashMap::<VarId, Vec<ItemInfo>>::new();
         let mut item_info: Vec<Vec<ItemInfo>> = vec![vec![]; pinfo.factors.len()];
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
+            let is_ambig = self.nt_has_any_flags(group[0], ruleflag::PARENT_AMBIGUITY);
+            let mut is_ambig_1st_child = is_ambig;
             let mut group_names = HashMap::<String, (usize, usize)>::new();
             for nt in group {
                 let nt = *nt as usize;
+                let nt_flags = pinfo.flags[nt];
+                if is_ambig && (nt_flags & ruleflag::PARENT_L_RECURSION != 0 || (nt_flags & ruleflag::CHILD_L_RECURSION != 0 && !is_ambig_1st_child)) {
+                    continue;
+                }
+                if is_ambig && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
+                    is_ambig_1st_child = false;
+                }
                 for &factor_id in &self.var_factors[nt] {
                     let i = factor_id as usize;
                     item_info[i] = if let Some(item_ops) = self.item_ops.get(&factor_id) {
@@ -1048,7 +1057,7 @@ impl ParserGen {
 
                         // A parent of left factorization has no context, but we must check the factors that are the actual parents.
                         // The flag test is optional, but it serves to gate the more complex parental test.
-                        let has_lfact_child = pinfo.flags[nt] & ruleflag::PARENT_L_FACTOR != 0 &&
+                        let has_lfact_child = nt_flags & ruleflag::PARENT_L_FACTOR != 0 &&
                             pinfo.factors[i].1.symbols().iter().any(|s| matches!(s, &Symbol::NT(c) if pinfo.flags[c as usize] & ruleflag::CHILD_L_FACTOR != 0));
 
                         // (α)* doesn't call the listener for each α, unless it's l-form. We say it's a hidden child_repeat, and it doesn't need a context.
@@ -1082,7 +1091,7 @@ impl ParserGen {
                                     (i, 1)
                                 });
                         }
-                        if item_ops.is_empty() && pinfo.flags[nt] & ruleflag::CHILD_L_RECURSION != 0 {
+                        if item_ops.is_empty() && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
                             // we put here the return context for the final exit of left recursive rule
                             if self.nt_value[owner as usize] {
                                 vec![ItemInfo {
@@ -1286,7 +1295,7 @@ impl ParserGen {
 
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
 
         self.used_libs.extend([
@@ -1471,10 +1480,26 @@ impl ParserGen {
                                   group.iter().map(|v| Symbol::NT(*v).to_str(self.get_symbol_table())).join(", "),
                                   if parent_has_value { "" } else { "no " },
                                   ruleflag::to_string(parent_flags).join(" | ")); }
+            let is_ambig = parent_flags & ruleflag::PARENT_AMBIGUITY != 0;
+            let (amb_parents, amb_children) = if is_ambig {
+                group.iter().filter(|&v| self.nt_has_any_flags(*v, ruleflag::L_RECURSION)).cloned()
+                    .partition(|&v| self.nt_has_any_flags(v, ruleflag::PARENT_L_RECURSION))
+            } else {
+                (Vec::new(), Vec::new())
+            };
             for var in group {
                 let sym_nt = Symbol::NT(*var);
                 let nt = *var as usize;
                 let flags = self.parsing_table.flags[nt];
+                // the parents of left recursion are not useful in ambiguous rules (they just push / pop the same value):
+                //let is_ambig_1st_parent = is_ambig && flags & ruleflag::PARENT_L_RECURSION != 0 && amb_parents.get(0) == Some(var);
+                let is_ambig_1st_child =  is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 && amb_children.get(0) == Some(var);
+                if is_ambig && flags & ruleflag::L_RECURSION != 0 && !(/*is_ambig_1st_parent ||*/ is_ambig_1st_child)
+                {
+                    // we only process the first variable of the left recursion; below we gather the factors of
+                    // the other variables of the same type (in ambiguous rules, they repeat the same operators)
+                    continue;
+                }
                 let has_value = self.nt_value[nt];
                 let nt_comment = format!("// {}", sym_nt.to_str(self.get_symbol_table()));
                 let is_parent = nt == parent_nt;
@@ -1593,9 +1618,9 @@ impl ParserGen {
                 // handles most rules except
                 // - children of left factorization (already taken by self.gather_factors)
                 // - ambiguity (for now)
-                if flags & (ruleflag::CHILD_L_FACTOR | ruleflag::CHILD_AMBIGUITY) == 0
-                    && flags & ruleflag::CHILD_AMBIGUITY == 0 && parent_flags & ruleflag::PARENT_AMBIGUITY == 0
-                {
+                // if flags & (ruleflag::CHILD_L_FACTOR | ruleflag::CHILD_AMBIGUITY) == 0
+                //     && flags & ruleflag::CHILD_AMBIGUITY == 0 && parent_flags & ruleflag::PARENT_AMBIGUITY == 0
+                if flags & (ruleflag::CHILD_L_FACTOR) == 0 {
                     let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
                     let (pnu, pnl, pnpl) = nt_name[parent_nt].as_ref().unwrap();
                     if VERBOSE { println!("    {nu} (parent {pnu})"); }
@@ -1607,7 +1632,16 @@ impl ParserGen {
                             src_listener_decl.push(format!("    fn exit_{npl}(&mut self, _ctx: Ctx{nu}) {{}}"));
                         }
                     }
-                    let mut exit_factors = self.gather_factors(nt as VarId);
+                    let mut exit_factors =
+                        /*if is_ambig_1st_parent {
+                            amb_parents.iter().flat_map(|v| self.gather_factors(*v)).to_vec()
+                        } else*/ if is_ambig_1st_child {
+                            amb_children.iter()
+                                .flat_map(|v| self.gather_factors(*v)).filter(|f| !self.parsing_table.factors[*f as usize].1.is_sym_empty())
+                                .to_vec()
+                        } else {
+                            self.gather_factors(nt as VarId)
+                        };
                     if VERBOSE { println!("    no_method: {no_method}, exit factors: {}", exit_factors.iter().join(", ")); }
                     for f in &exit_factors {
                         exit_factor_done.insert(*f, true);
@@ -1659,41 +1693,27 @@ impl ParserGen {
                                     name
                                 };
                                 if let Symbol::NT(v) = item.sym {
-                                    let mut_s = if /*!is_child_repeat_lform &&*/ v as usize == nt { "mut " } else { "" };
+                                    let mut_s = if /* !is_child_repeat_lform &&*/ v as usize == nt { "mut " } else { "" };
                                     src_wrapper_impl.push(format!("        let {mut_s}{varname} = self.stack.pop().unwrap().get_{}();",
                                                                   nt_name[v as usize].as_ref().unwrap().2));
                                 } else {
                                     src_wrapper_impl.push(format!("        let {varname} = self.stack_t.pop().unwrap();"));
                                 }
                             }
-                            if is_child_repeat_lform {
-                                panic!("shouldn't get here");
-                                let ctx_params = get_var_params(&item_info[f as usize], 0, &indices, &mut non_indices);
-                                let ctx = if ctx_params.is_empty() {
-                                    format!("Ctx{nu}::{}", factor_info[f as usize].as_ref().unwrap().1)
-                                } else {
-                                    format!("Ctx{nu}::{} {{ {ctx_params} }}", factor_info[f as usize].as_ref().unwrap().1)
-                                };
-                                src_wrapper_impl.push(format!("        {}self.listener.exit_{npl}({ctx});", if parent_has_value { "let val = " } else { "" }));
-                                if parent_has_value {
-                                    src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}(val));"));
-                                }
+                            let var_name = non_indices.pop().unwrap();
+                            let is_simple = item_info[f as usize].len() == 2 && item_info[f as usize][1].sym.is_t(); // Vec<String>
+                            if is_simple {
+                                src_wrapper_impl.push(format!("        {var_name}.0.push({});", &non_indices[0]));
                             } else {
-                                let var_name = non_indices.pop().unwrap();
-                                let is_simple = item_info[f as usize].len() == 2 && item_info[f as usize][1].sym.is_t(); // Vec<String>
-                                if is_simple {
-                                    src_wrapper_impl.push(format!("        {var_name}.0.push({});", &non_indices[0]));
+                                if item_info[f as usize].len() == 2 {
+                                    src_wrapper_impl.push(format!("        {var_name}.0.push({});",
+                                                                  get_var_param(&item_info[f as usize][1], &indices, &mut non_indices).unwrap()));
                                 } else {
-                                    if item_info[f as usize].len() == 2 {
-                                        src_wrapper_impl.push(format!("        {var_name}.0.push({});",
-                                                                      get_var_param(&item_info[f as usize][1], &indices, &mut non_indices).unwrap()));
-                                    } else {
-                                        let params = get_var_params(&item_info[f as usize], 1, &indices, &mut non_indices);
-                                        src_wrapper_impl.push(format!("        {var_name}.0.push(Syn{nu}Item {{ {params} }});"));
-                                    }
+                                    let params = get_var_params(&item_info[f as usize], 1, &indices, &mut non_indices);
+                                    src_wrapper_impl.push(format!("        {var_name}.0.push(Syn{nu}Item {{ {params} }});"));
                                 }
-                                src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
                             }
+                            src_wrapper_impl.push(format!("        self.stack.push(SynValue::{nu}({var_name}));"));
                         }
                     } else {
                         // no_method is not expected here (only used in +* with no lform)

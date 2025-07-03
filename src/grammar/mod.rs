@@ -325,6 +325,7 @@ pub mod ruleflag {
     pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACTOR;
     pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
     pub const FACTOR_INFO: u32 = L_FORM | R_ASSOC | GREEDY;
+    pub const L_RECURSION: u32 = PARENT_L_RECURSION | CHILD_L_RECURSION;
 
     pub fn to_string(flags: u32) -> Vec<String> {
         static NAMES: [(u32, &str); 14] = [
@@ -963,6 +964,10 @@ impl ProdFactor {
             String::new()
         };
         format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), self.to_str_no_flags(symbol_table))
+    }
+
+    pub fn is_sym_empty(&self) -> bool {
+        self.v.len() == 1 && self.v[0] == Symbol::Empty
     }
 
     fn factor_first(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashSet<Symbol> {
