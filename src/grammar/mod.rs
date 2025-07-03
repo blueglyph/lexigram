@@ -918,7 +918,7 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
 #[derive(Clone, Eq, PartialOrd, Ord, Debug)]
 pub struct ProdFactor {
     v: Vec<Symbol>,
-    flags: u32,          // only for L_FORM and R_ASSOC
+    flags: u32,          // only for GREEDY, L_FORM and R_ASSOC
     original_factor_id: Option<FactorId>,
 }
 
@@ -939,15 +939,19 @@ impl ProdFactor {
         self.original_factor_id
     }
 
+    fn to_str_no_flags(&self, symbol_table: Option<&SymbolTable>) -> String {
+        self.v.iter().map(|symbol|
+            symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
+        ).join(" ")
+    }
+
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
         let mut s = if self.flags & ruleflag::FACTOR_INFO != 0 {
             format!("<{}> ", ruleflag::factor_info_to_string(self.flags).join(","))
         } else {
             String::new()
         };
-        s.push_str(&self.v.iter().map(|symbol|
-            symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
-        ).join(" "));
+        s.push_str(&self.to_str_no_flags(symbol_table));
         s
     }
 
@@ -958,7 +962,7 @@ impl ProdFactor {
         } else {
             String::new()
         };
-        format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), self.to_str(symbol_table))
+        format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), self.to_str_no_flags(symbol_table))
     }
 
     fn factor_first(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashSet<Symbol> {
