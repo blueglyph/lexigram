@@ -990,11 +990,11 @@ impl ParserGen {
                 if is_ambig && (nt_flags & ruleflag::PARENT_L_RECURSION != 0 || (nt_flags & ruleflag::CHILD_L_RECURSION != 0 && !is_ambig_1st_child)) {
                     continue;
                 }
-                if is_ambig && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
-                    is_ambig_1st_child = false;
-                }
                 for &factor_id in &self.var_factors[nt] {
                     let i = factor_id as usize;
+                    if is_ambig_1st_child && pinfo.factors[i].1.is_sym_empty() {
+                        continue;
+                    }
                     item_info[i] = if let Some(item_ops) = self.item_ops.get(&factor_id) {
                         // Adds a suffix to the names of different symbols that would otherwise collide in the same context option:
                         // - identical symbols are put in a vector (e.g. `id: [String; 2]`)
@@ -1143,6 +1143,9 @@ impl ParserGen {
                     } else {
                         vec![]
                     };
+                }
+                if is_ambig && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
+                    is_ambig_1st_child = false;
                 }
             }
         }
@@ -1481,21 +1484,29 @@ impl ParserGen {
                                   if parent_has_value { "" } else { "no " },
                                   ruleflag::to_string(parent_flags).join(" | ")); }
             let is_ambig = parent_flags & ruleflag::PARENT_AMBIGUITY != 0;
-            let (amb_parents, amb_children) = if is_ambig {
-                group.iter().filter(|&v| self.nt_has_any_flags(*v, ruleflag::L_RECURSION)).cloned()
-                    .partition(|&v| self.nt_has_any_flags(v, ruleflag::PARENT_L_RECURSION))
+            let ambig_children = if is_ambig {
+                group.iter().filter(|&v| self.nt_has_any_flags(*v, ruleflag::CHILD_L_RECURSION)).cloned().to_vec()
             } else {
-                (Vec::new(), Vec::new())
+                Vec::new()
             };
+            let mut ambig_op_factors = BTreeMap::<FactorId, Vec<FactorId>>::new();
+            for (id, f) in ambig_children.iter()        // id = operator priority/ID in ambig rule
+                .flat_map(|v| self.gather_factors(*v))
+                .filter_map(|f| self.parsing_table.factors[f as usize].1.get_original_factor_id().map(|id| (id, f)))
+            {
+                ambig_op_factors.entry(id).or_default().push(f);
+            }
+            if VERBOSE && is_ambig {
+                println!("- ambig children vars: {}", ambig_children.iter().map(|v| Symbol::NT(*v).to_str(self.get_symbol_table())).join(", "));
+                println!("  ambig op factors: {ambig_op_factors:?}");
+            }
             for var in group {
                 let sym_nt = Symbol::NT(*var);
                 let nt = *var as usize;
                 let flags = self.parsing_table.flags[nt];
                 // the parents of left recursion are not useful in ambiguous rules (they just push / pop the same value):
-                //let is_ambig_1st_parent = is_ambig && flags & ruleflag::PARENT_L_RECURSION != 0 && amb_parents.get(0) == Some(var);
-                let is_ambig_1st_child =  is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 && amb_children.get(0) == Some(var);
-                if is_ambig && flags & ruleflag::L_RECURSION != 0 && !(/*is_ambig_1st_parent ||*/ is_ambig_1st_child)
-                {
+                let is_ambig_1st_child =  is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 && ambig_children.get(0) == Some(var);
+                if is_ambig && flags & ruleflag::L_RECURSION != 0 && !is_ambig_1st_child {
                     // we only process the first variable of the left recursion; below we gather the factors of
                     // the other variables of the same type (in ambiguous rules, they repeat the same operators)
                     continue;
@@ -1556,32 +1567,32 @@ impl ParserGen {
 
                 // Call::Exit
 
-                fn make_match_choices(factors: &Vec<FactorId>, name: &str, flags: u32, no_method: bool) -> (bool, Vec<String>) {
+                fn make_match_choices(factors: &[FactorId], name: &str, flags: u32, no_method: bool, force_id: Option<FactorId>) -> (bool, Vec<String>) {
                     assert!(!factors.is_empty(), "factors cannot be empty");
                     // If + <L> child, the two factors are identical. We keep the two factors anyway because it's more coherent
                     // for the rest of the flow. At the end, when we generate the wrapper method, we'll discard the 2nd factor and use
                     // the `factor_id` parameter to determine whether it's the last iteration or not.
                     // We do discard the 2nd, empty factor immediately for a non-<L> * child because there's no associated context.
                     let discarded = if !no_method && flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT { 1 } else { 0 };
-                    let mut factors = factors.clone();
                     // + children always have 2 left-factorized children with identical item_ops (one for the loop, one for the last iteration).
                     // There are two factors in the switch statement that call the wrapper method, but the factor_id is not required in non-<L> form because
                     // the data are the same and there's no context, hence the 2nd term of the following condition:
-                    let is_factor_id = factors.len() - discarded > 1 &&
+                    let is_factor_id = force_id.is_none() && factors.len() - discarded > 1 &&
                         flags & (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS | ruleflag::L_FORM) != (ruleflag::CHILD_REPEAT | ruleflag::REPEAT_PLUS);
                     let mut choices = Vec::<String>::new();
+                    let force_id_str = force_id.map(|f| f.to_string()).unwrap_or_default();
                     if factors.len() - discarded == 1 {
                         if no_method {
                             choices.push(format!("                    {} => {{}}", factors[0]));
                         } else {
-                            choices.push(format!("                    {} => self.{name}(),", factors[0]));
+                            choices.push(format!("                    {} => self.{name}({force_id_str}),", factors[0], ));
                         }
                     } else {
                         choices.extend((0..factors.len() - 1 - discarded).map(|i| format!("                    {} |", factors[i])));
                         if no_method {
                             choices.push(format!("                    {} => {{}}", factors.last().unwrap()));
                         } else {
-                            choices.push(format!("                    {} => self.{name}({}),",
+                            choices.push(format!("                    {} => self.{name}({}{force_id_str}),",
                                                  factors.last().unwrap(),
                                                  if is_factor_id { "factor_id" } else { "" }));
                         }
@@ -1632,23 +1643,18 @@ impl ParserGen {
                             src_listener_decl.push(format!("    fn exit_{npl}(&mut self, _ctx: Ctx{nu}) {{}}"));
                         }
                     }
-                    let mut exit_factors =
-                        /*if is_ambig_1st_parent {
-                            amb_parents.iter().flat_map(|v| self.gather_factors(*v)).to_vec()
-                        } else*/ if is_ambig_1st_child {
-                            amb_children.iter()
-                                .flat_map(|v| self.gather_factors(*v)).filter(|f| !self.parsing_table.factors[*f as usize].1.is_sym_empty())
-                                .to_vec()
-                        } else {
-                            self.gather_factors(nt as VarId)
-                        };
+                    let mut exit_factors = if is_ambig_1st_child {
+                        ambig_op_factors.values().rev().map(|v| v[0]).to_vec()
+                    } else {
+                        self.gather_factors(nt as VarId)
+                    };
                     if VERBOSE { println!("    no_method: {no_method}, exit factors: {}", exit_factors.iter().join(", ")); }
                     for f in &exit_factors {
                         exit_factor_done.insert(*f, true);
                     }
                     let inter_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("inter_{npl}") } else { format!("exit_{npl}") };
                     let fn_name = exit_fixer.get_unique_name(inter_or_exit_name.clone());
-                    let (is_factor_id, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method);
+                    let (is_factor_id, choices) = make_match_choices(&exit_factors, &fn_name, flags, no_method, None);
                     if VERBOSE { println!("    choices: {}", choices.iter().map(|s| s.trim()).join(" ")); }
                     let comments = exit_factors.iter().map(|f| {
                         let (v, pf) = &self.parsing_table.factors[*f as usize];
@@ -1659,6 +1665,22 @@ impl ParserGen {
                         }
                     }).to_vec();
                     src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
+                    if is_ambig_1st_child {
+                        for (f_id, dup_factors) in ambig_op_factors.values().rev().filter_map(|v| if v.len() > 1 { v.split_first() } else { None }) {
+                            // note: is_factor_id must be true because we wouldn't get duplicate factors otherwise in an ambiguous rule
+                            //       (it's duplicated to manage the priority between several factors, which are all in the first NT)
+                            let (_, choices) = make_match_choices(dup_factors, &fn_name, 0, no_method, Some(*f_id));
+                            let comments = dup_factors.iter()
+                                .map(|f| {
+                                    let (v, pf) = &pinfo.factors[*f as usize];
+                                    format!("// {} (duplicate of {f_id})", pf.to_rule_str(*v, self.get_symbol_table(), 0))
+                                }).to_vec();
+                            src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
+                            for f in dup_factors {
+                                exit_factor_done.insert(*f, true);
+                            }
+                        }
+                    }
                     if !no_method {
                         src_wrapper_impl.push(String::new());
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor_id { ", factor_id: FactorId" } else { "" }));
