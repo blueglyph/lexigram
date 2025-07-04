@@ -418,6 +418,19 @@ impl ParserGen {
         // const VERBOSE: bool = true;
         if VERBOSE { println!("full_factor_components(f_id = {f_id}):"); }
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
+        if let Some(id) = prodf.get_original_factor_id() {
+            let parent_nt = self.parsing_table.get_top_parent(*v_f);
+            let pf = self.original_factors[id as usize].iter().map(|s| {
+                match s {
+                    Symbol::NT(nt) if *nt != parent_nt && self.parsing_table.get_top_parent(*nt) == parent_nt => {
+                        // println!("{} ? -> {}", s.to_str(self.get_symbol_table()), self.var_factors[*nt as usize][0]);
+                        self.repeat_factor_str(&vec![*s], None)
+                    }
+                    _ => s.to_str(self.get_symbol_table())
+                }
+            }).join(" ");
+            return (Symbol::NT(parent_nt).to_str(self.get_symbol_table()), pf);
+        }
         let mut v_par_lf =  *v_f;
         let mut syms = prodf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();
         let mut left = *v_f;
@@ -449,8 +462,9 @@ impl ParserGen {
         // let  comment = String::new();
         let parent = self.parsing_table.get_top_parent(v_par_lf);
 
-        // left recursion
-        if self.nt_has_all_flags(v_par_lf, ruleflag::PARENT_L_RECURSION) {
+        if self.nt_has_any_flags(parent, ruleflag::PARENT_AMBIGUITY) {
+            left = parent
+        } else if self.nt_has_all_flags(v_par_lf, ruleflag::PARENT_L_RECURSION) {   // left recursion
             // initial value of left recursion loop
             left = parent;
             for f in facts.iter_mut() {
@@ -460,8 +474,7 @@ impl ParserGen {
                     }
                 }
             }
-        } else if self.nt_has_all_flags(v_par_lf, ruleflag::CHILD_L_RECURSION) {
-            // loop
+        } else if self.nt_has_all_flags(v_par_lf, ruleflag::CHILD_L_RECURSION) {    // loop
             left = parent;
             for f in facts.iter_mut() {
                 if !matches!(f.first(), Some(Symbol::Empty)) {
