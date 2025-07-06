@@ -9539,69 +9539,30 @@ pub(crate) mod rules_prs_63_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> E6`
-        E1 { e6: SynE6 },
-        /// `E -> E ^ E5`
-        E2 { e: SynE, e5: SynE5 },
-        /// `E -> E * E5`
-        E3 { e: SynE, e5: SynE5 },
-        /// `E -> E + E3`
-        E4 { e: SynE, e3: SynE3 },
-        /// end of iterations in E -> E ^ E5 | E * E5 | E + E3
-        E5 { e: SynE },
-    }
-    #[derive(Debug)]
-    pub enum CtxE3 {
-        /// `E3 -> E6`
-        E3_1 { e6: SynE6 },
-        /// `E3 -> E3 ^ E5`
-        E3_2 { e3: SynE3, e5: SynE5 },
-        /// `E3 -> E3 * E5`
-        E3_3 { e3: SynE3, e5: SynE5 },
-        /// end of iterations in E3 -> E3 ^ E5 | E3 * E5
-        E3_4 { e3: SynE3 },
-    }
-    #[derive(Debug)]
-    pub enum CtxE5 {
-        /// `E5 -> E6 ^ E5`
-        E5_1 { e6: SynE6, e5: SynE5 },
-        /// `E5 -> E6`
-        E5_2 { e6: SynE6 },
-    }
-    #[derive(Debug)]
-    pub enum CtxE6 {
-        /// `E6 -> - E3`
-        E6_1 { e3: SynE3 },
-        /// `E6 -> ID`
-        E6_2 { id: String },
+        /// `E -> E ^ E`
+        E1 { e: [SynE; 2] },
+        /// `E -> E * E`
+        E2 { e: [SynE; 2] },
+        /// `E -> E + E`
+        E3 { e: [SynE; 2] },
+        /// `E -> - E`
+        E4 { e: SynE },
+        /// `E -> ID`
+        E5 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
     // /// User-defined type for `E`
     // #[derive(Debug, PartialEq)] pub struct SynE();
-    // /// User-defined type for `E3`
-    // #[derive(Debug, PartialEq)] pub struct SynE3();
-    // /// User-defined type for `E5`
-    // #[derive(Debug, PartialEq)] pub struct SynE5();
-    // /// User-defined type for `E6`
-    // #[derive(Debug, PartialEq)] pub struct SynE6();
 
     #[derive(Debug)]
-    enum SynValue { E(SynE), E3(SynE3), E5(SynE5), E6(SynE6) }
+    enum SynValue { E(SynE) }
 
     impl SynValue {
         fn get_e(self) -> SynE {
-            if let SynValue::E(val) = self { val } else { panic!() }
-        }
-        fn get_e3(self) -> SynE3 {
-            if let SynValue::E3(val) = self { val } else { panic!() }
-        }
-        fn get_e5(self) -> SynE5 {
-            if let SynValue::E5(val) = self { val } else { panic!() }
-        }
-        fn get_e6(self) -> SynE6 {
-            if let SynValue::E6(val) = self { val } else { panic!() }
+            let SynValue::E(val) = self;
+            val
         }
     }
 
@@ -9611,14 +9572,7 @@ pub(crate) mod rules_prs_63_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
-        fn init_e(&mut self) {}
-        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
-        fn init_e3(&mut self) {}
-        fn exit_e3(&mut self, _ctx: CtxE3) -> SynE3;
-        fn init_e5(&mut self) {}
-        fn exit_e5(&mut self, _ctx: CtxE5) -> SynE5;
-        fn init_e6(&mut self) {}
-        fn exit_e6(&mut self, _ctx: CtxE6) -> SynE6;
+        fn exit_e(&mut self, ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9640,33 +9594,27 @@ pub(crate) mod rules_prs_63_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_e(),                // E
-                        4 => {}                                     // E_1
-                        1 => self.listener.init_e3(),               // E3
-                        5 => {}                                     // E3_1
-                        2 => self.listener.init_e5(),               // E5
-                        6 => {}                                     // E5_1
-                        3 => self.listener.init_e6(),               // E6
+                        0|1|2|3|4|5|6 => {}                                     // E_1
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match factor_id {
-                        0 => self.inter_e(),                        // E -> E6
-                        5 |                                         // E -> E ^ E5
-                        6 |                                         // E -> E * E5
-                        7 |                                         // E -> E + E3
-                        8 => self.exit_e1(factor_id),               // end of iterations in E -> E ^ E5 | E * E5 | E + E3
-                        1 => self.inter_e3(),                       // E3 -> E6
-                        9 |                                         // E3 -> E3 ^ E5
-                        10 |                                        // E3 -> E3 * E5
-                        11 => self.exit_e31(factor_id),             // end of iterations in E3 -> E3 ^ E5 | E3 * E5
-                        12 |                                        // E5 -> E6 ^ E5
-                        13 => self.exit_e5(factor_id),              // E5 -> E6
-                     /* 2 */                                        // E5 -> E6 | E6 ^ E5 (never called)
-                        3 |                                         // E6 -> - E3
-                        4 => self.exit_e6(factor_id),               // E6 -> ID
+                        1 |                                         // E_1 -> <R> ^ E_4 E_1
+                        2 |                                         // E_1 -> * E_4 E_1
+                        3 => self.exit_e1(factor_id),               // E_1 -> + E_2 E_1
+                        6 |                                         // E_3 -> <R> ^ E_4 E_3 (duplicate of 1)
+                        10 => self.exit_e1(1),                      // E_5 -> <R> ^ E_4 E_5 (duplicate of 1)
+                        7 => self.exit_e1(2),                       // E_3 -> * E_4 E_3 (duplicate of 2)
+                        12 |                                        // E_6 -> - E_2
+                        13 => self.exit_e6(factor_id),              // E_6 -> ID
+                        0 => {}                                     // E -> E_6 E_1 (not used)
+                        4 => {}                                     // E_1 -> ε (not used)
+                        5 => {}                                     // E_2 -> E_6 E_3 (not used)
+                        8 => {}                                     // E_3 -> ε (not used)
+                        9 => {}                                     // E_4 -> E_6 E_5 (not used)
+                        11 => {}                                    // E_5 -> ε (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -9716,32 +9664,22 @@ pub(crate) mod rules_prs_63_1 {
             self.listener.exit(e);
         }
 
-        fn inter_e(&mut self) {
-            let e6 = self.stack.pop().unwrap().get_e6();
-            let val = self.listener.exit_e(CtxE::E1 { e6 });
-            self.stack.push(SynValue::E(val));
-        }
-
         fn exit_e1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                5 => {
-                    let e5 = self.stack.pop().unwrap().get_e5();
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e, e5 }
+                1 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E1 { e: [e_1, e_2] }
                 }
-                6 => {
-                    let e5 = self.stack.pop().unwrap().get_e5();
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e, e5 }
+                2 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E2 { e: [e_1, e_2] }
                 }
-                7 => {
-                    let e3 = self.stack.pop().unwrap().get_e3();
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e, e3 }
-                }
-                8 => {
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E5 { e }
+                3 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E3 { e: [e_1, e_2] }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
             };
@@ -9749,65 +9687,20 @@ pub(crate) mod rules_prs_63_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn inter_e3(&mut self) {
-            let e6 = self.stack.pop().unwrap().get_e6();
-            let val = self.listener.exit_e3(CtxE3::E3_1 { e6 });
-            self.stack.push(SynValue::E3(val));
-        }
-
-        fn exit_e31(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                9 => {
-                    let e5 = self.stack.pop().unwrap().get_e5();
-                    let e3 = self.stack.pop().unwrap().get_e3();
-                    CtxE3::E3_2 { e3, e5 }
-                }
-                10 => {
-                    let e5 = self.stack.pop().unwrap().get_e5();
-                    let e3 = self.stack.pop().unwrap().get_e3();
-                    CtxE3::E3_3 { e3, e5 }
-                }
-                11 => {
-                    let e3 = self.stack.pop().unwrap().get_e3();
-                    CtxE3::E3_4 { e3 }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e31")
-            };
-            let val = self.listener.exit_e3(ctx);
-            self.stack.push(SynValue::E3(val));
-        }
-
-        fn exit_e5(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                12 => {
-                    let e5 = self.stack.pop().unwrap().get_e5();
-                    let e6 = self.stack.pop().unwrap().get_e6();
-                    CtxE5::E5_1 { e6, e5 }
-                }
-                13 => {
-                    let e6 = self.stack.pop().unwrap().get_e6();
-                    CtxE5::E5_2 { e6 }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e5")
-            };
-            let val = self.listener.exit_e5(ctx);
-            self.stack.push(SynValue::E5(val));
-        }
-
         fn exit_e6(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                3 => {
-                    let e3 = self.stack.pop().unwrap().get_e3();
-                    CtxE6::E6_1 { e3 }
+                12 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E4 { e }
                 }
-                4 => {
+                13 => {
                     let id = self.stack_t.pop().unwrap();
-                    CtxE6::E6_2 { id }
+                    CtxE::E5 { id }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_e6")
             };
-            let val = self.listener.exit_e6(ctx);
-            self.stack.push(SynValue::E6(val));
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
         }
     }
 
@@ -9858,44 +9751,16 @@ pub(crate) mod rules_prs_63_1 {
                 self.result = Some(e.0.1);
             }
 
-            fn init_e(&mut self) {
-                self.result = None;
-            }
-
             fn exit_e(&mut self, ctx: CtxE) -> SynE {
                 SynE(match ctx {
-                    CtxE::E1 { e6: SynE6(ls) }
-                    | CtxE::E5 { e: SynE(ls) } => ls,
-                    CtxE::E2 { e: SynE(lsleft), e5: SynE5(lsright) } => ls_binary_op("^", lsleft, lsright),
-                    CtxE::E3 { e: SynE(lsleft), e5: SynE5(lsright) } => ls_binary_op("*", lsleft, lsright),
-                    CtxE::E4 { e: SynE(lsleft), e3: SynE3(lsright) } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("^", lsleft, lsright),
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    CtxE::E4 { e: SynE(ls) } => ls_prefix_op("-", ls),
+                    CtxE::E5 { id } => LevelString(0, id)
                 })
             }
 
-            fn exit_e3(&mut self, ctx: CtxE3) -> SynE3 {
-                SynE3(match ctx {
-                    CtxE3::E3_2 { e3: SynE3(lsleft), e5: SynE5(lsright) } => ls_binary_op("^", lsleft, lsright),
-                    CtxE3::E3_3 { e3: SynE3(lsleft), e5: SynE5(lsright) } => ls_binary_op("*", lsleft, lsright),
-                    CtxE3::E3_1 { e6: SynE6(ls) }
-                    | CtxE3::E3_4 { e3: SynE3(ls) } => ls
-                })
-            }
-
-            fn exit_e5(&mut self, ctx: CtxE5) -> SynE5 {
-                SynE5(match ctx {
-                    // E5 -> E6 ^ E5
-                    CtxE5::E5_1 { e6: SynE6(lsleft), e5: SynE5(lsright) } => ls_binary_op("^", lsleft, lsright),
-                    // E5 -> E6
-                    CtxE5::E5_2 { e6: SynE6(ls) } => ls,
-                })
-            }
-
-            fn exit_e6(&mut self, ctx: CtxE6) -> SynE6 {
-                SynE6(match ctx{
-                    CtxE6::E6_1 { e3: SynE3(ls) } => ls_prefix_op("-", ls),
-                    CtxE6::E6_2 { id } => LevelString(0, id)
-                })
-            }
         }
 
         #[test]
