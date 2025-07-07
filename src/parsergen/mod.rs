@@ -1654,17 +1654,16 @@ impl ParserGen {
                     let (pnu, pnl, pnpl) = nt_name[parent_nt].as_ref().unwrap();
                     if VERBOSE { println!("    {nu} (parent {pnu})"); }
                     let no_method = !has_value && flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
-                    if is_parent || (is_child_repeat_lform && !no_method) {
-                        if has_value {
-                            src_listener_decl.push(format!("    fn exit_{npl}(&mut self, _ctx: Ctx{nu}) -> {};", self.get_nt_type(nt as VarId)));
+                    if is_parent || (is_child_repeat_lform && !no_method) || is_ambig_1st_child {
+                        let (fnpl, fnu, fnt, f_valued) = if is_ambig_1st_child {
+                            (pnpl, pnu, parent_nt, parent_has_value)    // parent_nt doesn't come through this code, so we must do it now
                         } else {
-                            src_listener_decl.push(format!("    fn exit_{npl}(&mut self, _ctx: Ctx{nu}) {{}}"));
-                        }
-                    } else if is_ambig_1st_child {
-                        if parent_has_value {
-                            src_listener_decl.push(format!("    fn exit_{pnpl}(&mut self, _ctx: Ctx{pnu}) -> {};", self.get_nt_type(parent_nt as VarId)));
+                            (npl, nu, nt, has_value)
+                        };
+                        if f_valued {
+                            src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, _ctx: Ctx{fnu}) -> {};", self.get_nt_type(fnt as VarId)));
                         } else {
-                            src_listener_decl.push(format!("    fn exit_{pnpl}(&mut self, _ctx: Ctx{pnu}) {{}}"));
+                            src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, _ctx: Ctx{fnu}) {{}}"));
                         }
                     }
                     let mut exit_factors = if is_ambig_1st_child {
@@ -1855,14 +1854,13 @@ impl ParserGen {
                     src_exit.push(vec![format!("                 /* {f} */"), comment]);
                 }
             }
-            let mut s = Segments::empty();
-            for var in group {
-                if !init_nt_done.contains(var) {
-                    s.insert(Seg(*var as u32, *var as u32))
-                }
-            }
-            s.normalize();
-            for seg in s.0 {
+            // adds unused init calls, using Segments to regroup them
+            let mut seg_init = Segments::from_iter(
+                group.into_iter()
+                    .filter_map(|&v| if !init_nt_done.contains(&v) { Some(Seg(v as u32, v as u32)) } else { None })
+            );
+            seg_init.normalize();
+            for seg in seg_init {
                 let Seg(a, b) = seg;
                 if a == b {
                     src_init.push(vec![format!("                    {a} => {{}}"), format!("// {}", Symbol::NT(a as VarId).to_str(self.get_symbol_table()))]);

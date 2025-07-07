@@ -13,14 +13,7 @@ use crate::io::{UTF8_LOW_MAX, UTF8_HIGH_MIN, UTF8_MAX, UTF8_MIN, UTF8_GAP_MIN, U
 // Segments
 
 #[derive(Clone, PartialEq, Default, PartialOrd, Eq, Ord)]
-pub struct Segments(pub BTreeSet<Seg>);
-
-// impl Clone for Segments {
-//     fn clone(&self) -> Self {
-//         println!("cloning {self:?}");
-//         Segments(self.0.clone())
-//     }
-// }
+pub struct Segments(BTreeSet<Seg>);
 
 impl Segments {
 
@@ -154,13 +147,12 @@ impl Segments {
     ///
     /// Example:
     /// ```
-    /// use std::collections::BTreeSet;
     /// use lexigram::segments::{Segments, Seg};
     ///
-    /// let mut a = Segments(BTreeSet::from([Seg(0, 10), Seg(20, 30)]));
-    /// let b = Segments(BTreeSet::from([Seg(5, 6), Seg(15, 25)]));
+    /// let mut a = Segments::from([Seg(0, 10), Seg(20, 30)]);
+    /// let b = Segments::from([Seg(5, 6), Seg(15, 25)]);
     /// assert!(a.add_partition(&b));
-    /// assert_eq!(a.0, BTreeSet::from([Seg(0, 4), Seg(5, 6), Seg(7, 10), Seg(15, 19), Seg(20, 25), Seg(26, 30)]));
+    /// assert_eq!(a.into_iter().collect::<Vec<_>>(), vec![Seg(0, 4), Seg(5, 6), Seg(7, 10), Seg(15, 19), Seg(20, 25), Seg(26, 30)]);
     /// ```
     pub fn add_partition(&mut self, other: &Self) -> bool {
         let cmp = self.intersect(other);
@@ -177,14 +169,13 @@ impl Segments {
 
     /// Slices the segments to match other's partition, but without merging self's initial partition.
     /// ```
-    /// use std::collections::BTreeSet;
     /// use lexigram::segments::{Seg, Segments};
-    /// let mut ab = Segments(BTreeSet::from([Seg(1 as u32, 50 as u32)]));
-    /// let cd = Segments(BTreeSet::from([Seg(10 as u32, 20 as u32), Seg(30 as u32, 40 as u32)]));
+    /// let mut ab = Segments::from([Seg(1 as u32, 50 as u32)]);
+    /// let cd = Segments::from([Seg(10 as u32, 20 as u32), Seg(30 as u32, 40 as u32)]);
     /// ab.slice_partitions(&cd);
-    /// assert_eq!(ab, Segments(BTreeSet::from([
+    /// assert_eq!(ab, Segments::from([
     ///     Seg(1 as u32, 9 as u32), Seg(10 as u32, 20 as u32), Seg(21 as u32, 29 as u32),
-    ///     Seg(30 as u32, 40 as u32), Seg(41 as u32, 50 as u32)])));
+    ///     Seg(30 as u32, 40 as u32), Seg(41 as u32, 50 as u32)]));
     /// ```
     pub fn slice_partitions(&mut self, other: &Self) {
         let cmp = self.intersect(other);
@@ -254,6 +245,29 @@ impl Segments {
             inv.insert_utf8(start, UTF8_MAX);
         }
         inv
+    }
+
+    pub fn from_iter<T: IntoIterator<Item = Seg>>(segs: T) -> Self {
+        Segments(BTreeSet::from_iter(segs))
+    }
+
+}
+
+impl IntoIterator for Segments {
+    type Item = Seg;
+    type IntoIter = <BTreeSet<Seg> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a Segments {
+    type Item = &'a Seg;
+    type IntoIter = <&'a BTreeSet<Seg> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
     }
 }
 
@@ -534,12 +548,11 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use std::collections::BTreeSet;
-    /// # use lexigram::{btreeset, seg, segments::{Segments, Seg}};
+    /// # use lexigram::{seg, segments::{Segments, Seg}};
     /// let mut x = Segments::empty();
     /// x.insert(seg!('a'));
     /// x.insert(seg!('0'-'9'));
-    /// assert_eq!(x, Segments(btreeset![Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
+    /// assert_eq!(x, Segments::from([Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
     /// ```
     #[macro_export(local_inner_macros)]
     macro_rules! seg {
@@ -562,9 +575,8 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use std::collections::BTreeSet;
-    /// # use lexigram::{btreeset, segments, segments::{Segments, Seg}};
-    /// assert_eq!(segments!('a', '0'-'9'), Segments(btreeset![Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
+    /// # use lexigram::{segments, segments::{Segments, Seg}};
+    /// assert_eq!(segments!('a', '0'-'9'), Segments::from([Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
     /// assert_eq!(segments!(DOT), Segments::dot());
     /// assert_eq!(segments!(~ '1'-'8'), segments![MIN-'0', '9'-LOW_MAX, HIGH_MIN-MAX]);
     /// ```

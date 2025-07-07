@@ -587,7 +587,7 @@ impl DfaBuilder {
                         let cmp = segments.intersect(&symbols_part);
                         assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
                         if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
-                        for segment in cmp.common.0.into_iter() {
+                        for segment in cmp.common.into_iter() {
                             if let Some(ids) = trans.get_mut(&segment) {
                                 ids.insert(id);
                             } else {
@@ -1148,8 +1148,8 @@ pub mod macros {
     /// # use lexigram::{dfa::*, node, io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN}};
     /// # use lexigram::segments::{Seg, Segments};
     /// assert_eq!(node!(chr 'a'), ReNode::char('a'));
-    /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
-    /// assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
+    /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])));
+    /// assert_eq!(node!(.), ReNode::char_range(Segments::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)])));
     /// assert_eq!(node!(str "new"), ReNode::string("new"));
     /// assert_eq!(node!(=5), ReNode::end(Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
     /// assert_eq!(node!(&), ReNode::concat());
@@ -1219,8 +1219,8 @@ pub mod macros {
         assert_eq!(node!(~[0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::char_range(Segments::empty()));
 
         assert_eq!(node!(chr 'a'), ReNode::char('a'));
-        assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments(BTreeSet::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]))));
-        assert_eq!(node!(.), ReNode::char_range(Segments(BTreeSet::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)]))));
+        assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])));
+        assert_eq!(node!(.), ReNode::char_range(Segments::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)])));
         assert_eq!(node!(str "new"), ReNode::string("new"));
         assert_eq!(node!(=5), ReNode::end(Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
         assert_eq!(node!(&), ReNode::concat());
