@@ -1519,189 +1519,19 @@ impl<T> ProdRuleSet<T> {
         }
     }
 
-    /// Eliminates left recursion from production rules, removes potential ambiguity, and updates the symbol table if provided.
+    /// Eliminates recursion from production rules, removes potential ambiguity, and updates the symbol table if provided.
     /// ```eq
-    /// A -> A α1 | ... | A αm | A β1 A | ... | A βn A | γ1 | ... | γk
-    ///      ^^^^^^^^^^^^^^^^^   ^^^^^^^^^^^^^^^^^^^^^
-    ///       left recursion           ambiguity
+    /// A -> αi A | A βj | A γk A | δl
     /// ```
     /// becomes
     /// ```eq
-    /// A   -> γ1 A_1 | ... | γk A_1
-    /// A_0 -> γ1 | ... | γk
-    /// A_1 -> α1 A_1 | ... | αm A_1 | β1 A_0 A_1 | ... | βn A_0 A_1 | ε
+    /// A[p] -> A[indep] ( βj | γk E[pk] )*
     /// ```
-    /// (if `k` = 1, `A_0` is unnecessary)
-    ///
-    /// It requires left-/right-associative reconstruction during parsing, since it transforms the
-    /// productions into right-associative ones.
-    ///
-    /// Note that it could reduce the number of steps in the parsing if we also took into account
-    /// other instances of `A` in the middle, like `A β1 A δ1`, but it's not strictly necessary
-    /// for an LL(1) grammar so we don't do it.
-    pub fn remove_left_recursion(&mut self) {
-        if self.dont_remove_recursion {
-            return;
-        }
-        let method = 2;
-        if method == 2 {
-            return self.remove_recursion();
-        }
-
-        const VERBOSE: bool = false;
-        const NEW_METHOD: bool = true;  // new ambiguous transformations
-        let mut extra = Vec::<ProdRule>::new();
-        let mut new_var = self.get_next_available_var();
-        // we must take prods out because of the borrow checker and other &mut borrows we need later...
-        let mut prods = take(&mut self.prods);
-        for (var, prod) in prods.iter_mut().index() {
-            let symbol = Symbol::NT(var);
-            if prod.iter().any(|p| *p.first().unwrap() == symbol) {
-                if VERBOSE {
-                    println!("- left recursion: {}", format!("{} -> {}",
-                        Symbol::NT(var).to_str(self.get_symbol_table()),
-                        prod_to_string(prod, self.get_symbol_table())));
-                }
-                let (mut recursive, mut fine) : (Vec<_>, Vec<_>) = prod.iter().cloned()
-                    .partition(|factor| *factor.first().unwrap() == symbol);
-                let (mut ambiguous, mut left) : (Vec<_>, Vec<_>) = recursive.into_iter()
-                    .partition(|factor| *factor.last().unwrap() == symbol);
-                // => ambiguous: factors with left & right recursion (A -> A α A)
-                //    left:      factors with left recursion         (A -> A β)
-                //    fine:      factors without left recursion      (A -> γ A | δ)
-                if fine.is_empty() || left.iter().any(|f| f.len() < 2) {
-                    let mut msg = format!("remove_left_recursion: recursive production: {}", prod_to_string(prod, self.get_symbol_table()));
-                    if fine.is_empty() {
-                        msg.push_str(&format!("\n- requires factors not starting with {}", symbol.to_str(self.get_symbol_table())));
-                    }
-                    if let Some(x) = left.iter().find(|f| f.len() < 2) {
-                        msg.push_str(&format!("\n- {}", x.to_str(self.get_symbol_table())));
-                    }
-                    self.log.add_error(msg);
-                    continue;
-                }
-
-                // apply the transformations
-                // - if ambiguous: copies `fine` rule to new variable var_ambig (A_1 -> γ A | δ)
-                // - the ProdRule is pushed later into `extra`, the rules added after all the current rules
-                let var_ambig = if !ambiguous.is_empty() && fine.len() > 1 {
-                    // if more than one independent factor, moves them in a new NT to simplify the resulting rules
-                    let var_ambig = new_var;
-                    if let Some(table) = &mut self.symbol_table {
-                        // table.add_var_prime_name(var, new_var, None);
-                        assert_eq!(table.add_child_nonterminal(var), new_var);
-                    }
-                    self.set_flags(var_ambig, ruleflag::CHILD_INDEPENDENT_AMBIGUITY);
-                    self.set_parent(var_ambig, var);
-                    new_var += 1;
-                    Some(var_ambig)
-                } else {
-                    None
-                };
-
-                // - creates a new var (new_var++) for `left` and, if non-empty, `ambiguous` rules that will be merged later
-                let var_prime = new_var;
-                new_var += 1;
-                self.set_flags(var_prime, ruleflag::CHILD_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::TRANSF_CHILD_AMB });
-                self.set_flags(var, ruleflag::PARENT_L_RECURSION | if ambiguous.is_empty() { 0 } else { ruleflag::PARENT_AMBIGUITY });
-                self.set_parent(var_prime, var);
-                if let Some(table) = &mut self.symbol_table {
-                    // table.add_var_prime_name(var, var_prime, None);
-                    assert_eq!(table.add_child_nonterminal(var), var_prime);
-                }
-                let symbol_prime = Symbol::NT(var_prime);
-                if let Some(var_ambig) = var_ambig {
-                    // we need to know var_prime, so we can only create that rule content here:
-                    let independant = if NEW_METHOD {
-                        // `A_1 -> γ A | δ` becomes `A_1 -> γ A_1 A_2 | δ` because we must manage the priorities later in the parser.
-                        // If we leave `A`, then all the stricly left-recursive factors have a lower priority than all the ambiguous ones
-                        // (since `A` is entirely evaluated before `A_1 -> γ A`)
-                        let mut rule = ProdRule::new();
-                        for f in &fine {
-                            let mut new_f = Vec::<Symbol>::new();
-                            for s in &f.v {
-                                if s == &symbol {
-                                    new_f.push(Symbol::NT(var_ambig));
-                                    new_f.push(symbol_prime);
-                                } else {
-                                    new_f.push(*s);
-                                }
-                            }
-                            rule.push(ProdFactor::with_flags(new_f, f.flags));
-                        }
-                        rule
-                    } else {
-                        fine.clone()
-                    };
-                    extra.push(independant);
-                }
-                if VERBOSE {
-                    print!("- adding non-terminal {var_prime} ({})", symbol_prime.to_str(self.get_symbol_table()));
-                    if let Some(v) = var_ambig {
-                        print!(" and non-terminal {v} ({})", Symbol::NT(v).to_str(self.get_symbol_table()));
-                    }
-                    println!(", deriving from {var} ({})", symbol.to_str((self.get_symbol_table())));
-                }
-
-                // - if ambiguous, edits the factors in `ambiguous` rule:
-                for factor in &mut ambiguous {
-                    factor.pop();
-                    factor.remove(0);
-                    if factor.last().map(|s| *s == symbol).unwrap_or(false) {
-                        self.log.add_error(format!("remove_left_recursion: cannot remove recursion from {}", prod_to_string(prod, self.get_symbol_table())));
-                        continue;
-                    }
-                    if let Some(v) = var_ambig {
-                        // orig if k > 1:   A   -> A α1 A | A α2 A | A β | γ A | δ (or k factors 'γi' and/or 'δj')
-                        // => new:          A_1 -> γ A | δ
-                        // => add to prime: A_2 -> α1 A_1 A_2 | α2 A_1 A_2 | β A_2
-                        factor.push(Symbol::NT(v));
-                    } else {
-                        // orig if k = 1:   A   -> A α1 A | A α2 A | A β | δ (or one factor 'γ A' instead of the factor 'δ')
-                        // => add to prime: A_2 -> α1 δ A_2 | α1 δ A_2 | β A_2
-                        factor.v.extend(fine[0].v.clone());
-                    }
-                    factor.push(symbol_prime);
-                }
-                if NEW_METHOD && var_ambig.is_some() {
-                    // change A -> A_1 A_2
-                    let symbol_ambig = Symbol::NT(var_ambig.unwrap());
-                    fine.clear();
-                    fine.push(ProdFactor::new(vec![symbol_ambig, symbol_prime]));
-                } else {
-                    // change A -> γ A A_2 | δ A_2
-                    for factor in &mut fine {
-                        factor.push(symbol_prime.clone());
-                    }
-                }
-                for factor in &mut left {
-                    // add strictly left-recursive factors to prime: A_2 -> β A_2
-                    factor.remove(0);
-                    if *factor.first().unwrap() == symbol {
-                        self.log.add_error(format!("remove_left_recursion: cannot remove recursion from {}", prod_to_string(prod, self.get_symbol_table())));
-                        continue;
-                    }
-                    factor.push(symbol_prime.clone());
-                }
-                left.extend(ambiguous);
-                left.push(ProdFactor::new(vec![Symbol::Empty]));
-                *prod = fine;
-                extra.push(left);
-            } else if prod.iter().any(|p| *p.last().unwrap() == symbol) {
-                // only right-recursive: nothing to change, but applies flags
-                if self.get_flags(var) & ruleflag::CHILD_REPEAT == 0 {
-                    self.set_flags(var, ruleflag::R_RECURSION);
-                }
-            }
-
-        }
-        self.prods = prods;
-        self.prods.extend(extra);
-        self.num_nt = self.prods.len();
-    }
-
-    // Does the following transformation for each var with left- or right-recursive factors
-    // General form: A -> α A | A β | A γ A | δ
+    /// then
+    /// ```eq
+    /// A[p]  -> A[indep] Ab[p]
+    /// Ab[p] -> βj Ab[p] | γk A[var] Ab[p] | ε
+    /// ```
     pub fn remove_recursion(&mut self) {
         /// Maximum number of P/I factors that are distributed before creating a new nonterminal to hold them.
         /// They are never distributed in presence of a binary (L/R) because it would likely induce left factorization.
@@ -1808,10 +1638,6 @@ impl<T> ProdRuleSet<T> {
                     self.log.add_error(format!("too many nonterminals when expanding {var_name}: {var_new} > {}", VarId::MAX));
                     return;
                 }
-
-                // A -> αi A | A βj | A γk A | δl  becomes  A[p] -> A[indep] ( βj | γk E[pk] )*
-                //                                      -> | A[p]  -> A[indep] Ab[p]
-                //                                         | Ab[p] -> βj Ab[p] | γk A[var] Ab[p] | ε
 
                 // prepares the operation factor parts, which will be assembled in each rule according to their priority
                 // (the Ab[p] loop nonterminals will be added later since they're specific to each rule)
@@ -2323,7 +2149,7 @@ impl From<RuleTreeSet<General>> for ProdRuleSet<General> {
 impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
     fn from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
-            rules.remove_left_recursion();
+            rules.remove_recursion();
             rules.left_factorize();
             rules.transfer_factor_flags();
             rules.check_flags();

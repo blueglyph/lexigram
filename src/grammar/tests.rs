@@ -1724,7 +1724,7 @@ fn prs_remove_recursion() {
             println!("{:=<80}\ntest {test_id}:", "");
             print_production_rules(&rules, false);
         }
-        rules.remove_left_recursion();
+        rules.remove_recursion();
         let result = <BTreeMap<_, _>>::from(&rules);
         if VERBOSE {
             println!("=>");
@@ -1734,7 +1734,7 @@ fn prs_remove_recursion() {
         assert_eq!(result, expected, "test {test_id} failed");
         assert_eq!(rules.log.get_errors().join("\n"), "", "test {test_id} failed");
         assert_eq!(rules.log.get_warnings().join("\n"), "", "test {test_id} failed");
-        rules.remove_left_recursion();
+        rules.remove_recursion();
         let result = <BTreeMap<_, _>>::from(&rules);
         assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
     }
