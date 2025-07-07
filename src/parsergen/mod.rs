@@ -1497,7 +1497,7 @@ impl ParserGen {
             let parent_nt = group[0] as usize;
             let parent_flags = self.parsing_table.flags[parent_nt];
             let parent_has_value = self.nt_value[parent_nt];
-            let mut exit_factor_done = group.iter().flat_map(|v| &self.var_factors[*v as usize]).map(|f| (*f, false)).collect::<BTreeMap<FactorId, bool>>();
+            let mut exit_factor_done = HashSet::<VarId>::new();
             let mut init_nt_done = HashSet::<VarId>::new();
             if VERBOSE { println!("- GROUP {}, parent has {}value, parent flags: {}",
                                   group.iter().map(|v| Symbol::NT(*v).to_str(self.get_symbol_table())).join(", "),
@@ -1678,7 +1678,7 @@ impl ParserGen {
                     };
                     if VERBOSE { println!("    no_method: {no_method}, exit factors: {}", exit_factors.iter().join(", ")); }
                     for f in &exit_factors {
-                        exit_factor_done.insert(*f, true);
+                        exit_factor_done.insert(*f);
                     }
                     let inter_or_exit_name = if flags & ruleflag::PARENT_L_RECURSION != 0 { format!("inter_{npl}") } else { format!("exit_{npl}") };
                     let fn_name = exit_fixer.get_unique_name(inter_or_exit_name.clone());
@@ -1705,7 +1705,7 @@ impl ParserGen {
                                 }).to_vec();
                             src_exit.extend(choices.into_iter().zip(comments).map(|(a, b)| vec![a, b]));
                             for f in dup_factors {
-                                exit_factor_done.insert(*f, true);
+                                exit_factor_done.insert(*f);
                             }
                         }
                     }
@@ -1844,7 +1844,7 @@ impl ParserGen {
                     }
                 }
             }
-            for (f, _) in exit_factor_done.iter().filter(|(_, done)| !**done) {
+            for f in group.iter().flat_map(|v| &self.var_factors[*v as usize]).filter(|f| !exit_factor_done.contains(f)) {
                 let is_called = self.opcodes[*f as usize].iter().any(|o| *o == OpCode::Exit(*f));
                 let (v, pf) = &self.parsing_table.factors[*f as usize];
                 let factor_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS {
