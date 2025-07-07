@@ -442,13 +442,34 @@ mod opcodes {
             ]),
             // [C/amb] left recursion and ambiguity ----------------------------------------
 
-            // TODO
-
-            #[cfg(any())]
             (T::PRS(8), 0, vec![
+                strip![nt 1, exit 0, nt 2],             //  0: A -> A_2 A_1     - ►A_1 ◄0 ►A_2
+                strip![loop 1, exit 1, nt 2, t 0],      //  1: A_1 -> a A_2 A_1 - ●A_1 ◄1 ►A_2 a
+                strip![exit 2],                         //  2: A_1 -> ε         - ◄2
+                strip![exit 3, t 1],                    //  3: A_2 -> b         - ◄3 b
             ]),
-            #[cfg(any())]
             (T::PRS(51), 0, vec![
+                strip![nt 2, exit 0, nt 7],             //  0: E -> E_6 E_1     - ►E_1 ◄0 ►E_6
+                strip![exit 1, t 6, nt 0, t 5],         //  1: F -> ( E )       - ◄1 ) ►E (
+                strip![exit 2, t 7],                    //  2: F -> NUM         - ◄2 NUM!
+                strip![exit 3, t 8],                    //  3: F -> ID          - ◄3 ID!
+                strip![loop 2, exit 4, nt 7, t 2],      //  4: E_1 -> ^ E_6 E_1 - ●E_1 ◄4 ►E_6 ^
+                strip![loop 2, exit 5, t 9],            //  5: E_1 -> ' E_1     - ●E_1 ◄5 '
+                strip![loop 2, exit 6, nt 5, t 3],      //  6: E_1 -> * E_4 E_1 - ●E_1 ◄6 ►E_4 *
+                strip![loop 2, exit 7, nt 3, t 4],      //  7: E_1 -> + E_2 E_1 - ●E_1 ◄7 ►E_2 +
+                strip![exit 8],                         //  8: E_1 -> ε         - ◄8
+                strip![nt 4, exit 9, nt 7],             //  9: E_2 -> E_6 E_3   - ►E_3 ◄9 ►E_6
+                strip![loop 4, exit 10, nt 7, t 2],     // 10: E_3 -> ^ E_6 E_3 - ●E_3 ◄10 ►E_6 ^
+                strip![loop 4, exit 11, t 9],           // 11: E_3 -> ' E_3     - ●E_3 ◄11 '
+                strip![loop 4, exit 12, nt 5, t 3],     // 12: E_3 -> * E_4 E_3 - ●E_3 ◄12 ►E_4 *
+                strip![exit 13],                        // 13: E_3 -> ε         - ◄13
+                strip![nt 6, exit 14, nt 7],            // 14: E_4 -> E_6 E_5   - ►E_5 ◄14 ►E_6
+                strip![loop 6, exit 15, nt 7, t 2],     // 15: E_5 -> ^ E_6 E_5 - ●E_5 ◄15 ►E_6 ^
+                strip![loop 6, exit 16, t 9],           // 16: E_5 -> ' E_5     - ●E_5 ◄16 '
+                strip![exit 17],                        // 17: E_5 -> ε         - ◄17
+                strip![exit 18, nt 3, t 1],             // 18: E_6 -> - E_2     - ◄18 ►E_2 -
+                strip![exit 19, nt 7, t 0],             // 19: E_6 -> abs E_6   - ◄19 ►E_6 abs
+                strip![exit 20, nt 1],                  // 20: E_6 -> F         - ◄20 ►F
             ]),
 
             // [A + C] normalization + left recursion --------------------------------------
