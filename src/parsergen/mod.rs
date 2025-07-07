@@ -1317,7 +1317,7 @@ impl ParserGen {
 
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
 
         self.used_libs.extend([

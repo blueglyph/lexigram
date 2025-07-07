@@ -1970,9 +1970,9 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
         const TEST_SOURCE: bool = true;
