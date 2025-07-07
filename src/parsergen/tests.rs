@@ -1970,7 +1970,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -1987,8 +1987,8 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-// if rule_id != RTS(41) { continue }
-// if rule_id != PRS(55) && rule_id != PRS(66) { continue }
+// if rule_id != PRS(60) { continue }
+// if rule_id != PRS(55) && rule_id != PRS(66) && rule_id != RTS(41) { continue }
 // if !hashset!(RTS(51), RTS(53)).contains(&rule_id) { continue }
 //if !matches!(rule_id, RTS(x) if x >= 50 && x < 60) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
@@ -2042,6 +2042,13 @@ mod wrapper_source {
                 println!("            ], {has_value_str}, btreemap![{}]),",
                     if result_factors.is_empty() { "".to_string() } else { result_factors.iter().map(|(v, factors)| format!("{v} => vec![{}]", factors.iter().join(", "))).join(", ") }
                 );
+                let nbr_factors = builder.parsing_table.factors.len();
+                let original = (0..nbr_factors)
+                    .filter_map(|i| builder.get_original_factor_str(i as FactorId, builder.get_symbol_table()).and_then(|s| Some(format!("- {i:3}: {s}"))))
+                    .join("\n");
+                if !original.is_empty() {
+                    println!("Original factors:\n{original}");
+                }
                 println!("*/");
             }
             let wrapper_src = builder.source_wrapper();

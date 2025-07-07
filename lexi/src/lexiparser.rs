@@ -388,8 +388,7 @@ pub(crate) mod lexiparser {
                         27 => {}                                      // alt_item_2
                         13 => self.listener.init_repeat_item(),       // repeat_item
                         24 => {}                                      // repeat_item_1
-                        29 => {}                                      // repeat_item_2
-                        30 => {}                                      // repeat_item_3
+                        29 | 30 => {}                                 // repeat_item_2, repeat_item_3
                         14 => self.listener.init_item(),              // item
                         25 => {}                                      // item_1
                         15 => self.listener.init_char_set(),          // char_set

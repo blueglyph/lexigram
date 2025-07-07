@@ -2435,13 +2435,13 @@ fn prs_calc_table() {
             // - 7: E_b -> + E_1 E_b
             // - 8: E_b -> ε
             // - 9: E_1 -> E_3 E_1b
-            // - 10: E_1b -> ^ E_3 E_1b     greedy (8192)
-            // - 11: E_1b -> ' E_1b     greedy (8192)
-            // - 12: E_1b -> * E_2 E_1b     greedy (8192)
+            // - 10: E_1b -> ^ E_3 E_1b
+            // - 11: E_1b -> ' E_1b
+            // - 12: E_1b -> * E_2 E_1b
             // - 13: E_1b -> ε
             // - 14: E_2 -> E_3 E_2b
-            // - 15: E_2b -> ^ E_3 E_2b     greedy (8192)
-            // - 16: E_2b -> ' E_2b     greedy (8192)
+            // - 15: E_2b -> ^ E_3 E_2b
+            // - 16: E_2b -> ' E_2b
             // - 17: E_2b -> ε
             // - 18: E_3 -> - E_1
             // - 19: E_3 -> abs E_3
@@ -2456,13 +2456,13 @@ fn prs_calc_table() {
             (2, prodf!(t 4, nt 3, nt 2)),
             (2, prodf!(e)),
             (3, prodf!(nt 7, nt 4)),
-            (4, prodf!(#G, t 2, nt 7, nt 4)),
-            (4, prodf!(#G, t 9, nt 4)),
-            (4, prodf!(#G, t 3, nt 5, nt 4)),
+            (4, prodf!(t 2, nt 7, nt 4)),
+            (4, prodf!(t 9, nt 4)),
+            (4, prodf!(t 3, nt 5, nt 4)),
             (4, prodf!(e)),
             (5, prodf!(nt 7, nt 6)),
-            (6, prodf!(#G, t 2, nt 7, nt 6)),
-            (6, prodf!(#G, t 9, nt 6)),
+            (6, prodf!(t 2, nt 7, nt 6)),
+            (6, prodf!(t 9, nt 6)),
             (6, prodf!(e)),
             (7, prodf!(t 1, nt 3)),
             (7, prodf!(t 0, nt 7)),
@@ -2497,9 +2497,9 @@ fn prs_calc_table() {
             // - 6: E_1 -> + E_2 E_1
             // - 7: E_1 -> ε
             // - 8: E_2 -> E_4 E_3
-            // - 9: E_3 -> <G> * E_4 E_3     greedy (8192)
-            // - 10: E_3 -> <G> ! E_3     greedy (8192)
-            // - 11: E_3 -> <G> ' E_3     greedy (8192)
+            // - 9: E_3 -> <G> * E_4 E_3
+            // - 10: E_3 -> <G> ! E_3
+            // - 11: E_3 -> <G> ' E_3
             // - 12: E_3 -> ε
             // - 13: E_4 -> F
             (0, prodf!(nt 5, nt 2)),
@@ -2511,9 +2511,9 @@ fn prs_calc_table() {
             (2, prodf!(t 3, nt 3, nt 2)),
             (2, prodf!(e)),
             (3, prodf!(nt 5, nt 4)),
-            (4, prodf!(#G, t 0, nt 5, nt 4)),
-            (4, prodf!(#G, t 1, nt 4)),
-            (4, prodf!(#G, t 2, nt 4)),
+            (4, prodf!(t 0, nt 5, nt 4)),
+            (4, prodf!(t 1, nt 4)),
+            (4, prodf!(t 2, nt 4)),
             (4, prodf!(e)),
             (5, prodf!(nt 1)),
         ], vec![
@@ -2544,11 +2544,11 @@ fn prs_calc_table() {
             // - 6: E_b -> + E_1 E_b
             // - 7: E_b -> ε
             // - 8: E_1 -> E_3 E_1b
-            // - 9: E_1b -> ^ E_2 E_1b     R-assoc | greedy (8448)
-            // - 10: E_1b -> * E_1 E_1b     R-assoc | greedy (8448)
+            // - 9: E_1b -> ^ E_2 E_1b     R-assoc
+            // - 10: E_1b -> * E_1 E_1b     R-assoc
             // - 11: E_1b -> ε
             // - 12: E_2 -> E_3 E_2b
-            // - 13: E_2b -> ^ E_2 E_2b     R-assoc | greedy (8448)
+            // - 13: E_2b -> ^ E_2 E_2b     R-assoc
             // - 14: E_2b -> ε
             // - 15: E_3 -> - E_1
             // - 16: E_3 -> F
@@ -2561,11 +2561,11 @@ fn prs_calc_table() {
             (2, prodf!(t 3, nt 3, nt 2)),
             (2, prodf!(e)),
             (3, prodf!(nt 7, nt 4)),
-            (4, prodf!(#8448, t 0, nt 5, nt 4)),
-            (4, prodf!(#8448, t 1, nt 3, nt 4)),
+            (4, prodf!(#R, t 0, nt 5, nt 4)),
+            (4, prodf!(#R, t 1, nt 3, nt 4)),
             (4, prodf!(e)),
             (5, prodf!(nt 7, nt 6)),
-            (6, prodf!(#8448, t 0, nt 5, nt 6)),
+            (6, prodf!(#R, t 0, nt 5, nt 6)),
             (6, prodf!(e)),
             (7, prodf!(t 2, nt 3)),
             (7, prodf!(nt 1)),
@@ -2592,24 +2592,24 @@ fn prs_calc_table() {
         (54, 0, 0, vec![
             // E -> <R>E * E | E ! | E -- | <R>E + E | ID | NUM
             // - 0: E -> E_2 E_b
-            // - 1: E_b -> * E_1 E_b     R-assoc | greedy (8448)
-            // - 2: E_b -> ! E_b     greedy (8192)
-            // - 3: E_b -> -- E_b     greedy (8192)
-            // - 4: E_b -> + E E_b     R-assoc | greedy (8448)
+            // - 1: E_b -> * E_1 E_b     R-assoc
+            // - 2: E_b -> ! E_b
+            // - 3: E_b -> -- E_b
+            // - 4: E_b -> + E E_b     R-assoc
             // - 5: E_b -> ε
             // - 6: E_1 -> E_2 E_1b
-            // - 7: E_1b -> * E_1 E_1b     R-assoc | greedy (8448)
+            // - 7: E_1b -> * E_1 E_1b     R-assoc
             // - 8: E_1b -> ε
             // - 9: E_2 -> ID
             // - 10: E_2 -> NUM
             (0, prodf!(nt 4, nt 1)),
-            (1, prodf!(#8448, t 1, nt 2, nt 1)),
-            (1, prodf!(#G, t 0, nt 1)),
-            (1, prodf!(#G, t 2, nt 1)),
-            (1, prodf!(#8448, t 3, nt 0, nt 1)),
+            (1, prodf!(#R, t 1, nt 2, nt 1)),
+            (1, prodf!(t 0, nt 1)),
+            (1, prodf!(t 2, nt 1)),
+            (1, prodf!(#R, t 3, nt 0, nt 1)),
             (1, prodf!(e)),
             (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(#8448, t 1, nt 2, nt 3)),
+            (3, prodf!(#R, t 1, nt 2, nt 3)),
             (3, prodf!(e)),
             (4, prodf!(t 4)),
             (4, prodf!(t 5)),
@@ -2635,8 +2635,8 @@ fn prs_calc_table() {
             // - 3: E_b -> + E_1 E_b
             // - 4: E_b -> ε
             // - 5: E_1 -> E_2 E_1b
-            // - 6: E_1b -> * E_2 E_1b     greedy (8192)
-            // - 7: E_1b -> -- E_1b     greedy (8192)
+            // - 6: E_1b -> * E_2 E_1b
+            // - 7: E_1b -> -- E_1b
             // - 8: E_1b -> ε
             // - 9: E_2 -> ! E_1
             // - 10: E_2 -> ID
@@ -2647,8 +2647,8 @@ fn prs_calc_table() {
             (1, prodf!(t 3, nt 2, nt 1)),
             (1, prodf!(e)),
             (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(#G, t 1, nt 4, nt 3)),
-            (3, prodf!(#G, t 2, nt 3)),
+            (3, prodf!(t 1, nt 4, nt 3)),
+            (3, prodf!(t 2, nt 3)),
             (3, prodf!(e)),
             (4, prodf!(t 0, nt 2)),
             (4, prodf!(t 4)),
@@ -2675,11 +2675,11 @@ fn prs_calc_table() {
             // - 3: E_b -> + E_1 E_b
             // - 4: E_b -> ε
             // - 5: E_1 -> E_3 E_1b
-            // - 6: E_1b -> * E_3 E_1b     greedy (8192)
-            // - 7: E_1b -> -- E_1b     greedy (8192)
+            // - 6: E_1b -> * E_3 E_1b
+            // - 7: E_1b -> -- E_1b
             // - 8: E_1b -> ε
             // - 9: E_2 -> E_3 E_2b
-            // - 10: E_2b -> * E_3 E_2b     greedy (8192)
+            // - 10: E_2b -> * E_3 E_2b
             // - 11: E_2b -> ε
             // - 12: E_3 -> ! E_2
             // - 13: E_3 -> ID
@@ -2690,11 +2690,11 @@ fn prs_calc_table() {
             (1, prodf!(t 3, nt 2, nt 1)),
             (1, prodf!(e)),
             (2, prodf!(nt 6, nt 3)),
-            (3, prodf!(#G, t 1, nt 6, nt 3)),
-            (3, prodf!(#G, t 2, nt 3)),
+            (3, prodf!(t 1, nt 6, nt 3)),
+            (3, prodf!(t 2, nt 3)),
             (3, prodf!(e)),
             (4, prodf!(nt 6, nt 5)),
-            (5, prodf!(#G, t 1, nt 6, nt 5)),
+            (5, prodf!(t 1, nt 6, nt 5)),
             (5, prodf!(e)),
             (6, prodf!(t 0, nt 4)),
             (6, prodf!(t 4)),
@@ -2725,11 +2725,11 @@ fn prs_calc_table() {
             // - 3: E_b -> + E_1 E_b
             // - 4: E_b -> ε
             // - 5: E_1 -> E_3 E_1b
-            // - 6: E_1b -> ^ E_3 E_1b     greedy (8192)
-            // - 7: E_1b -> * E_2 E_1b     greedy (8192)
+            // - 6: E_1b -> ^ E_3 E_1b
+            // - 7: E_1b -> * E_2 E_1b
             // - 8: E_1b -> ε
             // - 9: E_2 -> E_3 E_2b
-            // - 10: E_2b -> ^ E_3 E_2b     greedy (8192)
+            // - 10: E_2b -> ^ E_3 E_2b
             // - 11: E_2b -> ε
             // - 12: E_3 -> ID
             // - 13: E_3 -> NUM
@@ -2739,11 +2739,11 @@ fn prs_calc_table() {
             (1, prodf!(t 2, nt 2, nt 1)),
             (1, prodf!(e)),
             (2, prodf!(nt 6, nt 3)),
-            (3, prodf!(#G, t 0, nt 6, nt 3)),
-            (3, prodf!(#G, t 1, nt 4, nt 3)),
+            (3, prodf!(t 0, nt 6, nt 3)),
+            (3, prodf!(t 1, nt 4, nt 3)),
             (3, prodf!(e)),
             (4, prodf!(nt 6, nt 5)),
-            (5, prodf!(#G, t 0, nt 6, nt 5)),
+            (5, prodf!(t 0, nt 6, nt 5)),
             (5, prodf!(e)),
             (6, prodf!(t 3)),
             (6, prodf!(t 4)),
@@ -2768,29 +2768,29 @@ fn prs_calc_table() {
         (66, 0, 0, vec![
             // E -> E . * E | E -- | E . + E | ! E | ID
             // - 0: E -> E_4 E_1
-            // - 1: E_1 -> <G> -- E_1     greedy (8192)
-            // - 2: E_1 -> <G> . E_5     greedy (8192)
+            // - 1: E_1 -> <G> -- E_1
+            // - 2: E_1 -> <G> . E_5
             // - 3: E_1 -> ε
             // - 4: E_2 -> E_4 E_3
-            // - 5: E_3 -> <G> . * E_4 E_3     greedy (8192)
-            // - 6: E_3 -> <G> -- E_3     greedy (8192)
+            // - 5: E_3 -> <G> . * E_4 E_3
+            // - 6: E_3 -> <G> -- E_3
             // - 7: E_3 -> ε
             // - 8: E_4 -> ! E
             // - 9: E_4 -> ID
-            // - 10: E_5 -> <G> * E_4 E_1     greedy (8192)
-            // - 11: E_5 -> <G> + E_2 E_1     greedy (8192)
+            // - 10: E_5 -> <G> * E_4 E_1
+            // - 11: E_5 -> <G> + E_2 E_1
             (0, prodf!(nt 4, nt 1)),
-            (1, prodf!(#G, t 1, nt 1)),
-            (1, prodf!(#G, t 4, nt 5)),
+            (1, prodf!(t 1, nt 1)),
+            (1, prodf!(t 4, nt 5)),
             (1, prodf!(e)),
             (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(#G, t 4, t 0, nt 4, nt 3)),
-            (3, prodf!(#G, t 1, nt 3)),
+            (3, prodf!(t 4, t 0, nt 4, nt 3)),
+            (3, prodf!(t 1, nt 3)),
             (3, prodf!(e)),
             (4, prodf!(t 3, nt 0)),
             (4, prodf!(t 5)),
-            (5, prodf!(#G, t 0, nt 4, nt 1)),
-            (5, prodf!(#G, t 2, nt 2, nt 1)),
+            (5, prodf!(t 0, nt 4, nt 1)),
+            (5, prodf!(t 2, nt 2, nt 1)),
         ], vec![
             //     |  *  --   +   !   .  ID   $
             // ----+-----------------------------
@@ -2830,7 +2830,7 @@ fn prs_calc_table() {
             // - 0: E -> - E
             // - 1: E -> 0 E_1
             // - 2: E -> 1 E_1
-            // - 3: E_1 -> + E_1     greedy (8192)
+            // - 3: E_1 -> + E_1
             // - 4: E_1 -> ε
             (0, prodf!(t 1, nt 0)),
             (0, prodf!(t 2, nt 1)),
@@ -2870,12 +2870,12 @@ fn prs_calc_table() {
         (59, 0, 0, vec![
             // E -> E + E | - E | 0
             // - 0: E -> E_1 E_b
-            // - 1: E_b -> + E_1 E_b     greedy (8192)
+            // - 1: E_b -> + E_1 E_b
             // - 2: E_b -> ε
             // - 3: E_1 -> - E
             // - 4: E_1 -> 0
             (0, prodf!(nt 2, nt 1)),
-            (1, prodf!(#G, t 0, nt 2, nt 1)),
+            (1, prodf!(t 0, nt 2, nt 1)),
             (1, prodf!(e)),
             (2, prodf!(t 1, nt 0)),
             (2, prodf!(t 2)),
@@ -2919,11 +2919,11 @@ fn prs_calc_table() {
             // - 3: E3 -> + E5 E3
             // - 4: E3 -> ε
             // - 5: E5 -> E_1b E6
-            // - 6: E6 -> ^ E_b E6     R-assoc | greedy (8448)
-            // - 7: E6 -> * E_b E6     greedy (8192)
+            // - 6: E6 -> ^ E_b E6     R-assoc
+            // - 7: E6 -> * E_b E6
             // - 8: E6 -> ε
             // - 9: E_b -> E_1b E_1
-            // - 10: E_1 -> ^ E_b E_1     R-assoc | greedy (8448)
+            // - 10: E_1 -> ^ E_b E_1     R-assoc
             // - 11: E_1 -> ε
             // - 12: E_1b -> - E5
             // - 13: E_1b -> ID
@@ -2933,11 +2933,11 @@ fn prs_calc_table() {
             (1, prodf!(t 3, nt 2, nt 1)),
             (1, prodf!(e)),
             (2, prodf!(nt 6, nt 3)),
-            (3, prodf!(#8448, t 0, nt 4, nt 3)),
-            (3, prodf!(#G, t 1, nt 4, nt 3)),
+            (3, prodf!(#R, t 0, nt 4, nt 3)),
+            (3, prodf!(t 1, nt 4, nt 3)),
             (3, prodf!(e)),
             (4, prodf!(nt 6, nt 5)),
-            (5, prodf!(#8448, t 0, nt 4, nt 5)),
+            (5, prodf!(#R, t 0, nt 4, nt 5)),
             (5, prodf!(e)),
             (6, prodf!(t 2, nt 2)),
             (6, prodf!(t 4)),
@@ -2962,22 +2962,22 @@ fn prs_calc_table() {
         (65, 0, 0, vec![
             // E -> E ! | E * E | E + | - E | ID
             // - 0: E -> E_2 E_b
-            // - 1: E_b -> ! E_b     greedy (8192)
-            // - 2: E_b -> * E_1 E_b     greedy (8192)
-            // - 3: E_b -> + E_b     greedy (8192)
+            // - 1: E_b -> ! E_b
+            // - 2: E_b -> * E_1 E_b
+            // - 3: E_b -> + E_b
             // - 4: E_b -> ε
             // - 5: E_1 -> E_2 E_1b
-            // - 6: E_1b -> ! E_1b     greedy (8192)
+            // - 6: E_1b -> ! E_1b
             // - 7: E_1b -> ε
             // - 8: E_2 -> - E
             // - 9: E_2 -> ID
             (0, prodf!(nt 4, nt 1)),
-            (1, prodf!(#G, t 1, nt 1)),
-            (1, prodf!(#G, t 0, nt 2, nt 1)),
-            (1, prodf!(#G, t 2, nt 1)),
+            (1, prodf!(t 1, nt 1)),
+            (1, prodf!(t 0, nt 2, nt 1)),
+            (1, prodf!(t 2, nt 1)),
             (1, prodf!(e)),
             (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(#G, t 1, nt 3)),
+            (3, prodf!(t 1, nt 3)),
             (3, prodf!(e)),
             (4, prodf!(t 3, nt 0)),
             (4, prodf!(t 4)),
@@ -3190,7 +3190,7 @@ fn prs_grammar_notes() {
         (T::PRS(1005), 0, vec!["unused non-terminals",
                                "unused terminals"],         vec![]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {ll_id:?}/{start}:", "");

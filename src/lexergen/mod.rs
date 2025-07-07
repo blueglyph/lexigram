@@ -90,7 +90,7 @@ impl LexerGen {
         let symbol_to_group = SegMap::from_iter(
             symbol_part.iter().index().flat_map(|(id, i)| i.iter().map(move |ab| (*ab, id)))
         );
-        self.group_partition = Segments(BTreeSet::from_iter(symbol_to_group.keys().cloned()));
+        self.group_partition = Segments::from_iter(symbol_to_group.keys().cloned());
 
         if VERBOSE {
             println!("symbol partition:{}\ntables:", symbol_to_group.iter()
@@ -345,7 +345,7 @@ fn partition_symbols(g: &BTreeMap<StateId, BTreeMap<Segments, StateId>>) -> Vec<
         let mut map = BTreeMap::<StateId, Segments>::new();
         for (segments, destination) in branches {
             if let Some(i) = map.get_mut(destination) {
-                i.extend(&segments.0);
+                i.extend(&mut segments.iter());
             } else {
                 map.insert(*destination, segments.clone());
             }
