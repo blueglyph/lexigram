@@ -3146,8 +3146,8 @@ pub(crate) mod rules_rts_29_2 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        2 => {}                                     // A_1
                         3 => self.init_a2(),                        // A_2
+                        2 => {}                                     // A_1
                         1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -4004,8 +4004,7 @@ pub(crate) mod rules_rts_30_1 {
                         0 => self.listener.init_a(),                // A
                         2 => self.init_a1(),                        // A_1
                         3 => self.init_a2(),                        // A_2
-                        4 => {}                                     // A_3
-                        5 => {}                                     // A_4
+                        4 | 5 => {}                                 // A_3, A_4
                         1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -4223,8 +4222,7 @@ pub(crate) mod rules_rts_30_2 {
                         0 => self.listener.init_a(),                // A
                         2 => self.init_a1(),                        // A_1
                         3 => self.init_a2(),                        // A_2
-                        4 => {}                                     // A_3
-                        5 => {}                                     // A_4
+                        4 | 5 => {}                                 // A_3, A_4
                         1 => self.listener.init_b(),                // B
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -4493,12 +4491,7 @@ pub(crate) mod rules_rts_34_1 {
                         4 => self.init_a4(),                        // A_4
                         5 => self.init_a5(),                        // A_5
                         6 => self.init_a6(),                        // A_6
-                        7 => {}                                     // A_7
-                        8 => {}                                     // A_8
-                        9 => {}                                     // A_9
-                        10 => {}                                    // A_10
-                        11 => {}                                    // A_11
-                        12 => {}                                    // A_12
+                        7 ..= 12 => {}                              // A_7, A_8, A_9, A_10, A_11, A_12
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -4752,8 +4745,7 @@ pub(crate) mod rules_prs_28_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => {}                                     // A_1
-                        2 => {}                                     // A_2
+                        1 | 2 => {}                                 // A_1, A_2
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -5507,8 +5499,7 @@ pub(crate) mod rules_prs_33_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => {}                                     // A_1
-                        2 => {}                                     // A_2
+                        1 | 2 => {}                                 // A_1, A_2
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -5698,8 +5689,7 @@ pub(crate) mod rules_prs_38_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => {}                                     // A_1
-                        2 => {}                                     // A_2
+                        1 | 2 => {}                                 // A_1, A_2
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -5898,9 +5888,7 @@ pub(crate) mod rules_prs_39_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => {}                                     // A_1
-                        2 => {}                                     // A_2
-                        3 => {}                                     // A_3
+                        1 ..= 3 => {}                               // A_1, A_2, A_3
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -6109,8 +6097,7 @@ pub(crate) mod rules_prs_32_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_e(),                // E
-                        2 => {}                                     // E_1
-                        3 => {}                                     // E_2
+                        2 | 3 => {}                                 // E_1, E_2
                         1 => self.listener.init_f(),                // F
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
@@ -6307,9 +6294,7 @@ pub(crate) mod rules_rts_38_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => {}                                     // A_1
-                        2 => {}                                     // A_2
-                        3 => {}                                     // A_3
+                        1 ..= 3 => {}                               // A_1, A_2, A_3
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -6513,9 +6498,7 @@ pub(crate) mod rules_rts_38_2 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => {}                                     // A_1
-                        2 => {}                                     // A_2
-                        3 => {}                                     // A_3
+                        1 ..= 3 => {}                               // A_1, A_2, A_3
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -6705,9 +6688,7 @@ pub(crate) mod rules_rts_38_3 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 => {}                                     // A_1
-                        2 => {}                                     // A_2
-                        3 => {}                                     // A_3
+                        1 ..= 3 => {}                               // A_1, A_2, A_3
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -8457,8 +8438,7 @@ pub(crate) mod rules_rts_16_1 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_a1(),                        // A_1
-                        2 => {}                                     // A_2
-                        3 => {}                                     // A_3
+                        2 | 3 => {}                                 // A_2, A_3
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -9572,7 +9552,8 @@ pub(crate) mod rules_prs_63_1 {
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
         fn exit(&mut self, _e: SynE) {}
-        fn exit_e(&mut self, ctx: CtxE) -> SynE;
+        fn init_e(&mut self) {}
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
     }
 
     pub struct Wrapper<T> {
@@ -9594,7 +9575,8 @@ pub(crate) mod rules_prs_63_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0|1|2|3|4|5|6 => {}                                     // E_1
+                        0 => self.listener.init_e(),                // E
+                        1 ..= 6 => {}                               // E_1, E_2, E_3, E_4, E_5, E_6
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -10275,8 +10257,7 @@ pub(crate) mod rules_rts_100_1 {
                         25 => {}                                    // alt_item_2
                         11 => self.listener.init_repeat_item(),     // repeat_item
                         22 => {}                                    // repeat_item_1
-                        27 => {}                                    // repeat_item_2
-                        28 => {}                                    // repeat_item_3
+                        27 | 28 => {}                               // repeat_item_2, repeat_item_3
                         12 => self.listener.init_item(),            // item
                         23 => {}                                    // item_1
                         13 => self.listener.init_char_set(),        // char_set

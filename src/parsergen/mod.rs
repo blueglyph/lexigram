@@ -11,6 +11,7 @@ use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol,
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
 use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
+use crate::segments::{Seg, Segments};
 
 pub(crate) mod tests;
 
@@ -1492,6 +1493,7 @@ impl ParserGen {
             let parent_flags = self.parsing_table.flags[parent_nt];
             let parent_has_value = self.nt_value[parent_nt];
             let mut exit_factor_done = group.iter().flat_map(|v| &self.var_factors[*v as usize]).map(|f| (*f, false)).collect::<BTreeMap<FactorId, bool>>();
+            let mut init_nt_done = HashSet::<VarId>::new();
             if VERBOSE { println!("- GROUP {}, parent has {}value, parent flags: {}",
                                   group.iter().map(|v| Symbol::NT(*v).to_str(self.get_symbol_table())).join(", "),
                                   if parent_has_value { "" } else { "no " },
@@ -1519,11 +1521,9 @@ impl ParserGen {
                 let flags = self.parsing_table.flags[nt];
                 // the parents of left recursion are not useful in ambiguous rules (they just push / pop the same value):
                 let is_ambig_1st_child =  is_ambig && flags & ruleflag::CHILD_L_RECURSION != 0 && ambig_children.get(0) == Some(var);
-                if is_ambig && flags & ruleflag::L_RECURSION != 0 && !is_ambig_1st_child {
-                    // we only process the first variable of the left recursion; below we gather the factors of
-                    // the other variables of the same type (in ambiguous rules, they repeat the same operators)
-                    continue;
-                }
+                // we only process the first variable of the left recursion; below we gather the factors of
+                // the other variables of the same type (in ambiguous rules, they repeat the same operators)
+                let is_ambig_redundant = is_ambig && flags & ruleflag::L_RECURSION != 0 && !is_ambig_1st_child;
                 let has_value = self.nt_value[nt];
                 let nt_comment = format!("// {}", sym_nt.to_str(self.get_symbol_table()));
                 let is_parent = nt == parent_nt;
@@ -1537,7 +1537,8 @@ impl ParserGen {
 
                 if self.parsing_table.parent[nt].is_none() {
                     let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
-                    if has_value && self.nt_has_all_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) && !self.nt_has_all_flags(*var, ruleflag::CHILD_AMBIGUITY) {
+                    init_nt_done.insert(*var);
+                    if has_value && self.nt_has_all_flags(*var, ruleflag::R_RECURSION | ruleflag::L_FORM) {
                         src_wrapper_impl.push(String::new());
                         src_listener_decl.push(format!("    fn init_{npl}(&mut self) -> {};", self.get_nt_type(nt as VarId)));
                         src_init.push(vec![format!("                    {nt} => self.init_{nl}(),"), nt_comment]);
@@ -1552,6 +1553,7 @@ impl ParserGen {
                 } else {
                     if flags & ruleflag::CHILD_REPEAT != 0 {
                         if has_value {
+                            init_nt_done.insert(*var);
                             src_wrapper_impl.push(String::new());
                             let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
                             src_init.push(vec![format!("                    {nt} => self.init_{npl}(),"), nt_comment]);
@@ -1566,15 +1568,18 @@ impl ParserGen {
                             src_wrapper_impl.push(format!("    }}"));
                         } else {
                             if flags & ruleflag::L_FORM != 0 {
+                                init_nt_done.insert(*var);
                                 let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
                                 src_init.push(vec![format!("                    {nt} => self.listener.init_{npl}(),"), nt_comment]);
                                 src_listener_decl.push(format!("    fn init_{npl}(&mut self) {{}}"));
                             } else {
-                                src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
+                                // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
                             }
                         }
                     } else if flags & (ruleflag::CHILD_L_RECURSION | ruleflag::CHILD_L_FACTOR) != 0 {
-                        src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
+                        // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
+                    } else {
+                        // src_init.push(vec![format!("                    {nt} => {{}}"), nt_comment]);
                     }
                 }
 
@@ -1644,7 +1649,7 @@ impl ParserGen {
                 // - ambiguity (for now)
                 // if flags & (ruleflag::CHILD_L_FACTOR | ruleflag::CHILD_AMBIGUITY) == 0
                 //     && flags & ruleflag::CHILD_AMBIGUITY == 0 && parent_flags & ruleflag::PARENT_AMBIGUITY == 0
-                if flags & (ruleflag::CHILD_L_FACTOR) == 0 {
+                if !is_ambig_redundant && flags & (ruleflag::CHILD_L_FACTOR) == 0 {
                     let (nu, nl, npl) = nt_name[nt].as_ref().unwrap();
                     let (pnu, pnl, pnpl) = nt_name[parent_nt].as_ref().unwrap();
                     if VERBOSE { println!("    {nu} (parent {pnu})"); }
@@ -1654,6 +1659,12 @@ impl ParserGen {
                             src_listener_decl.push(format!("    fn exit_{npl}(&mut self, _ctx: Ctx{nu}) -> {};", self.get_nt_type(nt as VarId)));
                         } else {
                             src_listener_decl.push(format!("    fn exit_{npl}(&mut self, _ctx: Ctx{nu}) {{}}"));
+                        }
+                    } else if is_ambig_1st_child {
+                        if parent_has_value {
+                            src_listener_decl.push(format!("    fn exit_{pnpl}(&mut self, _ctx: Ctx{pnu}) -> {};", self.get_nt_type(parent_nt as VarId)));
+                        } else {
+                            src_listener_decl.push(format!("    fn exit_{pnpl}(&mut self, _ctx: Ctx{pnu}) {{}}"));
                         }
                     }
                     let mut exit_factors = if is_ambig_1st_child {
@@ -1842,6 +1853,24 @@ impl ParserGen {
                     src_exit.push(vec![format!("                    {f} => {{}}"), comment]);
                 } else {
                     src_exit.push(vec![format!("                 /* {f} */"), comment]);
+                }
+            }
+            let mut s = Segments::empty();
+            for var in group {
+                if !init_nt_done.contains(var) {
+                    s.insert(Seg(*var as u32, *var as u32))
+                }
+            }
+            s.normalize();
+            for seg in s.0 {
+                let Seg(a, b) = seg;
+                if a == b {
+                    src_init.push(vec![format!("                    {a} => {{}}"), format!("// {}", Symbol::NT(a as VarId).to_str(self.get_symbol_table()))]);
+                } else {
+                    src_init.push(vec![
+                        format!("                    {a}{}{b} => {{}}", if b == a + 1 { " | " } else { " ..= " }),
+                        format!("// {}", (a..=b).map(|v| Symbol::NT(v as VarId).to_str(self.get_symbol_table())).join(", "))
+                    ]);
                 }
             }
         }
