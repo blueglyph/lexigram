@@ -425,8 +425,7 @@ impl ParserGen {
             let mut pf = orig_f.iter().map(|s| {
                 match s {
                     Symbol::NT(nt) if *nt != parent_nt && self.parsing_table.get_top_parent(*nt) == parent_nt => {
-                        // println!("{} ? -> {}", s.to_str(self.get_symbol_table()), self.var_factors[*nt as usize][0]);
-                        self.repeat_factor_str(&vec![*s], None)
+                        self.repeat_factor_str(&vec![*s], emphasis)
                     }
                     _ => s.to_str(self.get_symbol_table())
                 }
