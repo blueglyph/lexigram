@@ -92,7 +92,7 @@
     - [x] ~~calc follow~~
     - [x] ~~remove ambiguity: `A -> A β A | δ`~~
       - ~~special case of left recursivity. Don't translate to `A -> δ A1; A1 -> β A A1 | ε`, but `A -> δ A1; A1 -> β A1 | ε` + tag left-/right-associativity~~
-    - [ ] break polymorphic ambiguities
+    - [x] break polymorphic ambiguities
       - ```
         E -> E ^ E | - E | E * E | E + E | F  
         =>  
@@ -106,7 +106,7 @@
         - based on T names and the number of NTs? E * E = Mul2, E - E = Sub2, - E = Sub1, ... => easier if collected before transformation
       - [x] ~~tags when transforming grammar (remove_left_recursion, left_factorize)~~
       - [x] ~~stack-based reconstruction~~
-      - [ ] left/right-associativity
+      - [x] left/right-associativity
       - [x] ~~opcode builder based on flags~~
       - [ ] add option for loop value/end-of-loop call (+, *, r-rec)
       - [ ] opcode + gram syntax for early rule attribute callback
@@ -134,7 +134,7 @@
       - [x] ~~trait~~
       - [x] ~~switch~~
       - [x] ~~impl wrapper~~
-      - [ ] special case of ambiguous left recursions (A α A)
+      - [x] special case of ambiguous left recursions (A α A)
       - [ ] allow for references in Syn types (=> SynNT<'a>(&'a ValType), CtxRule<'a> { nt: SynNT<'a>, .. }, ...)
         - if possible at all, we need to verify that the lifetime >= wrapper's lifetime (and make the borrow checked understand it)
       - [x] ~~NT whose nt_value is false but which carry other valuable NTs or T data must have an internal Syn type~~ 
