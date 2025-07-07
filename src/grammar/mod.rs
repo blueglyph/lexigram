@@ -940,6 +940,10 @@ impl ProdFactor {
         self.original_factor_id
     }
 
+    pub fn get_flags(&self) -> u32 {
+        self.flags
+    }
+
     fn to_str_no_flags(&self, symbol_table: Option<&SymbolTable>) -> String {
         self.v.iter().map(|symbol|
             symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())

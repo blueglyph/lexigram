@@ -9519,7 +9519,7 @@ pub(crate) mod rules_prs_63_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> E ^ E`
+        /// `E -> E ^ E <R>`
         E1 { e: [SynE; 2] },
         /// `E -> E * E`
         E2 { e: [SynE; 2] },

@@ -421,7 +421,8 @@ impl ParserGen {
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
         if let Some(id) = prodf.get_original_factor_id() {
             let parent_nt = self.parsing_table.get_top_parent(*v_f);
-            let pf = self.original_factors[id as usize].iter().map(|s| {
+            let orig_f = &self.original_factors[id as usize];
+            let mut pf = orig_f.iter().map(|s| {
                 match s {
                     Symbol::NT(nt) if *nt != parent_nt && self.parsing_table.get_top_parent(*nt) == parent_nt => {
                         // println!("{} ? -> {}", s.to_str(self.get_symbol_table()), self.var_factors[*nt as usize][0]);
@@ -430,6 +431,11 @@ impl ParserGen {
                     _ => s.to_str(self.get_symbol_table())
                 }
             }).join(" ");
+            let flags = orig_f.get_flags() & (ruleflag::L_FORM | ruleflag::R_ASSOC);
+            if flags != 0 {
+                pf.push_str(&format!(" <{}>", ruleflag::factor_info_to_string(flags).join(",")));
+            }
+            if VERBOSE { println!(" => ({}, {pf})", Symbol::NT(parent_nt).to_str(self.get_symbol_table())); }
             return (Symbol::NT(parent_nt).to_str(self.get_symbol_table()), pf);
         }
         let mut v_par_lf =  *v_f;
