@@ -59,7 +59,7 @@ mod gen_integration {
         match id {
             //         rules   indent  t_data   tag name                                      listener name
              1 => Some((PRS( 4), 4,    false, "write_source_code_for_integration_listener1",  "Expr")),
-             2 => Some((PRS(51), 4,    false, "write_source_code_for_integration_listener2",  "Expr")), // FIXME: to replace
+             2 => Some((PRS(51), 4,    false, "write_source_code_for_integration_listener2",  "Expr")),
              3 => Some((PRS(20), 4,    false, "write_source_code_for_integration_listener3",  "Struct")),
              4 => Some((PRS(30), 4,    false, "write_source_code_for_integration_listener4",  "Struct")),
              5 => Some((PRS(31), 4,    false, "write_source_code_for_integration_listener5",  "Expr")),
