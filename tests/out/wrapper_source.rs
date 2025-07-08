@@ -4877,7 +4877,7 @@ pub(crate) mod rules_prs_31_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
-        fn exitloop_e1(&mut self, _e: &mut SynE) {} // FIXME: exitloop_e?
+        fn exitloop_e(&mut self, _e: &mut SynE) {}
         fn init_f(&mut self) {}
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
@@ -4978,7 +4978,7 @@ pub(crate) mod rules_prs_31_1 {
 
         fn exitloop_e1(&mut self) {
             let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_e1(e);
+            self.listener.exitloop_e(e);
         }
 
         fn exit_f(&mut self) {
@@ -5228,7 +5228,7 @@ pub(crate) mod rules_prs_36_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
-        fn exitloop_e1(&mut self, _e: &mut SynE) {}
+        fn exitloop_e(&mut self, _e: &mut SynE) {}
         fn init_f(&mut self) {}
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
@@ -5340,7 +5340,7 @@ pub(crate) mod rules_prs_36_1 {
 
         fn exitloop_e1(&mut self) {
             let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_e1(e);
+            self.listener.exitloop_e(e);
         }
 
         fn exit_f(&mut self) {
@@ -5416,7 +5416,7 @@ pub(crate) mod rules_prs_33_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn exitloop_a1(&mut self, _a: &mut SynA) {}
+        fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -5526,8 +5526,8 @@ pub(crate) mod rules_prs_33_1 {
         }
 
         fn exitloop_a1(&mut self) {
-            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_a1(a);
+            let SynValue::A(a) = self.stack.last_mut().unwrap();
+            self.listener.exitloop_a(a);
         }
     }
 
@@ -5600,7 +5600,7 @@ pub(crate) mod rules_prs_38_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn exitloop_a1(&mut self, _a: &mut SynA) {}
+        fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -5722,8 +5722,8 @@ pub(crate) mod rules_prs_38_1 {
         }
 
         fn exitloop_a1(&mut self) {
-            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_a1(a);
+            let SynValue::A(a) = self.stack.last_mut().unwrap();
+            self.listener.exitloop_a(a);
         }
     }
 
@@ -5799,7 +5799,7 @@ pub(crate) mod rules_prs_39_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn exitloop_a1(&mut self, _a: &mut SynA) {}
+        fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -5924,8 +5924,8 @@ pub(crate) mod rules_prs_39_1 {
         }
 
         fn exitloop_a1(&mut self) {
-            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_a1(a);
+            let SynValue::A(a) = self.stack.last_mut().unwrap();
+            self.listener.exitloop_a(a);
         }
     }
 
@@ -6006,7 +6006,7 @@ pub(crate) mod rules_prs_32_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
-        fn exitloop_e1(&mut self, _e: &mut SynE) {}
+        fn exitloop_e(&mut self, _e: &mut SynE) {}
         fn init_f(&mut self) {}
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
@@ -6120,7 +6120,7 @@ pub(crate) mod rules_prs_32_1 {
 
         fn exitloop_e1(&mut self) {
             let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_e1(e);
+            self.listener.exitloop_e(e);
         }
 
         fn exit_f(&mut self) {
@@ -6205,7 +6205,7 @@ pub(crate) mod rules_rts_38_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn exitloop_a1(&mut self, _a: &mut SynA) {}
+        fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -6329,8 +6329,8 @@ pub(crate) mod rules_rts_38_1 {
         }
 
         fn exitloop_a1(&mut self) {
-            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_a1(a);
+            let SynValue::A(a) = self.stack.last_mut().unwrap();
+            self.listener.exitloop_a(a);
         }
     }
 
@@ -6409,7 +6409,7 @@ pub(crate) mod rules_rts_38_2 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn exitloop_a1(&mut self, _a: &mut SynA) {}
+        fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -6527,8 +6527,8 @@ pub(crate) mod rules_rts_38_2 {
         }
 
         fn exitloop_a1(&mut self) {
-            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_a1(a);
+            let SynValue::A(a) = self.stack.last_mut().unwrap();
+            self.listener.exitloop_a(a);
         }
     }
 
@@ -8147,7 +8147,7 @@ pub(crate) mod rules_rts_26_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn exitloop_a2(&mut self, _a: &mut SynA) {}
+        fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -8260,7 +8260,7 @@ pub(crate) mod rules_rts_26_1 {
 
         fn exitloop_a2(&mut self) {
             let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_a2(a);
+            self.listener.exitloop_a(a);
         }
     }
 
@@ -8337,7 +8337,7 @@ pub(crate) mod rules_rts_16_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn exitloop_a2(&mut self, _a: &mut SynA) {}
+        fn exitloop_a(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -8451,7 +8451,7 @@ pub(crate) mod rules_rts_16_1 {
 
         fn exitloop_a2(&mut self) {
             let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_a2(a);
+            self.listener.exitloop_a(a);
         }
     }
 
@@ -8907,7 +8907,7 @@ pub(crate) mod rules_prs_58_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
-        fn exitloop_e1(&mut self, _e: &mut SynE) {}
+        fn exitloop_e(&mut self, _e: &mut SynE) {}
     }
 
     pub struct Wrapper<T> {
@@ -9012,8 +9012,8 @@ pub(crate) mod rules_prs_58_1 {
         }
 
         fn exitloop_e1(&mut self) {
-            let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_e1(e);
+            let SynValue::E(e) = self.stack.last_mut().unwrap();
+            self.listener.exitloop_e(e);
         }
     }
 
@@ -9177,7 +9177,7 @@ pub(crate) mod rules_prs_60_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) -> SynE;
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
-        fn exitloop_e1(&mut self, _e: &mut SynE) {}
+        fn exitloop_e(&mut self, _e: &mut SynE) {}
     }
 
     pub struct Wrapper<T> {
@@ -9288,8 +9288,8 @@ pub(crate) mod rules_prs_60_1 {
         }
 
         fn exitloop_e1(&mut self) {
-            let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_e1(e);
+            let SynValue::E(e) = self.stack.last_mut().unwrap();
+            self.listener.exitloop_e(e);
         }
     }
 

@@ -2002,7 +2002,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
+        const REPLACE_SOURCE: bool = false;
 
         // CAUTION! Empty the first btreemap if the NTs have changed
 

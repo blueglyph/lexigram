@@ -1860,11 +1860,13 @@ impl ParserGen {
                     for f in last_it_factors {
                         if let Some(info) = item_info[f as usize].get(0) {
                             if VERBOSE { println!("last_it_factors: {f}, info = {info:?}"); }
+                            let (variant, _, fnname, typ) = &syns[info.owner as usize];
+                            // let fnname = &syns[info.owner as usize].2;
                             let varname = &info.name;
                             let owner = pinfo.factors[f as usize].0;
-                            let typ = &syns[info.owner as usize].3;
-                            let variant = &syns[info.owner as usize].0; //&info.sym.to_str(self.get_symbol_table());
-                            src_listener_decl.push(format!("    fn exitloop_{fnpl}(&mut self, _{varname}: &mut {typ}) {{}}"));
+                            // let typ = &syns[info.owner as usize].3;
+                            // let variant = &syns[info.owner as usize].0; //&info.sym.to_str(self.get_symbol_table());
+                            src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, _{varname}: &mut {typ}) {{}}"));
                             let (v, pf) = &self.parsing_table.factors[f as usize];
                             let factor_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS {
                                 self.full_factor_str::<false>(f, None, false)
@@ -1875,8 +1877,9 @@ impl ParserGen {
                             exit_factor_done.insert(f);
                             src_wrapper_impl.push(String::new());
                             src_wrapper_impl.push(format!("    fn exitloop_{fnpl}(&mut self) {{"));
-                            src_wrapper_impl.push(format!("        let SynValue::{variant}({varname}) = self.stack.last_mut().unwrap() else {{ panic!() }};"));
-                            src_wrapper_impl.push(format!("        self.listener.exitloop_{fnpl}({varname});"));
+                            src_wrapper_impl.push(format!("        let SynValue::{variant}({varname}) = self.stack.last_mut().unwrap(){};",
+                                                          if syns.len() > 1 { " else { panic!() }" } else { "" }));
+                            src_wrapper_impl.push(format!("        self.listener.exitloop_{fnname}({varname});"));
                             src_wrapper_impl.push(format!("    }}"));
                         }
                     }
