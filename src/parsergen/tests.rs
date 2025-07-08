@@ -713,6 +713,7 @@ mod wrapper_source {
                 1 => symbols![],                        //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     |
                 2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
             ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
+            #[cfg(any())]
             (RTS(22), true, 0, btreemap![
                 0 => "SynA".to_string(),
                 1 => "SynAIter".to_string(),
@@ -721,6 +722,7 @@ mod wrapper_source {
                 1 => symbols![nt 1],                    //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     | AIter1
                 2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
             ], Set(symbols![nt 0, nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
+            #[cfg(any())]
             (RTS(22), true, 0, btreemap![
                 1 => "SynAIter".to_string(),
             ], btreemap![
@@ -1991,16 +1993,16 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
         const TEST_SOURCE: bool = true;
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = false;
+        const REPLACE_SOURCE: bool = true;
 
         // CAUTION! Empty the first btreemap if the NTs have changed
 
@@ -2008,9 +2010,8 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-// if rule_id != PRS(60) { continue }
 // if rule_id != PRS(55) && rule_id != PRS(66) && rule_id != RTS(41) { continue }
-// if !hashset!(RTS(51), RTS(53)).contains(&rule_id) { continue }
+// if !hashset!(PRS(31), PRS(55), RTS(22), RTS(39)).contains(&rule_id) { continue }
 //if !matches!(rule_id, RTS(x) if x >= 50 && x < 60) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }

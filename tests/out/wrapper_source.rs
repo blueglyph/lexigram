@@ -550,9 +550,7 @@ pub(crate) mod rules_rts_22_1 {
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1_1 { star_it: SynAIter, b: String },
-        /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1_2 { star_it: SynAIter },
+        Aiter1 { star_it: SynAIter, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -584,6 +582,7 @@ pub(crate) mod rules_rts_22_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_aiter1(&mut self) -> SynAIter;
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
+        fn exitloop_aiter1(&mut self, _star_it: &mut SynAIter) {}
     }
 
     pub struct Wrapper<T> {
@@ -614,8 +613,8 @@ pub(crate) mod rules_rts_22_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 |                                         // AIter1 -> <L> b AIter1
-                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
+                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
+                        2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -678,26 +677,26 @@ pub(crate) mod rules_rts_22_1 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                1 => {
-                    let b = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_1 { star_it, b }
-                }
-                2 => {
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_2 { star_it }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
-            };
-            let val = self.listener.exit_aiter1(ctx);
+        fn exit_aiter1(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let star_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { star_it, b });
             self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exitloop_aiter1(&mut self) {
+            let SynValue::Aiter1(star_it) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_aiter1(star_it);
         }
     }
 
     // [wrapper source for rule RTS(22) #1, start A]
     // ------------------------------------------------------------
+
+    #[test]
+    fn test() {
+        println!("compiles");
+    }
 }
 
 // ================================================================================
@@ -733,9 +732,7 @@ pub(crate) mod rules_rts_22_2 {
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1_1,
-        /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1_2,
+        Aiter1,
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -793,8 +790,8 @@ pub(crate) mod rules_rts_22_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 |                                         // AIter1 -> <L> b AIter1
-                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
+                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
+                        2 => {}                                     // AIter1 -> <L> ε FIXME: exitloop?
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -851,17 +848,8 @@ pub(crate) mod rules_rts_22_2 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                1 => {
-                    CtxAiter1::Aiter1_1
-                }
-                2 => {
-                    CtxAiter1::Aiter1_2
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
-            };
-            self.listener.exit_aiter1(ctx);
+        fn exit_aiter1(&mut self) {
+            self.listener.exit_aiter1(CtxAiter1::Aiter1);
         }
     }
 
@@ -1267,9 +1255,7 @@ pub(crate) mod rules_rts_32_1 {
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | ...`
-        Aiter1_1 { star_it: SynAIter, b: String },
-        /// end of `(b <L>)*` iterations in `A -> a a  ► (b <L>)* ◄  c | ...`
-        Aiter1_2 { star_it: SynAIter },
+        Aiter1 { star_it: SynAIter, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -1301,6 +1287,7 @@ pub(crate) mod rules_rts_32_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_aiter1(&mut self) -> SynAIter;
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
+        fn exitloop_aiter1(&mut self, _star_it: &mut SynAIter) {}
     }
 
     pub struct Wrapper<T> {
@@ -1333,8 +1320,8 @@ pub(crate) mod rules_rts_32_1 {
                     match factor_id {
                         3 |                                         // A_1 -> a AIter1 c
                         4 => self.exit_a(factor_id),                // A_1 -> c AIter1 c
-                        1 |                                         // AIter1 -> <L> b AIter1
-                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
+                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
+                        2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                      /* 0 */                                        // A -> a A_1 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -1412,21 +1399,16 @@ pub(crate) mod rules_rts_32_1 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                1 => {
-                    let b = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_1 { star_it, b }
-                }
-                2 => {
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_2 { star_it }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
-            };
-            let val = self.listener.exit_aiter1(ctx);
+        fn exit_aiter1(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let star_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { star_it, b });
             self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exitloop_aiter1(&mut self) {
+            let SynValue::Aiter1(star_it) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_aiter1(star_it);
         }
     }
 
@@ -3479,16 +3461,12 @@ pub(crate) mod rules_rts_39_1 {
     #[derive(Debug)]
     pub enum CtxAiter2 {
         /// `(b <L>)*` iteration in `A -> a ( ► (b <L>)* ◄  c <L>)* d`
-        Aiter2_1 { star_it: SynAiter2, b: String },
-        /// end of `(b <L>)*` iterations in `A -> a ( ► (b <L>)* ◄  c <L>)* d`
-        Aiter2_2 { star_it: SynAiter2 },
+        Aiter2 { star_it: SynAiter2, b: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `((b <L>)* c <L>)*` iteration in `A -> a  ► ((b <L>)* c <L>)* ◄  d`
-        Aiter1_1 { star_it: SynAiter1, star: SynAiter2, c: String },
-        /// end of `((b <L>)* c <L>)*` iterations in `A -> a  ► ((b <L>)* c <L>)* ◄  d`
-        Aiter1_2 { star_it: SynAiter1 },
+        Aiter1 { star_it: SynAiter1, star: SynAiter2, c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3525,8 +3503,10 @@ pub(crate) mod rules_rts_39_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_aiter2(&mut self) -> SynAiter2;
         fn exit_aiter2(&mut self, _ctx: CtxAiter2) -> SynAiter2;
+        fn exitloop_aiter2(&mut self, _star_it: &mut SynAiter2) {}
         fn init_aiter1(&mut self) -> SynAiter1;
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAiter1;
+        fn exitloop_aiter1(&mut self, _star_it: &mut SynAiter1) {}
     }
 
     pub struct Wrapper<T> {
@@ -3558,10 +3538,10 @@ pub(crate) mod rules_rts_39_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a AIter1 d
-                        1 |                                         // AIter2 -> <L> b AIter2
-                        2 => self.exit_aiter2(factor_id),           // AIter2 -> <L> ε
-                        3 |                                         // AIter1 -> <L> AIter2 c AIter1
-                        4 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
+                        1 => self.exit_aiter2(),                    // AIter2 -> <L> b AIter2
+                        2 => self.exitloop_aiter2(),                // AIter2 -> <L> ε
+                        3 => self.exit_aiter1(),                    // AIter1 -> <L> AIter2 c AIter1
+                        4 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -3624,21 +3604,16 @@ pub(crate) mod rules_rts_39_1 {
             self.stack.push(SynValue::Aiter2(val));
         }
 
-        fn exit_aiter2(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                1 => {
-                    let b = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_aiter2();
-                    CtxAiter2::Aiter2_1 { star_it, b }
-                }
-                2 => {
-                    let star_it = self.stack.pop().unwrap().get_aiter2();
-                    CtxAiter2::Aiter2_2 { star_it }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter2")
-            };
-            let val = self.listener.exit_aiter2(ctx);
+        fn exit_aiter2(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let star_it = self.stack.pop().unwrap().get_aiter2();
+            let val = self.listener.exit_aiter2(CtxAiter2::Aiter2 { star_it, b });
             self.stack.push(SynValue::Aiter2(val));
+        }
+
+        fn exitloop_aiter2(&mut self) {
+            let SynValue::Aiter2(star_it) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_aiter2(star_it);
         }
 
         fn init_aiter1(&mut self) {
@@ -3646,22 +3621,17 @@ pub(crate) mod rules_rts_39_1 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                3 => {
-                    let c = self.stack_t.pop().unwrap();
-                    let star = self.stack.pop().unwrap().get_aiter2();
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_1 { star_it, star, c }
-                }
-                4 => {
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_2 { star_it }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
-            };
-            let val = self.listener.exit_aiter1(ctx);
+        fn exit_aiter1(&mut self) {
+            let c = self.stack_t.pop().unwrap();
+            let star = self.stack.pop().unwrap().get_aiter2();
+            let star_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { star_it, star, c });
             self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exitloop_aiter1(&mut self) {
+            let SynValue::Aiter1(star_it) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_aiter1(star_it);
         }
     }
 
@@ -3708,9 +3678,7 @@ pub(crate) mod rules_rts_40_1 {
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `(b <L>)*` iteration in `A -> a [ ► (b <L>)* ◄  c]* d`
-        Aiter1_1 { star_it: SynAiter1, b: String },
-        /// end of `(b <L>)*` iterations in `A -> a [ ► (b <L>)* ◄  c]* d`
-        Aiter1_2 { star_it: SynAiter1 },
+        Aiter1 { star_it: SynAiter1, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3751,6 +3719,7 @@ pub(crate) mod rules_rts_40_1 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_aiter1(&mut self) -> SynAiter1;
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAiter1;
+        fn exitloop_aiter1(&mut self, _star_it: &mut SynAiter1) {}
     }
 
     pub struct Wrapper<T> {
@@ -3782,8 +3751,8 @@ pub(crate) mod rules_rts_40_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a A_1 d
-                        1 |                                         // AIter1 -> <L> b AIter1
-                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
+                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
+                        2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                         3 => self.exit_a1(),                        // A_1 -> AIter1 c A_1
                         4 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -3848,21 +3817,16 @@ pub(crate) mod rules_rts_40_1 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                1 => {
-                    let b = self.stack_t.pop().unwrap();
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_1 { star_it, b }
-                }
-                2 => {
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_2 { star_it }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
-            };
-            let val = self.listener.exit_aiter1(ctx);
+        fn exit_aiter1(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let star_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { star_it, b });
             self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exitloop_aiter1(&mut self) {
+            let SynValue::Aiter1(star_it) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_aiter1(star_it);
         }
 
         fn init_a1(&mut self) {
@@ -4879,8 +4843,6 @@ pub(crate) mod rules_prs_31_1 {
         E1 { f: SynF },
         /// `E -> E . id`
         E2 { e: SynE, id: String },
-        /// end of iterations in E -> E . id
-        E3 { e: SynE },
     }
     #[derive(Debug)]
     pub enum CtxF {
@@ -4915,6 +4877,7 @@ pub(crate) mod rules_prs_31_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exitloop_e1(&mut self, _e: &mut SynE) {} // FIXME: exitloop_e?
         fn init_f(&mut self) {}
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
@@ -4948,8 +4911,8 @@ pub(crate) mod rules_prs_31_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.inter_e(),                        // E -> F E_1
-                        2 |                                         // E_1 -> . id E_1
-                        3 => self.exit_e1(factor_id),               // E_1 -> ε
+                        2 => self.exit_e1(),                        // E_1 -> . id E_1
+                        3 => self.exitloop_e1(),                    // E_1 -> ε
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -5006,21 +4969,16 @@ pub(crate) mod rules_prs_31_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                2 => {
-                    let id = self.stack_t.pop().unwrap();
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e, id }
-                }
-                3 => {
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
-            };
-            let val = self.listener.exit_e(ctx);
+        fn exit_e1(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let e = self.stack.pop().unwrap().get_e();
+            let val = self.listener.exit_e(CtxE::E2 { e, id });
             self.stack.push(SynValue::E(val));
+        }
+
+        fn exitloop_e1(&mut self) {
+            let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_e1(e);
         }
 
         fn exit_f(&mut self) {
@@ -5066,8 +5024,6 @@ pub(crate) mod rules_prs_31_2 {
         E1 { f: SynF },
         /// `E -> E . id`
         E2 { id: String },
-        /// end of iterations in E -> E . id
-        E3,
     }
     #[derive(Debug)]
     pub enum CtxF {
@@ -5134,8 +5090,8 @@ pub(crate) mod rules_prs_31_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.inter_e(),                        // E -> F E_1
-                        2 |                                         // E_1 -> . id E_1
-                        3 => self.exit_e1(factor_id),               // E_1 -> ε
+                        2 => self.exit_e1(),                        // E_1 -> . id E_1
+                        3 => {}                                     // E_1 -> ε FIXME: exitloop?
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -5186,18 +5142,9 @@ pub(crate) mod rules_prs_31_2 {
             self.listener.exit_e(CtxE::E1 { f });
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                2 => {
-                    let id = self.stack_t.pop().unwrap();
-                    CtxE::E2 { id }
-                }
-                3 => {
-                    CtxE::E3
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
-            };
-            self.listener.exit_e(ctx);
+        fn exit_e1(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            self.listener.exit_e(CtxE::E2 { id });
         }
 
         fn exit_f(&mut self) {
@@ -5247,8 +5194,6 @@ pub(crate) mod rules_prs_36_1 {
         E2 { num: String },
         /// `E -> E . id`
         E3 { e: SynE, id: String },
-        /// end of iterations in E -> E . id
-        E4 { e: SynE },
     }
     #[derive(Debug)]
     pub enum CtxF {
@@ -5283,6 +5228,7 @@ pub(crate) mod rules_prs_36_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exitloop_e1(&mut self, _e: &mut SynE) {}
         fn init_f(&mut self) {}
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
@@ -5317,8 +5263,8 @@ pub(crate) mod rules_prs_36_1 {
                     match factor_id {
                         0 |                                         // E -> F E_1
                         1 => self.inter_e(factor_id),               // E -> num E_1
-                        3 |                                         // E_1 -> . id E_1
-                        4 => self.exit_e1(factor_id),               // E_1 -> ε
+                        3 => self.exit_e1(),                        // E_1 -> . id E_1
+                        4 => self.exitloop_e1(),                    // E_1 -> ε
                         2 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -5385,21 +5331,16 @@ pub(crate) mod rules_prs_36_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                3 => {
-                    let id = self.stack_t.pop().unwrap();
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e, id }
-                }
-                4 => {
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
-            };
-            let val = self.listener.exit_e(ctx);
+        fn exit_e1(&mut self) {
+            let id = self.stack_t.pop().unwrap();
+            let e = self.stack.pop().unwrap().get_e();
+            let val = self.listener.exit_e(CtxE::E3 { e, id });
             self.stack.push(SynValue::E(val));
+        }
+
+        fn exitloop_e1(&mut self) {
+            let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_e1(e);
         }
 
         fn exit_f(&mut self) {
@@ -5446,401 +5387,10 @@ pub(crate) mod rules_prs_33_1 {
     pub enum CtxA {
         /// `A -> A a`
         A1 { a: SynA, a1: String },
-        /// end of iterations in A -> A a
-        A2 { a: SynA },
-        /// `A -> b c`
-        A3 { b: String, c: String },
-        /// `A -> b d`
-        A4 { b: String, d: String },
-    }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `A`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-
-    #[derive(Debug)]
-    enum SynValue { A(SynA) }
-
-    impl SynValue {
-        fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
-            val
-        }
-    }
-
-    pub trait TestListener {
-        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
-        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
-        fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-    }
-
-    pub struct Wrapper<T> {
-        verbose: bool,
-        listener: T,
-        stack: Vec<SynValue>,
-        max_stack: usize,
-        stack_t: Vec<String>,
-    }
-
-    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
-            if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
-            }
-            if let Some(mut t_data) = t_data {
-                self.stack_t.append(&mut t_data);
-            }
-            match call {
-                Call::Enter => {
-                    match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 | 2 => {}                                 // A_1, A_2
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
-                Call::Exit => {
-                    match factor_id {
-                        3 |                                         // A_2 -> c A_1
-                        4 => self.inter_a(factor_id),               // A_2 -> d A_1
-                        1 |                                         // A_1 -> a A_1
-                        2 => self.exit_a1(factor_id),               // A_1 -> ε
-                     /* 0 */                                        // A -> b A_2 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
-                    }
-                }
-                Call::End => {
-                    self.exit();
-                }
-            }
-            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-            }
-        }
-
-        fn check_abort_request(&self) -> bool {
-            self.listener.check_abort_request()
-        }
-
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
-        }
-    }
-
-    impl<T: TestListener> Wrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn get_listener(&self) -> &T {
-            &self.listener
-        }
-
-        pub fn get_mut_listener(&mut self) -> &mut T {
-            &mut self.listener
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-
-        pub fn set_verbose(&mut self, verbose: bool) {
-            self.verbose = verbose;
-        }
-
-        fn exit(&mut self) {
-            let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
-        }
-
-        fn inter_a(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                3 => {
-                    let c = self.stack_t.pop().unwrap();
-                    let b = self.stack_t.pop().unwrap();
-                    CtxA::A3 { b, c }
-                }
-                4 => {
-                    let d = self.stack_t.pop().unwrap();
-                    let b = self.stack_t.pop().unwrap();
-                    CtxA::A4 { b, d }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn inter_a")
-            };
-            let val = self.listener.exit_a(ctx);
-            self.stack.push(SynValue::A(val));
-        }
-
-        fn exit_a1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                1 => {
-                    let a1 = self.stack_t.pop().unwrap();
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A1 { a, a1 }
-                }
-                2 => {
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A2 { a }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
-            };
-            let val = self.listener.exit_a(ctx);
-            self.stack.push(SynValue::A(val));
-        }
-    }
-
-    // [wrapper source for rule PRS(33) #1, start A]
-    // ------------------------------------------------------------
-}
-
-// ================================================================================
-// Test 29: rules PRS(38) #1, start 0:
-/*
-before, NT with value: A
-after,  NT with value: A
-            // NT flags:
-            //  - A: parent_left_fact | parent_left_rec (544)
-            //  - A_1: child_left_rec (4)
-            //  - A_2: child_left_fact (64)
-            // parents:
-            //  - A_1 -> A
-            //  - A_2 -> A
-            (PRS(38), 0, btreemap![
-                0 => "SynA".to_string(),
-            ], btreemap![
-                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
-                1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
-                2 => symbols![nt 0, t 1],               //  2: A_1 -> b A_1 | ●A_1 ◄2 b! | A b
-                3 => symbols![nt 0],                    //  3: A_1 -> ε     | ◄3         | A
-                4 => symbols![t 1, t 2],                //  4: A_2 -> c A_1 | ►A_1 ◄4 c! | b c
-                5 => symbols![t 1, t 3],                //  5: A_2 -> d A_1 | ►A_1 ◄5 d! | b d
-            ], Default, btreemap![0 => vec![4, 5]]),
-*/
-pub(crate) mod rules_prs_38_1 {
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(38) #1, start A]
-
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_prs_38_1::*;
-
-    #[derive(Debug)]
-    pub enum CtxA {
-        /// `A -> A a`
-        A1 { a: SynA, a1: String },
-        /// `A -> A b`
-        A2 { a: SynA, b: String },
-        /// end of iterations in A -> A a | A b
-        A3 { a: SynA },
-        /// `A -> b c`
-        A4 { b: String, c: String },
-        /// `A -> b d`
-        A5 { b: String, d: String },
-    }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `A`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-
-    #[derive(Debug)]
-    enum SynValue { A(SynA) }
-
-    impl SynValue {
-        fn get_a(self) -> SynA {
-            let SynValue::A(val) = self;
-            val
-        }
-    }
-
-    pub trait TestListener {
-        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
-        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
-        fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-    }
-
-    pub struct Wrapper<T> {
-        verbose: bool,
-        listener: T,
-        stack: Vec<SynValue>,
-        max_stack: usize,
-        stack_t: Vec<String>,
-    }
-
-    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
-            if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
-            }
-            if let Some(mut t_data) = t_data {
-                self.stack_t.append(&mut t_data);
-            }
-            match call {
-                Call::Enter => {
-                    match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 | 2 => {}                                 // A_1, A_2
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
-                Call::Exit => {
-                    match factor_id {
-                        4 |                                         // A_2 -> c A_1
-                        5 => self.inter_a(factor_id),               // A_2 -> d A_1
-                        1 |                                         // A_1 -> a A_1
-                        2 |                                         // A_1 -> b A_1
-                        3 => self.exit_a1(factor_id),               // A_1 -> ε
-                     /* 0 */                                        // A -> b A_2 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
-                    }
-                }
-                Call::End => {
-                    self.exit();
-                }
-            }
-            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-            }
-        }
-
-        fn check_abort_request(&self) -> bool {
-            self.listener.check_abort_request()
-        }
-
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
-        }
-    }
-
-    impl<T: TestListener> Wrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn get_listener(&self) -> &T {
-            &self.listener
-        }
-
-        pub fn get_mut_listener(&mut self) -> &mut T {
-            &mut self.listener
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-
-        pub fn set_verbose(&mut self, verbose: bool) {
-            self.verbose = verbose;
-        }
-
-        fn exit(&mut self) {
-            let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
-        }
-
-        fn inter_a(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                4 => {
-                    let c = self.stack_t.pop().unwrap();
-                    let b = self.stack_t.pop().unwrap();
-                    CtxA::A4 { b, c }
-                }
-                5 => {
-                    let d = self.stack_t.pop().unwrap();
-                    let b = self.stack_t.pop().unwrap();
-                    CtxA::A5 { b, d }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn inter_a")
-            };
-            let val = self.listener.exit_a(ctx);
-            self.stack.push(SynValue::A(val));
-        }
-
-        fn exit_a1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                1 => {
-                    let a1 = self.stack_t.pop().unwrap();
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A1 { a, a1 }
-                }
-                2 => {
-                    let b = self.stack_t.pop().unwrap();
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A2 { a, b }
-                }
-                3 => {
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A3 { a }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
-            };
-            let val = self.listener.exit_a(ctx);
-            self.stack.push(SynValue::A(val));
-        }
-    }
-
-    // [wrapper source for rule PRS(38) #1, start A]
-    // ------------------------------------------------------------
-}
-
-// ================================================================================
-// Test 30: rules PRS(39) #1, start 0:
-/*
-before, NT with value: A
-after,  NT with value: A
-            // NT flags:
-            //  - A: parent_left_fact | parent_left_rec (544)
-            //  - A_1: child_left_rec | parent_left_fact (36)
-            //  - A_2: child_left_fact (64)
-            //  - A_3: child_left_fact (64)
-            // parents:
-            //  - A_1 -> A
-            //  - A_2 -> A
-            //  - A_3 -> A_1
-            (PRS(39), 0, btreemap![
-                0 => "SynA".to_string(),
-            ], btreemap![
-                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
-                1 => symbols![],                        //  1: A_1 -> a A_3 | ►A_3 a!    |
-                2 => symbols![nt 0],                    //  2: A_1 -> ε     | ◄2         | A
-                3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
-                4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
-                5 => symbols![nt 0, t 0, t 1],          //  5: A_3 -> b A_1 | ●A_1 ◄5 b! | A a b
-                6 => symbols![nt 0, t 0, t 2],          //  6: A_3 -> c A_1 | ●A_1 ◄6 c! | A a c
-            ], Default, btreemap![0 => vec![3, 4]]),
-*/
-pub(crate) mod rules_prs_39_1 {
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(39) #1, start A]
-
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_prs_39_1::*;
-
-    #[derive(Debug)]
-    pub enum CtxA {
-        /// end of iterations in A -> A a b | A a c
-        A1 { a: SynA },
         /// `A -> b c`
         A2 { b: String, c: String },
         /// `A -> b d`
         A3 { b: String, d: String },
-        /// `A -> A a b`
-        A4 { a: SynA, a1: String, b: String },
-        /// `A -> A a c`
-        A5 { a: SynA, a1: String, c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -5866,6 +5416,7 @@ pub(crate) mod rules_prs_39_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exitloop_a1(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -5888,7 +5439,7 @@ pub(crate) mod rules_prs_39_1 {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_a(),                // A
-                        1 ..= 3 => {}                               // A_1, A_2, A_3
+                        1 | 2 => {}                                 // A_1, A_2
                         _ => panic!("unexpected enter non-terminal id: {nt}")
                     }
                 }
@@ -5897,11 +5448,9 @@ pub(crate) mod rules_prs_39_1 {
                     match factor_id {
                         3 |                                         // A_2 -> c A_1
                         4 => self.inter_a(factor_id),               // A_2 -> d A_1
-                        2 |                                         // A_1 -> ε
-                        5 |                                         // A_3 -> b A_1
-                        6 => self.exit_a1(factor_id),               // A_3 -> c A_1
+                        1 => self.exit_a1(),                        // A_1 -> a A_1
+                        2 => self.exitloop_a1(),                    // A_1 -> ε
                      /* 0 */                                        // A -> b A_2 (never called)
-                     /* 1 */                                        // A_1 -> a A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -5969,28 +5518,414 @@ pub(crate) mod rules_prs_39_1 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self) {
+            let a1 = self.stack_t.pop().unwrap();
+            let a = self.stack.pop().unwrap().get_a();
+            let val = self.listener.exit_a(CtxA::A1 { a, a1 });
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn exitloop_a1(&mut self) {
+            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_a1(a);
+        }
+    }
+
+    // [wrapper source for rule PRS(33) #1, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 29: rules PRS(38) #1, start 0:
+/*
+before, NT with value: A
+after,  NT with value: A
+            // NT flags:
+            //  - A: parent_left_fact | parent_left_rec (544)
+            //  - A_1: child_left_rec (4)
+            //  - A_2: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            (PRS(38), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![
+                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
+                1 => symbols![nt 0, t 0],               //  1: A_1 -> a A_1 | ●A_1 ◄1 a! | A a
+                2 => symbols![nt 0, t 1],               //  2: A_1 -> b A_1 | ●A_1 ◄2 b! | A b
+                3 => symbols![nt 0],                    //  3: A_1 -> ε     | ◄3         | A
+                4 => symbols![t 1, t 2],                //  4: A_2 -> c A_1 | ►A_1 ◄4 c! | b c
+                5 => symbols![t 1, t 3],                //  5: A_2 -> d A_1 | ►A_1 ◄5 d! | b d
+            ], Default, btreemap![0 => vec![4, 5]]),
+*/
+pub(crate) mod rules_prs_38_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(38) #1, start A]
+
+    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_prs_38_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> A a`
+        A1 { a: SynA, a1: String },
+        /// `A -> A b`
+        A2 { a: SynA, b: String },
+        /// `A -> b c`
+        A3 { b: String, c: String },
+        /// `A -> b d`
+        A4 { b: String, d: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `A`
+    // #[derive(Debug, PartialEq)] pub struct SynA();
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            let SynValue::A(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _a: SynA) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exitloop_a1(&mut self, _a: &mut SynA) {}
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 | 2 => {}                                 // A_1, A_2
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        4 |                                         // A_2 -> c A_1
+                        5 => self.inter_a(factor_id),               // A_2 -> d A_1
+                        1 |                                         // A_1 -> a A_1
+                        2 => self.exit_a1(factor_id),               // A_1 -> b A_1
+                        3 => self.exitloop_a1(),                    // A_1 -> ε
+                     /* 0 */                                        // A -> b A_2 (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(a);
+        }
+
+        fn inter_a(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                2 => {
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A1 { a }
+                4 => {
+                    let c = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    CtxA::A3 { b, c }
                 }
                 5 => {
+                    let d = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    let a1 = self.stack_t.pop().unwrap();
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A4 { a, a1, b }
+                    CtxA::A4 { b, d }
                 }
-                6 => {
-                    let c = self.stack_t.pop().unwrap();
+                _ => panic!("unexpected factor id {factor_id} in fn inter_a")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn exit_a1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A5 { a, a1, c }
+                    CtxA::A1 { a, a1 }
+                }
+                2 => {
+                    let b = self.stack_t.pop().unwrap();
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A2 { a, b }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
+        }
+
+        fn exitloop_a1(&mut self) {
+            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_a1(a);
+        }
+    }
+
+    // [wrapper source for rule PRS(38) #1, start A]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+// Test 30: rules PRS(39) #1, start 0:
+/*
+before, NT with value: A
+after,  NT with value: A
+            // NT flags:
+            //  - A: parent_left_fact | parent_left_rec (544)
+            //  - A_1: child_left_rec | parent_left_fact (36)
+            //  - A_2: child_left_fact (64)
+            //  - A_3: child_left_fact (64)
+            // parents:
+            //  - A_1 -> A
+            //  - A_2 -> A
+            //  - A_3 -> A_1
+            (PRS(39), 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![
+                0 => symbols![],                        //  0: A -> b A_2   | ►A_2 b!    |
+                1 => symbols![],                        //  1: A_1 -> a A_3 | ►A_3 a!    |
+                2 => symbols![nt 0],                    //  2: A_1 -> ε     | ◄2         | A
+                3 => symbols![t 1, t 2],                //  3: A_2 -> c A_1 | ►A_1 ◄3 c! | b c
+                4 => symbols![t 1, t 3],                //  4: A_2 -> d A_1 | ►A_1 ◄4 d! | b d
+                5 => symbols![nt 0, t 0, t 1],          //  5: A_3 -> b A_1 | ●A_1 ◄5 b! | A a b
+                6 => symbols![nt 0, t 0, t 2],          //  6: A_3 -> c A_1 | ●A_1 ◄6 c! | A a c
+            ], Default, btreemap![0 => vec![3, 4]]),
+*/
+pub(crate) mod rules_prs_39_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule PRS(39) #1, start A]
+
+    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_prs_39_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `A -> b c`
+        A1 { b: String, c: String },
+        /// `A -> b d`
+        A2 { b: String, d: String },
+        /// `A -> A a b`
+        A3 { a: SynA, a1: String, b: String },
+        /// `A -> A a c`
+        A4 { a: SynA, a1: String, c: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `A`
+    // #[derive(Debug, PartialEq)] pub struct SynA();
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            let SynValue::A(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _a: SynA) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exitloop_a1(&mut self, _a: &mut SynA) {}
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // A
+                        1 ..= 3 => {}                               // A_1, A_2, A_3
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        3 |                                         // A_2 -> c A_1
+                        4 => self.inter_a(factor_id),               // A_2 -> d A_1
+                        5 |                                         // A_3 -> b A_1
+                        6 => self.exit_a1(factor_id),               // A_3 -> c A_1
+                        2 => self.exitloop_a1(),                    // A_1 -> ε
+                     /* 0 */                                        // A -> b A_2 (never called)
+                     /* 1 */                                        // A_1 -> a A_3 (never called)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(a);
+        }
+
+        fn inter_a(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                3 => {
+                    let c = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    CtxA::A1 { b, c }
+                }
+                4 => {
+                    let d = self.stack_t.pop().unwrap();
+                    let b = self.stack_t.pop().unwrap();
+                    CtxA::A2 { b, d }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn inter_a")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn exit_a1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                5 => {
+                    let b = self.stack_t.pop().unwrap();
+                    let a1 = self.stack_t.pop().unwrap();
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A3 { a, a1, b }
+                }
+                6 => {
+                    let c = self.stack_t.pop().unwrap();
+                    let a1 = self.stack_t.pop().unwrap();
+                    let a = self.stack.pop().unwrap().get_a();
+                    CtxA::A4 { a, a1, c }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+            };
+            let val = self.listener.exit_a(ctx);
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn exitloop_a1(&mut self) {
+            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_a1(a);
         }
     }
 
@@ -6033,12 +5968,10 @@ pub(crate) mod rules_prs_32_1 {
     pub enum CtxE {
         /// `E -> F`
         E1 { f: SynF },
-        /// end of iterations in E -> E . id ( ) | E . id
-        E2 { e: SynE },
         /// `E -> E . id ( )`
-        E3 { e: SynE, id: String },
+        E2 { e: SynE, id: String },
         /// `E -> E . id`
-        E4 { e: SynE, id: String },
+        E3 { e: SynE, id: String },
     }
     #[derive(Debug)]
     pub enum CtxF {
@@ -6073,6 +6006,7 @@ pub(crate) mod rules_prs_32_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exitloop_e1(&mut self, _e: &mut SynE) {}
         fn init_f(&mut self) {}
         fn exit_f(&mut self, _ctx: CtxF) -> SynF;
     }
@@ -6106,9 +6040,9 @@ pub(crate) mod rules_prs_32_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.inter_e(),                        // E -> F E_1
-                        3 |                                         // E_1 -> ε
                         4 |                                         // E_2 -> ( ) E_1
                         5 => self.exit_e1(factor_id),               // E_2 -> E_1
+                        3 => self.exitloop_e1(),                    // E_1 -> ε
                      /* 2 */                                        // E_1 -> . id E_2 (never called)
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -6168,24 +6102,25 @@ pub(crate) mod rules_prs_32_1 {
 
         fn exit_e1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                3 => {
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E2 { e }
-                }
                 4 => {
                     let id = self.stack_t.pop().unwrap();
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e, id }
+                    CtxE::E2 { e, id }
                 }
                 5 => {
                     let id = self.stack_t.pop().unwrap();
                     let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e, id }
+                    CtxE::E3 { e, id }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
+        }
+
+        fn exitloop_e1(&mut self) {
+            let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_e1(e);
         }
 
         fn exit_f(&mut self) {
@@ -6237,16 +6172,14 @@ pub(crate) mod rules_rts_38_1 {
     pub enum CtxA {
         /// `A -> d`
         A1 { d: String },
-        /// end of iterations in A -> A a c | A a | A b c | A b
-        A2 { a: SynA },
         /// `A -> A a c`
-        A3 { a: SynA, a1: String, c: String },
+        A2 { a: SynA, a1: String, c: String },
         /// `A -> A a`
-        A4 { a: SynA, a1: String },
+        A3 { a: SynA, a1: String },
         /// `A -> A b c`
-        A5 { a: SynA, b: String, c: String },
+        A4 { a: SynA, b: String, c: String },
         /// `A -> A b`
-        A6 { a: SynA, b: String },
+        A5 { a: SynA, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6272,6 +6205,7 @@ pub(crate) mod rules_rts_38_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exitloop_a1(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -6302,11 +6236,11 @@ pub(crate) mod rules_rts_38_1 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.inter_a(),                        // A -> d A_1
-                        3 |                                         // A_1 -> ε
                         4 |                                         // A_2 -> c A_1
                         5 |                                         // A_2 -> A_1
                         6 |                                         // A_3 -> c A_1
                         7 => self.exit_a1(factor_id),               // A_3 -> A_1
+                        3 => self.exitloop_a1(),                    // A_1 -> ε
                      /* 1 */                                        // A_1 -> a A_2 (never called)
                      /* 2 */                                        // A_1 -> b A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -6366,36 +6300,37 @@ pub(crate) mod rules_rts_38_1 {
 
         fn exit_a1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                3 => {
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A2 { a }
-                }
                 4 => {
                     let c = self.stack_t.pop().unwrap();
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A3 { a, a1, c }
+                    CtxA::A2 { a, a1, c }
                 }
                 5 => {
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A4 { a, a1 }
+                    CtxA::A3 { a, a1 }
                 }
                 6 => {
                     let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A5 { a, b, c }
+                    CtxA::A4 { a, b, c }
                 }
                 7 => {
                     let b = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A6 { a, b }
+                    CtxA::A5 { a, b }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
+        }
+
+        fn exitloop_a1(&mut self) {
+            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_a1(a);
         }
     }
 
@@ -6441,16 +6376,14 @@ pub(crate) mod rules_rts_38_2 {
     pub enum CtxA {
         /// `A -> d`
         A1 { d: String },
-        /// end of iterations in A -> A a c | A a | A b c | A b
-        A2 { a: SynA },
         /// `A -> A a c`
-        A3 { a: SynA },
+        A2 { a: SynA },
         /// `A -> A a`
-        A4 { a: SynA },
+        A3 { a: SynA },
         /// `A -> A b c`
-        A5 { a: SynA },
+        A4 { a: SynA },
         /// `A -> A b`
-        A6 { a: SynA },
+        A5 { a: SynA },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6476,6 +6409,7 @@ pub(crate) mod rules_rts_38_2 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exitloop_a1(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -6506,11 +6440,11 @@ pub(crate) mod rules_rts_38_2 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.inter_a(),                        // A -> d A_1
-                        3 |                                         // A_1 -> ε
                         4 |                                         // A_2 -> c A_1
                         5 |                                         // A_2 -> A_1
                         6 |                                         // A_3 -> c A_1
                         7 => self.exit_a1(factor_id),               // A_3 -> A_1
+                        3 => self.exitloop_a1(),                    // A_1 -> ε
                      /* 1 */                                        // A_1 -> a A_2 (never called)
                      /* 2 */                                        // A_1 -> b A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
@@ -6570,30 +6504,31 @@ pub(crate) mod rules_rts_38_2 {
 
         fn exit_a1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                3 => {
+                4 => {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A2 { a }
                 }
-                4 => {
+                5 => {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A3 { a }
                 }
-                5 => {
+                6 => {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A4 { a }
                 }
-                6 => {
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A5 { a }
-                }
                 7 => {
                     let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A6 { a }
+                    CtxA::A5 { a }
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
+        }
+
+        fn exitloop_a1(&mut self) {
+            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_a1(a);
         }
     }
 
@@ -6637,16 +6572,14 @@ pub(crate) mod rules_rts_38_3 {
     pub enum CtxA {
         /// `A -> d`
         A1,
-        /// end of iterations in A -> A a c | A a | A b c | A b
-        A2,
         /// `A -> A a c`
-        A3,
+        A2,
         /// `A -> A a`
-        A4,
+        A3,
         /// `A -> A b c`
-        A5,
+        A4,
         /// `A -> A b`
-        A6,
+        A5,
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -6696,13 +6629,13 @@ pub(crate) mod rules_rts_38_3 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.inter_a(),                        // A -> d A_1
-                        3 |                                         // A_1 -> ε
                         4 |                                         // A_2 -> c A_1
                         5 |                                         // A_2 -> A_1
                         6 |                                         // A_3 -> c A_1
                         7 => self.exit_a1(factor_id),               // A_3 -> A_1
                      /* 1 */                                        // A_1 -> a A_2 (never called)
                      /* 2 */                                        // A_1 -> b A_3 (never called)
+                        3 => {}                                     // A_1 -> ε (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -6753,20 +6686,17 @@ pub(crate) mod rules_rts_38_3 {
 
         fn exit_a1(&mut self, factor_id: FactorId) {
             let ctx = match factor_id {
-                3 => {
+                4 => {
                     CtxA::A2
                 }
-                4 => {
+                5 => {
                     CtxA::A3
                 }
-                5 => {
+                6 => {
                     CtxA::A4
                 }
-                6 => {
-                    CtxA::A5
-                }
                 7 => {
-                    CtxA::A6
+                    CtxA::A5
                 }
                 _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
             };
@@ -8187,8 +8117,6 @@ pub(crate) mod rules_rts_26_1 {
         A1 { a: String },
         /// `A -> A [c]* b`
         A2 { a: SynA, star: SynA1, b: String },
-        /// end of iterations in A -> A [c]* b
-        A3 { a: SynA },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -8219,6 +8147,7 @@ pub(crate) mod rules_rts_26_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exitloop_a2(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -8252,8 +8181,8 @@ pub(crate) mod rules_rts_26_1 {
                         0 => self.inter_a(),                        // A -> a A_2
                         1 => self.exit_a1(),                        // A_1 -> c A_1
                         2 => {}                                     // A_1 -> ε
-                        3 |                                         // A_2 -> A_1 b A_2
-                        4 => self.exit_a2(factor_id),               // A_2 -> ε
+                        3 => self.exit_a2(),                        // A_2 -> A_1 b A_2
+                        4 => self.exitloop_a2(),                    // A_2 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -8321,22 +8250,17 @@ pub(crate) mod rules_rts_26_1 {
             self.stack.push(SynValue::A1(star_it));
         }
 
-        fn exit_a2(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                3 => {
-                    let b = self.stack_t.pop().unwrap();
-                    let star = self.stack.pop().unwrap().get_a1();
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A2 { a, star, b }
-                }
-                4 => {
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A3 { a }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a2")
-            };
-            let val = self.listener.exit_a(ctx);
+        fn exit_a2(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let star = self.stack.pop().unwrap().get_a1();
+            let a = self.stack.pop().unwrap().get_a();
+            let val = self.listener.exit_a(CtxA::A2 { a, star, b });
             self.stack.push(SynValue::A(val));
+        }
+
+        fn exitloop_a2(&mut self) {
+            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_a2(a);
         }
     }
 
@@ -8383,8 +8307,6 @@ pub(crate) mod rules_rts_16_1 {
         A1 { a: String },
         /// `A -> A [c]+ b`
         A2 { a: SynA, plus: SynA1, b: String },
-        /// end of iterations in A -> A [c]+ b
-        A3 { a: SynA },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -8415,6 +8337,7 @@ pub(crate) mod rules_rts_16_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+        fn exitloop_a2(&mut self, _a: &mut SynA) {}
     }
 
     pub struct Wrapper<T> {
@@ -8448,8 +8371,8 @@ pub(crate) mod rules_rts_16_1 {
                         0 => self.inter_a(),                        // A -> a A_2
                         4 |                                         // A_3 -> A_1
                         5 => self.exit_a1(),                        // A_3 -> ε
-                        2 |                                         // A_2 -> A_1 b A_2
-                        3 => self.exit_a2(factor_id),               // A_2 -> ε
+                        2 => self.exit_a2(),                        // A_2 -> A_1 b A_2
+                        3 => self.exitloop_a2(),                    // A_2 -> ε
                      /* 1 */                                        // A_1 -> c A_3 (never called)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
@@ -8518,22 +8441,17 @@ pub(crate) mod rules_rts_16_1 {
             self.stack.push(SynValue::A1(plus_it));
         }
 
-        fn exit_a2(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                2 => {
-                    let b = self.stack_t.pop().unwrap();
-                    let plus = self.stack.pop().unwrap().get_a1();
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A2 { a, plus, b }
-                }
-                3 => {
-                    let a = self.stack.pop().unwrap().get_a();
-                    CtxA::A3 { a }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a2")
-            };
-            let val = self.listener.exit_a(ctx);
+        fn exit_a2(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let plus = self.stack.pop().unwrap().get_a1();
+            let a = self.stack.pop().unwrap().get_a();
+            let val = self.listener.exit_a(CtxA::A2 { a, plus, b });
             self.stack.push(SynValue::A(val));
+        }
+
+        fn exitloop_a2(&mut self) {
+            let SynValue::A(a) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_a2(a);
         }
     }
 
@@ -8964,8 +8882,6 @@ pub(crate) mod rules_prs_58_1 {
         E2,
         /// `E -> E +`
         E3 { e: SynE },
-        /// end of iterations in E -> E +
-        E4 { e: SynE },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -8991,6 +8907,7 @@ pub(crate) mod rules_prs_58_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) {}
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exitloop_e1(&mut self, _e: &mut SynE) {}
     }
 
     pub struct Wrapper<T> {
@@ -9022,8 +8939,8 @@ pub(crate) mod rules_prs_58_1 {
                     match factor_id {
                         0 |                                         // E -> - E
                         1 => self.inter_e(factor_id),               // E -> 0 E_1
-                        2 |                                         // E_1 -> + E_1
-                        3 => self.exit_e1(factor_id),               // E_1 -> ε
+                        2 => self.exit_e1(),                        // E_1 -> + E_1
+                        3 => self.exitloop_e1(),                    // E_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -9088,20 +9005,15 @@ pub(crate) mod rules_prs_58_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                2 => {
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
-                }
-                3 => {
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
-            };
-            let val = self.listener.exit_e(ctx);
+        fn exit_e1(&mut self) {
+            let e = self.stack.pop().unwrap().get_e();
+            let val = self.listener.exit_e(CtxE::E3 { e });
             self.stack.push(SynValue::E(val));
+        }
+
+        fn exitloop_e1(&mut self) {
+            let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_e1(e);
         }
     }
 
@@ -9156,7 +9068,7 @@ pub(crate) mod rules_prs_58_1 {
                     // E -> E +
                     CtxE::E3 { e: SynE(ls) } => ls_suffix_op("+", ls),
                     // end of iterations in E -> E +
-                    CtxE::E4 { e: SynE(ls) } => ls,
+                    // CtxE::E4 { e: SynE(ls) } => ls,
                 })
             }
         }
@@ -9240,8 +9152,6 @@ pub(crate) mod rules_prs_60_1 {
         E2 { e: SynE },
         /// `E -> E +`
         E3 { e: SynE },
-        /// end of iterations in E -> E +
-        E4 { e: SynE },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -9267,6 +9177,7 @@ pub(crate) mod rules_prs_60_1 {
         fn exit(&mut self, _e: SynE) {}
         fn init_e(&mut self) -> SynE;
         fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+        fn exitloop_e1(&mut self, _e: &mut SynE) {}
     }
 
     pub struct Wrapper<T> {
@@ -9298,8 +9209,8 @@ pub(crate) mod rules_prs_60_1 {
                     match factor_id {
                         0 |                                         // E -> <L> - E
                         1 => self.inter_e(factor_id),               // E -> <L> 0 E_1
-                        2 |                                         // E_1 -> + E_1
-                        3 => self.exit_e1(factor_id),               // E_1 -> ε
+                        2 => self.exit_e1(),                        // E_1 -> + E_1
+                        3 => self.exitloop_e1(),                    // E_1 -> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -9370,20 +9281,15 @@ pub(crate) mod rules_prs_60_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                2 => {
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E3 { e }
-                }
-                3 => {
-                    let e = self.stack.pop().unwrap().get_e();
-                    CtxE::E4 { e }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
-            };
-            let val = self.listener.exit_e(ctx);
+        fn exit_e1(&mut self) {
+            let e = self.stack.pop().unwrap().get_e();
+            let val = self.listener.exit_e(CtxE::E3 { e });
             self.stack.push(SynValue::E(val));
+        }
+
+        fn exitloop_e1(&mut self) {
+            let SynValue::E(e) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_e1(e);
         }
     }
 
@@ -9439,7 +9345,7 @@ pub(crate) mod rules_prs_60_1 {
                     // E -> E +
                     CtxE::E3 { e: SynE(ls) } => ls_suffix_op("+", ls),
                     // end of iterations in E -> E +
-                    CtxE::E4 { e: SynE(ls) } => ls,
+                    // CtxE::E4 { e: SynE(ls) } => ls,
                 })
             }
         }
