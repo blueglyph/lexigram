@@ -791,7 +791,7 @@ pub(crate) mod rules_rts_22_2 {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
-                        2 => {}                                     // AIter1 -> <L> ε FIXME: exitloop?
+                        2 => {}                                     // AIter1 -> <L> ε (not used)
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -5091,7 +5091,7 @@ pub(crate) mod rules_prs_31_2 {
                     match factor_id {
                         0 => self.inter_e(),                        // E -> F E_1
                         2 => self.exit_e1(),                        // E_1 -> . id E_1
-                        3 => {}                                     // E_1 -> ε FIXME: exitloop?
+                        3 => {}                                     // E_1 -> ε (not used)
                         1 => self.exit_f(),                         // F -> id
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
