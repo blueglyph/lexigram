@@ -280,7 +280,6 @@ impl GramParserListener for GramListener {
                     tree.addci_iter(None, GrNode::Or, [prod.0, prod_factor.0])
                 }
             }
-            CtxProd::Prod3 { prod } => prod.0,                          // end of iterations
         };
         SynProd(id)
     }

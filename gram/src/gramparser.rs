@@ -53,8 +53,6 @@ pub(crate) mod gramparser {
         Rules1 { rule: SynRule },
         /// `rules -> rules rule`
         Rules2 { rules: SynRules, rule: SynRule },
-        /// end of iterations in rules -> rules rule
-        Rules3 { rules: SynRules },
     }
     #[derive(Debug)]
     pub enum CtxRule {
@@ -74,8 +72,6 @@ pub(crate) mod gramparser {
         Prod1 { prod_factor: SynProdFactor },
         /// `prod -> prod | prod_factor`
         Prod2 { prod: SynProd, prod_factor: SynProdFactor },
-        /// end of iterations in prod -> prod | prod_factor
-        Prod3 { prod: SynProd },
     }
     #[derive(Debug)]
     pub enum CtxProdFactor {
@@ -177,12 +173,14 @@ pub(crate) mod gramparser {
         fn exit_header(&mut self, _ctx: CtxHeader) -> SynHeader;
         fn init_rules(&mut self) {}
         fn exit_rules(&mut self, _ctx: CtxRules) -> SynRules;
+        fn exitloop_rules(&mut self, _rules: &mut SynRules) {}
         fn init_rule(&mut self) {}
         fn exit_rule(&mut self, _ctx: CtxRule) -> SynRule;
         fn init_rule_name(&mut self) {}
         fn exit_rule_name(&mut self, _ctx: CtxRuleName) -> SynRuleName;
         fn init_prod(&mut self) {}
         fn exit_prod(&mut self, _ctx: CtxProd) -> SynProd;
+        fn exitloop_prod(&mut self, _prod: &mut SynProd) {}
         fn init_prod_factor(&mut self) {}
         fn exit_prod_factor(&mut self, _ctx: CtxProdFactor) -> SynProdFactor;
         fn init_prod_term(&mut self) {}
@@ -233,15 +231,15 @@ pub(crate) mod gramparser {
                         0 => self.exit_file(),                      // file -> header rules
                         1 => self.exit_header(),                    // header -> grammar Id ;
                         2 => self.inter_rules(),                    // rules -> rule rules_1
-                        14 |                                        // rules_1 -> rule rules_1
-                        15 => self.exit_rules1(factor_id),          // rules_1 -> ε
+                        14 => self.exit_rules1(),                   // rules_1 -> rule rules_1
+                        15 => self.exitloop_rules1(),               // rules_1 -> ε
                         18 |                                        // rule_1 -> ;
                         19 => self.exit_rule(factor_id),            // rule_1 -> EOF ;
                      /* 3 */                                        // rule -> rule_name : prod rule_1 (never called)
                         4 => self.exit_rule_name(),                 // rule_name -> Id
                         5 => self.inter_prod(),                     // prod -> prod_factor prod_1
-                        16 |                                        // prod_1 -> | prod_factor prod_1
-                        17 => self.exit_prod1(factor_id),           // prod_1 -> ε
+                        16 => self.exit_prod1(),                    // prod_1 -> | prod_factor prod_1
+                        17 => self.exitloop_prod1(),                // prod_1 -> ε
                         6 => self.exit_prod_factor(),               // prod_factor -> prod_factor_1
                         12 => self.exit_prod_factor1(),             // prod_factor_1 -> prod_term prod_factor_1
                         13 => {}                                    // prod_factor_1 -> ε
@@ -322,21 +320,16 @@ pub(crate) mod gramparser {
             self.stack.push(SynValue::Rules(val));
         }
 
-        fn exit_rules1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                14 => {
-                    let rule = self.stack.pop().unwrap().get_rule();
-                    let rules = self.stack.pop().unwrap().get_rules();
-                    CtxRules::Rules2 { rules, rule }
-                }
-                15 => {
-                    let rules = self.stack.pop().unwrap().get_rules();
-                    CtxRules::Rules3 { rules }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_rules1")
-            };
-            let val = self.listener.exit_rules(ctx);
+        fn exit_rules1(&mut self) {
+            let rule = self.stack.pop().unwrap().get_rule();
+            let rules = self.stack.pop().unwrap().get_rules();
+            let val = self.listener.exit_rules(CtxRules::Rules2 { rules, rule });
             self.stack.push(SynValue::Rules(val));
+        }
+
+        fn exitloop_rules1(&mut self) {
+            let SynValue::Rules(rules) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_rules(rules);
         }
 
         fn exit_rule(&mut self, factor_id: FactorId) {
@@ -369,21 +362,16 @@ pub(crate) mod gramparser {
             self.stack.push(SynValue::Prod(val));
         }
 
-        fn exit_prod1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                16 => {
-                    let prod_factor = self.stack.pop().unwrap().get_prod_factor();
-                    let prod = self.stack.pop().unwrap().get_prod();
-                    CtxProd::Prod2 { prod, prod_factor }
-                }
-                17 => {
-                    let prod = self.stack.pop().unwrap().get_prod();
-                    CtxProd::Prod3 { prod }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_prod1")
-            };
-            let val = self.listener.exit_prod(ctx);
+        fn exit_prod1(&mut self) {
+            let prod_factor = self.stack.pop().unwrap().get_prod_factor();
+            let prod = self.stack.pop().unwrap().get_prod();
+            let val = self.listener.exit_prod(CtxProd::Prod2 { prod, prod_factor });
             self.stack.push(SynValue::Prod(val));
+        }
+
+        fn exitloop_prod1(&mut self) {
+            let SynValue::Prod(prod) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_prod(prod);
         }
 
         fn exit_prod_factor(&mut self) {

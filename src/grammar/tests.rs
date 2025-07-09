@@ -3540,7 +3540,7 @@ fn rts_prs_flags() {
         }
         let start = ll1.get_start().unwrap();
         let parsing_table = ll1.create_parsing_table(false);
-        if VERBOSE && (ll1.log.num_warnings() > 0) || (ll1.log.num_notes() > 0) {
+        if VERBOSE && ll1.log.num_warnings() + ll1.log.num_notes() > 0 {
             print_logs(&ll1);
         }
         let result_flags = ll1.flags.iter().index().filter_map(|(v, &f)| if f != 0 { Some((v, f)) } else { None }).collect::<BTreeMap<_, _>>();
