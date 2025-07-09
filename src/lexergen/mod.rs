@@ -63,7 +63,7 @@ impl LexerGen {
         &mut self.log
     }
 
-    pub fn from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
+    pub fn build_from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
         self.log.extend(std::mem::replace(&mut dfa.log, BufLog::new()));
         self.create_input_tables(&dfa);
         self.create_state_tables(&dfa);
@@ -318,7 +318,7 @@ impl LexerGen {
 impl From<Dfa<Normalized>> for LexerGen {
     fn from(dfa: Dfa<Normalized>) -> Self {
         let mut lexgen = LexerGen::new();
-        lexgen.from_dfa(dfa);
+        lexgen.build_from_dfa(dfa);
         lexgen
     }
 }

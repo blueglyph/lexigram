@@ -123,7 +123,7 @@ fn lexgen_symbol_tables_corner() {
         let dfa = dfa.normalize();
         let mut lexgen = LexerGen::new();
         lexgen.max_utf8_chars = left;
-        lexgen.from_dfa(dfa);
+        lexgen.build_from_dfa(dfa);
         let error_id = lexgen.nbr_groups as GroupId;
         let mut exp_ascii = vec![error_id; 128].into_boxed_slice();
         for (s, id) in ascii {

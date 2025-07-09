@@ -45,7 +45,7 @@ fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Res
     // - builds the lexer
     let mut lexgen = LexerGen::new();
     lexgen.max_utf8_chars = 0;
-    lexgen.from_dfa(dfa);
+    lexgen.build_from_dfa(dfa);
     lexgen.symbol_table = Some(symbol_table);
     let sym_src = lexgen.build_symbols_source_code(0).expect("symbol source code");
     if verbose {

@@ -242,7 +242,7 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
         println!("creating lexer");
     }
     let mut lexgen = LexerGen::new();
-    lexgen.from_dfa(dfa);
+    lexgen.build_from_dfa(dfa);
     if VERBOSE {
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
         println!("creating lexer");

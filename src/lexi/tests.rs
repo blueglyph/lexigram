@@ -77,7 +77,7 @@ fn lexilexer_source() {
     let dfa = dfa.optimize();
     let mut lexgen = LexerGen::new();
     lexgen.max_utf8_chars = 0;
-    lexgen.from_dfa(dfa);
+    lexgen.build_from_dfa(dfa);
     let result_src = lexgen.build_source_code(4);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
     if result_src != expected_src {
@@ -199,7 +199,7 @@ fn regexgen_optimize() {
         if VERBOSE { print_dfa(&dfa, 4); }
         let mut lexgen = LexerGen::new();
         lexgen.max_utf8_chars = 0;
-        lexgen.from_dfa(dfa);
+        lexgen.build_from_dfa(dfa);
         let size_tables = size_of_val(lexgen.state_table.as_ref()) +
                 size_of_val(lexgen.ascii_to_group.as_ref()) +
                 size_of_val(&lexgen.utf8_to_group) +
