@@ -108,7 +108,9 @@
       - [x] ~~stack-based reconstruction~~
       - [x] ~~left/right-associativity~~
       - [x] ~~opcode builder based on flags~~
-      - [ ] add option for loop value/end-of-loop call (+, *, r-rec)
+      - [ ] add option for loop value
+      - [x] add option for end-of-loop call (+, *, r-rec)
+        - [x] use optional `exitloop(&mut self, &mut value) {}`
       - [ ] opcode + gram syntax for early rule attribute callback
         - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
     - [ ] attach token information (text, line / col) to context items
