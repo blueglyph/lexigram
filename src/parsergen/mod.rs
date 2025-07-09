@@ -1166,12 +1166,12 @@ impl ParserGen {
                     } else {
                         vec![]
                     };
-                }
+                } // factor_id in var
                 if is_ambig && nt_flags & ruleflag::CHILD_L_RECURSION != 0 {
                     is_ambig_1st_child = false;
                 }
-            }
-        }
+            } // var in group
+        } // group
 
         if VERBOSE {
             println!("NT names: {}", nt_name.iter()
