@@ -891,9 +891,7 @@ pub(crate) mod rules_rts_22_3 {
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1_1 { star_it: SynAIter },
-        /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1_2 { star_it: SynAIter },
+        Aiter1 { star_it: SynAIter },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -925,6 +923,7 @@ pub(crate) mod rules_rts_22_3 {
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
         fn init_aiter1(&mut self) -> SynAIter;
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
+        fn exitloop_aiter1(&mut self, _star_it: &mut SynAIter) {}
     }
 
     pub struct Wrapper<T> {
@@ -955,8 +954,8 @@ pub(crate) mod rules_rts_22_3 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 |                                         // AIter1 -> <L> b AIter1
-                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
+                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
+                        2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1019,20 +1018,15 @@ pub(crate) mod rules_rts_22_3 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                1 => {
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_1 { star_it }
-                }
-                2 => {
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_2 { star_it }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
-            };
-            let val = self.listener.exit_aiter1(ctx);
+        fn exit_aiter1(&mut self) {
+            let star_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { star_it });
             self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exitloop_aiter1(&mut self) {
+            let SynValue::Aiter1(star_it) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_aiter1(star_it);
         }
     }
 
@@ -1073,9 +1067,7 @@ pub(crate) mod rules_rts_22_4 {
     #[derive(Debug)]
     pub enum CtxAiter1 {
         /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1_1 { star_it: SynAIter },
-        /// end of `(b <L>)*` iterations in `A -> a  ► (b <L>)* ◄  c`
-        Aiter1_2 { star_it: SynAIter },
+        Aiter1 { star_it: SynAIter },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -1106,6 +1098,7 @@ pub(crate) mod rules_rts_22_4 {
         fn exit_a(&mut self, _ctx: CtxA) {}
         fn init_aiter1(&mut self) -> SynAIter;
         fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
+        fn exitloop_aiter1(&mut self, _star_it: &mut SynAIter) {}
     }
 
     pub struct Wrapper<T> {
@@ -1136,8 +1129,8 @@ pub(crate) mod rules_rts_22_4 {
                 Call::Exit => {
                     match factor_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 |                                         // AIter1 -> <L> b AIter1
-                        2 => self.exit_aiter1(factor_id),           // AIter1 -> <L> ε
+                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
+                        2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                         _ => panic!("unexpected exit factor id: {factor_id}")
                     }
                 }
@@ -1194,20 +1187,15 @@ pub(crate) mod rules_rts_22_4 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                1 => {
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_1 { star_it }
-                }
-                2 => {
-                    let star_it = self.stack.pop().unwrap().get_aiter1();
-                    CtxAiter1::Aiter1_2 { star_it }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_aiter1")
-            };
-            let val = self.listener.exit_aiter1(ctx);
+        fn exit_aiter1(&mut self) {
+            let star_it = self.stack.pop().unwrap().get_aiter1();
+            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { star_it });
             self.stack.push(SynValue::Aiter1(val));
+        }
+
+        fn exitloop_aiter1(&mut self) {
+            let SynValue::Aiter1(star_it) = self.stack.last_mut().unwrap();
+            self.listener.exitloop_aiter1(star_it);
         }
     }
 
@@ -9067,8 +9055,6 @@ pub(crate) mod rules_prs_58_1 {
                     CtxE::E2 => LevelString(0, "0".to_string()),
                     // E -> E +
                     CtxE::E3 { e: SynE(ls) } => ls_suffix_op("+", ls),
-                    // end of iterations in E -> E +
-                    // CtxE::E4 { e: SynE(ls) } => ls,
                 })
             }
         }
@@ -9344,8 +9330,6 @@ pub(crate) mod rules_prs_60_1 {
                     CtxE::E2 { e: SynE(ls) } => LevelString(0, "0".to_string()),
                     // E -> E +
                     CtxE::E3 { e: SynE(ls) } => ls_suffix_op("+", ls),
-                    // end of iterations in E -> E +
-                    // CtxE::E4 { e: SynE(ls) } => ls,
                 })
             }
         }

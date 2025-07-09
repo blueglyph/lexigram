@@ -982,7 +982,7 @@ impl ParserGen {
     /// }
     /// ```
     fn get_type_info(&self) -> (Vec<Option<(String, String, String)>>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -1324,7 +1324,7 @@ impl ParserGen {
 
     #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
 
         self.used_libs.extend([
@@ -1860,7 +1860,8 @@ impl ParserGen {
                     for f in last_it_factors {
                         if let Some(info) = item_info[f as usize].get(0) {
                             if VERBOSE { println!("last_it_factors: {f}, info = {info:?}"); }
-                            let (variant, _, fnname, typ) = &syns[info.owner as usize];
+                            let (variant, _, fnname) = nt_name[info.owner as usize].as_ref().unwrap();
+                            let typ = self.get_nt_type(info.owner);
                             let varname = &info.name;
                             src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, _{varname}: &mut {typ}) {{}}"));
                             let (v, pf) = &self.parsing_table.factors[f as usize];
