@@ -1384,15 +1384,10 @@ impl ParserGen {
         src.add_space();
         src.push("// NT types and user-defined type templates (copy elsewhere and uncomment when necessary):".to_string());
         src.add_space();
-        // syns contains (nu, nl, npl, type), where
-        // - nu is the uppercase identifier
-        // - nl is the lowercase identifier, which is guaranteed not to match any reserved Rust keyword
-        // - npl is the lowercase identifier without the above guarantee, only to be used when prefixed or postfixed (e.g. "get_{npl}")
-        // - type is the type of the corresponding symbol
-        let mut syns = Vec::<(&str, &str, &str, String)>::new();
-        for (v, name) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
+        let mut syns = Vec::<VarId>::new(); // list of valuable NTs
+        for (v, names) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let v = v as VarId;
-            let (nu, nl, npl) = name.as_ref().map(|(nu, nl, npl)| (nu.as_str(), nl.as_str(), npl.as_str())).unwrap();
+            let (nu, nl, npl) = names.as_ref().map(|(nu, nl, npl)| (nu.as_str(), nl.as_str(), npl.as_str())).unwrap();
             let nt_type = self.get_nt_type(v);
             if self.nt_has_all_flags(v, ruleflag::CHILD_REPEAT) {
                 let parent = pinfo.get_top_parent(v);
@@ -1462,7 +1457,7 @@ impl ParserGen {
                 ];
                 self.nt_extra_info.insert(v, (self.get_nt_type(v).to_string(), extra_src));
             }
-            syns.push((nu, nl, npl, self.get_nt_type(v).to_string()));
+            syns.push(v);
         }
         if !self.nt_value[self.start as usize] {
             let (nu, _, _) = nt_name[self.start as usize].as_ref().unwrap();
@@ -1476,12 +1471,15 @@ impl ParserGen {
         src.add_space();
         // SynValue type
         src.push(format!("#[derive(Debug)]"));
-        src.push(format!("enum SynValue {{ {} }}", syns.iter().map(|(nu, _, _, nt_type)| format!("{nu}({nt_type})")).join(", ")));
+        src.push(format!("enum SynValue {{ {} }}",
+                         syns.iter().map(|v| format!("{}({})", nt_name[*v as usize].as_ref().unwrap().0, self.get_nt_type(*v))).join(", ")));
         if !syns.is_empty() {
             // SynValue getters
             src.add_space();
             src.push("impl SynValue {".to_string());
-            for (nu, nl, npl, nt_type) in &syns {
+            for v in &syns {
+                let (nu, _, npl) = nt_name[*v as usize].as_ref().unwrap();
+                let nt_type = self.get_nt_type(*v);
                 src.push(format!("    fn get_{npl}(self) -> {nt_type} {{"));
                 if syns.len() == 1 {
                     src.push(format!("        let SynValue::{nu}(val) = self;"));
