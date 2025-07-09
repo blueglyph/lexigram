@@ -42,7 +42,7 @@
   - [ ] make binary application
   - [ ] verify it doesn't crash with erroneous grammars
 - code generation
-  - [ ] use statics instead of consts for tables, etc 
+  - [x] ~~use statics instead of consts for tables, etc~~ 
   - [ ] add option for loop value
   - [ ] opcode + gram syntax for early rule attribute callback
     - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
