@@ -1618,7 +1618,7 @@ mod wrapper_source {
             //  - E_2 -> E
             //  - E_3 -> E_2
             //  - E_4 -> E
-            (PRS(55), false, 0, btreemap![
+            (PRS(55), true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: E -> E_4 E_1     | ►E_1 ◄0 ►E_4   | E
                 1 => symbols![nt 0, nt 0],              //  1: E_1 -> * E_4 E_1 | ●E_1 ◄1 ►E_4 * | E E
@@ -1648,7 +1648,7 @@ mod wrapper_source {
             //  - E_3 -> E_2
             //  - E_4 -> E
             //  - E_5 -> E_1
-            (PRS(66), false, 0, btreemap![
+            (PRS(66), true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: E -> E_4 E_1       | ►E_1 ◄0 ►E_4     | E
                 1 => symbols![nt 0],                    //  1: E_1 -> -- E_1      | ●E_1 ◄1 --       | E
@@ -1823,7 +1823,7 @@ mod wrapper_source {
             //  - A_2 -> A
             //  - A_3 -> A
             //  - A_4 -> A_1
-            (RTS(41), false, 0, btreemap![
+            (RTS(41), true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: A -> A_3 A_2         | ►A_2 ◄0 ►A_3       | A
                 1 => symbols![],                        //  1: A_1 -> NUM A_4       | ►A_4 NUM!          |
@@ -2009,7 +2009,7 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
 // if rule_id != RTS(22)  { continue }
-// if !hashset!(PRS(31), PRS(55), RTS(22), RTS(39)).contains(&rule_id) { continue }
+// if !hashset!(PRS(55), PRS(66), RTS(41)).contains(&rule_id) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.build_prs(test_id, start_nt, true);
