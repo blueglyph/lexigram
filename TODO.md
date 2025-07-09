@@ -15,6 +15,7 @@
   - [ ] verify it doesn't crash with erroneous lexicons
 - code generation
   - [ ] use statics instead of consts in generated code 
+  - [ ] use reference to static tables instead of Box<[]>
   - [ ] don't pour big ranges (.) into utf8 table
 - [ ] independence from reader type (Lexer<R: Read>)
 - robustness
@@ -42,7 +43,9 @@
   - [ ] make binary application
   - [ ] verify it doesn't crash with erroneous grammars
 - code generation
-  - [x] ~~use statics instead of consts for tables, etc~~ 
+  - [x] ~~use statics instead of consts for tables, etc~~
+  - [ ] use reference to static tables when possible instead of building collections from them
+    - [ ] FixedSymbolTable for generated parser <-> SymbolTable for lib 
   - [ ] add option for loop value
   - [ ] opcode + gram syntax for early rule attribute callback
     - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
