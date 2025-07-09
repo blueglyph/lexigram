@@ -58,6 +58,7 @@
   - [ ] detect missing terminals (present in vectree but not in dfa)
   - [ ] detect potential infinite loops for some illegal characters (with skip, if that can still happen)
 - improve performances / memory
+  - [ ] use statics instead of consts in generated code 
   - [ ] ReNode size
   - [ ] buffer <> Strings returned by get_token()
   - terminal table
@@ -78,6 +79,7 @@
   - [x] ~~transform AST to top-down (or LR?) data~~
   - [ ] make binary application
 - parser lib
+  - [ ] use statics instead of consts in generated code 
   - RuleTreeSet to store the parsed production rules (as `VecTree<GrNode>`)
     - [x] ~~normalize~~
     - [x] ~~transforms to | of &s~~ 
@@ -93,14 +95,6 @@
     - [x] ~~remove ambiguity: `A -> A β A | δ`~~
       - ~~special case of left recursivity. Don't translate to `A -> δ A1; A1 -> β A A1 | ε`, but `A -> δ A1; A1 -> β A1 | ε` + tag left-/right-associativity~~
     - [x] ~~break polymorphic ambiguities~~
-      - ```
-        E -> E ^ E | - E | E * E | E + E | F  
-        =>  
-        E -> E * E | E + E | - E_1 | E_1
-        E_1 -> E_1 ^ E_1 | F
-        =>
-        ... (remove ambiguity and left recursion in E, E_1
-        ```
     - [ ] reconstruct semantic synthesis attributes during parsing
       - [ ] better names when creating enum options in contexts (ParserBuilder::source_wrapper)
         - based on T names and the number of NTs? E * E = Mul2, E - E = Sub2, - E = Sub1, ... => easier if collected before transformation
@@ -109,8 +103,8 @@
       - [x] ~~left/right-associativity~~
       - [x] ~~opcode builder based on flags~~
       - [ ] add option for loop value
-      - [x] add option for end-of-loop call (+, *, r-rec)
-        - [x] use optional `exitloop(&mut self, &mut value) {}`
+      - ~~add option for end-of-loop call (+, *, r-rec)~~
+        - [x] ~~use optional `exitloop(&mut self, &mut value) {}`~~
       - [ ] opcode + gram syntax for early rule attribute callback
         - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
     - [ ] attach token information (text, line / col) to context items
