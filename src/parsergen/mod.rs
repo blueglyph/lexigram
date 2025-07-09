@@ -1861,11 +1861,7 @@ impl ParserGen {
                         if let Some(info) = item_info[f as usize].get(0) {
                             if VERBOSE { println!("last_it_factors: {f}, info = {info:?}"); }
                             let (variant, _, fnname, typ) = &syns[info.owner as usize];
-                            // let fnname = &syns[info.owner as usize].2;
                             let varname = &info.name;
-                            let owner = pinfo.factors[f as usize].0;
-                            // let typ = &syns[info.owner as usize].3;
-                            // let variant = &syns[info.owner as usize].0; //&info.sym.to_str(self.get_symbol_table());
                             src_listener_decl.push(format!("    fn exitloop_{fnname}(&mut self, _{varname}: &mut {typ}) {{}}"));
                             let (v, pf) = &self.parsing_table.factors[f as usize];
                             let factor_str = if MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS {
