@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, symbol_to_macro, ProdFactor};
-use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
+use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
 use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
 use crate::segments::{Seg, Segments};
@@ -59,7 +59,7 @@ impl OpCode {
         }
     }
 
-    pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
+    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         if let Some(t) = symbol_table {
             match self {
                 OpCode::Empty => "ε".to_string(),
@@ -1197,7 +1197,7 @@ impl ParserGen {
     }
 
     pub fn make_parser(self) -> Parser {
-        Parser::new(self.parsing_table, self.symbol_table, self.opcodes, self.start)
+        Parser::new(self.parsing_table, self.symbol_table.to_fixed_sym_table(), self.opcodes, self.start)
     }
 
     // Building the source code as we do below is not the most efficient, but it's done that way to
@@ -1243,7 +1243,7 @@ impl ParserGen {
             "lexigram::grammar::FactorId",
             "lexigram::parser::OpCode",
             "lexigram::parser::Parser",
-            "lexigram::SymbolTable",
+            "lexigram::FixedSymTable",
         ] {
             self.used_libs.add(lib);
         }
@@ -1271,9 +1271,10 @@ impl ParserGen {
             format!("static START_SYMBOL: VarId = {};\n", self.start),
 
             format!("pub fn build_parser() -> Parser {{"),
-            format!("    let mut symbol_table = SymbolTable::new();"),
-            format!("    symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));"),
-            format!("    symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));"),
+            format!("    let mut symbol_table = FixedSymTable::new("),
+            format!("        SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),"),
+            format!("        SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()"),
+            format!("    );"),
             format!("    let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();"),
             format!("    let table: Vec<FactorId> = PARSING_TABLE.into();"),
             format!("    let parsing_table = lexigram::grammar::LLParsingTable {{"),

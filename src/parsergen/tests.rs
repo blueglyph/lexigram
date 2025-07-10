@@ -576,7 +576,7 @@ mod wrapper_source {
     use iter_index::IndexerIterator;
     use crate::grammar::{ruleflag, symbol_to_macro, FactorId, Symbol, VarId};
     use crate::grammar::tests::{log_to_str, T};
-    use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source};
+    use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source, SymInfoTable};
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::{print_items, ParserGen};
     use crate::dfa::TokenId;

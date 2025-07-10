@@ -6,7 +6,7 @@ pub(crate) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
-    use lexigram::{CollectJoin, SymbolTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram::{CollectJoin, FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::lexiparser_types::*;
 
     const PARSER_NUM_T: usize = 34;
@@ -21,9 +21,10 @@ pub(crate) mod lexiparser {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser {
-        let mut symbol_table = SymbolTable::new();
-        symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
+        let mut symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
         let table: Vec<FactorId> = PARSING_TABLE.into();
         let parsing_table = lexigram::grammar::LLParsingTable {

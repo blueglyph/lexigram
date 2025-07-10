@@ -4,7 +4,7 @@
 
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
-use crate::{CollectJoin, SymbolTable};
+use crate::{CollectJoin, FixedSymTable, SymInfoTable};
 use crate::dfa::TokenId;
 use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId, FactorId};
 use crate::lexer::{CaretCol, CaretLine};
@@ -78,7 +78,7 @@ pub struct Parser {
     flags: Vec<u32>,            // NT -> flags (+ or * normalization)
     parent: Vec<Option<VarId>>, // NT -> parent NT
     table: Vec<FactorId>,
-    symbol_table: SymbolTable,
+    symbol_table: FixedSymTable,
     start: VarId,
     try_recover: bool,          // tries to recover from syntactical errors
 }
@@ -87,7 +87,7 @@ impl Parser {
     /// Maximum number of error recoveries attempted when meeting a syntax error
     pub const MAX_NBR_RECOVERS: u32 = 5;
     pub const MAX_NBR_LEXER_ERRORS: u32 = 3;
-    pub fn new(parsing_table: LLParsingTable, symbol_table: SymbolTable, opcodes: Vec<Vec<OpCode>>, start: VarId) -> Self {
+    pub fn new(parsing_table: LLParsingTable, symbol_table: FixedSymTable, opcodes: Vec<Vec<OpCode>>, start: VarId) -> Self {
         assert!(parsing_table.num_nt > start as usize);
         let mut parser = Parser {
             num_nt: parsing_table.num_nt,
@@ -104,7 +104,7 @@ impl Parser {
         parser
     }
 
-    pub fn get_symbol_table(&self) -> Option<&SymbolTable> {
+    pub fn get_symbol_table(&self) -> Option<&FixedSymTable> {
         Some(&self.symbol_table)
     }
 
@@ -174,7 +174,7 @@ impl Parser {
               L: ListenerWrapper,
     {
         const VERBOSE: bool = false;
-        let sym_table: Option<&SymbolTable> = Some(&self.symbol_table);
+        let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let mut stack = Vec::<OpCode>::new();
         let mut stack_t = Vec::<String>::new();
         let error_skip_factor_id = self.factors.len() as FactorId;

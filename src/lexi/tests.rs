@@ -7,6 +7,7 @@ use std::io::{Cursor, Read};
 use std::mem::size_of_val;
 use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, print_dfa, Terminal};
 use crate::{escape_string, CollectJoin, General, LL1};
+use crate::SymInfoTable;
 use crate::io::CharReader;
 use crate::lexer::{Lexer, LexerTables};
 use crate::lexergen::LexerGen;
