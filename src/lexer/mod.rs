@@ -79,6 +79,52 @@ impl LexerError {
     }
 }
 
+pub struct LexerTables {
+    // parameters
+    nbr_groups: u32,
+    initial_state: StateId,
+    first_end_state: StateId,   // accepting when state >= first_end_state
+    nbr_states: StateId,        // error if state >= nbr_states
+    // tables
+    ascii_to_group: Vec<GroupId>,
+    utf8_to_group: HashMap<char, GroupId>,
+    seg_to_group: SegMap<GroupId>,
+    state_table: Vec<StateId>,
+    terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state]
+}
+
+impl LexerTables {
+    pub fn new(
+        // parameters
+        nbr_groups: u32,
+        initial_state: StateId,
+        first_end_state: StateId,   // accepting when state >= first_end_state
+        nbr_states: StateId,        // error if state >= nbr_states
+        // tables
+        ascii_to_group: Vec<GroupId>,
+        utf8_to_group: HashMap<char, GroupId>,
+        seg_to_group: SegMap<GroupId>,
+        state_table: Vec<StateId>,
+        terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state]
+    ) -> Self {
+        LexerTables {
+            nbr_groups,
+            initial_state,
+            first_end_state,
+            nbr_states,
+            ascii_to_group,
+            utf8_to_group,
+            seg_to_group,
+            state_table,
+            terminal_table,
+        }
+    }
+
+    pub fn to_lexer<R: Read>(self) -> Lexer<R> {
+        Lexer::from_tables(self)
+    }
+}
+
 pub type CaretCol = u64;
 pub type CaretLine = u64;
 
@@ -101,11 +147,11 @@ pub struct Lexer<R> {
     pub first_end_state: StateId,   // accepting when state >= first_end_state
     pub nbr_states: StateId,        // error if state >= nbr_states
     // tables
-    pub ascii_to_group: Box<[GroupId]>,
+    pub ascii_to_group: Vec<GroupId>,
     pub utf8_to_group: HashMap<char, GroupId>,
     pub seg_to_group: SegMap<GroupId>,
-    pub state_table: Box<[StateId]>,
-    pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
+    pub state_table: Vec<StateId>,
+    pub terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state]
 }
 
 impl<R: Read> Lexer<R> {
@@ -116,11 +162,11 @@ impl<R: Read> Lexer<R> {
         first_end_state: StateId,   // accepting when state >= first_end_state
         nbr_states: StateId,        // error if state >= nbr_states
         // tables
-        ascii_to_group: Box<[GroupId]>,
+        ascii_to_group: Vec<GroupId>,
         utf8_to_group: HashMap<char, GroupId>,
         seg_to_group: SegMap<GroupId>,
-        state_table: Box<[StateId]>,
-        terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
+        state_table: Vec<StateId>,
+        terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state>]
     ) -> Self {
         Lexer {
             input: None,
@@ -141,6 +187,29 @@ impl<R: Read> Lexer<R> {
             seg_to_group,
             state_table,
             terminal_table,
+        }
+    }
+
+    pub fn from_tables(tables: LexerTables) -> Self {
+        Lexer {
+            input: None,
+            error: LexerError::None,
+            is_eos: false,
+            pos: 0,
+            line: 1,
+            col: 1,
+            tab_width: 4,
+            state_stack: Vec::new(),
+            start_state: 0,
+            nbr_groups: tables.nbr_groups,
+            initial_state: tables.initial_state,
+            first_end_state: tables.first_end_state,
+            nbr_states: tables.nbr_states,
+            ascii_to_group: tables.ascii_to_group,
+            utf8_to_group: tables.utf8_to_group,
+            seg_to_group: tables.seg_to_group,
+            state_table: tables.state_table,
+            terminal_table: tables.terminal_table,
         }
     }
 

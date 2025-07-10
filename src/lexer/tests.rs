@@ -76,7 +76,8 @@ fn lexer_simple() {
         if VERBOSE { print_dfa(&dfa, 12); }
         let lexgen = LexerGen::from(dfa);
         if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
-        let mut lexer = lexgen.make_lexer();
+        let lexer_tables = lexgen.get_tables();
+        let mut lexer = Lexer::from_tables(lexer_tables);
         lexer.set_tab_width(8);
         for (exp_token, (inputs, outputs)) in token_tests {
             for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
@@ -143,7 +144,7 @@ fn lexer_simple() {
     }
 }
 
-fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
+fn build_lexer_tables(test: usize) -> LexerTables {
     let mut re = VecTree::<ReNode>::new();
     let trees = match test {
         1 => {
@@ -247,7 +248,7 @@ fn build_lexer<R: Read>(test: usize) -> Lexer<R> {
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
         println!("creating lexer");
     }
-    lexgen.make_lexer()
+    lexgen.get_tables()
 }
 
 #[test]
@@ -273,7 +274,8 @@ fn lexer_modes() {
     const VERBOSE: bool = false;
     for (test_id, (lexer_id, data)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("test {test_id}:"); }
-        let mut lexer = build_lexer(lexer_id);
+        let lexer_tables = build_lexer_tables(lexer_id);
+        let mut lexer = lexer_tables.to_lexer();
         for (input, expected_tokens, expected_texts) in data {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
@@ -360,11 +362,11 @@ mod lexer_source1 {
             FIRST_END_STATE,
             NBR_STATES,
             // tables
-            Box::new(ASCII_TO_GROUP),
+            ASCII_TO_GROUP.to_vec(),
             HashMap::<char, GroupId>::from(UTF8_TO_GROUP),
             SegMap::<GroupId>::from_iter(SEG_TO_GROUP),
-            Box::new(STATE_TABLE),
-            Box::new(TERMINAL_TABLE)
+            STATE_TABLE.to_vec(),
+            TERMINAL_TABLE.to_vec(),
         )
     }
 

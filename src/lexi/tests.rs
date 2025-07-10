@@ -8,7 +8,7 @@ use std::mem::size_of_val;
 use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, print_dfa, Terminal};
 use crate::{escape_string, CollectJoin, General, LL1};
 use crate::io::CharReader;
-use crate::lexer::Lexer;
+use crate::lexer::{Lexer, LexerTables};
 use crate::lexergen::LexerGen;
 use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt};
@@ -48,7 +48,7 @@ fn make_dfa() -> Dfa<General> {
     dfa.expect(&format!("failed to build Dfa:\n{}", dfa_builder.get_messages()))
 }
 
-fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
+fn make_lexer_tables(ltype: LexerType) -> LexerTables {
     const VERBOSE: bool = false;
     let dfa = make_dfa();
     let dfa = if let LexerType::Normalized = ltype {
@@ -62,7 +62,7 @@ fn make_lexer<R: Read>(ltype: LexerType) -> Lexer<R> {
         println!("Sources:");
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
     }
-    lexgen.make_lexer()
+    lexgen.get_tables()
 }
 
 #[test]
@@ -91,7 +91,8 @@ fn lexilexer_source() {
 #[test]
 fn lexilexer_tokens() {
     for opt in [LexerType::Normalized, LexerType::Optimized] {
-        let mut lexer: Lexer<Cursor<&str>> = make_lexer(opt);
+        let lexer_tables = make_lexer_tables(opt);
+        let mut lexer: Lexer<Cursor<&str>> = Lexer::from_tables(lexer_tables);
         check_lexer_tokens(&mut lexer, opt);
     }
 }
@@ -140,7 +141,8 @@ pub fn check_lexer_tokens(lexer: &mut Lexer<Cursor<&str>>, opt: LexerType) {
 fn regexgen_stability() {
     const VERBOSE: bool = false;
     for opt in [LexerType::Normalized, LexerType::Optimized] {
-        let mut lexer = make_lexer(opt);
+        let lexer_tables = make_lexer_tables(opt);
+        let mut lexer = Lexer::from_tables(lexer_tables);
         let stream = CharReader::new(Cursor::new(LEXICON));
         lexer.attach_stream(stream);
         let mut source2 = String::new();
@@ -200,11 +202,11 @@ fn regexgen_optimize() {
         let mut lexgen = LexerGen::new();
         lexgen.max_utf8_chars = 0;
         lexgen.build_from_dfa(dfa);
-        let size_tables = size_of_val(lexgen.state_table.as_ref()) +
-                size_of_val(lexgen.ascii_to_group.as_ref()) +
+        let size_tables = size_of_val(&lexgen.state_table) +
+                size_of_val(&lexgen.ascii_to_group) +
                 size_of_val(&lexgen.utf8_to_group) +
                 size_of_val(&lexgen.seg_to_group) +
-                size_of_val(lexgen.terminal_table.as_ref());
+                size_of_val(&lexgen.terminal_table);
         println!("Lexer:\n- {} states\n- {} groups\n- {} segments\n- {} terminals (table)\n- {:.1}k tables",
                  lexgen.nbr_states,
                  lexgen.nbr_groups,

@@ -104,11 +104,11 @@ pub(super) mod gramlexer {
             FIRST_END_STATE,
             NBR_STATES,
             // tables
-            Box::new(ASCII_TO_GROUP),
+            ASCII_TO_GROUP.to_vec(),
             HashMap::<char, GroupId>::from(UTF8_TO_GROUP),
             SegMap::<GroupId>::from_iter(SEG_TO_GROUP),
-            Box::new(STATE_TABLE),
-            Box::new(TERMINAL_TABLE)
+            STATE_TABLE.to_vec(),
+            TERMINAL_TABLE.to_vec(),
         )
     }
 

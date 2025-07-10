@@ -4,13 +4,12 @@ pub(crate) mod tests;
 
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::fs::File;
-use std::io::Read;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 #[cfg(test)]
 use crate::dfa::print_graph;
 use crate::{CollectJoin, escape_char, Normalized, indent_source, SymbolTable};
-use crate::lexer::Lexer;
+use crate::lexer:: LexerTables;
 use crate::log::{BufLog, Logger};
 use crate::segments::{Segments, Seg, SegMap};
 use super::dfa::*;
@@ -25,11 +24,11 @@ pub struct LexerGen {
     pub first_end_state: StateId,   // accepting when state >= first_end_state
     pub nbr_states: StateId,        // error if state >= nbr_states
     // tables:
-    pub ascii_to_group: Box<[GroupId]>,
+    pub ascii_to_group: Vec<GroupId>,
     pub utf8_to_group: HashMap<char, GroupId>,
     pub seg_to_group: SegMap<GroupId>,
-    pub state_table: Box<[StateId]>,
-    pub terminal_table: Box<[Terminal]>,  // token(state) = token_table[state - first_end_state]
+    pub state_table: Vec<StateId>,
+    pub terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state]
     pub symbol_table: Option<SymbolTable>,
     log: BufLog,
     // internal
@@ -44,11 +43,11 @@ impl LexerGen {
             initial_state: 0,
             first_end_state: 0,
             nbr_states: 0,
-            ascii_to_group: vec![GroupId::MAX; 128].into_boxed_slice(),
+            ascii_to_group: vec![GroupId::MAX; 128],
             utf8_to_group: HashMap::default(),
             seg_to_group: SegMap::new(),
-            state_table: Box::default(),
-            terminal_table: Box::default(),
+            state_table: Vec::new(),
+            terminal_table: Vec::new(),
             symbol_table: None,
             log: BufLog::new(),
             group_partition: Segments::empty(),
@@ -69,9 +68,9 @@ impl LexerGen {
         self.create_state_tables(&dfa);
     }
 
-    pub fn make_lexer<R: Read>(self) -> Lexer<R> {
+    pub fn get_tables(self) -> LexerTables {
         assert!(!self.state_table.is_empty(), "tables are not built");
-        Lexer::new(
+        LexerTables::new(
             self.nbr_groups,
             self.initial_state,
             self.first_end_state,
@@ -157,11 +156,11 @@ impl LexerGen {
                 }
             }
         }
-        self.state_table = state_table.into_boxed_slice();
+        self.state_table = state_table;
         let terminal_table = dfa.get_end_states().iter()
             .filter_map(|(&st, t)| if st >= self.first_end_state { Some(t.clone()) } else { None })
             .to_vec();
-        self.terminal_table = terminal_table.into_boxed_slice();
+        self.terminal_table = terminal_table;
         let max_token_maybe = self.terminal_table.iter().fold(None, { |acc, t|
             if let Terminal { action: ActionOption::Token(tok), .. } = t {
                 Some(acc.unwrap_or(0).max(*tok))
