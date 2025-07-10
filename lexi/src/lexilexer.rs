@@ -15,7 +15,7 @@ pub(super) mod lexilexer {
     const INITIAL_STATE: StateId = 0;
     const FIRST_END_STATE: StateId = 21;
     const NBR_STATES: StateId = 95;
-    const ASCII_TO_GROUP: [GroupId; 128] = [
+    static ASCII_TO_GROUP: [GroupId; 128] = [
          38,  38,  38,  38,  38,  38,  38,  38,  38,  28,  51,  38,  38,  51,  38,  38,   // 0-15
          38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,   // 16-31
           0,  38,  38,  38,  38,  38,  38,   1,   2,   3,   4,   5,   6,   7,   8,   9,   // 32-47
@@ -25,13 +25,13 @@ pub(super) mod lexilexer {
          38,  46,  32,  17,  13,  42,  18,  47,  40,  49,  35,  44,  19,  20,  30,  43,   // 96-111
          21,  35,  41,  22,  23,  31,  35,  33,  48,  45,  35,  24,  25,  26,  27,  38,   // 112-127
     ];
-    const UTF8_TO_GROUP: [(char, GroupId); 0] = [
+    static UTF8_TO_GROUP: [(char, GroupId); 0] = [
     ];
-    const SEG_TO_GROUP: [(Seg, GroupId); 2] = [
+    static SEG_TO_GROUP: [(Seg, GroupId); 2] = [
         (Seg(128, 55295), 38),
         (Seg(57344, 1114111), 38),
     ];
-    const TERMINAL_TABLE: [Terminal;74] = [
+    static TERMINAL_TABLE: [Terminal;74] = [
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(13), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
@@ -107,7 +107,7 @@ pub(super) mod lexilexer {
         Terminal { action: ActionOption::Token(32), channel: 0, mode: ModeOption::None, mode_state: None, pop: true },
         Terminal { action: ActionOption::Token(30), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    const STATE_TABLE: [StateId; 4941] = [
+    static STATE_TABLE: [StateId; 4941] = [
          21,   1,  22,  23,  24,  25,  26,  27,  28,   2,  29,  30,  31,  32,  33,  34,   3,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  21,  95,  32,  32,  32,  32,  95,  32,  95,  95,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  21, // state 0
           6,  95,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   7,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,  95,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,  95, // state 1
          95,  95,  95,  95,   4,  95,  95,  95,  95,  86,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 2
@@ -206,7 +206,7 @@ pub(super) mod lexilexer {
          95 // error group in [nbr_state * nbr_group + nbr_group]
     ];
 
-    pub fn build_lexer<R: Read>() -> Lexer<R> {
+    pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
         Lexer::new(
             // parameters
             NBR_GROUPS,
@@ -214,11 +214,11 @@ pub(super) mod lexilexer {
             FIRST_END_STATE,
             NBR_STATES,
             // tables
-            Box::new(ASCII_TO_GROUP),
+            &ASCII_TO_GROUP,
             HashMap::<char, GroupId>::from(UTF8_TO_GROUP),
-            SegMap::<GroupId>::from_iter(SEG_TO_GROUP),
-            Box::new(STATE_TABLE),
-            Box::new(TERMINAL_TABLE)
+            SegMap::<GroupId>::from(SEG_TO_GROUP),
+            &STATE_TABLE,
+            &TERMINAL_TABLE,
         )
     }
 

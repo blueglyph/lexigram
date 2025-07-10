@@ -475,7 +475,7 @@ impl Display for Seg {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct SegMap<T>(BTreeMap<Seg, T>);
 
 impl<T: Clone> SegMap<T> {
@@ -514,6 +514,12 @@ impl<T: Clone> SegMap<T> {
 
     pub fn len(&self) -> usize {
         self.0.len()
+    }
+}
+
+impl<T: Clone, const N: usize> From<[(Seg, T); N]> for SegMap<T> {
+    fn from(value: [(Seg, T); N]) -> Self {
+        SegMap(BTreeMap::from(value))
     }
 }
 

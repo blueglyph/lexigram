@@ -195,7 +195,8 @@ mod listener {
             println!("Lexer symbol table:\n- T: {}",
                      sym_table.get_terminals().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
         }
-        let mut lexer: Lexer<Cursor<&str>> = LexerGen::from(dfa).make_lexer();
+        let lexer_tables = LexerGen::from(dfa).get_tables();
+        let mut lexer: Lexer<Cursor<&str>> = Lexer::from_tables(&lexer_tables);
 
         for (test_id, (grammar, mut expected_grammar_errors, expected_warnings, inputs)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("\ntest {test_id}"); }
