@@ -14,8 +14,6 @@
   - [ ] make binary application
   - [ ] verify it doesn't crash with erroneous lexicons
 - code generation
-  - [ ] use statics instead of consts in generated code 
-  - [ ] use reference to static tables instead of Box<[]>
   - [ ] don't pour big ranges (.) into utf8 table
 - [ ] independence from reader type (Lexer<R: Read>)
 - robustness
@@ -30,6 +28,9 @@
     - [x] Logger in LexerGen
       - [ ] populate
 - improve performances / memory
+  - [x] ~~use statics instead of consts in generated code~~ 
+  - [x] ~~use reference to static tables instead of Box<[]>~~
+  - [ ] static HashMap / SegMap (BTreeMap)?
   - [ ] ReNode size
   - [ ] buffer <> Strings returned by get_token()
   - terminal table
@@ -44,8 +45,6 @@
   - [ ] verify it doesn't crash with erroneous grammars
 - code generation
   - [x] ~~use statics instead of consts for tables, etc~~
-  - [ ] use reference to static tables when possible instead of building collections from them
-    - [ ] FixedSymbolTable for generated parser <-> SymbolTable for lib 
   - [ ] add option for loop value
   - [ ] opcode + gram syntax for early rule attribute callback
     - `A -> a B # C` -> at `#`, callback with values of `a` and `B`
@@ -69,6 +68,9 @@
     - [x] basic resynchronization
     - [ ] points of reactivation of the semantic analysis (instead of stopping it altogether)
     - [ ] option to stop parsing on first error
+- improve performances / memory
+  - [ ] use reference to static tables when possible instead of building collections from them
+    - [ ] FixedSymbolTable for generated parser <-> SymbolTable for lib 
 
 ## Bottom-up parser
   - [ ] decide algorithm (LALR?)
