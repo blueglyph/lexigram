@@ -339,7 +339,7 @@ mod simple {
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");
 
             let lexer_tables = LexerGen::from(dfa).get_tables();
-            let mut lexer = Lexer::from_tables(lexer_tables);
+            let mut lexer = Lexer::from_tables(&lexer_tables);
             for (input_id, (input, expected_tokens)) in test_strs.into_iter().enumerate() {
                 if VERBOSE {
                     println!("Testing input '{input}'")
@@ -416,7 +416,7 @@ mod simple {
 
             // - builds the lexer
             let lexer_tables = LexerGen::from(dfa).get_tables();
-            let mut lexer = Lexer::from_tables(lexer_tables);
+            let mut lexer = Lexer::from_tables(&lexer_tables);
 
             // 2) tests the lexer on inputs
             for (input_id, (input, expected_error, expected_valid)) in inputs.into_iter().enumerate() {

@@ -241,7 +241,7 @@ impl LexerGen {
         source.push(format!("const FIRST_END_STATE: StateId = {};", self.first_end_state));
         source.push(format!("const NBR_STATES: StateId = {};", self.nbr_states));
         let mut groups = vec![BTreeSet::new(); self.nbr_groups as usize];
-        source.push(format!("const ASCII_TO_GROUP: [GroupId; 128] = ["));
+        source.push(format!("static ASCII_TO_GROUP: [GroupId; 128] = ["));
         for i in 0..8_usize {
             let mut s = "    ".to_string();
             for j in 0..16_usize {
@@ -255,7 +255,7 @@ impl LexerGen {
             source.push(format!("{s}  // {}-{}", i*16, i*16 + 15));
         }
         source.push(format!("];"));
-        source.push(format!("const UTF8_TO_GROUP: [(char, GroupId); {}] = [", self.utf8_to_group.len()));
+        source.push(format!("static UTF8_TO_GROUP: [(char, GroupId); {}] = [", self.utf8_to_group.len()));
         for (c, g) in &self.utf8_to_group {
             source.push(format!("    ('{}', {}),", escape_char(*c), g));
         }
@@ -271,12 +271,12 @@ impl LexerGen {
             };
         }
         */
-        source.push(format!("const SEG_TO_GROUP: [(Seg, GroupId); {}] = [", self.seg_to_group.len()));
+        source.push(format!("static SEG_TO_GROUP: [(Seg, GroupId); {}] = [", self.seg_to_group.len()));
         for (s, g) in &self.seg_to_group {
             source.push(format!("    (Seg({}, {}), {}),", s.0, s.1, g));
         }
         source.push(format!("];"));
-        source.push(format!("const TERMINAL_TABLE: [Terminal;{}] = [", self.terminal_table.len()));
+        source.push(format!("static TERMINAL_TABLE: [Terminal;{}] = [", self.terminal_table.len()));
         for t in &self.terminal_table {
             // Terminal { action: TermAction::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
             source.push(format!("    Terminal {{ action: ActionOption::{:?}, channel: {}, mode: ModeOption::{:?}, mode_state: {:?}, pop: {} }},",
@@ -284,7 +284,7 @@ impl LexerGen {
             ));
         }
         source.push(format!("];"));
-        source.push(format!("const STATE_TABLE: [StateId; {}] = [", self.state_table.len()));
+        source.push(format!("static STATE_TABLE: [StateId; {}] = [", self.state_table.len()));
         for i in 0..self.nbr_states as usize {
             source.push(format!("    {}, // state {}{}",
                 (0..self.nbr_groups as usize).map(|j| format!("{:3}", self.state_table[i * self.nbr_groups as usize + j])).join(", "),
@@ -295,7 +295,7 @@ impl LexerGen {
         source.push(format!("    {:3} // error group in [nbr_state * nbr_group + nbr_group]", self.state_table[self.state_table.len() - 1]));
         source.push(format!("];"));
         source.push(String::new());
-        source.push(format!("pub fn build_lexer<R: Read>() -> Lexer<R> {{"));
+        source.push(format!("pub fn build_lexer<R: Read>() -> Lexer<'static, R> {{"));
         source.push(format!("    Lexer::new("));
         source.push(format!("        // parameters"));
         source.push(format!("        NBR_GROUPS,"));
@@ -303,11 +303,11 @@ impl LexerGen {
         source.push(format!("        FIRST_END_STATE,"));
         source.push(format!("        NBR_STATES,"));
         source.push(format!("        // tables"));
-        source.push(format!("        Box::new(ASCII_TO_GROUP),"));
+        source.push(format!("        &ASCII_TO_GROUP,"));
         source.push(format!("        HashMap::<char, GroupId>::from(UTF8_TO_GROUP),"));
-        source.push(format!("        SegMap::<GroupId>::from_iter(SEG_TO_GROUP),"));
-        source.push(format!("        Box::new(STATE_TABLE),"));
-        source.push(format!("        Box::new(TERMINAL_TABLE)"));
+        source.push(format!("        SegMap::<GroupId>::from(SEG_TO_GROUP),"));
+        source.push(format!("        &STATE_TABLE,"));
+        source.push(format!("        &TERMINAL_TABLE,"));
         source.push(format!("    )"));
         source.push(format!("}}"));
         source

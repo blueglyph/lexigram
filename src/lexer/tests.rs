@@ -77,7 +77,7 @@ fn lexer_simple() {
         let lexgen = LexerGen::from(dfa);
         if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
         let lexer_tables = lexgen.get_tables();
-        let mut lexer = Lexer::from_tables(lexer_tables);
+        let mut lexer = Lexer::from_tables(&lexer_tables);
         lexer.set_tab_width(8);
         for (exp_token, (inputs, outputs)) in token_tests {
             for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
@@ -354,7 +354,7 @@ mod lexer_source1 {
           9,   9,   9,   9,   9, // state 8 <skip,pop>
     ];
 
-    fn build_lexer<R: Read>() -> Lexer<R> {
+    fn build_lexer<R: Read>() -> Lexer<'static, R> {
         Lexer::new(
             // parameters
             NBR_GROUPS,
@@ -362,11 +362,11 @@ mod lexer_source1 {
             FIRST_END_STATE,
             NBR_STATES,
             // tables
-            ASCII_TO_GROUP.to_vec(),
+            &ASCII_TO_GROUP,
             HashMap::<char, GroupId>::from(UTF8_TO_GROUP),
             SegMap::<GroupId>::from_iter(SEG_TO_GROUP),
-            STATE_TABLE.to_vec(),
-            TERMINAL_TABLE.to_vec(),
+            &STATE_TABLE,
+            &TERMINAL_TABLE,
         )
     }
 

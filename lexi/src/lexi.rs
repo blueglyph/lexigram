@@ -9,14 +9,14 @@ use crate::lexilexer::lexilexer::build_lexer;
 use crate::lexiparser::lexiparser::{build_parser, Wrapper};
 use crate::listener::LexiListener;
 
-pub struct Lexi<R: Read> {
-    pub lexilexer: Lexer<R>,
+pub struct Lexi<'a, R: Read> {
+    pub lexilexer: Lexer<'a, R>,
     pub lexiparser: Parser,
     pub wrapper: Wrapper<LexiListener>
 }
 
 #[allow(unused)]
-impl<R: Read> Lexi<R> {
+impl<R: Read> Lexi<'_, R> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
     const VERBOSE_LISTENER: bool = false;

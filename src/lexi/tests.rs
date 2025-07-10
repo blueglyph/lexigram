@@ -92,7 +92,7 @@ fn lexilexer_source() {
 fn lexilexer_tokens() {
     for opt in [LexerType::Normalized, LexerType::Optimized] {
         let lexer_tables = make_lexer_tables(opt);
-        let mut lexer: Lexer<Cursor<&str>> = Lexer::from_tables(lexer_tables);
+        let mut lexer: Lexer<Cursor<&str>> = Lexer::from_tables(&lexer_tables);
         check_lexer_tokens(&mut lexer, opt);
     }
 }
@@ -142,7 +142,7 @@ fn regexgen_stability() {
     const VERBOSE: bool = false;
     for opt in [LexerType::Normalized, LexerType::Optimized] {
         let lexer_tables = make_lexer_tables(opt);
-        let mut lexer = Lexer::from_tables(lexer_tables);
+        let mut lexer = Lexer::from_tables(&lexer_tables);
         let stream = CharReader::new(Cursor::new(LEXICON));
         lexer.attach_stream(stream);
         let mut source2 = String::new();

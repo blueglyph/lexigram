@@ -1,7 +1,5 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-#![allow(unused)]   // FIXME: temporary
-
 pub(super) mod gramlexer {
     // -------------------------------------------------------------------------
     // [gramlexer]
@@ -17,7 +15,7 @@ pub(super) mod gramlexer {
     const INITIAL_STATE: StateId = 0;
     const FIRST_END_STATE: StateId = 9;
     const NBR_STATES: StateId = 33;
-    const ASCII_TO_GROUP: [GroupId; 128] = [
+    static ASCII_TO_GROUP: [GroupId; 128] = [
          19,  19,  19,  19,  19,  19,  19,  19,  19,   0,  22,  19,  19,  22,  19,  19,   // 0-15
          19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,  19,   // 16-31
           0,  19,  19,  19,  19,  19,  19,  19,   1,   2,   3,   4,  19,  19,  19,   5,   // 32-47
@@ -27,13 +25,13 @@ pub(super) mod gramlexer {
          19,  23,  15,  15,  15,  15,  15,  12,  15,  15,  15,  15,  15,  24,  15,  15,   // 96-111
          15,  15,  21,  15,  15,  15,  15,  15,  15,  15,  15,  19,  13,  19,  19,  19,   // 112-127
     ];
-    const UTF8_TO_GROUP: [(char, GroupId); 0] = [
+    static UTF8_TO_GROUP: [(char, GroupId); 0] = [
     ];
-    const SEG_TO_GROUP: [(Seg, GroupId); 2] = [
+    static SEG_TO_GROUP: [(Seg, GroupId); 2] = [
         (Seg(128, 55295), 19),
         (Seg(57344, 1114111), 19),
     ];
-    const TERMINAL_TABLE: [Terminal;24] = [
+    static TERMINAL_TABLE: [Terminal;24] = [
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
@@ -59,7 +57,7 @@ pub(super) mod gramlexer {
         Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(11), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    const STATE_TABLE: [StateId; 859] = [
+    static STATE_TABLE: [StateId; 859] = [
           9,  10,  11,  12,  13,   1,  14,  15,   2,  16,  17,  18,  19,  20,  17,  17,  33,  33,  33,  33,  17,  17,   9,  17,  17,  17, // state 0
          33,  33,  33,   3,  33,  21,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33, // state 1
          33,  33,  33,  33,  33,  33,  33,  33,  33,  33,   5,  33,  33,  33,   6,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33,  33, // state 2
@@ -96,7 +94,7 @@ pub(super) mod gramlexer {
          33 // error group in [nbr_state * nbr_group + nbr_group]
     ];
 
-    pub fn build_lexer<R: Read>() -> Lexer<R> {
+    pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
         Lexer::new(
             // parameters
             NBR_GROUPS,
@@ -104,11 +102,11 @@ pub(super) mod gramlexer {
             FIRST_END_STATE,
             NBR_STATES,
             // tables
-            ASCII_TO_GROUP.to_vec(),
+            &ASCII_TO_GROUP,
             HashMap::<char, GroupId>::from(UTF8_TO_GROUP),
-            SegMap::<GroupId>::from_iter(SEG_TO_GROUP),
-            STATE_TABLE.to_vec(),
-            TERMINAL_TABLE.to_vec(),
+            SegMap::<GroupId>::from(SEG_TO_GROUP),
+            &STATE_TABLE,
+            &TERMINAL_TABLE,
         )
     }
 
