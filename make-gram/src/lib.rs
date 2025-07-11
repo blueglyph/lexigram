@@ -11,4 +11,4 @@ const GRAMLEXER_TAG: &str = "gramlexer";
 const GRAMPARSER_TAG: &str = "gramparser";
 
 const BUILD_GRAMPARSER_FILENAME: &str = "./src/build_gramparser.rs";
-const GRAM_SYM_TAG: &str = "terminal_symbols";
+const GRAM_SYM_T_TAG: &str = "terminal_symbols";

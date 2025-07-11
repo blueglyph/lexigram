@@ -9,4 +9,4 @@ const LEXILEXER_TAG: &str = "lexilexer";
 const LEXIPARSER_TAG: &str = "lexiparser";
 
 const BUILD_LEXIPARSER_FILENAME: &str = "./src/build_lexiparser.rs";
-const LEXI_SYM_TAG: &str = "terminal_symbols";
+const LEXI_SYM_T_TAG: &str = "terminal_symbols";

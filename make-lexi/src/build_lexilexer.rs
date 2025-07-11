@@ -47,7 +47,7 @@ fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Res
     lexgen.max_utf8_chars = 0;
     lexgen.build_from_dfa(dfa);
     lexgen.symbol_table = Some(symbol_table);
-    let sym_src = lexgen.build_symbols_source_code(0).expect("symbol source code");
+    let sym_src = lexgen.build_symbols_t_source_code(0).expect("symbol source code");
     if verbose {
         // terminals to replace in src/lexi/lexiparser.rs (copy/paste)
         println!("Terminals:\n{sym_src}");
@@ -59,7 +59,7 @@ pub fn write_lexilexer() {
     let (result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, 4, true)
         .inspect_err(|e| eprintln!("Failed to parse lexicon: {e:?}"))
         .unwrap();
-    replace_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_TAG, &result_sym)
+    replace_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG, &result_sym)
         .expect("parser symbol replacement failed");
     replace_tagged_source(LEXILEXER_FILENAME, LEXILEXER_TAG, &result_src)
         .expect("lexer source replacement failed");
@@ -79,7 +79,7 @@ mod tests {
             .inspect_err(|e| eprintln!("Failed to parse lexicon: {e:?}"))
             .unwrap();
         if !cfg!(miri) {
-            let expected_sym = get_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_TAG).unwrap_or(String::new());
+            let expected_sym = get_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG).unwrap_or(String::new());
             let expected_src = get_tagged_source(LEXILEXER_FILENAME, LEXILEXER_TAG).unwrap_or(String::new());
             assert_eq!(_result_sym, expected_sym);
             assert_eq!(_result_src, expected_src);

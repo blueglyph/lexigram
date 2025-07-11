@@ -267,7 +267,7 @@ impl LexerGen {
         Ok(())
     }
 
-    pub fn build_symbols_source_code(&self, indent: usize) -> Option<String> {
+    pub fn build_symbols_t_source_code(&self, indent: usize) -> Option<String> {
         self.symbol_table.as_ref().map(|table| {
             let mut source = Vec::<String>::new();
             let (max_n, max_option) = table.get_terminals().fold((0, 0), |(n, option), t| {
