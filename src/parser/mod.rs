@@ -141,7 +141,6 @@ impl Parser {
                     if factor_id >= error_skip_factor_id {
                         break false;
                     }
-                    let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                     stack.extend(self.opcodes[factor_id as usize].clone());
                     stack_sym = stack.pop().unwrap();
                 }
@@ -305,7 +304,6 @@ impl Parser {
                         if nbr_recovers == 0 {
                             wrapper.switch(call, var, factor_id, Some(t_data));
                         }
-                        let new = self.factors[factor_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
                         stack.extend(self.opcodes[factor_id as usize].clone());
                         stack_sym = stack.pop().unwrap();
                     }
