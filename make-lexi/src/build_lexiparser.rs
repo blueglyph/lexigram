@@ -3,7 +3,7 @@
 #![allow(unused)]
 
 use lexigram::grammar::{print_ll1_table, GrTreeExt};
-use lexigram::{gnode, CollectJoin, General, LL1, SymbolTable};
+use lexigram::{gnode, CollectJoin, General, LL1, SymbolTable, SymInfoTable};
 use lexigram::grammar::{print_production_rules, ProdRuleSet, RuleTreeSet, VarId};
 use lexigram::log::Logger;
 use lexigram::parsergen::{print_items, ParserGen};

@@ -32,7 +32,7 @@ mod gen_integration {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub(crate) enum T { RTS(u32), PRS(u32) }
 
-    fn get_source(rules_id: T, indent: usize, is_t_data: bool, name: String) -> String {
+    fn get_source(rules_id: T, indent: usize, is_t_data: bool, include_factors: bool, name: String) -> String {
         let rules = match rules_id {
             RTS(rts_id) => {
                 let rts = build_rts(rts_id);
@@ -52,28 +52,29 @@ mod gen_integration {
         assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let ll1 = ProdRuleSet::<LL1>::from(rules);
         let mut builder = ParserGen::from_rules(ll1, name);
+        builder.set_include_factors(include_factors);
         builder.build_source_code(indent, false)
     }
 
-    fn get_test_data<'a>(id: u32) -> Option<(T, usize, bool, &'a str, &'a str)> {
+    fn get_test_data<'a>(id: u32) -> Option<(T, usize, bool, bool, &'a str, &'a str)> {
         match id {
-            //         rules   indent  t_data   tag name                                      listener name
-             1 => Some((PRS( 4), 4,    false, "write_source_code_for_integration_listener1",  "Expr")),
-             2 => Some((PRS(51), 4,    false, "write_source_code_for_integration_listener2",  "Expr")),
-             3 => Some((PRS(20), 4,    false, "write_source_code_for_integration_listener3",  "Struct")),
-             4 => Some((PRS(30), 4,    false, "write_source_code_for_integration_listener4",  "Struct")),
-             5 => Some((PRS(31), 4,    false, "write_source_code_for_integration_listener5",  "Expr")),
-             6 => Some((PRS(32), 4,    false, "write_source_code_for_integration_listener6",  "Expr")),
-             7 => Some((RTS(21), 4,    false, "write_source_code_for_integration_listener7",  "Star")),
-             8 => Some((RTS(22), 4,    false, "write_source_code_for_integration_listener8",  "Star")),
-             9 => Some((RTS(16), 4,    true,  "write_source_code_for_integration_listener9",  "Plus")),
-            10 => Some((RTS(23), 4,    false, "write_source_code_for_integration_listener10", "Plus")),
-            11 => Some((RTS(27), 4,    false, "write_source_code_for_integration_listener11", "Plus")),
-            12 => Some((PRS(33), 4,    true,  "write_source_code_for_integration_listener12", "LeftRec")),
-            13 => Some((PRS(36), 4,    false, "write_source_code_for_integration_listener13",  "Expr")),
-            14 => Some((PRS(63), 4,    false, "write_source_code_for_integration_listener14",  "Expr")),
-            15 => Some((PRS(53), 4,    false, "write_source_code_for_integration_listener15",  "Expr")),
-            16 => Some((PRS(58), 4,    false, "write_source_code_for_integration_listener16",  "Expr")),
+            //         rules   indent  t_data factors  tag name                                      listener name
+             1 => Some((PRS( 4), 4,    false, true,    "write_source_code_for_integration_listener1",  "Expr")),
+             2 => Some((PRS(51), 4,    false, true,    "write_source_code_for_integration_listener2",  "Expr")),
+             3 => Some((PRS(20), 4,    false, true,    "write_source_code_for_integration_listener3",  "Struct")),
+             4 => Some((PRS(30), 4,    false, true,    "write_source_code_for_integration_listener4",  "Struct")),
+             5 => Some((PRS(31), 4,    false, true,    "write_source_code_for_integration_listener5",  "Expr")),
+             6 => Some((PRS(32), 4,    false, true,    "write_source_code_for_integration_listener6",  "Expr")),
+             7 => Some((RTS(21), 4,    false, true,    "write_source_code_for_integration_listener7",  "Star")),
+             8 => Some((RTS(22), 4,    false, true,    "write_source_code_for_integration_listener8",  "Star")),
+             9 => Some((RTS(16), 4,    true,  true,    "write_source_code_for_integration_listener9",  "Plus")),
+            10 => Some((RTS(23), 4,    false, true,    "write_source_code_for_integration_listener10", "Plus")),
+            11 => Some((RTS(27), 4,    false, true,    "write_source_code_for_integration_listener11", "Plus")),
+            12 => Some((PRS(33), 4,    true,  true,    "write_source_code_for_integration_listener12", "LeftRec")),
+            13 => Some((PRS(36), 4,    false, true,    "write_source_code_for_integration_listener13",  "Expr")),
+            14 => Some((PRS(63), 4,    false, false,   "write_source_code_for_integration_listener14",  "Expr")),
+            15 => Some((PRS(53), 4,    false, true,    "write_source_code_for_integration_listener15",  "Expr")),
+            16 => Some((PRS(58), 4,    false, true,    "write_source_code_for_integration_listener16",  "Expr")),
             _ => None
         }
     }
@@ -85,8 +86,8 @@ mod gen_integration {
 
     fn do_test(id: u32, action: Action, verbose: bool) -> Result<(), SourceTestError> {
         const FILENAME: &str = "tests/integration/parser_examples.rs";
-        if let Some((rule_id, indent, is_t_data, tag, name)) = get_test_data(id) {
-            let source = get_source(rule_id, indent, is_t_data, name.to_string());
+        if let Some((rule_id, indent, is_t_data, include_factors, tag, name)) = get_test_data(id) {
+            let source = get_source(rule_id, indent, is_t_data, include_factors, name.to_string());
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
                 println!("{s}// [{tag}]\n{source}{s}// [{tag}]");
@@ -244,8 +245,13 @@ mod opcodes {
     use crate::parsergen::ParserGen;
 
     fn get_factors_str(parser: &Parser) -> Vec<String> {
-        parser.get_factors().iter().enumerate().map(|(id, (v, f))|
-            format!("{id:2}: {} -> {}", Symbol::NT(*v).to_str(parser.get_symbol_table()), f.iter().map(|s| s.to_str(parser.get_symbol_table())).join(" "))
+        let pv = parser.get_factor_var();
+        let pf = parser.get_factors();
+        pv.iter().enumerate().map(|(id, v)|
+            format!("{id:2}: {} -> {}",
+                    Symbol::NT(*v).to_str(parser.get_symbol_table()),
+                    if let Some(f) = pf.get(id) { f.iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ") } else { "(factor)".to_string() }
+            )
         ).collect()
     }
 
@@ -550,7 +556,8 @@ mod opcodes {
                 print!("- ");
                 print_prs_summary(&ll1);
             }
-            let parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
+            let parser_tables = ParserGen::from_rules(ll1, "Test".to_string()).make_parser_tables();
+            let parser = parser_tables.make_parser();
             if VERBOSE {
                 println!("Final factors and opcodes:");
                 print_opcodes(&parser);
@@ -571,12 +578,38 @@ mod opcodes {
     }
 }
 
+mod parser_source {
+    use crate::grammar::ProdRuleSet;
+    use crate::grammar::tests::build_prs;
+    use crate::{CollectJoin, LL1};
+    use crate::log::Logger;
+    use crate::parsergen::ParserGen;
+
+    #[test]
+    fn factors() {
+        for include_factors in [false, true] {
+            let rules = build_prs(9, true);
+            assert_eq!(rules.get_log().num_errors(), 0, "building PRS(9) failed:\n- {}", rules.get_log().get_errors().join("\n- "));
+            let ll1 = ProdRuleSet::<LL1>::from(rules);
+            let mut builder = ParserGen::from_rules(ll1, "simple".to_string());
+            builder.set_include_factors(include_factors);
+            let src = builder.build_source_code(0, false);
+            let factors_present = src.contains("static FACTORS");
+            assert_eq!(factors_present, include_factors, "unexpected source code: include_factors = {include_factors}, code = \n{src}");
+            let pt = builder.make_parser_tables();
+            let parser = pt.make_parser();
+            let factors = parser.get_factors();
+            assert_eq!(factors.is_empty(), !include_factors, "unexpected: include_factors = {include_factors}, factors = {factors:?}");
+        }
+    }
+}
+
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use iter_index::IndexerIterator;
     use crate::grammar::{ruleflag, symbol_to_macro, FactorId, Symbol, VarId};
     use crate::grammar::tests::{log_to_str, T};
-    use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source};
+    use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source, SymInfoTable};
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::{print_items, ParserGen};
     use crate::dfa::TokenId;

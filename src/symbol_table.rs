@@ -2,13 +2,13 @@
 
 #[cfg(any())]
 use std::collections::HashMap;
+use crate::{NameFixer, FixedSymTable, SymInfoTable};
 use crate::dfa::TokenId;
 use crate::grammar::{Symbol, VarId};
-use crate::NameFixer;
 
 // NOTE: nonterminal-to-ID functionality currently disabled by #[cfg(any())]
 
-/// Stores the names of the terminal and nonterminal symbols.
+/// Stores the names of the terminal and nonterminal symbols when building a parser.
 ///
 /// Terminals are defined in the lexicon and don't change. They have two parts to their name:
 /// - the identifier in the lexicon
@@ -16,15 +16,15 @@ use crate::NameFixer;
 ///
 /// For example:
 /// ```lexicon
-/// Arrow : '->';
+/// Plus : '+';
 /// ...
 /// ID    : [a-zA-Z][a-zA-Z_0-9]*;
 /// ```
 ///
-/// If `Arrow`'s token ID is 0 and `ID`'s is 24 (simplifying the strings to &str),
+/// If `Arrow`'s token ID is 0 and `ID`'s is 24,
 /// ```ignore
-/// t[0] = ("Arrow", Some("->"));
-/// t[24] = ("ID", None);
+/// t[0] = ("Plus".to_string(), Some("+".to_string()));
+/// t[24] = ("ID".to_string(), None);
 /// ```
 ///
 /// They're added to the symbol table with [`add_terminal()`](SymbolTable::add_terminal).
@@ -38,8 +38,8 @@ use crate::NameFixer;
 /// ```
 /// If `expr` is 0 and `term` is 1,
 /// ```ignore
-/// nt[0] = "expr";
-/// nt[1] = "term";
+/// nt[0] = "expr".to_string();
+/// nt[1] = "term".to_string();
 /// ```
 /// They're added with [`add_nonterminal`](SymbolTable::add_nonterminal).
 ///
@@ -49,7 +49,7 @@ use crate::NameFixer;
 /// nonterminal 0 creates
 ///
 /// ```ignore
-/// nt[2] = "expr_1"
+/// nt[2] = "expr_1".to_string()
 /// ```
 ///
 #[derive(Clone, Debug)]
@@ -74,29 +74,11 @@ impl SymbolTable {
         }
     }
 
+    pub fn to_fixed_sym_table(self) -> FixedSymTable {
+        FixedSymTable::new(self.t, self.nt)
+    }
+
     // -------------------------------------------------------------------------
-
-    /// Does `Symbol::T(token)` hold lexer string data?
-    ///
-    /// Terminals are divided into two categories: fixed and variable content. When the
-    /// terminal is defined with choices and ranges of characters, like `ID: [a-z]+`, it
-    /// contains variable content: data like the ID specifier.
-    pub fn is_token_data(&self, token: TokenId) -> bool {
-        self.t[token as usize].1.is_none()
-    }
-
-    /// Is `symbol` a terminal holding lexer string data?
-    ///
-    /// Terminals are divided into two categories: fixed and variable content. When the
-    /// terminal is defined with choices and ranges of characters, like `ID: [a-z]+`, it
-    /// contains variable content: data like the ID specifier.
-    pub fn is_symbol_t_data(&self, symbol: &Symbol) -> bool {
-        if let Symbol::T(token) = symbol {
-            self.t[*token as usize].1.is_none()
-        } else {
-            false
-        }
-    }
 
     pub fn add_terminal<T: Into<String>>(&mut self, name: T, name_maybe: Option<T>) -> TokenId {
         let token = self.t.len();
@@ -125,17 +107,6 @@ impl SymbolTable {
             format!("??T({token})")
         } else {
             self.t[token as usize].0.clone()
-        }
-    }
-
-    pub fn get_t_str(&self, token: TokenId) -> String {
-        match token {
-            _ if (token as usize) < self.t.len() => {
-                let (name, literal) = &self.t[token as usize];
-                literal.as_ref().unwrap_or(name).clone()
-            }
-            TokenId::MAX => "<bad character>".to_string(),
-            _ => format!("T({token}?)")
         }
     }
 
@@ -195,11 +166,6 @@ impl SymbolTable {
         self.fixer_nt.remove(&name);
     }
 
-    pub fn get_nt_name(&self, var: VarId) -> String {
-        if var as usize >= self.nt.len() { return format!("??NT({var})") }
-        self.nt[var as usize].clone()
-    }
-
     pub fn set_nt_name(&mut self, var: VarId, name: String) {
         self.nt[var as usize] = name;
     }
@@ -214,10 +180,38 @@ impl SymbolTable {
         self.fixer_nt.remove(&removed);
         removed
     }
+}
 
-    // -------------------------------------------------------------------------
+impl SymInfoTable for SymbolTable {
+    fn is_token_data(&self, token: TokenId) -> bool {
+        self.t[token as usize].1.is_none()
+    }
 
-    pub fn get_name(&self, symbol: &Symbol) -> String {
+    fn is_symbol_t_data(&self, symbol: &Symbol) -> bool {
+        if let Symbol::T(token) = symbol {
+            self.t[*token as usize].1.is_none()
+        } else {
+            false
+        }
+    }
+
+    fn get_t_str(&self, token: TokenId) -> String {
+        match token {
+            _ if (token as usize) < self.t.len() => {
+                let (name, literal) = &self.t[token as usize];
+                literal.as_ref().unwrap_or(name).clone()
+            }
+            TokenId::MAX => "<bad character>".to_string(),
+            _ => format!("T({token}?)")
+        }
+    }
+
+    fn get_nt_name(&self, var: VarId) -> String {
+        if var as usize >= self.nt.len() { return format!("??NT({var})") }
+        self.nt[var as usize].clone()
+    }
+
+    fn get_name(&self, symbol: &Symbol) -> String {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),
             Symbol::T(token) => self.get_t_str(*token),

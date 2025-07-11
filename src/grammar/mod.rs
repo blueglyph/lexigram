@@ -14,7 +14,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, btreeset, prod};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, btreeset, prod, SymInfoTable};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::log::{BufLog, Logger};
 use crate::SymbolTable;
@@ -115,11 +115,11 @@ impl Display for GrNode {
 }
 
 impl Symbol {
-    pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
+    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         symbol_table.map(|t| t.get_name(self)).unwrap_or(self.to_string())
     }
 
-    pub fn to_str_ext(&self, symbol_table: Option<&SymbolTable>, ext: &String) -> String {
+    pub fn to_str_ext<T: SymInfoTable>(&self, symbol_table: Option<&T>, ext: &String) -> String {
         let mut result = self.to_str(symbol_table);
         if let Some(t) = symbol_table {
             if t.is_symbol_t_data(self) {
@@ -944,13 +944,13 @@ impl ProdFactor {
         self.flags
     }
 
-    fn to_str_no_flags(&self, symbol_table: Option<&SymbolTable>) -> String {
+    fn to_str_no_flags<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         self.v.iter().map(|symbol|
             symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
         ).join(" ")
     }
 
-    pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
+    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         let mut s = if self.flags & ruleflag::FACTOR_INFO != 0 {
             format!("<{}> ", ruleflag::factor_info_to_string(self.flags).join(","))
         } else {

@@ -6,35 +6,37 @@ pub(crate) mod gramparser {
     // -------------------------------------------------------------------------
     // [gramparser]
 
-    use lexigram::{CollectJoin, SymbolTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram::{CollectJoin, FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::gramparser_types::*;
 
     const PARSER_NUM_T: usize = 13;
     const PARSER_NUM_NT: usize = 14;
     static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Id", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_factor", "prod_term", "term_item", "prod_factor_1", "rules_1", "prod_1", "rule_1", "prod_term_1"];
-    static PARSING_FACTORS: [(VarId, &[Symbol]); 24] = [(0, &[Symbol::NT(1), Symbol::NT(2)]), (1, &[Symbol::T(8), Symbol::T(12), Symbol::T(6)]), (2, &[Symbol::NT(3), Symbol::NT(10)]), (3, &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::NT(12)]), (4, &[Symbol::T(12)]), (5, &[Symbol::NT(6), Symbol::NT(11)]), (6, &[Symbol::NT(9)]), (7, &[Symbol::NT(8), Symbol::NT(13)]), (8, &[Symbol::T(12)]), (8, &[Symbol::T(10)]), (8, &[Symbol::T(11)]), (8, &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)]), (9, &[Symbol::NT(7), Symbol::NT(9)]), (9, &[Symbol::Empty]), (10, &[Symbol::NT(3), Symbol::NT(10)]), (10, &[Symbol::Empty]), (11, &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)]), (11, &[Symbol::Empty]), (12, &[Symbol::T(6)]), (12, &[Symbol::T(9), Symbol::T(6)]), (13, &[Symbol::T(3)]), (13, &[Symbol::T(4)]), (13, &[Symbol::T(7)]), (13, &[Symbol::Empty])];
+    static FACTOR_VAR: [VarId; 24] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
+    static FACTORS: [&[Symbol]; 24] = [&[Symbol::NT(1), Symbol::NT(2)], &[Symbol::T(8), Symbol::T(12), Symbol::T(6)], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::NT(12)], &[Symbol::T(12)], &[Symbol::NT(6), Symbol::NT(11)], &[Symbol::NT(9)], &[Symbol::NT(8), Symbol::NT(13)], &[Symbol::T(12)], &[Symbol::T(10)], &[Symbol::T(11)], &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)], &[Symbol::NT(7), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)], &[Symbol::Empty], &[Symbol::T(6)], &[Symbol::T(9), Symbol::T(6)], &[Symbol::T(3)], &[Symbol::T(4)], &[Symbol::T(7)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 196] = [24, 24, 24, 24, 24, 24, 24, 24, 0, 24, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 1, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 2, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 3, 25, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 4, 24, 24, 5, 5, 24, 24, 5, 5, 24, 24, 5, 5, 5, 5, 24, 24, 6, 6, 24, 24, 6, 6, 24, 24, 6, 6, 6, 6, 24, 24, 7, 25, 24, 24, 25, 25, 24, 24, 25, 7, 7, 7, 24, 24, 11, 25, 25, 25, 25, 25, 25, 24, 25, 9, 10, 8, 24, 24, 12, 13, 24, 24, 13, 13, 24, 24, 13, 12, 12, 12, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 14, 15, 24, 24, 16, 24, 24, 17, 17, 24, 24, 17, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 18, 24, 24, 19, 24, 24, 25, 25, 24, 23, 23, 20, 21, 23, 23, 22, 24, 23, 23, 23, 23, 24];
     static FLAGS: [u32; 14] = [0, 0, 512, 32, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64];
     static PARENT: [Option<VarId>; 14] = [None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(3), Some(7)];
     static OPCODES: [&[OpCode]; 24] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(12), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(12)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(12)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(12), OpCode::NT(7)], &[OpCode::Exit(13)], &[OpCode::Loop(10), OpCode::Exit(14), OpCode::NT(3)], &[OpCode::Exit(15)], &[OpCode::Loop(11), OpCode::Exit(16), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(17)], &[OpCode::Exit(18), OpCode::T(6)], &[OpCode::Exit(19), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(20), OpCode::T(3)], &[OpCode::Exit(21), OpCode::T(4)], &[OpCode::Exit(22), OpCode::T(7)], &[OpCode::Exit(23)]];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser {
-        let mut symbol_table = SymbolTable::new();
-        symbol_table.extend_terminals(SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))));
-        symbol_table.extend_nonterminals(SYMBOLS_NT.into_iter().map(|s| s.to_string()));
-        let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
-        let table: Vec<FactorId> = PARSING_TABLE.into();
-        let parsing_table = lexigram::grammar::LLParsingTable {
-            num_nt: PARSER_NUM_NT,
-            num_t: PARSER_NUM_T + 1,
-            factors,
-            table,
-            flags: FLAGS.into(),
-            parent: PARENT.into(),
-        };
-        Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)
+    pub fn build_parser() -> Parser<'static> {
+        let mut symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &FACTOR_VAR,
+            FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &FLAGS,
+            &PARENT,
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
     }
 
     #[derive(Debug)]

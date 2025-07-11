@@ -78,7 +78,7 @@ fn symbol_to_str() {
     ];
     for (symbol, expected) in tests {
         assert_eq!(symbol.to_str(Some(&symtable)), expected[0], "test on {symbol} has failed");
-        assert_eq!(symbol.to_str(None), expected[1], "test on {symbol} has failed");
+        assert_eq!(symbol.to_str::<SymbolTable>(None), expected[1], "test on {symbol} has failed");
         let node = GrNode::Symbol(symbol);
         assert_eq!(node.to_str(Some(&symtable)), expected[0], "test on {symbol} has failed");
         assert_eq!(node.to_str(None), expected[1], "test on {symbol} has failed");
