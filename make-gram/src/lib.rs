@@ -3,7 +3,7 @@
 pub mod build_gramlexer;
 pub mod build_gramparser;
 
-const GRAMLEXER_LEXICON: &str = "./src/lexicon.l";
+const GRAMLEXER_LEXICON: &str = "./src/gram_lexicon.l";
 const GRAMLEXER_FILENAME: &str = "../gram/src/gramlexer.rs";
 const GRAMPARSER_FILENAME: &str = "../gram/src/gramparser.rs";
 

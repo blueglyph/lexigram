@@ -473,7 +473,7 @@ mod tests {
 
     #[test]
     fn test_source() {
-        let result_src = lexiparser_source(LEXILEXER_GRAMMAR, 4, true)
+        let result_src = lexiparser_source(LEXILEXER_GRAMMAR, 4, false)
         .inspect_err(|e| eprintln!("Failed to parse grammar: {e:?}"))
         .unwrap();
         if !cfg!(miri) {
