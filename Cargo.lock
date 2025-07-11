@@ -53,6 +53,8 @@ dependencies = [
 name = "make-lexi"
 version = "0.1.0"
 dependencies = [
+ "gram",
+ "iter-index 1.0.0",
  "lexi",
  "lexigram",
 ]

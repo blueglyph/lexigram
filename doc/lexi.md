@@ -171,42 +171,42 @@ file_item:
 ;
 
 header:
-    LEXICON ID SEMICOLON
+    Lexicon Id Semicolon
 ;
 
 declaration:
-    MODE ID SEMICOLON
+    Mode Id Semicolon
 ;
 
 option:
-    CHANNELS LBRACKET ID (COMMA ID)* RBRACKET
+    Channels Lbracket Id (Comma Id)* Rbracket
 ;
 
 rule:
-    rule_fragment_name COLON match SEMICOLON
-|   rule_terminal_name COLON match (ARROW actions)? SEMICOLON
+    rule_fragment_name Colon match Semicolon
+|   rule_terminal_name Colon match (Arrow actions)? Semicolon
 ;
 
 rule_fragment_name:
-  FRAGMENT ID
+    Fragment Id
 ;
 
 rule_terminal_name:
-  ID
+    Id
 ;
 
 actions:
-    action (COMMA action)*
+    action (Comma action)*
 ;
 
 action:
-    MODE LPAREN ID RPAREN
-|   PUSH LPAREN ID RPAREN
-|   POP
-|   SKiP
-|   MORE
-|   TYPE LPAREN ID RPAREN
-|   CHANNEL LPAREN ID RPAREN
+    Mode Lparen Id Rparen
+|   Push Lparen Id Rparen
+|   Pop
+|   Skip
+|   More
+|   Type Lparen Id Rparen
+|   Channel Lparen Id Rparen
 ;
 
 match:
@@ -214,7 +214,7 @@ match:
 ;
 
 alt_items:
-    alt_item (OR alt_item)*
+    alt_item (Or alt_item)*
 ;
 
 alt_item:
@@ -222,30 +222,30 @@ alt_item:
 ;
 
 repeat_item:
-    item STAR QUESTION?
-|   item PLUS QUESTION?
-|   item QUESTION?
+    item Star Question?
+|   item Plus Question?
+|   item Question?
 ;
 
 item:
-    ID
-|   CHAR_LIT (ELLIPSIS CHAR_LIT)?
-|   STR_LIT
+    Id
+|   CharLit (Ellipsis CharLit)?
+|   StrLit
 |   char_set
-|   LPAREN alt_items RPAREN
-|   NEGATE item
+|   Lparen alt_items Rparen
+|   Negate item
 ;
 
 char_set:
-    LSBRACKET (char_set_one)+ RSBRACKET
-|   DOT
-|   FIXED_SET
+    LSbracket (char_set_one)+ RSbracket
+|   Dot
+|   FixedSet
 ;
 
 char_set_one:
-    SET_CHAR MINUS SET_CHAR
-|   SET_CHAR
-|   FIXED_SET
+    SetChar Minus SetChar
+|   SetChar
+|   FixedSet
 ;
 ```
 
