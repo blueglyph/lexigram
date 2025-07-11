@@ -8,7 +8,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, symbol_to_macro, ProdFactor};
-use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source};
+use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable};
 use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
 use crate::segments::{Seg, Segments};
@@ -126,6 +126,45 @@ impl ItemInfo {
                 if self.is_vec { ", is_vec" } else { "" },
                 if let Some(n) = self.index { format!(", [{n}]") } else { "".to_string() },
                 Symbol::NT(self.owner).to_str(symbol_table))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
+/// Tables and parameters used to create a [`Parser`]. This type is used as a return object from the parser generator,
+/// when the Parser must be created dynamically; for example, in tests or in situations where the grammar isn't
+/// known in advance. In those situations, the ParserTables object must live as long as the parser it generates.
+///
+/// The Parser itself uses references to tables whenever possible because, in most situations, the tables are
+/// static in generated source files. A few fields must still be created dynamically from (possibly) static
+/// tables because they don't exist in static form.
+pub struct ParserTables {
+    parsing_table: LLParsingTable,
+    symbol_table: FixedSymTable,
+    opcodes: Vec<Vec<OpCode>>,
+    start: VarId
+}
+
+impl ParserTables {
+    pub fn new(parsing_table: LLParsingTable, symbol_table: FixedSymTable, opcodes: Vec<Vec<OpCode>>, start: VarId) -> Self {
+        ParserTables { parsing_table, symbol_table, opcodes, start }
+    }
+
+    /// Creates a [`Parser`], which includes references in the current object for a few of the tables.
+    /// The [`ParserTables`] object's lifetime must enclose the parser's.
+    pub fn make_parser(&self) -> Parser {
+        assert!(self.parsing_table.num_nt > self.start as usize);
+        Parser::new(
+            self.parsing_table.num_nt,
+            self.parsing_table.num_t,
+            self.parsing_table.factors.clone(),
+            self.opcodes.clone(),
+            self.parsing_table.flags.as_slice(),
+            self.parsing_table.parent.as_slice(),
+            self.parsing_table.table.as_slice(),
+            self.symbol_table.clone(),
+            self.start,
+        )
     }
 }
 
@@ -1196,8 +1235,10 @@ impl ParserGen {
         (nt_name, factor_info, item_info, nt_repeat)
     }
 
-    pub fn make_parser(self) -> Parser {
-        Parser::new(self.parsing_table, self.symbol_table.to_fixed_sym_table(), self.opcodes, self.start)
+    /// Creates a [`ParserTables`], from which a parser can be created dynamically with
+    /// [`parser_table.make_parser()`](ParserTables::make_parser).
+    pub fn make_parser_tables(self) -> ParserTables {
+        ParserTables::new(self.parsing_table, self.symbol_table.to_fixed_sym_table(), self.opcodes, self.start)
     }
 
     // Building the source code as we do below is not the most efficient, but it's done that way to
@@ -1270,22 +1311,22 @@ impl ParserGen {
                      self.opcodes.iter().map(|strip| format!("&[{}]", strip.into_iter().map(|op| format!("OpCode::{op:?}")).join(", "))).join(", ")),
             format!("static START_SYMBOL: VarId = {};\n", self.start),
 
-            format!("pub fn build_parser() -> Parser {{"),
+            format!("pub fn build_parser() -> Parser<'static> {{"),
             format!("    let mut symbol_table = FixedSymTable::new("),
             format!("        SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),"),
             format!("        SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()"),
             format!("    );"),
             format!("    let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();"),
-            format!("    let table: Vec<FactorId> = PARSING_TABLE.into();"),
-            format!("    let parsing_table = lexigram::grammar::LLParsingTable {{"),
-            format!("        num_nt: PARSER_NUM_NT,"),
-            format!("        num_t: PARSER_NUM_T + 1,"),
+            format!("    Parser::new("),
+            format!("        PARSER_NUM_NT, PARSER_NUM_T + 1,"),
             format!("        factors,"),
-            format!("        table,"),
-            format!("        flags: FLAGS.into(),"),
-            format!("        parent: PARENT.into(),"),
-            format!("    }};"),
-            format!("    Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)"),
+            format!("        OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),"),
+            format!("        &FLAGS,"),
+            format!("        &PARENT,"),
+            format!("        &PARSING_TABLE,"),
+            format!("        symbol_table,"),
+            format!("        START_SYMBOL"),
+            format!("    )"),
             format!("}}"),
         ]
     }

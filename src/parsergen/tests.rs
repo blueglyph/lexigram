@@ -550,7 +550,8 @@ mod opcodes {
                 print!("- ");
                 print_prs_summary(&ll1);
             }
-            let parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
+            let parser_tables = ParserGen::from_rules(ll1, "Test".to_string()).make_parser_tables();
+            let parser = parser_tables.make_parser();
             if VERBOSE {
                 println!("Final factors and opcodes:");
                 print_opcodes(&parser);

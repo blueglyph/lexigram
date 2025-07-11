@@ -12,15 +12,15 @@ use lexigram::{LL1, SymbolTable};
 use std::io::Read;
 use std::marker::PhantomData;
 
-pub struct Gram<'a, T, R: Read> {
+pub struct Gram<'a, 'b, T, R: Read> {
     pub gramlexer: Lexer<'a, R>,
-    pub gramparser: Parser,
+    pub gramparser: Parser<'b>,
     pub wrapper: Wrapper<GramListener>,
     _phantom: PhantomData<T>
 }
 
 #[allow(unused)]
-impl<T, R: Read> Gram<'_, T, R> {
+impl<T, R: Read> Gram<'_, '_, T, R> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
     const VERBOSE_LISTENER: bool = false;
@@ -65,7 +65,7 @@ impl<T, R: Read> Gram<'_, T, R> {
     }
 }
 
-impl<R: Read> Gram<'_, LL1, R> {
+impl<R: Read> Gram<'_, '_, LL1, R> {
     pub fn build_ll1(mut self, lexicon: CharReader<R>) -> (ProdRuleSet<LL1>, String) {
         self.build(lexicon);
         let listener = self.wrapper.listener();

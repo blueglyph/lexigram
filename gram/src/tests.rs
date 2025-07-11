@@ -244,7 +244,8 @@ mod listener {
                     }
                 }
                 assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
-                let mut parser = builder.make_parser();
+                let parser_table = builder.make_parser_tables();
+                let mut parser = parser_table.make_parser();
 
                 for (input, expected_lexer_success, expected_parser_success) in inputs {
                     if VERBOSE { println!("- input '{input}'"); }

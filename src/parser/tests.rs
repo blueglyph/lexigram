@@ -122,7 +122,8 @@ fn parser_parse_stream() {
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
-        let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
+        let parser_tables = ParserGen::from_rules(ll1, "Test".to_string()).make_parser_tables();
+        let mut parser = parser_tables.make_parser();
         for (input, expected_success) in sequences {
             if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
             let mut stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {
@@ -248,7 +249,8 @@ fn parser_parse_stream_id() {
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
-        let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
+        let parser_tables = ParserGen::from_rules(ll1, "Test".to_string()).make_parser_tables();
+        let mut parser = parser_tables.make_parser();
         for (input, expected_errors) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
             let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
@@ -509,7 +511,8 @@ mod listener {
             let symbols = (0..ll1.get_num_t() as TokenId)
                 .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
                 .collect::<HashMap<_, _>>();
-            let mut parser = ParserGen::from_rules(ll1, "Test".to_string()).make_parser();
+            let parser_tables = ParserGen::from_rules(ll1, "Test".to_string()).make_parser_tables();
+            let mut parser = parser_tables.make_parser();
             for (input, expected_success, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
                 let mut stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {

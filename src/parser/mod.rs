@@ -70,38 +70,35 @@ impl Display for ParserError {
     }
 }
 
-pub struct Parser {
+pub struct Parser<'a> {
     num_nt: usize,
     num_t: usize,
     factors: Vec<(VarId, ProdFactor)>,
     opcodes: Vec<Vec<OpCode>>,
-    flags: Vec<u32>,            // NT -> flags (+ or * normalization)
-    parent: Vec<Option<VarId>>, // NT -> parent NT
-    table: Vec<FactorId>,
+    flags: &'a [u32],            // NT -> flags (+ or * normalization)
+    parent: &'a [Option<VarId>], // NT -> parent NT
+    table: &'a [FactorId],
     symbol_table: FixedSymTable,
     start: VarId,
     try_recover: bool,          // tries to recover from syntactical errors
 }
 
-impl Parser {
+impl<'a> Parser<'a> {
     /// Maximum number of error recoveries attempted when meeting a syntax error
     pub const MAX_NBR_RECOVERS: u32 = 5;
     pub const MAX_NBR_LEXER_ERRORS: u32 = 3;
-    pub fn new(parsing_table: LLParsingTable, symbol_table: FixedSymTable, opcodes: Vec<Vec<OpCode>>, start: VarId) -> Self {
-        assert!(parsing_table.num_nt > start as usize);
-        let mut parser = Parser {
-            num_nt: parsing_table.num_nt,
-            num_t: parsing_table.num_t,
-            factors: parsing_table.factors,
-            opcodes,
-            flags: parsing_table.flags,
-            parent: parsing_table.parent,
-            table: parsing_table.table,
-            symbol_table,
-            start,
-            try_recover: true
-        };
-        parser
+    pub fn new(
+        num_nt: usize,
+        num_t: usize,
+        factors: Vec<(VarId, ProdFactor)>,
+        opcodes: Vec<Vec<OpCode>>,
+        flags: &'a [u32],            // NT -> flags (+ or * normalization)
+        parent: &'a [Option<VarId>], // NT -> parent NT
+        table: &'a [FactorId],
+        symbol_table: FixedSymTable,
+        start: VarId,
+    ) -> Self {
+        Parser { num_nt, num_t, factors, opcodes, flags, parent, table, symbol_table, start, try_recover: true }
     }
 
     pub fn get_symbol_table(&self) -> Option<&FixedSymTable> {

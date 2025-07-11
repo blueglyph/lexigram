@@ -20,22 +20,22 @@ pub(crate) mod lexiparser {
     static OPCODES: [&[OpCode]; 61] = [&[OpCode::Exit(0), OpCode::NT(15), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::NT(15)], &[OpCode::Exit(2), OpCode::NT(4)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(14), OpCode::T(27), OpCode::T(18)], &[OpCode::Exit(6), OpCode::T(14), OpCode::T(27), OpCode::T(19)], &[OpCode::Exit(7), OpCode::T(12), OpCode::NT(16), OpCode::T(27), OpCode::T(5), OpCode::T(16)], &[OpCode::Exit(8), OpCode::T(14), OpCode::NT(8), OpCode::T(1), OpCode::T(27), OpCode::T(17)], &[OpCode::NT(21), OpCode::NT(8), OpCode::T(1), OpCode::T(27)], &[OpCode::Exit(10), OpCode::NT(17), OpCode::NT(7)], &[OpCode::Exit(11), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(19)], &[OpCode::Exit(12), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(21)], &[OpCode::Exit(13), OpCode::T(20)], &[OpCode::Exit(14), OpCode::T(23)], &[OpCode::Exit(15), OpCode::T(22)], &[OpCode::Exit(16), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(24)], &[OpCode::Exit(17), OpCode::T(13), OpCode::T(27), OpCode::T(6), OpCode::T(25)], &[OpCode::Exit(18), OpCode::NT(9)], &[OpCode::Exit(19), OpCode::NT(18), OpCode::NT(10)], &[OpCode::Exit(20), OpCode::NT(19)], &[OpCode::NT(22), OpCode::NT(12)], &[OpCode::Exit(22), OpCode::T(13), OpCode::NT(9), OpCode::T(6)], &[OpCode::Exit(23), OpCode::NT(12), OpCode::T(7)], &[OpCode::Exit(24), OpCode::T(27)], &[OpCode::NT(23), OpCode::T(28)], &[OpCode::Exit(26), OpCode::T(29)], &[OpCode::Exit(27), OpCode::NT(13)], &[OpCode::Exit(28), OpCode::T(32), OpCode::NT(20), OpCode::T(31)], &[OpCode::Exit(29), OpCode::T(3)], &[OpCode::Exit(30), OpCode::T(30)], &[OpCode::Exit(31), OpCode::T(30)], &[OpCode::NT(24), OpCode::T(33)], &[OpCode::Loop(15), OpCode::Exit(33), OpCode::NT(1)], &[OpCode::Exit(34)], &[OpCode::Loop(16), OpCode::Exit(35), OpCode::T(27), OpCode::T(2)], &[OpCode::Exit(36)], &[OpCode::Loop(17), OpCode::Exit(37), OpCode::NT(7), OpCode::T(2)], &[OpCode::Exit(38)], &[OpCode::Loop(18), OpCode::Exit(39), OpCode::NT(10), OpCode::T(10)], &[OpCode::Exit(40)], &[OpCode::NT(25), OpCode::NT(11)], &[OpCode::NT(26), OpCode::NT(14)], &[OpCode::Exit(43), OpCode::T(14), OpCode::NT(6), OpCode::T(0)], &[OpCode::Exit(44), OpCode::T(14)], &[OpCode::NT(27), OpCode::T(9)], &[OpCode::Exit(46), OpCode::T(11)], &[OpCode::NT(28), OpCode::T(15)], &[OpCode::Exit(48)], &[OpCode::Exit(49), OpCode::T(28), OpCode::T(4)], &[OpCode::Exit(50)], &[OpCode::Exit(51), OpCode::T(33), OpCode::T(8)], &[OpCode::Exit(52)], &[OpCode::Loop(19), OpCode::Exit(53)], &[OpCode::Exit(54)], &[OpCode::Loop(20), OpCode::Exit(55)], &[OpCode::Exit(56)], &[OpCode::Exit(57), OpCode::T(11)], &[OpCode::Exit(58)], &[OpCode::Exit(59), OpCode::T(11)], &[OpCode::Exit(60)]];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser<'static> {
         let mut symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
-        let table: Vec<FactorId> = PARSING_TABLE.into();
-        let parsing_table = lexigram::grammar::LLParsingTable {
-            num_nt: PARSER_NUM_NT,
-            num_t: PARSER_NUM_T + 1,
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
             factors,
-            table,
-            flags: FLAGS.into(),
-            parent: PARENT.into(),
-        };
-        Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &FLAGS,
+            &PARENT,
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
     }
 
     #[derive(Debug)]

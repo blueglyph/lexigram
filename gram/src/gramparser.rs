@@ -20,22 +20,22 @@ pub(crate) mod gramparser {
     static OPCODES: [&[OpCode]; 24] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(12), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(12)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(12)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(12), OpCode::NT(7)], &[OpCode::Exit(13)], &[OpCode::Loop(10), OpCode::Exit(14), OpCode::NT(3)], &[OpCode::Exit(15)], &[OpCode::Loop(11), OpCode::Exit(16), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(17)], &[OpCode::Exit(18), OpCode::T(6)], &[OpCode::Exit(19), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(20), OpCode::T(3)], &[OpCode::Exit(21), OpCode::T(4)], &[OpCode::Exit(22), OpCode::T(7)], &[OpCode::Exit(23)]];
     static START_SYMBOL: VarId = 0;
 
-    pub fn build_parser() -> Parser {
+    pub fn build_parser() -> Parser<'static> {
         let mut symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
         let factors: Vec<(VarId, ProdFactor)> = PARSING_FACTORS.into_iter().map(|(v, s)| (v, ProdFactor::new(s.to_vec()))).collect();
-        let table: Vec<FactorId> = PARSING_TABLE.into();
-        let parsing_table = lexigram::grammar::LLParsingTable {
-            num_nt: PARSER_NUM_NT,
-            num_t: PARSER_NUM_T + 1,
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
             factors,
-            table,
-            flags: FLAGS.into(),
-            parent: PARENT.into(),
-        };
-        Parser::new(parsing_table, symbol_table, OPCODES.into_iter().map(|strip| strip.to_vec()).collect(), START_SYMBOL)
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &FLAGS,
+            &PARENT,
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
     }
 
     #[derive(Debug)]
