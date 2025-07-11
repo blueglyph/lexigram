@@ -30,6 +30,7 @@
 - improve performances / memory
   - [x] ~~use statics instead of consts in generated code~~ 
   - [x] ~~use reference to static tables instead of Box<[]>~~
+  - [ ] try to put all the data in static? (not sure it's interesting)
   - [ ] static HashMap / SegMap (BTreeMap)?
   - [ ] ReNode size
   - [ ] buffer <> Strings returned by get_token()
@@ -69,8 +70,9 @@
     - [ ] points of reactivation of the semantic analysis (instead of stopping it altogether)
     - [ ] option to stop parsing on first error
 - improve performances / memory
-  - [ ] use reference to static tables when possible instead of building collections from them
-    - [ ] FixedSymbolTable for generated parser <-> SymbolTable for lib 
+  - [x] ~~use reference to static tables when possible instead of building collections from them~~
+    - [x] ~~FixedSymbolTable for generated parser <-> SymbolTable for lib~~ 
+  - [ ] try to put all the data in static? (not sure it's interesting)
 
 ## Bottom-up parser
   - [ ] decide algorithm (LALR?)
