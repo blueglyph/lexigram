@@ -79,59 +79,6 @@ impl LexerError {
     }
 }
 
-/// Tables and parameters used to create a Lexer. This type is used as a return object from the lexer generator,
-/// when the Lexer must be created dynamically; for example, in tests or in situations where the lexicon isn't
-/// known in advance. In those situations, the LexerTables object must live as long as the lexer.
-///
-/// The Lexer itself only uses references to tables whenever possible because, in most situations, the tables are
-/// static in generated source files. Only the dictionaries must be created dynamically from (possibly) static
-/// tables because they don't exist in static form (yet).
-pub struct LexerTables {
-    // parameters
-    nbr_groups: u32,
-    initial_state: StateId,
-    first_end_state: StateId,   // accepting when state >= first_end_state
-    nbr_states: StateId,        // error if state >= nbr_states
-    // tables
-    ascii_to_group: Vec<GroupId>,
-    utf8_to_group: HashMap<char, GroupId>,
-    seg_to_group: SegMap<GroupId>,
-    state_table: Vec<StateId>,
-    terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state]
-}
-
-impl LexerTables {
-    pub fn new(
-        // parameters
-        nbr_groups: u32,
-        initial_state: StateId,
-        first_end_state: StateId,   // accepting when state >= first_end_state
-        nbr_states: StateId,        // error if state >= nbr_states
-        // tables
-        ascii_to_group: Vec<GroupId>,
-        utf8_to_group: HashMap<char, GroupId>,
-        seg_to_group: SegMap<GroupId>,
-        state_table: Vec<StateId>,
-        terminal_table: Vec<Terminal>,  // token(state) = token_table[state - first_end_state]
-    ) -> Self {
-        LexerTables {
-            nbr_groups,
-            initial_state,
-            first_end_state,
-            nbr_states,
-            ascii_to_group,
-            utf8_to_group,
-            seg_to_group,
-            state_table,
-            terminal_table,
-        }
-    }
-
-    pub fn to_lexer<R: Read>(&self) -> Lexer<'_, R> {
-        Lexer::from_tables(&self)
-    }
-}
-
 pub type CaretCol = u64;
 pub type CaretLine = u64;
 
@@ -143,15 +90,15 @@ pub type LexerToken = (TokenId, ChannelId, String, CaretLine, CaretCol);
 /// iterator created by [`tokens()`](Lexer::tokens).
 pub struct Lexer<'a, R> {
     // operating variables
-    input: Option<CharReader<R>>,
-    error: LexerError,
-    is_eos: bool,
-    pos: u64,
-    line: CaretLine,
-    col: CaretCol,
-    tab_width: u8,
-    state_stack: Vec<StateId>,
-    start_state: StateId,
+    pub(crate) input: Option<CharReader<R>>,
+    pub(crate) error: LexerError,
+    pub(crate) is_eos: bool,
+    pub(crate) pos: u64,
+    pub(crate) line: CaretLine,
+    pub(crate) col: CaretCol,
+    pub(crate) tab_width: u8,
+    pub(crate) state_stack: Vec<StateId>,
+    pub(crate) start_state: StateId,
     // parameters
     pub nbr_groups: u32,
     pub initial_state: StateId,
@@ -198,29 +145,6 @@ impl<'a, R: Read> Lexer<'a, R> {
             seg_to_group,
             state_table,
             terminal_table,
-        }
-    }
-
-    pub fn from_tables(tables: &'a LexerTables) -> Self {
-        Lexer::<'a> {
-            input: None,
-            error: LexerError::None,
-            is_eos: false,
-            pos: 0,
-            line: 1,
-            col: 1,
-            tab_width: 4,
-            state_stack: Vec::new(),
-            start_state: 0,
-            nbr_groups: tables.nbr_groups,
-            initial_state: tables.initial_state,
-            first_end_state: tables.first_end_state,
-            nbr_states: tables.nbr_states,
-            ascii_to_group: tables.ascii_to_group.as_slice(),
-            utf8_to_group: tables.utf8_to_group.clone(),    // FIXME: temporary
-            seg_to_group: tables.seg_to_group.clone(),      // FIXME: temporary
-            state_table: tables.state_table.as_slice(),
-            terminal_table: tables.terminal_table.as_slice(),
         }
     }
 

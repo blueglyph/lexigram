@@ -9,8 +9,8 @@ use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, print_dfa, Terminal};
 use crate::{escape_string, CollectJoin, General, LL1};
 use crate::SymInfoTable;
 use crate::io::CharReader;
-use crate::lexer::{Lexer, LexerTables};
-use crate::lexergen::LexerGen;
+use crate::lexer::Lexer;
+use crate::lexergen::{LexerGen, LexerTables};
 use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt};
 use crate::grammar::print_production_rules;
@@ -63,7 +63,7 @@ fn make_lexer_tables(ltype: LexerType) -> LexerTables {
         println!("Sources:");
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
     }
-    lexgen.get_tables()
+    lexgen.make_lexer_tables()
 }
 
 #[test]
@@ -93,7 +93,7 @@ fn lexilexer_source() {
 fn lexilexer_tokens() {
     for opt in [LexerType::Normalized, LexerType::Optimized] {
         let lexer_tables = make_lexer_tables(opt);
-        let mut lexer: Lexer<Cursor<&str>> = Lexer::from_tables(&lexer_tables);
+        let mut lexer: Lexer<Cursor<&str>> = lexer_tables.make_lexer();
         check_lexer_tokens(&mut lexer, opt);
     }
 }
@@ -143,7 +143,7 @@ fn regexgen_stability() {
     const VERBOSE: bool = false;
     for opt in [LexerType::Normalized, LexerType::Optimized] {
         let lexer_tables = make_lexer_tables(opt);
-        let mut lexer = Lexer::from_tables(&lexer_tables);
+        let mut lexer = lexer_tables.make_lexer();
         let stream = CharReader::new(Cursor::new(LEXICON));
         lexer.attach_stream(stream);
         let mut source2 = String::new();

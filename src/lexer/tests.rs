@@ -6,7 +6,7 @@ use std::io::Cursor;
 use crate::{btreemap, CollectJoin, escape_string, node, term};
 use crate::dfa::*;
 use crate::dfa::{print_dfa, tests::{build_re}};
-use crate::lexergen::LexerGen;
+use crate::lexergen::{LexerGen, LexerTables};
 use vectree::VecTree;
 use super::*;
 
@@ -76,8 +76,8 @@ fn lexer_simple() {
         if VERBOSE { print_dfa(&dfa, 12); }
         let lexgen = LexerGen::from(dfa);
         if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
-        let lexer_tables = lexgen.get_tables();
-        let mut lexer = Lexer::from_tables(&lexer_tables);
+        let lexer_tables = lexgen.make_lexer_tables();
+        let mut lexer = lexer_tables.make_lexer();
         lexer.set_tab_width(8);
         for (exp_token, (inputs, outputs)) in token_tests {
             for (input, output) in inputs.into_iter().zip(outputs.into_iter()) {
@@ -248,7 +248,7 @@ fn build_lexer_tables(test: usize) -> LexerTables {
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
         println!("creating lexer");
     }
-    lexgen.get_tables()
+    lexgen.make_lexer_tables()
 }
 
 #[test]
@@ -275,7 +275,7 @@ fn lexer_modes() {
     for (test_id, (lexer_id, data)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("test {test_id}:"); }
         let lexer_tables = build_lexer_tables(lexer_id);
-        let mut lexer = lexer_tables.to_lexer();
+        let mut lexer = lexer_tables.make_lexer();
         for (input, expected_tokens, expected_texts) in data {
             if VERBOSE { print!("\"{}\":", escape_string(input)); }
             let stream = CharReader::new(Cursor::new(input));
