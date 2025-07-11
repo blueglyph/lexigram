@@ -73,7 +73,8 @@ impl Display for ParserError {
 pub struct Parser<'a> {
     num_nt: usize,
     num_t: usize,
-    factors: Vec<(VarId, ProdFactor)>,
+    factor_var: &'a [VarId],
+    factors: Vec<ProdFactor>,
     opcodes: Vec<Vec<OpCode>>,
     flags: &'a [u32],            // NT -> flags (+ or * normalization)
     parent: &'a [Option<VarId>], // NT -> parent NT
@@ -90,7 +91,8 @@ impl<'a> Parser<'a> {
     pub fn new(
         num_nt: usize,
         num_t: usize,
-        factors: Vec<(VarId, ProdFactor)>,
+        factor_var: &'a [VarId],
+        factors: Vec<ProdFactor>,
         opcodes: Vec<Vec<OpCode>>,
         flags: &'a [u32],            // NT -> flags (+ or * normalization)
         parent: &'a [Option<VarId>], // NT -> parent NT
@@ -98,7 +100,7 @@ impl<'a> Parser<'a> {
         symbol_table: FixedSymTable,
         start: VarId,
     ) -> Self {
-        Parser { num_nt, num_t, factors, opcodes, flags, parent, table, symbol_table, start, try_recover: true }
+        Parser { num_nt, num_t, factor_var, factors, opcodes, flags, parent, table, symbol_table, start, try_recover: true }
     }
 
     pub fn get_symbol_table(&self) -> Option<&FixedSymTable> {
@@ -114,7 +116,11 @@ impl<'a> Parser<'a> {
         self.try_recover = try_recover;
     }
 
-    pub(crate) fn get_factors(&self) -> &Vec<(VarId, ProdFactor)> {
+    pub(crate) fn get_factor_var(&self) -> &[VarId] {
+        self.factor_var
+    }
+
+    pub(crate) fn get_factors(&self) -> &Vec<ProdFactor> {
         &self.factors
     }
 
@@ -126,7 +132,7 @@ impl<'a> Parser<'a> {
     /// `stack` and current stack symbol `stack_sym`.
     fn simulate(&self, stream_sym: Symbol, mut stack: Vec<OpCode>, mut stack_sym: OpCode) -> bool {
         const VERBOSE: bool = false;
-        let error_skip_factor_id = self.factors.len() as FactorId;
+        let error_skip_factor_id = self.factor_var.len() as FactorId;
         let end_var_id = (self.num_t - 1) as VarId;
         if VERBOSE { print!("  next symbol could be: {}?", stream_sym.to_str(self.get_symbol_table())); }
 
@@ -173,7 +179,7 @@ impl<'a> Parser<'a> {
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let mut stack = Vec::<OpCode>::new();
         let mut stack_t = Vec::<String>::new();
-        let error_skip_factor_id = self.factors.len() as FactorId;
+        let error_skip_factor_id = self.factor_var.len() as FactorId;
         let error_pop_factor_id = error_skip_factor_id + 1;
         if VERBOSE { println!("skip = {error_skip_factor_id}, pop = {error_pop_factor_id}"); }
         let mut recover_mode = false;
@@ -235,7 +241,11 @@ impl<'a> Parser<'a> {
                                  if factor_id >= error_skip_factor_id {
                                      "ERROR".to_string()
                                  } else {
-                                     self.factors[factor_id as usize].1.to_str(sym_table)
+                                     if let Some(f) = self.factors.get(factor_id as usize) {
+                                         f.to_str(sym_table)
+                                     } else {
+                                         "(factor)".to_string()
+                                     }
                                  });
                     }
                     if !recover_mode && factor_id >= error_skip_factor_id {
@@ -293,10 +303,14 @@ impl<'a> Parser<'a> {
                         let call = if stack_sym.is_loop() { Call::Loop } else { Call::Enter };
                         let t_data = std::mem::take(&mut stack_t);
                         if VERBOSE {
-                            let f = &self.factors[factor_id as usize];
+                            let f_str = if let Some(f) = &self.factors.get(factor_id as usize) {
+                                f.to_str(sym_table)
+                            } else {
+                                "(factor)".to_string()
+                            };
                             println!("- to stack: [{}]", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(" "));
-                            println!("- {} {} -> {} ({}): [{}]", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
-                                     Symbol::NT(f.0).to_str(sym_table), f.1.to_str(sym_table), t_data.len(), t_data.iter().join(" "));
+                            println!("- {} {} -> {f_str} ({}): [{}]", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
+                                     Symbol::NT(self.factor_var[factor_id as usize]).to_str(sym_table), t_data.len(), t_data.iter().join(" "));
                         }
                         if nbr_recovers == 0 {
                             wrapper.switch(call, var, factor_id, Some(t_data));
@@ -306,7 +320,7 @@ impl<'a> Parser<'a> {
                     }
                 }
                 (OpCode::Exit(factor_id), _) => {
-                    let var = self.factors[factor_id as usize].0;
+                    let var = self.factor_var[factor_id as usize];
                     let t_data = std::mem::take(&mut stack_t);
                     if VERBOSE { println!("- EXIT {} syn ({}): [{}]", Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter().join(" ")); }
                     if nbr_recovers == 0 {
