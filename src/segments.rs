@@ -329,7 +329,7 @@ impl Display for Segments { // TODO: create wrapper to set the desired style (no
                 if normalized.len() > 1 {
                     let alt = normalized.not();
                     if alt.len() < normalized.len() {
-                        return write!(f, "~ {}", alt.0.iter()
+                        return write!(f, "~[{}]", alt.0.iter()
                             .map(|seg| seg.to_string())
                             .join(", ")
                         );
@@ -560,10 +560,10 @@ pub mod macros {
     /// x.insert(seg!('0'-'9'));
     /// assert_eq!(x, Segments::from([Seg('a' as u32, 'a' as u32), Seg('0' as u32, '9' as u32)]));
     /// ```
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! seg {
-        ($($a1:literal)?$($a2:ident)? - $($b1:literal)?$($b2:ident)?) => { $crate::segments::Seg(utf8!($($a1)?$($a2)?), utf8!($($b1)?$($b2)?)) };
-        ($($a1:literal)?$($a2:ident)?) => { $crate::segments::Seg(utf8!($($a1)?$($a2)?), utf8!($($a1)?$($a2)?)) };
+        ($($a1:literal)?$($a2:ident)? - $($b1:literal)?$($b2:ident)?) => { $crate::segments::Seg($crate::utf8!($($a1)?$($a2)?), $crate::utf8!($($b1)?$($b2)?)) };
+        ($($a1:literal)?$($a2:ident)?) => { $crate::segments::Seg($crate::utf8!($($a1)?$($a2)?), $crate::utf8!($($a1)?$($a2)?)) };
     }
 
     /// Generates a Segments initialization from Seg values. The macro only accepts literals, either characters or integers,
@@ -586,14 +586,14 @@ pub mod macros {
     /// assert_eq!(segments!(DOT), Segments::dot());
     /// assert_eq!(segments!(~ '1'-'8'), segments![MIN-'0', '9'-LOW_MAX, HIGH_MIN-MAX]);
     /// ```
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! segments {
         () => { $crate::segments::Segments::empty() };
         (DOT) => { $crate::segments::Segments::dot() };
-        ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { $crate::segments::Segments::from([$(seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+]) };
-        (~ $($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { segments![$($($a1)?$($a2)? $(- $($b1)?$($b2)?)?),+].not() };
+        ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { $crate::segments::Segments::from([$($crate::seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+]) };
+        (~ $($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+) => { $crate::segments![$($($a1)?$($a2)? $(- $($b1)?$($b2)?)?),+].not() };
         //
-        ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+) => { segments![$(seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+] };
+        ($($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+) => { $crate::segments![$($crate::seg!($($a1)?$($a2)? $(- $($b1)?$($b2)?)?)),+] };
     }
 
     /// Generates the key-value pairs corresponding to the `Segments => int` arguments, which can be
@@ -650,16 +650,16 @@ pub mod macros {
     ///         7 => btreemap![Segments::from([Seg('a' as u32, 'a' as u32)]) => 0, Segments::dot() => 1]
     ///     ]);
     /// ```
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! branch {
         // doesn't work, so we can't mix [] and non-[] segments:
         // ($( $($($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+)? $(~[$($($c1:literal)?$($c2:ident)? $(-$($d1:literal)?$($d2:ident)?)?),+])? => $value:expr ),*)
         // => { btreemap![$($(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+])? $(segments![~ $($($c1)?$($c2)?$(- $($d1)?$($d2)?)?),+])? => $value),*] };
 
         ($( $($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+ => $value:expr ),*)
-        => { btreemap![$(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+] => $value),*] };
+        => { btreemap![$($crate::segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+] => $value),*] };
         ($( $([$($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+])? $(~[$($($c1:literal)?$($c2:ident)? $(-$($d1:literal)?$($d2:ident)?)?),+])? => $value:expr ),*)
-        => { btreemap![$($(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+])? $(segments![~ $($($c1)?$($c2)?$(- $($d1)?$($d2)?)?),+])? => $value),*] };
+        => { btreemap![$($($crate::segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+])? $($crate::segments![~ $($($c1)?$($c2)?$(- $($d1)?$($d2)?)?),+])? => $value),*] };
     }
 
     #[test]

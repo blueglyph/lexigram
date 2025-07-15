@@ -1119,16 +1119,40 @@ pub fn print_dfa<T>(dfa: &Dfa<T>, indent: usize) {
     println!("End states:\n{: >indent$}{}", " ", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).join(", "), indent=indent);
 }
 
+fn graph_to_source_code(
+    state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>,
+    end_states: Option<&BTreeMap<StateId, Terminal>>,
+    indent: usize,
+) -> Vec<String> {
+    let s = String::from_utf8(vec![32; indent]).unwrap();
+    state_graph.iter().map(|(state, trans)| {
+        let mut has_neg = false;
+        let mut tr = trans.iter().map(|(sym, st)| {
+            let s = (sym.to_string(), st.to_string());
+            has_neg |= s.0.starts_with('~');
+            s
+        }).to_vec();
+        if has_neg {
+            for (sym, _) in &mut tr {
+                if !sym.ends_with(']') {
+                    sym.insert(0, '[');
+                    sym.push(']');
+                }
+            }
+        }
+        format!("{s}{} => branch!({}),{}",
+                state,
+                tr.into_iter().map(|(sym, st)| format!("{sym} => {st}")).join(", "),
+                end_states.and_then(|map| map.get(&state).map(|token| format!(" // {}", token))).unwrap_or(String::new()),
+        )
+    }).collect()
+}
+
+
 /// Debug function to display the graph of a Dfa.
 pub fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>, end_states: Option<&BTreeMap<StateId, Terminal>>, indent: usize) {
-    let s = String::from_utf8(vec![32; indent]).unwrap();
-    for (state, trans) in state_graph.clone() {
-        println!("{s}{} => branch!({}),{}",
-                 state,
-                 trans.iter().map(|(sym, st)| format!("{sym} => {st}")).join(", "),
-                 end_states.and_then(|map| map.get(&state).map(|token| format!(" // {}", token))).unwrap_or("".to_string()),
-        );
-    }
+    let src = graph_to_source_code(state_graph, end_states, indent);
+    println!("{}", src.join("\n"));
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -1136,8 +1160,6 @@ pub fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>,
 
 pub mod macros {
     use std::ops::Add;
-    #[allow(unused)]
-    use crate::io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN};
     use super::*;
 
     /// Generates an `ReNode` instance.
@@ -1213,20 +1235,55 @@ pub mod macros {
         }
     }
 
-    #[test]
-    fn macro_node() {
-        assert_eq!(node!([0 - LOW_MAX, HIGH_MIN - MAX]),   ReNode::char_range(Segments::dot()));
-        assert_eq!(node!(~[0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::char_range(Segments::empty()));
+    #[cfg(test)]
+    mod tests {
+        use crate::{branch, btreemap};
+        use crate::dfa::{graph_to_source_code, ActionOption, ModeOption, ReNode, Terminal};
+        use crate::io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN};
+        use crate::segments::{Seg, Segments};
 
-        assert_eq!(node!(chr 'a'), ReNode::char('a'));
-        assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])));
-        assert_eq!(node!(.), ReNode::char_range(Segments::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)])));
-        assert_eq!(node!(str "new"), ReNode::string("new"));
-        assert_eq!(node!(=5), ReNode::end(Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
-        assert_eq!(node!(&), ReNode::concat());
-        assert_eq!(node!(|), ReNode::or());
-        assert_eq!(node!(*), ReNode::star());
-        assert_eq!(node!(+), ReNode::plus());
-        assert_eq!(node!(e), ReNode::empty());
+        #[test]
+        fn macro_node() {
+            assert_eq!(node!([0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::char_range(Segments::dot()));
+            assert_eq!(node!(~[0 - LOW_MAX, HIGH_MIN - MAX]), ReNode::char_range(Segments::empty()));
+
+            assert_eq!(node!(chr 'a'), ReNode::char('a'));
+            assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])));
+            assert_eq!(node!(.), ReNode::char_range(Segments::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)])));
+            assert_eq!(node!(str "new"), ReNode::string("new"));
+            assert_eq!(node!(=5), ReNode::end(Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false }));
+            assert_eq!(node!(&), ReNode::concat());
+            assert_eq!(node!(|), ReNode::or());
+            assert_eq!(node!(*), ReNode::star());
+            assert_eq!(node!(+), ReNode::plus());
+            assert_eq!(node!(e), ReNode::empty());
+        }
+
+        #[test]
+        fn state_graph() {
+            let test = btreemap![
+            1 => branch!(),
+            2 => branch!('A' => 0),
+            3 => branch!('B' => 1, 'C' => 2),
+            4 => branch!('D'-'F' => 3),
+            5 => branch!('0'-'9', '_' => 4),
+            6 => branch!(DOT => 5),
+            7 => branch!(~['*'] => 6),
+            8 => branch!(~['+', '-'] => 7),
+            9 => branch!(~['*'] => 8, ['*'] => 9),
+        ];
+            let s = graph_to_source_code(&test, None, 4);
+            assert_eq!(s, vec![
+                "    1 => branch!(),".to_string(),
+                "    2 => branch!('A' => 0),".to_string(),
+                "    3 => branch!('B' => 1, 'C' => 2),".to_string(),
+                "    4 => branch!('D'-'F' => 3),".to_string(),
+                "    5 => branch!('0'-'9', '_' => 4),".to_string(),
+                "    6 => branch!(DOT => 5),".to_string(),
+                "    7 => branch!(~['*'] => 6),".to_string(),
+                "    8 => branch!(~['+', '-'] => 7),".to_string(),
+                "    9 => branch!(~['*'] => 8, ['*'] => 9),".to_string(),
+            ]);
+        }
     }
 }
