@@ -1,9 +1,0 @@
-[package]
-name = "make-gram"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-lexigram_lib = { path = "..", package = "lexigram_lib" }
-lexigram = { path = "../lexigram", package = "lexi" }
-iter-index = "1.0.0"

@@ -9,7 +9,7 @@ use lexigram_lib::io::CharReader;
 use lexigram_lib::log::Logger;
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
-use crate::{GRAMPARSER_FILENAME, GRAMPARSER_GRAMMAR, GRAMPARSER_TAG};
+use super::{GRAMPARSER_FILENAME, GRAMPARSER_GRAMMAR, GRAMPARSER_TAG};
 
 // -------------------------------------------------------------------------
 // [terminal_symbols]

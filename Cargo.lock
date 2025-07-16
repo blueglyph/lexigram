@@ -32,15 +32,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "make-gram"
-version = "0.1.0"
-dependencies = [
- "iter-index 1.0.0",
- "lexi",
- "lexigram_lib",
-]
-
-[[package]]
 name = "make-lexi"
 version = "0.1.0"
 dependencies = [

@@ -9,7 +9,7 @@ use lexigram_lib::io::CharReader;
 use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::parser::ParserError;
 use lexigram_lib::test_tools::replace_tagged_source;
-use crate::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_FILENAME, LEXILEXER_LEXICON, LEXILEXER_TAG, LEXI_SYM_T_TAG};
+use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_FILENAME, LEXILEXER_LEXICON, LEXILEXER_TAG, LEXI_SYM_T_TAG};
 
 fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Result<(String, String), ParserError> {
     let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
