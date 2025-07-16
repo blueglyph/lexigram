@@ -2,7 +2,7 @@
 
 #[cfg(any())]
 use std::collections::HashMap;
-use crate::{NameFixer, FixedSymTable, SymInfoTable};
+use crate::{NameFixer, FixedSymTable, SymInfoTable, indent_source};
 use crate::dfa::TokenId;
 use crate::grammar::{Symbol, VarId};
 
@@ -179,6 +179,40 @@ impl SymbolTable {
         self.names.remove(&removed);
         self.fixer_nt.remove(&removed);
         removed
+    }
+
+    pub fn build_source_code_t(&self, indent: usize, has_enum: bool, has_array: bool) -> String {
+        let mut source = Vec::<String>::new();
+        let (max_n, max_option) = self.get_terminals().fold((0, 0), |(n, option), t| {
+            (n.max(t.0.len()), option.max(t.1.as_ref().map_or(0, |o| o.len())))
+        });
+        if has_enum {
+            // Arrow = 0,  // 0
+            // Colon,      // 1
+            source.push("#[repr(u16)]".to_string());
+            source.push("enum T {".to_string());
+            for (i, (n, _option)) in self.get_terminals().enumerate() {
+                source.push(format!("    {n:max_n$}{} // {i}", if i == 0 { " = 0," } else { ",    " }));
+            }
+            source.push("}".to_string());
+        }
+        if has_enum && has_array {
+            source.push(String::new());
+        }
+        if has_array {
+            // ("Arrow",     Some("->")),          // 0
+            // ("Colon",     Some(":")),           // 1
+            source.push(format!("static TERMINALS: [(&str, Option<&str>); {}] = [", self.get_num_t()));
+            for (i, (n, option)) in self.get_terminals().enumerate() {
+                source.push(format!("    (\"{n}\",{:w1$}{}),{:w2$} // {i}",
+                                    "",
+                                    if let Some(o) = option { format!("Some(\"{o}\")") } else { "None".to_string() },
+                                    "",
+                                    w1 = max_n - n.len(), w2 = max_option + 4 - option.as_ref().map_or(0, |o| o.len() + 4)));
+            }
+            source.push("];".to_string());
+        }
+        indent_source(vec![source], indent)
     }
 }
 

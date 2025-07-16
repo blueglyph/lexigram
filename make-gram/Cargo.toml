@@ -6,3 +6,5 @@ edition = "2024"
 [dependencies]
 lexigram = { path = "..", package = "lexigram" }
 lexi = { path = "../lexi", package = "lexi" }
+gram = { path = "../gram", package = "gram" }
+iter-index = "1.0.0"

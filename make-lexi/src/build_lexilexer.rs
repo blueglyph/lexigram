@@ -41,13 +41,13 @@ fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Res
         println!("Dfa:");
         print_dfa(&dfa, 4);
     }
+    let sym_src = symbol_table.build_source_code_t(0, false, true);
 
     // - builds the lexer
     let mut lexgen = LexerGen::new();
     lexgen.max_utf8_chars = 0;
     lexgen.build_from_dfa(dfa);
     lexgen.symbol_table = Some(symbol_table);
-    let sym_src = lexgen.build_symbols_t_source_code(0).expect("symbol source code");
     if verbose {
         // terminals to replace in src/lexi/lexiparser.rs (copy/paste)
         println!("Terminals:\n{sym_src}");
