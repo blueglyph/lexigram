@@ -3,6 +3,12 @@
 ## General
 
 - [ ] clean-up of the unit & integration tests
+- [ ] more coherency in functions/methods that create source code (names, location)
+- [ ] split huge files (
+  - [ ] dfa
+  - [ ] grammar 
+  - [ ] lexergen 
+  - [ ] parsergen
 - error reporting
   - [ ] create info/warning/error ID numbers
   - [ ] return Result instead of objects in from<...> when errors in the log
@@ -83,12 +89,6 @@
     - right-associative: A -> δ β A | δ
 
 ## Packages
-- [x] lexigram lib
-- [x] lexi
-- [x] make-lexi
-- ~~[ ] dependancies point to git + version instead of directories~~ Too cumbersome and problematic?
-- [x] gram
-- [x] make-gram
 - [ ] lexigram bin
 - [ ] separate libs
   - small lib for parser/lexer (for generated parser)
