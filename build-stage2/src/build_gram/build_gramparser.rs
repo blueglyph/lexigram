@@ -28,9 +28,9 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<String, String> {
 
     // [versions]
 
-    // lexigram_lib: 0.2.0
-    // lexigram: 0.1.0
-    // build-stage1: 0.1.0
+    // lexigram_lib: 0.3.0
+    // lexigram: 0.3.0
+    // build-stage1: 0.3.0
 
     // [versions]
 

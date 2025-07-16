@@ -53,9 +53,9 @@ static TERMINALS: [(&str, Option<&str>); 34] = [
 fn lexilexer_source(indent: usize, _verbose: bool) -> String {
     // [versions]
 
-    // lexigram_lib: 0.10.0
-    // lexigram: 0.10.0
-    // build-lexigram-st1: 0.10.0
+    // lexigram_lib: 0.3.0
+    // lexigram: 0.3.0
+    // build-stage1: 0.3.0
 
     // [versions]
 
