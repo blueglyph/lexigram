@@ -315,6 +315,15 @@ impl ParserGen {
         self.nt_value[v as usize] = has_value;
     }
 
+    pub fn set_parents_have_value(&mut self) {
+        for v in 0..self.get_symbol_table().unwrap().get_num_nt() as VarId {
+            if self.get_nt_parent(v).is_none() {
+                self.set_nt_has_value(v, true);
+            } else {
+            }
+        }
+    }
+
     #[inline]
     pub fn get_nt_parent(&self, v: VarId) -> Option<VarId> {
         self.parsing_table.parent[v as usize]
@@ -2166,3 +2175,15 @@ pub fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool) {
     }
 }
 
+pub fn print_flags(builder: &ParserGen, indent: usize) {
+    let tbl = builder.get_symbol_table();
+    let prefix = format!("{:width$}//", "", width = indent);
+    let nt_flags = builder.get_parsing_table().flags.iter().index().filter_map(|(nt, &f)|
+        if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
+    ).join("\n");
+    let parents = builder.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
+        if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
+    ).join("\n");
+    println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
+    println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
+}

@@ -1,15 +1,13 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use iter_index::IndexerIterator;
 use std::fs::File;
 use std::io::BufReader;
 use gram::gram::Gram;
-use lexigram::grammar::{print_ll1_table, ruleflag, Symbol};
+use lexigram::grammar::{print_ll1_table};
 use lexigram::{CollectJoin, LL1, SymbolTable};
-use lexigram::grammar::VarId;
 use lexigram::io::CharReader;
 use lexigram::log::Logger;
-use lexigram::parsergen::ParserGen;
+use lexigram::parsergen::{print_flags, ParserGen};
 use lexigram::test_tools::replace_tagged_source;
 use crate::{GRAMPARSER_FILENAME, GRAMPARSER_GRAMMAR, GRAMPARSER_TAG};
 
@@ -35,32 +33,7 @@ static TERMINALS: [(&str, Option<&str>); 13] = [
 // [terminal_symbols]
 // -------------------------------------------------------------------------
 
-fn set_nt_has_value(builder: &mut ParserGen) {
-    for v in 0..builder.get_symbol_table().unwrap().get_num_nt() as VarId {
-        // print!("- {}: ", Symbol::NT(v).to_str(builder.get_symbol_table()));
-        if builder.get_nt_parent(v).is_none() {
-            builder.set_nt_has_value(v, true);
-            // println!("has no parent, has value");
-        } else {
-            // println!("has parents, has no value");
-        }
-    }
-}
-
 fn gramparser_source(grammar_filename: &str, indent: usize, verbose: bool) -> Result<String, String> {
-    pub fn print_flags(builder: &ParserGen, indent: usize) {
-        let tbl = builder.get_symbol_table();
-        let prefix = format!("{:width$}//", "", width = indent);
-        let nt_flags = builder.get_parsing_table().flags.iter().index().filter_map(|(nt, &f)|
-            if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
-        ).join("\n");
-        let parents = builder.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
-            if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
-        ).join("\n");
-        println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
-        println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
-    }
-
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
     let file = File::open(grammar_filename).expect(&format!("couldn't open lexicon file {grammar_filename}"));
@@ -91,7 +64,7 @@ fn gramparser_source(grammar_filename: &str, indent: usize, verbose: bool) -> Re
     if !builder.get_log().has_no_errors() {
         return Err(msg);
     }
-    set_nt_has_value(&mut builder);
+    builder.set_parents_have_value();
     builder.add_lib("super::gramparser_types::*");
     Ok(builder.build_source_code(indent, true))
 }

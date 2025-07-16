@@ -57,11 +57,11 @@ mod listener {
     use lexigram::log::{BufLog, Logger};
     use lexigram::parser::{Call, ListenerWrapper};
     use lexi::lexi::Lexi;
-    use lexigram::grammar::{print_ll1_table, print_prs_factors, ruleflag, FactorId, Symbol, VarId};
+    use lexigram::grammar::{print_ll1_table, print_prs_factors, FactorId, VarId};
     use lexigram::io::CharReader;
     use lexigram::lexer::{Lexer, TokenSpliterator};
     use lexigram::lexergen::LexerGen;
-    use lexigram::parsergen::ParserGen;
+    use lexigram::parsergen::{print_flags, ParserGen};
     use lexigram::{CollectJoin, LL1};
     use std::io::Cursor;
     use iter_index::IndexerIterator;
@@ -97,19 +97,6 @@ mod listener {
             &mut self.log
         }
 
-    }
-
-    pub fn print_flags(builder: &ParserGen, indent: usize) {
-        let tbl = builder.get_symbol_table();
-        let prefix = format!("{:width$}//", "", width = indent);
-        let nt_flags = builder.get_parsing_table().flags.iter().index().filter_map(|(nt, &f)|
-            if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
-        ).join("\n");
-        let parents = builder.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
-            if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
-        ).join("\n");
-        println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
-        println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
     }
 
     #[test]

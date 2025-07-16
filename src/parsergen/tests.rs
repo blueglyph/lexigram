@@ -2,24 +2,6 @@
 
 #![cfg(test)]
 
-use iter_index::IndexerIterator;
-use crate::CollectJoin;
-use crate::grammar::{ruleflag, Symbol};
-use crate::parsergen::ParserGen;
-
-pub fn print_flags(builder: &ParserGen, indent: usize) {
-    let tbl = builder.get_symbol_table();
-    let prefix = format!("{:width$}//", "", width=indent);
-    let nt_flags = builder.parsing_table.flags.iter().index().filter_map(|(nt, &f)|
-        if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
-    ).join("\n");
-    let parents = builder.parsing_table.parent.iter().index().filter_map(|(c, &par)|
-        if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
-    ).join("\n");
-    println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
-    println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
-}
-
 mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
@@ -611,10 +593,9 @@ mod wrapper_source {
     use crate::grammar::tests::{log_to_str, T};
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source, SymInfoTable};
     use crate::grammar::tests::T::{PRS, RTS};
-    use crate::parsergen::{print_items, ParserGen};
+    use crate::parsergen::{print_flags, print_items, ParserGen};
     use crate::dfa::TokenId;
     use crate::log::Logger;
-    use crate::parsergen::tests::print_flags;
     use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
