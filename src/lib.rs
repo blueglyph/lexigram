@@ -27,6 +27,10 @@ mod fixed_sym_table;
 pub use symbol_table::SymbolTable;
 pub use fixed_sym_table::{FixedSymTable, SymInfoTable};
 
+// package name & version
+pub const LIB_PKG_NAME: &str = env!("CARGO_PKG_NAME");
+pub const LIB_PKG_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 // Regular expressions / DFA, See:
 // - https://blog.burntsushi.net/regex-internals/
 // - https://en.wikipedia.org/wiki/Tagged_Deterministic_Finite_Automaton

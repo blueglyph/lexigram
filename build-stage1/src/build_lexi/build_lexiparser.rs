@@ -1,15 +1,19 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+#![allow(unused)]
+
+use iter_index::IndexerIterator;
 use std::fs::File;
 use std::io::BufReader;
-use lexigram::Gram;
-use lexigram_lib::grammar::{print_ll1_table};
-use lexigram_lib::{CollectJoin, LL1, SymbolTable};
+use lexigram::{lexigram_lib, Gram};
+use lexigram_lib::grammar::{print_ll1_table, ruleflag, GrTreeExt, Symbol};
+use lexigram_lib::{gnode, CollectJoin, General, LL1, SymbolTable, SymInfoTable};
+use lexigram_lib::grammar::{print_production_rules, ProdRuleSet, RuleTreeSet, VarId};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::log::Logger;
-use lexigram_lib::parsergen::{print_flags, ParserGen};
+use lexigram_lib::parsergen::{print_items, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
-use super::{LEXIPARSER_GRAMMAR, LEXIPARSER_FILENAME, LEXIPARSER_TAG};
+use super::{LEXIPARSER_GRAMMAR, LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TAG, VERSIONS_TAG};
 
 // -------------------------------------------------------------------------
 // [terminal_symbols]
@@ -54,12 +58,30 @@ static TERMINALS: [(&str, Option<&str>); 34] = [
 // [terminal_symbols]
 // -------------------------------------------------------------------------
 
+/// Generates Lexi's parser source code from the grammar file and from the symbols in the lexicon
+/// (extracted in [`build_lexilexer`](crate::build_lexilexer::lexilexer_source())).
 fn lexiparser_source(grammar_filename: &str, indent: usize, verbose: bool) -> Result<String, String> {
+    pub fn print_flags(builder: &ParserGen, indent: usize) {
+        let tbl = builder.get_symbol_table();
+        let prefix = format!("{:width$}//", "", width = indent);
+        let nt_flags = builder.get_parsing_table().flags.iter().index().filter_map(|(nt, &f)|
+            if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
+        ).join("\n");
+        let parents = builder.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
+            if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
+        ).join("\n");
+        println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
+        println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
+    }
+
+    // - builds initial symbol table from symbols above extracted by lexi (in build_lexilexer, which updated this source file)
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
     let file = File::open(grammar_filename).expect(&format!("couldn't open lexicon file {grammar_filename}"));
     let reader = BufReader::new(file);
     let grammar_stream = CharReader::new(reader);
+
+    // - parses the grammar
     let gram = Gram::<LL1, _>::new(symbol_table);
     let (ll1, name) = gram.build_ll1(grammar_stream);
     let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
@@ -72,44 +94,39 @@ fn lexiparser_source(grammar_filename: &str, indent: usize, verbose: bool) -> Re
     if !ll1.get_log().has_no_errors() {
         return Err(msg);
     }
-    let mut builder = ParserGen::from_rules(ll1, name.clone());
-    let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
-    if verbose {
-        print_flags(&builder, 4);
-        println!("Parsing table of grammar '{name}':");
-        print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
-        if !builder.get_log().is_empty() {
-            println!("Messages:{msg}");
-        }
-    }
-    if !builder.get_log().has_no_errors() {
-        return Err(msg);
-    }
-    builder.set_parents_have_value();
-    builder.add_lib("super::lexiparser_types::*");
-    Ok(builder.build_source_code(indent, true))
+
+    // - exports data to stage 2
+    let ll1_src = ll1.build_tables_source_code(name, 4);
+    Ok(ll1_src)
 }
 
-pub fn write_lexiparser() {
-    let result_src = lexiparser_source(LEXIPARSER_GRAMMAR, 4, true)
+fn write_lexiparser() {
+    let result_src = lexiparser_source(LEXIPARSER_GRAMMAR, 0, true)
         .inspect_err(|e| eprintln!("Failed to parse grammar: {e:?}"))
         .unwrap();
-    replace_tagged_source(LEXIPARSER_FILENAME, LEXIPARSER_TAG, &result_src)
+    replace_tagged_source(LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TAG, &result_src)
         .expect("parser source replacement failed");
+    let versions = format!("    // {}: {}\n    // {}: {}\n    // {}: {}\n",
+        lexigram_lib::LIB_PKG_NAME, lexigram_lib::LIB_PKG_VERSION,
+        lexigram::LEXIGRAM_PKG_NAME, lexigram::LEXIGRAM_PKG_VERSION,
+        crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION);
+    replace_tagged_source(LEXIPARSER_STAGE2_FILENAME, VERSIONS_TAG, &versions)
+        .expect("versions replacement failed");
 }
 
 #[cfg(test)]
 mod tests {
-    use lexigram_lib::test_tools::get_tagged_source;
+    use lexigram_lib::test_tools::{get_tagged_source, replace_tagged_source};
     use super::*;
 
     #[test]
     fn test_source() {
-        let result_src = lexiparser_source(LEXIPARSER_GRAMMAR, 4, false)
+        const VERBOSE: bool = false;
+        let result_src = lexiparser_source(LEXIPARSER_GRAMMAR, 0, VERBOSE)
             .inspect_err(|e| eprintln!("Failed to parse grammar: {e:?}"))
             .unwrap();
         if !cfg!(miri) {
-            let expected_src = get_tagged_source(LEXIPARSER_FILENAME, LEXIPARSER_TAG).unwrap_or(String::new());
+            let expected_src = get_tagged_source(LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TAG).unwrap_or(String::new());
             assert_eq!(result_src, expected_src);
         }
     }

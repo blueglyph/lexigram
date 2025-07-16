@@ -26,12 +26,12 @@ fn gnode_macro() {
 #[test]
 fn prod_macros() {
     assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
-    assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
-    assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
+    assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
     // with extra comma:
     assert_eq!(prodf!(nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
-    assert_eq!(prodf!(#128, nt 1, t 2, e,), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
-    assert_eq!(prodf!(#L, nt 1, t 2, e,), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
+    assert_eq!(prodf!(#128, nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    assert_eq!(prodf!(#L, nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
 
     assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
@@ -39,11 +39,11 @@ fn prod_macros() {
                      ProdFactor::new(vec![sym!(e)])]);
     assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+                    ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
                     ProdFactor::new(vec![sym!(e)])]);
     assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+                    ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
                     ProdFactor::new(vec![sym!(e)])]);
     // with extra semicolon:
     assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e;),
@@ -52,11 +52,11 @@ fn prod_macros() {
                      ProdFactor::new(vec![sym!(e)])]);
     assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #R, nt 2; e;),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::with_flags(vec![sym!(nt  2)], 256),
+                    ProdFactor::new(vec![sym!(nt  2)]).with_flags(256),
                     ProdFactor::new(vec![sym!(e)])]);
     assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #256, nt 2; e;),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::with_flags(vec![sym!(nt  2)], 256),
+                    ProdFactor::new(vec![sym!(nt  2)]).with_flags(256),
                     ProdFactor::new(vec![sym!(e)])]);
 }
 

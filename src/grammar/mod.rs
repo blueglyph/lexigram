@@ -14,7 +14,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, btreeset, prod, SymInfoTable};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, btreeset, prod, SymInfoTable, indent_source};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::log::{BufLog, Logger};
 use crate::SymbolTable;
@@ -928,8 +928,14 @@ impl ProdFactor {
         ProdFactor { v, flags: 0, original_factor_id: None }
     }
 
-    pub fn with_flags(v: Vec<Symbol>, flags: u32) -> Self {
-        ProdFactor { v, flags, original_factor_id: None }
+    pub fn with_flags(mut self, flags: u32) -> Self {
+        self.flags = flags;
+        self
+    }
+
+    pub fn with_orig_fid(mut self, original_factor_id: FactorId) -> Self {
+        self.original_factor_id = Some(original_factor_id);
+        self
     }
 
     pub fn symbols(&self) -> &Vec<Symbol> {
@@ -1856,7 +1862,7 @@ impl<T> ProdRuleSet<T> {
                 }
                 if child[0].v.is_empty() {
                     let empty = child.remove(0);
-                    child.push(ProdFactor::with_flags(vec![Symbol::Empty], empty.flags));
+                    child.push(ProdFactor::new(vec![Symbol::Empty]).with_flags(empty.flags));
                 }
                 let var_prime = new_var;
                 new_var += 1;
@@ -2042,7 +2048,88 @@ impl ProdRuleSet<LL1> {
         let follow = self.calc_follow(&first);
         self.calc_table(&first, &follow, error_recovery)
     }
+
+    pub fn build_tables_source_code(&self, name: String, indent: usize) -> String {
+        let st = self.symbol_table.as_ref().unwrap();
+        let mut source = Vec::<String>::new();
+        source.push("let ll1_tables = ProdRuleSetTables::new(".to_string());
+        source.push(format!("    \"{}\",", name.escape_default()));
+        source.push("    vec![".to_string());
+        source.extend(self.prods.iter().map(|prod| format!("        {},", rule_to_code(prod))));
+        source.push("    ],".to_string());
+        source.push("    vec![".to_string());
+        source.extend(self.original_factors.iter().map(|factor| format!("        {},", factor_to_code(factor))));
+        source.push("    ],".to_string());
+        source.push(format!("    vec![{}],", st.get_terminals().map(|x| format!("{x:?}")).join(", ")));
+        source.push(format!("    vec![{}],", st.get_nonterminals().map(|x| format!("{x:?}")).join(", ")));
+        source.push(format!("    vec![{}],", self.flags.iter().join(", ")));
+        source.push(format!("    vec![{}],", self.parent.iter().map(|p_maybe| format!("{p_maybe:?}")).join(", ")));
+        source.push(format!("    {:?},", self.start));
+        source.push(format!("    hashmap![{}]", self.nt_conversion.iter().map(|(v, conv)| format!("{v} => {conv:?}")).join(", ")));
+        source.push(");".to_string());
+        indent_source(vec![source], indent)
+    }
 }
+
+// ---------------------------------------------------------------------------------------------
+
+pub struct ProdRuleSetTables {
+    name: String,
+    prods: Vec<ProdRule>,
+    original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
+    t: Vec<(String, Option<String>)>,   // terminal identifiers and optional representation
+    nt: Vec<String>,                    // nt to nonterminal identifier
+    flags: Vec<u32>,
+    parent: Vec<Option<VarId>>,
+    start: Option<VarId>,
+    nt_conversion: HashMap<VarId, NTConversion>,
+}
+
+impl ProdRuleSetTables {
+    pub fn new<T: Into<String>>(
+        name: T,
+        prods: Vec<ProdRule>,
+        original_factors: Vec<ProdFactor>,
+        t: Vec<(T, Option<T>)>,
+        nt: Vec<T>,
+        flags: Vec<u32>,
+        parent: Vec<Option<VarId>>,
+        start: Option<VarId>,
+        nt_conversion: HashMap<VarId, NTConversion>,
+    ) -> Self {
+        let t = t.into_iter().map(|(t, t_maybe)| (t.into(), t_maybe.map(|t| t.into()))).collect();
+        let nt = nt.into_iter().map(|nt| nt.into()).collect();
+        ProdRuleSetTables {
+            name: name.into(), prods, original_factors, t, nt, flags, parent, start, nt_conversion,
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn make_prod_rule_set(self) -> ProdRuleSet<LL1> {
+        let mut symbol_table = SymbolTable::new();
+        symbol_table.extend_terminals(self.t);
+        symbol_table.extend_nonterminals(self.nt);
+        ProdRuleSet {
+            prods: self.prods,
+            original_factors: self.original_factors,
+            num_nt: symbol_table.get_num_nt(),
+            num_t: symbol_table.get_num_t(),
+            symbol_table: Some(symbol_table),
+            flags: self.flags,
+            parent: self.parent,
+            start: self.start,
+            nt_conversion: self.nt_conversion,
+            log: BufLog::new(),
+            dont_remove_recursion: false,
+            _phantom: PhantomData,
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
 
 impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
@@ -2069,7 +2156,7 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     x => panic!("unexpected symbol {x} under &")
                 }
             }).to_vec();
-            ProdFactor::with_flags(factor, flags)
+            ProdFactor::new(factor).with_flags(flags)
         }
         let mut prules = Self::with_capacity(rules.trees.len());
         prules.start = rules.start;
@@ -2197,6 +2284,24 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
 
 // ---------------------------------------------------------------------------------------------
 // Supporting functions
+
+pub fn factor_to_codestrip(f: &ProdFactor) -> String {
+    let mut src = match (f.flags, f.original_factor_id) {
+        (0, None) => String::new(),
+        (f, None) => format!("#{f}, "),
+        (f, Some(o)) => format!("#({f}, {o}), "),
+    };
+    src.push_str(&f.v.iter().map(|s| symbol_to_macro(s)).join(", "));
+    src
+}
+
+pub fn factor_to_code(f: &ProdFactor) -> String {
+    format!("prodf!({})", factor_to_codestrip(f))
+}
+
+pub fn rule_to_code(p: &ProdRule) -> String {
+    format!("prod!({})", p.iter().map(|f| factor_to_codestrip(f)).join("; "))
+}
 
 pub fn symbol_to_macro(s: &Symbol) -> String {
     match s {
@@ -2347,8 +2452,11 @@ pub mod macros {
     /// # use lexigram_lib::grammar::{ProdFactor, Symbol, VarId};
     /// # use lexigram_lib::{prodf, sym};
     /// assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
-    /// assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
-    /// assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::with_flags(vec![sym!(nt 1), sym!(t 2), sym!(e)], 128));
+    /// assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    /// assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    /// let x = 256;
+    /// let o_id = 4;
+    /// assert_eq!(prodf!(#(x, o_id), nt 0, t 1, e), ProdFactor::new(vec![sym!(nt 0), sym!(t 1), sym!(e)]).with_flags(256).with_orig_fid(4));
     /// ```
     #[macro_export()]
     macro_rules! prodf {
@@ -2356,9 +2464,11 @@ pub mod macros {
         ($($a:ident $($b:expr)?,)+) => { prodf!($($a $($b)?),+) };
         ($($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
         (#$f:literal, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
-        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$($crate::sym!($a $($b)?)),*], $f) };
+        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
         (#$f:ident, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
-        (#$f:ident, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::with_flags(std::vec![$($crate::sym!($a $($b)?)),*], $crate::prodflag!($f)) };
+        (#$f:ident, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)) };
+        (#($f:expr, $o:expr), $($a:ident $($b:expr)?,)+) => { prodf!(#($f, $o), $($a $($b)?),+) };
+        (#($f:expr, $o:expr), $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_orig_fid($o) };
     }
 
     #[macro_export()]
@@ -2381,12 +2491,18 @@ pub mod macros {
     ///                 ProdFactor::new(vec![sym!(e)])]);
     /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
     ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-    ///                 ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+    ///                 ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
     ///                 ProdFactor::new(vec![sym!(e)])]);
     /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
     ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-    ///                 ProdFactor::with_flags(vec![sym!(nt  2)], 128),
+    ///                 ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
     ///                 ProdFactor::new(vec![sym!(e)])]);
+    /// let x = 256;
+    /// let o_id = 4;
+    /// assert_eq!(prod!(nt 0, t 1; #(x, o_id), nt 1; #(x + 1, o_id + 2), nt 2, t 2),
+    ///            vec![ProdFactor::new(vec![sym!(nt 0), sym!(t 1)]),
+    ///                 ProdFactor::new(vec![sym!(nt 1)]).with_flags(256).with_orig_fid(4),
+    ///                 ProdFactor::new(vec![sym!(nt 2), sym!(t 2)]).with_flags(257).with_orig_fid(6)]);
     /// ```
     #[macro_export()]
     macro_rules! prod {
@@ -2395,5 +2511,7 @@ pub mod macros {
         ($($(#$f:literal,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $($a $($b)?),+]),*]};
         ($($(#$f:ident,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
         ($($(#$f:ident,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $($a $($b)?),+]),*]};
+        ($($(#($f:expr, $o:expr),)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#($f, $o),)? $($a $($b)?),+);+] };
+        ($($(#($f:expr, $o:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#($f,$o),)? $($a $($b)?),+]),*]};
     }
 }

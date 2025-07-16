@@ -5,11 +5,13 @@ pub mod build_gramparser;
 
 const GRAMLEXER_LEXICON: &str = "./src/build_gram/gram_lexicon.l";
 const GRAMPARSER_GRAMMAR: &str = "./src/build_gram/gram_grammar.g";
-const GRAMLEXER_FILENAME: &str = "../lexigram/src/gram/gramlexer.rs";
-const GRAMPARSER_FILENAME: &str = "../lexigram/src/gram/gramparser.rs";
+const GRAMLEXER_STAGE2_FILENAME: &str = "../build-stage2/src/build_gram/build_gramlexer.rs";
+const GRAMPARSER_STAGE2_FILENAME: &str = "../build-stage2/src/build_gram/build_gramparser.rs";
 
-const GRAMLEXER_TAG: &str = "gramlexer";
-const GRAMPARSER_TAG: &str = "gramparser";
+const GRAMLEXER_STAGE2_TAG: &str = "gramlexer_stage_2";
+const GRAMPARSER_STAGE2_TAG: &str = "gramparser_stage_2";
 
 const BUILD_GRAMPARSER_FILENAME: &str = "./src/build_gram/build_gramparser.rs";
 const GRAM_SYM_T_TAG: &str = "terminal_symbols";
+
+const VERSIONS_TAG: &str = "versions";

@@ -11,7 +11,7 @@ use lexigram_lib::log::{BufLog, Logger};
 use lexigram_lib::{hashmap, node, segments, CollectJoin, General, SymbolTable};
 use lexigram_lib::segments::Segments;
 use crate::action;
-use crate::lexi::lexiparser::lexiparser::*;
+use crate::lexi::lexiparser::*;
 use crate::lexi::lexiparser::lexiparser_types::*;
 
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use gramlexer::gramlexer::build_lexer;
-use gramparser::gramparser::{build_parser, GramParserListener, Wrapper};
+use gramlexer::build_lexer;
+use gramparser::{build_parser, GramParserListener, Wrapper};
 use listener::GramListener;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;

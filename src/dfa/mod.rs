@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::Add;
 use vectree::VecTree;
-use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized};
+use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized, indent_source};
 use crate::log::{BufLog, Logger};
 use crate::segments::{Segments, Seg};
 use crate::take_until::TakeUntilIterator;
@@ -1030,6 +1030,57 @@ impl<T> Dfa<T> {
     }
 }
 
+impl Dfa<Normalized> {
+    pub fn build_tables_source_code(&self, indent: usize) -> String {
+        let mut source = Vec::<String>::new();
+        source.push("let dfa_tables = DfaTables::new(".to_string());
+        source.push("    btreemap![".to_string());
+        source.extend(graph_to_code(&self.state_graph, None, 8));
+        source.push("    ],".to_string());
+        source.push(format!("    {:?},", self.initial_state));
+        source.push("    btreemap![".to_string());
+        let es = self.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).to_vec();
+        source.extend(es.chunks(6).map(|v| format!("        {},", v.join(", "))));
+        source.push("    ],".to_string());
+        source.push(format!("    {:?},", self.first_end_state));
+        source.push(");".to_string());
+        indent_source(vec![source], indent)
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
+pub struct DfaTables {
+    state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
+    initial_state: Option<StateId>,
+    end_states: BTreeMap<StateId, Terminal>,
+    first_end_state: Option<StateId>,
+}
+
+impl DfaTables {
+    pub fn new(
+        state_graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>,
+        initial_state: Option<StateId>,
+        end_states: BTreeMap<StateId, Terminal>,
+        first_end_state: Option<StateId>,
+    ) -> Self {
+        DfaTables { state_graph, initial_state, end_states, first_end_state }
+    }
+
+    pub fn make_dfa(self) -> Dfa<Normalized> {
+        Dfa {
+            state_graph: self.state_graph,
+            initial_state: self.initial_state,
+            end_states: self.end_states,
+            first_end_state: self.first_end_state,
+            log: BufLog::new(),
+            _phantom: PhantomData
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
 impl From<Dfa<General>> for Dfa<Normalized> {
     fn from(dfa: Dfa<General>) -> Self {
         dfa.normalize()
@@ -1119,7 +1170,7 @@ pub fn print_dfa<T>(dfa: &Dfa<T>, indent: usize) {
     println!("End states:\n{: >indent$}{}", " ", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).join(", "), indent=indent);
 }
 
-fn graph_to_source_code(
+fn graph_to_code(
     state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>,
     end_states: Option<&BTreeMap<StateId, Terminal>>,
     indent: usize,
@@ -1151,7 +1202,7 @@ fn graph_to_source_code(
 
 /// Debug function to display the graph of a Dfa.
 pub fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>, end_states: Option<&BTreeMap<StateId, Terminal>>, indent: usize) {
-    let src = graph_to_source_code(state_graph, end_states, indent);
+    let src = graph_to_code(state_graph, end_states, indent);
     println!("{}", src.join("\n"));
 }
 
@@ -1238,7 +1289,7 @@ pub mod macros {
     #[cfg(test)]
     mod tests {
         use crate::{branch, btreemap};
-        use crate::dfa::{graph_to_source_code, ActionOption, ModeOption, ReNode, Terminal};
+        use crate::dfa::{graph_to_code, ActionOption, ModeOption, ReNode, Terminal};
         use crate::io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN};
         use crate::segments::{Seg, Segments};
 
@@ -1272,7 +1323,7 @@ pub mod macros {
             8 => branch!(~['+', '-'] => 7),
             9 => branch!(~['*'] => 8, ['*'] => 9),
         ];
-            let s = graph_to_source_code(&test, None, 4);
+            let s = graph_to_code(&test, None, 4);
             assert_eq!(s, vec![
                 "    1 => branch!(),".to_string(),
                 "    2 => branch!('A' => 0),".to_string(),

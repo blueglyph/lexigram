@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use crate::gram::gramparser::gramparser::*;
+use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
 use lexigram_lib::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};

@@ -2,16 +2,16 @@
 
 use std::fs::File;
 use std::io::BufReader;
-use lexigram::Lexi;
+use lexigram::{lexigram_lib, Lexi};
 use lexigram_lib::CollectJoin;
 use lexigram_lib::dfa::print_dfa;
 use lexigram_lib::io::CharReader;
-use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::parser::ParserError;
 use lexigram_lib::test_tools::replace_tagged_source;
-use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_FILENAME, LEXILEXER_LEXICON, LEXILEXER_TAG, LEXI_SYM_T_TAG};
+use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_STAGE2_FILENAME, LEXILEXER_LEXICON, LEXILEXER_STAGE2_TAG, LEXI_SYM_T_TAG, VERSIONS_TAG};
 
-fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Result<(String, String), ParserError> {
+/// Generates Lexi's lexer source code from the lexicon file.
+fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, String), ParserError> {
     let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
     let reader = BufReader::new(file);
     let stream = CharReader::new(reader);
@@ -41,28 +41,30 @@ fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Res
         println!("Dfa:");
         print_dfa(&dfa, 4);
     }
-    let sym_src = symbol_table.build_source_code_t(0, false, true);
 
-    // - builds the lexer
-    let mut lexgen = LexerGen::new();
-    lexgen.max_utf8_chars = 0;
-    lexgen.build_from_dfa(dfa);
-    lexgen.symbol_table = Some(symbol_table);
-    if verbose {
-        // terminals to replace in src/lexigram/lexiparser.rs (copy/paste)
-        println!("Terminals:\n{sym_src}");
-    }
-    Ok((sym_src, lexgen.build_source_code(indent)))
+    // - exports data to stage 2
+    let sym_src = symbol_table.build_source_code_t(0, false, true);
+    let dfa_src = dfa.build_tables_source_code(4);
+
+    Ok((sym_src, dfa_src))
 }
 
 pub fn write_lexilexer() {
-    let (result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, 4, true)
+    let (result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, true)
         .inspect_err(|e| eprintln!("Failed to parse lexicon: {e:?}"))
         .unwrap();
     replace_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG, &result_sym)
         .expect("parser symbol replacement failed");
-    replace_tagged_source(LEXILEXER_FILENAME, LEXILEXER_TAG, &result_src)
+    replace_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXI_SYM_T_TAG, &result_sym)
+        .expect("parser symbol replacement failed");
+    replace_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXILEXER_STAGE2_TAG, &result_src)
         .expect("lexer source replacement failed");
+    let versions = format!("    // {}: {}\n    // {}: {}\n    // {}: {}\n",
+        lexigram_lib::LIB_PKG_NAME, lexigram_lib::LIB_PKG_VERSION,
+        lexigram::LEXIGRAM_PKG_NAME, lexigram::LEXIGRAM_PKG_VERSION,
+        crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION);
+    replace_tagged_source(LEXILEXER_STAGE2_FILENAME, VERSIONS_TAG, &versions)
+        .expect("versions replacement failed");
 }
 
 #[cfg(test)]
@@ -74,14 +76,16 @@ mod tests {
     fn test_source() {
         const VERBOSE: bool = false;
 
-        let (_result_sym, _result_src) = lexilexer_source(LEXILEXER_LEXICON, 4, VERBOSE)
+        let (result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, VERBOSE)
             .inspect_err(|e| eprintln!("Failed to parse lexicon: {e:?}"))
             .unwrap();
         if !cfg!(miri) {
-            let expected_sym = get_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG).unwrap_or(String::new());
-            let expected_src = get_tagged_source(LEXILEXER_FILENAME, LEXILEXER_TAG).unwrap_or(String::new());
-            assert_eq!(_result_sym, expected_sym);
-            assert_eq!(_result_src, expected_src);
+            let expected_sym1 = get_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG).unwrap_or(String::new());
+            let expected_sym2 = get_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXI_SYM_T_TAG).unwrap_or(String::new());
+            assert_eq!(expected_sym1, expected_sym2, "T symbols are different in {BUILD_LEXIPARSER_FILENAME} and {LEXILEXER_STAGE2_FILENAME}");
+            let expected_src = get_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXILEXER_STAGE2_TAG).unwrap_or(String::new());
+            assert_eq!(result_sym, expected_sym1);
+            assert_eq!(result_src, expected_src);
         }
     }
 

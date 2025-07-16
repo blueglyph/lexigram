@@ -5,8 +5,8 @@ use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::Logger;
 use lexigram_lib::parser::{Parser, ParserError};
-use lexilexer::lexilexer::build_lexer;
-use lexiparser::lexiparser::{build_parser, Wrapper};
+use lexilexer::build_lexer;
+use lexiparser::{build_parser, Wrapper};
 use listener::LexiListener;
 
 mod lexilexer;
