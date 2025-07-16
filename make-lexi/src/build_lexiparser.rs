@@ -3,12 +3,12 @@
 use std::fs::File;
 use std::io::BufReader;
 use gram::gram::Gram;
-use lexigram::grammar::{print_ll1_table};
-use lexigram::{CollectJoin, LL1, SymbolTable};
-use lexigram::io::CharReader;
-use lexigram::log::Logger;
-use lexigram::parsergen::{print_flags, ParserGen};
-use lexigram::test_tools::replace_tagged_source;
+use lexigram_lib::grammar::{print_ll1_table};
+use lexigram_lib::{CollectJoin, LL1, SymbolTable};
+use lexigram_lib::io::CharReader;
+use lexigram_lib::log::Logger;
+use lexigram_lib::parsergen::{print_flags, ParserGen};
+use lexigram_lib::test_tools::replace_tagged_source;
 use crate::{LEXIPARSER_GRAMMAR, LEXIPARSER_FILENAME, LEXIPARSER_TAG};
 
 // -------------------------------------------------------------------------
@@ -100,7 +100,7 @@ pub fn write_lexiparser() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram::test_tools::get_tagged_source;
+    use lexigram_lib::test_tools::get_tagged_source;
     use super::*;
 
     #[test]

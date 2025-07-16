@@ -3,9 +3,9 @@
 use crate::gramparser::gramparser::*;
 use crate::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
-use lexigram::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
-use lexigram::log::{BufLog, Logger};
-use lexigram::{CollectJoin, General, SymbolTable};
+use lexigram_lib::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
+use lexigram_lib::log::{BufLog, Logger};
+use lexigram_lib::{CollectJoin, General, SymbolTable};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use vectree::VecTree;

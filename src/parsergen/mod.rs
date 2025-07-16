@@ -1310,13 +1310,13 @@ impl ParserGen {
         let num_nt = self.symbol_table.get_num_nt();
         let num_t = self.symbol_table.get_num_t();
         for lib in [
-            "lexigram::grammar::ProdFactor",
-            "lexigram::grammar::Symbol",
-            "lexigram::grammar::VarId",
-            "lexigram::grammar::FactorId",
-            "lexigram::parser::OpCode",
-            "lexigram::parser::Parser",
-            "lexigram::FixedSymTable",
+            "lexigram_lib::grammar::ProdFactor",
+            "lexigram_lib::grammar::Symbol",
+            "lexigram_lib::grammar::VarId",
+            "lexigram_lib::grammar::FactorId",
+            "lexigram_lib::parser::OpCode",
+            "lexigram_lib::parser::Parser",
+            "lexigram_lib::FixedSymTable",
         ] {
             self.used_libs.add(lib);
         }
@@ -1415,8 +1415,8 @@ impl ParserGen {
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
 
         self.used_libs.extend([
-            "lexigram::CollectJoin", "lexigram::grammar::VarId", "lexigram::parser::Call", "lexigram::parser::ListenerWrapper", "lexigram::grammar::FactorId",
-            "lexigram::log::Logger",
+            "lexigram_lib::CollectJoin", "lexigram_lib::grammar::VarId", "lexigram_lib::parser::Call", "lexigram_lib::parser::ListenerWrapper",
+            "lexigram_lib::grammar::FactorId", "lexigram_lib::log::Logger",
         ]);
 
         let (nt_name, factor_info, mut item_info, nt_repeat) = self.get_type_info();

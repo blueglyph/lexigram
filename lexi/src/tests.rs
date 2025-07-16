@@ -124,12 +124,12 @@ mod simple {
     use std::collections::BTreeMap;
     use std::hint::black_box;
     use std::io::Cursor;
-    use lexigram::{branch, btreemap, term};
-    use lexigram::dfa::{print_dfa, tree_to_string, ActionOption, ReType};
-    use lexigram::io::CharReader;
-    use lexigram::lexer::LexerError;
-    use lexigram::lexergen::LexerGen;
-    use lexigram::CollectJoin;
+    use lexigram_lib::{branch, btreemap, term};
+    use lexigram_lib::dfa::{print_dfa, tree_to_string, ActionOption, ReType};
+    use lexigram_lib::io::CharReader;
+    use lexigram_lib::lexer::LexerError;
+    use lexigram_lib::lexergen::LexerGen;
+    use lexigram_lib::CollectJoin;
     use crate::lexi::Lexi;
     use crate::listener::RuleType;
     use super::*;
@@ -538,8 +538,8 @@ mod simple {
 
 mod lexicon {
     use std::io::Cursor;
-    use lexigram::CollectJoin;
-    use lexigram::io::CharReader;
+    use lexigram_lib::CollectJoin;
+    use lexigram_lib::io::CharReader;
     use crate::lexi::Lexi;
 
     #[test]

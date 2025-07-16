@@ -6,7 +6,7 @@ pub(crate) mod lexiparser {
     // -------------------------------------------------------------------------
     // [lexiparser]
 
-    use lexigram::{CollectJoin, FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::lexiparser_types::*;
 
     const PARSER_NUM_T: usize = 34;
@@ -854,7 +854,7 @@ pub(crate) mod lexiparser {
 }
 
 pub(crate) mod lexiparser_types {
-    use lexigram::segments::Segments;
+    use lexigram_lib::segments::Segments;
     use crate::listener::LexAction;
 
     /// SynFile: User-defined type for `file`

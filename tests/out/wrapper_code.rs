@@ -417,16 +417,6 @@ pub(crate) mod code_prs_44_1 {
     pub struct SynB();
 }
 
-pub(crate) mod code_prs_45_1 {
-    // ------------------------------------------------------------
-    // wrapper source for rule PRS(45) #1, start A
-
-    /// User-defined type for `A`
-    #[derive(Debug, PartialEq)] pub struct SynA();
-    /// User-defined type for `B`
-    #[derive(Debug, PartialEq)] pub struct SynB();
-}
-
 pub(crate) mod code_prs_48_1 {
     // ------------------------------------------------------------
     // wrapper source for rule PRS(48) #1, start A

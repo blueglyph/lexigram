@@ -30,7 +30,7 @@ pub(crate) mod rules_prs_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(34) #1, start S]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_34_1::*;
 
     #[derive(Debug)]
@@ -226,7 +226,7 @@ pub(crate) mod rules_rts_21_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_21_1::*;
 
     #[derive(Debug)]
@@ -391,7 +391,7 @@ pub(crate) mod rules_rts_21_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #2, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_21_2::*;
 
     #[derive(Debug)]
@@ -539,7 +539,7 @@ pub(crate) mod rules_rts_22_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_1::*;
 
     #[derive(Debug)]
@@ -721,7 +721,7 @@ pub(crate) mod rules_rts_22_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #2, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_2::*;
 
     #[derive(Debug)]
@@ -880,7 +880,7 @@ pub(crate) mod rules_rts_22_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #3, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_3::*;
 
     #[derive(Debug)]
@@ -1056,7 +1056,7 @@ pub(crate) mod rules_rts_22_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #4, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_4::*;
 
     #[derive(Debug)]
@@ -1230,7 +1230,7 @@ pub(crate) mod rules_rts_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(32) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_32_1::*;
 
     #[derive(Debug)]
@@ -1426,7 +1426,7 @@ pub(crate) mod rules_rts_25_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(25) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_25_1::*;
 
     #[derive(Debug)]
@@ -1577,7 +1577,7 @@ pub(crate) mod rules_rts_23_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(23) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_23_1::*;
 
     #[derive(Debug)]
@@ -1750,7 +1750,7 @@ pub(crate) mod rules_rts_27_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(27) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_27_1::*;
 
     #[derive(Debug)]
@@ -1943,7 +1943,7 @@ pub(crate) mod rules_rts_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(28) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_28_1::*;
 
     #[derive(Debug)]
@@ -2137,7 +2137,7 @@ pub(crate) mod rules_rts_24_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_1::*;
 
     #[derive(Debug)]
@@ -2314,7 +2314,7 @@ pub(crate) mod rules_rts_24_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #2, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_2::*;
 
     #[derive(Debug)]
@@ -2479,7 +2479,7 @@ pub(crate) mod rules_rts_24_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #3, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_3::*;
 
     #[derive(Debug)]
@@ -2656,7 +2656,7 @@ pub(crate) mod rules_rts_24_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #4, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_4::*;
 
     #[derive(Debug)]
@@ -2830,7 +2830,7 @@ pub(crate) mod rules_rts_29_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_29_1::*;
 
     #[derive(Debug)]
@@ -3050,7 +3050,7 @@ pub(crate) mod rules_rts_29_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #2, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_29_2::*;
 
     #[derive(Debug)]
@@ -3237,7 +3237,7 @@ pub(crate) mod rules_rts_29_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #3, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3438,7 +3438,7 @@ pub(crate) mod rules_rts_39_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(39) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_39_1::*;
 
     #[derive(Debug)]
@@ -3655,7 +3655,7 @@ pub(crate) mod rules_rts_40_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(40) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_40_1::*;
 
     #[derive(Debug)]
@@ -3871,7 +3871,7 @@ pub(crate) mod rules_rts_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_30_1::*;
 
     #[derive(Debug)]
@@ -4100,7 +4100,7 @@ pub(crate) mod rules_rts_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #2, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -4342,7 +4342,7 @@ pub(crate) mod rules_rts_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(34) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_34_1::*;
 
     #[derive(Debug)]
@@ -4635,7 +4635,7 @@ pub(crate) mod rules_prs_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(28) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_28_1::*;
 
     #[derive(Debug)]
@@ -4822,7 +4822,7 @@ pub(crate) mod rules_prs_31_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(31) #1, start E]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_31_1::*;
 
     #[derive(Debug)]
@@ -5003,7 +5003,7 @@ pub(crate) mod rules_prs_31_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(31) #2, start E]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_31_2::*;
 
     #[derive(Debug)]
@@ -5171,7 +5171,7 @@ pub(crate) mod rules_prs_36_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(36) #1, start E]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_36_1::*;
 
     #[derive(Debug)]
@@ -5368,7 +5368,7 @@ pub(crate) mod rules_prs_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(33) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_33_1::*;
 
     #[derive(Debug)]
@@ -5550,7 +5550,7 @@ pub(crate) mod rules_prs_38_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(38) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_38_1::*;
 
     #[derive(Debug)]
@@ -5749,7 +5749,7 @@ pub(crate) mod rules_prs_39_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(39) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_39_1::*;
 
     #[derive(Debug)]
@@ -5949,7 +5949,7 @@ pub(crate) mod rules_prs_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(32) #1, start E]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_32_1::*;
 
     #[derive(Debug)]
@@ -6153,7 +6153,7 @@ pub(crate) mod rules_rts_38_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_38_1::*;
 
     #[derive(Debug)]
@@ -6357,7 +6357,7 @@ pub(crate) mod rules_rts_38_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #2, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_38_2::*;
 
     #[derive(Debug)]
@@ -6554,7 +6554,7 @@ pub(crate) mod rules_rts_38_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #3, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -6718,7 +6718,7 @@ pub(crate) mod rules_prs_20_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #1, start STRUCT]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_20_1::*;
 
     #[derive(Debug)]
@@ -6894,7 +6894,7 @@ pub(crate) mod rules_prs_20_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #2, start STRUCT]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_20_2::*;
 
     #[derive(Debug)]
@@ -7067,7 +7067,7 @@ pub(crate) mod rules_prs_37_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(37) #1, start STRUCT]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_37_1::*;
 
     #[derive(Debug)]
@@ -7236,7 +7236,7 @@ pub(crate) mod rules_prs_44_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(44) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_44_1::*;
 
     #[derive(Debug)]
@@ -7393,170 +7393,11 @@ pub(crate) mod rules_prs_44_1 {
     // ------------------------------------------------------------
 }
 
-pub(crate) mod rules_prs_45_1 {
-    // ------------------------------------------------------------
-    // [wrapper source for rule PRS(45) #1, start A]
-
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_prs_45_1::*;
-
-    #[derive(Debug)]
-    pub enum CtxA {
-        /// `A -> a A`
-        A1 { a: String, a1: SynA },
-        /// `A -> B`
-        A2 { b: SynB },
-    }
-    #[derive(Debug)]
-    pub enum CtxB {
-        /// `B -> b`
-        B { b: String },
-    }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `A`
-    // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `B`
-    // #[derive(Debug, PartialEq)] pub struct SynB();
-
-    #[derive(Debug)]
-    enum SynValue { A(SynA), B(SynB) }
-
-    impl SynValue {
-        fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
-        }
-        fn get_b(self) -> SynB {
-            if let SynValue::B(val) = self { val } else { panic!() }
-        }
-    }
-
-    pub trait TestListener {
-        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
-        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _a: SynA) {}
-        fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_b(&mut self) {}
-        fn exit_b(&mut self, _ctx: CtxB) -> SynB;
-    }
-
-    pub struct Wrapper<T> {
-        verbose: bool,
-        listener: T,
-        stack: Vec<SynValue>,
-        max_stack: usize,
-        stack_t: Vec<String>,
-    }
-
-    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
-            if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
-            }
-            if let Some(mut t_data) = t_data {
-                self.stack_t.append(&mut t_data);
-            }
-            match call {
-                Call::Enter => {
-                    match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
-                Call::Exit => {
-                    match factor_id {
-                        0 |                                         // A -> a A
-                        1 => self.exit_a(factor_id),                // A -> B
-                        2 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
-                    }
-                }
-                Call::End => {
-                    self.exit();
-                }
-            }
-            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-            }
-        }
-
-        fn check_abort_request(&self) -> bool {
-            self.listener.check_abort_request()
-        }
-
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
-        }
-    }
-
-    impl<T: TestListener> Wrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn get_listener(&self) -> &T {
-            &self.listener
-        }
-
-        pub fn get_mut_listener(&mut self) -> &mut T {
-            &mut self.listener
-        }
-
-        pub fn listener(self) -> T {
-            self.listener
-        }
-
-        pub fn set_verbose(&mut self, verbose: bool) {
-            self.verbose = verbose;
-        }
-
-        fn exit(&mut self) {
-            let a = self.stack.pop().unwrap().get_a();
-            self.listener.exit(a);
-        }
-
-        fn exit_a(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
-                0 => {
-                    let a1 = self.stack.pop().unwrap().get_a();
-                    let a = self.stack_t.pop().unwrap();
-                    CtxA::A1 { a, a1 }
-                }
-                1 => {
-                    let b = self.stack.pop().unwrap().get_b();
-                    CtxA::A2 { b }
-                }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
-            };
-            let val = self.listener.exit_a(ctx);
-            self.stack.push(SynValue::A(val));
-        }
-
-        fn exit_b(&mut self) {
-            let b = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_b(CtxB::B { b });
-            self.stack.push(SynValue::B(val));
-        }
-    }
-
-    // [wrapper source for rule PRS(45) #1, start A]
-    // ------------------------------------------------------------
-
-}
-
 pub(crate) mod rules_prs_48_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(48) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_48_1::*;
 
     #[derive(Debug)]
@@ -7739,7 +7580,7 @@ pub(crate) mod rules_prs_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(30) #1, start STRUCT]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_30_1::*;
 
     #[derive(Debug)]
@@ -7921,7 +7762,7 @@ pub(crate) mod rules_prs_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(30) #2, start STRUCT]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_30_2::*;
 
     #[derive(Debug)]
@@ -8096,7 +7937,7 @@ pub(crate) mod rules_rts_26_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(26) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_26_1::*;
 
     #[derive(Debug)]
@@ -8286,7 +8127,7 @@ pub(crate) mod rules_rts_16_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(16) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_16_1::*;
 
     #[derive(Debug)]
@@ -8470,7 +8311,7 @@ pub(crate) mod rules_prs_35_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(35) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_35_1::*;
 
     #[derive(Debug)]
@@ -8643,7 +8484,7 @@ pub(crate) mod rules_rts_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(33) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_33_1::*;
 
     #[derive(Debug)]
@@ -8859,7 +8700,7 @@ pub(crate) mod rules_prs_58_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(58) #1, start E]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_58_1::*;
 
     #[derive(Debug)]
@@ -9012,10 +8853,10 @@ pub(crate) mod rules_prs_58_1 {
     mod test {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
-        use lexigram::dfa::TokenId;
-        use lexigram::grammar::Symbol;
-        use lexigram::lexer::CaretCol;
-        use lexigram::log::BufLog;
+        use lexigram_lib::dfa::TokenId;
+        use lexigram_lib::grammar::Symbol;
+        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::log::BufLog;
         use crate::integration::parser_examples::listener16::build_parser;
         use crate::out::wrapper_source::level_string::{ls_prefix_op, ls_suffix_op};
         use super::*;
@@ -9127,7 +8968,7 @@ pub(crate) mod rules_prs_60_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(60) #1, start E]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_60_1::*;
 
     #[derive(Debug)]
@@ -9286,10 +9127,10 @@ pub(crate) mod rules_prs_60_1 {
     mod test {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
-        use lexigram::dfa::TokenId;
-        use lexigram::grammar::Symbol;
-        use lexigram::lexer::CaretCol;
-        use lexigram::log::BufLog;
+        use lexigram_lib::dfa::TokenId;
+        use lexigram_lib::grammar::Symbol;
+        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::log::BufLog;
         use crate::integration::parser_examples::listener16::build_parser;
         use crate::out::wrapper_source::level_string::{ls_prefix_op, ls_suffix_op, LevelString};
         use super::*;
@@ -9402,7 +9243,7 @@ pub(crate) mod rules_prs_55_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(55) #1, start E]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_55_1::*;
 
     #[derive(Debug)]
@@ -9587,7 +9428,7 @@ pub(crate) mod rules_prs_66_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(66) #1, start E]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_66_1::*;
 
     #[derive(Debug)]
@@ -9766,7 +9607,7 @@ pub(crate) mod rules_rts_41_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(41) #1, start A]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_41_1::*;
 
     #[derive(Debug)]
@@ -9956,7 +9797,7 @@ pub(crate) mod rules_prs_63_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(63) #1, start E]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_63_1::*;
 
     #[derive(Debug)]
@@ -10144,10 +9985,10 @@ pub(crate) mod rules_prs_63_1 {
     mod test {
         use std::collections::HashMap;
         use iter_index::IndexerIterator;
-        use lexigram::dfa::TokenId;
-        use lexigram::grammar::Symbol;
-        use lexigram::lexer::CaretCol;
-        use lexigram::log::BufLog;
+        use lexigram_lib::dfa::TokenId;
+        use lexigram_lib::grammar::Symbol;
+        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::log::BufLog;
         use crate::integration::parser_examples::listener14::build_parser;
         use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
         use super::*;
@@ -10264,7 +10105,7 @@ pub(crate) mod rules_rts_100_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(100) #1, start file]
 
-    use lexigram::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_100_1::*;
 
     #[derive(Debug)]

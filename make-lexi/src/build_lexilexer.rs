@@ -3,13 +3,13 @@
 use std::fs::File;
 use std::io::BufReader;
 use lexi::lexi::Lexi;
-use lexigram::CollectJoin;
-use lexigram::dfa::print_dfa;
-use lexigram::io::CharReader;
-use lexigram::lexergen::LexerGen;
-use lexigram::parser::ParserError;
-use lexigram::test_tools::replace_tagged_source;
-use crate::*;
+use lexigram_lib::CollectJoin;
+use lexigram_lib::dfa::print_dfa;
+use lexigram_lib::io::CharReader;
+use lexigram_lib::lexergen::LexerGen;
+use lexigram_lib::parser::ParserError;
+use lexigram_lib::test_tools::replace_tagged_source;
+use crate::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_FILENAME, LEXILEXER_LEXICON, LEXILEXER_TAG, LEXI_SYM_T_TAG};
 
 fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Result<(String, String), ParserError> {
     let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
@@ -67,8 +67,7 @@ pub fn write_lexilexer() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram::test_tools::get_tagged_source;
-    use crate::*;
+    use lexigram_lib::test_tools::get_tagged_source;
     use super::*;
 
     #[test]

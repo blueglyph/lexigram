@@ -1167,8 +1167,8 @@ pub mod macros {
     /// # Examples
     /// ```
     /// # use std::collections::BTreeSet;
-    /// # use lexigram::{dfa::*, node, io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN}};
-    /// # use lexigram::segments::{Seg, Segments};
+    /// # use lexigram_lib::{dfa::*, node, io::{UTF8_HIGH_MIN, UTF8_LOW_MAX, UTF8_MAX, UTF8_MIN}};
+    /// # use lexigram_lib::segments::{Seg, Segments};
     /// assert_eq!(node!(chr 'a'), ReNode::char('a'));
     /// assert_eq!(node!(['a'-'z', '0'-'9']), ReNode::char_range(Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)])));
     /// assert_eq!(node!(.), ReNode::char_range(Segments::from([Seg(UTF8_MIN, UTF8_LOW_MAX), Seg(UTF8_HIGH_MIN, UTF8_MAX)])));

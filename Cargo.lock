@@ -8,7 +8,7 @@ version = "0.1.0"
 dependencies = [
  "iter-index 0.1.1",
  "lexi",
- "lexigram",
+ "lexigram_lib",
  "vectree",
 ]
 
@@ -29,12 +29,12 @@ name = "lexi"
 version = "0.1.0"
 dependencies = [
  "iter-index 0.1.1",
- "lexigram",
+ "lexigram_lib",
  "vectree",
 ]
 
 [[package]]
-name = "lexigram"
+name = "lexigram_lib"
 version = "0.2.0"
 dependencies = [
  "iter-index 1.0.0",
@@ -48,7 +48,7 @@ dependencies = [
  "gram",
  "iter-index 1.0.0",
  "lexi",
- "lexigram",
+ "lexigram_lib",
 ]
 
 [[package]]
@@ -58,7 +58,7 @@ dependencies = [
  "gram",
  "iter-index 1.0.0",
  "lexi",
- "lexigram",
+ "lexigram_lib",
 ]
 
 [[package]]

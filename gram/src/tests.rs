@@ -54,15 +54,15 @@ const TXT_GRAM2: &str = r#"
 mod listener {
     use super::*;
     use crate::gram::Gram;
-    use lexigram::log::{BufLog, Logger};
-    use lexigram::parser::{Call, ListenerWrapper};
+    use lexigram_lib::log::{BufLog, Logger};
+    use lexigram_lib::parser::{Call, ListenerWrapper};
     use lexi::lexi::Lexi;
-    use lexigram::grammar::{print_ll1_table, print_prs_factors, FactorId, VarId};
-    use lexigram::io::CharReader;
-    use lexigram::lexer::{Lexer, TokenSpliterator};
-    use lexigram::lexergen::LexerGen;
-    use lexigram::parsergen::{print_flags, ParserGen};
-    use lexigram::{CollectJoin, LL1};
+    use lexigram_lib::grammar::{print_ll1_table, print_prs_factors, FactorId, VarId};
+    use lexigram_lib::io::CharReader;
+    use lexigram_lib::lexer::{Lexer, TokenSpliterator};
+    use lexigram_lib::lexergen::LexerGen;
+    use lexigram_lib::parsergen::{print_flags, ParserGen};
+    use lexigram_lib::{CollectJoin, LL1};
     use std::io::Cursor;
     use iter_index::IndexerIterator;
 
