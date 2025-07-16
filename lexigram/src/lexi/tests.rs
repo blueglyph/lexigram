@@ -94,7 +94,7 @@ const TXT5: &str = r#"
 "#;
 
 mod listener {
-    use crate::listener::decode_str;
+    use crate::lexi::listener::decode_str;
 
     #[test]
     fn decode_str_is_ok() {
@@ -130,8 +130,8 @@ mod simple {
     use lexigram_lib::lexer::LexerError;
     use lexigram_lib::lexergen::LexerGen;
     use lexigram_lib::CollectJoin;
-    use crate::lexi::Lexi;
-    use crate::listener::RuleType;
+    use crate::Lexi;
+    use crate::lexi::listener::RuleType;
     use super::*;
 
     #[test]
@@ -540,7 +540,7 @@ mod lexicon {
     use std::io::Cursor;
     use lexigram_lib::CollectJoin;
     use lexigram_lib::io::CharReader;
-    use crate::lexi::Lexi;
+    use crate::Lexi;
 
     #[test]
     fn errors() {

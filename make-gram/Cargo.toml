@@ -5,6 +5,5 @@ edition = "2024"
 
 [dependencies]
 lexigram_lib = { path = "..", package = "lexigram_lib" }
-lexi = { path = "../lexi", package = "lexi" }
-gram = { path = "../gram", package = "gram" }
+lexigram = { path = "../lexigram", package = "lexi" }
 iter-index = "1.0.0"

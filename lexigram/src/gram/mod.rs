@@ -1,16 +1,21 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use crate::gramlexer::gramlexer::build_lexer;
-use crate::gramparser::gramparser::{build_parser, GramParserListener, Wrapper};
-use crate::listener::GramListener;
+use gramlexer::gramlexer::build_lexer;
+use gramparser::gramparser::{build_parser, GramParserListener, Wrapper};
+use listener::GramListener;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::Logger;
 use lexigram_lib::parser::Parser;
-use lexigram_lib::{LL1, SymbolTable};
+use lexigram_lib::{SymbolTable, LL1};
 use std::io::Read;
 use std::marker::PhantomData;
+
+mod gramlexer;
+mod gramparser;
+mod listener;
+mod tests;
 
 pub struct Gram<'a, 'b, T, R: Read> {
     pub gramlexer: Lexer<'a, R>,

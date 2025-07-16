@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-pub(super) mod gramlexer {
+pub(crate) mod gramlexer {
     // -------------------------------------------------------------------------
     // [gramlexer]
 
@@ -120,7 +120,7 @@ mod test {
     use lexigram_lib::dfa::TokenId;
     use lexigram_lib::escape_string;
     use lexigram_lib::io::CharReader;
-    use crate::gramlexer::gramlexer::build_lexer;
+    use crate::gram::gramlexer::gramlexer::build_lexer;
 
     #[test]
     pub fn check_lexer_tokens() {

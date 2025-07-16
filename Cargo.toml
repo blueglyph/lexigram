@@ -13,12 +13,9 @@ vectree = "0.1.6"
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
 
-[features]
-disabled = []
-
 [workspace]
-members = [".", "gram", "lexi", "make-gram", "make-lexi"]
-default-members = [".", "gram", "lexi", "make-gram", "make-lexi"]
+members = [".", "lexigram", "make-gram", "make-lexi"]
+default-members = [".", "lexigram", "make-gram", "make-lexi"]
 
 # Temporary:
 

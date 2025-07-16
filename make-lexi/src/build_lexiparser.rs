@@ -2,7 +2,7 @@
 
 use std::fs::File;
 use std::io::BufReader;
-use gram::gram::Gram;
+use lexigram::Gram;
 use lexigram_lib::grammar::{print_ll1_table};
 use lexigram_lib::{CollectJoin, LL1, SymbolTable};
 use lexigram_lib::io::CharReader;

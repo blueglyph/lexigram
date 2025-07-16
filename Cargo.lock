@@ -3,16 +3,6 @@
 version = 4
 
 [[package]]
-name = "gram"
-version = "0.1.0"
-dependencies = [
- "iter-index 0.1.1",
- "lexi",
- "lexigram_lib",
- "vectree",
-]
-
-[[package]]
 name = "iter-index"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -45,7 +35,6 @@ dependencies = [
 name = "make-gram"
 version = "0.1.0"
 dependencies = [
- "gram",
  "iter-index 1.0.0",
  "lexi",
  "lexigram_lib",
@@ -55,7 +44,6 @@ dependencies = [
 name = "make-lexi"
 version = "0.1.0"
 dependencies = [
- "gram",
  "iter-index 1.0.0",
  "lexi",
  "lexigram_lib",

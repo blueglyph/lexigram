@@ -11,8 +11,8 @@ use lexigram_lib::log::{BufLog, Logger};
 use lexigram_lib::{hashmap, node, segments, CollectJoin, General, SymbolTable};
 use lexigram_lib::segments::Segments;
 use crate::action;
-use crate::lexiparser::lexiparser::*;
-use crate::lexiparser::lexiparser_types::*;
+use crate::lexi::lexiparser::lexiparser::*;
+use crate::lexi::lexiparser::lexiparser_types::*;
 
 
 #[derive(Clone, Copy, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
@@ -970,13 +970,13 @@ fn decode_fixed_set(fixedset: &str) -> Result<Segments, String> {
 pub mod macros {
     #[macro_export(local_inner_macros)]
     macro_rules! action {
-        (= $id:expr) =>      { $crate::listener::LexAction { option: crate::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false } };
-        (more) =>            { $crate::listener::LexAction { option: crate::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false } };
-        (skip) =>            { $crate::listener::LexAction { option: crate::listener::LexActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false } };
-        (mode $id:expr) =>   { $crate::listener::LexAction { option: crate::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false } };
-        (push $id:expr) =>   { $crate::listener::LexAction { option: crate::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false } };
-        (pop) =>             { $crate::listener::LexAction { option: crate::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true  } };
-        (# $id:expr) =>      { $crate::listener::LexAction { option: crate::listener::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false } };
-        (nop) =>             { $crate::listener::LexAction { option: crate::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false } };
+        (= $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false } };
+        (more) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false } };
+        (skip) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Skip,       channel: None,      mode: ModeOption::None,      pop: false } };
+        (mode $id:expr) =>   { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Mode($id), pop: false } };
+        (push $id:expr) =>   { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::Push($id), pop: false } };
+        (pop) =>             { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: true  } };
+        (# $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: Some($id), mode: ModeOption::None,      pop: false } };
+        (nop) =>             { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::None,       channel: None,      mode: ModeOption::None,      pop: false } };
     }
 }

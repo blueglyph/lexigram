@@ -2,7 +2,7 @@
 
 use std::fs::File;
 use std::io::BufReader;
-use lexi::lexi::Lexi;
+use lexigram::Lexi;
 use lexigram_lib::CollectJoin;
 use lexigram_lib::dfa::print_dfa;
 use lexigram_lib::io::CharReader;
@@ -49,7 +49,7 @@ fn lexilexer_source(lexicon_filename: &str, indent: usize, verbose: bool) -> Res
     lexgen.build_from_dfa(dfa);
     lexgen.symbol_table = Some(symbol_table);
     if verbose {
-        // terminals to replace in src/lexi/lexiparser.rs (copy/paste)
+        // terminals to replace in src/lexigram/lexiparser.rs (copy/paste)
         println!("Terminals:\n{sym_src}");
     }
     Ok((sym_src, lexgen.build_source_code(indent)))

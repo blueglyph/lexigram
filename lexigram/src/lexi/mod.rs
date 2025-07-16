@@ -5,9 +5,14 @@ use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::Logger;
 use lexigram_lib::parser::{Parser, ParserError};
-use crate::lexilexer::lexilexer::build_lexer;
-use crate::lexiparser::lexiparser::{build_parser, Wrapper};
-use crate::listener::LexiListener;
+use lexilexer::lexilexer::build_lexer;
+use lexiparser::lexiparser::{build_parser, Wrapper};
+use listener::LexiListener;
+
+mod lexilexer;
+mod lexiparser;
+mod listener;
+mod tests;
 
 pub struct Lexi<'a, 'b, R: Read> {
     pub lexilexer: Lexer<'a, R>,

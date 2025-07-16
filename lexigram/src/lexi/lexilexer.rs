@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-pub(super) mod lexilexer {
+pub(crate) mod lexilexer {
     // -------------------------------------------------------------------------
     // [lexilexer]
 
@@ -233,7 +233,7 @@ mod test {
     use lexigram_lib::escape_string;
     use lexigram_lib::io::CharReader;
     use lexigram_lib::lexi::{LEXICON, LEXICON_TEXT, LEXICON_TOKENS};
-    use crate::lexilexer::lexilexer::build_lexer;
+    use crate::lexi::lexilexer::lexilexer::build_lexer;
 
     #[test]
     pub fn check_lexer_tokens() {

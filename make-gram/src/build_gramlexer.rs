@@ -2,7 +2,7 @@
 
 use std::fs::File;
 use std::io::BufReader;
-use lexi::lexi::Lexi;
+use lexigram::Lexi;
 use lexigram_lib::CollectJoin;
 use lexigram_lib::dfa::print_dfa;
 use lexigram_lib::io::CharReader;
