@@ -1107,6 +1107,40 @@ pub struct ProdRuleSet<T> {
 }
 
 impl<T> ProdRuleSet<T> {
+    pub fn new() -> Self {
+        Self {
+            prods: Vec::new(),
+            original_factors: Vec::new(),
+            num_nt: 0,
+            num_t: 0,
+            symbol_table: None,
+            flags: Vec::new(),
+            parent: Vec::new(),
+            start: None,
+            nt_conversion: HashMap::new(),
+            log: BufLog::new(),
+            dont_remove_recursion: false,
+            _phantom: PhantomData
+        }
+    }
+
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self {
+            prods: Vec::with_capacity(capacity),
+            original_factors: Vec::new(),
+            num_nt: 0,
+            num_t: 0,
+            symbol_table: None,
+            flags: Vec::with_capacity(capacity),
+            parent: Vec::with_capacity(capacity),
+            start: None,
+            nt_conversion: HashMap::new(),
+            log: BufLog::new(),
+            dont_remove_recursion: false,
+            _phantom: PhantomData
+        }
+    }
+
     /// Returns the starting production rule.
     pub fn get_start(&self) -> Option<VarId> {
         self.start
@@ -1489,40 +1523,6 @@ impl<T> ProdRuleSet<T> {
             if VERBOSE && change { println!("---------------------------- again"); }
         }
         follow
-    }
-
-    pub fn new() -> Self {
-        Self {
-            prods: Vec::new(),
-            original_factors: Vec::new(),
-            num_nt: 0,
-            num_t: 0,
-            symbol_table: None,
-            flags: Vec::new(),
-            parent: Vec::new(),
-            start: None,
-            nt_conversion: HashMap::new(),
-            log: BufLog::new(),
-            dont_remove_recursion: false,
-            _phantom: PhantomData
-        }
-    }
-
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            prods: Vec::with_capacity(capacity),
-            original_factors: Vec::new(),
-            num_nt: 0,
-            num_t: 0,
-            symbol_table: None,
-            flags: Vec::with_capacity(capacity),
-            parent: Vec::with_capacity(capacity),
-            start: None,
-            nt_conversion: HashMap::new(),
-            log: BufLog::new(),
-            dont_remove_recursion: false,
-            _phantom: PhantomData
-        }
     }
 
     /// Eliminates recursion from production rules, removes potential ambiguity, and updates the symbol table if provided.

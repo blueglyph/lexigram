@@ -21,10 +21,10 @@ pub mod macros {
     ///
     /// # Examples
     /// ```
-    /// # use lexigram::dfa::TokenId;
-    /// # use lexigram::opcode;
-    /// # use lexigram::grammar::VarId;
-    /// # use lexigram::parser::OpCode;
+    /// # use lexigram_lib::dfa::TokenId;
+    /// # use lexigram_lib::opcode;
+    /// # use lexigram_lib::grammar::VarId;
+    /// # use lexigram_lib::parser::OpCode;
     /// assert_eq!(opcode!(e), OpCode::Empty);
     /// assert_eq!(opcode!(t 2), OpCode::T(2 as TokenId));
     /// assert_eq!(opcode!(nt 3), OpCode::NT(3));
@@ -34,7 +34,7 @@ pub mod macros {
     /// assert_eq!(opcode!(loop 2), OpCode::Loop(2));
     /// assert_eq!(opcode!(exit 1), OpCode::Exit(1));
     /// assert_eq!(opcode!(end), OpCode::End);
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! opcode {
         (e) => { $crate::parser::OpCode::Empty };
         (t $id:expr) => { $crate::parser::OpCode::T($id as $crate::dfa::TokenId) };
@@ -51,17 +51,17 @@ pub mod macros {
     ///
     /// # Example
     /// ```
-    /// # use lexigram::dfa::TokenId;
-    /// # use lexigram::grammar::{ProdFactor, Symbol, VarId};
-    /// # use lexigram::{strip, opcode};
-    /// # use lexigram::parser::OpCode;
+    /// # use lexigram_lib::dfa::TokenId;
+    /// # use lexigram_lib::grammar::{ProdFactor, Symbol, VarId};
+    /// # use lexigram_lib::{strip, opcode};
+    /// # use lexigram_lib::parser::OpCode;
     /// assert_eq!(strip!(nt 1, loop 5, t 3, e), vec![opcode!(nt 1), opcode!(loop 5), opcode!(t 3), opcode!(e)]);
     /// ```
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! strip {
         () => { std::vec![] };
         ($($a:ident $($b:expr)?,)+) => { strip![$($a $($b)?),+] };
-        ($($a:ident $($b:expr)?),*) => { std::vec![$(opcode!($a $($b)?)),*] };
+        ($($a:ident $($b:expr)?),*) => { std::vec![$($crate::opcode!($a $($b)?)),*] };
     }
 }
 

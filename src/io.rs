@@ -219,7 +219,7 @@ impl<'a, R: Read> Iterator for CharReaderIter<'a, R> {
 
 pub mod macros {
     /// Replaces a few identifiers by their codepoint value, and casts character / integer literals to `u32`.
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! utf8 {
         ( MIN )        => { 0_u32 };
         ( LOW_MAX )    => { 0xd7ff_u32 };

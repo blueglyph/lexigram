@@ -968,7 +968,7 @@ fn decode_fixed_set(fixedset: &str) -> Result<Segments, String> {
 }
 
 pub mod macros {
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! action {
         (= $id:expr) =>      { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::Token($id), channel: None,      mode: ModeOption::None,      pop: false } };
         (more) =>            { $crate::lexi::listener::LexAction { option: crate::lexi::listener::LexActionOption::More,       channel: None,      mode: ModeOption::None,      pop: false } };

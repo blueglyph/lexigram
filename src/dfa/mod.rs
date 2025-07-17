@@ -136,6 +136,21 @@ impl Display for Terminal {
     }
 }
 
+impl Add for Terminal {
+    type Output = Terminal;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Terminal {
+            // token: if self.token.is_some() { self.token } else { rhs.token },
+            action: self.action + rhs.action,
+            channel: self.channel + rhs.channel,
+            mode: if !self.mode.is_none() { self.mode } else { rhs.mode },
+            mode_state: if self.mode_state.is_some() { self.mode_state } else { rhs.mode_state },
+            pop: self.pop || rhs.pop
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug, PartialEq, Default, PartialOrd, Eq, Ord)]
@@ -1210,9 +1225,6 @@ pub fn print_graph(state_graph: &BTreeMap<StateId, BTreeMap<Segments, StateId>>,
 // Macros
 
 pub mod macros {
-    use std::ops::Add;
-    use super::*;
-
     /// Generates an `ReNode` instance.
     ///
     /// # Examples
@@ -1231,12 +1243,12 @@ pub mod macros {
     /// assert_eq!(node!(+), ReNode::plus());
     /// assert_eq!(node!(e), ReNode::empty());
     /// ```
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! node {
         (chr $char:expr) => { $crate::dfa::ReNode::char($char) };
         (chr $char1:expr, $char2:expr $(;$char3:expr, $char4:expr)*) => { ($char1..=$char2)$(.chain($char3..=$char4))*.map(|c| $crate::dfa::ReNode::char(c)) };
-        ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { $crate::dfa::ReNode::char_range(segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
-        (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { $crate::dfa::ReNode::char_range(segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
+        ([$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { $crate::dfa::ReNode::char_range($crate::segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
+        (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?),+]) => { $crate::dfa::ReNode::char_range($crate::segments![~ $($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
         (.) => { node!([DOT]) };
         (str $str:expr) => { $crate::dfa::ReNode::string($str) };
         (&) => { $crate::dfa::ReNode::concat() };
@@ -1259,7 +1271,7 @@ pub mod macros {
         (~[$($($a1:literal)?$($a2:ident)? $(- $($b1:literal)?$($b2:ident)?)?,)+]) => { node!(~ [$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+]) };
     }
 
-    #[macro_export(local_inner_macros)]
+    #[macro_export()]
     macro_rules! term {
         (= $id:expr ) =>     { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Token($id),channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
         (more) =>            { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::More,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
@@ -1269,21 +1281,6 @@ pub mod macros {
         (pushst $id:expr) => { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: Some($id), pop: false } };
         (pop) =>             { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: 0,   mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: true  } };
         (# $id:expr) =>      { $crate::dfa::Terminal { action: $crate::dfa::ActionOption::Skip,      channel: $id, mode: $crate::dfa::ModeOption::None,      mode_state: None,      pop: false } };
-    }
-
-    impl Add for Terminal {
-        type Output = Terminal;
-
-        fn add(self, rhs: Self) -> Self::Output {
-            Terminal {
-                // token: if self.token.is_some() { self.token } else { rhs.token },
-                action: self.action + rhs.action,
-                channel: self.channel + rhs.channel,
-                mode: if !self.mode.is_none() { self.mode } else { rhs.mode },
-                mode_state: if self.mode_state.is_some() { self.mode_state } else { rhs.mode_state },
-                pop: self.pop || rhs.pop
-            }
-        }
     }
 
     #[cfg(test)]
