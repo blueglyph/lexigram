@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use iter_index::IndexerIterator;
-use lexigram_lib::grammar::{print_ll1_table, ruleflag, Symbol};
+use lexigram_lib::grammar::{ruleflag, Symbol};
 use lexigram_lib::CollectJoin;
 use lexigram_lib::log::Logger;
 use lexigram_lib::parsergen::ParserGen;
@@ -80,7 +80,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<String, String> {
     if verbose {
         print_flags(&builder, 4);
         println!("Parsing table of grammar '{name}':");
-        print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
+        builder.get_parsing_table().print(builder.get_symbol_table(), 4);
         if !builder.get_log().is_empty() {
             println!("Messages:{msg}");
         }

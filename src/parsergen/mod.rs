@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, symbol_to_macro, ProdFactor, factor_to_rule_str};
+use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, ProdFactor, factor_to_rule_str};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable};
 use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
@@ -2148,7 +2148,7 @@ pub fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool) {
             if let Some(it) = builder.item_ops.get(&f_id) {
                 let mut cols = vec![];
                 if show_symbols {
-                    cols.push(format!("{f_id} => symbols![{}],", it.iter().map(|s| symbol_to_macro(s)).join(", ")));
+                    cols.push(format!("{f_id} => symbols![{}],", it.iter().map(|s| s.to_macro_item()).join(", ")));
                 }
                 cols.extend([
                     format!("// {f_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), factor.iter().map(|s| s.to_str(tbl)).join(" ")),

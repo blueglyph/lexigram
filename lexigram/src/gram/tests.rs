@@ -56,7 +56,7 @@ mod listener {
     use crate::{Lexi, Gram};
     use lexigram_lib::log::{BufLog, Logger};
     use lexigram_lib::parser::{Call, ListenerWrapper};
-    use lexigram_lib::grammar::{print_ll1_table, print_prs_factors, FactorId, VarId};
+    use lexigram_lib::grammar::{FactorId, VarId};
     use lexigram_lib::io::CharReader;
     use lexigram_lib::lexer::{Lexer, TokenSpliterator};
     use lexigram_lib::lexergen::LexerGen;
@@ -195,7 +195,7 @@ mod listener {
             let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
             let should_succeed = expected_grammar_errors.is_empty();
             if VERBOSE {
-                print_prs_factors(&ll1);
+                ll1.print_factors();
                 if !should_succeed {
                     if !msg.is_empty() {
                         println!("Messages:{msg}");
@@ -224,7 +224,7 @@ mod listener {
                 if VERBOSE {
                     print_flags(&builder, 4);
                     println!("Parsing table of grammar '{name}':");
-                    print_ll1_table(builder.get_symbol_table(), builder.get_parsing_table(), 4);
+                    builder.get_parsing_table().print(builder.get_symbol_table(), 4);
                     if !builder.get_log().is_empty() {
                         println!("Messages:{msg}");
                     }

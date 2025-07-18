@@ -61,6 +61,16 @@ impl Symbol {
         }
         result
     }
+
+    /// Converts to symbols used in [`sym!`](macro@sym) and other related macros.
+    pub fn to_macro_item(&self) -> String {
+        match self {
+            Symbol::Empty => "e".to_string(),
+            Symbol::T(x) => format!("t {x}"),
+            Symbol::NT(x) => format!("nt {x}"),
+            Symbol::End => "end".to_string(),
+        }
+    }
 }
 
 impl Display for Symbol {
@@ -354,9 +364,6 @@ pub mod ruleflag {
             } else {
                 None
             }).collect();
-        // if flags != 0 {
-        //     v.push(flags.to_string())
-        // }
         v
     }
 }
@@ -984,6 +991,20 @@ impl ProdFactor {
         format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), factor_to_str(&self.v, symbol_table))
     }
 
+    pub fn to_macro_item(&self) -> String {
+        let mut src = match (self.flags, self.original_factor_id) {
+            (0, None) => String::new(),
+            (f, None) => format!("#{f}, "),
+            (f, Some(o)) => format!("#({f}, {o}), "),
+        };
+        src.push_str(&self.v.iter().map(|s| s.to_macro_item()).join(", "));
+        src
+    }
+
+    pub fn to_macro(&self) -> String {
+        format!("prodf!({})", self.to_macro_item())
+    }
+
     pub fn is_sym_empty(&self) -> bool {
         self.v.len() == 1 && self.v[0] == Symbol::Empty
     }
@@ -1047,8 +1068,12 @@ impl DerefMut for ProdFactor {
 /// (where the representation of vectors has been simplified to square brackets).
 pub type ProdRule = Vec<ProdFactor>;
 
-pub fn prod_to_string(prod: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
+pub fn prod_to_str(prod: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
     prod.iter().map(|factor| factor.to_str(symbol_table)).join(" | ")
+}
+
+pub fn prod_to_macro(p: &ProdRule) -> String {
+    format!("prod!({})", p.iter().map(|f| f.to_macro_item()).join("; "))
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
@@ -1453,7 +1478,7 @@ impl<T> ProdRuleSet<T> {
             for i in &rules {
                 let prod = &self.prods[*i as usize];
                 let symbol = Symbol::NT(*i as VarId);
-                if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prod_to_string(prod, self.symbol_table.as_ref())); }
+                if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prod_to_str(prod, self.symbol_table.as_ref())); }
                 let num_items = first[&symbol].len();
                 for factor in prod {
                     if VERBOSE { println!("  - {}", factor.to_str(self.symbol_table.as_ref())); }
@@ -1500,7 +1525,7 @@ impl<T> ProdRuleSet<T> {
             for i in &rules {
                 let prod = &self.prods[*i as usize];
                 let symbol = Symbol::NT(*i as VarId);
-                if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prod_to_string(prod, self.symbol_table.as_ref())); }
+                if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prod_to_str(prod, self.symbol_table.as_ref())); }
                 for factor in prod {
                     if VERBOSE { println!("  - {}", factor.to_str(self.symbol_table.as_ref())); }
                     let mut trail = follow.get(&symbol).unwrap().clone();
@@ -1557,7 +1582,7 @@ impl<T> ProdRuleSet<T> {
         self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.num_nt, "number of nt in symbol table doesn't match num_nt"));
         if VERBOSE {
             println!("ORIGINAL:");
-            print_production_rules(&self, false);
+            self.print_rules(false);
         }
         let mut var_new = self.get_next_available_var() as usize;
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
@@ -1571,7 +1596,7 @@ impl<T> ProdRuleSet<T> {
             if prod.iter().any(|p| !p.is_empty() && (p.first().unwrap() == &symbol)) {
                 if VERBOSE {
                     println!("processing: {}", format!("{var_name} -> {}",
-                        prod_to_string(prod, self.get_symbol_table())));
+                                                       prod_to_str(prod, self.get_symbol_table())));
                 }
 
                 let (mut indep, mut factors) : (Vec<_>, Vec<_>) = take(prod).into_iter()
@@ -1579,8 +1604,8 @@ impl<T> ProdRuleSet<T> {
                 factors.reverse();
                 if indep.is_empty() {
                     self.log.add_error(format!("recursive rules must have at least one independent factor: {} -> {}",
-                                       Symbol::NT(var).to_str(self.get_symbol_table()),
-                                       prod_to_string(prod, self.get_symbol_table())));
+                                               Symbol::NT(var).to_str(self.get_symbol_table()),
+                                               prod_to_str(prod, self.get_symbol_table())));
                     prod.extend(factors);
                     prod.extend(indep);
                     continue;
@@ -1799,7 +1824,7 @@ impl<T> ProdRuleSet<T> {
         self.num_nt = self.prods.len();
         if VERBOSE {
             println!("FINAL:");
-            print_production_rules(&self, false);
+            self.print_rules(false);
             println!("FLAGS:\n{}", self.flags.iter().index::<VarId>()
                 .map(|(v, f)| format!("- ({v:2}) {}: {}", Symbol::NT(v).to_str(self.get_symbol_table()), ruleflag::to_string(*f).join(", "))).join("\n"));
             if let Some(table) = &self.symbol_table {
@@ -2063,10 +2088,10 @@ impl ProdRuleSet<LL1> {
         source.push("let ll1_tables = ProdRuleSetTables::new(".to_string());
         source.push(format!("    \"{}\",", name.escape_default()));
         source.push("    vec![".to_string());
-        source.extend(self.prods.iter().map(|prod| format!("        {},", rule_to_code(prod))));
+        source.extend(self.prods.iter().map(|prod| format!("        {},", prod_to_macro(prod))));
         source.push("    ],".to_string());
         source.push("    vec![".to_string());
-        source.extend(self.original_factors.iter().map(|factor| format!("        {},", factor_to_code(factor))));
+        source.extend(self.original_factors.iter().map(|factor| format!("        {},", factor.to_macro())));
         source.push("    ],".to_string());
         source.push(format!("    vec![{}],", st.get_terminals().map(|x| format!("{x:?}")).join(", ")));
         source.push(format!("    vec![{}],", st.get_nonterminals().map(|x| format!("{x:?}")).join(", ")));
@@ -2291,88 +2316,54 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Supporting functions
+// Supporting debug functions
 
-pub fn factor_to_codestrip(f: &ProdFactor) -> String {
-    let mut src = match (f.flags, f.original_factor_id) {
-        (0, None) => String::new(),
-        (f, None) => format!("#{f}, "),
-        (f, Some(o)) => format!("#({f}, {o}), "),
-    };
-    src.push_str(&f.v.iter().map(|s| symbol_to_macro(s)).join(", "));
-    src
-}
+impl<T> ProdRuleSet<T> {
+    pub fn print_rules(&self, as_comment: bool) {
+        let prefix = if as_comment { "            // " } else { "    " };
+        println!("{prefix}{}", self.get_prods_iter().map(|(var, p)|
+            format!("({var}) {} -> {}",
+                    Symbol::NT(var).to_str(self.get_symbol_table()),
+                    prod_to_str(p, self.get_symbol_table()))
+        ).join(&format!("\n{prefix}")));
+    }
 
-pub fn factor_to_code(f: &ProdFactor) -> String {
-    format!("prodf!({})", factor_to_codestrip(f))
-}
-
-pub fn rule_to_code(p: &ProdRule) -> String {
-    format!("prod!({})", p.iter().map(|f| factor_to_codestrip(f)).join("; "))
-}
-
-pub fn symbol_to_macro(s: &Symbol) -> String {
-    match s {
-        Symbol::Empty => "e".to_string(),
-        Symbol::T(x) => format!("t {x}"),
-        Symbol::NT(x) => format!("nt {x}"),
-        Symbol::End => "end".to_string(),
+    pub fn print_factors(&self) {
+        println!("Factors:\n{}",
+                 self.get_factors().enumerate().map(|(id, (v, f))|
+                     format!("    // - {id}: {} -> {}{}",
+                             Symbol::NT(v).to_str(self.get_symbol_table()),
+                             f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                             if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
+                     )
+        ).join("\n"));
     }
 }
 
-pub fn print_production_rules<T>(prods: &ProdRuleSet<T>, as_comment: bool) {
-    let prefix = if as_comment { "            // " } else { "    " };
-    println!("{prefix}{}", prods.get_prods_iter().map(|(var, p)|
-        format!("({var}) {} -> {}",
-                Symbol::NT(var).to_str(prods.get_symbol_table()),
-                prod_to_string(p, prods.get_symbol_table()))
-    ).join(&format!("\n{prefix}")));
-}
-
-pub fn print_factors<T>(rules: &ProdRuleSet<T>, factors: &Vec<(VarId, ProdFactor)>) {
-    println!("factors:\n{}",
-             factors.iter().enumerate().map(|(id, (v, f))|
-                 format!("            // - {id}: {} -> {}{}",
-                         Symbol::NT(*v).to_str(rules.get_symbol_table()),
-                         f.to_str(rules.get_symbol_table()),
-                         if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
-                 )
-    ).join("\n"));
-}
-
-pub fn print_prs_factors<T>(rules: &ProdRuleSet<T>) {
-    println!("Factors:\n{}",
-             rules.get_factors().enumerate().map(|(id, (v, f))|
-                 format!("    // - {id}: {} -> {}{}",
-                         Symbol::NT(v).to_str(rules.get_symbol_table()),
-                         f.iter().map(|s| s.to_str(rules.get_symbol_table())).join(" "),
-                         if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
-                 )
-    ).join("\n"));
-}
-
-pub fn print_ll1_table(symbol_table: Option<&SymbolTable>, parsing_table: &LLParsingTable, indent: usize) {
-    let LLParsingTable { num_nt, num_t, factors, table, flags, parent, .. } = parsing_table;
-    let error_skip = factors.len() as FactorId;
-    let error_pop = error_skip + 1;
-    let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
-    let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
-    let str_t = (0..*num_t).map(|j| if j + 1 < *num_t { Symbol::T(j as VarId).to_str(symbol_table) } else { "$".to_string() }).to_vec();
-    let max_t_len = str_t.iter().map(|s| s.len()).max().unwrap().max(2);
-    let t_len = str_t.iter().map(|s| s.len().max(3)).to_vec();
-    println!("{:<i$}// {:<w$} | {}", "", "", (0..*num_t).map(|j| format!("{:^w$}", str_t[j], w = t_len[j])).join(" "), w = max_nt_len, i = indent);
-    println!("{:<i$}// {:-<w$}-+-{:-<t$}", "", "", "", w = max_nt_len, t = *num_t + t_len.iter().sum::<usize>(), i = indent);
-    for i in 0..*num_nt {
-        print!("{:<i$}// {:<w$} |", "", str_nt[i], w = max_nt_len, i = indent);
-        for j in 0..*num_t {
-            let value = table[i * num_t + j];
-            if value < error_skip {
-                print!(" {:^w$}", value, w = t_len[j]);
-            } else {
-                print!(" {:^w$}", if value == error_pop { "p" } else { "." } , w = t_len[j]);
+impl LLParsingTable {
+    pub fn print(&self, symbol_table: Option<&SymbolTable>, indent: usize) {
+        let LLParsingTable { num_nt, num_t, factors, table, flags, parent, .. } = self;
+        let error_skip = factors.len() as FactorId;
+        let error_pop = error_skip + 1;
+        let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
+        let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
+        let str_t = (0..*num_t).map(|j| if j + 1 < *num_t { Symbol::T(j as VarId).to_str(symbol_table) } else { "$".to_string() }).to_vec();
+        let max_t_len = str_t.iter().map(|s| s.len()).max().unwrap().max(2);
+        let t_len = str_t.iter().map(|s| s.len().max(3)).to_vec();
+        println!("{:<i$}// {:<w$} | {}", "", "", (0..*num_t).map(|j| format!("{:^w$}", str_t[j], w = t_len[j])).join(" "), w = max_nt_len, i = indent);
+        println!("{:<i$}// {:-<w$}-+-{:-<t$}", "", "", "", w = max_nt_len, t = *num_t + t_len.iter().sum::<usize>(), i = indent);
+        for i in 0..*num_nt {
+            print!("{:<i$}// {:<w$} |", "", str_nt[i], w = max_nt_len, i = indent);
+            for j in 0..*num_t {
+                let value = table[i * num_t + j];
+                if value < error_skip {
+                    print!(" {:^w$}", value, w = t_len[j]);
+                } else {
+                    print!(" {:^w$}", if value == error_pop { "p" } else { "." }, w = t_len[j]);
+                }
             }
+            println!();
         }
-        println!();
     }
 }
 

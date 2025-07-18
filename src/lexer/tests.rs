@@ -5,7 +5,7 @@
 use std::io::Cursor;
 use crate::{btreemap, CollectJoin, escape_string, node, term};
 use crate::dfa::*;
-use crate::dfa::{print_dfa, tests::{build_re}};
+use crate::dfa::{tests::{build_re}};
 use crate::lexergen::{LexerGen, LexerTables};
 use vectree::VecTree;
 use super::*;
@@ -73,7 +73,7 @@ fn lexer_simple() {
     for (test_id, token_tests, err_tests, stream_tests) in tests {
         let dfa = DfaBuilder::from_re(build_re(test_id)).build();
         let dfa = dfa.normalize();
-        if VERBOSE { print_dfa(&dfa, 12); }
+        if VERBOSE { dfa.print(12); }
         let lexgen = LexerGen::from(dfa);
         if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
         let lexer_tables = lexgen.make_lexer_tables();
@@ -225,7 +225,7 @@ fn build_lexer_tables(test: usize) -> LexerTables {
         let dfa = dfa_builder.build();
         assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building lexer #{test}: (DFA #{dfa_id})\n{}", dfa_builder.get_messages());
         if VERBOSE {
-            print_dfa(&dfa, 4);
+            dfa.print(4);
         }
         (mode as u16, dfa)
     }).to_vec();
@@ -234,12 +234,12 @@ fn build_lexer_tables(test: usize) -> LexerTables {
     let dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer #{test}\n{}", dfa_builder.get_messages()));
     assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building lexer #{test} (merging DFAs):\n{}", dfa_builder.get_messages());
     if VERBOSE {
-        print_dfa(&dfa, 4);
+        dfa.print(4);
         println!("normalizing");
     }
     let dfa = dfa.normalize();
     if VERBOSE {
-        print_dfa(&dfa, 4);
+        dfa.print(4);
         println!("creating lexer");
     }
     let mut lexgen = LexerGen::new();

@@ -1423,7 +1423,7 @@ fn dfa_states() {
         let dfa = dfa_builder.build();
         if VERBOSE {
             println!("{}", tree_to_string(&dfa_builder.re, None, false));
-            print_dfa(&dfa, 12);
+            dfa.print(12);
             let msg = dfa_builder.get_messages();
             if !msg.is_empty() {
                 println!("{msg}");
@@ -1540,7 +1540,7 @@ fn dfa_modes() {
         for (id, dfa) in dfas.iter() {
             if VERBOSE {
                 println!("## mode {id}");
-                print_dfa(dfa, 12);
+                dfa.print(12);
             }
         }
         if VERBOSE { println!("## Merged:"); }
@@ -1548,7 +1548,7 @@ fn dfa_modes() {
         let dfa = dfa_builder.build_from_dfa_modes(dfas)
             .expect(&format!("test {test_id} failed to build Dfa:\n{}", dfa_builder.get_messages()));
         if VERBOSE {
-            print_dfa(&dfa, 12);
+            dfa.print(12);
             println!("-------------------------------------------------");
         }
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
@@ -1687,7 +1687,7 @@ fn dfa_optimize_graphs() {
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
         let dfa = dfa.optimize();
         if VERBOSE {
-            print_dfa(&dfa, 12);
+            dfa.print(12);
         }
         assert_eq!(dfa.state_graph, exp_graph, "test {test_id} failed");
         assert_eq!(dfa.end_states, BTreeMap::from_iter(exp_end_states.into_iter()), "test {test_id} failed");

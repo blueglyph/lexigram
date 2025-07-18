@@ -260,7 +260,7 @@ impl LexiListener {
             let mut dfa_builder = DfaBuilder::from_re(tree);
             assert_eq!(dfa_builder.num_errors(), 0, "failed to compile mode {mode_id}");
             dfas.push((*mode_id as ModeId, dfa_builder.build()));
-            if VERBOSE { lexigram_lib::dfa::print_dfa(&dfas[dfas.len() - 1].1, 5); }
+            if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
         }
         let mut dfa_builder = DfaBuilder::new();
         if VERBOSE { println!("merging dfa modes"); }

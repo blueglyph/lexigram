@@ -4,7 +4,6 @@ use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Lexi};
 use lexigram_lib::CollectJoin;
-use lexigram_lib::dfa::print_dfa;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::parser::ParserError;
 use lexigram_lib::test_tools::replace_tagged_source;
@@ -38,7 +37,7 @@ fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, St
     let dfa = listener.make_dfa().optimize();
     if verbose {
         println!("Dfa:");
-        print_dfa(&dfa, 4);
+        dfa.print(4);
     }
 
     // - exports data to stage 2

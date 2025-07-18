@@ -125,7 +125,7 @@ mod simple {
     use std::hint::black_box;
     use std::io::Cursor;
     use lexigram_lib::{branch, btreemap, term};
-    use lexigram_lib::dfa::{print_dfa, tree_to_string, ActionOption, ReType};
+    use lexigram_lib::dfa::{tree_to_string, ActionOption, ReType};
     use lexigram_lib::io::CharReader;
     use lexigram_lib::lexer::LexerError;
     use lexigram_lib::lexergen::LexerGen;
@@ -333,7 +333,7 @@ mod simple {
             let dfa = listener.make_dfa().optimize();
             if VERBOSE {
                 println!("Final optimized Dfa:");
-                print_dfa(&dfa, 20);
+                dfa.print(20);
             }
             assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}");
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");

@@ -221,7 +221,7 @@ mod gen_integration {
 
 mod opcodes {
     use crate::grammar::{Symbol, VarId};
-    use crate::grammar::tests::{print_prs_summary, T};
+    use crate::grammar::tests::T;
     use crate::{CollectJoin, strip, columns_to_str};
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::ParserGen;
@@ -536,7 +536,7 @@ mod opcodes {
             let ll1 = rule_id.build_prs(test_id, start_nt, false);
             if VERBOSE {
                 print!("- ");
-                print_prs_summary(&ll1);
+                ll1.print_prs_summary();
             }
             let parser_tables = ParserGen::from_rules(ll1, "Test".to_string()).make_parser_tables();
             let parser = parser_tables.make_parser();
@@ -589,7 +589,7 @@ mod parser_source {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use iter_index::IndexerIterator;
-    use crate::grammar::{factor_to_rule_str, factor_to_str, ruleflag, symbol_to_macro, FactorId, Symbol, VarId};
+    use crate::grammar::{factor_to_rule_str, factor_to_str, ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::{log_to_str, T};
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source, SymInfoTable};
     use crate::grammar::tests::T::{PRS, RTS};
@@ -2068,7 +2068,7 @@ mod wrapper_source {
                 println!("            ], btreemap![");
                 print_items(&builder, 16, true);
                 let has_value_str = match &has_value {
-                    Set(s) => format!("Set(symbols![{}])", s.iter().map(|s| symbol_to_macro(s)).join(", ")),
+                    Set(s) => format!("Set(symbols![{}])", s.iter().map(|s| s.to_macro_item()).join(", ")),
                     All => "All".to_string(),
                     Default => "Default".to_string()
                 };

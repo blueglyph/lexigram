@@ -1138,7 +1138,7 @@ fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Debug functions left in the code for the integration tests
+// Supporting Debug functions
 
 #[allow(unused)]
 /// Debug function to display the content of a tree.
@@ -1175,14 +1175,15 @@ pub(crate) fn term_to_string(t: &Terminal) -> String {
     str.join(" + ")
 }
 
-#[allow(unused)]
-/// Debug function to display the content of a Dfa.
-pub fn print_dfa<T>(dfa: &Dfa<T>, indent: usize) {
-    // println!("  graph:      {:?}", dfa.state_graph);
-    println!("Initial state: {}", if let Some(st) = dfa.initial_state { st.to_string() } else { "none".to_string() });
-    println!("Graph:");
-    print_graph(&dfa.state_graph, Some(&dfa.end_states), indent);
-    println!("End states:\n{: >indent$}{}", " ", dfa.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).join(", "), indent=indent);
+impl<T> Dfa<T> {
+    /// Debug function to display the content of a Dfa.
+    pub fn print(&self, indent: usize) {
+        println!("Initial state: {}", if let Some(st) = self.initial_state { st.to_string() } else { "none".to_string() });
+        println!("Graph:");
+        print_graph(&self.state_graph, Some(&self.end_states), indent);
+        println!("End states:\n{: >indent$}{}", " ",
+                 self.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).join(", "), indent=indent);
+    }
 }
 
 fn graph_to_code(

@@ -5,7 +5,7 @@
 use std::collections::BTreeSet;
 use std::io::{Cursor, Read};
 use std::mem::size_of_val;
-use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, print_dfa, Terminal};
+use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, Terminal};
 use crate::{escape_string, CollectJoin, General, LL1};
 use crate::SymInfoTable;
 use crate::io::CharReader;
@@ -13,7 +13,6 @@ use crate::lexer::Lexer;
 use crate::lexergen::{LexerGen, LexerTables};
 use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt};
-use crate::grammar::print_production_rules;
 use crate::log::Logger;
 use crate::parsergen::{print_flags, print_items, ParserGen};
 use crate::test_tools::{get_tagged_source, replace_tagged_source};
@@ -56,7 +55,7 @@ fn make_lexer_tables(ltype: LexerType) -> LexerTables {
     } else {
         dfa.optimize()
     };
-    if VERBOSE { print_dfa(&dfa, 4); }
+    if VERBOSE { dfa.print(4); }
     let lexgen = LexerGen::from(dfa);
     if VERBOSE {
         println!("Sources:");
@@ -198,7 +197,7 @@ fn regexgen_optimize() {
                  dfa.get_end_states().iter().map(|(_, t)| t.clone()).collect::<BTreeSet<Terminal>>().len(),
                  dfa.get_end_states().len()
         );
-        if VERBOSE { print_dfa(&dfa, 4); }
+        if VERBOSE { dfa.print(4); }
         let mut lexgen = LexerGen::new();
         lexgen.max_utf8_chars = 0;
         lexgen.build_from_dfa(dfa);
@@ -264,7 +263,7 @@ fn lexiparser_source() {
         let st_num_nt = rules.get_symbol_table().unwrap().get_num_nt();
         println!("rules, num_nt = {}, NT symbols: {}", rules.get_num_nt(), st_num_nt);
         println!("- {}", (0..st_num_nt).map(|i| rules.get_symbol_table().unwrap().get_nt_name(i as VarId)).join(", "));
-        print_production_rules(&rules, true);
+        rules.print_rules(true);
         let msg = rules.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
             println!("Messages:\n{msg}");
@@ -277,7 +276,7 @@ fn lexiparser_source() {
     }
     if VERBOSE {
         println!("LL1, num_nt = {}, NT symbols: {}", ll1.get_num_nt(), ll1.get_symbol_table().unwrap().get_num_nt());
-        print_production_rules(&ll1, true);
+        ll1.print_rules(true);
         let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
             println!("Messages:\n{msg}");

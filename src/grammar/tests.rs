@@ -731,7 +731,7 @@ fn rts_prodrule_from() {
         let result = rules.get_prods_iter().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
         if VERBOSE {
             println!("=>");
-            print_production_rules(&rules, true);
+            rules.print_rules(true);
             print_expected_code(&result);
             println!("  Flags: {}", rules.flags.iter().index::<VarId>().map(|(nt, flag)| format!("\n  - {}: {}",
                 Symbol::NT(nt).to_str(rules.get_symbol_table()), ruleflag::to_string(*flag).join(" "))).join(""));
@@ -748,10 +748,47 @@ fn rts_prodrule_from() {
 // ---------------------------------------------------------------------------------------------
 // ProdRuleSet
 
+impl<T> ProdRuleSet<T> {
+    pub(crate) fn print_prs_summary(&self) {
+        let factors = self.get_factors().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
+        print_factors(&factors, self.get_symbol_table());
+        let nt_flags = self.flags.iter().index().filter_map(|(nt, &f)|
+            if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt).to_str(self.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
+        ).join("\n");
+        let parents = self.parent.iter().index().filter_map(|(c, &par)|
+            par.map(|p| format!("  - {} -> {}", Symbol::NT(c).to_str(self.get_symbol_table()), Symbol::NT(p).to_str(self.get_symbol_table())))
+        ).join("\n");
+        println!("- NT flags:\n{}", if nt_flags.is_empty() { "  - (nothing)".to_string() } else { nt_flags });
+        println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
+    }
+
+    pub(crate) fn print_logs(&self) {
+        println!("{}\n", log_to_str(&self.log));
+    }
+}
+
+pub fn print_factors<T: SymInfoTable>(factors: &Vec<(VarId, ProdFactor)>, symbol_table: Option<&T>) {
+    println!("factors:\n{}",
+             factors.iter().enumerate().map(|(id, (v, f))|
+                 format!("            // - {id}: {} -> {}{}",
+                         Symbol::NT(*v).to_str(symbol_table),
+                         f.to_str(symbol_table),
+                         if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
+                 )
+    ).join("\n"));
+}
+
+impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
+    fn from(rules: &ProdRuleSet<T>) -> Self {
+        rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
+
+    }
+}
+
 fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
     println!("            {}", result.iter().map(|(i, p)|
         format!("{i} => prod!({}),", p.iter()
-            .map(|f| format!("{}{}", if f.flags != 0 { format!("#{}, ", f.flags) } else { "".to_string() }, f.iter().map(|s| symbol_to_macro(s)).join(", ")))
+            .map(|f| format!("{}{}", if f.flags != 0 { format!("#{}, ", f.flags) } else { "".to_string() }, f.iter().map(|s| s.to_macro_item()).join(", ")))
             .join("; "))).join("\n            "))
 }
 
@@ -766,10 +803,6 @@ pub(crate) fn log_to_str(log: &BufLog) -> String {
     msg.push(format!("Notes: {}", log.num_notes()));
     msg.extend(log.get_notes().cloned());
     msg.join("\n")
-}
-
-pub(crate) fn print_logs<T>(rules: &ProdRuleSet<T>) {
-    println!("{}\n", log_to_str(&rules.log));
 }
 
 fn map_and_print_first<'a>(first: &'a HashMap<Symbol, HashSet<Symbol>>, symbol_table: Option<&'a SymbolTable>) -> BTreeMap<&'a Symbol, BTreeSet<&'a Symbol>> {
@@ -806,13 +839,6 @@ fn def_arith_symbols(symbol_table: &mut SymbolTable, has_term: bool) {
         symbol_table.extend_nonterminals(["T".to_string()]);
     }
     symbol_table.extend_nonterminals(["F".to_string()]);
-}
-
-impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
-    fn from(rules: &ProdRuleSet<T>) -> Self {
-        rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
-
-    }
 }
 
 pub(crate) fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize, num_nt: usize, is_t_data: bool) {
@@ -1722,13 +1748,13 @@ fn prs_remove_recursion() {
         let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("{:=<80}\ntest {test_id}:", "");
-            print_production_rules(&rules, false);
+            rules.print_rules(false);
         }
         rules.remove_recursion();
         let result = <BTreeMap<_, _>>::from(&rules);
         if VERBOSE {
             println!("=>");
-            print_production_rules(&rules, true);
+            rules.print_rules(true);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1796,13 +1822,13 @@ fn prs_left_factorize() {
         let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
-            print_production_rules(&rules, false);
+            rules.print_rules(false);
         }
         rules.left_factorize();
         let result = BTreeMap::<_, _>::from(&rules);
         if VERBOSE {
             println!("=>");
-            print_production_rules(&rules, true);
+            rules.print_rules(true);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1857,13 +1883,13 @@ fn prs_ll1_from() {
         let rules_lr = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
-            print_production_rules(&rules_lr, false);
+            rules_lr.print_rules(false);
         }
         let ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&ll1);
         if VERBOSE {
             println!("=>");
-            print_production_rules(&ll1, true);
+            ll1.print_rules(true);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1978,11 +2004,11 @@ fn prs_calc_first() {
         ll1.set_start(start);
         let first = ll1.calc_first();
         if VERBOSE {
-            print_production_rules(&ll1, false);
+            ll1.print_rules(false);
             let b = map_and_print_first(&first, ll1.get_symbol_table());
             for (sym, set) in &b {
-                println!("            sym!({}) => hashset![{}],", symbol_to_macro(sym),
-                         set.iter().map(|s| format!("sym!({})", symbol_to_macro(s))).join(", "));
+                println!("            sym!({}) => hashset![{}],", sym.to_macro_item(),
+                         set.iter().map(|s| format!("sym!({})", s.to_macro_item())).join(", "));
             }
         }
         assert_eq!(first, expected, "test {test_id} failed");
@@ -2042,11 +2068,11 @@ fn prs_calc_follow() {
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         if VERBOSE {
-            print_production_rules(&ll1, false);
+            ll1.print_rules(false);
             let b = map_and_print_follow(&follow, ll1.get_symbol_table());
             for (sym, set) in &b {
-                println!("            sym!({}) => hashset![{}],", symbol_to_macro(sym),
-                         set.iter().map(|s| format!("sym!({})", symbol_to_macro(s))).join(", "));
+                println!("            sym!({}) => hashset![{}],", sym.to_macro_item(),
+                         set.iter().map(|s| format!("sym!({})", s.to_macro_item())).join(", "));
             }
         }
         assert_eq!(follow, expected, "test {test_id} failed");
@@ -3123,7 +3149,7 @@ fn prs_calc_table() {
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {ll_id}/{start}:", "");
-            print_production_rules(&rules_lr, false);
+            rules_lr.print_rules(false);
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         ll1.set_start(start);
@@ -3139,8 +3165,8 @@ fn prs_calc_table() {
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
             let error = factors.len() as FactorId;
-            print_production_rules(&ll1, false);
-            print_factors(&ll1, &factors);
+            ll1.print_rules(false);
+            print_factors(&factors, ll1.get_symbol_table());
             println!("{}",
                      factors.iter().enumerate().map(|(id, (v, f))| {
                          let flags = if f.flags != 0 {
@@ -3149,11 +3175,11 @@ fn prs_calc_table() {
                          } else {
                              String::new()
                          };
-                         format!("            ({v}, prodf!({flags}{})),", f.iter().map(|s| symbol_to_macro(s)).join(", "))
+                         format!("            ({v}, prodf!({flags}{})),", f.iter().map(|s| s.to_macro_item()).join(", "))
                      }
             ).join("\n"));
             println!("table:");
-            print_ll1_table(ll1.get_symbol_table(), &parsing_table, 12);
+            parsing_table.print(ll1.get_symbol_table(), 12);
             for i in 0..*num_nt {
                 println!("            {},", (0..*num_t).map(|j| format!("{:3}", table[i * num_t + j])).join(", "));
             }
@@ -3168,7 +3194,7 @@ fn prs_calc_table() {
                          ruleflag::to_string(ll1.get_flags(v)).join(" "),
                          if let Some(p) = parent { format!(", parent: {p}") } else { String::new() } );
             }
-            print_logs(&ll1);
+            ll1.print_logs();
         }
         assert_eq!(*factors, expected_factors, "test {test_id}/{ll_id}/{start} failed");
         assert_eq!(*table, expected_table, "test {test_id}/{ll_id}/{start} failed");
@@ -3197,8 +3223,8 @@ fn prs_grammar_notes() {
         }
         let mut ll1 = ll_id.try_build_prs(test_id, start, false);
         if VERBOSE {
-            print_production_rules(&ll1, false);
-            print_logs(&ll1);
+            ll1.print_rules(false);
+            ll1.print_logs();
         }
         let mut parsing_table = None;
         if ll1.log.num_errors() == 0 {
@@ -3211,13 +3237,13 @@ fn prs_grammar_notes() {
             }
             if VERBOSE {
                 println!("=>");
-                print_production_rules(&ll1, false);
+                ll1.print_rules(false);
                 if let Some(table) = &parsing_table {
-                    print_factors(&ll1, &table.factors);
+                    print_factors(&table.factors, ll1.get_symbol_table());
                     println!("table:");
-                    print_ll1_table(ll1.get_symbol_table(), &table, 12);
+                    table.print(ll1.get_symbol_table(), 12);
                 }
-                print_logs(&ll1);
+                ll1.print_logs();
             }
         }
         assert_eq!(ll1.log.num_errors(), expected_errors.len(), "test {test_id}/{ll_id:?}/{start} failed on # errors");
@@ -3323,10 +3349,10 @@ fn rts_prs() {
         let parsing_table = ll1.calc_table(&first, &follow, false);
         let LLParsingTable { num_nt, num_t, factors, .. } = &parsing_table;
         if VERBOSE {
-            print_factors(&ll1, &factors);
+            print_factors(&factors, ll1.get_symbol_table());
             println!("{}",
                      factors.iter().enumerate().map(|(id, (v, f))|
-                         format!("            ({v}, prodf!({})),", f.iter().map(|s| symbol_to_macro(s)).join(", "))
+                         format!("            ({v}, prodf!({})),", f.iter().map(|s| s.to_macro_item()).join(", "))
                      ).join("\n"));
         }
         assert_eq!(*factors, expected_factors, "test {ll_id}/{start} failed");
@@ -3335,19 +3361,6 @@ fn rts_prs() {
 
 // ---------------------------------------------------------------------------------------------
 // Pre-parser
-
-pub(crate) fn print_prs_summary<T>(rules: &ProdRuleSet<T>) {
-    let factors = rules.get_factors().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
-    print_factors(&rules, &factors);
-    let nt_flags = rules.flags.iter().index().filter_map(|(nt, &f)|
-        if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt).to_str(rules.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
-    ).join("\n");
-    let parents = rules.parent.iter().index().filter_map(|(c, &par)|
-        if let Some(p) = par { Some(format!("  - {} -> {}", Symbol::NT(c).to_str(rules.get_symbol_table()), Symbol::NT(p).to_str(rules.get_symbol_table()))) } else { None }
-    ).join("\n");
-    println!("- NT flags:\n{}", if nt_flags.is_empty() { "  - (nothing)".to_string() } else { nt_flags });
-    println!("- parents:\n{}", if parents.is_empty() { "  - (nothing)".to_string() } else { parents });
-}
 
 #[derive(Debug, PartialEq, Clone, Copy, Hash, Eq)]
 pub(crate) enum T { RTS(u32), PRS(u32) }
@@ -3369,7 +3382,7 @@ impl T {
                 let mut rules = ProdRuleSet::from(rts);
                 if VERBOSE {
                     print!("General rules\n- ");
-                    print_prs_summary(&rules);
+                    rules.print_prs_summary();
                 }
                 ProdRuleSet::<LL1>::from(rules)
             }
@@ -3377,7 +3390,7 @@ impl T {
                 let general = build_prs(*id, is_t_data);
                 if VERBOSE {
                     print!("General rules\n- ");
-                    print_prs_summary(&general);
+                    general.print_prs_summary();
                 }
                 ProdRuleSet::<LL1>::from(general)
             }
@@ -3536,12 +3549,12 @@ fn rts_prs_flags() {
         let mut ll1 = rule_id.build_prs(test_id, start_nt, true);
         if VERBOSE && VERBOSE_DETAILS {
             print!("Before table creation:\n- ");
-            print_prs_summary(&ll1);
+            ll1.print_prs_summary();
         }
         let start = ll1.get_start().unwrap();
         let parsing_table = ll1.create_parsing_table(false);
         if VERBOSE && ll1.log.num_warnings() + ll1.log.num_notes() > 0 {
-            print_logs(&ll1);
+            ll1.print_logs();
         }
         let result_flags = ll1.flags.iter().index().filter_map(|(v, &f)| if f != 0 { Some((v, f)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
@@ -3549,7 +3562,7 @@ fn rts_prs_flags() {
         let result_nt_conversion = ll1.nt_conversion.iter().map(|(v1, v2)| (*v1, *v2)).collect::<BTreeMap<_, _>>();
         if VERBOSE {
             print!("- ");
-            print_prs_summary(&ll1);
+            ll1.print_prs_summary();
             println!("=>");
             println!("        (T::{rule_id:?}, {start_nt}, btreemap![{}],", result_flags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
             println!("         btreemap![{}],", result_fflags.iter().map(|(v, f)| format!("{v} => {f}")).join(", "));
