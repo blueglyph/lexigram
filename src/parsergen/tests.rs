@@ -589,7 +589,7 @@ mod parser_source {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use iter_index::IndexerIterator;
-    use crate::grammar::{ruleflag, symbol_to_macro, FactorId, Symbol, VarId};
+    use crate::grammar::{factor_to_rule_str, factor_to_str, ruleflag, symbol_to_macro, FactorId, Symbol, VarId};
     use crate::grammar::tests::{log_to_str, T};
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source, SymInfoTable};
     use crate::grammar::tests::T::{PRS, RTS};
@@ -2403,14 +2403,15 @@ mod wrapper_source {
             let expected_full = expected_expanded_full.iter().map(|(_, b)| b.to_string()).to_vec();
             let ll1 = rule_id.build_prs(test_id, 0, true);
             let builder = ParserGen::from_rules(ll1, "Test".to_string());
+            let symtable = builder.get_symbol_table();
             let mut result_expanded = vec![];
             let mut result_full = vec![];
             for (f_id, (v, prod)) in builder.parsing_table.factors.iter().index() {
                 let mut expanded = vec![prod.symbols().clone()];
                 builder.expand_lfact(&mut expanded);
                 result_expanded.push(format!("{} -> {}",
-                                             Symbol::NT(*v).to_str(builder.get_symbol_table()),
-                                             expanded.iter().map(|fact| builder.factor_to_str(fact)).join(" | ")));
+                                             Symbol::NT(*v).to_str(symtable),
+                                             expanded.iter().map(|fact| factor_to_str(fact, symtable)).join(" | ")));
                 result_full.push(format!("{}", builder.full_factor_str::<false>(f_id, None, false)));
             }
             let mut result_top_factors = BTreeMap::<VarId, Vec<(VarId, FactorId)>>::new();
@@ -2439,7 +2440,7 @@ mod wrapper_source {
                     let (v, prod) = &builder.parsing_table.factors[i];
                     vec![
                         s,
-                        format!("// {i}: {}", builder.ntfactor_to_str(*v, prod)),
+                        format!("// {i}: {}", factor_to_rule_str(*v, prod, symtable)),
                     ]
                 }).to_vec();
                 let lines = columns_to_str(cols, Some(vec![80, 0]));

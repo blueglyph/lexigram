@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, symbol_to_macro, ProdFactor};
+use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, symbol_to_macro, ProdFactor, factor_to_rule_str};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable};
 use crate::log::{BufLog, Logger};
 use crate::parser::{OpCode, Parser};
@@ -381,14 +381,6 @@ impl ParserGen {
         }
     }
 
-    fn factor_to_str(&self, f: &Vec<Symbol>) -> String {
-        f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")
-    }
-
-    fn ntfactor_to_str(&self, nt: VarId, f: &Vec<Symbol>) -> String {
-        format!("{} -> {}", Symbol::NT(nt).to_str(self.get_symbol_table()), self.factor_to_str(f))
-    }
-
     /// Expands all the parents of left factorization by replacing the NTs on the right that are CHILD_L_FACTOR
     /// with their factors. Proceeds until there are no more substitutions. Removes the empty symbols unless
     /// they're alone in a factor.
@@ -448,19 +440,20 @@ impl ParserGen {
         let mut result = Vec::<(VarId, FactorId)>::new();
         let mut new = vec![nt];
         let mut old = HashSet::<VarId>::new();
+        let _symtable = self.get_symbol_table();
         if VERBOSE {
-            println!("get_top_factors({nt}:{})", Symbol::NT(nt).to_str(self.get_symbol_table()));
+            println!("get_top_factors({nt}:{})", Symbol::NT(nt).to_str(_symtable));
             println!("group_facts = {group_facts:?}");
         }
         while !new.is_empty() {
             if VERBOSE {
-                print!("new = [{}]", new.iter().map(|x| format!("{x}:{}", Symbol::NT(*x).to_str(self.get_symbol_table()))).join(", "));
-                print!(", old = [{}]", old.iter().map(|x| format!("{x}:{}", Symbol::NT(*x).to_str(self.get_symbol_table()))).join(", "));
+                print!("new = [{}]", new.iter().map(|x| format!("{x}:{}", Symbol::NT(*x).to_str(_symtable))).join(", "));
+                print!(", old = [{}]", old.iter().map(|x| format!("{x}:{}", Symbol::NT(*x).to_str(_symtable))).join(", "));
             }
             let goal = new.pop().unwrap();
-            if VERBOSE { println!(" => testing {goal}:{}", Symbol::NT(goal).to_str(self.get_symbol_table())); }
+            if VERBOSE { println!(" => testing {goal}:{}", Symbol::NT(goal).to_str(_symtable)); }
             for (v, f) in group_facts.iter().filter(|(v, _)| *v != goal && *v != nt) {
-                if VERBOSE { print!("- {f}: {}: ", self.ntfactor_to_str(*v, self.parsing_table.factors[*f as usize].1.symbols())); }
+                if VERBOSE { print!("- {f}: {}: ", factor_to_rule_str(*v, self.parsing_table.factors[*f as usize].1.symbols(), _symtable)); }
                 if old.contains(v) || new.contains(v) {
                     if VERBOSE { println!(" {} {}", if old.contains(v) { "already visited" } else { "" }, if new.contains(v) { "already in stack" } else { "" })}
                     continue
@@ -708,9 +701,7 @@ impl ParserGen {
         const VERBOSE: bool = false;
         for (factor_id, (var_id, factor)) in self.parsing_table.factors.iter().index() {
             if VERBOSE {
-                println!("{} -> {}",
-                         Symbol::NT(*var_id).to_str(self.get_symbol_table()),
-                         self.factor_to_str(factor));
+                println!("{}", factor.to_rule_str(*var_id, self.get_symbol_table(), 0));
             }
             let flags = self.parsing_table.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);

@@ -47,6 +47,31 @@ impl Symbol {
     pub fn is_nt(&self) -> bool {
         matches!(self, Symbol::NT(_))
     }
+
+    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        symbol_table.map(|t| t.get_name(self)).unwrap_or(self.to_string())
+    }
+
+    pub fn to_str_ext<T: SymInfoTable>(&self, symbol_table: Option<&T>, ext: &String) -> String {
+        let mut result = self.to_str(symbol_table);
+        if let Some(t) = symbol_table {
+            if t.is_symbol_t_data(self) {
+                result.push_str(&format!("({ext})"));
+            }
+        }
+        result
+    }
+}
+
+impl Display for Symbol {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Symbol::Empty => write!(f, "ε"),
+            Symbol::T(id) => write!(f, ":{id}"),
+            Symbol::NT(id) => write!(f, "{id}"),
+            Symbol::End => write!(f, "$"),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq, Debug)]
@@ -88,17 +113,6 @@ pub enum GrNode {
     RAssoc          // applied to factor
 }
 
-impl Display for Symbol {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Symbol::Empty => write!(f, "ε"),
-            Symbol::T(id) => write!(f, ":{id}"),
-            Symbol::NT(id) => write!(f, "{id}"),
-            Symbol::End => write!(f, "$"),
-        }
-    }
-}
-
 impl Display for GrNode {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -111,22 +125,6 @@ impl Display for GrNode {
             GrNode::LForm(v) => write!(f, "<L={v}>"),
             GrNode::RAssoc => write!(f, "<R>")
         }
-    }
-}
-
-impl Symbol {
-    pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        symbol_table.map(|t| t.get_name(self)).unwrap_or(self.to_string())
-    }
-
-    pub fn to_str_ext<T: SymInfoTable>(&self, symbol_table: Option<&T>, ext: &String) -> String {
-        let mut result = self.to_str(symbol_table);
-        if let Some(t) = symbol_table {
-            if t.is_symbol_t_data(self) {
-                result.push_str(&format!("({ext})"));
-            }
-        }
-        result
     }
 }
 
@@ -913,6 +911,18 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
 
 // ---------------------------------------------------------------------------------------------
 
+pub fn factor_to_str<T: SymInfoTable>(f: &Vec<Symbol>, symbol_table: Option<&T>) -> String {
+    if f.is_empty() {
+        "<empty>".to_string()
+    } else {
+        f.iter().map(|s| s.to_str(symbol_table)).join(" ")
+    }
+}
+
+pub fn factor_to_rule_str<T: SymInfoTable>(nt: VarId, f: &Vec<Symbol>, symbol_table: Option<&T>) -> String {
+    format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), factor_to_str(f, symbol_table))
+}
+
 /// Stores a factor of a normalized production rule, along with accompanying flags.
 /// The `ProdFactor` type behaves like a `Vec<Symbol>` (`Deref` / `DerefMut`), but must be
 /// created with `ProdFactor::new(f: Vec<Symbol)`.
@@ -951,9 +961,7 @@ impl ProdFactor {
     }
 
     fn to_str_no_flags<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        self.v.iter().map(|symbol|
-            symbol_table.map(|t| t.get_name(symbol)).unwrap_or(symbol.to_string())
-        ).join(" ")
+        factor_to_str(&self.v, symbol_table)
     }
 
     pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
@@ -962,7 +970,7 @@ impl ProdFactor {
         } else {
             String::new()
         };
-        s.push_str(&self.to_str_no_flags(symbol_table));
+        s.push_str(&factor_to_str(&self.v, symbol_table));
         s
     }
 
@@ -973,7 +981,7 @@ impl ProdFactor {
         } else {
             String::new()
         };
-        format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), self.to_str_no_flags(symbol_table))
+        format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), factor_to_str(&self.v, symbol_table))
     }
 
     pub fn is_sym_empty(&self) -> bool {
