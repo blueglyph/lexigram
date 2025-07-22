@@ -116,6 +116,30 @@ impl Terminal {
     pub fn get_token(&self) -> Option<TokenId> {
         self.action.get_token()
     }
+
+    pub fn to_macro(&self) -> String {
+        let mut str = Vec::<String>::new();
+        match self.action {
+            ActionOption::Skip => str.push("term!(skip)".to_string()),
+            ActionOption::Token(t) => str.push(format!("term!(={t})")),
+            ActionOption::More => str.push("term!(more)".to_string())
+        }
+        if self.channel != 0 {
+            str.push(format!("term!(#{})", self.channel));
+        }
+        match self.mode {
+            ModeOption::None => {}
+            ModeOption::Mode(m) => str.push(format!("term!(mode {m})")),
+            ModeOption::Push(m) => str.push(format!("term!(push {m})")),
+        }
+        if let Some(id) = self.mode_state {
+            str.push(format!("term!(pushst {})", id));
+        }
+        if self.pop {
+            str.push("term!(pop)".to_string());
+        }
+        str.join(" + ")
+    }
 }
 
 impl Display for Terminal {
@@ -723,7 +747,7 @@ impl DfaBuilder {
             log: BufLog::new(),
             _phantom: PhantomData
         };
-        dfa.first_end_state = dfa.end_states.keys().min().map(|st| *st);
+        dfa.first_end_state = dfa.end_states.keys().min().cloned();
         // TODO: add checks
         Some(dfa)
     }
@@ -1054,7 +1078,7 @@ impl Dfa<Normalized> {
         source.push("    ],".to_string());
         source.push(format!("    {:?},", self.initial_state));
         source.push("    btreemap![".to_string());
-        let es = self.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).to_vec();
+        let es = self.end_states.iter().map(|(s, t)| format!("{} => {}", s, t.to_macro())).to_vec();
         source.extend(es.chunks(6).map(|v| format!("        {},", v.join(", "))));
         source.push("    ],".to_string());
         source.push(format!("    {:?},", self.first_end_state));
@@ -1150,31 +1174,6 @@ pub fn tree_to_string(tree: &VecTree<ReNode>, root: Option<usize>, basic: bool) 
     }
 }
 
-#[allow(unused)]
-pub(crate) fn term_to_string(t: &Terminal) -> String {
-    let mut str = Vec::<String>::new();
-    match &t.action {
-        ActionOption::Skip => str.push("term!(skip)".to_string()),
-        ActionOption::Token(t) => str.push(format!("term!(={t})")),
-        ActionOption::More => str.push("term!(more)".to_string())
-    }
-    if t.channel != 0 {
-        str.push(format!("term!(#{})", t.channel));
-    }
-    match t.mode {
-        ModeOption::None => {}
-        ModeOption::Mode(m) => str.push(format!("term!(mode {m})")),
-        ModeOption::Push(m) => str.push(format!("term!(push {m})")),
-    }
-    if let Some(id) = t.mode_state {
-        str.push(format!("term!(pushst {})", id));
-    }
-    if t.pop {
-        str.push("term!(pop)".to_string());
-    }
-    str.join(" + ")
-}
-
 impl<T> Dfa<T> {
     /// Debug function to display the content of a Dfa.
     pub fn print(&self, indent: usize) {
@@ -1182,7 +1181,7 @@ impl<T> Dfa<T> {
         println!("Graph:");
         print_graph(&self.state_graph, Some(&self.end_states), indent);
         println!("End states:\n{: >indent$}{}", " ",
-                 self.end_states.iter().map(|(s, t)| format!("{} => {}", s, term_to_string(t))).join(", "), indent=indent);
+                 self.end_states.iter().map(|(s, t)| format!("{} => {}", s, t.to_macro())).join(", "), indent=indent);
     }
 }
 
