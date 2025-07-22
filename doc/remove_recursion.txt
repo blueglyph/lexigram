@@ -13,17 +13,17 @@ new rule:
 
 Examples:
 ---------------------------------------------------------------------------
-53) E -> E ^ E <R> | E * E <R> | - E | E + E | ID | NUM | F          F -> ( E )
-         -----3      -----2      ---1  -----0  ------------4
+53) E -> E ^ E <R> | E * E <R> | - E | E + E | F      F -> ID | NUM | ( E )
+         -----3      -----2      ---1  -----0  -4
 
-E  -> E3 (^ E2 | * E1 | + E1)*    | E    -> E_3 E_b
-E1 -> E3 (^ E2 | * E1)*           | E_b  -> + E_1 E_b | * E_1 E_b | ^ E_2 E_b | ε
-E2 -> E3 (^ E2)*                  | E_1  -> E_3 E_1b
-E3 -> - E1 | ID                   | E_1b -> * E_1 E_1b | ^ E_2 E_1b | ε
-                                  | E_2  -> E_3 E_2b
-                                  | E_2b -> ^ E_2 E_2b | ε
-                                  | E_3  -> - E_1 | F
-                                  | F    -> ID | NUM | ( E )
+E  -> E3 (^ E2 | * E1 | + E1)*    | E   -> E3 Eb
+E1 -> E3 (^ E2 | * E1)*           | Eb  -> + E1 Eb | * E1 Eb | ^ E2 Eb | ε
+E2 -> E3 (^ E2)*                  | E1  -> E3 E1b
+E3 -> - E1 | ID                   | E1b -> * E1 E1b | ^ E2 E1b | ε
+                                  | E2  -> E3 E2b
+                                  | E2b -> ^ E2 E2b | ε
+                                  | E3  -> - E1 | F
+                                  | F   -> ID | NUM | ( E )
 
 pr  f   type pred  v(pr)  last_v  last_rule / {v:factors}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -39,11 +39,11 @@ pr  f   type pred  v(pr)  last_v  last_rule / {v:factors}
 
 E  -> (ID | NUM) ( {p<=6}? * E6 | {p<=5} ! | {p<=4}? -- | {p<=3}? + E3 )*
 
-E  -> E2 (* E1 | ! | -- | + E)*   | E    -> E_2 E_b
-E1 -> E2 (* E1)*                  | E_b  -> + E E_b | -- E_b | ! E_b | * E_1 E_b | ε
-E2 -> ID | NUM                    | E_1  -> E_2 E_1b
-                                  | E_1b -> * E_1 E_1b | ε
-                                  | E_2  -> ID | NUM
+E  -> E2 (* E1 | ! | -- | + E)*   | E   -> E2 Eb
+E1 -> E2 (* E1)*                  | Eb  -> + E Eb | -- Eb | ! Eb | * E1 Eb | ε
+E2 -> ID | NUM                    | E1  -> E2 E1b
+                                  | E1b -> * E1 E1b | ε
+                                  | E2  -> ID | NUM
 
 pr  f   type pred  v(pr)  last_v  last_rule / {v:factors}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -57,11 +57,11 @@ pr  f   type pred  v(pr)  last_v  last_rule / {v:factors}
 55) E -> E * E | E -- | ! E | E + E | ID | NUM
          -----3  ----2  ---1  -----0
 
-E  -> E2 (* E2 | -- | + E1)*      | E    -> E_2 E_b
-E1 -> E2 (* E2 | --)*             | E_b  -> + E_1 E_b | -- E_b | * E_2 E_b | ε
-E2 -> ! E1 | ID | NUM             | E_1  -> E_2 E_1b
-                                  | E_1b -> -- E_1b | * E_2 E_1b | ε
-                                  | E_2  -> ! E_1 | ID | NUM
+E  -> E2 (* E2 | -- | + E1)*      | E   -> E2 Eb
+E1 -> E2 (* E2 | --)*             | Eb  -> + E1 Eb | -- Eb | * E2 Eb | ε
+E2 -> ! E1 | ID | NUM             | E1  -> E2 E1b
+                                  | E1b -> -- E1b | * E2 E1b | ε
+                                  | E2  -> ! E1 | ID | NUM
 
 pr  f   type pred  v(pr)  last_v  last_rule / {v:factors}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -75,13 +75,13 @@ pr  f   type pred  v(pr)  last_v  last_rule / {v:factors}
 56) E -> E * E | ! E | E -- | E + E | ID | NUM
          -----3  ---2  ----1  -----0
 
-E  -> E3 (* E3 | -- | + E1)*      | E    -> E_3 E_b
-E1 -> E3 (* E3 | --)*             | E_b  -> + E_1 E_b | -- E_b | * E_3 E_b | ε
-E2 -> E3 (* E3)*                  | E_1  -> E_3 E_1b
-E3 -> ! E2 | ID | NUM             | E_1b -> -- E_1b | * E_3 E_1b | ε
-                                  | E_2  -> E_3 E_2b
-                                  | E_2b -> * E_3 E_2b | ε
-                                  | E_3  -> ! E_2 | ID | NUM
+E  -> E3 (* E3 | -- | + E1)*      | E   -> E3 Eb
+E1 -> E3 (* E3 | --)*             | Eb  -> + E1 Eb | -- Eb | * E3 Eb | ε
+E2 -> E3 (* E3)*                  | E1  -> E3 E1b
+E3 -> ! E2 | ID | NUM             | E1b -> -- E1b | * E3 E1b | ε
+                                  | E2  -> E3 E2b
+                                  | E2b -> * E3 E2b | ε
+                                  | E3  -> ! E2 | ID | NUM
 
 pr  f   type pred  v(pr)  last_v  last_rule / {v:factors}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -95,13 +95,13 @@ pr  f   type pred  v(pr)  last_v  last_rule / {v:factors}
 57) E -> E ^ E | E * E | E + E | ID | NUM
          -----2  -----1  -----0
 
-E  -> E3 (^ E3 | * E2 | + E1)*    | E    -> E_3 E_b
-E1 -> E3 (^ E3 | * E2)*           | E_b  -> + E_1 E_b | * E_2 E_b | ^ E_3 E_b | ε
-E2 -> E3 (^ E3)*                  | E_1  -> E_3 E_1b
-E3 -> ID | NUM                    | E_1b -> * E_2 E_1b | ^ E_3 E_1b | ε
-                                  | E_2  -> E_3 E_2b
-                                  | E_2b -> ^ E_3 E_2b | ε
-                                  | E_3  -> ID | NUM
+E  -> E3 (^ E3 | * E2 | + E1)*    | E   -> E3 Eb
+E1 -> E3 (^ E3 | * E2)*           | Eb  -> + E1 Eb | * E2 Eb | ^ E3 Eb | ε
+E2 -> E3 (^ E3)*                  | E1  -> E3 E1b
+E3 -> ID | NUM                    | E1b -> * E2 E1b | ^ E3 E1b | ε
+                                  | E2  -> E3 E2b
+                                  | E2b -> ^ E3 E2b | ε
+                                  | E3  -> ID | NUM
 
 pr  f   type pred  v(pr)  last_v  last_rule / {v:factors}
 - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
