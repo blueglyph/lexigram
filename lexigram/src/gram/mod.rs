@@ -52,9 +52,9 @@ impl<T, R: Read> Gram<'_, '_, T, R> {
         self.wrapper.get_listener()
     }
 
-    pub fn build(&mut self, lexicon: CharReader<R>) {
+    pub fn build(&mut self, grammar: CharReader<R>) {
         let mut channel_errors = vec![];
-        self.gramlexer.attach_stream(lexicon);
+        self.gramlexer.attach_stream(grammar);
         let tokens = self.gramlexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
             if channel_errors.len() < 5 {
                 channel_errors.push(format!("unexpected channel {ch} from lexer, line {line} col {col}, \"{text}\""));
@@ -71,8 +71,8 @@ impl<T, R: Read> Gram<'_, '_, T, R> {
 }
 
 impl<R: Read> Gram<'_, '_, LL1, R> {
-    pub fn build_ll1(mut self, lexicon: CharReader<R>) -> (ProdRuleSet<LL1>, String) {
-        self.build(lexicon);
+    pub fn build_ll1(mut self, grammar: CharReader<R>) -> (ProdRuleSet<LL1>, String) {
+        self.build(grammar);
         let listener = self.wrapper.listener();
         let name = listener.get_name().to_string();
         let prs = listener.build_prs();
