@@ -224,7 +224,7 @@ mod opcodes {
     use crate::grammar::tests::T;
     use crate::{CollectJoin, strip, columns_to_str};
     use crate::parser::{OpCode, Parser};
-    use crate::parsergen::ParserGen;
+    use crate::parsergen::{ParserGen, ParserTables};
 
     fn get_factors_str(parser: &Parser) -> Vec<String> {
         let pv = parser.get_factor_var();
@@ -538,7 +538,7 @@ mod opcodes {
                 print!("- ");
                 ll1.print_prs_summary();
             }
-            let parser_tables = ParserGen::from_rules(ll1, "Test".to_string()).make_parser_tables();
+            let parser_tables = ParserTables::from(ParserGen::from_rules(ll1, "Test".to_string()));
             let parser = parser_tables.make_parser();
             if VERBOSE {
                 println!("Final factors and opcodes:");
@@ -565,7 +565,7 @@ mod parser_source {
     use crate::grammar::tests::build_prs;
     use crate::{CollectJoin, LL1};
     use crate::log::Logger;
-    use crate::parsergen::ParserGen;
+    use crate::parsergen::{ParserGen, ParserTables};
 
     #[test]
     fn factors() {
@@ -578,7 +578,7 @@ mod parser_source {
             let src = builder.build_source_code(0, false);
             let factors_present = src.contains("static FACTORS");
             assert_eq!(factors_present, include_factors, "unexpected source code: include_factors = {include_factors}, code = \n{src}");
-            let pt = builder.make_parser_tables();
+            let pt = ParserTables::from(builder);
             let parser = pt.make_parser();
             let factors = parser.get_factors();
             assert_eq!(factors.is_empty(), !include_factors, "unexpected: include_factors = {include_factors}, factors = {factors:?}");

@@ -165,8 +165,6 @@ impl ParserTables {
         ParserTables { num_nt, num_t, factor_var, factors, opcodes, flags, parent, table, symbol_table, start, include_factors }
     }
 
-    /// Creates a [`Parser`], which includes references in the current object for a few of the tables.
-    /// The [`ParserTables`] object's lifetime must enclose the parser's.
     pub fn make_parser(&self) -> Parser {
         Parser::new(
             self.num_nt,
@@ -183,6 +181,19 @@ impl ParserTables {
     }
 }
 
+impl From<ParserGen> for ParserTables {
+    /// Creates a [`ParserTables`], from which a parser can be created dynamically with
+    /// [`parser_table.make_parser()`](ParserTables::make_parser).
+    fn from(parser_gen: ParserGen) -> Self {
+        ParserTables::new(
+            parser_gen.parsing_table,
+            parser_gen.symbol_table.to_fixed_sym_table(),
+            parser_gen.opcodes,
+            parser_gen.start,
+            parser_gen.include_factors
+        )
+    }
+}
 // ---------------------------------------------------------------------------------------------
 
 pub static DEFAULT_LISTENER_NAME: &str = "Parser";
@@ -1271,12 +1282,6 @@ impl ParserGen {
             println!("nt_repeat: {nt_repeat:?}");
         }
         (nt_name, factor_info, item_info, nt_repeat)
-    }
-
-    /// Creates a [`ParserTables`], from which a parser can be created dynamically with
-    /// [`parser_table.make_parser()`](ParserTables::make_parser).
-    pub fn make_parser_tables(self) -> ParserTables {
-        ParserTables::new(self.parsing_table, self.symbol_table.to_fixed_sym_table(), self.opcodes, self.start, self.include_factors)
     }
 
     // Building the source code as we do below is not the most efficient, but it's done that way to

@@ -60,7 +60,7 @@ mod listener {
     use lexigram_lib::io::CharReader;
     use lexigram_lib::lexer::{Lexer, TokenSpliterator};
     use lexigram_lib::lexergen::LexerGen;
-    use lexigram_lib::parsergen::{print_flags, ParserGen};
+    use lexigram_lib::parsergen::{print_flags, ParserGen, ParserTables};
     use lexigram_lib::{CollectJoin, LL1};
     use std::io::Cursor;
     use iter_index::IndexerIterator;
@@ -230,7 +230,7 @@ mod listener {
                     }
                 }
                 assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
-                let parser_table = builder.make_parser_tables();
+                let parser_table = ParserTables::from(builder);
                 let mut parser = parser_table.make_parser();
 
                 for (input, expected_lexer_success, expected_parser_success) in inputs {
