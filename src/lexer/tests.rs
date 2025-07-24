@@ -76,7 +76,7 @@ fn lexer_simple() {
         if VERBOSE { dfa.print(12); }
         let lexgen = LexerGen::from(dfa);
         if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
-        let lexer_tables = lexgen.make_lexer_tables();
+        let lexer_tables = LexerTables::from(lexgen);
         let mut lexer = lexer_tables.make_lexer();
         lexer.set_tab_width(8);
         for (exp_token, (inputs, outputs)) in token_tests {
@@ -248,7 +248,7 @@ fn build_lexer_tables(test: usize) -> LexerTables {
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
         println!("creating lexer");
     }
-    lexgen.make_lexer_tables()
+    lexgen.into()
 }
 
 #[test]

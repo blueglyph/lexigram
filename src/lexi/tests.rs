@@ -61,7 +61,7 @@ fn make_lexer_tables(ltype: LexerType) -> LexerTables {
         println!("Sources:");
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
     }
-    lexgen.make_lexer_tables()
+    lexgen.into()
 }
 
 #[test]

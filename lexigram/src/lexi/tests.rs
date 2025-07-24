@@ -128,7 +128,7 @@ mod simple {
     use lexigram_lib::dfa::{tree_to_string, ActionOption, ReType};
     use lexigram_lib::io::CharReader;
     use lexigram_lib::lexer::LexerError;
-    use lexigram_lib::lexergen::LexerGen;
+    use lexigram_lib::lexergen::{LexerGen, LexerTables};
     use lexigram_lib::CollectJoin;
     use crate::Lexi;
     use crate::lexi::listener::RuleType;
@@ -338,7 +338,7 @@ mod simple {
             assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}");
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");
 
-            let lexer_tables = LexerGen::from(dfa).make_lexer_tables();
+            let lexer_tables = LexerTables::from(LexerGen::from(dfa));
             let mut lexer = lexer_tables.make_lexer();
             for (input_id, (input, expected_tokens)) in test_strs.into_iter().enumerate() {
                 if VERBOSE {
@@ -415,7 +415,7 @@ mod simple {
             let dfa = listener.make_dfa().optimize();
 
             // - builds the lexer
-            let lexer_tables = LexerGen::from(dfa).make_lexer_tables();
+            let lexer_tables = LexerTables::from(LexerGen::from(dfa));
             let mut lexer = lexer_tables.make_lexer();
 
             // 2) tests the lexer on inputs

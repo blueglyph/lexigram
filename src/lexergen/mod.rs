@@ -88,6 +88,22 @@ impl LexerTables {
     }
 }
 
+impl From<LexerGen> for LexerTables {
+    fn from(lexer_gen: LexerGen) -> LexerTables {
+        assert!(!lexer_gen.state_table.is_empty(), "tables are not built");
+        LexerTables::new(
+            lexer_gen.nbr_groups,
+            lexer_gen.initial_state,
+            lexer_gen.first_end_state,
+            lexer_gen.nbr_states,
+            lexer_gen.ascii_to_group,
+            lexer_gen.utf8_to_group,
+            lexer_gen.seg_to_group,
+            lexer_gen.state_table,
+            lexer_gen.terminal_table,
+        )
+    }
+}
 // ---------------------------------------------------------------------------------------------
 
 pub type GroupId = u32;
@@ -142,21 +158,6 @@ impl LexerGen {
         self.log.extend(std::mem::replace(&mut dfa.log, BufLog::new()));
         self.create_input_tables(&dfa);
         self.create_state_tables(&dfa);
-    }
-
-    pub fn make_lexer_tables(self) -> LexerTables {
-        assert!(!self.state_table.is_empty(), "tables are not built");
-        LexerTables::new(
-            self.nbr_groups,
-            self.initial_state,
-            self.first_end_state,
-            self.nbr_states,
-            self.ascii_to_group,
-            self.utf8_to_group,
-            self.seg_to_group,
-            self.state_table,
-            self.terminal_table,
-        )
     }
 
     fn create_input_tables(&mut self, dfa: &Dfa<Normalized>) {

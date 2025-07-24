@@ -59,7 +59,7 @@ mod listener {
     use lexigram_lib::grammar::{FactorId, VarId};
     use lexigram_lib::io::CharReader;
     use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-    use lexigram_lib::lexergen::LexerGen;
+    use lexigram_lib::lexergen::{LexerGen, LexerTables};
     use lexigram_lib::parsergen::{print_flags, ParserGen, ParserTables};
     use lexigram_lib::{CollectJoin, LL1};
     use std::io::Cursor;
@@ -181,7 +181,7 @@ mod listener {
             println!("Lexer symbol table:\n- T: {}",
                      sym_table.get_terminals().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
         }
-        let lexer_tables = LexerGen::from(dfa).make_lexer_tables();
+        let lexer_tables = LexerTables::from(LexerGen::from(dfa));
         let mut lexer: Lexer<Cursor<&str>> = lexer_tables.make_lexer();
 
         for (test_id, (grammar, mut expected_grammar_errors, expected_warnings, inputs)) in tests.into_iter().enumerate() {
