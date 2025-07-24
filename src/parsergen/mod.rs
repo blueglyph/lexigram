@@ -221,7 +221,7 @@ impl ParserGen {
     /// to name the user listener trait in the generated code.
     ///
     /// If [`rules`] already has a name, it is best to use the [From<ProdRuleSet<T>>](From<ProdRuleSet<T>>::from) trait.
-    pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
+    pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>> {
         let mut ll1_rules = ProdRuleSet::<LL1>::from(rules);
         assert_eq!(ll1_rules.get_log().num_errors(), 0);
         let parsing_table = ll1_rules.create_parsing_table(true);
@@ -2150,7 +2150,7 @@ impl ParserGen {
     }
 }
 
-impl<T> From<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
+impl<T> From<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: From<ProdRuleSet<T>> {
     /// Creates a [`ParserGen`] from a set of production rules.
     /// If the rule set has a name, it's transmitted to the parser generator to name the user
     /// listener trait in the generated code. If the rule set has no name, a default "Parser" name
