@@ -38,7 +38,7 @@ fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, St
     let reader = BufReader::new(file);
     let grammar_stream = CharReader::new(reader);
     let gram = Gram::<LL1, _>::new(symbol_table);
-    let (ll1, name) = gram.build_ll1(grammar_stream);
+    let ll1 = gram.build_ll1(grammar_stream);
     let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
     if verbose {
         let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
@@ -51,7 +51,7 @@ fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, St
     }
 
     // - exports data to stage 2
-    let ll1_src = ll1.build_tables_source_code(name, 4);
+    let ll1_src = ll1.build_tables_source_code(4);
     Ok(ll1_src)
 }
 

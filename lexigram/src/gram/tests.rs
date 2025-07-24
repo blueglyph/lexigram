@@ -185,13 +185,13 @@ mod listener {
         let mut lexer: Lexer<Cursor<&str>> = lexer_tables.make_lexer();
 
         for (test_id, (grammar, mut expected_grammar_errors, expected_warnings, inputs)) in tests.into_iter().enumerate() {
-            if VERBOSE { println!("\ntest {test_id}"); }
+            if VERBOSE { println!("{:=<80}\ntest {test_id}", ""); }
             let text = format!("test {test_id} failed");
 
             // grammar parser
             let gram = Gram::<LL1, _>::new(sym_table.clone());
             let grammar_stream = CharReader::new(Cursor::new(grammar));
-            let (ll1, name) = gram.build_ll1(grammar_stream);
+            let ll1 = gram.build_ll1(grammar_stream);
             let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
             let should_succeed = expected_grammar_errors.is_empty();
             if VERBOSE {
@@ -219,11 +219,11 @@ mod listener {
             assert!(expected_grammar_errors.is_empty(), "was expecting to find those errors while parsing the grammar:{}\nbut got those messages:{msg}",
                     expected_grammar_errors.iter().map(|s| format!("\n- {s}")).join(""));
             if should_succeed {
-                let builder = ParserGen::from_rules(ll1, name.clone());
+                let builder = ParserGen::from(ll1);
                 let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
                 if VERBOSE {
                     print_flags(&builder, 4);
-                    println!("Parsing table of grammar '{name}':");
+                    println!("Parsing table of grammar '{}':", builder.get_name());
                     builder.get_parsing_table().print(builder.get_symbol_table(), 4);
                     if !builder.get_log().is_empty() {
                         println!("Messages:{msg}");

@@ -71,11 +71,12 @@ impl<T, R: Read> Gram<'_, '_, T, R> {
 }
 
 impl<R: Read> Gram<'_, '_, LL1, R> {
-    pub fn build_ll1(mut self, grammar: CharReader<R>) -> (ProdRuleSet<LL1>, String) {
+    pub fn build_ll1(mut self, grammar: CharReader<R>) -> ProdRuleSet<LL1> {
         self.build(grammar);
         let listener = self.wrapper.listener();
         let name = listener.get_name().to_string();
-        let prs = listener.build_prs();
-        (prs.into(), name)
+        let mut prs = listener.build_prs();
+        prs.set_name(Some(name));
+        prs.into()
     }
 }

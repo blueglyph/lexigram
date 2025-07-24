@@ -1133,6 +1133,7 @@ pub struct ProdRuleSet<T> {
     flags: Vec<u32>,
     parent: Vec<Option<VarId>>,
     start: Option<VarId>,
+    pub(crate) name: Option<String>,
     nt_conversion: HashMap<VarId, NTConversion>,
     pub(crate) log: BufLog,
     dont_remove_recursion: bool,
@@ -1150,6 +1151,7 @@ impl<T> ProdRuleSet<T> {
             flags: Vec::new(),
             parent: Vec::new(),
             start: None,
+            name: None,
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
             dont_remove_recursion: false,
@@ -1167,6 +1169,7 @@ impl<T> ProdRuleSet<T> {
             flags: Vec::with_capacity(capacity),
             parent: Vec::with_capacity(capacity),
             start: None,
+            name: None,
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
             dont_remove_recursion: false,
@@ -1182,6 +1185,14 @@ impl<T> ProdRuleSet<T> {
     /// Sets the starting production rule.
     pub fn set_start(&mut self, start: VarId) {
         self.start = Some(start);
+    }
+
+    pub fn get_name(&self) -> Option<&String> {
+        self.name.as_ref()
+    }
+
+    pub fn set_name(&mut self, name: Option<String>) {
+        self.name = name;
     }
 
     /// Returns a variable ID that doesn't exist yet.
@@ -2082,11 +2093,11 @@ impl ProdRuleSet<LL1> {
         self.calc_table(&first, &follow, error_recovery)
     }
 
-    pub fn build_tables_source_code(&self, name: String, indent: usize) -> String {
+    pub fn build_tables_source_code(&self, indent: usize) -> String {
         let st = self.symbol_table.as_ref().unwrap();
         let mut source = Vec::<String>::new();
         source.push("let ll1_tables = ProdRuleSetTables::new(".to_string());
-        source.push(format!("    \"{}\",", name.escape_default()));
+        source.push(format!("    {:?},", self.name));
         source.push("    vec![".to_string());
         source.extend(self.prods.iter().map(|prod| format!("        {},", prod_to_macro(prod))));
         source.push("    ],".to_string());
@@ -2107,7 +2118,7 @@ impl ProdRuleSet<LL1> {
 // ---------------------------------------------------------------------------------------------
 
 pub struct ProdRuleSetTables {
-    name: String,
+    name: Option<String>,
     prods: Vec<ProdRule>,
     original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
     t: Vec<(String, Option<String>)>,   // terminal identifiers and optional representation
@@ -2120,7 +2131,7 @@ pub struct ProdRuleSetTables {
 
 impl ProdRuleSetTables {
     pub fn new<T: Into<String>>(
-        name: T,
+        name: Option<T>,
         prods: Vec<ProdRule>,
         original_factors: Vec<ProdFactor>,
         t: Vec<(T, Option<T>)>,
@@ -2133,12 +2144,12 @@ impl ProdRuleSetTables {
         let t = t.into_iter().map(|(t, t_maybe)| (t.into(), t_maybe.map(|t| t.into()))).collect();
         let nt = nt.into_iter().map(|nt| nt.into()).collect();
         ProdRuleSetTables {
-            name: name.into(), prods, original_factors, t, nt, flags, parent, start, nt_conversion,
+            name: name.map(|s| s.into()), prods, original_factors, t, nt, flags, parent, start, nt_conversion,
         }
     }
 
-    pub fn get_name(&self) -> &str {
-        &self.name
+    pub fn get_name(&self) -> Option<&String> {
+        self.name.as_ref()
     }
 
     pub fn make_prod_rule_set(self) -> ProdRuleSet<LL1> {
@@ -2154,6 +2165,7 @@ impl ProdRuleSetTables {
             flags: self.flags,
             parent: self.parent,
             start: self.start,
+            name: self.name,
             nt_conversion: self.nt_conversion,
             log: BufLog::new(),
             dont_remove_recursion: false,
@@ -2283,6 +2295,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             flags: rules.flags,
             parent: rules.parent,
             start: rules.start,
+            name: rules.name,
             nt_conversion: rules.nt_conversion,
             log: rules.log,
             dont_remove_recursion: false,
@@ -2307,6 +2320,7 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
             flags: rules.flags,
             parent: rules.parent,
             start: rules.start,
+            name: rules.name,
             nt_conversion: rules.nt_conversion,
             log: rules.log,
             dont_remove_recursion: false,

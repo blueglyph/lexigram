@@ -38,7 +38,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<String, String> {
     // [lexiparser_stage_2]
 
     let ll1_tables = ProdRuleSetTables::new(
-        "LexiParser",
+        Some("LexiParser"),
         vec![
             prod!(nt 2, nt 17; nt 17),
             prod!(nt 4; nt 3; nt 5),
@@ -86,15 +86,14 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<String, String> {
     // -------------------------------------------------------------------------
 
     // - gets data from stage 1
-    let name = ll1_tables.get_name().to_string();
     let ll1 = ll1_tables.make_prod_rule_set();
 
     // - generates Lexi's parser source code (parser + listener):
-    let mut builder = ParserGen::from_rules(ll1, name.clone());
+    let mut builder = ParserGen::from(ll1);
     let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
     if verbose {
         print_flags(&builder, 4);
-        println!("Parsing table of grammar '{name}':");
+        println!("Parsing table of grammar '{}':", builder.get_name());
         builder.get_parsing_table().print(builder.get_symbol_table(), 4);
         if !builder.get_log().is_empty() {
             println!("Messages:{msg}");

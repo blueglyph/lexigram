@@ -185,7 +185,8 @@ impl ParserTables {
 
 // ---------------------------------------------------------------------------------------------
 
-#[allow(unused)]
+pub static DEFAULT_LISTENER_NAME: &str = "Parser";
+
 #[derive(Debug)]
 pub struct ParserGen {
     parsing_table: LLParsingTable,
@@ -208,12 +209,18 @@ pub struct ParserGen {
 }
 
 impl ParserGen {
+    /// Creates a [`ParserGen`] from a set of rules and gives it a specific name, which is used
+    /// to name the user listener trait in the generated code.
     pub fn from_tree(tree: RuleTreeSet<General>, name: String) -> Self {
         let normalized = RuleTreeSet::<Normalized>::from(tree);
         let lr_rules = ProdRuleSet::from(normalized);
         Self::from_rules(lr_rules, name)
     }
 
+    /// Creates a [`ParserGen`] from a set of production rules and gives it a specific name, which is used
+    /// to name the user listener trait in the generated code.
+    ///
+    /// If [`rules`] already has a name, it is best to use the [From<ProdRuleSet<T>>](From<ProdRuleSet<T>>::from) trait.
     pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
         let mut ll1_rules = ProdRuleSet::<LL1>::from(rules);
         assert_eq!(ll1_rules.get_log().num_errors(), 0);
@@ -252,6 +259,14 @@ impl ParserGen {
         };
         builder.build_opcodes();
         builder
+    }
+
+    pub fn set_name(&mut self, name: String) {
+        self.name = name;
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
     }
 
     #[inline]
@@ -2132,6 +2147,17 @@ impl ParserGen {
         src.push(format!("}}"));
 
         src
+    }
+}
+
+impl<T> From<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: From<ProdRuleSet<T>>, T: std::fmt::Debug {
+    /// Creates a [`ParserGen`] from a set of production rules.
+    /// If the rule set has a name, it's transmitted to the parser generator to name the user
+    /// listener trait in the generated code. If the rule set has no name, a default "Parser" name
+    /// is used instead (unless the name is set with [`ParserGen::set_name()`].
+    fn from(mut rules: ProdRuleSet<T>) -> Self {
+        let name = rules.name.take().unwrap_or(DEFAULT_LISTENER_NAME.to_string());
+        ParserGen::from_rules(rules, name)
     }
 }
 
