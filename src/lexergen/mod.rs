@@ -161,6 +161,9 @@ impl LexerGen {
     }
 
     fn create_input_tables(&mut self, dfa: &Dfa<Normalized>) {
+        /// Max continuous segment size translated to individual UTF8 entries. This prevents large segments
+        /// like DOT from cluttering the dictionary.
+        const MAX_UTF8_SEG_RANGE: u32 = 16;
         const VERBOSE: bool = false;
         let symbol_part = partition_symbols(dfa.get_state_graph());
         let symbol_to_group = SegMap::from_iter(
@@ -179,6 +182,7 @@ impl LexerGen {
         self.seg_to_group.clear();
         let mut left = self.max_utf8_chars;
         for (seg, group_id) in symbol_to_group {
+            if VERBOSE { println!("Seg: {}-{}", seg.0, seg.1); }
             if seg.0 < 128 {
                 if VERBOSE {
                     println!("- ASCII: {}-{} ({}-{}) => {group_id}",
@@ -190,22 +194,25 @@ impl LexerGen {
                 }
             }
             if seg.1 >= 128 {
-                let low = 128.max(seg.0);
+                let mut low = 128.max(seg.0);
                 let high = seg.1.min(low + left - 1);
-                if left > 0 {
-                    for u in low..=high {
-                        if VERBOSE { println!("- UTF8: {} ({u}) => {group_id}", escape_char(char::from_u32(u).unwrap())); }
-                        self.utf8_to_group.insert(char::from_u32(u).unwrap(), group_id);
+                if seg.1 - low < MAX_UTF8_SEG_RANGE {
+                    if left > 0 {
+                        for u in low..=high {
+                            if VERBOSE { println!("- UTF8: {} ({u}) => {group_id}", escape_char(char::from_u32(u).unwrap())); }
+                            self.utf8_to_group.insert(char::from_u32(u).unwrap(), group_id);
+                        }
+                        left -= 1 + high - low;
                     }
-                    left -= 1 + high - low;
+                    low = high + 1;
                 }
-                if high < seg.1 {
+                if low <= seg.1 {
                     if VERBOSE {
                         println!("- SEG: {}-{} ({}-{}) => {group_id}",
                              escape_char(char::from_u32(high + 1).unwrap()), escape_char(char::from_u32(seg.1).unwrap()),
-                             high + 1, seg.1);
+                             low, seg.1);
                     }
-                    self.seg_to_group.insert(Seg(high + 1, seg.1), group_id);
+                    self.seg_to_group.insert(Seg(low, seg.1), group_id);
                 }
             }
         }

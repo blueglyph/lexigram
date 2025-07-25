@@ -96,7 +96,6 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> String {
 
     // - builds the lexer
     let mut lexgen = LexerGen::new();
-    lexgen.max_utf8_chars = 0;
     lexgen.build_from_dfa(dfa);
     lexgen.symbol_table = Some(symbol_table);
     lexgen.build_source_code(indent)

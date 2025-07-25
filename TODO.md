@@ -20,7 +20,7 @@
   - [ ] make binary application
   - [ ] verify it doesn't crash with erroneous lexicons
 - code generation
-  - [ ] don't pour big ranges (.) into utf8 table
+  - [x] ~~don't pour big ranges (.) into utf8 table~~
 - [ ] independence from reader type (Lexer<R: Read>)
 - robustness
   - [ ] detect dead ends without a terminal
