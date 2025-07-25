@@ -341,7 +341,7 @@ impl ParserGen {
         self.include_factors = include_factors;
     }
 
-    #[allow(unused)]
+    #[cfg(test)] // we keep it here because we'll need it later for doc comments and logs
     fn get_original_factor_str(&self, f_id: FactorId, symbol_table: Option<&SymbolTable>) -> Option<String> {
         let (var, f) = &self.parsing_table.factors[f_id as usize];
         f.get_original_factor_id().and_then(|orig_id| {
@@ -1392,7 +1392,6 @@ impl ParserGen {
         self.parsing_table.factors[f_id as usize].1.is_sym_empty()
     }
 
-    #[allow(unused)]
     fn source_wrapper(&mut self) -> Vec<String> {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
@@ -1402,7 +1401,7 @@ impl ParserGen {
             "lexigram_lib::grammar::FactorId", "lexigram_lib::log::Logger",
         ]);
 
-        let (nt_name, factor_info, mut item_info, nt_repeat) = self.get_type_info();
+        let (nt_name, factor_info, item_info, nt_repeat) = self.get_type_info();
         let pinfo = &self.parsing_table;
 
         let mut src = vec![];
@@ -1420,9 +1419,8 @@ impl ParserGen {
             let mut group_names = HashMap::<VarId, Vec<FactorId>>::new();
             // fetches the NT that have factor data
             for nt in group {
-                let flags = pinfo.flags[*nt as usize];
                 for &factor_id in &self.var_factors[*nt as usize] {
-                    if let Some((owner, name)) = &factor_info[factor_id as usize] {
+                    if let Some((owner, _name)) = &factor_info[factor_id as usize] {
                         group_names.entry(*owner)
                             .and_modify(|v| v.push(factor_id))
                             .or_insert_with(|| vec![factor_id]);
@@ -1434,7 +1432,6 @@ impl ParserGen {
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].0));
                     for &f_id in factors {
-                        let (v, pf) = &self.parsing_table.factors[f_id as usize];
                         src.push(format!("    /// {}", self.full_factor_str::<false>(f_id, None, true)));
                         let ctx_content = self.source_infos(&item_info[f_id as usize], false);
                         let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
@@ -1456,19 +1453,17 @@ impl ParserGen {
         let mut syns = Vec::<VarId>::new(); // list of valuable NTs
         for (v, names) in nt_name.iter().enumerate().filter(|(v, _)| self.nt_value[*v]) {
             let v = v as VarId;
-            let (nu, nl, npl) = names;
+            let (nu, _nl, _npl) = names;
             let nt_type = self.get_nt_type(v);
             if self.nt_has_all_flags(v, ruleflag::CHILD_REPEAT) {
-                let parent = pinfo.get_top_parent(v);
                 let tf = self.get_top_factors(v);
                 let is_lform = self.nt_has_all_flags(v, ruleflag::L_FORM);
-                let comment1 = tf.iter().map(|(var, f_id)| {
+                let comment1 = tf.iter().map(|(_var, f_id)| {
                     format!("{} in {}", if is_lform { "iteration" } else { "array" }, self.full_factor_str::<false>(*f_id, Some(v), true))
                 }).join(", ");
-                let comment2 = tf.iter().map(|(var, f_id)| {
+                let comment2 = tf.iter().map(|(_var, f_id)| {
                     format!("{} in {}", if is_lform { "iteration" } else { "item" }, self.full_factor_str::<false>(*f_id, Some(v), true))
                 }).join(", ");
-                let current = Symbol::NT(v).to_str(self.get_symbol_table());
                 if let Some(infos) = nt_repeat.get(&(v)) {
                     if is_lform {
                         src.push(format!("// /// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
@@ -1482,7 +1477,6 @@ impl ParserGen {
                     } else {
                         if infos.len() == 1 {
                             // single + * item; for ex. A -> (B)+
-                            let info = &infos[0];
                             let type_name = self.get_info_type(&infos, &infos[0]);
                             src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
@@ -1636,7 +1630,7 @@ impl ParserGen {
                         if has_value {
                             init_nt_done.insert(*var);
                             src_wrapper_impl.push(String::new());
-                            let (nu, nl, npl) = &nt_name[nt];
+                            let (nu, _nl, npl) = &nt_name[nt];
                             src_init.push(vec![format!("                    {nt} => self.init_{npl}(),"), nt_comment]);
                             src_wrapper_impl.push(format!("    fn init_{npl}(&mut self) {{"));
                             if flags & ruleflag::L_FORM != 0 {
@@ -1650,7 +1644,7 @@ impl ParserGen {
                         } else {
                             if flags & ruleflag::L_FORM != 0 {
                                 init_nt_done.insert(*var);
-                                let (nu, nl, npl) = &nt_name[nt];
+                                let (_nu, _nl, npl) = &nt_name[nt];
                                 src_init.push(vec![format!("                    {nt} => self.listener.init_{npl}(),"), nt_comment]);
                                 src_listener_decl.push(format!("    fn init_{npl}(&mut self) {{}}"));
                             } else {
@@ -1727,8 +1721,8 @@ impl ParserGen {
 
                 // handles most rules except children of left factorization (already taken by self.gather_factors)
                 if !is_ambig_redundant && flags & ruleflag::CHILD_L_FACTOR == 0 {
-                    let (nu, nl, npl) = &nt_name[nt];
-                    let (pnu, pnl, pnpl) = &nt_name[parent_nt];
+                    let (nu, _nl, npl) = &nt_name[nt];
+                    let (pnu, _pnl, pnpl) = &nt_name[parent_nt];
                     if VERBOSE { println!("    {nu} (parent {pnu})"); }
                     let no_method = !has_value && flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT;
                     let (fnpl, fnu, fnt, f_valued) = if is_ambig_1st_child {
@@ -1743,7 +1737,7 @@ impl ParserGen {
                             src_listener_decl.push(format!("    fn exit_{fnpl}(&mut self, _ctx: Ctx{fnu}) {{}}"));
                         }
                     }
-                    let mut all_exit_factors = if is_ambig_1st_child {
+                    let all_exit_factors = if is_ambig_1st_child {
                         ambig_op_factors.values().rev().map(|v| v[0]).to_vec()
                     } else {
                         self.gather_factors(nt as VarId)
@@ -2096,7 +2090,7 @@ impl ParserGen {
         if self.nt_value[self.start as usize] {
             src.push(format!(""));
             src.push(format!("    fn exit(&mut self) {{"));
-            let (nu, nl, npl) = &nt_name[self.start as usize];
+            let (_nu, nl, npl) = &nt_name[self.start as usize];
             src.push(format!("        let {nl} = self.stack.pop().unwrap().get_{npl}();"));
             src.push(format!("        self.listener.exit({nl});"));
             src.push(format!("    }}"));

@@ -93,18 +93,8 @@ pub(crate) fn escape_char(c: char) -> String {
     }
 }
 
-// TODO: We must make it public because it's used in the integration tests.
-//       Using #cfg(test) to guard the public declaration doesn't seem to work as expected
-//       (fails to compile where it's also used with the same guard). Other solution?
 pub fn escape_string(s: &str) -> String {
     s.chars().map(|c| escape_char(c)).collect::<String>()
-}
-
-#[allow(unused)]
-pub(crate) fn vadd<T>(v: &mut Vec<T>, item: T) -> usize {
-    let new_index = v.len();
-    v.push(item);
-    new_index
 }
 
 pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, item: I) -> usize
