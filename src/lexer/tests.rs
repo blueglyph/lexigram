@@ -242,8 +242,7 @@ fn build_lexer_tables(test: usize) -> LexerTables {
         dfa.print(4);
         println!("creating lexer");
     }
-    let mut lexgen = LexerGen::new();
-    lexgen.build_from_dfa(dfa);
+    let lexgen = LexerGen::from(dfa);
     if VERBOSE {
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
         println!("creating lexer");

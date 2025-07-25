@@ -188,8 +188,7 @@ fn lexilexer_source(indent: usize, _verbose: bool) -> String {
     symbol_table.extend_terminals(TERMINALS);
 
     // - builds the lexer
-    let mut lexgen = LexerGen::new();
-    lexgen.build_from_dfa(dfa);
+    let mut lexgen = LexerGen::from(dfa);
     lexgen.symbol_table = Some(symbol_table);
     lexgen.build_source_code(indent)
 }

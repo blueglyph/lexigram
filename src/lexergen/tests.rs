@@ -121,9 +121,7 @@ fn lexgen_symbol_tables_corner() {
         let dfa = dfa_builder.build_from_graph(g, 0, end_states.iter().map(|s| (*s, term!(=0))).collect::<BTreeMap<StateId, Terminal>>())
             .expect(&format!("test {test_id} failed to build Dfa\n{}", dfa_builder.get_messages()));
         let dfa = dfa.normalize();
-        let mut lexgen = LexerGen::new();
-        lexgen.max_utf8_chars = left;
-        lexgen.build_from_dfa(dfa);
+        let lexgen = LexerGen::from_dfa(dfa, left);
         let error_id = lexgen.nbr_groups as GroupId;
         let mut exp_ascii = vec![error_id; 128];
         for (s, id) in ascii {

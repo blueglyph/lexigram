@@ -128,9 +128,11 @@ pub struct LexerGen {
 }
 
 impl LexerGen {
-    pub fn new() -> Self {
+    pub const DEFAULT_UTF8_TABLE_SIZE: u32 = 128;
+
+    fn new() -> Self {
         LexerGen {
-            max_utf8_chars: 128,
+            max_utf8_chars: Self::DEFAULT_UTF8_TABLE_SIZE,
             nbr_groups: 0,
             initial_state: 0,
             first_end_state: 0,
@@ -154,7 +156,14 @@ impl LexerGen {
         &mut self.log
     }
 
-    pub fn build_from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
+    pub fn from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
+        let mut lexergen = Self::new();
+        lexergen.max_utf8_chars = max_utf8_chars;
+        lexergen.build_from_dfa(dfa);
+        lexergen
+    }
+
+    fn build_from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
         self.log.extend(std::mem::replace(&mut dfa.log, BufLog::new()));
         self.create_input_tables(&dfa);
         self.create_state_tables(&dfa);
