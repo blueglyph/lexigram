@@ -8,7 +8,7 @@ use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::Logger;
 use lexigram_lib::parser::Parser;
-use lexigram_lib::{SymbolTable, LL1};
+use lexigram_lib::{General, SymbolTable, LL1};
 use std::io::Read;
 use std::marker::PhantomData;
 
@@ -69,11 +69,11 @@ impl<T, R: Read> Gram<'_, '_, T, R> {
 }
 
 impl<R: Read> Gram<'_, '_, LL1, R> {
-    pub fn build_ll1(mut self, grammar: CharReader<R>) -> ProdRuleSet<LL1> {
+    pub fn into_ll1(mut self, grammar: CharReader<R>) -> ProdRuleSet<LL1> {
         self.build(grammar);
         let listener = self.wrapper.listener();
         let name = listener.get_name().to_string();
-        let mut prs = listener.build_prs();
+        let mut prs = ProdRuleSet::<General>::from(listener);
         prs.set_name(Some(name));
         prs.into()
     }

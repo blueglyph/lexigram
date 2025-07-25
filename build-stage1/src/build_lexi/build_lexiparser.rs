@@ -64,7 +64,7 @@ fn lexiparser_source(grammar_filename: &str, _indent: usize, verbose: bool) -> R
 
     // - parses the grammar
     let gram = Gram::<LL1, _>::new(symbol_table);
-    let ll1 = gram.build_ll1(grammar_stream);
+    let ll1 = gram.into_ll1(grammar_stream);
     let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
     if verbose {
         let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");

@@ -76,22 +76,6 @@ impl GramListener {
         &self.log
     }
 
-    pub fn build_prs(self) -> ProdRuleSet<General> {
-        let mut rts = RuleTreeSet::<General>::with_log(self.log);
-        let no_error = rts.get_log().has_no_errors();
-        if no_error {
-            for (v, rule) in self.rules.into_iter().index::<VarId>() {
-                rts.set_tree(v, rule);
-            }
-            rts.set_symbol_table(self.symbol_table);
-        }
-        let mut prs = ProdRuleSet::<General>::from(rts);
-        if no_error {
-            prs.set_start(self.start_rule.unwrap());
-        }
-        prs
-    }
-
     fn reserve_nt_symbol(&mut self, id: String) -> Option<VarId> {
         if let Some(v) = self.nt_reserved.get(&id) {
             Some(*v)
@@ -135,6 +119,24 @@ impl GramListener {
                 Some(nt)
             }
         }
+    }
+}
+
+impl From<GramListener> for ProdRuleSet<General> {
+    fn from(gram_listener: GramListener) -> ProdRuleSet<General> {
+        let mut rts = RuleTreeSet::<General>::with_log(gram_listener.log);
+        let no_error = rts.get_log().has_no_errors();
+        if no_error {
+            for (v, rule) in gram_listener.rules.into_iter().index::<VarId>() {
+                rts.set_tree(v, rule);
+            }
+            rts.set_symbol_table(gram_listener.symbol_table);
+        }
+        let mut prs = ProdRuleSet::<General>::from(rts);
+        if no_error {
+            prs.set_start(gram_listener.start_rule.unwrap());
+        }
+        prs
     }
 }
 

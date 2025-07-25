@@ -3549,7 +3549,7 @@ fn rts_prs_flags() {
             print!("Before table creation:\n- ");
             ll1.print_prs_summary();
         }
-        let _parsing_table = ll1.create_parsing_table(false);
+        let _parsing_table = ll1.make_parsing_table(false);
         if VERBOSE && ll1.log.num_warnings() + ll1.log.num_notes() > 0 {
             ll1.print_logs();
         }

@@ -176,7 +176,7 @@ mod listener {
 
         // builds the lexer for the test lexicon
         let dfa = listener.make_dfa().optimize();
-        let sym_table = listener.build_symbol_table();
+        let sym_table = listener.make_symbol_table();
         if VERBOSE {
             println!("Lexer symbol table:\n- T: {}",
                      sym_table.get_terminals().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
@@ -191,7 +191,7 @@ mod listener {
             // grammar parser
             let gram = Gram::<LL1, _>::new(sym_table.clone());
             let grammar_stream = CharReader::new(Cursor::new(grammar));
-            let ll1 = gram.build_ll1(grammar_stream);
+            let ll1 = gram.into_ll1(grammar_stream);
             let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
             let should_succeed = expected_grammar_errors.is_empty();
             if VERBOSE {

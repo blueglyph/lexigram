@@ -506,7 +506,7 @@ mod simple {
             if VERBOSE {
                 println!("Rules lexicon {}:\n{}", listener.get_name(), listener.rules_to_string(0));
             }
-            let symbol_table = listener.build_symbol_table();
+            let symbol_table = listener.make_symbol_table();
             let expected_sym = expected_sym.into_iter().map(|s| s.to_string()).to_vec();
             let result_sym = symbol_table.get_terminals().map(|(s, _)| s.to_string()).to_vec();
             let result_end = listener.terminals.iter().enumerate().filter_map(|(id, t)| {

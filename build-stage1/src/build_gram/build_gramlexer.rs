@@ -29,7 +29,7 @@ fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, St
     if let Err(error) = result {
         return Err(error);
     }
-    let symbol_table = listener.build_symbol_table();
+    let symbol_table = listener.make_symbol_table();
     if verbose {
         println!("Rules lexicon {}:\n{}", listener.get_name(), listener.rules_to_string(0));
     }

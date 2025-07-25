@@ -2069,7 +2069,7 @@ impl ProdRuleSet<LL1> {
         LLParsingTable { num_nt, num_t, factors, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() }
     }
 
-    pub fn create_parsing_table(&mut self, error_recovery: bool) -> LLParsingTable {
+    pub fn make_parsing_table(&mut self, error_recovery: bool) -> LLParsingTable {
         let first = self.calc_first();
         let follow = self.calc_follow(&first);
         self.calc_table(&first, &follow, error_recovery)

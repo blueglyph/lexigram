@@ -215,7 +215,7 @@ impl LexiListener {
         sorted_modes
     }
 
-    pub fn build_symbol_table(&self) -> SymbolTable {
+    pub fn make_symbol_table(&self) -> SymbolTable {
         let mut table = SymbolTable::new();
         let num_ret = self.terminal_ret.iter().filter(|&ret| *ret).count();
         let mut symbols = vec![(String::new(), None); num_ret];
