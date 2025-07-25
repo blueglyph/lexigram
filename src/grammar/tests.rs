@@ -5,7 +5,7 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use super::*;
 use crate::dfa::TokenId;
-use crate::{btreemap, gnode, hashmap, hashset, LL1, LR, prod, prodf, sym};
+use crate::{btreemap, gnode, hashmap, hashset, LL1, prod, prodf, sym};
 use crate::grammar::NTConversion::Removed;
 
 // ---------------------------------------------------------------------------------------------
@@ -251,7 +251,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
         16 => { // A -> A (c)+ b | a
             let or = tree.add_root(gnode!(|));
             let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
-            let p2 = tree.addc(Some(cc1), gnode!(+), gnode!(t 2));
+            tree.addc(Some(cc1), gnode!(+), gnode!(t 2));
             tree.add(Some(cc1), gnode!(t 1));
             tree.add(Some(or), gnode!(t 0));
         }
@@ -283,14 +283,14 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let or = tree.add_root(gnode!(|));
             let cc = tree.add(Some(or), gnode!(&));
             tree.add(Some(cc), gnode!(nt 0));
-            let s1 = tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.addc(Some(cc), gnode!(*), gnode!(t 1));
             tree.add(Some(cc), gnode!(t 2));
             tree.add(Some(or), gnode!(t 3));
         }
         21 => { // A -> a (b)* c
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
-            let p1 = tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.addc(Some(cc), gnode!(*), gnode!(t 1));
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
@@ -306,7 +306,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
         23 => { // A -> a (b)+ c
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
-            let p1 = tree.addc(Some(cc), gnode!(+), gnode!(t 1));
+            tree.addc(Some(cc), gnode!(+), gnode!(t 1));
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
@@ -321,7 +321,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
         25 => { // A -> a (#)* c
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
-            let p1 = tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.addc(Some(cc), gnode!(*), gnode!(t 1));
             tree.add(Some(cc), gnode!(t 2));
             // symbol table defined below
         }
@@ -335,7 +335,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
         27 => { // A -> a (B)+ c ; B -> b
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
-            let p1 = tree.addc(Some(cc), gnode!(+), gnode!(nt 1));
+            tree.addc(Some(cc), gnode!(+), gnode!(nt 1));
             tree.add(Some(cc), gnode!(t 2));
             let b_tree = rules.get_tree_mut(1);
             b_tree.add_root(gnode!(t 1));
@@ -632,7 +632,6 @@ fn rts_normalize() {
             println!("test {test_id}:");
         }
         let mut rules = build_rts(test_id);
-        let vars = rules.get_vars().to_vec();
         rules.normalize();
         assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize: {}", log_to_str(&rules.log));
         if let Some(err) = check_rts_sanity(&rules, VERBOSE) {
@@ -859,8 +858,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut symbol_table = SymbolTable::new();
     let prods = &mut rules.prods;
     let mut start = Some(0);
-    let mut flags = HashMap::<VarId, u32>::new();
-    let mut parents = HashMap::<VarId, VarId>::new();   // (child, parent)
+    let flags = HashMap::<VarId, u32>::new();
+    let parents = HashMap::<VarId, VarId>::new();   // (child, parent)
     match id {
         // misc tests ----------------------------------------------------------
         0 => {
@@ -1912,7 +1911,7 @@ fn prs_lr_from() {
         if rules.prods.is_empty() {
             break;
         }
-        let lr = ProdRuleSet::<LR>::from(rules);
+        let _lr = ProdRuleSet::<LR>::from(rules);
         test_id += 1;
     }
 }
@@ -3160,15 +3159,14 @@ fn prs_calc_table() {
             map_and_print_follow(&follow, ll1.get_symbol_table());
         }
         let parsing_table = ll1.calc_table(&first, &follow, true);
-        let LLParsingTable { num_nt, num_t, factors, table, flags, parent } = &parsing_table;
+        let LLParsingTable { num_nt, num_t, factors, table, .. } = &parsing_table;
         assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{ll_id}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
-            let error = factors.len() as FactorId;
             ll1.print_rules(false);
             print_factors(&factors, ll1.get_symbol_table());
             println!("{}",
-                     factors.iter().enumerate().map(|(id, (v, f))| {
+                     factors.iter().enumerate().map(|(_id, (v, f))| {
                          let flags = if f.flags != 0 {
                              let mut vf = ruleflag::factor_info_to_string(f.flags);
                              format!("#{}, ", if vf.len() == 1 { vf.pop().unwrap() } else { f.flags.to_string() })
@@ -3221,7 +3219,7 @@ fn prs_grammar_notes() {
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {ll_id:?}/{start}:", "");
         }
-        let mut ll1 = ll_id.try_build_prs(test_id, start, false);
+        let mut ll1 = ll_id.try_build_prs(start, false);
         if VERBOSE {
             ll1.print_rules(false);
             ll1.print_logs();
@@ -3265,7 +3263,7 @@ fn prs_grammar_notes() {
 fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
     let mut rts = RuleTreeSet::new();
     let mut symbol_table = SymbolTable::new();
-    let mut start = Some(0);
+    let start = Some(0);
     let mut tree = vec![GrTree::new()];
     match id {
         100 => {
@@ -3347,11 +3345,11 @@ fn rts_prs() {
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         let parsing_table = ll1.calc_table(&first, &follow, false);
-        let LLParsingTable { num_nt, num_t, factors, .. } = &parsing_table;
+        let LLParsingTable { factors, .. } = &parsing_table;
         if VERBOSE {
             print_factors(&factors, ll1.get_symbol_table());
             println!("{}",
-                     factors.iter().enumerate().map(|(id, (v, f))|
+                     factors.iter().enumerate().map(|(_id, (v, f))|
                          format!("            ({v}, prodf!({})),", f.iter().map(|s| s.to_macro_item()).join(", "))
                      ).join("\n"));
         }
@@ -3367,7 +3365,7 @@ pub(crate) enum T { RTS(u32), PRS(u32) }
 
 impl T {
     /// Build a PRS from RTS or PRS rules, does not verify if there are errors in the log
-    pub(crate) fn try_build_prs(&self, test_id: usize, start_nt: VarId, is_t_data: bool) -> ProdRuleSet<LL1> {
+    pub(crate) fn try_build_prs(&self, start_nt: VarId, is_t_data: bool) -> ProdRuleSet<LL1> {
         const VERBOSE: bool = false;
         let mut ll1 = match self {
             T::RTS(id) => {
@@ -3379,7 +3377,7 @@ impl T {
                     complete_symbol_table(&mut symbol_table, num_t, num_nt, is_t_data);
                     rts.set_symbol_table(symbol_table);
                 }
-                let mut rules = ProdRuleSet::from(rts);
+                let rules = ProdRuleSet::from(rts);
                 if VERBOSE {
                     print!("General rules\n- ");
                     rules.print_prs_summary();
@@ -3401,7 +3399,7 @@ impl T {
 
     /// Build a PRS from RTS or PRS rules and verifies there are no errors in the log
     pub(crate) fn build_prs(&self, test_id: usize, start_nt: VarId, is_t_data: bool) -> ProdRuleSet<LL1> {
-        let ll1 = self.try_build_prs(test_id, start_nt, is_t_data);
+        let ll1 = self.try_build_prs(start_nt, is_t_data);
         assert_eq!(ll1.get_log().num_errors(), 0, "test {test_id}/{self:?}/{start_nt} failed:\n- {}", ll1.get_log().get_errors().join("\n- "));
         ll1
     }
@@ -3551,8 +3549,7 @@ fn rts_prs_flags() {
             print!("Before table creation:\n- ");
             ll1.print_prs_summary();
         }
-        let start = ll1.get_start().unwrap();
-        let parsing_table = ll1.create_parsing_table(false);
+        let _parsing_table = ll1.create_parsing_table(false);
         if VERBOSE && ll1.log.num_warnings() + ll1.log.num_notes() > 0 {
             ll1.print_logs();
         }

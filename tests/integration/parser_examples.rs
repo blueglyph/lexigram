@@ -24,7 +24,7 @@ mod listener1 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -74,7 +74,7 @@ mod listener2 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -115,7 +115,7 @@ mod listener3 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -156,7 +156,7 @@ mod listener4 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -197,7 +197,7 @@ mod listener5 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -238,7 +238,7 @@ mod listener6 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -279,7 +279,7 @@ mod listener7 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -320,7 +320,7 @@ mod listener8 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -361,7 +361,7 @@ mod listener9 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -402,7 +402,7 @@ mod listener10 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -443,7 +443,7 @@ mod listener11 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -484,7 +484,7 @@ mod listener12 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -525,7 +525,7 @@ mod listener13 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -565,7 +565,7 @@ pub(crate) mod listener14 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -606,7 +606,7 @@ pub(crate) mod listener15 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );
@@ -647,7 +647,7 @@ pub(crate) mod listener16 {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );

@@ -1,5 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+#![allow(unused)]
+
 pub mod build_lexilexer;
 pub mod build_lexiparser;
 

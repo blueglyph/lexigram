@@ -1,7 +1,5 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-#![allow(unused)]
-
 // -------------------------------------------------------------------------
 // [lexiparser]
 
@@ -21,7 +19,7 @@ static OPCODES: [&[OpCode]; 63] = [&[OpCode::Exit(0), OpCode::NT(17), OpCode::NT
 static START_SYMBOL: VarId = 0;
 
 pub fn build_parser() -> Parser<'static> {
-    let mut symbol_table = FixedSymTable::new(
+    let symbol_table = FixedSymTable::new(
         SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
         SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
     );

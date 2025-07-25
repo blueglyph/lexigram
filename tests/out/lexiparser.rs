@@ -22,7 +22,7 @@ pub(crate) mod lexiparser {
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
-        let mut symbol_table = FixedSymTable::new(
+        let symbol_table = FixedSymTable::new(
             SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
             SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
         );

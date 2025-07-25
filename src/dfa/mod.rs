@@ -1148,7 +1148,6 @@ fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
 // ---------------------------------------------------------------------------------------------
 // Supporting Debug functions
 
-#[allow(unused)]
 /// Debug function to display the content of a tree.
 pub fn tree_to_string(tree: &VecTree<ReNode>, root: Option<usize>, basic: bool) -> String {
     if tree.len() > 0 {

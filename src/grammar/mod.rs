@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-#![allow(dead_code)]
-#![allow(unused)]
+// #![allow(dead_code)]
+// #![allow(unused)]
 
 pub(crate) mod tests;
 
-use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
+use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::mem::take;
@@ -14,11 +14,10 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, btreeset, prod, SymInfoTable, indent_source};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::log::{BufLog, Logger};
 use crate::SymbolTable;
-use crate::take_until::TakeUntilIterator;
 
 pub type VarId = u16;
 pub type FactorId = VarId;
@@ -181,10 +180,6 @@ impl Dup {
             DupVal::Copy(idx & !Self::MASK)
         }
     }
-
-    fn peek(&self) -> usize {
-        (self.index & !Self::MASK) as usize
-    }
 }
 
 impl std::fmt::Debug for Dup {
@@ -286,8 +281,6 @@ impl Display for GrTreeFmt<'_> {
 
 // easier to use than an enum
 pub mod ruleflag {
-    use crate::btreemap;
-
     /// Star or Plus repeat child factor.
     /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
     pub const CHILD_REPEAT: u32 = 1;
@@ -357,7 +350,7 @@ pub mod ruleflag {
 
     pub fn factor_info_to_string(mut flags: u32) -> Vec<String> {
         static NAMES: [(u32, &str); 3] = [(L_FORM, "L"), (R_ASSOC, "R"), (GREEDY, "G")];
-        let mut v: Vec<String> = NAMES.iter().filter_map(|(f, t)|
+        let v: Vec<String> = NAMES.iter().filter_map(|(f, t)|
             if flags & f != 0 {
                 flags &= !f;
                 Some(t.to_string())
@@ -417,7 +410,7 @@ impl<T> RuleTreeSet<T> {
 
     /// Returns a set of all the terminals used in the ruleset.
     pub fn get_terminals(&self) -> HashSet<TokenId> {
-        let mut tset = self.trees.iter()
+        let tset = self.trees.iter()
             .flat_map(|t| t.iter_depth_simple())
             .filter_map(|x| if let GrNode::Symbol(Symbol::T(t)) = x.deref() { Some(*t) } else { None })
             .collect::<HashSet<_>>();
@@ -759,6 +752,7 @@ impl RuleTreeSet<General> {
                     qtree.add(Some(or), gnode!(e));
                 }
             }
+            #[allow(unreachable_patterns)]
             GrNode::Or => if OPTIMIZE_SUB_OR {
                 // P -> αβ*γ becomes P -> αQγ         P -> α(β)+γ becomes P -> αQγ
                 //                   Q -> βQ | ε                          Q -> βR
@@ -967,10 +961,6 @@ impl ProdFactor {
         self.flags
     }
 
-    fn to_str_no_flags<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        factor_to_str(&self.v, symbol_table)
-    }
-
     pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         let mut s = if self.flags & ruleflag::FACTOR_INFO != 0 {
             format!("<{}> ", ruleflag::factor_info_to_string(self.flags).join(","))
@@ -1090,14 +1080,11 @@ impl FactorType {
             (true, true)   => if factor.flags & ruleflag::R_ASSOC != 0 { FactorType::RightAssoc } else { FactorType::LeftAssoc },
         }
     }
-
-    fn is_binary(&self) -> bool {
-        self == &FactorType::LeftAssoc || self == &FactorType::RightAssoc
-    }
 }
 
 #[derive(Debug, Clone)]
 struct FactorInfo {
+    #[allow(unused)]
     pred_priority: Option<FactorId>,
     ivar: usize,
     ty: FactorType
@@ -1136,7 +1123,6 @@ pub struct ProdRuleSet<T> {
     pub(crate) name: Option<String>,
     nt_conversion: HashMap<VarId, NTConversion>,
     pub(crate) log: BufLog,
-    dont_remove_recursion: bool,
     _phantom: PhantomData<T>
 }
 
@@ -1154,7 +1140,6 @@ impl<T> ProdRuleSet<T> {
             name: None,
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
-            dont_remove_recursion: false,
             _phantom: PhantomData
         }
     }
@@ -1172,7 +1157,6 @@ impl<T> ProdRuleSet<T> {
             name: None,
             nt_conversion: HashMap::new(),
             log: BufLog::new(),
-            dont_remove_recursion: false,
             _phantom: PhantomData
         }
     }
@@ -1273,6 +1257,7 @@ impl<T> ProdRuleSet<T> {
         self.parent[child] = Some(parent);
     }
 
+    #[allow(unused)]
     fn get_parent(&self, child: VarId) -> Option<VarId> {
         let child = child as usize;
         if child >= self.parent.len() {
@@ -1358,7 +1343,7 @@ impl<T> ProdRuleSet<T> {
             let mut all = all_h.into_iter().collect::<Vec<_>>();
             all.sort();
             println!("  current NT symbols: {}", all.iter().filter_map(|s|
-                if let Symbol::NT(v) = s { Some(format!("{}", s.to_str(self.get_symbol_table()))) } else { None }).join(", "));
+                if let Symbol::NT(_) = s { Some(format!("{}", s.to_str(self.get_symbol_table()))) } else { None }).join(", "));
             println!("  current  T symbols: {}", all.iter().filter_map(|s|
                 if let Symbol::T(_) = s { Some(s.to_str(self.get_symbol_table())) } else { None }).join(" "));
             let mut used = keep.iter().collect::<Vec<_>>();
@@ -1452,7 +1437,7 @@ impl<T> ProdRuleSet<T> {
                 }
             }
         }
-        if symbols.iter().filter(|s| matches!(s, Symbol::NT(v))).count() != self.num_nt {
+        if symbols.iter().filter(|s| matches!(s, Symbol::NT(_))).count() != self.num_nt {
             let nt_removed = (0..self.num_nt as VarId)
                 // warnings about symbols that are not used but that have not been moved because of a */+ L-form:
                 .filter(|v| !symbols.contains(&Symbol::NT(*v)) && !matches!(self.nt_conversion.get(v), Some(MovedTo(_))))
@@ -1541,7 +1526,7 @@ impl<T> ProdRuleSet<T> {
                     if VERBOSE { println!("  - {}", factor.to_str(self.symbol_table.as_ref())); }
                     let mut trail = follow.get(&symbol).unwrap().clone();
                     for sym_i in factor.iter().rev() {
-                        if let Symbol::NT(v) = sym_i {
+                        if let Symbol::NT(_) = sym_i {
                             let num_items = follow.get(sym_i).unwrap().len();
                             follow.get_mut(sym_i).unwrap().extend(&trail);
                             if VERBOSE {
@@ -1599,7 +1584,7 @@ impl<T> ProdRuleSet<T> {
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
         let mut prods = take(&mut self.prods);
         for var in 0..var_new {
-            let mut prod = prods.get_mut(var).unwrap();
+            let prod = prods.get_mut(var).unwrap();
             let var = var as VarId;
             let symbol = Symbol::NT(var);
             let var_name = symbol.to_str(self.get_symbol_table());
@@ -1610,7 +1595,7 @@ impl<T> ProdRuleSet<T> {
                                                        prod_to_str(prod, self.get_symbol_table())));
                 }
 
-                let (mut indep, mut factors) : (Vec<_>, Vec<_>) = take(prod).into_iter()
+                let (indep, mut factors) : (Vec<_>, Vec<_>) = take(prod).into_iter()
                     .partition(|factor| factor.first().unwrap() != &symbol && factor.last().unwrap() != &symbol);
                 factors.reverse();
                 if indep.is_empty() {
@@ -1728,7 +1713,7 @@ impl<T> ProdRuleSet<T> {
                 let greedy_prologue = pr_info[0].ty == FactorType::Prefix && need_indep || pr_info[0].ty == FactorType::RightAssoc;
                 for (i, fs) in var_factors.into_iter().enumerate() {
                     let (nt, nt_loop) = var_i_nt[i];
-                    let mut prod_nt = if let Some(nt_indep) = nt_indep_maybe {
+                    let prod_nt = if let Some(nt_indep) = nt_indep_maybe {
                         prod!(nt nt_indep, nt nt_loop)
                     } else {
                         // distributes the independent factors (only works if there are no L/R types in the original rule)
@@ -1740,7 +1725,7 @@ impl<T> ProdRuleSet<T> {
                         })).collect()
                     };
                     let mut new_used_sym = Vec::<Symbol>::new();
-                    let mut prod_nt_loop = fs.iter().enumerate().rev().map(|(j, &f_id)| {
+                    let mut prod_nt_loop = fs.iter().enumerate().rev().map(|(_, &f_id)| {
                         let mut f = new_factors[f_id as usize].clone();
                         f.v.push(Symbol::NT(nt_loop));
                         let sym = f.first().unwrap();
@@ -1871,7 +1856,7 @@ impl<T> ProdRuleSet<T> {
         let mut prods = take(&mut self.prods);
         let mut i = 0;
         while i < prods.len() {
-            let mut prod = &mut prods[i];
+            let prod = &mut prods[i];
             let var = i as VarId;
             i += 1;
             if prod.len() < 2 {
@@ -2168,7 +2153,6 @@ impl ProdRuleSetTables {
             name: self.name,
             nt_conversion: self.nt_conversion,
             log: BufLog::new(),
-            dont_remove_recursion: false,
             _phantom: PhantomData,
         }
     }
@@ -2177,7 +2161,7 @@ impl ProdRuleSetTables {
 // ---------------------------------------------------------------------------------------------
 
 impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
-    fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
+    fn from(rules: RuleTreeSet<Normalized>) -> Self {
         fn children_to_vec(tree: &GrTree, parent_id: usize) -> ProdFactor {
             let mut flags: u32 = 0;
             let factor = tree.children(parent_id).iter()
@@ -2298,7 +2282,6 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
             name: rules.name,
             nt_conversion: rules.nt_conversion,
             log: rules.log,
-            dont_remove_recursion: false,
             _phantom: PhantomData,
         }
     }
@@ -2323,7 +2306,6 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
             name: rules.name,
             nt_conversion: rules.nt_conversion,
             log: rules.log,
-            dont_remove_recursion: false,
             _phantom: PhantomData,
         }
     }
@@ -2356,13 +2338,12 @@ impl<T> ProdRuleSet<T> {
 
 impl LLParsingTable {
     pub fn print(&self, symbol_table: Option<&SymbolTable>, indent: usize) {
-        let LLParsingTable { num_nt, num_t, factors, table, flags, parent, .. } = self;
+        let LLParsingTable { num_nt, num_t, factors, table, .. } = self;
         let error_skip = factors.len() as FactorId;
         let error_pop = error_skip + 1;
         let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
         let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();
         let str_t = (0..*num_t).map(|j| if j + 1 < *num_t { Symbol::T(j as VarId).to_str(symbol_table) } else { "$".to_string() }).to_vec();
-        let max_t_len = str_t.iter().map(|s| s.len()).max().unwrap().max(2);
         let t_len = str_t.iter().map(|s| s.len().max(3)).to_vec();
         println!("{:<i$}// {:<w$} | {}", "", "", (0..*num_t).map(|j| format!("{:^w$}", str_t[j], w = t_len[j])).join(" "), w = max_nt_len, i = indent);
         println!("{:<i$}// {:-<w$}-+-{:-<t$}", "", "", "", w = max_nt_len, t = *num_t + t_len.iter().sum::<usize>(), i = indent);

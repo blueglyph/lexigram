@@ -24,10 +24,8 @@ pub struct Gram<'a, 'b, T, R: Read> {
     _phantom: PhantomData<T>
 }
 
-#[allow(unused)]
 impl<T, R: Read> Gram<'_, '_, T, R> {
     const VERBOSE_WRAPPER: bool = false;
-    const VERBOSE_DETAILS: bool = false;
     const VERBOSE_LISTENER: bool = false;
 
     pub fn new(symbol_table: SymbolTable) -> Self {

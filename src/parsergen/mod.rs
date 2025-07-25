@@ -1,7 +1,5 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-#![allow(dead_code)]  // TODO: remove
-
 use std::collections::{BTreeMap, BTreeSet, HashMap, HashSet, VecDeque};
 use std::fmt::{Display, Formatter};
 use std::fs::File;
@@ -103,16 +101,15 @@ struct ItemInfo {
     name: String,
     sym: Symbol,            // NT(var) or T(token)
     owner: VarId,           // NT owning this item; for ex. owner = `A` for `sym = b` in `A -> a b+ c`
-    is_vec: bool,           // for ex. `b: Vec<String>` in `A -> a b+ c`
     index: Option<usize>    // when several identical symbols in the same factor: `A -> id := id ( id )`
 }
 
+#[allow(unused)]
 impl ItemInfo {
     fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
-        format!("{} ({}{}{}, ◄{})",
+        format!("{} ({}{}, ◄{})",
                 self.name,
                 self.sym.to_str(symbol_table),
-                if self.is_vec { ", is_vec" } else { "" },
                 if let Some(n) = self.index { format!(", [{n}]") } else { "".to_string() },
                 Symbol::NT(self.owner).to_str(symbol_table))
     }
@@ -350,6 +347,7 @@ impl ParserGen {
         self.include_factors = include_factors;
     }
 
+    #[allow(unused)]
     fn get_original_factor_str(&self, f_id: FactorId, symbol_table: Option<&SymbolTable>) -> Option<String> {
         let (var, f) = &self.parsing_table.factors[f_id as usize];
         f.get_original_factor_id().and_then(|orig_id| {
@@ -1198,7 +1196,6 @@ impl ParserGen {
                                     name: nt_name[owner as usize].1.clone(),
                                     sym: Symbol::NT(owner),
                                     owner,
-                                    is_vec: false,
                                     index: None,
                                 }]
                             } else {
@@ -1217,7 +1214,6 @@ impl ParserGen {
                                     name: indices[&s].0.clone(),
                                     sym: s.clone(),
                                     owner,
-                                    is_vec: false,
                                     index,
                                 }
                             }).to_vec();
@@ -1228,7 +1224,6 @@ impl ParserGen {
                                     name: last_name,
                                     sym: Symbol::Empty, // this marks the special flag variable
                                     owner,
-                                    is_vec: false,
                                     index: None,
                                 });
                             };
@@ -1351,7 +1346,7 @@ impl ParserGen {
             format!("static START_SYMBOL: VarId = {};\n", self.start),
 
             format!("pub fn build_parser() -> Parser<'static> {{"),
-            format!("    let mut symbol_table = FixedSymTable::new("),
+            format!("    let symbol_table = FixedSymTable::new("),
             format!("        SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),"),
             format!("        SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()"),
             format!("    );"),

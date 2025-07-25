@@ -1,17 +1,14 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-#![allow(unused)]
-
 use iter_index::IndexerIterator;
 use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
-use lexigram_lib::grammar::{ruleflag, GrTreeExt, Symbol};
-use lexigram_lib::{gnode, CollectJoin, General, LL1, SymbolTable, SymInfoTable};
-use lexigram_lib::grammar::{ProdRuleSet, RuleTreeSet, VarId};
+use lexigram_lib::grammar::{ruleflag, Symbol};
+use lexigram_lib::{CollectJoin, LL1, SymbolTable};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::log::Logger;
-use lexigram_lib::parsergen::{print_items, ParserGen};
+use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::test_tools::replace_tagged_source;
 use super::{LEXIPARSER_GRAMMAR, LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TAG, VERSIONS_TAG};
 
@@ -60,7 +57,7 @@ static TERMINALS: [(&str, Option<&str>); 34] = [
 
 /// Generates Lexi's parser source code from the grammar file and from the symbols in the lexicon
 /// (extracted in [`build_lexilexer`](crate::build_lexilexer::lexilexer_source())).
-fn lexiparser_source(grammar_filename: &str, indent: usize, verbose: bool) -> Result<String, String> {
+fn lexiparser_source(grammar_filename: &str, _indent: usize, verbose: bool) -> Result<String, String> {
     pub fn print_flags(builder: &ParserGen, indent: usize) {
         let tbl = builder.get_symbol_table();
         let prefix = format!("{:width$}//", "", width = indent);
@@ -116,7 +113,7 @@ fn write_lexiparser() {
 
 #[cfg(test)]
 mod tests {
-    use lexigram_lib::test_tools::{get_tagged_source, replace_tagged_source};
+    use lexigram_lib::test_tools::get_tagged_source;
     use super::*;
 
     #[test]

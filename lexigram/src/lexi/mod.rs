@@ -20,7 +20,6 @@ pub struct Lexi<'a, 'b, R: Read> {
     pub wrapper: Wrapper<LexiListener>
 }
 
-#[allow(unused)]
 impl<R: Read> Lexi<'_, '_, R> {
     const VERBOSE_WRAPPER: bool = false;
     const VERBOSE_DETAILS: bool = false;
