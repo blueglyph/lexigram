@@ -83,17 +83,6 @@ impl OpCode {
         }
         result
     }
-
-    fn to_symbol(&self) -> Option<Symbol> {
-        match self {
-            OpCode::Empty => Some(Symbol::Empty),
-            OpCode::T(t) => Some(Symbol::T(*t)),
-            OpCode::NT(v) => Some(Symbol::NT(*v)),
-            OpCode::End => Some(Symbol::End),
-            OpCode::Loop(v) => Some(Symbol::NT(*v)),
-            OpCode::Exit(_) => None,
-        }
-    }
 }
 
 impl From<Symbol> for OpCode {
