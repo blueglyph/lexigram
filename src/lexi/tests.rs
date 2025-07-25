@@ -28,7 +28,7 @@ fn make_dfa() -> Dfa<General> {
     let regs = build_re();
     let mut dfas = vec![];
     for (n, re) in regs {
-        let mut dfa_builder = DfaBuilder::from_re(re);
+        let mut dfa_builder = DfaBuilder::from(re);
         let dfa = dfa_builder.build();
         if VERBOSE {
             println!("Mode {n}:");

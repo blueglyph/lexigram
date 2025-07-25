@@ -561,7 +561,7 @@ pub(crate) fn build_dfa(test: usize) -> BTreeMap<ModeId, Dfa<General>> {
         _ => btreemap![]
     };
     modes.into_iter()
-        .map(|(n, re)| (n, DfaBuilder::from_re(re).build()))
+        .map(|(n, re)| (n, DfaBuilder::from(re).build()))
         .collect()
 }
 
@@ -617,7 +617,7 @@ fn dfa_preprocess() {
     for (test_id, (expected1, expected2)) in tests.into_iter().enumerate() {
         let re = build_re(test_id);
         let result1 = tree_to_string(&re, None, false);
-        let dfa = DfaBuilder::from_re(re);
+        let dfa = DfaBuilder::from(re);
         let result2 = tree_to_string(&dfa.re, None, false);
         assert_eq!(result1, expected1, "test {test_id} failed (1st part)");
         assert_eq!(result2, expected2, "test {test_id} failed (2nd part)");
@@ -636,7 +636,7 @@ fn dfa_id() {
     ];
     for (test_id, expected) in tests.into_iter().enumerate() {
         let re = build_re(test_id);
-        let mut dfa = DfaBuilder::from_re(re);
+        let mut dfa = DfaBuilder::from(re);
         dfa.calc_node_pos();
         assert_eq!(tree_to_string(&dfa.re, None, true), expected, "test {test_id} failed");
     }
@@ -672,7 +672,7 @@ fn dfa_nullable() {
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::from_re(re);
+        let mut dfa_builder = DfaBuilder::from(re);
         dfa_builder.calc_node_pos();
         assert_eq!(tree_to_string(&dfa_builder.re, None, false), expected, "test {test_id} failed");
     }
@@ -808,7 +808,7 @@ fn dfa_firstpos() {
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::from_re(re);
+        let mut dfa_builder = DfaBuilder::from(re);
         dfa_builder.calc_node_pos();
         let mut result = Vec::new();
         for inode in dfa_builder.re.iter_depth_simple() {
@@ -940,7 +940,7 @@ fn dfa_lastpos() {
     ];
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::from_re(re);
+        let mut dfa_builder = DfaBuilder::from(re);
         dfa_builder.calc_node_pos();
         let mut result = Vec::new();
         for inode in dfa_builder.re.iter_depth_simple() {
@@ -1091,7 +1091,7 @@ fn dfa_followpos() {
     };
     for (test_id, expected) in tests.into_iter() {
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::from_re(re);
+        let mut dfa_builder = DfaBuilder::from(re);
         dfa_builder.calc_node_pos();
         // to keep some things in order (easier for comparing):
         let res = BTreeMap::from_iter(dfa_builder.followpos.into_iter().map(|(s, st)| (s, BTreeSet::from_iter(st))));
@@ -1419,7 +1419,7 @@ fn dfa_states() {
     for (test_id, expected, expected_ends, expected_warnings) in tests {
         if VERBOSE { println!("Test {test_id}:"); }
         let re = build_re(test_id);
-        let mut dfa_builder = DfaBuilder::from_re(re);
+        let mut dfa_builder = DfaBuilder::from(re);
         let dfa = dfa_builder.build();
         if VERBOSE {
             println!("{}", tree_to_string(&dfa_builder.re, None, false));
@@ -1473,7 +1473,7 @@ fn dfa_normalize() {
         if re.len() == 0 {
             break;
         }
-        let dfa = DfaBuilder::from_re(re).build();
+        let dfa = DfaBuilder::from(re).build();
         // println!("{test_id}: {}", if dfa.is_normalized() { "normalized" } else { "not normalized" });
         // print_dfa(&dfa);
         let dfa = dfa.normalize();
@@ -1677,7 +1677,7 @@ fn dfa_optimize_graphs() {
         if graph.is_empty() {
             // fetches from the build_re
             let re = build_re(test_id);
-            let mut dfa_builder = DfaBuilder::from_re(re);
+            let mut dfa_builder = DfaBuilder::from(re);
             let dfa = dfa_builder.build();
             graph = dfa.state_graph;
             end_states = dfa.end_states;

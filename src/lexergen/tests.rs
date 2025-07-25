@@ -162,7 +162,7 @@ fn lexgen_build() {
         let lexgen;
         time! { VERBOSE, {
                 let re = build_re(test_id);
-                let mut dfa_builder = DfaBuilder::from_re(re);
+                let mut dfa_builder = DfaBuilder::from(re);
                 let dfa = dfa_builder.build();
                 let dfa = dfa.normalize();
                 lexgen = LexerGen::from(dfa);

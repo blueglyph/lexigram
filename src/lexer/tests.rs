@@ -71,7 +71,7 @@ fn lexer_simple() {
     ];
     const VERBOSE: bool = false;
     for (test_id, token_tests, err_tests, stream_tests) in tests {
-        let dfa = DfaBuilder::from_re(build_re(test_id)).build();
+        let dfa = DfaBuilder::from(build_re(test_id)).build();
         let dfa = dfa.normalize();
         if VERBOSE { dfa.print(12); }
         let lexgen = LexerGen::from(dfa);
@@ -221,7 +221,7 @@ fn build_lexer_tables(test: usize) -> LexerTables {
     let dfas = trees.into_iter().enumerate().map(|(dfa_id, (mode, re))| {
         if VERBOSE { println!("creating dfa for mode {mode}"); }
         // let dfa = DfaBuilder::from_re(re).build();
-        let mut dfa_builder = DfaBuilder::from_re(re);
+        let mut dfa_builder = DfaBuilder::from(re);
         let dfa = dfa_builder.build();
         assert!(dfa_builder.get_messages().is_empty(), "warnings/errors when building lexer #{test}: (DFA #{dfa_id})\n{}", dfa_builder.get_messages());
         if VERBOSE {

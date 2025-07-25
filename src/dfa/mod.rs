@@ -335,18 +335,6 @@ impl DfaBuilder {
         }
     }
 
-    pub fn from_re(re: VecTree<ReNode>) -> Self {
-        let mut builder = DfaBuilder {
-            re,
-            followpos: HashMap::new(),
-            lazypos: HashMap::new(),
-            ids: HashMap::new(),
-            log: BufLog::new()
-        };
-        builder.preprocess_re();
-        builder
-    }
-
     #[inline(always)]
     pub fn get_re(&self) -> &VecTree<ReNode> {
         &self.re
@@ -802,6 +790,21 @@ impl DfaBuilder {
         } else {
             None
         }
+    }
+}
+
+impl From<VecTree<ReNode>> for DfaBuilder {
+    /// Creates a [`DfaBuilder`] from a tree of regular expression [`VecTree`]<[`ReNode`]>.
+    fn from(regex_tree: VecTree<ReNode>) -> Self {
+        let mut builder = DfaBuilder {
+            re: regex_tree,
+            followpos: HashMap::new(),
+            lazypos: HashMap::new(),
+            ids: HashMap::new(),
+            log: BufLog::new()
+        };
+        builder.preprocess_re();
+        builder
     }
 }
 
