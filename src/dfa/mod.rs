@@ -345,26 +345,6 @@ impl DfaBuilder {
         &self.log
     }
 
-    #[inline(always)]
-    pub fn num_warnings(&self) -> usize {
-        self.log.num_warnings()
-    }
-
-    #[inline(always)]
-    pub fn get_warnings(&self) -> impl Iterator<Item = &String> {
-        self.log.get_warnings()
-    }
-
-    #[inline(always)]
-    pub fn num_errors(&self) -> usize {
-        self.log.num_errors()
-    }
-
-    #[inline(always)]
-    pub fn get_errors(&self) -> impl Iterator<Item = &String> {
-        self.log.get_errors()
-    }
-
     pub fn get_messages(&self) -> String {
         let mut result = String::new();
         if self.log.num_warnings() > 0 {
@@ -724,7 +704,8 @@ impl DfaBuilder {
         self.calc_states()
     }
 
-    pub fn build_from_graph<T>(&mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T) -> Option<Dfa<General>>
+    #[cfg(test)]
+    pub(crate) fn build_from_graph<T>(&mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T) -> Option<Dfa<General>>
         where T: IntoIterator<Item=(StateId, Terminal)>
     {
         let mut dfa = Dfa::<General> {

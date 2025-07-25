@@ -35,7 +35,7 @@ fn make_dfa() -> Dfa<General> {
             println!("Tree: {}", tree_to_string(&dfa_builder.get_re(), None, true));
             println!("Messages:\n{}", dfa_builder.get_messages());
         }
-        assert_eq!(dfa_builder.num_errors(), 0);
+        assert_eq!(dfa_builder.get_log().num_errors(), 0);
         dfas.push((n, dfa));
     }
     let mut dfa_builder = DfaBuilder::new();
@@ -43,7 +43,7 @@ fn make_dfa() -> Dfa<General> {
     if VERBOSE {
         println!("Messages:\n{}", dfa_builder.get_messages());
     }
-    assert_eq!(dfa_builder.num_errors(), 0);
+    assert_eq!(dfa_builder.get_log().num_errors(), 0);
     dfa.expect(&format!("failed to build Dfa:\n{}", dfa_builder.get_messages()))
 }
 

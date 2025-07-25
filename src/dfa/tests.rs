@@ -1439,13 +1439,13 @@ fn dfa_states() {
             if dfa.end_states != expected_ends {
                 msg.push("End states incorrect".to_string());
             }
-            if dfa_builder.num_warnings() != expected_warnings {
+            if dfa_builder.log.num_warnings() != expected_warnings {
                 msg.push("Number of warnings not as expected".to_string());
-                msg.extend(dfa_builder.get_warnings().cloned());
+                msg.extend(dfa_builder.log.get_warnings().cloned());
             }
-            if dfa_builder.num_errors() > 0 {
+            if !dfa_builder.log.has_no_errors() {
                 msg.push("Errors:".to_string());
-                msg.extend(dfa_builder.get_errors().cloned());
+                msg.extend(dfa_builder.log.get_errors().cloned());
             }
             if msg.len() > 0 {
                 println!("ERRORS in test {test_id}:");
