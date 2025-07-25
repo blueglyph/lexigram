@@ -545,11 +545,6 @@ impl<'a, T> IntoIterator for &'a SegMap<T> {
 // Macros
 
 pub mod macros {
-    #[allow(unused)] // the compiler doesn't see it's used in a macro
-    use crate::btreemap;
-    #[allow(unused)] // the compiler doesn't see it's used in a macro
-    use super::*;
-
     /// Generates a Seg (tuple of u32 values) from one or two values (characters or integers).
     ///
     /// # Example
@@ -661,52 +656,6 @@ pub mod macros {
         ($( $([$($($a1:literal)?$($a2:ident)? $(-$($b1:literal)?$($b2:ident)?)?),+])? $(~[$($($c1:literal)?$($c2:ident)? $(-$($d1:literal)?$($d2:ident)?)?),+])? => $value:expr ),*)
         => { btreemap![$($($crate::segments![$($($a1)?$($a2)?$(- $($b1)?$($b2)?)?),+])? $($crate::segments![~ $($($c1)?$($c2)?$(- $($d1)?$($d2)?)?),+])? => $value),*] };
     }
-
-    #[test]
-    fn macro_segments() {
-        assert_eq!(seg!('a'-'z'), Seg('a' as u32, 'z' as u32));
-        assert_eq!(seg!('a'), Seg('a' as u32, 'a' as u32));
-        assert_eq!(segments!('a'-'z'), Segments::from(('a', 'z')));
-        assert_eq!(segments!('a'), Segments::from('a'));
-        assert_eq!(segments!('a'-'z', '0'-'9'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]));
-        assert_eq!(segments!('a'-'z', '0'-'9', '-'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32), Seg('-' as u32, '-' as u32)]));
-        assert_eq!(segments!(~ '0'-'9', '.'), Segments::from([Seg('0' as u32, '9' as u32), Seg('.' as u32, '.' as u32)]).not());
-        assert_eq!(segments!(0 - LOW_MAX, HIGH_MIN - MAX), Segments::dot());
-        assert_eq!(segments!(~ 0 - LOW_MAX, HIGH_MIN - MAX), Segments::empty());
-        assert_eq!(segments!(DOT), Segments::dot());
-        assert_eq!(segments!(~ DOT), Segments::empty());
-    }
-
-    #[test]
-    fn macro_branch() {
-        let transitions = btreemap![
-            0 => branch!['a'-'c' => 0],
-            1 => branch!['a'-'c', '0'-'2' => 0],
-            2 => branch!['a'-'c', '.' => 0],
-            3 => branch!['a'-'c', '.' => 0, 'd'-'f' => 1],
-            4 => branch![['a'-'c', '.'] => 0, ['d'-'f'] => 1],
-            5 => branch![['a'-'c', '.'] => 0, ~['a'-'c', '.'] => 1],
-            6 => branch![0 - LOW_MAX, HIGH_MIN - MAX => 0],
-            7 => branch!['a' => 0, DOT => 1],
-        ];
-        assert_eq!(transitions,
-            btreemap![
-                0 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32)]) => 0],
-                1 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('0' as u32, '2' as u32)]) => 0],
-                2 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0],
-                3 => btreemap![
-                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
-                    Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
-                4 => btreemap![
-                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
-                    Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
-                5 => btreemap![
-                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
-                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]).not() => 1],
-                6 => btreemap![Segments::from([Seg(0_u32, 0xd7ff_u32), Seg(0xe000_u32, 0x10ffff_u32)]) => 0],
-                7 => btreemap![Segments::from([Seg('a' as u32, 'a' as u32)]) => 0, Segments::dot() => 1]
-            ]);
-    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -716,7 +665,7 @@ pub mod macros {
 #[cfg(test)]
 mod tests {
     use iter_index::IndexerIterator;
-    use crate::segments;
+    use crate::{segments, btreemap, branch, seg};
     use super::*;
 
     fn new_cmp(c: Seg, i: Seg, e: Seg) -> SegmentsCmp {
@@ -905,5 +854,51 @@ mod tests {
             let result = segments.not();
             assert_eq!(result.normalized(), expected.normalized(), "test {test_id} failed");
         }
+    }
+
+    #[test]
+    fn macro_segments() {
+        assert_eq!(seg!('a'-'z'), Seg('a' as u32, 'z' as u32));
+        assert_eq!(seg!('a'), Seg('a' as u32, 'a' as u32));
+        assert_eq!(segments!('a'-'z'), Segments::from(('a', 'z')));
+        assert_eq!(segments!('a'), Segments::from('a'));
+        assert_eq!(segments!('a'-'z', '0'-'9'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32)]));
+        assert_eq!(segments!('a'-'z', '0'-'9', '-'), Segments::from([Seg('a' as u32, 'z' as u32), Seg('0' as u32, '9' as u32), Seg('-' as u32, '-' as u32)]));
+        assert_eq!(segments!(~ '0'-'9', '.'), Segments::from([Seg('0' as u32, '9' as u32), Seg('.' as u32, '.' as u32)]).not());
+        assert_eq!(segments!(0 - LOW_MAX, HIGH_MIN - MAX), Segments::dot());
+        assert_eq!(segments!(~ 0 - LOW_MAX, HIGH_MIN - MAX), Segments::empty());
+        assert_eq!(segments!(DOT), Segments::dot());
+        assert_eq!(segments!(~ DOT), Segments::empty());
+    }
+
+    #[test]
+    fn macro_branch() {
+        let transitions = btreemap![
+            0 => branch!['a'-'c' => 0],
+            1 => branch!['a'-'c', '0'-'2' => 0],
+            2 => branch!['a'-'c', '.' => 0],
+            3 => branch!['a'-'c', '.' => 0, 'd'-'f' => 1],
+            4 => branch![['a'-'c', '.'] => 0, ['d'-'f'] => 1],
+            5 => branch![['a'-'c', '.'] => 0, ~['a'-'c', '.'] => 1],
+            6 => branch![0 - LOW_MAX, HIGH_MIN - MAX => 0],
+            7 => branch!['a' => 0, DOT => 1],
+        ];
+        assert_eq!(transitions,
+            btreemap![
+                0 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32)]) => 0],
+                1 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('0' as u32, '2' as u32)]) => 0],
+                2 => btreemap![Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0],
+                3 => btreemap![
+                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+                    Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+                4 => btreemap![
+                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+                    Segments::from([Seg('d' as u32, 'f' as u32)]) => 1],
+                5 => btreemap![
+                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]) => 0,
+                    Segments::from([Seg('a' as u32, 'c' as u32), Seg('.' as u32, '.' as u32)]).not() => 1],
+                6 => btreemap![Segments::from([Seg(0_u32, 0xd7ff_u32), Seg(0xe000_u32, 0x10ffff_u32)]) => 0],
+                7 => btreemap![Segments::from([Seg('a' as u32, 'a' as u32)]) => 0, Segments::dot() => 1]
+            ]);
     }
 }

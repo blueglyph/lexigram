@@ -1,10 +1,8 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use iter_index::IndexerIterator;
-use lexigram_lib::grammar::{ruleflag, Symbol};
 use lexigram_lib::CollectJoin;
 use lexigram_lib::log::Logger;
-use lexigram_lib::parsergen::ParserGen;
+use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::grammar::ProdRuleSetTables;
 use lexigram_lib::{hashmap, prod, prodf};
@@ -13,19 +11,6 @@ use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG};
 /// Generates Lexi's parser source code from the grammar file and from the symbols in the lexicon
 /// (extracted in [`build_lexilexer`](crate::build_lexilexer::lexilexer_source())).
 fn gramparser_source(indent: usize, verbose: bool) -> Result<String, String> {
-    pub fn print_flags(builder: &ParserGen, indent: usize) {
-        let tbl = builder.get_symbol_table();
-        let prefix = format!("{:width$}//", "", width = indent);
-        let nt_flags = builder.get_parsing_table().flags.iter().index().filter_map(|(nt, &f)|
-            if f != 0 { Some(format!("{prefix}  - {}: {} ({})", Symbol::NT(nt).to_str(tbl), ruleflag::to_string(f).join(" | "), f)) } else { None }
-        ).join("\n");
-        let parents = builder.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
-            if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
-        ).join("\n");
-        println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
-        println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
-    }
-
     // [versions]
 
     // lexigram_lib: 0.3.0

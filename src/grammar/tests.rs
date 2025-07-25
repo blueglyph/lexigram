@@ -548,7 +548,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
 
         100 => {
             // lexiparser
-            rules = crate::lexi::build_rts();
+            rules = crate::lexi::tests::build_rts();
         }
         _ => {}
     }

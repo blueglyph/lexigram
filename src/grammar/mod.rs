@@ -1,8 +1,5 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-// #![allow(dead_code)]
-// #![allow(unused)]
-
 pub(crate) mod tests;
 
 use std::collections::{HashMap, HashSet};
