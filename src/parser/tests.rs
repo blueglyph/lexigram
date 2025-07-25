@@ -4,14 +4,29 @@
 
 use std::collections::HashMap;
 use iter_index::IndexerIterator;
-use crate::{CollectJoin, LL1, SymbolTable};
+use crate::{CollectJoin, LL1};
 use crate::dfa::TokenId;
-use crate::grammar::{ProdRuleSet, Symbol, VarId};
-use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table, T};
-use crate::lexer::{CaretCol, LexerToken};
-use crate::log::{BufLog, Logger, PrintLog};
-use crate::parser::ListenerWrapper;
+use crate::grammar::{ProdFactor, ProdRuleSet, Symbol, VarId};
+use crate::grammar::tests::{build_prs, T};
+use crate::lexer::CaretCol;
+use crate::log::{BufLog, Logger};
+use crate::parser::{ListenerWrapper, OpCode, Parser};
 use crate::parsergen::{ParserGen, ParserTables};
+
+
+impl<'a> Parser<'a> {
+    pub(crate) fn get_factor_var(&self) -> &[VarId] {
+        self.factor_var
+    }
+
+    pub(crate) fn get_factors(&self) -> &Vec<ProdFactor> {
+        &self.factors
+    }
+
+    pub(crate) fn get_opcodes(&self) -> &Vec<Vec<OpCode>> {
+        &self.opcodes
+    }
+}
 
 // ---------------------------------------------------------------------------------------------
 // Macros
@@ -126,7 +141,7 @@ fn parser_parse_stream() {
         let mut parser = parser_tables.make_parser();
         for (input, expected_success) in sequences {
             if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
-            let mut stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {
+            let stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {
                 if c.is_ascii_whitespace() {
                     None
                 } else {
@@ -245,7 +260,7 @@ fn parser_parse_stream_id() {
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
-        let mut ll1 = ll_id.build_prs(test_id, start, false);
+        let ll1 = ll_id.build_prs(test_id, start, false);
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
@@ -289,7 +304,7 @@ fn parser_parse_stream_id() {
 mod listener {
     use crate::grammar::tests::build_prs;
     use crate::grammar::{FactorId, VarId};
-    use crate::lexer::{CaretCol, LexerToken};
+    use crate::lexer::CaretCol;
     use crate::log::BufLog;
     use crate::parser::{Call, ListenerWrapper};
     use super::*;
@@ -480,7 +495,7 @@ mod listener {
 
         // we're not interested in exit_e_1
 
-        fn exit_t_1(&mut self, ctx: CtxT1) {
+        fn exit_t_1(&mut self, _ctx: CtxT1) {
             self.level -= 1;
             if self.verbose { println!("{: <1$} T_1)", "", self.level * 4); }
             self.result.push("T_1)".to_string());
@@ -515,7 +530,7 @@ mod listener {
             let mut parser = parser_tables.make_parser();
             for (input, expected_success, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
-                let mut stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {
+                let stream = input.chars().into_iter().index_start::<CaretCol>(1).filter_map(|(i, c)| {
                     let c_str = c.to_string();
                     if c.is_ascii_whitespace() {
                         None
@@ -549,7 +564,7 @@ mod listener {
                         false
                     }
                 };
-                let mut listener = wrapper.listener();
+                let listener = wrapper.listener();
                 if VERBOSE {
                     let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                     if !msg.is_empty() {

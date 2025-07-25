@@ -13,8 +13,6 @@ static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "
 static FACTOR_VAR: [VarId; 24] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
 static FACTORS: [&[Symbol]; 24] = [&[Symbol::NT(1), Symbol::NT(2)], &[Symbol::T(8), Symbol::T(12), Symbol::T(6)], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::NT(12)], &[Symbol::T(12)], &[Symbol::NT(6), Symbol::NT(11)], &[Symbol::NT(9)], &[Symbol::NT(8), Symbol::NT(13)], &[Symbol::T(12)], &[Symbol::T(10)], &[Symbol::T(11)], &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)], &[Symbol::NT(7), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)], &[Symbol::Empty], &[Symbol::T(6)], &[Symbol::T(9), Symbol::T(6)], &[Symbol::T(3)], &[Symbol::T(4)], &[Symbol::T(7)], &[Symbol::Empty]];
 static PARSING_TABLE: [FactorId; 196] = [24, 24, 24, 24, 24, 24, 24, 24, 0, 24, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 1, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 2, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 3, 25, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 4, 24, 24, 5, 5, 24, 24, 5, 5, 24, 24, 5, 5, 5, 5, 24, 24, 6, 6, 24, 24, 6, 6, 24, 24, 6, 6, 6, 6, 24, 24, 7, 25, 24, 24, 25, 25, 24, 24, 25, 7, 7, 7, 24, 24, 11, 25, 25, 25, 25, 25, 25, 24, 25, 9, 10, 8, 24, 24, 12, 13, 24, 24, 13, 13, 24, 24, 13, 12, 12, 12, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 14, 15, 24, 24, 16, 24, 24, 17, 17, 24, 24, 17, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 18, 24, 24, 19, 24, 24, 25, 25, 24, 23, 23, 20, 21, 23, 23, 22, 24, 23, 23, 23, 23, 24];
-static FLAGS: [u32; 14] = [0, 0, 512, 32, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64];
-static PARENT: [Option<VarId>; 14] = [None, None, None, None, None, None, None, None, None, Some(6), Some(2), Some(5), Some(3), Some(7)];
 static OPCODES: [&[OpCode]; 24] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(12), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(12)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(12)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(12), OpCode::NT(7)], &[OpCode::Exit(13)], &[OpCode::Loop(10), OpCode::Exit(14), OpCode::NT(3)], &[OpCode::Exit(15)], &[OpCode::Loop(11), OpCode::Exit(16), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(17)], &[OpCode::Exit(18), OpCode::T(6)], &[OpCode::Exit(19), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(20), OpCode::T(3)], &[OpCode::Exit(21), OpCode::T(4)], &[OpCode::Exit(22), OpCode::T(7)], &[OpCode::Exit(23)]];
 static START_SYMBOL: VarId = 0;
 
@@ -28,8 +26,6 @@ pub fn build_parser() -> Parser<'static> {
         &FACTOR_VAR,
         FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
         OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-        &FLAGS,
-        &PARENT,
         &PARSING_TABLE,
         symbol_table,
         START_SYMBOL

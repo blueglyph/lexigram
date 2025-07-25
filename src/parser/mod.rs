@@ -1,14 +1,11 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-#![allow(unused)]
-
-use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 use crate::{CollectJoin, FixedSymTable, SymInfoTable};
 use crate::dfa::TokenId;
-use crate::grammar::{LLParsingTable, ProdFactor, ruleflag, Symbol, VarId, FactorId};
+use crate::grammar::{ProdFactor, Symbol, VarId, FactorId};
 use crate::lexer::{CaretCol, CaretLine};
-use crate::log::{BufLog, Logger};
+use crate::log::Logger;
 
 mod tests;
 
@@ -29,7 +26,7 @@ pub enum Call { Enter, Loop, Exit, End }
 
 pub trait ListenerWrapper {
     /// Calls the listener to execute Enter, Loop, Exit, and End actions.
-    fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {}
+    fn switch(&mut self, _call: Call, _nt: VarId, _factor_id: FactorId, _t_data: Option<Vec<String>>) {}
     /// Checks if the wrapper requests an abort. This happens if an error is too difficult to recover from
     /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
     fn check_abort_request(&self) -> bool { false }
@@ -76,8 +73,6 @@ pub struct Parser<'a> {
     factor_var: &'a [VarId],
     factors: Vec<ProdFactor>,
     opcodes: Vec<Vec<OpCode>>,
-    flags: &'a [u32],            // NT -> flags (+ or * normalization)
-    parent: &'a [Option<VarId>], // NT -> parent NT
     table: &'a [FactorId],
     symbol_table: FixedSymTable,
     start: VarId,
@@ -94,13 +89,11 @@ impl<'a> Parser<'a> {
         factor_var: &'a [VarId],
         factors: Vec<ProdFactor>,
         opcodes: Vec<Vec<OpCode>>,
-        flags: &'a [u32],            // NT -> flags (+ or * normalization)
-        parent: &'a [Option<VarId>], // NT -> parent NT
         table: &'a [FactorId],
         symbol_table: FixedSymTable,
         start: VarId,
     ) -> Self {
-        Parser { num_nt, num_t, factor_var, factors, opcodes, flags, parent, table, symbol_table, start, try_recover: true }
+        Parser { num_nt, num_t, factor_var, factors, opcodes, table, symbol_table, start, try_recover: true }
     }
 
     pub fn get_symbol_table(&self) -> Option<&FixedSymTable> {
@@ -114,18 +107,6 @@ impl<'a> Parser<'a> {
 
     pub fn set_try_recover(&mut self, try_recover: bool) {
         self.try_recover = try_recover;
-    }
-
-    pub(crate) fn get_factor_var(&self) -> &[VarId] {
-        self.factor_var
-    }
-
-    pub(crate) fn get_factors(&self) -> &Vec<ProdFactor> {
-        &self.factors
-    }
-
-    pub(crate) fn get_opcodes(&self) -> &Vec<Vec<OpCode>> {
-        &self.opcodes
     }
 
     /// Determines with a quick simulation if `sym` is accepted by the grammar with the current
@@ -202,7 +183,7 @@ impl<'a> Parser<'a> {
                     (Symbol::T(t), s)
                 }).unwrap_or_else(|| {
                     // checks if there's an error code after the end
-                    if let Some((t, s, line, col)) = stream.next() {
+                    if let Some((_t, s, _line, _col)) = stream.next() {
                         (Symbol::Empty, s)
                     } else {
                         (Symbol::End, String::new())

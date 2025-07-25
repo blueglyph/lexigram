@@ -18,8 +18,6 @@ mod listener1 {
     static FACTOR_VAR: [VarId; 11] = [0, 1, 2, 2, 2, 3, 3, 3, 4, 4, 4];
     static FACTORS: [&[Symbol]; 11] = [&[Symbol::NT(1), Symbol::NT(3)], &[Symbol::NT(2), Symbol::NT(4)], &[Symbol::T(4), Symbol::NT(0), Symbol::T(5)], &[Symbol::T(6)], &[Symbol::T(7)], &[Symbol::T(0), Symbol::NT(1), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(1), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(4)], &[Symbol::T(3), Symbol::NT(2), Symbol::NT(4)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 45] = [11, 11, 11, 11, 0, 12, 0, 0, 12, 12, 12, 11, 11, 1, 12, 1, 1, 12, 12, 12, 12, 12, 2, 12, 3, 4, 12, 5, 6, 11, 11, 11, 7, 11, 11, 7, 10, 10, 8, 9, 11, 10, 11, 11, 10];
-    static FLAGS: [u32; 5] = [512, 512, 0, 4, 4];
-    static PARENT: [Option<VarId>; 5] = [None, None, None, Some(0), Some(1)];
     static OPCODES: [&[OpCode]; 11] = [&[OpCode::NT(3), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(4), OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Exit(2), OpCode::T(5), OpCode::NT(0), OpCode::T(4)], &[OpCode::Exit(3), OpCode::T(6)], &[OpCode::Exit(4), OpCode::T(7)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(1), OpCode::T(1)], &[OpCode::Exit(7)], &[OpCode::Loop(4), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(4), OpCode::Exit(9), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(10)]];
     static START_SYMBOL: VarId = 0;
 
@@ -33,8 +31,6 @@ mod listener1 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -68,8 +64,6 @@ mod listener2 {
     static FACTOR_VAR: [VarId; 21] = [0, 1, 1, 1, 2, 2, 2, 2, 2, 3, 4, 4, 4, 4, 5, 6, 6, 6, 7, 7, 7];
     static FACTORS: [&[Symbol]; 21] = [&[Symbol::NT(7), Symbol::NT(2)], &[Symbol::T(5), Symbol::NT(0), Symbol::T(6)], &[Symbol::T(7)], &[Symbol::T(8)], &[Symbol::T(2), Symbol::NT(7), Symbol::NT(2)], &[Symbol::T(9), Symbol::NT(2)], &[Symbol::T(3), Symbol::NT(5), Symbol::NT(2)], &[Symbol::T(4), Symbol::NT(3), Symbol::NT(2)], &[Symbol::Empty], &[Symbol::NT(7), Symbol::NT(4)], &[Symbol::T(2), Symbol::NT(7), Symbol::NT(4)], &[Symbol::T(9), Symbol::NT(4)], &[Symbol::T(3), Symbol::NT(5), Symbol::NT(4)], &[Symbol::Empty], &[Symbol::NT(7), Symbol::NT(6)], &[Symbol::T(2), Symbol::NT(7), Symbol::NT(6)], &[Symbol::T(9), Symbol::NT(6)], &[Symbol::Empty], &[Symbol::T(1), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(7)], &[Symbol::NT(1)]];
     static PARSING_TABLE: [FactorId; 88] = [0, 0, 21, 21, 21, 0, 22, 0, 0, 21, 22, 21, 21, 22, 22, 22, 1, 22, 2, 3, 22, 22, 21, 21, 4, 6, 7, 21, 8, 21, 21, 5, 8, 9, 9, 22, 22, 22, 9, 22, 9, 9, 22, 22, 21, 21, 10, 12, 13, 21, 13, 21, 21, 11, 13, 14, 14, 22, 22, 22, 14, 22, 14, 14, 22, 22, 21, 21, 15, 17, 17, 21, 17, 21, 21, 16, 17, 19, 18, 22, 22, 22, 20, 22, 20, 20, 22, 22];
-    static FLAGS: [u32; 8] = [1536, 0, 4, 512, 4, 512, 4, 2];
-    static PARENT: [Option<VarId>; 8] = [None, None, Some(0), Some(0), Some(3), Some(0), Some(5), Some(0)];
     static OPCODES: [&[OpCode]; 21] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(7)], &[OpCode::Exit(1), OpCode::T(6), OpCode::NT(0), OpCode::T(5)], &[OpCode::Exit(2), OpCode::T(7)], &[OpCode::Exit(3), OpCode::T(8)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(7), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::T(9)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(5), OpCode::T(3)], &[OpCode::Loop(2), OpCode::Exit(7), OpCode::NT(3), OpCode::T(4)], &[OpCode::Exit(8)], &[OpCode::NT(4), OpCode::Exit(9), OpCode::NT(7)], &[OpCode::Loop(4), OpCode::Exit(10), OpCode::NT(7), OpCode::T(2)], &[OpCode::Loop(4), OpCode::Exit(11), OpCode::T(9)], &[OpCode::Loop(4), OpCode::Exit(12), OpCode::NT(5), OpCode::T(3)], &[OpCode::Exit(13)], &[OpCode::NT(6), OpCode::Exit(14), OpCode::NT(7)], &[OpCode::Loop(6), OpCode::Exit(15), OpCode::NT(7), OpCode::T(2)], &[OpCode::Loop(6), OpCode::Exit(16), OpCode::T(9)], &[OpCode::Exit(17)], &[OpCode::Exit(18), OpCode::NT(3), OpCode::T(1)], &[OpCode::Exit(19), OpCode::NT(7), OpCode::T(0)], &[OpCode::Exit(20), OpCode::NT(1)]];
     static START_SYMBOL: VarId = 0;
 
@@ -83,8 +77,6 @@ mod listener2 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -109,8 +101,6 @@ mod listener3 {
     static FACTOR_VAR: [VarId; 3] = [0, 1, 1];
     static FACTORS: [&[Symbol]; 3] = [&[Symbol::T(0), Symbol::T(5), Symbol::T(1), Symbol::NT(1)], &[Symbol::T(5), Symbol::T(3), Symbol::T(5), Symbol::T(4), Symbol::NT(1)], &[Symbol::T(2)]];
     static PARSING_TABLE: [FactorId; 14] = [0, 3, 3, 3, 3, 3, 4, 3, 3, 2, 3, 3, 1, 4];
-    static FLAGS: [u32; 2] = [0, 2];
-    static PARENT: [Option<VarId>; 2] = [None, None];
     static OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::NT(1), OpCode::T(1), OpCode::T(5), OpCode::T(0)], &[OpCode::Exit(1), OpCode::NT(1), OpCode::T(4), OpCode::T(5), OpCode::T(3), OpCode::T(5)], &[OpCode::Exit(2), OpCode::T(2)]];
     static START_SYMBOL: VarId = 0;
 
@@ -124,8 +114,6 @@ mod listener3 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -150,8 +138,6 @@ mod listener4 {
     static FACTOR_VAR: [VarId; 3] = [0, 1, 1];
     static FACTORS: [&[Symbol]; 3] = [&[Symbol::T(0), Symbol::T(5), Symbol::T(1), Symbol::NT(1)], &[Symbol::T(5), Symbol::T(3), Symbol::T(5), Symbol::T(4), Symbol::NT(1)], &[Symbol::T(2)]];
     static PARSING_TABLE: [FactorId; 14] = [0, 3, 3, 3, 3, 3, 4, 3, 3, 2, 3, 3, 1, 4];
-    static FLAGS: [u32; 2] = [0, 130];
-    static PARENT: [Option<VarId>; 2] = [None, None];
     static OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::NT(1), OpCode::T(1), OpCode::T(5), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(4), OpCode::T(5), OpCode::T(3), OpCode::T(5)], &[OpCode::Exit(2), OpCode::T(2)]];
     static START_SYMBOL: VarId = 0;
 
@@ -165,8 +151,6 @@ mod listener4 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -191,8 +175,6 @@ mod listener5 {
     static FACTOR_VAR: [VarId; 4] = [0, 1, 2, 2];
     static FACTORS: [&[Symbol]; 4] = [&[Symbol::NT(1), Symbol::NT(2)], &[Symbol::T(1)], &[Symbol::T(0), Symbol::T(1), Symbol::NT(2)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 9] = [4, 0, 5, 5, 1, 5, 2, 4, 3];
-    static FLAGS: [u32; 3] = [512, 0, 4];
-    static PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
     static OPCODES: [&[OpCode]; 4] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)]];
     static START_SYMBOL: VarId = 0;
 
@@ -206,8 +188,6 @@ mod listener5 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -232,8 +212,6 @@ mod listener6 {
     static FACTOR_VAR: [VarId; 6] = [0, 1, 2, 2, 3, 3];
     static FACTORS: [&[Symbol]; 6] = [&[Symbol::NT(1), Symbol::NT(2)], &[Symbol::T(1)], &[Symbol::T(0), Symbol::T(1), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::T(3), Symbol::NT(2)], &[Symbol::NT(2)]];
     static PARSING_TABLE: [FactorId; 20] = [6, 0, 6, 6, 7, 7, 1, 6, 6, 7, 2, 6, 6, 6, 3, 5, 6, 4, 6, 5];
-    static FLAGS: [u32; 4] = [512, 0, 36, 64];
-    static PARENT: [Option<VarId>; 4] = [None, None, Some(0), Some(2)];
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::NT(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(3)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::T(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(5)]];
     static START_SYMBOL: VarId = 0;
 
@@ -247,8 +225,6 @@ mod listener6 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -273,8 +249,6 @@ mod listener7 {
     static FACTOR_VAR: [VarId; 3] = [0, 1, 1];
     static FACTORS: [&[Symbol]; 3] = [&[Symbol::T(0), Symbol::NT(1), Symbol::T(2)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 8] = [0, 3, 3, 4, 3, 1, 2, 3];
-    static FLAGS: [u32; 2] = [2048, 1];
-    static PARENT: [Option<VarId>; 2] = [None, Some(0)];
     static OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(1)], &[OpCode::Exit(2)]];
     static START_SYMBOL: VarId = 0;
 
@@ -288,8 +262,6 @@ mod listener7 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -314,8 +286,6 @@ mod listener8 {
     static FACTOR_VAR: [VarId; 3] = [0, 1, 1];
     static FACTORS: [&[Symbol]; 3] = [&[Symbol::T(0), Symbol::NT(1), Symbol::T(2)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 8] = [0, 3, 3, 4, 3, 1, 2, 3];
-    static FLAGS: [u32; 2] = [2048, 129];
-    static PARENT: [Option<VarId>; 2] = [None, Some(0)];
     static OPCODES: [&[OpCode]; 3] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(1), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(1)], &[OpCode::Exit(2)]];
     static START_SYMBOL: VarId = 0;
 
@@ -329,8 +299,6 @@ mod listener8 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -355,8 +323,6 @@ mod listener9 {
     static FACTOR_VAR: [VarId; 6] = [0, 1, 2, 2, 3, 3];
     static FACTORS: [&[Symbol]; 6] = [&[Symbol::T(0), Symbol::NT(2)], &[Symbol::T(2), Symbol::NT(3)], &[Symbol::NT(1), Symbol::T(1), Symbol::NT(2)], &[Symbol::Empty], &[Symbol::NT(1)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 16] = [0, 6, 6, 7, 6, 7, 1, 6, 6, 6, 2, 3, 6, 5, 4, 6];
-    static FLAGS: [u32; 4] = [6656, 4129, 4, 64];
-    static PARENT: [Option<VarId>; 4] = [None, Some(0), Some(0), Some(1)];
     static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::T(0)], &[OpCode::NT(3), OpCode::T(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::T(1), OpCode::NT(1)], &[OpCode::Exit(3)], &[OpCode::Loop(1), OpCode::Exit(4)], &[OpCode::Exit(5)]];
     static START_SYMBOL: VarId = 0;
 
@@ -370,8 +336,6 @@ mod listener9 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -396,8 +360,6 @@ mod listener10 {
     static FACTOR_VAR: [VarId; 4] = [0, 1, 2, 2];
     static FACTORS: [&[Symbol]; 4] = [&[Symbol::T(0), Symbol::NT(1), Symbol::T(2)], &[Symbol::T(1), Symbol::NT(2)], &[Symbol::NT(1)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 12] = [0, 4, 4, 5, 4, 1, 5, 4, 4, 2, 3, 4];
-    static FLAGS: [u32; 3] = [6144, 4129, 64];
-    static PARENT: [Option<VarId>; 3] = [None, Some(0), Some(1)];
     static OPCODES: [&[OpCode]; 4] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(1), OpCode::T(0)], &[OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(2)], &[OpCode::Exit(3)]];
     static START_SYMBOL: VarId = 0;
 
@@ -411,8 +373,6 @@ mod listener10 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -437,8 +397,6 @@ mod listener11 {
     static FACTOR_VAR: [VarId; 5] = [0, 1, 2, 3, 3];
     static FACTORS: [&[Symbol]; 5] = [&[Symbol::T(0), Symbol::NT(2), Symbol::T(2)], &[Symbol::T(1)], &[Symbol::NT(1), Symbol::NT(3)], &[Symbol::NT(2)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 16] = [0, 5, 5, 6, 5, 1, 6, 5, 5, 2, 6, 5, 5, 3, 4, 5];
-    static FLAGS: [u32; 4] = [6144, 0, 4129, 64];
-    static PARENT: [Option<VarId>; 4] = [None, None, Some(0), Some(2)];
     static OPCODES: [&[OpCode]; 5] = [&[OpCode::Exit(0), OpCode::T(2), OpCode::NT(2), OpCode::T(0)], &[OpCode::Exit(1), OpCode::T(1)], &[OpCode::NT(3), OpCode::NT(1)], &[OpCode::Loop(2), OpCode::Exit(3)], &[OpCode::Exit(4)]];
     static START_SYMBOL: VarId = 0;
 
@@ -452,8 +410,6 @@ mod listener11 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -478,8 +434,6 @@ mod listener12 {
     static FACTOR_VAR: [VarId; 5] = [0, 1, 1, 2, 2];
     static FACTORS: [&[Symbol]; 5] = [&[Symbol::T(1), Symbol::NT(2)], &[Symbol::T(0), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(1)]];
     static PARSING_TABLE: [FactorId; 15] = [5, 0, 5, 5, 6, 1, 5, 5, 5, 2, 5, 5, 3, 4, 6];
-    static FLAGS: [u32; 3] = [544, 4, 64];
-    static PARENT: [Option<VarId>; 3] = [None, Some(0), Some(0)];
     static OPCODES: [&[OpCode]; 5] = [&[OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(0)], &[OpCode::Exit(2)], &[OpCode::NT(1), OpCode::Exit(3), OpCode::T(2)], &[OpCode::NT(1), OpCode::Exit(4), OpCode::T(3)]];
     static START_SYMBOL: VarId = 0;
 
@@ -493,8 +447,6 @@ mod listener12 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -519,8 +471,6 @@ mod listener13 {
     static FACTOR_VAR: [VarId; 5] = [0, 0, 1, 2, 2];
     static FACTORS: [&[Symbol]; 5] = [&[Symbol::NT(1), Symbol::NT(2)], &[Symbol::T(2), Symbol::NT(2)], &[Symbol::T(1)], &[Symbol::T(0), Symbol::T(1), Symbol::NT(2)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 12] = [5, 0, 1, 6, 6, 2, 5, 6, 3, 5, 5, 4];
-    static FLAGS: [u32; 3] = [512, 0, 4];
-    static PARENT: [Option<VarId>; 3] = [None, None, Some(0)];
     static OPCODES: [&[OpCode]; 5] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(2), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Exit(2), OpCode::T(1)], &[OpCode::Loop(2), OpCode::Exit(3), OpCode::T(1), OpCode::T(0)], &[OpCode::Exit(4)]];
     static START_SYMBOL: VarId = 0;
 
@@ -534,8 +484,6 @@ mod listener13 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -559,8 +507,6 @@ pub(crate) mod listener14 {
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E_1", "E_2", "E_3", "E_4", "E_5", "E_6"];
     static FACTOR_VAR: [VarId; 14] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 6, 6];
     static PARSING_TABLE: [FactorId; 42] = [14, 14, 0, 14, 0, 15, 1, 2, 14, 3, 14, 4, 15, 15, 5, 15, 5, 15, 6, 7, 14, 8, 14, 8, 15, 15, 9, 15, 9, 15, 10, 11, 14, 11, 14, 11, 15, 15, 12, 15, 13, 15];
-    static FLAGS: [u32; 7] = [1536, 4, 512, 4, 512, 4, 2];
-    static PARENT: [Option<VarId>; 7] = [None, Some(0), Some(0), Some(2), Some(0), Some(4), Some(0)];
     static OPCODES: [&[OpCode]; 14] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(1)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(13), OpCode::T(4)]];
     static START_SYMBOL: VarId = 0;
 
@@ -574,8 +520,6 @@ pub(crate) mod listener14 {
             &FACTOR_VAR,
             Vec::new(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -600,8 +544,6 @@ pub(crate) mod listener15 {
     static FACTOR_VAR: [VarId; 17] = [0, 1, 1, 1, 2, 2, 2, 2, 3, 4, 4, 4, 5, 6, 6, 7, 7];
     static FACTORS: [&[Symbol]; 17] = [&[Symbol::NT(7), Symbol::NT(2)], &[Symbol::T(4)], &[Symbol::T(5)], &[Symbol::T(6), Symbol::NT(0), Symbol::T(7)], &[Symbol::T(0), Symbol::NT(5), Symbol::NT(2)], &[Symbol::T(1), Symbol::NT(3), Symbol::NT(2)], &[Symbol::T(3), Symbol::NT(3), Symbol::NT(2)], &[Symbol::Empty], &[Symbol::NT(7), Symbol::NT(4)], &[Symbol::T(0), Symbol::NT(5), Symbol::NT(4)], &[Symbol::T(1), Symbol::NT(3), Symbol::NT(4)], &[Symbol::Empty], &[Symbol::NT(7), Symbol::NT(6)], &[Symbol::T(0), Symbol::NT(5), Symbol::NT(6)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(3)], &[Symbol::NT(1)]];
     static PARSING_TABLE: [FactorId; 72] = [17, 17, 0, 17, 0, 0, 0, 18, 18, 18, 18, 17, 18, 1, 2, 3, 18, 18, 4, 5, 17, 6, 17, 17, 17, 7, 7, 18, 18, 8, 18, 8, 8, 8, 18, 18, 9, 10, 17, 11, 17, 17, 17, 11, 11, 18, 18, 12, 18, 12, 12, 12, 18, 18, 13, 14, 17, 14, 17, 17, 17, 14, 14, 18, 18, 15, 18, 16, 16, 16, 18, 18];
-    static FLAGS: [u32; 8] = [1536, 0, 4, 512, 4, 512, 4, 2];
-    static PARENT: [Option<VarId>; 8] = [None, None, Some(0), Some(0), Some(3), Some(0), Some(5), Some(0)];
     static OPCODES: [&[OpCode]; 17] = [&[OpCode::NT(2), OpCode::Exit(0), OpCode::NT(7)], &[OpCode::Exit(1), OpCode::T(4)], &[OpCode::Exit(2), OpCode::T(5)], &[OpCode::Exit(3), OpCode::T(7), OpCode::NT(0), OpCode::T(6)], &[OpCode::Loop(2), OpCode::Exit(4), OpCode::NT(5), OpCode::T(0)], &[OpCode::Loop(2), OpCode::Exit(5), OpCode::NT(3), OpCode::T(1)], &[OpCode::Loop(2), OpCode::Exit(6), OpCode::NT(3), OpCode::T(3)], &[OpCode::Exit(7)], &[OpCode::NT(4), OpCode::Exit(8), OpCode::NT(7)], &[OpCode::Loop(4), OpCode::Exit(9), OpCode::NT(5), OpCode::T(0)], &[OpCode::Loop(4), OpCode::Exit(10), OpCode::NT(3), OpCode::T(1)], &[OpCode::Exit(11)], &[OpCode::NT(6), OpCode::Exit(12), OpCode::NT(7)], &[OpCode::Loop(6), OpCode::Exit(13), OpCode::NT(5), OpCode::T(0)], &[OpCode::Exit(14)], &[OpCode::Exit(15), OpCode::NT(3), OpCode::T(2)], &[OpCode::Exit(16), OpCode::NT(1)]];
     static START_SYMBOL: VarId = 0;
 
@@ -615,8 +557,6 @@ pub(crate) mod listener15 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL
@@ -641,8 +581,6 @@ pub(crate) mod listener16 {
     static FACTOR_VAR: [VarId; 4] = [0, 0, 1, 1];
     static FACTORS: [&[Symbol]; 4] = [&[Symbol::T(1), Symbol::NT(0)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(1)], &[Symbol::Empty]];
     static PARSING_TABLE: [FactorId; 8] = [4, 0, 1, 5, 2, 4, 4, 3];
-    static FLAGS: [u32; 2] = [514, 4];
-    static PARENT: [Option<VarId>; 2] = [None, Some(0)];
     static OPCODES: [&[OpCode]; 4] = [&[OpCode::Exit(0), OpCode::NT(0), OpCode::T(1)], &[OpCode::NT(1), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(0)], &[OpCode::Exit(3)]];
     static START_SYMBOL: VarId = 0;
 
@@ -656,8 +594,6 @@ pub(crate) mod listener16 {
             &FACTOR_VAR,
             FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
             OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
-            &FLAGS,
-            &PARENT,
             &PARSING_TABLE,
             symbol_table,
             START_SYMBOL

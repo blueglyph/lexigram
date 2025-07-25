@@ -131,8 +131,6 @@ pub struct ParserTables {
     factor_var: Vec<VarId>,
     factors: Vec<ProdFactor>,
     opcodes: Vec<Vec<OpCode>>,
-    flags: Vec<u32>,            // NT -> flags (+ or * normalization)
-    parent: Vec<Option<VarId>>, // NT -> parent NT
     table: Vec<FactorId>,
     symbol_table: FixedSymTable,
     start: VarId,
@@ -144,11 +142,9 @@ impl ParserTables {
         assert!(parsing_table.num_nt > start as usize);
         let num_nt = parsing_table.num_nt;
         let num_t = parsing_table.num_t;
-        let flags = parsing_table.flags;
-        let parent = parsing_table.parent;
         let table = parsing_table.table;
         let (factor_var, factors): (Vec<_>, Vec<_>) = parsing_table.factors.into_iter().unzip();
-        ParserTables { num_nt, num_t, factor_var, factors, opcodes, flags, parent, table, symbol_table, start, include_factors }
+        ParserTables { num_nt, num_t, factor_var, factors, opcodes, table, symbol_table, start, include_factors }
     }
 
     pub fn make_parser(&self) -> Parser {
@@ -158,8 +154,6 @@ impl ParserTables {
             self.factor_var.as_slice(),
             if self.include_factors { self.factors.clone() } else { vec![] },
             self.opcodes.clone(),
-            self.flags.as_slice(),
-            self.parent.as_slice(),
             self.table.as_slice(),
             self.symbol_table.clone(),
             self.start,
@@ -1337,10 +1331,6 @@ impl ParserGen {
             format!("static PARSING_TABLE: [FactorId; {}] = [{}];",
                      self.parsing_table.table.len(),
                      self.parsing_table.table.iter().map(|v| format!("{v}")).join(", ")),
-            format!("static FLAGS: [u32; {}] = [{}];",
-                     self.parsing_table.flags.len(), self.parsing_table.flags.iter().join(", ")),
-            format!("static PARENT: [Option<VarId>; {}] = [{}];",
-                     self.parsing_table.parent.len(), self.parsing_table.parent.iter().map(|p| if let Some(par) = p { format!("Some({par})") } else { format!("None") }).join(", ")),
             format!("static OPCODES: [&[OpCode]; {}] = [{}];", self.opcodes.len(),
                      self.opcodes.iter().map(|strip| format!("&[{}]", strip.into_iter().map(|op| format!("OpCode::{op:?}")).join(", "))).join(", ")),
             format!("static START_SYMBOL: VarId = {};\n", self.start),
@@ -1359,8 +1349,6 @@ impl ParserGen {
                 format!("        Vec::new(),")
             },
             format!("        OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),"),
-            format!("        &FLAGS,"),
-            format!("        &PARENT,"),
             format!("        &PARSING_TABLE,"),
             format!("        symbol_table,"),
             format!("        START_SYMBOL"),
