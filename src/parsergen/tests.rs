@@ -1849,6 +1849,40 @@ mod wrapper_source {
                 7 => symbols![nt 1, t 5],               //  7: A_4 -> A_1           | ●A_1 ◄7            | A_1 NUM
                 8 => symbols![nt 1, t 5],               //  8: A_4 -> ε             | ◄8                 | A_1 NUM
             ], Default, btreemap![0 => vec![0]]),
+
+            // E -> - E                E -> -E
+            // |    E (* | /) E          -> E * E   // * and / with same precedence
+            // |    E (+ | -) E   =>     -> E / E
+            // |    ID                   -> E + E   // + and - with same precedence
+            //                           -> E - E
+            //                           -> ID
+            // NT flags:
+            //  - E: parent_left_rec | parent_amb (1536)
+            //  - E_1: child_left_rec (4)
+            //  - E_2: parent_left_rec (512)
+            //  - E_3: child_left_rec (4)
+            //  - E_4: right_rec (2)
+            // parents:
+            //  - E_1 -> E
+            //  - E_2 -> E
+            //  - E_3 -> E_2
+            //  - E_4 -> E
+            (RTS(42), false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 0],                    //  0: E -> E_4 E_1     | ►E_1 ◄0 ►E_4   | E
+                1 => symbols![nt 0, nt 0],              //  1: E_1 -> * E_4 E_1 | ●E_1 ◄1 ►E_4 * | E E
+                2 => symbols![nt 0, nt 0],              //  2: E_1 -> / E_4 E_1 | ●E_1 ◄2 ►E_4 / | E E
+                3 => symbols![nt 0, nt 0],              //  3: E_1 -> + E_2 E_1 | ●E_1 ◄3 ►E_2 + | E E
+                4 => symbols![nt 0, nt 0],              //  4: E_1 -> - E_2 E_1 | ●E_1 ◄4 ►E_2 - | E E
+                5 => symbols![nt 0],                    //  5: E_1 -> ε         | ◄5             | E
+                6 => symbols![nt 0],                    //  6: E_2 -> E_4 E_3   | ►E_3 ◄6 ►E_4   | E
+                7 => symbols![nt 0, nt 0],              //  7: E_3 -> * E_4 E_3 | ●E_3 ◄7 ►E_4 * | E E
+                8 => symbols![nt 0, nt 0],              //  8: E_3 -> / E_4 E_3 | ●E_3 ◄8 ►E_4 / | E E
+                9 => symbols![nt 0],                    //  9: E_3 -> ε         | ◄9             | E
+                10 => symbols![nt 0],                   // 10: E_4 -> - E_4     | ◄10 ►E_4 -     | E
+                11 => symbols![t 4],                    // 11: E_4 -> ID        | ◄11 ID!        | ID
+            ], Default, btreemap![0 => vec![0]]),
+
             // ---------------------------------------------------------------------------
             // NT flags:
             //  - file: parent_+_or_* (2048)

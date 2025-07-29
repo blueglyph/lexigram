@@ -116,7 +116,8 @@ pub enum GrNode {
     ///     doesn't accumulate values on the stack. In the example above, it's first called with `id = id1`, `id2`, `id3`,
     ///     and finally `stop = stop1`, together with the loop value `A`, which is updated each time by the callback.
     LForm(VarId),   // applied to NT
-    RAssoc          // applied to factor
+    RAssoc,         // applied to factor, right-associative
+    PrecEq,         // applied to factor, same precedence as previous factor
 }
 
 impl Display for GrNode {
@@ -129,7 +130,8 @@ impl Display for GrNode {
             GrNode::Plus => write!(f, "+"),
             GrNode::Star => write!(f, "*"),
             GrNode::LForm(v) => write!(f, "<L={v}>"),
-            GrNode::RAssoc => write!(f, "<R>")
+            GrNode::RAssoc => write!(f, "<R>"),
+            GrNode::PrecEq => write!(f, "<P>"),
         }
     }
 }
@@ -318,15 +320,17 @@ pub mod ruleflag {
     pub const REPEAT_PLUS: u32 = 4096;
     /// GREEDY factor: is expected to generate an ambiguity in the parsing table
     pub const GREEDY: u32 = 8192;
+    /// Precedence identical to previous factor (only valid for binary left-/right-associative)
+    pub const PREC_EQ: u32 = 16384;
 
     pub const TRANSF_PARENT: u32 = /*R_RECURSION |*/ PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
     pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACTOR;
     pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
-    pub const FACTOR_INFO: u32 = L_FORM | R_ASSOC | GREEDY;
+    pub const FACTOR_INFO: u32 = L_FORM | R_ASSOC | GREEDY | PREC_EQ;
     pub const L_RECURSION: u32 = PARENT_L_RECURSION | CHILD_L_RECURSION;
 
     pub fn to_string(flags: u32) -> Vec<String> {
-        static NAMES: [(u32, &str); 14] = [
+        static NAMES: [(u32, &str); 15] = [
             (CHILD_REPEAT               , "child_+_or_*"),
             (R_RECURSION                , "right_rec"),
             (CHILD_L_RECURSION          , "child_left_rec"),
@@ -341,12 +345,13 @@ pub mod ruleflag {
             (PARENT_REPEAT              , "parent_+_or_*"),
             (REPEAT_PLUS                , "plus"),
             (GREEDY                     , "greedy"),
+            (PREC_EQ                    , "prec_eq"),
         ];
         NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None } ).collect()
     }
 
     pub fn factor_info_to_string(mut flags: u32) -> Vec<String> {
-        static NAMES: [(u32, &str); 3] = [(L_FORM, "L"), (R_ASSOC, "R"), (GREEDY, "G")];
+        static NAMES: [(u32, &str); 4] = [(L_FORM, "L"), (R_ASSOC, "R"), (GREEDY, "G"), (PREC_EQ, "P")];
         let v: Vec<String> = NAMES.iter().filter_map(|(f, t)|
             if flags & f != 0 {
                 flags &= !f;
@@ -1595,6 +1600,14 @@ impl<T> ProdRuleSet<T> {
                 let (indep, mut factors) : (Vec<_>, Vec<_>) = take(prod).into_iter()
                     .partition(|factor| factor.first().unwrap() != &symbol && factor.last().unwrap() != &symbol);
                 factors.reverse();
+                let mut prec_eq = factors.iter_mut()
+                    .map(|f| {
+                        let p = f.flags & ruleflag::PREC_EQ != 0;
+                        f.flags &= !ruleflag::PREC_EQ;
+                        p
+                    }).to_vec();
+                prec_eq.pop();
+                prec_eq.insert(0, false);
                 if indep.is_empty() {
                     self.log.add_error(format!("recursive rules must have at least one independent factor: {} -> {}",
                                                Symbol::NT(var).to_str(self.get_symbol_table()),
@@ -1613,15 +1626,16 @@ impl<T> ProdRuleSet<T> {
                 let mut indep_factors = Vec::<FactorId>::new();
                 let mut pr_info = Vec::<FactorInfo>::new();  // information on each factor: type, priority, ...
                 let mut has_ambig = false;
+                //let same_as_prev = vec![false, true, false, true, false]; // test: factors with same priority as previous (L only)
 
                 for (i, f) in factors.iter().index::<FactorId>() {
                     let ty = FactorType::from(&symbol, f);
                     has_ambig |= ty == FactorType::LeftAssoc || ty == FactorType::RightAssoc;
                     var_i = match ty {
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
-                        FactorType::LeftAssoc => var_i + 1,
+                        FactorType::LeftAssoc => if prec_eq[i as usize] { var_i } else { var_i + 1 },
                         FactorType::Prefix
-                        | FactorType::RightAssoc => if var_i > rule_var_i || var_factors[var_i].is_empty() { var_i } else { var_i + 1 },
+                        | FactorType::RightAssoc => if var_i > rule_var_i || prec_eq[i as usize] || var_factors[var_i].is_empty() { var_i } else { var_i + 1 },
                         FactorType::Suffix => var_i,
                     };
                     let fact = FactorInfo {
@@ -2173,6 +2187,10 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                             flags |= ruleflag::L_FORM;
                             false
                         }
+                        GrNode::PrecEq => {
+                            flags |= ruleflag::PREC_EQ;
+                            false
+                        }
                         _ => true,
                     }
                 })
@@ -2398,6 +2416,7 @@ pub mod macros {
         (*) => { $crate::grammar::GrNode::Star };
         (L $id:expr) => { $crate::grammar::GrNode::LForm($id) };
         (R) => { $crate::grammar::GrNode::RAssoc };
+        (P) => { $crate::grammar::GrNode::PrecEq };
     }
 
     /// Generates a `Symbol` instance.
@@ -2424,6 +2443,7 @@ pub mod macros {
         (L) => { $crate::grammar::ruleflag::L_FORM };
         (R) => { $crate::grammar::ruleflag::R_ASSOC };
         (G) => { $crate::grammar::ruleflag::GREEDY };
+        (P) => { $crate::grammar::ruleflag::PREC_EQ };
         ($f:expr) => { $f };
     }
 
