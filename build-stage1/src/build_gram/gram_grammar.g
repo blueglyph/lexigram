@@ -36,5 +36,6 @@ term_item:
     Id
 |   Lform
 |   Rform
+|   Pform
 |   Lparen prod Rparen
 ;

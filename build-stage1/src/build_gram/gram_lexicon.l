@@ -23,4 +23,6 @@ SymEof          : 'EOF';
 
 Lform           : '<L' ('=' ID)? '>';
 Rform           : '<R>';
+Pform           : '<P>';
+
 Id              : ID;

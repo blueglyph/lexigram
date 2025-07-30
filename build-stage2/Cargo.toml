@@ -1,8 +1,9 @@
 [package]
 name = "build-stage2"
-version = "0.3.0"
+version = "0.4.0"
 edition = "2024"
 
 [dependencies]
+#lexigram = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.4.0", package = "lexigram" }
 lexigram_lib = { path = "..", package = "lexigram_lib" }
 iter-index = "1.0.0"
