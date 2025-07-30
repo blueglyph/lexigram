@@ -321,6 +321,7 @@ impl GramParserListener for GramListener {
     //     Id
     // |   Lform
     // |   Rform
+    // |   Pform
     // |   Lparen prod Rparen
     // ;
     fn exit_term_item(&mut self, ctx: CtxTermItem) -> SynTermItem {
@@ -387,7 +388,10 @@ impl GramParserListener for GramListener {
             CtxTermItem::TermItem3 => {                         // term_item -> <R>
                 self.curr.as_mut().unwrap().add(None, GrNode::RAssoc)
             }
-            CtxTermItem::TermItem4 { prod } => prod.0,          // term_item -> ( prod )
+            CtxTermItem::TermItem4 => {                         // term_item -> <P>
+                self.curr.as_mut().unwrap().add(None, GrNode::PrecEq)
+            }
+            CtxTermItem::TermItem5 { prod } => prod.0,          // term_item -> ( prod )
         };
         SynTermItem(id)
     }

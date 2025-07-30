@@ -32,7 +32,7 @@ checksum = "bae738582aa13b8b43c735d5cfacd543508220dd23290fb52bd7a00d38cc6a36"
 
 [[package]]
 name = "lexigram"
-version = "0.3.0"
+version = "0.4.0"
 dependencies = [
  "iter-index 0.1.1",
  "lexigram_lib",

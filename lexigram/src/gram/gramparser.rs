@@ -6,14 +6,14 @@
 use gramparser_types::*;
 use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 
-const PARSER_NUM_T: usize = 13;
+const PARSER_NUM_T: usize = 14;
 const PARSER_NUM_NT: usize = 14;
-static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Id", None)];
+static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Id", None)];
 static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_factor", "prod_term", "term_item", "prod_factor_1", "rules_1", "prod_1", "rule_1", "prod_term_1"];
-static FACTOR_VAR: [VarId; 24] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
-static FACTORS: [&[Symbol]; 24] = [&[Symbol::NT(1), Symbol::NT(2)], &[Symbol::T(8), Symbol::T(12), Symbol::T(6)], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::NT(12)], &[Symbol::T(12)], &[Symbol::NT(6), Symbol::NT(11)], &[Symbol::NT(9)], &[Symbol::NT(8), Symbol::NT(13)], &[Symbol::T(12)], &[Symbol::T(10)], &[Symbol::T(11)], &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)], &[Symbol::NT(7), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)], &[Symbol::Empty], &[Symbol::T(6)], &[Symbol::T(9), Symbol::T(6)], &[Symbol::T(3)], &[Symbol::T(4)], &[Symbol::T(7)], &[Symbol::Empty]];
-static PARSING_TABLE: [FactorId; 196] = [24, 24, 24, 24, 24, 24, 24, 24, 0, 24, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 1, 24, 24, 24, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 2, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 3, 25, 25, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 4, 24, 24, 5, 5, 24, 24, 5, 5, 24, 24, 5, 5, 5, 5, 24, 24, 6, 6, 24, 24, 6, 6, 24, 24, 6, 6, 6, 6, 24, 24, 7, 25, 24, 24, 25, 25, 24, 24, 25, 7, 7, 7, 24, 24, 11, 25, 25, 25, 25, 25, 25, 24, 25, 9, 10, 8, 24, 24, 12, 13, 24, 24, 13, 13, 24, 24, 13, 12, 12, 12, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 14, 15, 24, 24, 16, 24, 24, 17, 17, 24, 24, 17, 24, 24, 24, 24, 24, 24, 24, 24, 24, 24, 18, 24, 24, 19, 24, 24, 25, 25, 24, 23, 23, 20, 21, 23, 23, 22, 24, 23, 23, 23, 23, 24];
-static OPCODES: [&[OpCode]; 24] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(12), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(12)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(12)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(12), OpCode::NT(7)], &[OpCode::Exit(13)], &[OpCode::Loop(10), OpCode::Exit(14), OpCode::NT(3)], &[OpCode::Exit(15)], &[OpCode::Loop(11), OpCode::Exit(16), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(17)], &[OpCode::Exit(18), OpCode::T(6)], &[OpCode::Exit(19), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(20), OpCode::T(3)], &[OpCode::Exit(21), OpCode::T(4)], &[OpCode::Exit(22), OpCode::T(7)], &[OpCode::Exit(23)]];
+static FACTOR_VAR: [VarId; 25] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
+static FACTORS: [&[Symbol]; 25] = [&[Symbol::NT(1), Symbol::NT(2)], &[Symbol::T(8), Symbol::T(13), Symbol::T(6)], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::NT(12)], &[Symbol::T(13)], &[Symbol::NT(6), Symbol::NT(11)], &[Symbol::NT(9)], &[Symbol::NT(8), Symbol::NT(13)], &[Symbol::T(13)], &[Symbol::T(10)], &[Symbol::T(11)], &[Symbol::T(12)], &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)], &[Symbol::NT(7), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)], &[Symbol::Empty], &[Symbol::T(6)], &[Symbol::T(9), Symbol::T(6)], &[Symbol::T(3)], &[Symbol::T(4)], &[Symbol::T(7)], &[Symbol::Empty]];
+static PARSING_TABLE: [FactorId; 210] = [25, 25, 25, 25, 25, 25, 25, 25, 0, 25, 25, 25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 25, 1, 25, 25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 2, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 3, 26, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 4, 25, 25, 5, 5, 25, 25, 5, 5, 25, 25, 5, 5, 5, 5, 5, 25, 25, 6, 6, 25, 25, 6, 6, 25, 25, 6, 6, 6, 6, 6, 25, 25, 7, 26, 25, 25, 26, 26, 25, 25, 26, 7, 7, 7, 7, 25, 25, 12, 26, 26, 26, 26, 26, 26, 25, 26, 9, 10, 11, 8, 25, 25, 13, 14, 25, 25, 14, 14, 25, 25, 14, 13, 13, 13, 13, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 15, 16, 25, 25, 17, 25, 25, 18, 18, 25, 25, 18, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 19, 25, 25, 20, 25, 25, 25, 26, 26, 25, 24, 24, 21, 22, 24, 24, 23, 25, 24, 24, 24, 24, 24, 25];
+static OPCODES: [&[OpCode]; 25] = [&[OpCode::Exit(0), OpCode::NT(2), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::T(6), OpCode::T(13), OpCode::T(8)], &[OpCode::NT(10), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::NT(12), OpCode::NT(5), OpCode::T(0), OpCode::NT(4)], &[OpCode::Exit(4), OpCode::T(13)], &[OpCode::NT(11), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Exit(6), OpCode::NT(9)], &[OpCode::NT(13), OpCode::NT(8)], &[OpCode::Exit(8), OpCode::T(13)], &[OpCode::Exit(9), OpCode::T(10)], &[OpCode::Exit(10), OpCode::T(11)], &[OpCode::Exit(11), OpCode::T(12)], &[OpCode::Exit(12), OpCode::T(5), OpCode::NT(5), OpCode::T(1)], &[OpCode::Loop(9), OpCode::Exit(13), OpCode::NT(7)], &[OpCode::Exit(14)], &[OpCode::Loop(10), OpCode::Exit(15), OpCode::NT(3)], &[OpCode::Exit(16)], &[OpCode::Loop(11), OpCode::Exit(17), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(18)], &[OpCode::Exit(19), OpCode::T(6)], &[OpCode::Exit(20), OpCode::T(6), OpCode::T(9)], &[OpCode::Exit(21), OpCode::T(3)], &[OpCode::Exit(22), OpCode::T(4)], &[OpCode::Exit(23), OpCode::T(7)], &[OpCode::Exit(24)]];
 static START_SYMBOL: VarId = 0;
 
 pub fn build_parser() -> Parser<'static> {
@@ -92,8 +92,10 @@ pub enum CtxTermItem {
     TermItem2 { lform: String },
     /// `term_item -> <R>`
     TermItem3,
+    /// `term_item -> <P>`
+    TermItem4,
     /// `term_item -> ( prod )`
-    TermItem4 { prod: SynProd },
+    TermItem5 { prod: SynProd },
 }
 
 // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -226,27 +228,28 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
                     0 => self.exit_file(),                      // file -> header rules
                     1 => self.exit_header(),                    // header -> grammar Id ;
                     2 => self.inter_rules(),                    // rules -> rule rules_1
-                    14 => self.exit_rules1(),                   // rules_1 -> rule rules_1
-                    15 => self.exitloop_rules1(),               // rules_1 -> ε
-                    18 |                                        // rule_1 -> ;
-                    19 => self.exit_rule(factor_id),            // rule_1 -> EOF ;
+                    15 => self.exit_rules1(),                   // rules_1 -> rule rules_1
+                    16 => self.exitloop_rules1(),               // rules_1 -> ε
+                    19 |                                        // rule_1 -> ;
+                    20 => self.exit_rule(factor_id),            // rule_1 -> EOF ;
                  /* 3 */                                        // rule -> rule_name : prod rule_1 (never called)
                     4 => self.exit_rule_name(),                 // rule_name -> Id
                     5 => self.inter_prod(),                     // prod -> prod_factor prod_1
-                    16 => self.exit_prod1(),                    // prod_1 -> | prod_factor prod_1
-                    17 => self.exitloop_prod1(),                // prod_1 -> ε
+                    17 => self.exit_prod1(),                    // prod_1 -> | prod_factor prod_1
+                    18 => self.exitloop_prod1(),                // prod_1 -> ε
                     6 => self.exit_prod_factor(),               // prod_factor -> prod_factor_1
-                    12 => self.exit_prod_factor1(),             // prod_factor_1 -> prod_term prod_factor_1
-                    13 => {}                                    // prod_factor_1 -> ε
-                    20 |                                        // prod_term_1 -> +
-                    21 |                                        // prod_term_1 -> ?
-                    22 |                                        // prod_term_1 -> *
-                    23 => self.exit_prod_term(factor_id),       // prod_term_1 -> ε
+                    13 => self.exit_prod_factor1(),             // prod_factor_1 -> prod_term prod_factor_1
+                    14 => {}                                    // prod_factor_1 -> ε
+                    21 |                                        // prod_term_1 -> +
+                    22 |                                        // prod_term_1 -> ?
+                    23 |                                        // prod_term_1 -> *
+                    24 => self.exit_prod_term(factor_id),       // prod_term_1 -> ε
                  /* 7 */                                        // prod_term -> term_item prod_term_1 (never called)
                     8 |                                         // term_item -> Id
                     9 |                                         // term_item -> Lform
                     10 |                                        // term_item -> <R>
-                    11 => self.exit_term_item(factor_id),       // term_item -> ( prod )
+                    11 |                                        // term_item -> <P>
+                    12 => self.exit_term_item(factor_id),       // term_item -> ( prod )
                     _ => panic!("unexpected exit factor id: {factor_id}")
                 }
             }
@@ -329,12 +332,12 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_rule(&mut self, factor_id: FactorId) {
         let ctx = match factor_id {
-            18 => {
+            19 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
                 CtxRule::Rule1 { rule_name, prod }
             }
-            19 => {
+            20 => {
                 let prod = self.stack.pop().unwrap().get_prod();
                 let rule_name = self.stack.pop().unwrap().get_rule_name();
                 CtxRule::Rule2 { rule_name, prod }
@@ -389,19 +392,19 @@ impl<T: GramParserListener> Wrapper<T> {
 
     fn exit_prod_term(&mut self, factor_id: FactorId) {
         let ctx = match factor_id {
-            20 => {
+            21 => {
                 let term_item = self.stack.pop().unwrap().get_term_item();
                 CtxProdTerm::ProdTerm1 { term_item }
             }
-            21 => {
+            22 => {
                 let term_item = self.stack.pop().unwrap().get_term_item();
                 CtxProdTerm::ProdTerm2 { term_item }
             }
-            22 => {
+            23 => {
                 let term_item = self.stack.pop().unwrap().get_term_item();
                 CtxProdTerm::ProdTerm3 { term_item }
             }
-            23 => {
+            24 => {
                 let term_item = self.stack.pop().unwrap().get_term_item();
                 CtxProdTerm::ProdTerm4 { term_item }
             }
@@ -425,8 +428,11 @@ impl<T: GramParserListener> Wrapper<T> {
                 CtxTermItem::TermItem3
             }
             11 => {
+                CtxTermItem::TermItem4
+            }
+            12 => {
                 let prod = self.stack.pop().unwrap().get_prod();
-                CtxTermItem::TermItem4 { prod }
+                CtxTermItem::TermItem5 { prod }
             }
             _ => panic!("unexpected factor id {factor_id} in fn exit_term_item")
         };
