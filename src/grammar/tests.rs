@@ -482,23 +482,77 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             ]);
             rules.symbol_table = Some(table);
         }
-        42 => { // E -> - E | E (* | /) E | E (+ | -) E | ID
+        42 => { // E -> - E | E (* | / <P>) E | E (+ | - <P>) E | ID
             let or = tree.add_root(gnode!(|));
+            // - E
             tree.addc_iter(Some(or), gnode!(&), [gnode!(t 3), gnode!(nt 0)]);
+            // E (* | / <P>) E
             let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
-
-            // tree.addc_iter(Some(cc1), gnode!(|), [gnode!(t 0), gnode!(t 1)]);
             let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 0));
             tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 1), gnode!(P)]);
-
             tree.add(Some(cc1), gnode!(nt 0));
+            // E (+ | - <P>) E
             let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
-
-            //tree.addc_iter(Some(cc1), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
             let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 2));
             tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(P)]);
-
             tree.add(Some(cc1), gnode!(nt 0));
+            // ID
+            tree.add(Some(or), gnode!(t 4));
+
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["E".to_string()]);
+            table.extend_terminals([
+                ("MUL".to_string(), Some("*".to_string())),   // 0
+                ("DIV".to_string(), Some("/".to_string())),   // 1
+                ("ADD".to_string(), Some("+".to_string())),   // 2
+                ("SUB".to_string(), Some("-".to_string())),   // 3
+                ("ID".to_string(), None),                     // 4
+            ]);
+            rules.symbol_table = Some(table);
+        }
+        43 => { // E -> - E | <R> E (* | / <P>) E | <R> E (+ | - <P>) E | ID
+            let or = tree.add_root(gnode!(|));
+            // - E
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 3), gnode!(nt 0)]);
+            // <R> E (* | / <P>) E
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(nt 0)]);
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 0));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 1), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // <R> E (+ | - <P>) E
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(nt 0)]);
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 2));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // ID
+            tree.add(Some(or), gnode!(t 4));
+
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["E".to_string()]);
+            table.extend_terminals([
+                ("MUL".to_string(), Some("*".to_string())),   // 0
+                ("DIV".to_string(), Some("/".to_string())),   // 1
+                ("ADD".to_string(), Some("+".to_string())),   // 2
+                ("SUB".to_string(), Some("-".to_string())),   // 3
+                ("ID".to_string(), None),                     // 4
+            ]);
+            rules.symbol_table = Some(table);
+        }
+        44 => { // E -> - E | <R> E (* | / <P>) E | E (+ | - <P>) E | ID
+            let or = tree.add_root(gnode!(|));
+            // - E
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 3), gnode!(nt 0)]);
+            // <R> E (* | / <P>) E
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(nt 0)]);
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 0));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 1), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // E (+ | - <P>) E
+            let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 2));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // ID
             tree.add(Some(or), gnode!(t 4));
 
             let mut table = SymbolTable::new();

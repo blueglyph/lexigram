@@ -8669,6 +8669,12 @@ pub(crate) mod level_string {
     #[derive(Debug, PartialEq)]
     pub struct LevelString(pub u32, pub String);
 
+    impl LevelString {
+        pub fn get_string(self) -> String {
+            self.1
+        }
+    }
+
     pub fn par(ls: LevelString) -> String {
         if ls.0 > 0 {
             format!("({})", ls.1)
@@ -9787,6 +9793,982 @@ pub(crate) mod rules_rts_41_1 {
 
     // [wrapper source for rule RTS(41) #1, start A]
     // ------------------------------------------------------------
+}
+
+#[cfg(test)]
+// #[allow(unused)]
+pub(crate) mod rules_rts_42_1 {
+    #![allow(unused_imports)]
+
+    use crate::out::wrapper_source::level_string::LevelString;
+
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(42) #1, start E]
+
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_rts_42_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxE {
+        /// `E -> E * E`
+        E1 { e: [SynE; 2] },
+        /// `E -> E / E`
+        E2 { e: [SynE; 2] },
+        /// `E -> E + E`
+        E3 { e: [SynE; 2] },
+        /// `E -> E - E`
+        E4 { e: [SynE; 2] },
+        /// `E -> - E`
+        E5 { e: SynE },
+        /// `E -> ID`
+        E6 { id: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `E`
+    // #[derive(Debug, PartialEq)] pub struct SynE();
+
+    #[derive(Debug)]
+    enum SynValue { E(SynE) }
+
+    impl SynValue {
+        fn get_e(self) -> SynE {
+            let SynValue::E(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _e: SynE) {}
+        fn init_e(&mut self) {}
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_e(),                // E
+                        1 ..= 4 => {}                               // E_1, E_2, E_3, E_4
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        1 |                                         // E_1 -> * E_4 E_1
+                        2 |                                         // E_1 -> / E_4 E_1
+                        3 |                                         // E_1 -> + E_2 E_1
+                        4 => self.exit_e1(factor_id),               // E_1 -> - E_2 E_1
+                        7 => self.exit_e1(1),                       // E_3 -> * E_4 E_3 (duplicate of 1)
+                        8 => self.exit_e1(2),                       // E_3 -> / E_4 E_3 (duplicate of 2)
+                        10 |                                        // E_4 -> - E_4
+                        11 => self.exit_e4(factor_id),              // E_4 -> ID
+                        0 => {}                                     // E -> E_4 E_1 (not used)
+                        5 => {}                                     // E_1 -> ε (not used)
+                        6 => {}                                     // E_2 -> E_4 E_3 (not used)
+                        9 => {}                                     // E_3 -> ε (not used)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let e = self.stack.pop().unwrap().get_e();
+            self.listener.exit(e);
+        }
+
+        fn exit_e1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E1 { e: [e_1, e_2] }
+                }
+                2 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E2 { e: [e_1, e_2] }
+                }
+                3 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E3 { e: [e_1, e_2] }
+                }
+                4 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E4 { e: [e_1, e_2] }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+
+        fn exit_e4(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                10 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E5 { e }
+                }
+                11 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxE::E6 { id }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e4")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(42) #1, start E]
+    // ------------------------------------------------------------
+
+    /// User-defined type for `E`
+    #[derive(Debug, PartialEq)]
+    pub struct SynE(LevelString);
+
+    #[cfg(test)]
+    mod test {
+        use std::collections::HashMap;
+        use iter_index::IndexerIterator;
+        use lexigram_lib::dfa::TokenId;
+        use lexigram_lib::grammar::Symbol;
+        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::log::BufLog;
+        use crate::integration::parser_examples::listener17::build_parser;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
+        use super::*;
+
+        struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl EListener {
+            fn new() -> Self {
+                EListener {
+                    log: BufLog::new(),
+                    result: None,
+                }
+            }
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.get_string());
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `E -> E * E`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `E -> E / E`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
+                    // `E -> E + E`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `E -> E - E`
+                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
+                    // `E -> - E`
+                    CtxE::E5 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    // `E -> ID`
+                    CtxE::E6 { id } => LevelString(0, id),
+                })
+            }
+        }
+
+        #[test]
+        fn test() {
+            let sequences = vec![
+                // E -> - E | E * E | <P> E / E | E + E | <P> E - E | ID
+                ("- a", Some("- a")),
+                ("a * b", Some("a * b")),
+                ("a / b", Some("a / b")),
+                ("a + b", Some("a + b")),
+                ("a - b", Some("a - b")),
+                ("- - - a", Some("- (- (- a))")),
+                ("a * b * c * d", Some("((a * b) * c) * d")),
+                ("a / b / c / d", Some("((a / b) / c) / d")),
+                ("a + b + c + d", Some("((a + b) + c) + d")),
+                ("a - b - c - d", Some("((a - b) - c) - d")),
+                ("a * b + c", Some("(a * b) + c")),
+                ("a + b * c", Some("a + (b * c)")),
+                ("a + b - c", Some("(a + b) - c")),
+                ("a - b + c", Some("(a - b) + c")),
+                ("a * b / c", Some("(a * b) / c")),
+                ("a / b * c", Some("(a / b) * c")),
+                ("a + b / c", Some("a + (b / c)")),
+                ("a / b + c", Some("(a / b) + c")),
+                ("- a * b", Some("(- a) * b")),
+                ("a + - b + c", Some("(a + (- b)) + c")),
+                ("a * - b", Some("a * (- b)")),
+                ("a * * b", None),
+                ("a / / b", None),
+                ("a + + b", None),
+                ("a - - b", Some("a - (- b)")),
+            ];
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
+            let id_id = 4;
+
+            let mut parser = build_parser();
+            let table = parser.get_symbol_table().unwrap();
+            let symbols = (0..table.get_num_t() as TokenId)
+                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
+                .collect::<HashMap<_, _>>();
+            for (input, expected_result) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) {
+                        (*s, w.to_string(), 1, i)
+                    } else {
+                        if w.chars().next().unwrap().is_ascii_digit() {
+                            // (num_id, w.to_string(), 1, i)
+                            panic!("numbers not supported")
+                        } else {
+                            (id_id, w.to_string(), 1, i)
+                        }
+                    }
+                });
+                let listener = EListener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
+                let errors = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully: {:?}", wrapper.listener.result); }
+                        None
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        Some(wrapper.listener.log.get_errors().map(|s| s.as_str()).to_vec())
+                    }
+                };
+                if VERBOSE {
+                    let msg = wrapper.listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
+                }
+                let listener = wrapper.get_listener();
+                assert_eq!(errors.is_some(), listener.result.is_none(), "listener.result of unexpected variant for input {input}: {:?}", listener.result);
+                assert_eq!(listener.result, expected_result.map(|s| s.to_string()), "test failed for input {input}");
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod rules_rts_43_1 {
+    #![allow(unused_imports)]
+
+    use crate::out::wrapper_source::level_string::LevelString;
+
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(43) #1, start E]
+
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_rts_43_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxE {
+        /// `E -> E * E <R>`
+        E1 { e: [SynE; 2] },
+        /// `E -> E / E <R>`
+        E2 { e: [SynE; 2] },
+        /// `E -> E + E <R>`
+        E3 { e: [SynE; 2] },
+        /// `E -> E - E <R>`
+        E4 { e: [SynE; 2] },
+        /// `E -> - E`
+        E5 { e: SynE },
+        /// `E -> ID`
+        E6 { id: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `E`
+    // #[derive(Debug, PartialEq)] pub struct SynE();
+
+    #[derive(Debug)]
+    enum SynValue { E(SynE) }
+
+    impl SynValue {
+        fn get_e(self) -> SynE {
+            let SynValue::E(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _e: SynE) {}
+        fn init_e(&mut self) {}
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_e(),                // E
+                        1 ..= 4 => {}                               // E_1, E_2, E_3, E_4
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        1 |                                         // E_1 -> <R> * E_2 E_1
+                        2 |                                         // E_1 -> <R> / E_2 E_1
+                        3 |                                         // E_1 -> <R> + E E_1
+                        4 => self.exit_e1(factor_id),               // E_1 -> <R> - E E_1
+                        7 => self.exit_e1(1),                       // E_3 -> <R> * E_2 E_3 (duplicate of 1)
+                        8 => self.exit_e1(2),                       // E_3 -> <R> / E_2 E_3 (duplicate of 2)
+                        10 |                                        // E_4 -> - E_4
+                        11 => self.exit_e4(factor_id),              // E_4 -> ID
+                        0 => {}                                     // E -> E_4 E_1 (not used)
+                        5 => {}                                     // E_1 -> ε (not used)
+                        6 => {}                                     // E_2 -> E_4 E_3 (not used)
+                        9 => {}                                     // E_3 -> ε (not used)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let e = self.stack.pop().unwrap().get_e();
+            self.listener.exit(e);
+        }
+
+        fn exit_e1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E1 { e: [e_1, e_2] }
+                }
+                2 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E2 { e: [e_1, e_2] }
+                }
+                3 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E3 { e: [e_1, e_2] }
+                }
+                4 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E4 { e: [e_1, e_2] }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+
+        fn exit_e4(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                10 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E5 { e }
+                }
+                11 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxE::E6 { id }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e4")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(43) #1, start E]
+    // ------------------------------------------------------------
+
+    /// User-defined type for `E`
+    #[derive(Debug, PartialEq)]
+    pub struct SynE(LevelString);
+
+    #[cfg(test)]
+    mod test {
+        use std::collections::HashMap;
+        use iter_index::IndexerIterator;
+        use lexigram_lib::dfa::TokenId;
+        use lexigram_lib::grammar::Symbol;
+        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::log::BufLog;
+        use crate::integration::parser_examples::listener18::build_parser;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
+        use super::*;
+
+        struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl EListener {
+            fn new() -> Self {
+                EListener {
+                    log: BufLog::new(),
+                    result: None,
+                }
+            }
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.get_string());
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `E -> E * E`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `E -> E / E`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
+                    // `E -> E + E`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `E -> E - E`
+                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
+                    // `E -> - E`
+                    CtxE::E5 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    // `E -> ID`
+                    CtxE::E6 { id } => LevelString(0, id),
+                })
+            }
+        }
+
+        #[test]
+        fn test() {
+            let sequences = vec![
+                // E -> - E | <R> E * E | <R> E / E <P> | <R> E + E | <R> E - E <P> | ID
+                ("- a", Some("- a")),
+                ("a * b", Some("a * b")),
+                ("a / b", Some("a / b")),
+                ("a + b", Some("a + b")),
+                ("a - b", Some("a - b")),
+                ("- - - a", Some("- (- (- a))")),
+                ("a * b * c * d", Some("a * (b * (c * d))")),
+                ("a / b / c / d", Some("a / (b / (c / d))")),
+                ("a + b + c + d", Some("a + (b + (c + d))")),
+                ("a - b - c - d", Some("a - (b - (c - d))")),
+                ("a * b + c", Some("(a * b) + c")),
+                ("a + b * c", Some("a + (b * c)")),
+                ("a + b - c", Some("a + (b - c)")),
+                ("a - b + c", Some("a - (b + c)")),
+                ("a * b / c", Some("a * (b / c)")),
+                ("a / b * c", Some("a / (b * c)")),
+                ("a + b / c", Some("a + (b / c)")),
+                ("a / b + c", Some("(a / b) + c")),
+                ("- a * b", Some("(- a) * b")),
+                ("a + - b + c", Some("a + ((- b) + c)")),
+                ("a * - b", Some("a * (- b)")),
+                ("a * * b", None),
+                ("a / / b", None),
+                ("a + + b", None),
+                ("a - - b", Some("a - (- b)")),
+            ];
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
+            let id_id = 4;
+
+            let mut parser = build_parser();
+            let table = parser.get_symbol_table().unwrap();
+            let symbols = (0..table.get_num_t() as TokenId)
+                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
+                .collect::<HashMap<_, _>>();
+            for (input, expected_result) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) {
+                        (*s, w.to_string(), 1, i)
+                    } else {
+                        if w.chars().next().unwrap().is_ascii_digit() {
+                            // (num_id, w.to_string(), 1, i)
+                            panic!("numbers not supported")
+                        } else {
+                            (id_id, w.to_string(), 1, i)
+                        }
+                    }
+                });
+                let listener = EListener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
+                let errors = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully: {:?}", wrapper.listener.result); }
+                        None
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        Some(wrapper.listener.log.get_errors().map(|s| s.as_str()).to_vec())
+                    }
+                };
+                if VERBOSE {
+                    let msg = wrapper.listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
+                }
+                let listener = wrapper.get_listener();
+                assert_eq!(errors.is_some(), listener.result.is_none(), "listener.result of unexpected variant for input {input}: {:?}", listener.result);
+                assert_eq!(listener.result, expected_result.map(|s| s.to_string()), "test failed for input {input}");
+            }
+        }
+    }
+}
+
+#[cfg(test)]
+pub(crate) mod rules_rts_44_1 {
+    #![allow(unused_imports)]
+
+    use crate::out::wrapper_source::level_string::LevelString;
+
+    // ------------------------------------------------------------
+    // [wrapper source for rule RTS(44) #1, start E]
+
+    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_rts_44_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxE {
+        /// `E -> E * E <R>`
+        E1 { e: [SynE; 2] },
+        /// `E -> E / E <R>`
+        E2 { e: [SynE; 2] },
+        /// `E -> E + E`
+        E3 { e: [SynE; 2] },
+        /// `E -> E - E`
+        E4 { e: [SynE; 2] },
+        /// `E -> - E`
+        E5 { e: SynE },
+        /// `E -> ID`
+        E6 { id: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `E`
+    // #[derive(Debug, PartialEq)] pub struct SynE();
+
+    #[derive(Debug)]
+    enum SynValue { E(SynE) }
+
+    impl SynValue {
+        fn get_e(self) -> SynE {
+            let SynValue::E(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _e: SynE) {}
+        fn init_e(&mut self) {}
+        fn exit_e(&mut self, _ctx: CtxE) -> SynE;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_e(),                // E
+                        1 ..= 4 => {}                               // E_1, E_2, E_3, E_4
+                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match factor_id {
+                        1 |                                         // E_1 -> <R> * E_2 E_1
+                        2 |                                         // E_1 -> <R> / E_2 E_1
+                        3 |                                         // E_1 -> + E_2 E_1
+                        4 => self.exit_e1(factor_id),               // E_1 -> - E_2 E_1
+                        7 => self.exit_e1(1),                       // E_3 -> <R> * E_2 E_3 (duplicate of 1)
+                        8 => self.exit_e1(2),                       // E_3 -> <R> / E_2 E_3 (duplicate of 2)
+                        10 |                                        // E_4 -> - E_4
+                        11 => self.exit_e4(factor_id),              // E_4 -> ID
+                        0 => {}                                     // E -> E_4 E_1 (not used)
+                        5 => {}                                     // E_1 -> ε (not used)
+                        6 => {}                                     // E_2 -> E_4 E_3 (not used)
+                        9 => {}                                     // E_3 -> ε (not used)
+                        _ => panic!("unexpected exit factor id: {factor_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_mut_listener(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let e = self.stack.pop().unwrap().get_e();
+            self.listener.exit(e);
+        }
+
+        fn exit_e1(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                1 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E1 { e: [e_1, e_2] }
+                }
+                2 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E2 { e: [e_1, e_2] }
+                }
+                3 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E3 { e: [e_1, e_2] }
+                }
+                4 => {
+                    let e_2 = self.stack.pop().unwrap().get_e();
+                    let e_1 = self.stack.pop().unwrap().get_e();
+                    CtxE::E4 { e: [e_1, e_2] }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+
+        fn exit_e4(&mut self, factor_id: FactorId) {
+            let ctx = match factor_id {
+                10 => {
+                    let e = self.stack.pop().unwrap().get_e();
+                    CtxE::E5 { e }
+                }
+                11 => {
+                    let id = self.stack_t.pop().unwrap();
+                    CtxE::E6 { id }
+                }
+                _ => panic!("unexpected factor id {factor_id} in fn exit_e4")
+            };
+            let val = self.listener.exit_e(ctx);
+            self.stack.push(SynValue::E(val));
+        }
+    }
+
+    // [wrapper source for rule RTS(44) #1, start E]
+    // ------------------------------------------------------------
+
+    /// User-defined type for `E`
+    #[derive(Debug, PartialEq)]
+    pub struct SynE(LevelString);
+
+    #[cfg(test)]
+    mod test {
+        use std::collections::HashMap;
+        use iter_index::IndexerIterator;
+        use lexigram_lib::dfa::TokenId;
+        use lexigram_lib::grammar::Symbol;
+        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::log::BufLog;
+        use crate::integration::parser_examples::listener19::build_parser;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
+        use super::*;
+
+        struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl EListener {
+            fn new() -> Self {
+                EListener {
+                    log: BufLog::new(),
+                    result: None,
+                }
+            }
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.get_string());
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `E -> E * E`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `E -> E / E`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("/", lsleft, lsright),
+                    // `E -> E + E`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `E -> E - E`
+                    CtxE::E4 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("-", lsleft, lsright),
+                    // `E -> - E`
+                    CtxE::E5 { e: SynE(lsleft) } => ls_prefix_op("-", lsleft),
+                    // `E -> ID`
+                    CtxE::E6 { id } => LevelString(0, id),
+                })
+            }
+        }
+
+        #[test]
+        fn test() {
+            let sequences = vec![
+                // E -> - E | <R> E * E | <R> E / E <P> | E + E | E - E <P> | ID
+                ("- a", Some("- a")),
+                ("a * b", Some("a * b")),
+                ("a / b", Some("a / b")),
+                ("a + b", Some("a + b")),
+                ("a - b", Some("a - b")),
+                ("- - - a", Some("- (- (- a))")),
+                ("a * b * c * d", Some("a * (b * (c * d))")),
+                ("a / b / c / d", Some("a / (b / (c / d))")),
+                ("a + b + c + d", Some("((a + b) + c) + d")),
+                ("a - b - c - d", Some("((a - b) - c) - d")),
+                ("a * b + c", Some("(a * b) + c")),
+                ("a + b * c", Some("a + (b * c)")),
+                ("a + b - c", Some("(a + b) - c")),
+                ("a - b + c", Some("(a - b) + c")),
+                ("a * b / c", Some("a * (b / c)")),
+                ("a / b * c", Some("a / (b * c)")),
+                ("a + b / c", Some("a + (b / c)")),
+                ("a / b + c", Some("(a / b) + c")),
+                ("- a * b", Some("(- a) * b")),
+                ("a + - b + c", Some("(a + (- b)) + c")),
+                ("a * - b", Some("a * (- b)")),
+                ("a * * b", None),
+                ("a / / b", None),
+                ("a + + b", None),
+                ("a - - b", Some("a - (- b)")),
+            ];
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
+            let id_id = 4;
+
+            let mut parser = build_parser();
+            let table = parser.get_symbol_table().unwrap();
+            let symbols = (0..table.get_num_t() as TokenId)
+                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
+                .collect::<HashMap<_, _>>();
+            for (input, expected_result) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) {
+                        (*s, w.to_string(), 1, i)
+                    } else {
+                        if w.chars().next().unwrap().is_ascii_digit() {
+                            // (num_id, w.to_string(), 1, i)
+                            panic!("numbers not supported")
+                        } else {
+                            (id_id, w.to_string(), 1, i)
+                        }
+                    }
+                });
+                let listener = EListener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
+                let errors = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully: {:?}", wrapper.listener.result); }
+                        None
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        Some(wrapper.listener.log.get_errors().map(|s| s.as_str()).to_vec())
+                    }
+                };
+                if VERBOSE {
+                    let msg = wrapper.listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
+                }
+                let listener = wrapper.get_listener();
+                assert_eq!(errors.is_some(), listener.result.is_none(), "listener.result of unexpected variant for input {input}: {:?}", listener.result);
+                assert_eq!(listener.result, expected_result.map(|s| s.to_string()), "test failed for input {input}");
+            }
+        }
+    }
 }
 
 #[cfg(test)]

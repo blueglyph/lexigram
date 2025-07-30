@@ -603,3 +603,115 @@ pub(crate) mod listener16 {
     // [write_source_code_for_integration_listener16]
     // -------------------------------------------------------------------------
 }
+
+#[allow(unused)]
+pub(crate) mod listener17 {
+    // -------------------------------------------------------------------------
+    // [write_source_code_for_integration_listener17]
+
+    use lexigram_lib::{FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 5;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("MUL", Some("*")), ("DIV", Some("/")), ("ADD", Some("+")), ("SUB", Some("-")), ("ID", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E_1", "E_2", "E_3", "E_4"];
+    static FACTOR_VAR: [VarId; 12] = [0, 1, 1, 1, 1, 1, 2, 3, 3, 3, 4, 4];
+    static FACTORS: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3), Symbol::NT(4)], &[Symbol::T(4)]];
+    static PARSING_TABLE: [FactorId; 30] = [12, 12, 12, 0, 0, 13, 1, 2, 3, 4, 12, 5, 13, 13, 13, 6, 6, 13, 7, 8, 9, 9, 12, 9, 13, 13, 13, 10, 11, 13];
+    static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(4), OpCode::T(1)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(3)], &[OpCode::Exit(11), OpCode::T(4)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &FACTOR_VAR,
+            FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
+
+    // [write_source_code_for_integration_listener17]
+    // -------------------------------------------------------------------------
+}
+
+#[allow(unused)]
+pub(crate) mod listener18 {
+    // -------------------------------------------------------------------------
+    // [write_source_code_for_integration_listener18]
+
+    use lexigram_lib::{FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 5;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("MUL", Some("*")), ("DIV", Some("/")), ("ADD", Some("+")), ("SUB", Some("-")), ("ID", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E_1", "E_2", "E_3", "E_4"];
+    static FACTOR_VAR: [VarId; 12] = [0, 1, 1, 1, 1, 1, 2, 3, 3, 3, 4, 4];
+    static FACTORS: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(0), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(0), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3), Symbol::NT(4)], &[Symbol::T(4)]];
+    static PARSING_TABLE: [FactorId; 30] = [13, 13, 13, 0, 0, 13, 1, 2, 3, 4, 12, 5, 13, 13, 13, 6, 6, 13, 7, 8, 9, 9, 12, 9, 13, 13, 13, 10, 11, 13];
+    static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(0), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(0), OpCode::T(3)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(3)], &[OpCode::Exit(11), OpCode::T(4)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &FACTOR_VAR,
+            FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
+
+    // [write_source_code_for_integration_listener18]
+    // -------------------------------------------------------------------------
+}
+
+#[allow(unused)]
+pub(crate) mod listener19 {
+    // -------------------------------------------------------------------------
+    // [write_source_code_for_integration_listener19]
+
+    use lexigram_lib::{FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, parser::{OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 5;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("MUL", Some("*")), ("DIV", Some("/")), ("ADD", Some("+")), ("SUB", Some("-")), ("ID", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E_1", "E_2", "E_3", "E_4"];
+    static FACTOR_VAR: [VarId; 12] = [0, 1, 1, 1, 1, 1, 2, 3, 3, 3, 4, 4];
+    static FACTORS: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3), Symbol::NT(4)], &[Symbol::T(4)]];
+    static PARSING_TABLE: [FactorId; 30] = [12, 12, 12, 0, 0, 13, 1, 2, 3, 4, 12, 5, 13, 13, 13, 6, 6, 13, 7, 8, 9, 9, 12, 9, 13, 13, 13, 10, 11, 13];
+    static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(3)], &[OpCode::Exit(11), OpCode::T(4)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &FACTOR_VAR,
+            FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
+
+    // [write_source_code_for_integration_listener19]
+    // -------------------------------------------------------------------------
+}
+

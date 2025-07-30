@@ -619,6 +619,20 @@ pub(crate) mod code_rts_41_1 {
     pub struct SynA();
 }
 
+pub(crate) mod code_rts_42_1 {
+    // types defined near the test in wrapper_source.rs
+}
+
+pub(crate) mod code_rts_43_1 {
+    // types defined near the test in wrapper_source.rs
+}
+
+pub(crate) mod code_rts_44_1 {
+    /// User-defined type for `E`
+    #[derive(Debug, PartialEq)]
+    pub struct SynE();
+}
+
 pub(crate) mod code_prs_63_1 {
     // types defined near the test in wrapper_source.rs
 }
