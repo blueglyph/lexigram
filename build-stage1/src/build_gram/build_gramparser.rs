@@ -3,6 +3,8 @@
 use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
+use lexigram::lexigram_lib::grammar::ProdRuleSet;
+use lexigram::lexigram_lib::log::BufLog;
 use lexigram_lib::{CollectJoin, LL1, SymbolTable};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::log::Logger;
@@ -32,15 +34,14 @@ static TERMINALS: [(&str, Option<&str>); 14] = [
 // [terminal_symbols]
 // -------------------------------------------------------------------------
 
-fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, String> {
+fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, BufLog> {
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
     let file = File::open(grammar_filename).expect(&format!("couldn't open lexicon file {grammar_filename}"));
     let reader = BufReader::new(file);
     let grammar_stream = CharReader::new(reader);
-    let gram = Gram::<LL1, _>::new(symbol_table);
-    let ll1 = gram.into_ll1(grammar_stream);
-    let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
+    let gram = Gram::new(symbol_table, grammar_stream);
+    let ll1: ProdRuleSet<LL1> = gram.into();
     if verbose {
         let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
@@ -48,7 +49,7 @@ fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, St
         }
     }
     if !ll1.get_log().has_no_errors() {
-        return Err(msg);
+        return Err(ll1.give_log());
     }
 
     // - exports data to stage 2
@@ -58,7 +59,7 @@ fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, St
 
 pub fn write_gramparser() {
     let result_src = gramparser_source(GRAMPARSER_GRAMMAR, true)
-        .inspect_err(|e| eprintln!("Failed to parse grammar: {e:?}"))
+        .inspect_err(|log| eprintln!("Failed to parse grammar: {}", log.get_messages_str()))
         .unwrap();
     replace_tagged_source(GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_STAGE2_TAG, &result_src)
         .expect("parser source replacement failed");

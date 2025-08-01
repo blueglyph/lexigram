@@ -2125,8 +2125,8 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-// if rule_id != RTS(22)  { continue }
-// if !hashset!(PRS(55), PRS(66), RTS(41)).contains(&rule_id) { continue }
+// if rule_id != RTS(44)  { continue }
+// if !hashset!(RTS(42), RTS(43), RTS(44)).contains(&rule_id) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.build_prs(test_id, start_nt, true);

@@ -885,6 +885,9 @@ impl RuleTreeSet<General> {
 
 impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     /// Transforms a `General` ruleset to a `Normalized` ruleset
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
     fn from(mut rules: RuleTreeSet<General>) -> Self {
         // We handle the errors by transmitting the log to the next construct rather than returning a `Result` type.
         // This allows to cascade the transforms without getting a complicated error resolving system while preserving
@@ -1218,6 +1221,10 @@ impl<T> ProdRuleSet<T> {
 
     pub fn get_log(&self) -> &BufLog {
         &self.log
+    }
+
+    pub fn give_log(self) -> BufLog {
+        self.log
     }
 
     pub fn give_symbol_table(&mut self) -> Option<SymbolTable> {
@@ -2172,6 +2179,10 @@ impl ProdRuleSetTables {
 // ---------------------------------------------------------------------------------------------
 
 impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
+    /// Builds a [`ProdRuleSet<General>`] from a [`RuleTreeSet<Normalized>`].
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
     fn from(rules: RuleTreeSet<Normalized>) -> Self {
         fn children_to_vec(tree: &GrTree, parent_id: usize) -> ProdFactor {
             let mut flags: u32 = 0;
@@ -2268,6 +2279,10 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
 }
 
 impl From<RuleTreeSet<General>> for ProdRuleSet<General> {
+    /// Builds a [`ProdRuleSet<General>`] from a [`RuleTreeSet<General>`].
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
     fn from(rules: RuleTreeSet<General>) -> Self {
         let mut prods = ProdRuleSet::from(RuleTreeSet::<Normalized>::from(rules));
         if prods.log.has_no_errors() {

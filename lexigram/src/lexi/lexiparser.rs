@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 // -------------------------------------------------------------------------
+#![allow(unused)]
+
 // [lexiparser]
 
 use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};

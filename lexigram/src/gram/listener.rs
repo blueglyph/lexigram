@@ -123,6 +123,10 @@ impl GramListener {
 }
 
 impl From<GramListener> for ProdRuleSet<General> {
+    /// Builds a [`ProdRuleSet<General>`] from a [`GramListener`].
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
     fn from(gram_listener: GramListener) -> ProdRuleSet<General> {
         let mut rts = RuleTreeSet::<General>::with_log(gram_listener.log);
         let no_error = rts.get_log().has_no_errors();

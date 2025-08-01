@@ -8,7 +8,7 @@ use vectree::VecTree;
 use lexigram_lib::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
 use lexigram_lib::dfa::ReNode;
 use lexigram_lib::log::{BufLog, Logger};
-use lexigram_lib::{hashmap, node, segments, CollectJoin, General, SymbolTable};
+use lexigram_lib::{hashmap, node, segments, CollectJoin, Normalized, SymbolTable};
 use lexigram_lib::segments::Segments;
 use crate::action;
 use crate::lexi::lexiparser::*;
@@ -209,6 +209,10 @@ impl LexiListener {
         &self.log
     }
 
+    pub fn give_log(self) -> BufLog {
+        self.log
+    }
+
     pub fn get_sorted_modes(&self) -> Vec<(&ModeId, &String)> {
         let mut sorted_modes = self.modes.iter().map(|(name, id)| (id, name)).to_vec();
         sorted_modes.sort();
@@ -231,8 +235,12 @@ impl LexiListener {
         table
     }
 
-    pub fn make_dfa(&mut self) -> Dfa<General> {
+    pub fn make_dfa(&mut self) -> Dfa<Normalized> {
         const VERBOSE: bool = false;
+        if !self.log.has_no_errors() {
+            // if there are errors, we bypass any processing and return a shell containing the log
+            return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
+        }
         let num_t = self.terminals.len();
         let mut names = vec![String::new(); num_t];
         for (s, r) in &self.rules {
@@ -265,7 +273,7 @@ impl LexiListener {
         let mut dfa_builder = DfaBuilder::new();
         if VERBOSE { println!("merging dfa modes"); }
         let dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer\n{}", dfa_builder.get_messages()));
-        dfa
+        dfa.optimize()
     }
 
     pub fn rules_to_string(&self, indent: usize) -> String {

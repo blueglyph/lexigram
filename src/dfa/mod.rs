@@ -814,6 +814,17 @@ impl Dfa<General> {
 }
 
 impl<T> Dfa<T> {
+    pub fn with_log(log: BufLog) -> Self {
+        Dfa {
+            state_graph: Default::default(),
+            initial_state: None,
+            end_states: Default::default(),
+            first_end_state: None,
+            log,
+            _phantom: Default::default(),
+        }
+    }
+
     pub fn get_state_graph(&self) -> &BTreeMap<StateId, BTreeMap<Segments, StateId>> {
         &self.state_graph
     }
@@ -828,6 +839,14 @@ impl<T> Dfa<T> {
 
     pub fn get_first_end_state(&self) -> &Option<StateId> {
         &self.first_end_state
+    }
+
+    pub fn get_log(&self) -> &BufLog {
+        &self.log
+    }
+
+    pub fn give_log(self) -> BufLog {
+        self.log
     }
 
     /// Checks if the DFA is normalized: incremental state numbers, starting at 0, with all the accepting states

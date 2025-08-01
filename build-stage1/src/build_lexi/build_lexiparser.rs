@@ -3,6 +3,8 @@
 use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
+use lexigram::lexigram_lib::grammar::ProdRuleSet;
+use lexigram::lexigram_lib::log::BufLog;
 use lexigram_lib::{CollectJoin, LL1, SymbolTable};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::log::Logger;
@@ -54,7 +56,7 @@ static TERMINALS: [(&str, Option<&str>); 34] = [
 
 /// Generates Lexi's parser source code from the grammar file and from the symbols in the lexicon
 /// (extracted in [`build_lexilexer`](crate::build_lexilexer::lexilexer_source())).
-fn lexiparser_source(grammar_filename: &str, _indent: usize, verbose: bool) -> Result<String, String> {
+fn lexiparser_source(grammar_filename: &str, _indent: usize, verbose: bool) -> Result<String, BufLog> {
     // - builds initial symbol table from symbols above extracted by lexi (in build_lexilexer, which updated this source file)
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
@@ -63,9 +65,8 @@ fn lexiparser_source(grammar_filename: &str, _indent: usize, verbose: bool) -> R
     let grammar_stream = CharReader::new(reader);
 
     // - parses the grammar
-    let gram = Gram::<LL1, _>::new(symbol_table);
-    let ll1 = gram.into_ll1(grammar_stream);
-    let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
+    let gram = Gram::new(symbol_table, grammar_stream);
+    let ll1: ProdRuleSet<LL1> = gram.into();
     if verbose {
         let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
@@ -73,7 +74,7 @@ fn lexiparser_source(grammar_filename: &str, _indent: usize, verbose: bool) -> R
         }
     }
     if !ll1.get_log().has_no_errors() {
-        return Err(msg);
+        return Err(ll1.give_log());
     }
 
     // - exports data to stage 2
@@ -83,7 +84,7 @@ fn lexiparser_source(grammar_filename: &str, _indent: usize, verbose: bool) -> R
 
 pub fn write_lexiparser() {
     let result_src = lexiparser_source(LEXIPARSER_GRAMMAR, 0, true)
-        .inspect_err(|e| eprintln!("Failed to parse grammar: {e:?}"))
+        .inspect_err(|log| eprintln!("Failed to parse grammar: {}", log.get_messages_str()))
         .unwrap();
     replace_tagged_source(LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TAG, &result_src)
         .expect("parser source replacement failed");

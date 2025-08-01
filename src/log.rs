@@ -113,6 +113,10 @@ impl BufLog {
         self.messages.iter()
     }
 
+    pub fn get_messages_str(&self) -> String {
+        self.get_messages().map(|m| format!("- {m}")).collect::<Vec<_>>().join("\n")
+    }
+
     pub fn get_notes(&self) -> impl Iterator<Item = &String> {
         self.messages.iter().filter_map(|m| if let LogMsg::Note(s) = m { Some(s) } else { None })
     }
