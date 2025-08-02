@@ -831,6 +831,23 @@ fn rts_prodrule_from() {
 // ProdRuleSet
 
 impl<T> ProdRuleSet<T> {
+    fn new() -> Self {
+        Self {
+            prods: Vec::new(),
+            original_factors: Vec::new(),
+            num_nt: 0,
+            num_t: 0,
+            symbol_table: None,
+            flags: Vec::new(),
+            parent: Vec::new(),
+            start: None,
+            name: None,
+            nt_conversion: HashMap::new(),
+            log: BufLog::new(),
+            _phantom: PhantomData
+        }
+    }
+
     pub(crate) fn print_prs_summary(&self) {
         let factors = self.get_factors().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
         print_factors(&factors, self.get_symbol_table());

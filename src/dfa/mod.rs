@@ -800,28 +800,15 @@ pub struct Dfa<T> {
     _phantom: PhantomData<T>
 }
 
-impl Dfa<General> {
-    pub fn new() -> Dfa<General> {
-        Dfa::<General> {
+impl<T> Dfa<T> {
+    pub fn with_log(log: BufLog) -> Self {
+        Dfa {
             state_graph: BTreeMap::new(),
             initial_state: None,
             end_states: BTreeMap::new(),
             first_end_state: None,
-            log: BufLog::new(),
-            _phantom: PhantomData
-        }
-    }
-}
-
-impl<T> Dfa<T> {
-    pub fn with_log(log: BufLog) -> Self {
-        Dfa {
-            state_graph: Default::default(),
-            initial_state: None,
-            end_states: Default::default(),
-            first_end_state: None,
             log,
-            _phantom: Default::default(),
+            _phantom: PhantomData
         }
     }
 
@@ -1072,6 +1059,12 @@ impl<T> Dfa<T> {
     }
 }
 
+impl Dfa<General> {
+    pub fn new() -> Dfa<General> {
+        Dfa::with_log(BufLog::new())
+    }
+}
+
 impl Dfa<Normalized> {
     pub fn build_tables_source_code(&self, indent: usize) -> String {
         let mut source = Vec::<String>::new();
@@ -1087,6 +1080,14 @@ impl Dfa<Normalized> {
         source.push(format!("    {:?},", self.first_end_state));
         source.push(");".to_string());
         indent_source(vec![source], indent)
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
+impl From<Dfa<General>> for Dfa<Normalized> {
+    fn from(dfa: Dfa<General>) -> Self {
+        dfa.normalize()
     }
 }
 
@@ -1118,14 +1119,6 @@ impl DfaTables {
             log: BufLog::new(),
             _phantom: PhantomData
         }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
-
-impl From<Dfa<General>> for Dfa<Normalized> {
-    fn from(dfa: Dfa<General>) -> Self {
-        dfa.normalize()
     }
 }
 
