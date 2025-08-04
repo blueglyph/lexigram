@@ -318,7 +318,7 @@ pub struct DfaBuilder {
     /// `followpos` table, containing the `Id` -> `Id` graph of `re`
     followpos: HashMap<Id, HashSet<Id>>,
     /// `lazypos[id_child]` includes `id_lazy` when `id_child` is a child of a lazy operator `id_lazy`
-    lazypos: HashMap<Id, HashSet<usize>>,
+    lazypos: HashSet<Id>,
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
     log: BufLog
@@ -329,7 +329,7 @@ impl DfaBuilder {
         DfaBuilder {
             re: VecTree::new(),
             followpos: HashMap::new(),
-            lazypos: HashMap::new(),
+            lazypos: HashSet::new(),
             ids: HashMap::new(),
             log: BufLog::new()
         }
@@ -482,11 +482,7 @@ impl DfaBuilder {
                             inode.firstpos = firstpos;
                             inode.lastpos = lastpos;
                             for ichild in inode.iter_depth_simple().filter(|node| node.is_leaf()) {
-                                let ichild_id = ichild.id.unwrap();
-                                if !self.lazypos.contains_key(&ichild_id) {
-                                    self.lazypos.insert(ichild_id, HashSet::new());
-                                }
-                                self.lazypos.get_mut(&ichild_id).unwrap().insert(inode.index); // FIXME: fake id, replace with HashSet?
+                                self.lazypos.insert(ichild.id.unwrap());
                             }
                         } else {
                             self.log.add_error(format!("node #{} is Lazy but has {} child(ren) instead of 1 child",
@@ -527,8 +523,8 @@ impl DfaBuilder {
         dfa.initial_state = Some(current_id);
 
         // gathers lazy ids and their immediate followpos to remove phantom branches:
-        let mut lazy_followpos = self.lazypos.iter().map(|(id, _)| *id).collect::<BTreeSet<Id>>();
-        lazy_followpos.extend(self.lazypos.iter().filter_map(|(id, _)| self.followpos.get(id)).flatten());
+        let mut lazy_followpos = self.lazypos.iter().map(|id| *id).collect::<BTreeSet<Id>>();
+        lazy_followpos.extend(self.lazypos.iter().filter_map(|id| self.followpos.get(id)).flatten());
         if VERBOSE { println!("lazy_followpos = {{{}}}", lazy_followpos.iter().join(", ")); }
 
         // gets a partition of the symbol segments and changes Char to CharRange
@@ -801,7 +797,7 @@ impl From<VecTree<ReNode>> for DfaBuilder {
         let mut builder = DfaBuilder {
             re: regex_tree,
             followpos: HashMap::new(),
-            lazypos: HashMap::new(),
+            lazypos: HashSet::new(),
             ids: HashMap::new(),
             log: BufLog::new()
         };
