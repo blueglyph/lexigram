@@ -301,7 +301,7 @@ mod simple {
                 ], vec![]
             ),
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         for (test_id, (input, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }

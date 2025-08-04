@@ -345,17 +345,6 @@ impl DfaBuilder {
         &self.log
     }
 
-    pub fn get_messages(&self) -> String {
-        let mut result = String::new();
-        if self.log.num_warnings() > 0 {
-            result.push_str(&format!("Warnings:\n- {}", self.log.get_warnings().join("\n- ")));
-        }
-        if self.log.num_errors() > 0 {
-            result.push_str(&format!("ERRORS:\n- {}", self.log.get_errors().join("\n- ")));
-        }
-        result
-    }
-
     /// Replaces ReType::String(s) with a concatenation of ReType::Char(s[i])
     fn preprocess_re(&mut self) {
         let mut nodes = vec![];
@@ -363,6 +352,10 @@ impl DfaBuilder {
             if matches!(inode.op, ReType::String(_)) {
                 // we have to do it again to move the string
                 if let ReType::String(s) = std::mem::take(&mut inode.op) {
+                    if s.is_empty() {
+                        // will be replaced by an empty Concat, but shouldn't exist
+                        self.log.add_error(format!("node #{} is an empty string", inode.index));
+                    }
                     nodes.push((inode.index, s));
                 }
             }
@@ -370,10 +363,8 @@ impl DfaBuilder {
         for (index, s) in nodes {
             let node = self.re.get_mut(index);
             match s.len() {
-                0 => panic!("empty string item at index {index}"),
-                1 => {
-                    node.op = ReType::Char(s.chars().nth(0).unwrap());
-                },
+                0 => node.op = ReType::Char('?'), // empty string replaced by '?'
+                1 => node.op = ReType::Char(s.chars().nth(0).unwrap()),
                 _ => {
                     node.op = ReType::Concat;
                     for c in s.chars() {
@@ -389,7 +380,9 @@ impl DfaBuilder {
         let mut id = 0;
         for mut inode in self.re.iter_depth_mut() {
             if inode.is_leaf() {
-                assert_eq!(inode.num_children(), 0);
+                if inode.num_children() > 0 {
+                    self.log.add_error(format!("node #{} {} had {} child(ren) but shouldn't have any", inode.index, inode.op, inode.num_children()));
+                }
                 id += 1;
                 inode.id = Some(id);
                 if !inode.is_empty() {
@@ -403,87 +396,101 @@ impl DfaBuilder {
             } else {
                 match inode.op {
                     ReType::Concat => {
-                        assert!(inode.num_children() > 0);
-                        // firstpos = union of all firstpos until the first non-nullable child (included)
-                        let mut firstpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_simple().take_until(|&n| !n.nullable.unwrap()) {
-                            firstpos.extend(&child.firstpos);
-                        }
-                        inode.firstpos.extend(firstpos);
-                        // lastpos = union of all lastpos until the first non-nullable child (included), starting from the end
-                        let mut lastpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_simple().rev().take_until(|&n| !n.nullable.unwrap()) {
-                            lastpos.extend(&child.lastpos);
-                        }
-                        inode.lastpos.extend(lastpos);
-                        // followpos:
-                        // for all pairs of consecutive children {c[i], c[i+1]},
-                        //     for all j in c[i].lastpos
-                        //         followpos[j].extend(c[i+1].firstpos)
-                        let mut iter = inode.iter_children_simple();
-                        let a = iter.next().unwrap();   // a is c[i]
-                        let mut lastpos = a.lastpos.clone();
-                        while let Some(b) = iter.next() {   // b is c[i+1]
-                            for j in &lastpos {
-                                if !self.followpos.contains_key(j) {
-                                    self.followpos.insert(*j, HashSet::new());
+                        if inode.num_children() > 0 {
+                            // firstpos = union of all firstpos until the first non-nullable child (included)
+                            let mut firstpos = HashSet::<Id>::new();
+                            for child in inode.iter_children_simple().take_until(|&n| !n.nullable.unwrap()) {
+                                firstpos.extend(&child.firstpos);
+                            }
+                            inode.firstpos.extend(firstpos);
+                            // lastpos = union of all lastpos until the first non-nullable child (included), starting from the end
+                            let mut lastpos = HashSet::<Id>::new();
+                            for child in inode.iter_children_simple().rev().take_until(|&n| !n.nullable.unwrap()) {
+                                lastpos.extend(&child.lastpos);
+                            }
+                            inode.lastpos.extend(lastpos);
+                            // followpos:
+                            // for all pairs of consecutive children {c[i], c[i+1]},
+                            //     for all j in c[i].lastpos
+                            //         followpos[j].extend(c[i+1].firstpos)
+                            let mut iter = inode.iter_children_simple();
+                            let a = iter.next().unwrap();   // a is c[i]
+                            let mut lastpos = a.lastpos.clone();
+                            while let Some(b) = iter.next() {   // b is c[i+1]
+                                for j in &lastpos {
+                                    if !self.followpos.contains_key(j) {
+                                        self.followpos.insert(*j, HashSet::new());
+                                    }
+                                    self.followpos.get_mut(j).unwrap().extend(&b.firstpos);
                                 }
-                                self.followpos.get_mut(j).unwrap().extend(&b.firstpos);
+                                // we must build the lastpos during the iteration
+                                // &(0,1,2,3) = &2(&1(&0(0,1),2),3) => &0.lpos=0.lpos, &1.lpos=lastpos("&",[&0,2])), ...
+                                if b.nullable.unwrap() {
+                                    lastpos.extend(&b.lastpos);
+                                } else {
+                                    lastpos = b.lastpos.clone();
+                                }
                             }
-                            // we must build the lastpos during the iteration
-                            // &(0,1,2,3) = &2(&1(&0(0,1),2),3) => &0.lpos=0.lpos, &1.lpos=lastpos("&",[&0,2])), ...
-                            if b.nullable.unwrap() {
-                                lastpos.extend(&b.lastpos);
-                            } else {
-                                lastpos = b.lastpos.clone();
-                            }
+                        } else {
+                            self.log.add_error(format!("node #{} is Concat but has no children", inode.index))
                         }
                     }
                     ReType::Star | ReType::Plus => {
-                        assert_eq!(inode.num_children(), 1);
-                        // firstpos, lastpos identical to child's
-                        let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).to_vec();
-                        inode.firstpos.extend(firstpos);
-                        let lastpos = inode.iter_children_simple().next().unwrap().lastpos.iter().map(|&n| n).to_vec();
-                        inode.lastpos.extend(lastpos);
-                        // followpos:
-                        // for all i in *.lastpos,
-                        //     followpos[i].extend(*.firstpos)
+                        if inode.num_children() == 1 {
+                            // firstpos, lastpos identical to child's
+                            let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).to_vec();
+                            inode.firstpos.extend(firstpos);
+                            let lastpos = inode.iter_children_simple().next().unwrap().lastpos.iter().map(|&n| n).to_vec();
+                            inode.lastpos.extend(lastpos);
+                            // followpos:
+                            // for all i in *.lastpos,
+                            //     followpos[i].extend(*.firstpos)
 
-                        for i in &inode.lastpos {
-                            if !self.followpos.contains_key(i) {
-                                self.followpos.insert(*i, HashSet::new());
+                            for i in &inode.lastpos {
+                                if !self.followpos.contains_key(i) {
+                                    self.followpos.insert(*i, HashSet::new());
+                                }
+                                self.followpos.get_mut(i).unwrap().extend(&inode.firstpos);
                             }
-                            self.followpos.get_mut(i).unwrap().extend(&inode.firstpos);
+                        } else {
+                            self.log.add_error(format!("node #{} is {:?} but has {} child(ren) instead of 1 child",
+                                                       inode.index, inode.op, inode.num_children()))
                         }
                     }
                     ReType::Or => {
-                        assert!(inode.num_children() > 0);
-                        // firstpos, lastpost = union of children's
-                        let mut firstpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_simple() {
-                            firstpos.extend(&child.firstpos);
+                        if inode.num_children() > 0 {
+                            // firstpos, lastpost = union of children's
+                            let mut firstpos = HashSet::<Id>::new();
+                            for child in inode.iter_children_simple() {
+                                firstpos.extend(&child.firstpos);
+                            }
+                            inode.firstpos.extend(firstpos);
+                            let mut lastpos = HashSet::<Id>::new();
+                            for child in inode.iter_children_simple() {
+                                lastpos.extend(&child.lastpos);
+                            }
+                            inode.lastpos.extend(lastpos);
+                        } else {
+                            self.log.add_error(format!("node #{} is Or but has no children", inode.index));
                         }
-                        inode.firstpos.extend(firstpos);
-                        let mut lastpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_simple() {
-                            lastpos.extend(&child.lastpos);
-                        }
-                        inode.lastpos.extend(lastpos);
                     }
                     ReType::Lazy => {
-                        assert_eq!(inode.num_children(), 1);
-                        let child = inode.iter_children_simple().next().unwrap();
-                        let firstpos = child.firstpos.clone();
-                        let lastpos = child.lastpos.clone();
-                        inode.firstpos = firstpos;
-                        inode.lastpos = lastpos;
-                        for ichild in inode.iter_depth_simple().filter(|node| node.is_leaf()) {
-                            let ichild_id = ichild.id.unwrap();
-                            if !self.lazypos.contains_key(&ichild_id) {
-                                self.lazypos.insert(ichild_id, HashSet::new());
+                        if inode.num_children() == 1 {
+                            let child = inode.iter_children_simple().next().unwrap();
+                            let firstpos = child.firstpos.clone();
+                            let lastpos = child.lastpos.clone();
+                            inode.firstpos = firstpos;
+                            inode.lastpos = lastpos;
+                            for ichild in inode.iter_depth_simple().filter(|node| node.is_leaf()) {
+                                let ichild_id = ichild.id.unwrap();
+                                if !self.lazypos.contains_key(&ichild_id) {
+                                    self.lazypos.insert(ichild_id, HashSet::new());
+                                }
+                                self.lazypos.get_mut(&ichild_id).unwrap().insert(inode.index); // FIXME: fake id, replace with HashSet?
                             }
-                            self.lazypos.get_mut(&ichild_id).unwrap().insert(inode.index); // FIXME: fake id
+                        } else {
+                            self.log.add_error(format!("node #{} is Lazy but has {} child(ren) instead of 1 child",
+                                                       inode.index, inode.num_children()));
                         }
                     }
                     _ => panic!("{:?}: no way to compute firstpos/...", &*inode)
@@ -507,6 +514,9 @@ impl DfaBuilder {
         const RM_LAZY_BRANCHES: bool = true;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
+        if !self.log.has_no_errors() {
+            return dfa;
+        }
         if VERBOSE { println!("new DFA"); }
         let mut current_id = 0;
         let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().map(|&id| id));
@@ -620,7 +630,7 @@ impl DfaBuilder {
                         0 => {
                             if VERBOSE { println!("    all ids have transitions => AMBIGUOUS, selecting the first defined terminal"); }
                             self.log.add_warning(format!("conflicting terminals for state {new_state_id}, none having other transitions: {}",
-                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
+                                                         terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
                             first_terminal_id.unwrap()
                         }
                         1 => {
@@ -629,7 +639,7 @@ impl DfaBuilder {
                         }
                         n => {
                             self.log.add_warning(format!("conflicting terminals for state {new_state_id}, {n} having no other transition: {}",
-                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
+                                                         terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
                             if potentials.contains(&first_terminal_id.unwrap()) {
                                 if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first defined terminal"); }
                                 first_terminal_id.unwrap()
@@ -693,20 +703,21 @@ impl DfaBuilder {
             // finally, updates the graph with the reverse (symbol -> state) data
             dfa.state_graph.insert(new_state_id, map.into_iter().map(|(id, segments)| (segments, id)).collect());
         }
+        dfa
+    }
+
+    fn build(&mut self) -> Dfa<General> {
+        self.calc_node_pos();
+        let mut dfa = self.calc_states();
         // transfers all the log messages to the Dfa
         dfa.log.extend(std::mem::replace(&mut self.log, BufLog::new()));
         dfa
     }
 
-    pub fn build(&mut self) -> Dfa<General> {
-        self.log.clear();
-        self.calc_node_pos();
-        self.calc_states()
-    }
-
     #[cfg(test)]
-    pub(crate) fn build_from_graph<T>(&mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T) -> Option<Dfa<General>>
-        where T: IntoIterator<Item=(StateId, Terminal)>
+    pub(crate) fn build_from_graph<T: IntoIterator<Item=(StateId, Terminal)>>(
+        &mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T,
+    ) -> Option<Dfa<General>>
     {
         let mut dfa = Dfa::<General> {
             state_graph: graph,
@@ -723,18 +734,28 @@ impl DfaBuilder {
 
     /// Merges several DFA graphs into one. The graphs represent different modes that are called with the
     /// `Action::pushMode(id)` action.
-    pub fn build_from_dfa_modes<T, U>(&mut self, dfas: T) -> Option<Dfa<General>>
-        where T: IntoIterator<Item = (ModeId, Dfa<U>)>
+    fn build_from_dfa_modes<T, U>(self, dfas: T) -> Dfa<General>
+    where
+        T: IntoIterator<Item=(ModeId, Dfa<U>)>,
     {
-        let mut iter = dfas.into_iter();
-        let (idx, mut dfa) = iter.next().expect("no DFA");
+        let mut dfa = Dfa::<General>::with_log(self.log);
+        dfa.log.add_note("combining DFA modes...");
         let mut init_states = BTreeMap::new();
-        init_states.insert(idx, dfa.initial_state.expect(&format!("no initial state in DFA {idx}")));
-        while let Some((idx, new_dfa)) = iter.next() {
+        for (idx, new_dfa) in dfas {
+            dfa.log.add_note(format!("- DFA mode #{idx}"));
             dfa.log.extend(new_dfa.log);
-            let offset = 1 + dfa.state_graph.keys().max().expect(&format!("empty DFA {idx}"));
-            assert!(!init_states.contains_key(&idx), "DFA {idx} defined multiple times");
-            init_states.insert(idx, offset + new_dfa.initial_state.expect(&format!("no initial state in DFA {idx}")));
+            if new_dfa.state_graph.is_empty() {
+                dfa.log.add_error(format!("DFA mode #{idx} is empty"));
+            }
+            let offset = if init_states.is_empty() { 0 } else { 1 + dfa.state_graph.keys().max().unwrap() };
+            dfa.initial_state = dfa.initial_state.or(new_dfa.initial_state);
+            if let Some(initial_state) = new_dfa.initial_state {
+                if init_states.insert(idx, offset + initial_state).is_some() {
+                    dfa.log.add_error(format!("DFA mode #{idx} defined multiple times"))
+                };
+            } else {
+                dfa.log.add_error(format!("DFA mode #{idx} has no initial state"));
+            }
             for (st_from, mut map) in new_dfa.state_graph {
                 for (_, st_to) in map.iter_mut() {
                     *st_to += offset;
@@ -751,7 +772,7 @@ impl DfaBuilder {
                     ModeOption::Mode(m) | ModeOption::Push(m) => {
                         let state_opt = init_states.get(&m);
                         if state_opt.is_none() {
-                            self.log.add_error(format!("unknown mode {m} in merged graph"));
+                            dfa.log.add_error(format!("unknown mode {m} in combined DFA"));
                         }
                         state_opt.cloned()
                     }
@@ -759,17 +780,17 @@ impl DfaBuilder {
             }
             dfa.first_end_state = None;
         }
-        if self.log.num_errors() == 0 {
-            Some(Dfa::<General> {
+        if dfa.log.has_no_errors() {
+            Dfa::<General> {
                 state_graph: dfa.state_graph,
                 initial_state: dfa.initial_state,
                 end_states: dfa.end_states,
                 first_end_state: dfa.first_end_state,
                 log: dfa.log,
                 _phantom: PhantomData,
-            })
+            }
         } else {
-            None
+            Dfa::with_log(dfa.log)
         }
     }
 }
@@ -1084,6 +1105,22 @@ impl Dfa<Normalized> {
 }
 
 // ---------------------------------------------------------------------------------------------
+
+impl<T> From<T> for Dfa<General>
+where
+    T: IntoIterator<Item=(ModeId, Dfa<General>)>,
+{
+    fn from(dfas: T) -> Self {
+        let dfa_builder = DfaBuilder::new();
+        dfa_builder.build_from_dfa_modes(dfas)
+    }
+}
+
+impl From<DfaBuilder> for Dfa<General> {
+    fn from(mut dfa_builder: DfaBuilder) -> Self {
+        dfa_builder.build()
+    }
+}
 
 impl From<Dfa<General>> for Dfa<Normalized> {
     fn from(dfa: Dfa<General>) -> Self {

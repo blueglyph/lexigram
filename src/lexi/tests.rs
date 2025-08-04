@@ -5,7 +5,7 @@
 use std::collections::BTreeSet;
 use std::io::Cursor;
 use std::mem::size_of_val;
-use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, Terminal};
+use crate::dfa::{Dfa, DfaBuilder, TokenId, Terminal};
 use crate::{escape_string, gnode, CollectJoin, General, SymbolTable, LL1};
 use crate::SymInfoTable;
 use crate::io::CharReader;
@@ -28,23 +28,21 @@ fn make_dfa() -> Dfa<General> {
     let regs = build_re();
     let mut dfas = vec![];
     for (n, re) in regs {
-        let mut dfa_builder = DfaBuilder::from(re);
-        let dfa = dfa_builder.build();
+        let dfa_builder = DfaBuilder::from(re);
+        let dfa = Dfa::<General>::from(dfa_builder);
         if VERBOSE {
             println!("Mode {n}:");
-            println!("Tree: {}", tree_to_string(&dfa_builder.get_re(), None, true));
-            println!("Messages:\n{}", dfa_builder.get_messages());
+            println!("Messages:\n{}", dfa.get_log().get_messages_str());
         }
-        assert_eq!(dfa_builder.get_log().num_errors(), 0);
+        assert!(dfa.get_log().has_no_errors(), "Failed to build DFA:\n{}", dfa.get_log().get_messages_str());
         dfas.push((n, dfa));
     }
-    let mut dfa_builder = DfaBuilder::new();
-    let dfa = dfa_builder.build_from_dfa_modes(dfas);
+    let dfa = Dfa::<General>::from(dfas);
     if VERBOSE {
-        println!("Messages:\n{}", dfa_builder.get_messages());
+        println!("Messages:\n{}", dfa.get_log().get_messages_str());
     }
-    assert_eq!(dfa_builder.get_log().num_errors(), 0);
-    dfa.expect(&format!("failed to build Dfa:\n{}", dfa_builder.get_messages()))
+    assert!(dfa.get_log().has_no_errors(), "failed to build Dfa:\n{}", dfa.get_log().get_messages_str());
+    dfa
 }
 
 fn make_lexer_tables(ltype: LexerType) -> LexerTables {
