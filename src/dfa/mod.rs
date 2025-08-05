@@ -702,7 +702,7 @@ impl DfaBuilder {
         dfa
     }
 
-    fn build(&mut self) -> Dfa<General> {
+    fn build(mut self) -> Dfa<General> {
         self.calc_node_pos();
         let mut dfa = self.calc_states();
         // transfers all the log messages to the Dfa
@@ -1106,6 +1106,10 @@ impl<T> From<T> for Dfa<General>
 where
     T: IntoIterator<Item=(ModeId, Dfa<General>)>,
 {
+    /// Builds a [`Dfa::<General>`] from multiple DFAs, each related to one mode.
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
     fn from(dfas: T) -> Self {
         let dfa_builder = DfaBuilder::new();
         dfa_builder.build_from_dfa_modes(dfas)
@@ -1113,16 +1117,27 @@ where
 }
 
 impl From<DfaBuilder> for Dfa<General> {
-    fn from(mut dfa_builder: DfaBuilder) -> Self {
+    /// Builds a [`Dfa::<General>`] from a [`DfaBuilder`].
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
+    fn from(dfa_builder: DfaBuilder) -> Self {
         dfa_builder.build()
     }
 }
 
-impl From<Dfa<General>> for Dfa<Normalized> {
-    fn from(dfa: Dfa<General>) -> Self {
-        dfa.normalize()
-    }
-}
+// Dfa::optimize and Dfa::normalize both generate a Dfa::<Normalized>. Depending on the need,
+// it's best to use those methods.
+//
+// impl From<Dfa<General>> for Dfa<Normalized> {
+//     /// Builds a [`Dfa::<Normalized>`] from a [`Dfa::<General>`].
+//     ///
+//     /// If an error is encountered or was already encountered before, an empty shell object
+//     /// is built with the log detailing the error(s).
+//     fn from(dfa: Dfa<General>) -> Self {
+//         dfa.normalize() // or optimize()?
+//     }
+// }
 
 // ---------------------------------------------------------------------------------------------
 
