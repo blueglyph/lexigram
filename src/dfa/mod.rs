@@ -571,11 +571,10 @@ impl DfaBuilder {
                             }
                         }
                         if RESOLVE_END_STATES {
-                            if terminals.contains_key(&id) {
-                                panic!("overriding {id} -> {t} in end_states {}",
+                            if let Some(t2) = terminals.insert(id, t) {
+                                panic!("overriding {id} -> {t2} with {id} -> {t} in end_states {}",
                                        terminals.iter().map(|(id, t)| format!("{id} {t}")).join(", "));
                             }
-                            terminals.insert(id, t);
                         } else {
                             if !dfa.end_states.contains_key(&new_state_id) {
                                 dfa.end_states.insert(new_state_id, *t.clone());
@@ -589,23 +588,20 @@ impl DfaBuilder {
                     }
                 } else {
                     if let ReType::CharRange(segments) = symbol {
-                        if !self.followpos.contains_key(&id) {
-                            println!("{id} is not in followpos; are you missing an accepting state?");
-                            println!("dbg: {segments}");
-                            println!("dbg: {id}");
-                            println!("dbg: tree = {}", tree_to_string(&self.re, None, true));
-                            println!("dbg: followpos = {}", followpos_to_string(&self));
-                        }
-                        id_transitions.extend(&self.followpos[&id]);
-                        let cmp = segments.intersect(&symbols_part);
-                        assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
-                        if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
-                        for segment in cmp.common.into_iter() {
-                            if let Some(ids) = trans.get_mut(&segment) {
-                                ids.insert(id);
-                            } else {
-                                trans.insert(segment, btreeset![id]);
+                        if let Some(set) = self.followpos.get(&id) {
+                            id_transitions.extend(set);
+                            let cmp = segments.intersect(&symbols_part);
+                            assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
+                            if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
+                            for segment in cmp.common.into_iter() {
+                                if let Some(ids) = trans.get_mut(&segment) {
+                                    ids.insert(id);
+                                } else {
+                                    trans.insert(segment, btreeset![id]);
+                                }
                             }
+                        } else {
+                            self.log.add_error(format!("node #{id} is not in followpos; is an accepting state missing? Orphan segment: {segments}"));
                         }
                     }
                 }
@@ -734,6 +730,7 @@ impl DfaBuilder {
     where
         T: IntoIterator<Item=(ModeId, Dfa<U>)>,
     {
+        assert!(self.re.is_empty(), "build_from_dfa_modes() used on non-empty builder");
         let mut dfa = Dfa::<General>::with_log(self.log);
         dfa.log.add_note("combining DFA modes...");
         let mut init_states = BTreeMap::new();
@@ -1177,6 +1174,7 @@ fn states_to_string<T: Display>(s: &BTreeSet<T>) -> String {
     s.iter().map(|id| id.to_string()).join(", ")
 }
 
+#[allow(dead_code)]
 pub(crate) fn followpos_to_string(dfa_builder: &DfaBuilder) -> String {
     let mut fpos = dfa_builder.followpos.iter()
         .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).join(", ")))

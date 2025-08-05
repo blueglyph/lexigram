@@ -503,6 +503,13 @@ pub(crate) fn build_re(test: usize) -> VecTree<ReNode> {
             re.add(Some(root), node!(??));
             re.addc_iter(Some(root), node!(??), [node!(chr '1'), node!(chr '2')]);
         }
+        203 => {
+            let root = re.add_root(node!(|));
+            re.addc_iter(Some(root), node!(&), [node!(chr 'a'), node!(= 0)]);
+            re.addc_iter(Some(root), node!(&), [node!(chr 'b'), node!(= 1)]);
+            re.addc(Some(root), node!(&), node!(chr 'c'));  // missing end
+            re.addc_iter(Some(root), node!(&), [node!(chr 'd'), node!(= 1)]);
+        }
         _ => { }
     }
     re
@@ -1731,8 +1738,11 @@ fn dfa_error() {
             "node #2 is Lazy but has 0 child(ren) instead of 1 child",
             "node #3 is Lazy but has 2 child(ren) instead of 1 child",
         ]),
+        (203, vec![
+            "node #5 is not in followpos; is an accepting state missing? Orphan segment: 'c'"
+        ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, expected_error_msgs) in tests {
         if VERBOSE { println!("{:=<80}\n{test_id}:", ""); }
         let re = build_re(test_id);
