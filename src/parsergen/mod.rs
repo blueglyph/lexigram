@@ -147,7 +147,7 @@ impl ParserTables {
         ParserTables { num_nt, num_t, factor_var, factors, opcodes, table, symbol_table, start, include_factors }
     }
 
-    pub fn make_parser(&self) -> Parser {
+    pub fn make_parser(&self) -> Parser<'_> {
         Parser::new(
             self.num_nt,
             self.num_t,
