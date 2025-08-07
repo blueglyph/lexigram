@@ -257,7 +257,7 @@ fn lexiparser_source() {
         let st_num_nt = rules.get_symbol_table().unwrap().get_num_nt();
         println!("rules, num_nt = {}, NT symbols: {}", rules.get_num_nt(), st_num_nt);
         println!("- {}", (0..st_num_nt).map(|i| rules.get_symbol_table().unwrap().get_nt_name(i as VarId)).join(", "));
-        rules.print_rules(true);
+        rules.print_rules(true, false);
         let msg = rules.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
             println!("Messages:\n{msg}");
@@ -270,7 +270,7 @@ fn lexiparser_source() {
     }
     if VERBOSE {
         println!("LL1, num_nt = {}, NT symbols: {}", ll1.get_num_nt(), ll1.get_symbol_table().unwrap().get_num_nt());
-        ll1.print_rules(true);
+        ll1.print_rules(true, false);
         let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
             println!("Messages:\n{msg}");

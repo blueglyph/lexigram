@@ -391,6 +391,10 @@ impl<T> RuleTreeSet<T> {
         &self.log
     }
 
+    pub fn get_num_nt(&self) -> VarId {
+        self.trees.len() as VarId
+    }
+    
     pub fn get_tree(&self, var: VarId) -> Option<&GrTree> {
         self.trees.get(var as usize)
     }
@@ -481,6 +485,7 @@ impl RuleTreeSet<General> {
 
     /// Normalizes all the production rules.
     pub fn normalize(&mut self) {
+        self.check_num_nt_coherency();
         let vars = self.get_vars().to_vec();
         for var in vars {
             self.normalize_var(var);
@@ -489,13 +494,22 @@ impl RuleTreeSet<General> {
         self.parent.resize(self.trees.len(), None);
     }
 
+    fn check_num_nt_coherency(&mut self) {
+        if let Some(n) = self.symbol_table.as_ref().and_then(|table| Some(table.get_num_nt())) {
+            if n != self.trees.len() {
+                self.log.add_error(format!("there are {} rules but the symbol table has {n} NT symbols: dropping the table", self.trees.len()));
+                self.symbol_table = None;
+            }
+        }
+    }
+
     /// Transforms the production rule tree into a list of rules in normalized format:
     /// `var -> &(leaf_1, leaf_2, ...leaf_n)`
     ///
     /// The product may have to be split if operators like `+` or `*` are used. In this
     /// case, new non-terminals are created, with increasing IDs starting from
     /// `new_var`.
-    pub fn normalize_var(&mut self, var: VarId) {
+    fn normalize_var(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
         if VERBOSE { println!("normalize_var({})", Symbol::NT(var).to_str(self.get_symbol_table())); }
@@ -1298,6 +1312,16 @@ impl<T> ProdRuleSet<T> {
         }
     }
 
+    fn check_num_nt_coherency(&mut self) {
+        if let Some(n) = self.symbol_table.as_ref().and_then(|table| Some(table.get_num_nt())) {
+            let num_nt = self.prods.len();
+            if n != num_nt {
+                self.log.add_error(format!("there are {num_nt} rules but the symbol table has {n} NT symbols: dropping the table"));
+                self.symbol_table = None;
+            }
+        }
+    }
+
     /// Removes the unused non-terminals and renumbers everything accordingly.
     /// Note that we don't remove unused T symbols because it would create a coherency problem with the lexer.
     ///
@@ -1542,7 +1566,7 @@ impl<T> ProdRuleSet<T> {
     /// A[p]  -> A[indep] Ab[p]
     /// Ab[p] -> βj Ab[p] | γk A[var] Ab[p] | ε
     /// ```
-    pub fn remove_recursion(&mut self) {
+    fn remove_recursion(&mut self) {
         /// Maximum number of P/I factors that are distributed before creating a new nonterminal to hold them.
         /// They are never distributed in presence of a binary (L/R) because it would likely induce left factorization.
         const MAX_DISTRIB_LEN: Option<usize> = None; // always distributing makes for smaller tables
@@ -1550,10 +1574,10 @@ impl<T> ProdRuleSet<T> {
 
         const VERBOSE: bool = false;
 
-        self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.num_nt, "number of nt in symbol table doesn't match num_nt"));
+        self.check_num_nt_coherency();
         if VERBOSE {
             println!("ORIGINAL:");
-            self.print_rules(false);
+            self.print_rules(false, false);
         }
         let mut var_new = self.get_next_available_var() as usize;
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
@@ -1599,7 +1623,6 @@ impl<T> ProdRuleSet<T> {
                 let mut indep_factors = Vec::<FactorId>::new();
                 let mut pr_info = Vec::<FactorInfo>::new();  // information on each factor: type, priority, ...
                 let mut has_ambig = false;
-                //let same_as_prev = vec![false, true, false, true, false]; // test: factors with same priority as previous (L only)
 
                 for (i, f) in factors.iter().index::<FactorId>() {
                     let ty = FactorType::from(&symbol, f);
@@ -1804,7 +1827,7 @@ impl<T> ProdRuleSet<T> {
         self.num_nt = self.prods.len();
         if VERBOSE {
             println!("FINAL:");
-            self.print_rules(false);
+            self.print_rules(false, false);
             println!("FLAGS:\n{}", self.flags.iter().index::<VarId>()
                 .map(|(v, f)| format!("- ({v:2}) {}: {}", Symbol::NT(v).to_str(self.get_symbol_table()), ruleflag::to_string(*f).join(", "))).join("\n"));
             if let Some(table) = &self.symbol_table {
@@ -2330,13 +2353,16 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
 // Supporting debug functions
 
 impl<T> ProdRuleSet<T> {
-    pub fn print_rules(&self, as_comment: bool) {
+    pub fn print_rules(&self, as_comment: bool, filter_empty_nt: bool) {
         let prefix = if as_comment { "            // " } else { "    " };
-        println!("{prefix}{}", self.get_prods_iter().map(|(var, p)|
-            format!("({var}) {} -> {}",
-                    Symbol::NT(var).to_str(self.get_symbol_table()),
-                    prod_to_str(p, self.get_symbol_table()))
-        ).join(&format!("\n{prefix}")));
+        println!("{prefix}{}",
+                 self.get_prods_iter()
+                     .filter(|(_, rule)| !filter_empty_nt || **rule != prod!(e))
+                     .map(|(var, p)|
+                         format!("({var}) {} -> {}",
+                                 Symbol::NT(var).to_str(self.get_symbol_table()),
+                                 prod_to_str(p, self.get_symbol_table())))
+                     .join(&format!("\n{prefix}")));
     }
 
     pub fn print_factors(&self) {

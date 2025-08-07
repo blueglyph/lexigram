@@ -10,6 +10,33 @@ use crate::grammar::NTConversion::Removed;
 
 // ---------------------------------------------------------------------------------------------
 
+#[allow(dead_code)]
+fn rts_to_str<T>(rules: &RuleTreeSet<T>) -> String {
+    rules.get_trees_iter()
+        .map(|(id, t)| format!("- {id} => {:#} (depth {})",
+                               t.to_str(None, rules.get_symbol_table()), t.depth().unwrap_or(0)))
+        .join("\n")
+}
+
+impl<T> RuleTreeSet<T> {
+    fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &GrTree)> {
+        self.get_trees_iter()
+            .filter(|(_, rule)|
+                rule.get_root()
+                    .and_then(|root| Some(*rule.get(root) != GrNode::Symbol(Symbol::Empty)))
+                    .unwrap_or(false)
+            )
+    }
+}
+
+impl<T> ProdRuleSet<T> {
+    fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
+        self.get_prods_iter().filter(|(_, rule)| **rule != prod!(e))
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+
 #[test]
 fn gnode_macro() {
     assert_eq!(gnode!([1]), GrNode::Symbol(Symbol::T(1 as TokenId)));
@@ -129,6 +156,7 @@ fn check_rts_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> 
 pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();
     let tree = rules.get_tree_mut(0);
+    let mut extend_nt = true;
 
     match id {
         0 => { // A -> |(b, c, D)
@@ -633,6 +661,16 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             // lexiparser
             rules = crate::lexi::tests::build_rts();
         }
+        101 => {
+            extend_nt = false;
+            let cc = tree.add_root(gnode!(&));
+            tree.add_iter(Some(cc), [gnode!(t 0), gnode!(nt 1)]);
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["A".to_string()]);
+            rules.symbol_table = Some(table);
+        }
         _ => {}
     }
     if rules.symbol_table.is_none() {
@@ -663,7 +701,24 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
                 }
             }
         }
-        table.extend_nonterminals((0..num_nt).map(|v| char::from(v as u8 + 65).to_string()));
+        assert!(extend_nt || lforms.is_empty(), "cannot disable extend_nt when there are lforms");
+        if extend_nt {
+            let table_num_nt = table.get_num_nt() as VarId;
+            if VERBOSE && table_num_nt < num_nt {
+                println!("adding {table_num_nt}..{num_nt} NTs to the symbol table");
+            }
+            table.extend_nonterminals((table_num_nt..num_nt).map(|v| char::from(v as u8 + 65).to_string()));
+            if VERBOSE && rules.get_num_nt() < num_nt {
+                println!("adding {num_nt}..{} rules to the RuleTreeSet", rules.get_num_nt());
+            }
+            for v in rules.get_num_nt()..num_nt {   // adds missing NT to avoid error messages in RTS or PRS methods
+                let tree = rules.get_tree_mut(v);
+                tree.add_root(gnode!(e));
+            }
+            if VERBOSE {
+                println!("rules have become:\n{}", rts_to_str(&rules));
+            }
+        }
         for (nt, name) in lforms {
             if nt >= num_nt {
                 table.extend_nonterminals((num_nt..=nt).map(|v| if v < nt { "???".to_string() } else { name.clone() }));
@@ -710,22 +765,26 @@ fn rts_normalize() {
         (17, btreemap![0 => "&(a, A_2, d)", 1 => "|(&(b, A_1), b)", 2 => "|(&(A_1, c, A_2), &(A_1, c))"]),
     ];
     const VERBOSE: bool = false;
+    const VERBOSE_DETAILS: bool = false;
     for (test_id, expected) in tests {
+        let mut rules = build_rts(test_id);
         if VERBOSE {
             println!("test {test_id}:");
         }
-        let mut rules = build_rts(test_id);
         rules.normalize();
         assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize: {}", log_to_str(&rules.log));
-        if let Some(err) = check_rts_sanity(&rules, VERBOSE) {
+        if let Some(err) = check_rts_sanity(&rules, VERBOSE_DETAILS) {
             panic!("test {test_id} failed:\n{}", err);
         }
-        let result = BTreeMap::from_iter(rules.get_trees_iter().map(|(id, t)| (id, format!("{}", t.to_str(None, rules.get_symbol_table())))));
+        let result = BTreeMap::from_iter(rules.get_non_empty_nts()
+            .map(|(id, t)| (id, format!("{}", t.to_str(None, rules.get_symbol_table())))));
         if VERBOSE {
             println!("flags:  {:?}", rules.flags);
             println!("parent: {:?}", rules.parent);
-            println!("{}", rules.get_trees_iter().map(|(id, t)|
-                format!("- {id} => {:#} (depth {})", t.to_str(None, rules.get_symbol_table()), t.depth().unwrap_or(0))).join("\n"));
+            println!("{}", rules.get_non_empty_nts()
+                .map(|(id, t)| format!("- {id} => {:#} (depth {})",
+                                       t.to_str(None, rules.get_symbol_table()),
+                                       t.depth().unwrap_or(0))).join("\n"));
             println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
@@ -803,27 +862,28 @@ fn rts_prodrule_from() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected, expected_flags, expected_parent) in tests {
+        let trees = build_rts(test_id);
         if VERBOSE {
             println!("\ntest {test_id}:");
         }
-        let trees = build_rts(test_id);
         let mut rules = ProdRuleSet::from(trees);
-        assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to create production rules: {}", log_to_str(&rules.log));
+        assert!(rules.log.has_no_errors(), "test {test_id} failed to create production rules: {}", log_to_str(&rules.log));
         rules.simplify();
-        let result = rules.get_prods_iter().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
+        let result = rules.get_non_empty_nts().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
+        let num_vars = result.len();
         if VERBOSE {
             println!("=>");
-            rules.print_rules(true);
+            rules.print_rules(true, true);
             print_expected_code(&result);
-            println!("  Flags: {}", rules.flags.iter().index::<VarId>().map(|(nt, flag)| format!("\n  - {}: {}",
+            println!("  Flags: {}", rules.flags.iter().take(num_vars).index::<VarId>().map(|(nt, flag)| format!("\n  - {}: {}",
                 Symbol::NT(nt).to_str(rules.get_symbol_table()), ruleflag::to_string(*flag).join(" "))).join(""));
             if !rules.log.is_empty() {
                 println!("  Messages:{}", rules.log.get_messages().map(|m| format!("\n  - {m:?}")).join(""));
             }
         }
         assert_eq!(result, expected, "test {test_id} failed");
-        assert_eq!(rules.flags, expected_flags, "test {test_id} failed (flags)");
-        assert_eq!(rules.parent, expected_parent, "test {test_id} failed (parent)");
+        assert_eq!(rules.flags[..num_vars], expected_flags, "test {test_id} failed (flags)");
+        assert_eq!(rules.parent[..num_vars], expected_parent, "test {test_id} failed (parent)");
     }
 }
 
@@ -960,6 +1020,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut start = Some(0);
     let flags = HashMap::<VarId, u32>::new();
     let parents = HashMap::<VarId, VarId>::new();   // (child, parent)
+    let mut extend_nt = true;
     match id {
         // misc tests ----------------------------------------------------------
         0 => {
@@ -1791,6 +1852,15 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 1),
                 prod!(t 1),
             ]);
+        },
+        1006 => { // symbol_table.num_nt != rules.num_nt
+            extend_nt = false;
+            symbol_table.extend_terminals([("a".to_string(), None), ("b".to_string(), None)]);
+            symbol_table.extend_nonterminals(["A".to_string()]);
+            prods.extend([
+                prod!(t 0, nt 1),
+                prod!(t 1),
+            ])
         }
         _ => {}
     };
@@ -1801,7 +1871,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         rules.set_parent(child, parent);
     }
     rules.calc_num_symbols();
-    complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt, is_t_data);
+    let calc_num_nt = if extend_nt { rules.num_nt } else { symbol_table.get_num_nt() };
+    complete_symbol_table(&mut symbol_table, rules.num_t, calc_num_nt, is_t_data);
     rules.set_symbol_table(symbol_table);
     if let Some(start) = start {
         rules.set_start(start);
@@ -1847,13 +1918,13 @@ fn prs_remove_recursion() {
         let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("{:=<80}\ntest {test_id}:", "");
-            rules.print_rules(false);
+            rules.print_rules(false, false);
         }
         rules.remove_recursion();
         let result = <BTreeMap<_, _>>::from(&rules);
         if VERBOSE {
             println!("=>");
-            rules.print_rules(true);
+            rules.print_rules(true, false);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1921,13 +1992,13 @@ fn prs_left_factorize() {
         let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
-            rules.print_rules(false);
+            rules.print_rules(false, false);
         }
         rules.left_factorize();
         let result = BTreeMap::<_, _>::from(&rules);
         if VERBOSE {
             println!("=>");
-            rules.print_rules(true);
+            rules.print_rules(true, false);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1982,13 +2053,13 @@ fn prs_ll1_from() {
         let rules_lr = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
-            rules_lr.print_rules(false);
+            rules_lr.print_rules(false, false);
         }
         let ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&ll1);
         if VERBOSE {
             println!("=>");
-            ll1.print_rules(true);
+            ll1.print_rules(true, false);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -2103,7 +2174,7 @@ fn prs_calc_first() {
         ll1.set_start(start);
         let first = ll1.calc_first();
         if VERBOSE {
-            ll1.print_rules(false);
+            ll1.print_rules(false, false);
             let b = map_and_print_first(&first, ll1.get_symbol_table());
             for (sym, set) in &b {
                 println!("            sym!({}) => hashset![{}],", sym.to_macro_item(),
@@ -2167,7 +2238,7 @@ fn prs_calc_follow() {
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         if VERBOSE {
-            ll1.print_rules(false);
+            ll1.print_rules(false, false);
             let b = map_and_print_follow(&follow, ll1.get_symbol_table());
             for (sym, set) in &b {
                 println!("            sym!({}) => hashset![{}],", sym.to_macro_item(),
@@ -3248,7 +3319,7 @@ fn prs_calc_table() {
         let rules_lr = build_prs(ll_id, false);
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {ll_id}/{start}:", "");
-            rules_lr.print_rules(false);
+            rules_lr.print_rules(false, false);
         }
         let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
         ll1.set_start(start);
@@ -3263,7 +3334,7 @@ fn prs_calc_table() {
         assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{ll_id}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
-            ll1.print_rules(false);
+            ll1.print_rules(false, false);
             print_factors(&factors, ll1.get_symbol_table());
             println!("{}",
                      factors.iter().enumerate().map(|(_id, (v, f))| {
@@ -3307,12 +3378,13 @@ fn prs_grammar_notes() {
         //        warnings                                  errors
         //        -------------------------------------     -------------------------------------
         (T::PRS(1000), 0, vec![],                           vec!["recursive rules must have at least one independent factor"]),
-        // (T::PRS(1001), 0, vec![],                           vec!["cannot remove recursion from"]),
         (T::PRS(1002), 0, vec!["ambiguity for NT"],         vec![]),
         (T::PRS(1003), 0, vec![],                           vec!["no terminal in grammar"]),
         (T::PRS(1004), 0, vec![],                           vec!["no terminal used in the table"]),
         (T::PRS(1005), 0, vec!["unused non-terminals",
                                "unused terminals"],         vec![]),
+        (T::PRS(1006), 0, vec![],                           vec!["there are 2 rules but the symbol table has 1 NT symbols: dropping the table"]),
+        (T::RTS(101), 0,  vec![],                           vec!["there are 2 rules but the symbol table has 1 NT symbols: dropping the table"]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
@@ -3321,7 +3393,7 @@ fn prs_grammar_notes() {
         }
         let mut ll1 = ll_id.try_build_prs(start, false);
         if VERBOSE {
-            ll1.print_rules(false);
+            ll1.print_rules(false, false);
             ll1.print_logs();
         }
         let mut parsing_table = None;
@@ -3335,7 +3407,7 @@ fn prs_grammar_notes() {
             }
             if VERBOSE {
                 println!("=>");
-                ll1.print_rules(false);
+                ll1.print_rules(false, false);
                 if let Some(table) = &parsing_table {
                     print_factors(&table.factors, ll1.get_symbol_table());
                     println!("table:");
