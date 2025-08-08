@@ -9,7 +9,7 @@ use crate::dfa::TokenId;
 use crate::grammar::{ProdFactor, ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::{build_prs, T};
 use crate::lexer::CaretCol;
-use crate::log::{BufLog, LogStatus, Logger};
+use crate::log::{BufLog, BuildFrom, LogStatus, Logger};
 use crate::parser::{ListenerWrapper, OpCode, Parser};
 use crate::parsergen::{ParserGen, ParserTables};
 
@@ -132,7 +132,7 @@ fn parser_parse_stream() {
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
-        let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id, false));
+        let mut ll1 = ProdRuleSet::<LL1>::build_from(build_prs(ll_id, false));
         ll1.set_start(start);
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
@@ -521,7 +521,7 @@ mod listener {
         const VERBOSE: bool = false;
         for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
-            let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id, false));
+            let mut ll1 = ProdRuleSet::<LL1>::build_from(build_prs(ll_id, false));
             ll1.set_start(start);
             let symbols = (0..ll1.get_num_t() as TokenId)
                 .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))

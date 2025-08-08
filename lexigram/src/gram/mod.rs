@@ -6,7 +6,7 @@ use listener::GramListener;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, BuildInto, LogStatus, Logger};
 use lexigram_lib::parser::Parser;
 use lexigram_lib::{General, SymbolTable, LL1};
 use std::io::Read;
@@ -76,6 +76,6 @@ impl<R: Read> From<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
         let name = listener.get_name().to_string();
         let mut prs = ProdRuleSet::<General>::from(listener);
         prs.set_name(Some(name));
-        prs.into()
+        prs.build_into()
     }
 }

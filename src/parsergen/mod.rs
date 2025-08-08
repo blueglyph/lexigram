@@ -7,7 +7,7 @@ use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, ProdFactor, factor_to_rule_str};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable};
-use crate::log::{BufLog, LogStatus, Logger};
+use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use crate::parser::{OpCode, Parser};
 use crate::segments::{Seg, Segments};
 
@@ -203,8 +203,8 @@ impl ParserGen {
     /// Creates a [`ParserGen`] from a set of rules and gives it a specific name, which is used
     /// to name the user listener trait in the generated code.
     pub fn from_tree(tree: RuleTreeSet<General>, name: String) -> Self {
-        let normalized = RuleTreeSet::<Normalized>::from(tree);
-        let lr_rules = ProdRuleSet::from(normalized);
+        let normalized = RuleTreeSet::<Normalized>::build_from(tree);
+        let lr_rules = ProdRuleSet::build_from(normalized);
         Self::from_rules(lr_rules, name)
     }
 
@@ -212,8 +212,8 @@ impl ParserGen {
     /// to name the user listener trait in the generated code.
     ///
     /// If [`rules`] already has a name, it is best to use the [From<ProdRuleSet<T>>](From<ProdRuleSet<T>>::from) trait.
-    pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: From<ProdRuleSet<T>> {
-        let mut ll1_rules = ProdRuleSet::<LL1>::from(rules);
+    pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>> {
+        let mut ll1_rules = ProdRuleSet::<LL1>::build_from(rules);
         assert_eq!(ll1_rules.get_log().num_errors(), 0);
         let parsing_table = ll1_rules.make_parsing_table(true);
         let num_nt = ll1_rules.get_num_nt();
@@ -2121,7 +2121,7 @@ impl ParserGen {
     }
 }
 
-impl<T> From<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: From<ProdRuleSet<T>> {
+impl<T> From<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>> {
     /// Creates a [`ParserGen`] from a set of production rules.
     /// If the rule set has a name, it's transmitted to the parser generator to name the user
     /// listener trait in the generated code. If the rule set has no name, a default "Parser" name

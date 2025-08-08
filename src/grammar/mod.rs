@@ -13,7 +13,7 @@ use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source};
 use crate::grammar::NTConversion::{MovedTo, Removed};
-use crate::log::{BufLog, LogStatus, Logger};
+use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use crate::SymbolTable;
 
 pub type VarId = u16;
@@ -302,10 +302,10 @@ pub mod ruleflag {
     /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
     pub const CHILD_L_FACTOR: u32 = 64;
     /// Low-latency non-terminal factor, used with `CHILD_REPEAT` or `R_RECURSION`.
-    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in `flags`.
+    /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in `flags`.
     pub const L_FORM: u32 = 128;
     /// Right-associative factor.
-    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in factors.
+    /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in factors.
     pub const R_ASSOC: u32 = 256;
     /// Left-recursive parent NT.
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
@@ -387,10 +387,6 @@ pub struct RuleTreeSet<T> {
 // Methods for both General and Normalized forms. There can only be immutable methods
 // in the normalized form.
 impl<T> RuleTreeSet<T> {
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
     pub fn get_num_nt(&self) -> VarId {
         self.trees.len() as VarId
     }
@@ -434,6 +430,18 @@ impl<T> RuleTreeSet<T> {
     /// Sets the starting production rule.
     pub fn set_start(&mut self, start: VarId) {
         self.start = Some(start);
+    }
+}
+
+impl<T> LogReader for RuleTreeSet<T> {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        &self.log
+    }
+
+    fn give_log(self) -> Self::Item {
+        self.log
     }
 }
 
@@ -897,12 +905,12 @@ impl RuleTreeSet<General> {
     }
 }
 
-impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
+impl BuildFrom<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     /// Transforms a `General` ruleset to a `Normalized` ruleset
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn from(mut rules: RuleTreeSet<General>) -> Self {
+    fn build_from(mut rules: RuleTreeSet<General>) -> Self {
         // We handle the errors by transmitting the log to the next construct rather than returning a `Result` type.
         // This allows to cascade the transforms without getting a complicated error resolving system while preserving
         // the information about the errors easily.
@@ -922,9 +930,9 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     }
 }
 
-// impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
+// impl BuildFrom<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
 //     /// Transforms a `Normalized` ruleset to a `General` ruleset
-//     fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
+//     fn build_from(mut rules: RuleTreeSet<Normalized>) -> Self {
 //         RuleTreeSet::<General> { trees: rules.trees, next_var: rules.next_var, _phantom: PhantomData }
 //     }
 // }
@@ -1197,14 +1205,6 @@ impl<T> ProdRuleSet<T> {
 
     pub fn get_num_t(&self) -> usize {
         self.num_t
-    }
-
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
-    pub fn give_log(self) -> BufLog {
-        self.log
     }
 
     pub fn give_symbol_table(&mut self) -> Option<SymbolTable> {
@@ -1960,6 +1960,18 @@ impl<T> ProdRuleSet<T> {
     }
 }
 
+impl<T> LogReader for ProdRuleSet<T> {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        &self.log
+    }
+
+    fn give_log(self) -> Self::Item {
+        self.log
+    }
+}
+
 impl ProdRuleSet<General> {
     fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -2186,12 +2198,12 @@ impl ProdRuleSetTables {
 
 // ---------------------------------------------------------------------------------------------
 
-impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
+impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     /// Builds a [`ProdRuleSet<General>`] from a [`RuleTreeSet<Normalized>`].
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn from(rules: RuleTreeSet<Normalized>) -> Self {
+    fn build_from(rules: RuleTreeSet<Normalized>) -> Self {
         fn children_to_vec(tree: &GrTree, parent_id: usize) -> ProdFactor {
             let mut flags: u32 = 0;
             let factor = tree.children(parent_id).iter()
@@ -2286,13 +2298,13 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     }
 }
 
-impl From<RuleTreeSet<General>> for ProdRuleSet<General> {
+impl BuildFrom<RuleTreeSet<General>> for ProdRuleSet<General> {
     /// Builds a [`ProdRuleSet<General>`] from a [`RuleTreeSet<General>`].
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn from(rules: RuleTreeSet<General>) -> Self {
-        let mut prods = ProdRuleSet::from(RuleTreeSet::<Normalized>::from(rules));
+    fn build_from(rules: RuleTreeSet<General>) -> Self {
+        let mut prods = ProdRuleSet::build_from(RuleTreeSet::<Normalized>::build_from(rules));
         if prods.log.has_no_errors() {
             prods.simplify();
         }
@@ -2300,8 +2312,8 @@ impl From<RuleTreeSet<General>> for ProdRuleSet<General> {
     }
 }
 
-impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
-    fn from(mut rules: ProdRuleSet<General>) -> Self {
+impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
+    fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
             rules.remove_recursion();
             rules.left_factorize();
@@ -2325,8 +2337,8 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
     }
 }
 
-impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
-    fn from(mut rules: ProdRuleSet<General>) -> Self {
+impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
+    fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
             rules.remove_ambiguity();
             rules.transfer_factor_flags();

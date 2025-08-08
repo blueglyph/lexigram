@@ -275,6 +275,12 @@ where
     fn build_into(self) -> T { T::build_from(self) }
 }
 
+impl<S> BuildFrom<S> for S {
+    fn build_from(source: S) -> Self {
+        source
+    }
+}
+
 // ---------------------------------------------------------------------------------------------------------
 
 pub trait TryBuildFrom<T>: Sized {

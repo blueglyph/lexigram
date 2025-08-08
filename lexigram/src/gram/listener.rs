@@ -4,7 +4,7 @@ use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
 use lexigram_lib::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
-use lexigram_lib::log::{BufLog, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::{CollectJoin, General, SymbolTable};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
@@ -136,7 +136,7 @@ impl From<GramListener> for ProdRuleSet<General> {
             }
             rts.set_symbol_table(gram_listener.symbol_table);
         }
-        let mut prs = ProdRuleSet::<General>::from(rts);
+        let mut prs = ProdRuleSet::<General>::build_from(rts);
         if no_error {
             prs.set_start(gram_listener.start_rule.unwrap());
         }

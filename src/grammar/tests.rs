@@ -866,7 +866,7 @@ fn rts_prodrule_from() {
         if VERBOSE {
             println!("\ntest {test_id}:");
         }
-        let mut rules = ProdRuleSet::from(trees);
+        let mut rules = ProdRuleSet::build_from(trees);
         assert!(rules.log.has_no_errors(), "test {test_id} failed to create production rules: {}", log_to_str(&rules.log));
         rules.simplify();
         let result = rules.get_non_empty_nts().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
@@ -2055,7 +2055,7 @@ fn prs_ll1_from() {
             println!("test {test_id}:");
             rules_lr.print_rules(false, false);
         }
-        let ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&ll1);
         if VERBOSE {
             println!("=>");
@@ -2065,7 +2065,7 @@ fn prs_ll1_from() {
         assert_eq!(result, expected, "test {test_id} failed");
         assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id} failed");
         assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id} failed");
-        let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let rules_ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&rules_ll1);
         assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
    }
@@ -2082,7 +2082,7 @@ fn prs_lr_from() {
         if rules.prods.is_empty() {
             break;
         }
-        let _lr = ProdRuleSet::<LR>::from(rules);
+        let _lr = ProdRuleSet::<LR>::build_from(rules);
         test_id += 1;
     }
 }
@@ -2170,7 +2170,7 @@ fn prs_calc_first() {
         if VERBOSE {
             println!("test {test_id}:");
         }
-        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let mut ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
         ll1.set_start(start);
         let first = ll1.calc_first();
         if VERBOSE {
@@ -2233,7 +2233,7 @@ fn prs_calc_follow() {
         if VERBOSE {
             println!("test {test_id}:");
         }
-        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let mut ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
         ll1.set_start(start);
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
@@ -3321,7 +3321,7 @@ fn prs_calc_table() {
             println!("{:=<80}\ntest {test_id} with {ll_id}/{start}:", "");
             rules_lr.print_rules(false, false);
         }
-        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let mut ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
         ll1.set_start(start);
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
@@ -3476,8 +3476,8 @@ fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
         rts.set_start(start);
     }
 
-    let rules = ProdRuleSet::<General>::from(rts);
-    ProdRuleSet::<LL1>::from(rules)
+    let rules = ProdRuleSet::<General>::build_from(rts);
+    ProdRuleSet::<LL1>::build_from(rules)
 }
 
 #[test]
@@ -3549,12 +3549,12 @@ impl T {
                     complete_symbol_table(&mut symbol_table, num_t, num_nt, is_t_data);
                     rts.set_symbol_table(symbol_table);
                 }
-                let rules = ProdRuleSet::from(rts);
+                let rules = ProdRuleSet::build_from(rts);
                 if VERBOSE {
                     print!("General rules\n- ");
                     rules.print_prs_summary();
                 }
-                ProdRuleSet::<LL1>::from(rules)
+                ProdRuleSet::<LL1>::build_from(rules)
             }
             T::PRS(id) => {
                 let general = build_prs(*id, is_t_data);
@@ -3562,7 +3562,7 @@ impl T {
                     print!("General rules\n- ");
                     general.print_prs_summary();
                 }
-                ProdRuleSet::<LL1>::from(general)
+                ProdRuleSet::<LL1>::build_from(general)
             }
         };
         ll1.set_start(start_nt);

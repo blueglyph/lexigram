@@ -249,7 +249,7 @@ fn lexiparser_source() {
             println!("{id} => {s}");
         }
     }
-    let rules = ProdRuleSet::from(rts);
+    let rules = ProdRuleSet::build_from(rts);
     if !rules.get_log().is_empty() {
         println!("messages PRS<General>: {}", rules.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
     }
@@ -264,7 +264,7 @@ fn lexiparser_source() {
         }
     }
     assert_eq!(rules.get_log().num_errors(), 0);
-    let ll1 = ProdRuleSet::<LL1>::from(rules);
+    let ll1 = ProdRuleSet::<LL1>::build_from(rules);
     if !ll1.get_log().is_empty() {
         println!("messages PRS<LL1>: {}", ll1.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
     }

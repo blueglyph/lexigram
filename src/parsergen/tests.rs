@@ -6,7 +6,7 @@ mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
     use crate::{CollectJoin, LL1, SymbolTable};
-    use crate::log::LogStatus;
+    use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
@@ -18,7 +18,7 @@ mod gen_integration {
         let rules = match rules_id {
             RTS(rts_id) => {
                 let rts = build_rts(rts_id);
-                let mut rules = ProdRuleSet::from(rts);
+                let mut rules = ProdRuleSet::build_from(rts);
                 rules.set_start(0);
                 if rules.get_symbol_table().is_none() {
                     let mut symbol_table = SymbolTable::new();
@@ -32,7 +32,7 @@ mod gen_integration {
             }
         };
         assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
-        let ll1 = ProdRuleSet::<LL1>::from(rules);
+        let ll1 = ProdRuleSet::<LL1>::build_from(rules);
         let mut builder = ParserGen::from_rules(ll1, name);
         builder.set_include_factors(include_factors);
         builder.build_source_code(indent, false)
@@ -567,7 +567,7 @@ mod parser_source {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::build_prs;
     use crate::{CollectJoin, LL1};
-    use crate::log::LogStatus;
+    use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::{ParserGen, ParserTables};
 
     #[test]
@@ -575,7 +575,7 @@ mod parser_source {
         for include_factors in [false, true] {
             let rules = build_prs(9, true);
             assert_eq!(rules.get_log().num_errors(), 0, "building PRS(9) failed:\n- {}", rules.get_log().get_errors().join("\n- "));
-            let ll1 = ProdRuleSet::<LL1>::from(rules);
+            let ll1 = ProdRuleSet::<LL1>::build_from(rules);
             let mut builder = ParserGen::from_rules(ll1, "simple".to_string());
             builder.set_include_factors(include_factors);
             let src = builder.build_source_code(0, false);
