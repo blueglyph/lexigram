@@ -4,7 +4,7 @@
 
 use crate::*;
 use crate::dfa::tests::build_re;
-use crate::log::{LogReader, LogStatus};
+use crate::log::{BuildFrom, LogReader, LogStatus};
 use crate::segments::{Seg, SegMap};
 use super::*;
 
@@ -163,7 +163,7 @@ fn lexgen_build() {
         let lexgen;
         time! { VERBOSE, {
                 let re = build_re(test_id);
-                let dfa = Dfa::<General>::from(DfaBuilder::from(re)).normalize();
+                let dfa = Dfa::<General>::build_from(DfaBuilder::build_from(re)).normalize();
                 lexgen = LexerGen::from(dfa);
                 if VERBOSE { print!("- {test_id:2}: "); }
             }

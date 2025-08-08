@@ -8,7 +8,7 @@ use crate::dfa::*;
 use crate::dfa::{tests::{build_re}};
 use crate::lexergen::{LexerGen, LexerTables};
 use vectree::VecTree;
-use crate::log::{LogReader, LogStatus};
+use crate::log::{BuildFrom, LogReader, LogStatus};
 use super::*;
 
 #[test]
@@ -72,7 +72,7 @@ fn lexer_simple() {
     ];
     const VERBOSE: bool = false;
     for (test_id, token_tests, err_tests, stream_tests) in tests {
-        let dfa = Dfa::<General>::from(DfaBuilder::from(build_re(test_id))).normalize();
+        let dfa = Dfa::<General>::build_from(DfaBuilder::build_from(build_re(test_id))).normalize();
         if VERBOSE { dfa.print(12); }
         let lexgen = LexerGen::from(dfa);
         if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
@@ -221,8 +221,8 @@ fn build_lexer_tables(test: usize) -> LexerTables {
     let dfas = trees.into_iter().enumerate().map(|(dfa_id, (mode, re))| {
         if VERBOSE { println!("creating dfa for mode {mode}"); }
         // let dfa = DfaBuilder::from_re(re).build();
-        let dfa_builder = DfaBuilder::from(re);
-        let dfa = Dfa::<General>::from(dfa_builder);
+        let dfa_builder = DfaBuilder::build_from(re);
+        let dfa = Dfa::<General>::build_from(dfa_builder);
         let log = dfa.get_log();
         assert!(log.has_no_errors() && log.has_no_warnings(),
                 "warnings/errors when building lexer #{test}: (DFA #{dfa_id})\n{}", log.get_messages_str());
@@ -232,7 +232,7 @@ fn build_lexer_tables(test: usize) -> LexerTables {
         (mode as u16, dfa)
     }).to_vec();
     if VERBOSE { println!("merging dfa modes"); }
-    let dfa = Dfa::<General>::from(dfas);
+    let dfa = Dfa::<General>::build_from(dfas);
     assert!(dfa.get_log().has_no_errors() && dfa.get_log().has_no_warnings(),
             "warnings/errors when building lexer #{test} (merging DFAs):\n{}", dfa.get_log().get_messages_str());
     if VERBOSE {

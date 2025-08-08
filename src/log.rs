@@ -189,10 +189,12 @@ impl Default for BufLog {
 // ---------------------------------------------------------------------------------------------
 // blanket implementations
 
-    fn get_log(&self) -> &impl LogStatus;
 pub trait LogReader {
+    type Item: LogStatus;
 
-    fn give_log(self) -> impl LogStatus;
+    fn get_log(&self) -> &Self::Item;
+
+    fn give_log(self) -> Self::Item;
 }
 
 pub trait LogWriter {
@@ -240,5 +242,88 @@ impl<L: LogWriter + LogReader + Debug> Logger for L {
 
     fn add_error<T: Into<String>>(&mut self, msg: T) {
         self.get_mut_log().add_error(msg);
+    }
+}
+
+// ---------------------------------------------------------------------------------------------
+// Local from/into and try_from/try_into
+// - we have to redefine our own From/Into traits because the standard lib has a blanket
+//   implementation that automatically generates TryFrom from From, which is always Ok...
+// - we have to redefine our own TryFrom/TryInto traits, since it's otherwise not allowed to
+//   implement a foreign trait on anything else than a local type (a local trait isn't enough)
+
+// ---------------------------------------------------------------------------------------------------------
+
+pub trait BuildFrom<S>: Sized {
+    /// Converts to this type from the input type.
+    #[must_use]
+    fn build_from(source: S) -> Self;
+}
+
+pub trait BuildInto<T>: Sized {
+    /// Converts this type into the (usually inferred) input type.
+    #[must_use]
+    fn build_into(self) -> T;
+}
+
+impl<S, T> BuildInto<T> for S
+where
+    T: BuildFrom<S>,
+{
+    /// Calls `T::from(self)` to convert a [`S`] into a [`T`].
+    #[inline]
+    fn build_into(self) -> T { T::build_from(self) }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+
+pub trait TryBuildFrom<T>: Sized {
+    /// The type returned in the event of a conversion error.
+    type Error;
+
+    /// Performs the conversion.
+    fn try_build_from(target: T) -> Result<Self, Self::Error>;
+}
+
+pub trait TryBuildInto<T>: Sized {
+    /// The type returned in the event of a conversion error.
+    type Error;
+
+    /// Performs the conversion.
+    fn try_build_into(self) -> Result<T, Self::Error>;
+}
+
+impl<S, T> TryBuildInto<T> for S
+where
+    T: TryBuildFrom<S>,
+{
+    type Error = T::Error;
+
+    #[inline]
+    fn try_build_into(self) -> Result<T, T::Error> { T::try_build_from(self) }
+}
+
+// ---------------------------------------------------------------------------------------------------------
+
+impl<S, T> TryBuildFrom<S> for T
+where
+    S: LogReader,
+    T: LogReader<Item = S::Item> + BuildFrom<S>,
+{
+    type Error = S::Item;
+
+    fn try_build_from(source: S) -> Result<Self, Self::Error> {
+        if source.get_log().has_no_errors() {
+            let dest = T::build_from(source);
+            if dest.get_log().has_no_errors() {
+                println!("destination is fine");
+                Ok(dest)
+            } else {
+                println!("destination has errors");
+                Err(dest.give_log())
+            }
+        } else {
+            Err(source.give_log())
+        }
     }
 }

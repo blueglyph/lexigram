@@ -7,7 +7,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use lexigram_lib::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
 use lexigram_lib::dfa::ReNode;
-use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, CollectJoin, General, Normalized, SymbolTable};
 use lexigram_lib::segments::Segments;
 use crate::action;
@@ -265,14 +265,14 @@ impl LexiListener {
                 }
             }
             if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
-            let dfa_builder = DfaBuilder::from(tree);
+            let dfa_builder = DfaBuilder::build_from(tree);
             assert_eq!(dfa_builder.get_log().num_errors(), 0, "failed to compile mode {mode_id}");
-            dfas.push((*mode_id as ModeId, Dfa::<General>::from(dfa_builder)));
+            dfas.push((*mode_id as ModeId, Dfa::<General>::build_from(dfa_builder)));
             if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
         }
         // let mut dfa_builder = DfaBuilder::new();
         if VERBOSE { println!("merging dfa modes"); }
-        let dfa = Dfa::<General>::from(dfas);
+        let dfa = Dfa::<General>::build_from(dfas);
         assert!(dfa.get_log().has_no_errors(), "failed to build lexer\n{}", dfa.get_log().get_messages_str());
         dfa.optimize()
     }

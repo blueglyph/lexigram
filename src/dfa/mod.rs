@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 use std::ops::Add;
 use vectree::VecTree;
 use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized, indent_source};
-use crate::log::{BufLog, LogReader, LogStatus, Logger};
+use crate::log::{BufLog, LogReader, BuildFrom, LogStatus, Logger};
 use crate::segments::{Segments, Seg};
 use crate::take_until::TakeUntilIterator;
 
@@ -312,6 +312,7 @@ impl Display for ReNode {
 
 // ---------------------------------------------------------------------------------------------
 
+#[derive(Clone)]
 pub struct DfaBuilder {
     /// Regular Expression tree
     re: VecTree<ReNode>,
@@ -783,20 +784,21 @@ impl DfaBuilder {
     }
 }
 
-impl LogConsumer for DfaBuilder {
-    fn get_log(&self) -> &impl LogStatus {
 impl LogReader for DfaBuilder {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
         &self.log
     }
 
-    fn give_log(self) -> impl LogStatus {
+    fn give_log(self) -> Self::Item {
         self.log
     }
 }
 
-impl From<VecTree<ReNode>> for DfaBuilder {
+impl BuildFrom<VecTree<ReNode>> for DfaBuilder {
     /// Creates a [`DfaBuilder`] from a tree of regular expression [`VecTree`]<[`ReNode`]>.
-    fn from(regex_tree: VecTree<ReNode>) -> Self {
+    fn build_from(regex_tree: VecTree<ReNode>) -> Self {
         let mut builder = DfaBuilder {
             re: regex_tree,
             followpos: HashMap::new(),
@@ -1071,13 +1073,14 @@ impl<T> Dfa<T> {
     }
 }
 
-impl<T> LogConsumer for Dfa<T> {
-    fn get_log(&self) -> &impl LogStatus {
 impl<T> LogReader for Dfa<T> {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
         &self.log
     }
 
-    fn give_log(self) -> impl LogStatus {
+    fn give_log(self) -> Self::Item {
         self.log
     }
 }
@@ -1108,7 +1111,7 @@ impl Dfa<Normalized> {
 
 // ---------------------------------------------------------------------------------------------
 
-impl<T> From<T> for Dfa<General>
+impl<T> BuildFrom<T> for Dfa<General>
 where
     T: IntoIterator<Item=(ModeId, Dfa<General>)>,
 {
@@ -1116,18 +1119,18 @@ where
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn from(dfas: T) -> Self {
+    fn build_from(dfas: T) -> Self {
         let dfa_builder = DfaBuilder::new();
         dfa_builder.build_from_dfa_modes(dfas)
     }
 }
 
-impl From<DfaBuilder> for Dfa<General> {
+impl BuildFrom<DfaBuilder> for Dfa<General> {
     /// Builds a [`Dfa::<General>`] from a [`DfaBuilder`].
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn from(dfa_builder: DfaBuilder) -> Self {
+    fn build_from(dfa_builder: DfaBuilder) -> Self {
         dfa_builder.build()
     }
 }

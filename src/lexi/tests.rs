@@ -13,7 +13,7 @@ use crate::lexer::Lexer;
 use crate::lexergen::{LexerGen, LexerTables};
 use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt, VarId, RuleTreeSet};
-use crate::log::{LogReader, LogStatus};
+use crate::log::{BuildFrom, LogReader, LogStatus};
 use crate::parsergen::{print_flags, print_items, ParserGen};
 use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
@@ -28,8 +28,8 @@ fn make_dfa() -> Dfa<General> {
     let regs = build_re();
     let mut dfas = vec![];
     for (n, re) in regs {
-        let dfa_builder = DfaBuilder::from(re);
-        let dfa = Dfa::<General>::from(dfa_builder);
+        let dfa_builder = DfaBuilder::build_from(re);
+        let dfa = Dfa::<General>::build_from(dfa_builder);
         if VERBOSE {
             println!("Mode {n}:");
             println!("Messages:\n{}", dfa.get_log().get_messages_str());
@@ -37,7 +37,7 @@ fn make_dfa() -> Dfa<General> {
         assert!(dfa.get_log().has_no_errors(), "Failed to build DFA:\n{}", dfa.get_log().get_messages_str());
         dfas.push((n, dfa));
     }
-    let dfa = Dfa::<General>::from(dfas);
+    let dfa = Dfa::<General>::build_from(dfas);
     if VERBOSE {
         println!("Messages:\n{}", dfa.get_log().get_messages_str());
     }
