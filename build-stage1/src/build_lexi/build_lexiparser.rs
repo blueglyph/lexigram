@@ -4,10 +4,9 @@ use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
 use lexigram::lexigram_lib::grammar::ProdRuleSet;
-use lexigram::lexigram_lib::log::BufLog;
+use lexigram::lexigram_lib::log::{BufLog, LogStatus};
 use lexigram_lib::{CollectJoin, LL1, SymbolTable};
 use lexigram_lib::io::CharReader;
-use lexigram_lib::log::Logger;
 use lexigram_lib::test_tools::replace_tagged_source;
 use super::{LEXIPARSER_GRAMMAR, LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TAG, VERSIONS_TAG};
 

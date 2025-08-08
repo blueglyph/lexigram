@@ -13,7 +13,7 @@ use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source};
 use crate::grammar::NTConversion::{MovedTo, Removed};
-use crate::log::{BufLog, Logger};
+use crate::log::{BufLog, LogStatus, Logger};
 use crate::SymbolTable;
 
 pub type VarId = u16;

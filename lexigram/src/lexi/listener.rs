@@ -7,7 +7,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use lexigram_lib::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
 use lexigram_lib::dfa::ReNode;
-use lexigram_lib::log::{BufLog, Logger};
+use lexigram_lib::log::{BufLog, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, CollectJoin, General, Normalized, SymbolTable};
 use lexigram_lib::segments::Segments;
 use crate::action;

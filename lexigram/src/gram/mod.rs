@@ -6,7 +6,7 @@ use listener::GramListener;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, Logger};
+use lexigram_lib::log::{BufLog, LogStatus, Logger};
 use lexigram_lib::parser::Parser;
 use lexigram_lib::{General, SymbolTable, LL1};
 use std::io::Read;

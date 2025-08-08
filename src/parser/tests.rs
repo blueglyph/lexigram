@@ -9,7 +9,7 @@ use crate::dfa::TokenId;
 use crate::grammar::{ProdFactor, ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::{build_prs, T};
 use crate::lexer::CaretCol;
-use crate::log::{BufLog, Logger};
+use crate::log::{BufLog, LogStatus, Logger};
 use crate::parser::{ListenerWrapper, OpCode, Parser};
 use crate::parsergen::{ParserGen, ParserTables};
 
@@ -305,7 +305,7 @@ mod listener {
     use crate::grammar::tests::build_prs;
     use crate::grammar::{FactorId, VarId};
     use crate::lexer::CaretCol;
-    use crate::log::BufLog;
+    use crate::log::{BufLog, LogStatus};
     use crate::parser::{Call, ListenerWrapper};
     use super::*;
 

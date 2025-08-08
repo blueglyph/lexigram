@@ -4,6 +4,7 @@
 
 use crate::*;
 use crate::dfa::tests::build_re;
+use crate::log::LogStatus;
 use crate::segments::{Seg, SegMap};
 use super::*;
 

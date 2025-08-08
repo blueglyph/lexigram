@@ -13,7 +13,7 @@ use crate::lexer::Lexer;
 use crate::lexergen::{LexerGen, LexerTables};
 use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt, VarId, RuleTreeSet};
-use crate::log::Logger;
+use crate::log::LogStatus;
 use crate::parsergen::{print_flags, print_items, ParserGen};
 use crate::test_tools::{get_tagged_source, replace_tagged_source};
 

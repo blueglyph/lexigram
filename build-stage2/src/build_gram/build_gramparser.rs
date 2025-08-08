@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use lexigram_lib::CollectJoin;
-use lexigram_lib::log::Logger;
+use lexigram_lib::log::LogStatus;
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::grammar::ProdRuleSetTables;

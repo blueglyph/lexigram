@@ -4,7 +4,7 @@ use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
 use lexigram_lib::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
-use lexigram_lib::log::{BufLog, Logger};
+use lexigram_lib::log::{BufLog, LogStatus, Logger};
 use lexigram_lib::{CollectJoin, General, SymbolTable};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};

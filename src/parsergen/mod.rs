@@ -7,7 +7,7 @@ use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, ProdFactor, factor_to_rule_str};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable};
-use crate::log::{BufLog, Logger};
+use crate::log::{BufLog, LogStatus, Logger};
 use crate::parser::{OpCode, Parser};
 use crate::segments::{Seg, Segments};
 

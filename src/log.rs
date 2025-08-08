@@ -2,11 +2,10 @@
 
 use std::fmt::{Display, Formatter};
 
-/// Common log functionalities
-pub trait Logger {
-    fn add_note<T: Into<String>>(&mut self, msg: T);
-    fn add_warning<T: Into<String>>(&mut self, msg: T);
-    fn add_error<T: Into<String>>(&mut self, msg: T);
+static NO_LOG_STORE: LogMsg = LogMsg::NoLogStore;
+
+/// Common log functionalities for a message consumer/status verifyier
+pub trait LogStatus {
     fn num_notes(&self) -> usize;
     fn num_warnings(&self) -> usize;
     fn num_errors(&self) -> usize;
@@ -18,6 +17,21 @@ pub trait Logger {
     fn has_no_warnings(&self) -> bool {
         self.num_warnings() == 0
     }
+
+    fn get_messages(&self) -> impl Iterator<Item = &LogMsg> {
+        [&NO_LOG_STORE].into_iter() // should we panic instead?
+    }
+
+    fn get_messages_str(&self) -> String {
+        self.get_messages().map(|m| format!("- {m}")).collect::<Vec<_>>().join("\n")
+    }
+}
+
+/// Common log functionalities for a message producer
+pub trait Logger: LogStatus {
+    fn add_note<T: Into<String>>(&mut self, msg: T);
+    fn add_warning<T: Into<String>>(&mut self, msg: T);
+    fn add_error<T: Into<String>>(&mut self, msg: T);
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -35,19 +49,7 @@ impl PrintLog {
     }
 }
 
-impl Logger for PrintLog {
-    fn add_note<T: Into<String>>(&mut self, msg: T) {
-        eprintln!("NOTE: {}", msg.into());
-    }
-
-    fn add_warning<T: Into<String>>(&mut self, msg: T) {
-        eprintln!("WARNING: {}", msg.into());
-    }
-
-    fn add_error<T: Into<String>>(&mut self, msg: T) {
-        eprintln!("ERROR: {}", msg.into());
-    }
-
+impl LogStatus for PrintLog {
     fn num_notes(&self) -> usize {
         self.num_notes
     }
@@ -61,14 +63,29 @@ impl Logger for PrintLog {
     }
 }
 
+impl Logger for PrintLog {
+    fn add_note<T: Into<String>>(&mut self, msg: T) {
+        eprintln!("NOTE: {}", msg.into());
+    }
+
+    fn add_warning<T: Into<String>>(&mut self, msg: T) {
+        eprintln!("WARNING: {}", msg.into());
+    }
+
+    fn add_error<T: Into<String>>(&mut self, msg: T) {
+        eprintln!("ERROR: {}", msg.into());
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, Debug)]
-pub enum LogMsg { Note(String), Warning(String), Error(String) }
+pub enum LogMsg { NoLogStore, Note(String), Warning(String), Error(String) }
 
 impl Display for LogMsg {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
+            LogMsg::NoLogStore => write!(f, "The log messages were not stored"),
             LogMsg::Note(s) => write!(f, "Note: {s}"),
             LogMsg::Warning(s) => write!(f, "Warning: {s}"),
             LogMsg::Error(s) => write!(f, "ERROR: {s}"),
@@ -109,14 +126,6 @@ impl BufLog {
         self.messages.extend(other.messages)
     }
 
-    pub fn get_messages(&self) -> impl Iterator<Item = &LogMsg> {
-        self.messages.iter()
-    }
-
-    pub fn get_messages_str(&self) -> String {
-        self.get_messages().map(|m| format!("- {m}")).collect::<Vec<_>>().join("\n")
-    }
-
     pub fn get_notes(&self) -> impl Iterator<Item = &String> {
         self.messages.iter().filter_map(|m| if let LogMsg::Note(s) = m { Some(s) } else { None })
     }
@@ -128,6 +137,29 @@ impl BufLog {
     pub fn get_errors(&self) -> impl Iterator<Item = &String> {
         self.messages.iter().filter_map(|m| if let LogMsg::Error(s) = m { Some(s) } else { None })
     }
+}
+
+impl LogStatus for BufLog {
+    fn num_notes(&self) -> usize {
+        self.num_notes
+    }
+
+    fn num_warnings(&self) -> usize {
+        self.num_warnings
+    }
+
+    fn num_errors(&self) -> usize {
+        self.num_errors
+    }
+
+    fn get_messages(&self) -> impl Iterator<Item = &LogMsg> {
+        self.messages.iter()
+    }
+
+    fn get_messages_str(&self) -> String {
+        self.get_messages().map(|m| format!("- {m}")).collect::<Vec<_>>().join("\n")
+    }
+
 }
 
 impl Logger for BufLog {
@@ -144,18 +176,6 @@ impl Logger for BufLog {
     fn add_error<T: Into<String>>(&mut self, msg: T) {
         self.messages.push(LogMsg::Error(msg.into()));
         self.num_errors += 1;
-    }
-
-    fn num_notes(&self) -> usize {
-        self.num_notes
-    }
-
-    fn num_warnings(&self) -> usize {
-        self.num_warnings
-    }
-
-    fn num_errors(&self) -> usize {
-        self.num_errors
     }
 }
 

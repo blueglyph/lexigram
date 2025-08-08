@@ -4,7 +4,7 @@ use std::io::Read;
 use lexigram_lib::dfa::Dfa;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, Logger};
+use lexigram_lib::log::{BufLog, LogStatus};
 use lexigram_lib::parser::Parser;
 use lexigram_lib::{Normalized, SymbolTable};
 use lexilexer::build_lexer;

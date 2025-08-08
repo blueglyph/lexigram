@@ -6,7 +6,7 @@ mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
     use crate::{CollectJoin, LL1, SymbolTable};
-    use crate::log::Logger;
+    use crate::log::LogStatus;
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
@@ -567,7 +567,7 @@ mod parser_source {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::build_prs;
     use crate::{CollectJoin, LL1};
-    use crate::log::Logger;
+    use crate::log::LogStatus;
     use crate::parsergen::{ParserGen, ParserTables};
 
     #[test]
@@ -598,7 +598,7 @@ mod wrapper_source {
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::{print_flags, print_items, ParserGen};
     use crate::dfa::TokenId;
-    use crate::log::Logger;
+    use crate::log::LogStatus;
     use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 

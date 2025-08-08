@@ -161,6 +161,7 @@ mod tests {
     use lexigram_lib::io::CharReader;
     use lexigram_lib::lexi::LEXICON;
     use lexigram_lib::lexer::TokenSpliterator;
+    use lexigram_lib::log::LogStatus;
     use super::*;
     use crate::out::build_lexer;
     use crate::out::lexiparser::lexiparser::build_parser;

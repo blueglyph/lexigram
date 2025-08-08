@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 use std::ops::Add;
 use vectree::VecTree;
 use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized, indent_source};
-use crate::log::{BufLog, Logger};
+use crate::log::{BufLog, LogStatus, Logger};
 use crate::segments::{Segments, Seg};
 use crate::take_until::TakeUntilIterator;
 
