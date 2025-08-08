@@ -3756,7 +3756,7 @@ fn build_prs_error() {
     assert!(rts_normalized.get_log().num_errors() > 0, "{text}");
     assert!(rts_normalized_err.is_err(), "{text}");
     let prs = ProdRuleSet::build_from(rts_normalized.clone());
-    let prs_e = ProdRuleSet::try_build_from(rts_normalized.clone());
+    let prs_e = ProdRuleSet::try_build_from(rts_normalized);
     let text = format!("prs errors: {}, err: {}", prs.get_log().num_errors(), prs_e.is_err());
     assert!(prs.get_log().num_errors() > 0, "{text}");
     assert!(prs_e.is_err(), "{text}");
