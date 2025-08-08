@@ -7,7 +7,7 @@ use super::*;
 use crate::dfa::TokenId;
 use crate::{btreemap, gnode, hashmap, hashset, LL1, prod, prodf, sym};
 use crate::grammar::NTConversion::Removed;
-
+use crate::log::TryBuildFrom;
 // ---------------------------------------------------------------------------------------------
 
 #[allow(dead_code)]
@@ -3743,4 +3743,21 @@ fn rts_prs_flags() {
         assert_eq!(result_parent, expected_parent, "test {test_id}/{rule_id:?}/{start_nt} failed");
         assert_eq!(result_nt_conversion, expected_nt_conversion, "test {test_id}/{rule_id:?}/{start_nt} failed");
     }
+}
+
+#[test]
+fn build_prs_error() {
+    let rts = build_rts(101);
+    let text = format!("rts errors: {}", rts.get_log().num_errors());
+    assert_eq!(rts.get_log().num_errors(), 0, "{text}");
+    let rts_normalized = RuleTreeSet::<Normalized>::build_from(rts.clone());
+    let rts_normalized_err = RuleTreeSet::<Normalized>::try_build_from(rts);
+    let text = format!("rts_normalized errors: {}, err: {}", rts_normalized.get_log().num_errors(), rts_normalized_err.is_err());
+    assert!(rts_normalized.get_log().num_errors() > 0, "{text}");
+    assert!(rts_normalized_err.is_err(), "{text}");
+    let prs = ProdRuleSet::build_from(rts_normalized.clone());
+    let prs_e = ProdRuleSet::try_build_from(rts_normalized.clone());
+    let text = format!("prs errors: {}, err: {}", prs.get_log().num_errors(), prs_e.is_err());
+    assert!(prs.get_log().num_errors() > 0, "{text}");
+    assert!(prs_e.is_err(), "{text}");
 }

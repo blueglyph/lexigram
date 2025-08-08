@@ -76,6 +76,7 @@ pub struct LL1;
 ///   - a symbol
 ///   - a `&` with only symbols as children
 ///   - a `|` with only `&(symbols)` or symbols as children
+#[derive(Clone, Debug)]
 pub struct Normalized;
 
 // ---------------------------------------------------------------------------------------------
