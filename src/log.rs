@@ -1,11 +1,11 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use std::fmt::{Display, Formatter};
+use std::fmt::{Debug, Display, Formatter};
 
 static NO_LOG_STORE: LogMsg = LogMsg::NoLogStore;
 
 /// Common log functionalities for a message consumer/status verifyier
-pub trait LogStatus {
+pub trait LogStatus: Debug {
     fn num_notes(&self) -> usize;
     fn num_warnings(&self) -> usize;
     fn num_errors(&self) -> usize;
@@ -25,6 +25,18 @@ pub trait LogStatus {
     fn get_messages_str(&self) -> String {
         self.get_messages().map(|m| format!("- {m}")).collect::<Vec<_>>().join("\n")
     }
+
+    fn get_notes(&self) -> impl Iterator<Item = &String> {
+        self.get_messages().filter_map(|m| if let LogMsg::Note(s) = m { Some(s) } else { None })
+    }
+
+    fn get_warnings(&self) -> impl Iterator<Item = &String> {
+        self.get_messages().filter_map(|m| if let LogMsg::Warning(s) = m { Some(s) } else { None })
+    }
+
+    fn get_errors(&self) -> impl Iterator<Item = &String> {
+        self.get_messages().filter_map(|m| if let LogMsg::Error(s) = m { Some(s) } else { None })
+    }
 }
 
 /// Common log functionalities for a message producer
@@ -37,6 +49,7 @@ pub trait Logger: LogStatus {
 // ---------------------------------------------------------------------------------------------
 
 /// Basic log system that prints out messages to stderr without storing them
+#[derive(Clone, Debug)]
 pub struct PrintLog {
     num_notes: usize,
     num_warnings: usize,
@@ -125,18 +138,6 @@ impl BufLog {
         self.num_errors += other.num_errors;
         self.messages.extend(other.messages)
     }
-
-    pub fn get_notes(&self) -> impl Iterator<Item = &String> {
-        self.messages.iter().filter_map(|m| if let LogMsg::Note(s) = m { Some(s) } else { None })
-    }
-
-    pub fn get_warnings(&self) -> impl Iterator<Item = &String> {
-        self.messages.iter().filter_map(|m| if let LogMsg::Warning(s) = m { Some(s) } else { None })
-    }
-
-    pub fn get_errors(&self) -> impl Iterator<Item = &String> {
-        self.messages.iter().filter_map(|m| if let LogMsg::Error(s) = m { Some(s) } else { None })
-    }
 }
 
 impl LogStatus for BufLog {
@@ -188,15 +189,17 @@ impl Default for BufLog {
 // ---------------------------------------------------------------------------------------------
 // blanket implementations
 
-pub trait LogConsumer {
     fn get_log(&self) -> &impl LogStatus;
+pub trait LogReader {
+
+    fn give_log(self) -> impl LogStatus;
 }
 
-pub trait LogProducer {
+pub trait LogWriter {
     fn get_mut_log(&mut self) -> &mut impl Logger;
 }
 
-impl<T: LogConsumer> LogStatus for T {
+impl<T: LogReader +Debug> LogStatus for T {
     fn num_notes(&self) -> usize {
         self.get_log().num_notes()
     }
@@ -226,7 +229,7 @@ impl<T: LogConsumer> LogStatus for T {
     }
 }
 
-impl<L: LogProducer+LogConsumer> Logger for L {
+impl<L: LogWriter + LogReader + Debug> Logger for L {
     fn add_note<T: Into<String>>(&mut self, msg: T) {
         self.get_mut_log().add_note(msg);
     }

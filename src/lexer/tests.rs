@@ -8,7 +8,7 @@ use crate::dfa::*;
 use crate::dfa::{tests::{build_re}};
 use crate::lexergen::{LexerGen, LexerTables};
 use vectree::VecTree;
-use crate::log::LogStatus;
+use crate::log::{LogReader, LogStatus};
 use super::*;
 
 #[test]

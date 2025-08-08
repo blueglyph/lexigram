@@ -8,7 +8,7 @@ use std::marker::PhantomData;
 use std::ops::Add;
 use vectree::VecTree;
 use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized, indent_source};
-use crate::log::{BufLog, LogStatus, Logger};
+use crate::log::{BufLog, LogReader, LogStatus, Logger};
 use crate::segments::{Segments, Seg};
 use crate::take_until::TakeUntilIterator;
 
@@ -338,11 +338,6 @@ impl DfaBuilder {
     #[inline(always)]
     pub fn get_re(&self) -> &VecTree<ReNode> {
         &self.re
-    }
-
-    #[inline(always)]
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
     }
 
     /// Replaces ReType::String(s) with a concatenation of ReType::Char(s[i])
@@ -788,6 +783,17 @@ impl DfaBuilder {
     }
 }
 
+impl LogConsumer for DfaBuilder {
+    fn get_log(&self) -> &impl LogStatus {
+impl LogReader for DfaBuilder {
+        &self.log
+    }
+
+    fn give_log(self) -> impl LogStatus {
+        self.log
+    }
+}
+
 impl From<VecTree<ReNode>> for DfaBuilder {
     /// Creates a [`DfaBuilder`] from a tree of regular expression [`VecTree`]<[`ReNode`]>.
     fn from(regex_tree: VecTree<ReNode>) -> Self {
@@ -840,14 +846,6 @@ impl<T> Dfa<T> {
 
     pub fn get_first_end_state(&self) -> &Option<StateId> {
         &self.first_end_state
-    }
-
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
-    pub fn give_log(self) -> BufLog {
-        self.log
     }
 
     /// Checks if the DFA is normalized: incremental state numbers, starting at 0, with all the accepting states
@@ -1070,6 +1068,17 @@ impl<T> Dfa<T> {
             log: self.log,
             _phantom: PhantomData,
         }
+    }
+}
+
+impl<T> LogConsumer for Dfa<T> {
+    fn get_log(&self) -> &impl LogStatus {
+impl<T> LogReader for Dfa<T> {
+        &self.log
+    }
+
+    fn give_log(self) -> impl LogStatus {
+        self.log
     }
 }
 

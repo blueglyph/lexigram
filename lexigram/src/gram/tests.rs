@@ -54,7 +54,7 @@ const TXT_GRAM2: &str = r#"
 mod listener {
     use super::*;
     use crate::{Lexi, Gram};
-    use lexigram_lib::log::{BufLog, LogStatus, Logger};
+    use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
     use lexigram_lib::parser::{Call, ListenerWrapper};
     use lexigram_lib::grammar::{FactorId, ProdRuleSet, VarId};
     use lexigram_lib::io::CharReader;
