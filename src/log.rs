@@ -40,7 +40,7 @@ pub trait LogStatus: Debug {
 }
 
 /// Common log functionalities for a message producer
-pub trait Logger: LogStatus {
+pub trait Logger: Debug {
     fn add_note<T: Into<String>>(&mut self, msg: T);
     fn add_warning<T: Into<String>>(&mut self, msg: T);
     fn add_error<T: Into<String>>(&mut self, msg: T);
@@ -187,7 +187,7 @@ impl Default for BufLog {
 }
 
 // ---------------------------------------------------------------------------------------------
-// blanket implementations
+// blanket implementations: LogReader -> LogStatus, LogWriter -> Logger
 
 pub trait LogReader {
     type Item: LogStatus;
@@ -201,7 +201,7 @@ pub trait LogWriter {
     fn get_mut_log(&mut self) -> &mut impl Logger;
 }
 
-impl<T: LogReader +Debug> LogStatus for T {
+impl<T: LogReader + Debug> LogStatus for T {
     fn num_notes(&self) -> usize {
         self.get_log().num_notes()
     }
@@ -231,7 +231,7 @@ impl<T: LogReader +Debug> LogStatus for T {
     }
 }
 
-impl<L: LogWriter + LogReader + Debug> Logger for L {
+impl<L: LogWriter + Debug> Logger for L {
     fn add_note<T: Into<String>>(&mut self, msg: T) {
         self.get_mut_log().add_note(msg);
     }
