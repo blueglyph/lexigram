@@ -184,3 +184,58 @@ impl Default for BufLog {
         BufLog::new()
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+// blanket implementations
+
+pub trait LogConsumer {
+    fn get_log(&self) -> &impl LogStatus;
+}
+
+pub trait LogProducer {
+    fn get_mut_log(&mut self) -> &mut impl Logger;
+}
+
+impl<T: LogConsumer> LogStatus for T {
+    fn num_notes(&self) -> usize {
+        self.get_log().num_notes()
+    }
+
+    fn num_warnings(&self) -> usize {
+        self.get_log().num_warnings()
+    }
+
+    fn num_errors(&self) -> usize {
+        self.get_log().num_errors()
+    }
+
+    fn has_no_errors(&self) -> bool {
+        self.get_log().has_no_errors()
+    }
+
+    fn has_no_warnings(&self) -> bool {
+        self.get_log().has_no_warnings()
+    }
+
+    fn get_messages(&self) -> impl Iterator<Item=&LogMsg> {
+        self.get_log().get_messages()
+    }
+
+    fn get_messages_str(&self) -> String {
+        self.get_log().get_messages_str()
+    }
+}
+
+impl<L: LogProducer+LogConsumer> Logger for L {
+    fn add_note<T: Into<String>>(&mut self, msg: T) {
+        self.get_mut_log().add_note(msg);
+    }
+
+    fn add_warning<T: Into<String>>(&mut self, msg: T) {
+        self.get_mut_log().add_warning(msg);
+    }
+
+    fn add_error<T: Into<String>>(&mut self, msg: T) {
+        self.get_mut_log().add_error(msg);
+    }
+}
