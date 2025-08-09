@@ -223,7 +223,8 @@ mod gen_integration {
 }
 
 mod opcodes {
-    use crate::grammar::{Symbol, VarId};
+    use crate::log::BuildFrom;
+use crate::grammar::{Symbol, VarId};
     use crate::grammar::tests::T;
     use crate::{CollectJoin, strip, columns_to_str};
     use crate::parser::{OpCode, Parser};
@@ -541,7 +542,7 @@ mod opcodes {
                 print!("- ");
                 ll1.print_prs_summary();
             }
-            let parser_tables = ParserTables::from(ParserGen::from_rules(ll1, "Test".to_string()));
+            let parser_tables = ParserTables::build_from(ParserGen::from_rules(ll1, "Test".to_string()));
             let parser = parser_tables.make_parser();
             if VERBOSE {
                 println!("Final factors and opcodes:");
@@ -581,7 +582,7 @@ mod parser_source {
             let src = builder.build_source_code(0, false);
             let factors_present = src.contains("static FACTORS");
             assert_eq!(factors_present, include_factors, "unexpected source code: include_factors = {include_factors}, code = \n{src}");
-            let pt = ParserTables::from(builder);
+            let pt = ParserTables::build_from(builder);
             let parser = pt.make_parser();
             let factors = parser.get_factors();
             assert_eq!(factors.is_empty(), !include_factors, "unexpected: include_factors = {include_factors}, factors = {factors:?}");
@@ -598,7 +599,7 @@ mod wrapper_source {
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::{print_flags, print_items, ParserGen};
     use crate::dfa::TokenId;
-    use crate::log::LogStatus;
+    use crate::log::{LogReader, LogStatus};
     use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 

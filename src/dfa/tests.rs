@@ -1742,7 +1742,7 @@ fn dfa_error() {
             "node #5 is not in followpos; is an accepting state missing? Orphan segment: 'c'"
         ]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     for (test_id, expected_error_msgs) in tests {
         if VERBOSE { println!("{:=<80}\n{test_id}:", ""); }
         let re = build_re(test_id);

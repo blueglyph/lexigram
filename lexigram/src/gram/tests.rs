@@ -216,7 +216,7 @@ mod listener {
             assert!(expected_grammar_errors.is_empty(), "was expecting to find those errors while parsing the grammar:{}\nbut got those messages:{msg}",
                     expected_grammar_errors.iter().map(|s| format!("\n- {s}")).join(""));
             if should_succeed {
-                let builder = ParserGen::from(ll1);
+                let builder = ParserGen::build_from(ll1);
                 let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
                 if VERBOSE {
                     print_flags(&builder, 4);
@@ -227,7 +227,7 @@ mod listener {
                     }
                 }
                 assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
-                let parser_table = ParserTables::from(builder);
+                let parser_table = ParserTables::build_from(builder);
                 let mut parser = parser_table.make_parser();
 
                 for (input, expected_lexer_success, expected_parser_success) in inputs {

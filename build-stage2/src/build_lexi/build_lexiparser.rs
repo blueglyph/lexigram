@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use lexigram_lib::CollectJoin;
-use lexigram_lib::log::LogStatus;
+use lexigram_lib::log::{BuildFrom, LogReader, LogStatus};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::grammar::ProdRuleSetTables;
@@ -74,7 +74,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<String, String> {
     let ll1 = ll1_tables.make_prod_rule_set();
 
     // - generates Lexi's parser source code (parser + listener):
-    let mut builder = ParserGen::from(ll1);
+    let mut builder = ParserGen::build_from(ll1);
     let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
     if verbose {
         print_flags(&builder, 4);

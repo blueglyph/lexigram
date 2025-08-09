@@ -5,12 +5,14 @@
 - [ ] clean-up of the unit & integration tests
 - [ ] more coherency in functions/methods that create source code (names, location)
   - [ ] LexerGen: 
-    - (method) `pub fn from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self`
-    - (method) `fn build_from_dfa(&mut self, mut dfa: Dfa<Normalized>)`
+    - m:`pub fn from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self`
+    - m: `fn build_from_dfa(&mut self, mut dfa: Dfa<Normalized>)`
     - `impl BuildFrom<Dfa<Normalized>> for LexerGen`  => `LexerGen::build_from(dfa)` (+ try_build_from)
   - [ ] LexerTables:
-    - (method) `pub fn make_lexer<R: Read>(&self) -> Lexer<'_, R>` 
+    - m: `pub fn make_lexer<R: Read>(&self) -> Lexer<'_, R>` 
     - `impl BuildFrom<LexerGen> for LexerTables`  => `LexerTables::build_from(lexergen)` (+ try_build_from)
+  - [ ] ParserGen:
+    - m: `pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>>`
 - [ ] split huge files (
   - [ ] dfa
   - [ ] grammar 
