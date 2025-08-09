@@ -10,7 +10,7 @@ use iter_index::IndexerIterator;
 use crate::dfa::print_graph;
 use crate::{CollectJoin, escape_char, Normalized, indent_source, SymbolTable};
 use crate::lexer::{Lexer, LexerError};
-use crate::log::{BufLog, Logger};
+use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger, TryBuildFrom};
 use crate::segments::{Segments, Seg, SegMap};
 use super::dfa::*;
 
@@ -88,8 +88,8 @@ impl LexerTables {
     }
 }
 
-impl From<LexerGen> for LexerTables {
-    fn from(lexer_gen: LexerGen) -> LexerTables {
+impl BuildFrom<LexerGen> for LexerTables {
+    fn build_from(lexer_gen: LexerGen) -> LexerTables {
         assert!(!lexer_gen.state_table.is_empty(), "tables are not built");
         LexerTables::new(
             lexer_gen.nbr_groups,
@@ -104,6 +104,20 @@ impl From<LexerGen> for LexerTables {
         )
     }
 }
+
+// not generated automatically since LexerTables isn't LogReader
+impl TryBuildFrom<LexerGen> for LexerTables {
+    type Error = BufLog;
+
+    fn try_build_from(source: LexerGen) -> Result<Self, Self::Error> {
+        if source.get_log().has_no_errors() {
+            Ok(LexerTables::build_from(source))
+        } else {
+            Err(source.give_log())
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 
 pub type GroupId = u32;
@@ -148,13 +162,9 @@ impl LexerGen {
         }
     }
 
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
-    pub fn get_mut_log(&mut self) -> &mut BufLog {
-        &mut self.log
-    }
+    // pub fn get_mut_log(&mut self) -> &mut BufLog {
+    //     &mut self.log
+    // }
 
     pub fn from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
         let mut lexergen = Self::new();
@@ -377,8 +387,20 @@ impl LexerGen {
     }
 }
 
-impl From<Dfa<Normalized>> for LexerGen {
-    fn from(dfa: Dfa<Normalized>) -> Self {
+impl LogReader for LexerGen {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        &self.log
+    }
+
+    fn give_log(self) -> Self::Item {
+        self.log
+    }
+}
+
+impl BuildFrom<Dfa<Normalized>> for LexerGen {
+    fn build_from(dfa: Dfa<Normalized>) -> Self {
         let mut lexgen = LexerGen::new();
         lexgen.build_from_dfa(dfa);
         lexgen

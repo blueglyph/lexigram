@@ -129,7 +129,7 @@ mod simple {
     use lexigram_lib::lexer::LexerError;
     use lexigram_lib::lexergen::{LexerGen, LexerTables};
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::log::LogStatus;
+    use lexigram_lib::log::{BuildFrom, LogStatus};
     use crate::Lexi;
     use crate::lexi::listener::RuleType;
     use crate::lexi::SymbolicDfa;
@@ -339,7 +339,7 @@ mod simple {
             assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}");
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");
 
-            let lexer_tables = LexerTables::from(LexerGen::from(dfa));
+            let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
             let mut lexer = lexer_tables.make_lexer();
             for (input_id, (input, expected_tokens)) in test_strs.into_iter().enumerate() {
                 if VERBOSE {
@@ -416,7 +416,7 @@ mod simple {
             let SymbolicDfa { dfa, .. } = lexi.into();
 
             // - builds the lexer
-            let lexer_tables = LexerTables::from(LexerGen::from(dfa));
+            let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
             let mut lexer = lexer_tables.make_lexer();
 
             // 2) tests the lexer on inputs

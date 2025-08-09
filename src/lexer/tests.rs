@@ -8,7 +8,7 @@ use crate::dfa::*;
 use crate::dfa::{tests::{build_re}};
 use crate::lexergen::{LexerGen, LexerTables};
 use vectree::VecTree;
-use crate::log::{BuildFrom, LogReader, LogStatus};
+use crate::log::{BuildFrom, LogReader, LogStatus, TryBuildInto};
 use super::*;
 
 #[test]
@@ -74,9 +74,9 @@ fn lexer_simple() {
     for (test_id, token_tests, err_tests, stream_tests) in tests {
         let dfa = Dfa::<General>::build_from(DfaBuilder::build_from(build_re(test_id))).normalize();
         if VERBOSE { dfa.print(12); }
-        let lexgen = LexerGen::from(dfa);
+        let lexgen = LexerGen::build_from(dfa);
         if VERBOSE { lexgen.write_source_code(None, 0).expect("Couldn't output the source code"); }
-        let lexer_tables = LexerTables::from(lexgen);
+        let lexer_tables = LexerTables::build_from(lexgen);
         let mut lexer = lexer_tables.make_lexer();
         lexer.set_tab_width(8);
         for (exp_token, (inputs, outputs)) in token_tests {
@@ -244,12 +244,15 @@ fn build_lexer_tables(test: usize) -> LexerTables {
         dfa.print(4);
         println!("creating lexer");
     }
-    let lexgen = LexerGen::from(dfa);
+    let lexgen = LexerGen::build_from(dfa);
     if VERBOSE {
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
         println!("creating lexer");
     }
-    lexgen.into()
+    match lexgen.try_build_into() {
+        Ok(tables) => tables,
+        Err(log) => panic!("errors in lexgen:\n{}", log.get_messages_str()),
+    }
 }
 
 #[test]

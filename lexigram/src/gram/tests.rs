@@ -54,7 +54,7 @@ const TXT_GRAM2: &str = r#"
 mod listener {
     use super::*;
     use crate::{Lexi, Gram};
-    use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+    use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
     use lexigram_lib::parser::{Call, ListenerWrapper};
     use lexigram_lib::grammar::{FactorId, ProdRuleSet, VarId};
     use lexigram_lib::io::CharReader;
@@ -178,7 +178,7 @@ mod listener {
             println!("Lexer symbol table:\n- T: {}",
                      symbol_table.get_terminals().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
         }
-        let lexer_tables = LexerTables::from(LexerGen::from(dfa));
+        let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
         let mut lexer: Lexer<Cursor<&str>> = lexer_tables.make_lexer();
 
         for (test_id, (grammar, mut expected_grammar_errors, expected_warnings, inputs)) in tests.into_iter().enumerate() {

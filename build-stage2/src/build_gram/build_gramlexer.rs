@@ -4,6 +4,7 @@ use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::{branch, btreemap, term, SymbolTable};
 use lexigram_lib::dfa::DfaTables;
+use lexigram_lib::log::BuildFrom;
 use super::{GRAMLEXER_FILENAME, GRAMLEXER_TAG};
 
 // -------------------------------------------------------------------------
@@ -99,7 +100,7 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> String {
     symbol_table.extend_terminals(TERMINALS);
 
     // - builds the lexer
-    let mut lexgen = LexerGen::from(dfa);
+    let mut lexgen = LexerGen::build_from(dfa);
     lexgen.symbol_table = Some(symbol_table);
     lexgen.build_source_code(indent)
 }

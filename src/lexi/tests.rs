@@ -13,7 +13,7 @@ use crate::lexer::Lexer;
 use crate::lexergen::{LexerGen, LexerTables};
 use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt, VarId, RuleTreeSet};
-use crate::log::{BuildFrom, LogReader, LogStatus};
+use crate::log::{BuildFrom, LogReader, LogStatus, TryBuildInto};
 use crate::parsergen::{print_flags, print_items, ParserGen};
 use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
@@ -54,12 +54,15 @@ fn make_lexer_tables(ltype: LexerType) -> LexerTables {
         dfa.optimize()
     };
     if VERBOSE { dfa.print(4); }
-    let lexgen = LexerGen::from(dfa);
+    let lexgen = LexerGen::build_from(dfa);
     if VERBOSE {
         println!("Sources:");
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
     }
-    lexgen.into()
+    match lexgen.try_build_into() {
+        Ok(tables) => tables,
+        Err(log) => panic!("errors in lexgen:\n{}", log.get_messages_str()),
+    }
 }
 
 #[test]
@@ -72,7 +75,7 @@ fn lexilexer_source() {
     const TAG: &str = "lexilexer";
     let dfa = make_dfa();
     let dfa = dfa.optimize();
-    let lexgen = LexerGen::from(dfa);
+    let lexgen = LexerGen::build_from(dfa);
     let result_src = lexgen.build_source_code(4);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
     if result_src != expected_src {
