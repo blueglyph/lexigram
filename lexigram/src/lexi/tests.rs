@@ -129,7 +129,7 @@ mod simple {
     use lexigram_lib::lexer::LexerError;
     use lexigram_lib::lexergen::{LexerGen, LexerTables};
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::log::{BuildFrom, LogReader, LogStatus};
+    use lexigram_lib::log::{BuildFrom, BuildInto, LogReader, LogStatus};
     use crate::Lexi;
     use crate::lexi::listener::RuleType;
     use crate::lexi::SymbolicDfa;
@@ -331,7 +331,7 @@ mod simple {
                     println!("- [{i:3}] {rt:?} {s}: {}    {lit:?}", tree_to_string(t, None, true));
                 }
             }
-            let SymbolicDfa { dfa, .. } = lexi.into();
+            let SymbolicDfa { dfa, .. } = lexi.build_into();
             if VERBOSE {
                 println!("Final optimized Dfa:");
                 dfa.print(20);
@@ -413,7 +413,7 @@ mod simple {
             assert!(result_is_ok, "{text}: couldn't parse the lexicon");
 
             // - builds the dfa from the reg tree
-            let SymbolicDfa { dfa, .. } = lexi.into();
+            let SymbolicDfa { dfa, .. } = lexi.build_into();
 
             // - builds the lexer
             let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
@@ -522,7 +522,7 @@ mod simple {
                     }
                 )
             }).collect::<BTreeMap<_,_>>();
-            let SymbolicDfa { dfa: _dfa, symbol_table } = lexi.into();
+            let SymbolicDfa { dfa: _dfa, symbol_table } = lexi.build_into();
             let result_sym = symbol_table.get_terminals().map(|(s, _)| s.to_string()).to_vec();
             if JUST_SHOW_ANSWERS {
                 println!("             vec![{}],", result_sym.iter().map(|s| format!("\"{s}\"")).join(", "));

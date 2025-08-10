@@ -54,7 +54,7 @@ const TXT_GRAM2: &str = r#"
 mod listener {
     use super::*;
     use crate::{Lexi, Gram};
-    use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+    use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
     use lexigram_lib::parser::{Call, ListenerWrapper};
     use lexigram_lib::grammar::{FactorId, ProdRuleSet, VarId};
     use lexigram_lib::io::CharReader;
@@ -165,7 +165,7 @@ mod listener {
         // parses the test lexicon
         let lexicon_stream = CharReader::new(Cursor::new(TXT_LEXI1));
         let lexi = Lexi::new(lexicon_stream);
-        let symbolic_dfa: SymbolicDfa = lexi.into();
+        let symbolic_dfa: SymbolicDfa = lexi.build_into();
         let SymbolicDfa { dfa, symbol_table } = symbolic_dfa;
         let msg = dfa.get_log().get_messages_str();
         assert!(dfa.get_log().has_no_errors(), "couldn't parse the lexicon:\n{msg}");
@@ -188,7 +188,7 @@ mod listener {
             // grammar parser
             let grammar_stream = CharReader::new(Cursor::new(grammar));
             let gram = Gram::new(symbol_table.clone(), grammar_stream);
-            let ll1: ProdRuleSet<LL1> = gram.into();
+            let ll1: ProdRuleSet<LL1> = gram.build_into();
             let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
             let should_succeed = expected_grammar_errors.is_empty();
             if VERBOSE {

@@ -4,7 +4,7 @@ use std::io::Read;
 use lexigram_lib::dfa::Dfa;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, LogReader, LogStatus};
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, TryBuildFrom};
 use lexigram_lib::parser::Parser;
 use lexigram_lib::{Normalized, SymbolTable};
 use lexilexer::build_lexer;
@@ -98,12 +98,24 @@ impl<R: Read> LogReader for Lexi<'_, '_, R> {
     }
 }
 
-impl<R: Read> From<Lexi<'_, '_, R>> for SymbolicDfa {
-    fn from(mut lexi: Lexi<R>) -> Self {
+impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
+    fn build_from(mut lexi: Lexi<R>) -> Self {
         let _ = lexi.build();
         SymbolicDfa {
             dfa: lexi.get_mut_listener().make_dfa().optimize(),
             symbol_table: lexi.wrapper.get_listener().make_symbol_table()
+        }
+    }
+}
+
+impl<R: Read> TryBuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
+    type Error = BufLog;
+
+    fn try_build_from(source: Lexi<'_, '_, R>) -> Result<Self, Self::Error> {
+        if source.get_log().has_no_errors() {
+            Ok(SymbolicDfa::build_from(source))
+        } else {
+            Err(source.give_log())
         }
     }
 }

@@ -6,7 +6,7 @@ use listener::GramListener;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::Parser;
 use lexigram_lib::{General, SymbolTable, LL1};
 use std::io::Read;
@@ -77,13 +77,13 @@ impl<R: Read> LogReader for Gram<'_, '_, R> {
     }
 }
 
-impl<R: Read> From<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
+impl<R: Read> BuildFrom<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
     /// Produces a [`ProdRuleSet<LL1>`] from a [`Gram`], by parsing the grammar
     /// and creating the rule set, then transforming the result if necessary for an LL1 grammar.
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn from(mut gram: Gram<R>) -> ProdRuleSet<LL1> {
+    fn build_from(mut gram: Gram<R>) -> ProdRuleSet<LL1> {
         let _ = gram.build();
         let listener = gram.wrapper.listener();
         let name = listener.get_name().to_string();

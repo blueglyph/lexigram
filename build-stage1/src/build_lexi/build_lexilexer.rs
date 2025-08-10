@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Lexi};
 use lexigram::lexi::SymbolicDfa;
-use lexigram::lexigram_lib::log::{LogReader, LogStatus};
+use lexigram::lexigram_lib::log::{BuildInto, LogReader, LogStatus};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::test_tools::replace_tagged_source;
 use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_STAGE2_FILENAME, LEXILEXER_LEXICON, LEXILEXER_STAGE2_TAG, LEXI_SYM_T_TAG, VERSIONS_TAG};
@@ -15,7 +15,7 @@ fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, St
     let reader = BufReader::new(file);
     let stream = CharReader::new(reader);
     let lexi = Lexi::new(stream);
-    let SymbolicDfa { dfa, symbol_table } = lexi.into();
+    let SymbolicDfa { dfa, symbol_table } = lexi.build_into();
     if verbose {
         let msg = dfa.get_log().get_messages_str();
         if !msg.is_empty() {

@@ -288,7 +288,7 @@ pub trait TryBuildFrom<T>: Sized {
     type Error;
 
     /// Performs the conversion.
-    fn try_build_from(target: T) -> Result<Self, Self::Error>;
+    fn try_build_from(source: T) -> Result<Self, Self::Error>;
 }
 
 pub trait TryBuildInto<T>: Sized {

@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
 use lexigram::lexigram_lib::grammar::ProdRuleSet;
-use lexigram::lexigram_lib::log::{BufLog, LogReader, LogStatus};
+use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus};
 use lexigram_lib::{CollectJoin, LL1, SymbolTable};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::test_tools::replace_tagged_source;
@@ -65,7 +65,7 @@ fn lexiparser_source(grammar_filename: &str, _indent: usize, verbose: bool) -> R
 
     // - parses the grammar
     let gram = Gram::new(symbol_table, grammar_stream);
-    let ll1: ProdRuleSet<LL1> = gram.into();
+    let ll1: ProdRuleSet<LL1> = gram.build_into();
     if verbose {
         let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
