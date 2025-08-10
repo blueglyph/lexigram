@@ -205,14 +205,6 @@ impl LexiListener {
         &self.name
     }
 
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
-    pub fn give_log(self) -> BufLog {
-        self.log
-    }
-
     pub fn get_sorted_modes(&self) -> Vec<(&ModeId, &String)> {
         let mut sorted_modes = self.modes.iter().map(|(name, id)| (id, name)).to_vec();
         sorted_modes.sort();
@@ -384,6 +376,18 @@ impl LexiListener {
                 }
             }
         }
+    }
+}
+
+impl LogReader for LexiListener {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &BufLog {
+        &self.log
+    }
+
+    fn give_log(self) -> BufLog {
+        self.log
     }
 }
 

@@ -4,7 +4,7 @@ use std::io::Read;
 use lexigram_lib::dfa::Dfa;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, LogStatus};
+use lexigram_lib::log::{BufLog, LogReader, LogStatus};
 use lexigram_lib::parser::Parser;
 use lexigram_lib::{Normalized, SymbolTable};
 use lexilexer::build_lexer;
@@ -56,10 +56,6 @@ impl<R: Read> Lexi<'_, '_, R> {
         self.wrapper.get_listener()
     }
 
-    pub fn get_log(&self) -> &BufLog {
-        self.wrapper.get_listener().get_log()
-    }
-
     fn build(&mut self) -> Result<(), &BufLog> {
         if !self.is_built {
             // we keep track of the built state because some unit tests are calling build() directly
@@ -86,6 +82,19 @@ impl<R: Read> Lexi<'_, '_, R> {
         } else {
             Err(log)
         }
+    }
+}
+
+impl<R: Read> LogReader for Lexi<'_, '_, R> {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        self.get_listener().get_log()
+    }
+
+    fn give_log(self) -> Self::Item {
+        let listener = self.wrapper.listener();
+        listener.give_log()
     }
 }
 

@@ -72,10 +72,6 @@ impl GramListener {
         self.start_rule
     }
 
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
     fn reserve_nt_symbol(&mut self, id: String) -> Option<VarId> {
         if let Some(v) = self.nt_reserved.get(&id) {
             Some(*v)
@@ -119,6 +115,18 @@ impl GramListener {
                 Some(nt)
             }
         }
+    }
+}
+
+impl LogReader for GramListener {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &BufLog {
+        &self.log
+    }
+
+    fn give_log(self) -> BufLog {
+        self.log
     }
 }
 

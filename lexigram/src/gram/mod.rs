@@ -6,7 +6,7 @@ use listener::GramListener;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, BuildInto, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::Parser;
 use lexigram_lib::{General, SymbolTable, LL1};
 use std::io::Read;
@@ -61,6 +61,19 @@ impl<R: Read> Gram<'_, '_, R> {
         } else {
             Err(log)
         }
+    }
+}
+
+impl<R: Read> LogReader for Gram<'_, '_, R> {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        self.get_listener().get_log()
+    }
+
+    fn give_log(self) -> Self::Item {
+        let listener = self.wrapper.listener();
+        listener.give_log()
     }
 }
 

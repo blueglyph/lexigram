@@ -129,7 +129,7 @@ mod simple {
     use lexigram_lib::lexer::LexerError;
     use lexigram_lib::lexergen::{LexerGen, LexerTables};
     use lexigram_lib::CollectJoin;
-    use lexigram_lib::log::{BuildFrom, LogStatus};
+    use lexigram_lib::log::{BuildFrom, LogReader, LogStatus};
     use crate::Lexi;
     use crate::lexi::listener::RuleType;
     use crate::lexi::SymbolicDfa;
@@ -539,7 +539,7 @@ mod lexicon {
     use std::io::Cursor;
     use lexigram_lib::CollectJoin;
     use lexigram_lib::io::CharReader;
-    use lexigram_lib::log::LogStatus;
+    use lexigram_lib::log::{LogReader, LogStatus};
     use crate::Lexi;
 
     #[test]
