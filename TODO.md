@@ -16,7 +16,7 @@
   - [ ] parsergen
 - error reporting
   - [ ] create info/warning/error ID numbers
-  - [ ] return Result instead of objects in from<...> when errors in the log
+  - [x] ~~return Result instead of objects in from<...> when errors in the log~~
   - [ ] make messages parse-friendly and consistent (indentation structure, casing, ...)
 
 ## Lexer
