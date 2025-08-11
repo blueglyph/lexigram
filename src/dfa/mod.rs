@@ -1166,13 +1166,15 @@ impl DfaTables {
     ) -> Self {
         DfaTables { state_graph, initial_state, end_states, first_end_state }
     }
+}
 
-    pub fn make_dfa(self) -> Dfa<Normalized> {
+impl BuildFrom<DfaTables> for Dfa<Normalized> {
+    fn build_from(source: DfaTables) -> Self {
         Dfa {
-            state_graph: self.state_graph,
-            initial_state: self.initial_state,
-            end_states: self.end_states,
-            first_end_state: self.first_end_state,
+            state_graph: source.state_graph,
+            initial_state: source.initial_state,
+            end_states: source.end_states,
+            first_end_state: source.first_end_state,
             log: BufLog::new(),
             _phantom: PhantomData
         }

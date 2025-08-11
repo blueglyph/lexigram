@@ -2,9 +2,9 @@
 
 use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::test_tools::replace_tagged_source;
-use lexigram_lib::dfa::DfaTables;
-use lexigram_lib::{branch, btreemap, term, SymbolTable};
-use lexigram_lib::log::BuildFrom;
+use lexigram_lib::dfa::{Dfa, DfaTables};
+use lexigram_lib::{branch, btreemap, term, Normalized, SymbolTable};
+use lexigram_lib::log::{BuildFrom};
 use super::{LEXILEXER_FILENAME, LEXILEXER_TAG};
 
 // -------------------------------------------------------------------------
@@ -184,7 +184,7 @@ fn lexilexer_source(indent: usize, _verbose: bool) -> String {
     // -------------------------------------------------------------------------
 
     // - gets data from stage 1
-    let dfa = dfa_tables.make_dfa();
+    let dfa = Dfa::<Normalized>::build_from(dfa_tables);
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
 

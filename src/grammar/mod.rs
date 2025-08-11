@@ -2174,22 +2174,24 @@ impl ProdRuleSetTables {
     pub fn get_name(&self) -> Option<&String> {
         self.name.as_ref()
     }
+}
 
-    pub fn make_prod_rule_set(self) -> ProdRuleSet<LL1> {
+impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
+    fn build_from(source: ProdRuleSetTables) -> Self {
         let mut symbol_table = SymbolTable::new();
-        symbol_table.extend_terminals(self.t);
-        symbol_table.extend_nonterminals(self.nt);
+        symbol_table.extend_terminals(source.t);
+        symbol_table.extend_nonterminals(source.nt);
         ProdRuleSet {
-            prods: self.prods,
-            original_factors: self.original_factors,
+            prods: source.prods,
+            original_factors: source.original_factors,
             num_nt: symbol_table.get_num_nt(),
             num_t: symbol_table.get_num_t(),
             symbol_table: Some(symbol_table),
-            flags: self.flags,
-            parent: self.parent,
-            start: self.start,
-            name: self.name,
-            nt_conversion: self.nt_conversion,
+            flags: source.flags,
+            parent: source.parent,
+            start: source.start,
+            name: source.name,
+            nt_conversion: source.nt_conversion,
             log: BufLog::new(),
             _phantom: PhantomData,
         }
