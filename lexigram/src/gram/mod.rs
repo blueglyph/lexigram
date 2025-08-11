@@ -48,7 +48,7 @@ impl<R: Read> Gram<'_, '_, R> {
         self.wrapper.get_listener()
     }
 
-    fn build(&mut self) -> Result<(), &BufLog> {
+    fn make(&mut self) -> Result<(), &BufLog> {
         let tokens = self.gramlexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
             panic!("unexpected channel {ch} from Gram while parsing a grammar, line {line} col {col}, \"{text}\"")
         );
@@ -84,7 +84,7 @@ impl<R: Read> BuildFrom<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
     fn build_from(mut gram: Gram<R>) -> ProdRuleSet<LL1> {
-        let _ = gram.build();
+        let _ = gram.make();
         let listener = gram.wrapper.listener();
         let name = listener.get_name().to_string();
         let mut prs = ProdRuleSet::<General>::from(listener);

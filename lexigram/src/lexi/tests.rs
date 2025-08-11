@@ -308,7 +308,7 @@ mod simple {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
             let mut lexi = Lexi::new(stream);
-            let result_is_ok = lexi.build().is_ok();
+            let result_is_ok = lexi.make().is_ok();
             let listener = lexi.get_listener();
             if VERBOSE {
                 let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
@@ -402,7 +402,7 @@ mod simple {
             let text = format!("test {test_id} failed");
             let stream = CharReader::new(Cursor::new(lexicon));
             let mut lexi = Lexi::new(stream);
-            let result_is_ok = lexi.build().is_ok();
+            let result_is_ok = lexi.make().is_ok();
             let listener = lexi.get_listener();
             if VERBOSE {
                 let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
@@ -494,7 +494,7 @@ mod simple {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
             let mut lexi = Lexi::new(stream);
-            let result_is_ok = lexi.build().is_ok();
+            let result_is_ok = lexi.make().is_ok();
             let listener = lexi.get_listener();
             if VERBOSE {
                 let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
@@ -621,7 +621,7 @@ mod lexicon {
             if VERBOSE { println!("\n// {:=<80}\n// Test {test_id}\n{lexicon}\n", ""); }
             let stream = CharReader::new(Cursor::new(lexicon));
             let mut lexi = Lexi::new(stream);
-            let _result = lexi.build();
+            let _result = lexi.make();
             let listener = lexi.wrapper.listener();
             let text = format!("test {test_id} failed");
             let msg = listener.get_log().get_messages().map(|s| format!("\n- {s}")).join("");

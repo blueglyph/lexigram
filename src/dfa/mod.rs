@@ -1092,7 +1092,7 @@ impl Dfa<General> {
 }
 
 impl Dfa<Normalized> {
-    pub fn build_tables_source_code(&self, indent: usize) -> String {
+    pub fn gen_tables_source_code(&self, indent: usize) -> String {
         let mut source = Vec::<String>::new();
         source.push("let dfa_tables = DfaTables::new(".to_string());
         source.push("    btreemap![".to_string());

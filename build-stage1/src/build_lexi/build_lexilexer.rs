@@ -31,8 +31,8 @@ fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, St
     }
 
     // - exports data to stage 2
-    let sym_src = symbol_table.build_source_code_t(0, false, true);
-    let dfa_src = dfa.build_tables_source_code(4);
+    let sym_src = symbol_table.gen_source_code_t(0, false, true);
+    let dfa_src = dfa.gen_tables_source_code(4);
 
     Ok((sym_src, dfa_src))
 }

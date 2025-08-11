@@ -249,7 +249,7 @@ impl StructLibs {
         tree
     }
 
-    pub fn build_source_code(&self) -> Vec<String> {
+    pub fn gen_source_code(&self) -> Vec<String> {
         let mut stack = Vec::<Vec<String>>::new();
         let tree = self.to_tree();
         for node in tree.iter_depth_simple() {
@@ -361,13 +361,13 @@ mod libtests {
             println!("{}", tree.iter_depth_simple().map(|n| format!("({}){}", n.depth, n.deref())).join(", "));
             println!("{}", StructLibs::tree_to_string(&tree, tree.get_root().unwrap()));
         }
-        let src = l.build_source_code();
+        let src = l.gen_source_code();
         if VERBOSE {
             println!("{}", src.join("\n"));
         }
         assert_eq!(src, ["use a::{self, a1::{self, a2::{self, a3}, b2}, b1, c1::a2};", "use b;"]);
 
-        let src_empty = StructLibs::new().build_source_code();
+        let src_empty = StructLibs::new().gen_source_code();
         assert_eq!(src_empty, Vec::<String>::new());
     }
 

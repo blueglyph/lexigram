@@ -102,7 +102,7 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> String {
     // - builds the lexer
     let mut lexgen = LexerGen::build_from(dfa);
     lexgen.symbol_table = Some(symbol_table);
-    lexgen.build_source_code(indent)
+    lexgen.gen_source_code(indent)
 }
 
 pub fn write_gramlexer() {

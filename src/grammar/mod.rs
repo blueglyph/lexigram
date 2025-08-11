@@ -2116,7 +2116,7 @@ impl ProdRuleSet<LL1> {
         self.calc_table(&first, &follow, error_recovery)
     }
 
-    pub fn build_tables_source_code(&self, indent: usize) -> String {
+    pub fn gen_tables_source_code(&self, indent: usize) -> String {
         let st = self.symbol_table.as_ref().unwrap();
         let mut source = Vec::<String>::new();
         source.push("let ll1_tables = ProdRuleSetTables::new(".to_string());

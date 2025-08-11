@@ -74,7 +74,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<String, String> {
     }
     builder.set_parents_have_value();
     builder.add_lib("gramparser_types::*");
-    Ok(builder.build_source_code(indent, true))
+    Ok(builder.gen_source_code(indent, true))
 }
 
 pub fn write_gramparser() {

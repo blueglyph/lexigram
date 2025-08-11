@@ -76,7 +76,7 @@ fn lexilexer_source() {
     let dfa = make_dfa();
     let dfa = dfa.optimize();
     let lexgen = LexerGen::build_from(dfa);
-    let result_src = lexgen.build_source_code(4);
+    let result_src = lexgen.gen_source_code(4);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
     if result_src != expected_src {
         if REPLACE_SOURCE {
@@ -197,7 +197,7 @@ fn regexgen_optimize() {
                  dfa.get_end_states().len()
         );
         if VERBOSE { dfa.print(4); }
-        let lexgen = LexerGen::from_dfa(dfa, 0);
+        let lexgen = LexerGen::build_from_dfa(dfa, 0);
         let size_tables = size_of_val(&lexgen.state_table) +
                 size_of_val(&lexgen.ascii_to_group) +
                 size_of_val(&lexgen.utf8_to_group) +
@@ -280,7 +280,7 @@ fn lexiparser_source() {
         }
     }
     assert_eq!(ll1.get_log().num_errors(), 0);
-    let mut builder = ParserGen::from_rules(ll1, "LexiParser".to_string());
+    let mut builder = ParserGen::build_from_rules(ll1, "LexiParser".to_string());
     for v in 0..builder.get_symbol_table().unwrap().get_num_nt() as VarId {
         // print!("- {}: ", Symbol::NT(v).to_str(builder.get_symbol_table()));
         if builder.get_nt_parent(v).is_none() {
@@ -292,11 +292,11 @@ fn lexiparser_source() {
     }
     builder.add_lib("super::lexiparser_types::*");
     if VERBOSE {
-        builder.build_item_ops();
+        builder.make_item_ops();
         print_flags(&builder, 0);
         print_items(&builder, 0, false);
     }
-    let result_src = builder.build_source_code(4, true);
+    let result_src = builder.gen_source_code(4, true);
     if !cfg!(miri) {
         let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
         if result_src != expected_src {

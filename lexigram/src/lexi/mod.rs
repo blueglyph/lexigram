@@ -56,7 +56,7 @@ impl<R: Read> Lexi<'_, '_, R> {
         self.wrapper.get_listener()
     }
 
-    fn build(&mut self) -> Result<(), &BufLog> {
+    fn make(&mut self) -> Result<(), &BufLog> {
         if !self.is_built {
             // we keep track of the built state because some unit tests are calling build() directly
             self.is_built = true;
@@ -100,7 +100,7 @@ impl<R: Read> LogReader for Lexi<'_, '_, R> {
 
 impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
     fn build_from(mut lexi: Lexi<R>) -> Self {
-        let _ = lexi.build();
+        let _ = lexi.make();
         SymbolicDfa {
             dfa: lexi.get_mut_listener().make_dfa().optimize(),
             symbol_table: lexi.wrapper.get_listener().make_symbol_table()

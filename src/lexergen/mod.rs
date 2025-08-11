@@ -166,14 +166,14 @@ impl LexerGen {
     //     &mut self.log
     // }
 
-    pub fn from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
+    pub fn build_from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
         let mut lexergen = Self::new();
         lexergen.max_utf8_chars = max_utf8_chars;
-        lexergen.build_from_dfa(dfa);
+        lexergen.make_from_dfa(dfa);
         lexergen
     }
 
-    fn build_from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
+    fn make_from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
         self.log.extend(std::mem::replace(&mut dfa.log, BufLog::new()));
         self.create_input_tables(&dfa);
         self.create_state_tables(&dfa);
@@ -288,13 +288,13 @@ impl LexerGen {
             Some(file) => BufWriter::new(Box::new(file)),
             None => BufWriter::new(Box::new(std::io::stdout().lock()))
         };
-        let source = self.build_source_code(indent);
+        let source = self.gen_source_code(indent);
         out.write(source.as_bytes())?;
         // write!(out, "{source}");
         Ok(())
     }
 
-    pub fn build_source_code(&self, indent: usize) -> String {
+    pub fn gen_source_code(&self, indent: usize) -> String {
         indent_source(vec![self.lexer_source_code()], indent)
     }
 
@@ -402,7 +402,7 @@ impl LogReader for LexerGen {
 impl BuildFrom<Dfa<Normalized>> for LexerGen {
     fn build_from(dfa: Dfa<Normalized>) -> Self {
         let mut lexgen = LexerGen::new();
-        lexgen.build_from_dfa(dfa);
+        lexgen.make_from_dfa(dfa);
         lexgen
     }
 }

@@ -3,16 +3,12 @@
 ## General
 
 - [ ] clean-up of the unit & integration tests
-- [ ] more coherency in functions/methods that create source code (names, location)
-  - [ ] LexerGen: 
-    - m:`pub fn from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self`
-    - m: `fn build_from_dfa(&mut self, mut dfa: Dfa<Normalized>)`
-    - `impl BuildFrom<Dfa<Normalized>> for LexerGen`  => `LexerGen::build_from(dfa)` (+ try_build_from)
-  - [ ] LexerTables:
-    - m: `pub fn make_lexer<R: Read>(&self) -> Lexer<'_, R>` 
-    - `impl BuildFrom<LexerGen> for LexerTables`  => `LexerTables::build_from(lexergen)` (+ try_build_from)
-  - [ ] ParserGen:
-    - m: `pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>>`
+- [x] ~~more coherency in functions/methods that create source code (names, location)~~
+  - Name conventions:
+    - build:  creates object by consuming self (or non-method that creates object)
+    - make:   sets fields or creates object without consuming self
+    - gen:    creates string source code
+    - write:  writes source code into file
 - [ ] split huge files (
   - [ ] dfa
   - [ ] grammar 

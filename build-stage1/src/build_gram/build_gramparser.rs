@@ -52,7 +52,7 @@ fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, Bu
     }
 
     // - exports data to stage 2
-    let ll1_src = ll1.build_tables_source_code(4);
+    let ll1_src = ll1.gen_tables_source_code(4);
     Ok(ll1_src)
 }
 

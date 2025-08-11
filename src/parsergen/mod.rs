@@ -216,17 +216,17 @@ pub struct ParserGen {
 impl ParserGen {
     /// Creates a [`ParserGen`] from a set of rules and gives it a specific name, which is used
     /// to name the user listener trait in the generated code.
-    pub fn from_tree(tree: RuleTreeSet<General>, name: String) -> Self {
+    pub fn build_from_tree(tree: RuleTreeSet<General>, name: String) -> Self {
         let normalized = RuleTreeSet::<Normalized>::build_from(tree);
         let lr_rules = ProdRuleSet::build_from(normalized);
-        Self::from_rules(lr_rules, name)
+        Self::build_from_rules(lr_rules, name)
     }
 
     /// Creates a [`ParserGen`] from a set of production rules and gives it a specific name, which is used
     /// to name the user listener trait in the generated code.
     ///
     /// If [`rules`] already has a name, it is best to use the [BuildFrom<ProdRuleSet<T>>](BuildFrom<ProdRuleSet<T>>::build_from) trait.
-    pub fn from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>> {
+    pub fn build_from_rules<T>(rules: ProdRuleSet<T>, name: String) -> Self where ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>> {
         let mut ll1_rules = ProdRuleSet::<LL1>::build_from(rules);
         assert_eq!(ll1_rules.get_log().num_errors(), 0);
         let parsing_table = ll1_rules.make_parsing_table(true);
@@ -262,7 +262,7 @@ impl ParserGen {
             log: ll1_rules.log,
             include_factors: true,
         };
-        builder.build_opcodes();
+        builder.make_opcodes();
         builder
     }
 
@@ -713,7 +713,7 @@ impl ParserGen {
         }).join(" ")
     }
 
-    fn build_opcodes(&mut self) {
+    fn make_opcodes(&mut self) {
         const VERBOSE: bool = false;
         for (factor_id, (var_id, factor)) in self.parsing_table.factors.iter().index() {
             if VERBOSE {
@@ -852,7 +852,7 @@ impl ParserGen {
         alt
     }
 
-    pub(crate) fn build_item_ops(&mut self) {
+    pub(crate) fn make_item_ops(&mut self) {
         const VERBOSE: bool = false;
         let info = &self.parsing_table;
         let mut items = HashMap::<FactorId, Vec<Symbol>>::new();
@@ -1281,17 +1281,17 @@ impl ParserGen {
             Some(file) => BufWriter::new(Box::new(file)),
             None => BufWriter::new(Box::new(std::io::stdout().lock()))
         };
-        let source = self.build_source_code(indent, true);
+        let source = self.gen_source_code(indent, true);
         out.write(source.as_bytes())?;
         // write!(out, "{source}");
         Ok(())
     }
 
-    pub fn build_source_code(&mut self, indent: usize, wrapper: bool) -> String {
+    pub fn gen_source_code(&mut self, indent: usize, wrapper: bool) -> String {
         let mut parts = vec![];
         let mut tmp_parts = vec![self.source_build_parser()];
         if wrapper {
-            self.build_item_ops();
+            self.make_item_ops();
             tmp_parts.push(self.source_wrapper());
         }
         parts.push(self.source_use());
@@ -1301,7 +1301,7 @@ impl ParserGen {
     }
 
     fn source_use(&self) -> Vec<String> {
-        self.used_libs.build_source_code()
+        self.used_libs.gen_source_code()
     }
 
     fn source_build_parser(&mut self) -> Vec<String> {
@@ -2150,7 +2150,7 @@ impl<T> BuildFrom<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: BuildFro
     /// is used instead (unless the name is set with [`ParserGen::set_name()`].
     fn build_from(mut rules: ProdRuleSet<T>) -> Self {
         let name = rules.name.take().unwrap_or(DEFAULT_LISTENER_NAME.to_string());
-        ParserGen::from_rules(rules, name)
+        ParserGen::build_from_rules(rules, name)
     }
 }
 
