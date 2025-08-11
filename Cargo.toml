@@ -21,3 +21,12 @@ default-members = [".", "lexigram", "build-stage1", "build-stage2"]
 
 [profile.dev]
 #debug = false
+
+[[example]]
+name = "gen_microcalc"
+
+[[example]]
+name = "microcalc"
+
+[dev-dependencies]
+lexigram = { path = "lexigram" }
