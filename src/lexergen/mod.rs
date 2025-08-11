@@ -298,6 +298,15 @@ impl LexerGen {
         indent_source(vec![self.lexer_source_code()], indent)
     }
 
+    pub fn try_gen_source_code(self, indent: usize) -> Result<String, BufLog> {
+        let src = self.gen_source_code(indent);
+        if self.log.has_no_errors() {
+            Ok(src)
+        } else {
+            Err(self.give_log())
+        }
+    }
+
     fn lexer_source_code(&self) -> Vec<String> {
         let mut source = Vec::<String>::new();
 

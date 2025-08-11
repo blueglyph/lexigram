@@ -1300,6 +1300,15 @@ impl ParserGen {
         indent_source(parts, indent)
     }
 
+    pub fn try_gen_source_code(mut self, indent: usize, wrapper: bool) -> Result<String, BufLog> {
+        let src = self.gen_source_code(indent, wrapper);
+        if self.log.has_no_errors() {
+            Ok(src)
+        } else {
+            Err(self.give_log())
+        }
+    }
+
     fn source_use(&self) -> Vec<String> {
         self.used_libs.gen_source_code()
     }
