@@ -322,10 +322,8 @@ where
         if source.get_log().has_no_errors() {
             let dest = T::build_from(source);
             if dest.get_log().has_no_errors() {
-                println!("destination is fine");
                 Ok(dest)
             } else {
-                println!("destination has errors");
                 Err(dest.give_log())
             }
         } else {
