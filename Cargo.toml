@@ -28,6 +28,7 @@ test = true
 
 [[example]]
 name = "microcalc"
+test = true
 
 [dev-dependencies]
 lexigram = { path = "lexigram" }

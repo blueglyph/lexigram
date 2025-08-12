@@ -32,6 +32,12 @@ fn parse_string(text: String) -> Result<(), BufLog> {
     mcalc.parse(text)
 }
 
+#[cfg(test)]
+#[test]
+fn test_gen_microcalc() {
+    main();
+}
+
 // minimalist parser, top level
 
 pub struct MCalc<'l, 'p> {
