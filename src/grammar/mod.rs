@@ -11,7 +11,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use crate::SymbolTable;
@@ -382,6 +382,10 @@ pub struct RuleTreeSet<T> {
     nt_conversion: HashMap<VarId, NTConversion>,
     log: BufLog,
     _phantom: PhantomData<T>
+}
+
+impl<T> HasBuildErrorSource for RuleTreeSet<T> {
+    const SOURCE: BuildErrorSource = BuildErrorSource::RuleTreeSet;
 }
 
 // Methods for both General and Normalized forms. There can only be immutable methods
@@ -1970,6 +1974,10 @@ impl<T> LogReader for ProdRuleSet<T> {
     fn give_log(self) -> Self::Item {
         self.log
     }
+}
+
+impl<T> HasBuildErrorSource for ProdRuleSet<T> {
+    const SOURCE: BuildErrorSource = BuildErrorSource::ProdRuleSet;
 }
 
 impl ProdRuleSet<General> {

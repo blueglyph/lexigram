@@ -7,7 +7,7 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::Add;
 use vectree::VecTree;
-use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized, indent_source};
+use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized, indent_source, HasBuildErrorSource, BuildErrorSource};
 use crate::log::{BufLog, LogReader, BuildFrom, LogStatus, Logger};
 use crate::segments::{Segments, Seg};
 use crate::take_until::TakeUntilIterator;
@@ -796,6 +796,10 @@ impl LogReader for DfaBuilder {
     }
 }
 
+impl HasBuildErrorSource for DfaBuilder {
+    const SOURCE: BuildErrorSource = BuildErrorSource::DfaBuilder;
+}
+
 impl BuildFrom<VecTree<ReNode>> for DfaBuilder {
     /// Creates a [`DfaBuilder`] from a tree of regular expression [`VecTree`]<[`ReNode`]>.
     fn build_from(regex_tree: VecTree<ReNode>) -> Self {
@@ -1083,6 +1087,10 @@ impl<T> LogReader for Dfa<T> {
     fn give_log(self) -> Self::Item {
         self.log
     }
+}
+
+impl<T> HasBuildErrorSource for Dfa<T> {
+    const SOURCE: BuildErrorSource = BuildErrorSource::Dfa;
 }
 
 impl Dfa<General> {

@@ -6,7 +6,7 @@ use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, TryBuildFrom};
 use lexigram_lib::parser::Parser;
-use lexigram_lib::{Normalized, SymbolTable};
+use lexigram_lib::{BuildError, BuildErrorSource, HasBuildErrorSource, Normalized, SymbolTable};
 use lexilexer::build_lexer;
 use lexiparser::{build_parser, Wrapper};
 use listener::LexiListener;
@@ -98,6 +98,10 @@ impl<R: Read> LogReader for Lexi<'_, '_, R> {
     }
 }
 
+impl<R: Read> HasBuildErrorSource for Lexi<'_, '_, R> {
+    const SOURCE: BuildErrorSource = BuildErrorSource::Lexi;
+}
+
 impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
     fn build_from(mut lexi: Lexi<R>) -> Self {
         let _ = lexi.make();
@@ -109,13 +113,13 @@ impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
 }
 
 impl<R: Read> TryBuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
-    type Error = BufLog;
+    type Error = BuildError<BufLog>;
 
     fn try_build_from(source: Lexi<'_, '_, R>) -> Result<Self, Self::Error> {
         if source.get_log().has_no_errors() {
             Ok(SymbolicDfa::build_from(source))
         } else {
-            Err(source.give_log())
+            Err(BuildError::new(source.give_log(), BuildErrorSource::Lexi))
         }
     }
 }

@@ -10,8 +10,8 @@ use lexigram::lexi::SymbolicDfa;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexergen::LexerGen;
-use lexigram_lib::LL1;
-use lexigram_lib::log::{BufLog, LogStatus, TryBuildFrom, TryBuildInto};
+use lexigram_lib::{BuildError, LL1};
+use lexigram_lib::log::{BufLog, TryBuildFrom, TryBuildInto};
 use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::test_tools::replace_tagged_source;
 
@@ -28,11 +28,11 @@ const PARSER_INDENT: usize = 4;
 fn main() {
     match gen_microcalc_source() {
         Ok(()) => println!("Code successfully generated in {SOURCE_FILENAME}"),
-        Err(log) => println!("Error(s):\n{}", log.get_messages_str()),
+        Err(build_error) => println!("{build_error}"),
     }
 }
 
-fn gen_microcalc_source() -> Result<(), BufLog> {
+fn gen_microcalc_source() -> Result<(), BuildError<BufLog>> {
     // 1. Lexer
 
     let file = File::open(LEXICON_FILENAME)
@@ -75,3 +75,8 @@ fn gen_microcalc_source() -> Result<(), BufLog> {
     Ok(())
 }
 
+#[cfg(test)]
+#[test]
+fn test_gen_microcalc() {
+    main();
+}

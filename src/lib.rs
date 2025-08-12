@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::BTreeSet;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use vectree::VecTree;
 
@@ -26,6 +28,7 @@ mod fixed_sym_table;
 
 pub use symbol_table::SymbolTable;
 pub use fixed_sym_table::{FixedSymTable, SymInfoTable};
+use crate::log::LogStatus;
 
 // package name & version
 pub const LIB_PKG_NAME: &str = env!("CARGO_PKG_NAME");
@@ -78,6 +81,47 @@ pub struct LL1;
 ///   - a `|` with only `&(symbols)` or symbols as children
 #[derive(Clone, Debug)]
 pub struct Normalized;
+
+#[derive(Clone, Debug)]
+pub enum BuildErrorSource {
+    RuleTreeSet,
+    Dfa,
+    DfaBuilder,
+    LexerGen,
+    Lexi,
+    ProdRuleSet,
+    ParserGen,
+    Gram,
+}
+
+#[derive(Clone, Debug)]
+pub struct BuildError<T: LogStatus> {
+    log: T,
+    source: BuildErrorSource,
+}
+
+impl<T: LogStatus> BuildError<T> {
+    pub fn new(log: T, source: BuildErrorSource) -> Self {
+        BuildError { log, source }
+    }
+}
+
+impl<T: LogStatus> Display for BuildError<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Errors have occurred in {:?}:\n{}", self.source, self.log.get_messages_str())
+    }
+}
+
+impl<T: LogStatus> Error for BuildError<T> {
+}
+
+pub trait HasBuildErrorSource {
+    const SOURCE: BuildErrorSource;
+
+    fn get_build_error_source() -> BuildErrorSource {
+        Self::SOURCE
+    }
+}
 
 // ---------------------------------------------------------------------------------------------
 // General helper functions
@@ -279,6 +323,7 @@ impl StructLibs {
 #[cfg(test)]
 mod libtests {
     use super::*;
+    use crate::log::{Logger, BufLog};
 
     #[test]
     fn test_column_to_str() {
@@ -371,6 +416,16 @@ mod libtests {
         assert_eq!(src_empty, Vec::<String>::new());
     }
 
+    #[test]
+    fn test_build_error() {
+        fn build() -> Result<(), BuildError<BufLog>> {
+            let mut log = BufLog::new();
+            log.add_error("the test generated a fake error successfully");
+            Err(BuildError { source: BuildErrorSource::ParserGen, log })
+        }
+        let err = build().err().expect("build() should return an error");
+        assert_eq!(err.to_string(), "Errors have occurred in ParserGen:\n- ERROR: the test generated a fake error successfully\n");
+    }
 }
 
 // ---------------------------------------------------------------------------------------------

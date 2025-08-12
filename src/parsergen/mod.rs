@@ -6,7 +6,7 @@ use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, ProdFactor, factor_to_rule_str};
-use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable};
+use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable, HasBuildErrorSource, BuildError, BuildErrorSource};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger, TryBuildFrom};
 use crate::parser::{OpCode, Parser};
 use crate::segments::{Seg, Segments};
@@ -177,13 +177,13 @@ impl BuildFrom<ParserGen> for ParserTables {
 
 // not generated automatically since ParserTables isn't LogReader
 impl TryBuildFrom<ParserGen> for ParserTables {
-    type Error = BufLog;
+    type Error = BuildError<BufLog>;
 
     fn try_build_from(source: ParserGen) -> Result<Self, Self::Error> {
         if source.get_log().has_no_errors() {
             Ok(ParserTables::build_from(source))
         } else {
-            Err(source.give_log())
+            Err(BuildError::new(source.give_log(), BuildErrorSource::ParserGen))
         }
     }
 }
@@ -1300,12 +1300,12 @@ impl ParserGen {
         indent_source(parts, indent)
     }
 
-    pub fn try_gen_source_code(mut self, indent: usize, wrapper: bool) -> Result<String, BufLog> {
+    pub fn try_gen_source_code(mut self, indent: usize, wrapper: bool) -> Result<String, BuildError<BufLog>> {
         let src = self.gen_source_code(indent, wrapper);
         if self.log.has_no_errors() {
             Ok(src)
         } else {
-            Err(self.give_log())
+            Err(BuildError::new(self.give_log(), BuildErrorSource::ParserGen))
         }
     }
 
@@ -2149,6 +2149,10 @@ impl LogReader for ParserGen {
     fn give_log(self) -> Self::Item {
         self.log
     }
+}
+
+impl HasBuildErrorSource for ParserGen {
+    const SOURCE: BuildErrorSource = BuildErrorSource::ParserGen;
 }
 
 impl<T> BuildFrom<ProdRuleSet<T>> for ParserGen where ProdRuleSet<LL1>: BuildFrom<ProdRuleSet<T>> {

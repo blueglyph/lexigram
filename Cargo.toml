@@ -24,6 +24,7 @@ default-members = [".", "lexigram", "build-stage1", "build-stage2"]
 
 [[example]]
 name = "gen_microcalc"
+test = true
 
 [[example]]
 name = "microcalc"

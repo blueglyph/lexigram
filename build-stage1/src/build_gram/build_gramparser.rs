@@ -3,6 +3,7 @@
 use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
+use lexigram::lexigram_lib::{BuildError, HasBuildErrorSource};
 use lexigram::lexigram_lib::grammar::ProdRuleSet;
 use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus};
 use lexigram_lib::{CollectJoin, LL1, SymbolTable};
@@ -33,7 +34,7 @@ static TERMINALS: [(&str, Option<&str>); 14] = [
 // [terminal_symbols]
 // -------------------------------------------------------------------------
 
-fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, BufLog> {
+fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, BuildError<BufLog>> {
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
     let file = File::open(grammar_filename).expect(&format!("couldn't open lexicon file {grammar_filename}"));
@@ -48,7 +49,7 @@ fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, Bu
         }
     }
     if !ll1.get_log().has_no_errors() {
-        return Err(ll1.give_log());
+        return Err(BuildError::new(ll1.give_log(), ProdRuleSet::<LL1>::get_build_error_source()));
     }
 
     // - exports data to stage 2
@@ -58,7 +59,7 @@ fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, Bu
 
 pub fn write_gramparser() {
     let result_src = gramparser_source(GRAMPARSER_GRAMMAR, true)
-        .inspect_err(|log| eprintln!("Failed to parse grammar: {}", log.get_messages_str()))
+        .inspect_err(|log| eprintln!("{log}"))
         .unwrap();
     replace_tagged_source(GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_STAGE2_TAG, &result_src)
         .expect("parser source replacement failed");

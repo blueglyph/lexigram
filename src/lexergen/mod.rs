@@ -8,7 +8,7 @@ use std::io::{BufWriter, Read, Write};
 use iter_index::IndexerIterator;
 #[cfg(test)]
 use crate::dfa::print_graph;
-use crate::{CollectJoin, escape_char, Normalized, indent_source, SymbolTable};
+use crate::{CollectJoin, escape_char, Normalized, indent_source, SymbolTable, HasBuildErrorSource, BuildError, BuildErrorSource};
 use crate::lexer::{Lexer, LexerError};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger, TryBuildFrom};
 use crate::segments::{Segments, Seg, SegMap};
@@ -107,13 +107,13 @@ impl BuildFrom<LexerGen> for LexerTables {
 
 // not generated automatically since LexerTables isn't LogReader
 impl TryBuildFrom<LexerGen> for LexerTables {
-    type Error = BufLog;
+    type Error = BuildError<BufLog>;
 
     fn try_build_from(source: LexerGen) -> Result<Self, Self::Error> {
         if source.get_log().has_no_errors() {
             Ok(LexerTables::build_from(source))
         } else {
-            Err(source.give_log())
+            Err(BuildError::new(source.give_log(), BuildErrorSource::LexerGen))
         }
     }
 }
@@ -298,12 +298,12 @@ impl LexerGen {
         indent_source(vec![self.lexer_source_code()], indent)
     }
 
-    pub fn try_gen_source_code(self, indent: usize) -> Result<String, BufLog> {
+    pub fn try_gen_source_code(self, indent: usize) -> Result<String, BuildError<BufLog>> {
         let src = self.gen_source_code(indent);
         if self.log.has_no_errors() {
             Ok(src)
         } else {
-            Err(self.give_log())
+            Err(BuildError::new(self.give_log(), BuildErrorSource::LexerGen))
         }
     }
 
@@ -406,6 +406,10 @@ impl LogReader for LexerGen {
     fn give_log(self) -> Self::Item {
         self.log
     }
+}
+
+impl HasBuildErrorSource for LexerGen {
+    const SOURCE: BuildErrorSource = BuildErrorSource::LexerGen;
 }
 
 impl BuildFrom<Dfa<Normalized>> for LexerGen {

@@ -61,7 +61,7 @@ fn make_lexer_tables(ltype: LexerType) -> LexerTables {
     }
     match lexgen.try_build_into() {
         Ok(tables) => tables,
-        Err(log) => panic!("errors in lexgen:\n{}", log.get_messages_str()),
+        Err(build_error) => panic!("{build_error}"),
     }
 }
 

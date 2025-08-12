@@ -1,6 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::fmt::{Debug, Display, Formatter};
+use crate::{BuildError, HasBuildErrorSource};
 
 static NO_LOG_STORE: LogMsg = LogMsg::NoLogStore;
 
@@ -313,21 +314,32 @@ where
 
 impl<S, T> TryBuildFrom<S> for T
 where
-    S: LogReader,
-    T: LogReader<Item = S::Item> + BuildFrom<S>,
+    S: LogReader + HasBuildErrorSource,
+    T: LogReader<Item = S::Item> + BuildFrom<S> + HasBuildErrorSource,
 {
-    type Error = S::Item;
+    type Error = BuildError<S::Item>;
 
     fn try_build_from(source: S) -> Result<Self, Self::Error> {
+        const VERBOSE: bool = false;
+        if VERBOSE {
+            println!("try_build_from <{}> -> <{}>: source messages\n{}",
+                     std::any::type_name::<S>(), std::any::type_name::<T>(),
+                     source.get_log().get_messages_str());
+        }
         if source.get_log().has_no_errors() {
-            let dest = T::build_from(source);
-            if dest.get_log().has_no_errors() {
-                Ok(dest)
+            let target = T::build_from(source);
+            if VERBOSE {
+                println!("try_build_from <{}> -> <{}>: target messages\n{}",
+                         std::any::type_name::<S>(), std::any::type_name::<T>(),
+                         target.get_log().get_messages_str());
+            }
+            if target.get_log().has_no_errors() {
+                Ok(target)
             } else {
-                Err(dest.give_log())
+                Err(BuildError::new(target.give_log(), S::get_build_error_source()))
             }
         } else {
-            Err(source.give_log())
+            Err(BuildError::new(source.give_log(), S::get_build_error_source()))
         }
     }
 }

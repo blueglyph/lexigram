@@ -8,7 +8,7 @@ function:
     Def Id Lpar fun_params Rpar Lbracket
     instruction+
     Rbracket
-;
+//; // testing grammar error
 
 fun_params:
     (Id Comma)* Id

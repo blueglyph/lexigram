@@ -5,7 +5,7 @@ use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
 use lexigram_lib::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
-use lexigram_lib::{CollectJoin, General, SymbolTable};
+use lexigram_lib::{BuildErrorSource, CollectJoin, General, HasBuildErrorSource, SymbolTable};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use vectree::VecTree;
@@ -128,6 +128,10 @@ impl LogReader for GramListener {
     fn give_log(self) -> BufLog {
         self.log
     }
+}
+
+impl HasBuildErrorSource for GramListener {
+    const SOURCE: BuildErrorSource = BuildErrorSource::Gram;
 }
 
 impl From<GramListener> for ProdRuleSet<General> {

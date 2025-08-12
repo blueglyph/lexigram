@@ -8,7 +8,7 @@ use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::Parser;
-use lexigram_lib::{General, SymbolTable, LL1};
+use lexigram_lib::{BuildErrorSource, General, HasBuildErrorSource, SymbolTable, LL1};
 use std::io::Read;
 
 mod gramlexer;
@@ -75,6 +75,10 @@ impl<R: Read> LogReader for Gram<'_, '_, R> {
         let listener = self.wrapper.listener();
         listener.give_log()
     }
+}
+
+impl<R: Read> HasBuildErrorSource for Gram<'_, '_, R> {
+    const SOURCE: BuildErrorSource = BuildErrorSource::Gram;
 }
 
 impl<R: Read> BuildFrom<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
