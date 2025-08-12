@@ -11,7 +11,8 @@ function:
 ;
 
 fun_params:
-    Id (Comma Id)*
+//    Id (Comma Id)*
+    (Id Comma)* Id
 |
 ;
 

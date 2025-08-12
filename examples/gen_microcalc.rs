@@ -11,7 +11,7 @@ use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::{BuildError, LL1};
-use lexigram_lib::log::{TryBuildFrom, TryBuildInto};
+use lexigram_lib::log::{BufLog, LogStatus, TryBuildFrom, TryBuildInto};
 use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::test_tools::replace_tagged_source;
 
@@ -27,12 +27,12 @@ const PARSER_INDENT: usize = 4;
 
 fn main() {
     match gen_microcalc_source() {
-        Ok(()) => println!("Code successfully generated in {SOURCE_FILENAME}"),
+        Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{}", log.get_messages_str()),
         Err(build_error) => println!("{build_error}"),
     }
 }
 
-fn gen_microcalc_source() -> Result<(), BuildError> {
+fn gen_microcalc_source() -> Result<BufLog, BuildError> {
     // 1. Lexer
 
     let file = File::open(LEXICON_FILENAME)
@@ -46,7 +46,7 @@ fn gen_microcalc_source() -> Result<(), BuildError> {
     // - builds the lexer
     let mut lexgen = LexerGen::try_build_from(dfa)?;
     lexgen.symbol_table = Some(symbol_table.clone());
-    let lexer_source = lexgen.try_gen_source_code(LEXER_INDENT)?;
+    let (mut log, lexer_source) = lexgen.try_gen_source_code(LEXER_INDENT)?;
 
     // - writes the source code between existing tags:
     replace_tagged_source(SOURCE_FILENAME, LEXER_TAG, &lexer_source)
@@ -66,13 +66,14 @@ fn gen_microcalc_source() -> Result<(), BuildError> {
     let mut builder = ParserGen::try_build_from(ll1)?;
     builder.set_parents_have_value();
     builder.add_lib("super::listener_types::*");
-    let parser_source = builder.try_gen_source_code(PARSER_INDENT, true)?;
+    let (parser_log, parser_source) = builder.try_gen_source_code(PARSER_INDENT, true)?;
+    log.extend(parser_log);
 
     // - writes the source code between existing tags:
     replace_tagged_source(SOURCE_FILENAME, PARSER_TAG, &parser_source)
         .expect(&format!("parser source replacement failed; check that file {SOURCE_FILENAME} exists and has the tags {PARSER_TAG}"));
 
-    Ok(())
+    Ok(log)
 }
 
 #[cfg(test)]

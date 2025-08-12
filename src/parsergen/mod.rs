@@ -1300,10 +1300,10 @@ impl ParserGen {
         indent_source(parts, indent)
     }
 
-    pub fn try_gen_source_code(mut self, indent: usize, wrapper: bool) -> Result<String, BuildError> {
+    pub fn try_gen_source_code(mut self, indent: usize, wrapper: bool) -> Result<(BufLog, String), BuildError> {
         let src = self.gen_source_code(indent, wrapper);
         if self.log.has_no_errors() {
-            Ok(src)
+            Ok((self.give_log(), src))
         } else {
             Err(BuildError::new(self.give_log(), BuildErrorSource::ParserGen))
         }

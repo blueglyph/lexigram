@@ -298,10 +298,10 @@ impl LexerGen {
         indent_source(vec![self.lexer_source_code()], indent)
     }
 
-    pub fn try_gen_source_code(self, indent: usize) -> Result<String, BuildError> {
+    pub fn try_gen_source_code(self, indent: usize) -> Result<(BufLog, String), BuildError> {
         let src = self.gen_source_code(indent);
         if self.log.has_no_errors() {
-            Ok(src)
+            Ok((self.give_log(), src))
         } else {
             Err(BuildError::new(self.give_log(), BuildErrorSource::LexerGen))
         }

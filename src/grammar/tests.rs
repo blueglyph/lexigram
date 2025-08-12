@@ -656,7 +656,18 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc2), gnode!(t 4));
             tree.add(Some(cc), gnode!(t 5));
         }
-
+        56 => { // A -> (a b)* a
+            let cc = tree.add_root(gnode!(&));
+            let star1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(star1), gnode!(&), [gnode!(t 0), gnode!(t 1)]);
+            tree.add(Some(cc), gnode!(t 0));
+        }
+        57 => { // A -> a (b a)*
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let star1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(star1), gnode!(&), [gnode!(t 1), gnode!(t 0)]);
+        }
         100 => {
             // lexiparser
             rules = crate::lexi::tests::build_rts();
@@ -2253,8 +2264,8 @@ fn prs_calc_follow() {
 
 #[test]
 fn prs_calc_table() {
-    let tests: Vec<(u32, VarId, usize, Vec<(VarId, ProdFactor)>, Vec<FactorId>)> = vec![
-        (4, 0, 0, vec![
+    let tests: Vec<(T, VarId, usize, Vec<(VarId, ProdFactor)>, Vec<FactorId>)> = vec![
+        (T::PRS(4), 0, 0, vec![
             // E -> E + T | E - T | T
             // T -> T * F | T / F | F
             // F -> ( E ) | NUM | ID
@@ -2294,7 +2305,7 @@ fn prs_calc_table() {
               5,   6,  11,  11,  11,   7,  11,  11,   7,
              10,  10,   8,   9,  11,  10,  11,  11,  10,
         ]),
-        (5, 0, 0, vec![
+        (T::PRS(5), 0, 0, vec![
             // - 0: A -> A1 A2 ; ;
             // - 1: A1 -> - A1
             // - 2: A1 -> ε
@@ -2315,7 +2326,7 @@ fn prs_calc_table() {
               1,   2,   2,   5,
               5,   3,   4,   5,
         ]),
-        (6, 1, 0, vec![
+        (T::PRS(6), 1, 0, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: A -> A1 A2 ;
@@ -2336,7 +2347,7 @@ fn prs_calc_table() {
               2,   2,   2,   6,
               5,   3,   4,   5,
         ]),
-        (7, 1, 0, vec![
+        (T::PRS(7), 1, 0, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: X -> A
@@ -2361,7 +2372,7 @@ fn prs_calc_table() {
               6,   3,   3,   3,   7,
               6,   6,   4,   5,   6,
         ]),
-        (7, 2, 2, vec![
+        (T::PRS(7), 2, 2, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: A -> A1 A2 ;
@@ -2382,7 +2393,7 @@ fn prs_calc_table() {
               5,   2,   2,   2,   6,
               5,   5,   3,   4,   5,
         ]),
-        (8, 0, 0, vec![
+        (T::PRS(8), 0, 0, vec![
             // A -> A a A | b
             // - 0: A -> A_2 A_1
             // - 1: A_1 -> a A_2 A_1
@@ -2402,7 +2413,7 @@ fn prs_calc_table() {
               1,   4,   2,
               5,   3,   5,
         ]),
-        (14, 0, 0, vec![
+        (T::PRS(14), 0, 0, vec![
             // - 0: A -> A_2 A_1
             // - 1: A_1 -> A_2 A_1
             // - 2: A_1 -> ε
@@ -2421,7 +2432,7 @@ fn prs_calc_table() {
               1,   2,
               3,   5,
         ]),
-        (17, 0, 0, vec![
+        (T::PRS(17), 0, 0, vec![
             // - 0: A -> B
             // - 1: A -> a
             // - 2: B -> C )
@@ -2440,7 +2451,7 @@ fn prs_calc_table() {
               4,   2,   5,   5,
               4,   3,   5,   4,
         ]),
-        (18, 0, 0, vec![
+        (T::PRS(18), 0, 0, vec![
             // - 0: A -> a
             (0, prodf!(t 0)),
         ], vec![
@@ -2449,7 +2460,7 @@ fn prs_calc_table() {
             // A |  0   p
               0,   2,
         ]),
-        (19, 0, 0, vec![
+        (T::PRS(19), 0, 0, vec![
             // - 0: A -> a
             (0, prodf!(t 0)),
             (0, prodf!(e)),
@@ -2459,7 +2470,7 @@ fn prs_calc_table() {
             // A |   0   1
               0,   1,
         ]),
-        (20, 0, 0, vec![
+        (T::PRS(20), 0, 0, vec![
             // - 0: STRUCT -> struct id { LIST
             // - 1: LIST -> id : id ; LIST
             // - 2: LIST -> }
@@ -2478,11 +2489,11 @@ fn prs_calc_table() {
         (22, 0, 0, vec![
         ], vec![
         ]),
-        (23, 0, 0, vec![
+        (T::PRS(23), 0, 0, vec![
         ], vec![
         ]),
 */
-        (24, 0, 0, vec![
+        (T::PRS(24), 0, 0, vec![
             // - 0: A -> a B d
             // - 1: A -> e
             // - 2: B -> b c B_1
@@ -2503,7 +2514,7 @@ fn prs_calc_table() {
               5,   2,   5,   6,   5,   5,
               5,   3,   5,   4,   5,   5,
         ]),
-        (25, 0, 0, vec![
+        (T::PRS(25), 0, 0, vec![
             // A -> A a b c | A a b d | A a e | f
             // - 0: A -> f A_1
             // - 1: A_1 -> a A_2
@@ -2531,7 +2542,7 @@ fn prs_calc_table() {
               7,   3,   7,   7,   4,   7,   8,
               7,   7,   5,   6,   7,   7,   8,
         ]),
-        (27, 0, 0, vec![
+        (T::PRS(27), 0, 0, vec![
             // A -> A a | A b | c | d
             // - 0: A -> c A_1
             // - 1: A -> d A_1
@@ -2551,7 +2562,7 @@ fn prs_calc_table() {
               5,   5,   0,   1,   6,
               2,   3,   5,   5,   4,
         ]),
-        (28, 0, 0, vec![
+        (T::PRS(28), 0, 0, vec![
             // - 0: A -> a A_1
             // - 1: A -> e
             // - 2: A_1 -> b A_2
@@ -2576,7 +2587,7 @@ fn prs_calc_table() {
               7,   2,   7,   7,   7,   3,
               7,   7,   4,   5,   7,   6,
         ]),
-        (43, 0, 0, vec![
+        (T::PRS(43), 0, 0, vec![
             // BATCH -> GROUP ';' BATCH <L> | ε
             // GROUP -> '[' EXPR ']' | '(' EXPR ')'
             // EXPR -> FACTOR '*' FACTOR;
@@ -2618,7 +2629,7 @@ fn prs_calc_table() {
               8,   9,   4,   9,   8,   4,   4,   8,   8,
               8,   9,   7,   9,   9,   5,   6,   8,   8,
         ]),
-        (51, 0, 0, vec![
+        (T::PRS(51), 0, 0, vec![
             // E -> abs E | E ^ E | E ' | E * E | - E | E + E | F
             // F -> ( E ) | NUM | ID
             // - 0: E -> E_3 E_b
@@ -2683,7 +2694,7 @@ fn prs_calc_table() {
              21,  21,  15,  17,  17,  21,  17,  21,  21,  16,  17,
              19,  18,  22,  22,  22,  20,  22,  20,  20,  22,  22,
         ]),
-        (52, 0, 0, vec![
+        (T::PRS(52), 0, 0, vec![
             // - 0: E -> E_4 E_1
             // - 1: F -> NUM
             // - 2: F -> ID
@@ -2728,7 +2739,7 @@ fn prs_calc_table() {
               9,  10,  11,  12,  14,  14,  12,
              15,  15,  15,  15,  13,  13,  15,
         ]),
-        (53, 0, 0, vec![
+        (T::PRS(53), 0, 0, vec![
             // E -> <R>E ^ E | <R>E * E | - E | E + E | F
             // F -> ID | NUM | ( E )
             // - 0: E -> E_3 E_b
@@ -2785,7 +2796,7 @@ fn prs_calc_table() {
              13,  14,  17,  14,  17,  17,  17,  14,  14,
              18,  18,  15,  18,  16,  16,  16,  18,  18,
         ]),
-        (54, 0, 0, vec![
+        (T::PRS(54), 0, 0, vec![
             // E -> <R>E * E | E ! | E -- | <R>E + E | ID | NUM
             // - 0: E -> E_2 E_b
             // - 1: E_b -> * E_1 E_b     R-assoc
@@ -2823,7 +2834,7 @@ fn prs_calc_table() {
               8,   7,   8,   8,  11,  11,   8,
              12,  12,  12,  12,   9,  10,  12,
         ]),
-        (55, 0, 0, vec![
+        (T::PRS(55), 0, 0, vec![
             // E -> E * E | E -- | ! E | E + E | ID | NUM
             // - 0: E -> E_2 E_b
             // - 1: E_b -> * E_2 E_b
@@ -2863,7 +2874,7 @@ fn prs_calc_table() {
              12,   6,   7,   8,  12,  12,   8,
               9,  13,  13,  13,  10,  11,  13,
         ]),
-        (56, 0, 0, vec![
+        (T::PRS(56), 0, 0, vec![
             // E -> E * E | ! E | E -- | E + E | ID | NUM
             // - 0: E -> E_3 E_b
             // - 1: E_b -> * E_3 E_b
@@ -2913,7 +2924,7 @@ fn prs_calc_table() {
              15,  10,  11,  11,  15,  15,  11,
              12,  16,  16,  16,  13,  14,  16,
         ]),
-        (57, 0, 0, vec![
+        (T::PRS(57), 0, 0, vec![
             // E -> E ^ E | E * E | E + E | ID | NUM
             // - 0: E -> E_3 E_b
             // - 1: E_b -> ^ E_3 E_b
@@ -2961,7 +2972,7 @@ fn prs_calc_table() {
              10,  11,  11,  14,  14,  11,
              15,  15,  15,  12,  13,  15,
         ]),
-        (66, 0, 0, vec![
+        (T::PRS(66), 0, 0, vec![
             // E -> E . * E | E -- | E . + E | ! E | ID
             // - 0: E -> E_4 E_1
             // - 1: E_1 -> <G> -- E_1
@@ -3003,7 +3014,7 @@ fn prs_calc_table() {
              12,  13,  12,   8,  13,   9,  13,
              10,  13,  11,  12,  13,  12,  13,
         ]),
-        (58, 0, 0, vec![
+        (T::PRS(58), 0, 0, vec![
             // E -> E + | - E | 0
             // - 0: E -> - E
             // - 1: E -> 0 E_1
@@ -3021,7 +3032,7 @@ fn prs_calc_table() {
               4,   0,   1,   5,
               2,   4,   4,   3,
         ]),
-        (61, 0, 0, vec![
+        (T::PRS(61), 0, 0, vec![
             // E -> E + | - E | 0 | 1
             // - 0: E -> - E
             // - 1: E -> 0 E_1
@@ -3041,7 +3052,7 @@ fn prs_calc_table() {
               5,   0,   1,   2,   6,
               3,   5,   5,   5,   4,
         ]),
-        (70, 0, 0, vec![
+        (T::PRS(70), 0, 0, vec![
             // E -> - E | E + | 0
             // - 0: E -> E_1 E_b
             // - 1: E_b -> + E_b
@@ -3063,7 +3074,7 @@ fn prs_calc_table() {
               1,   5,   5,   2,
               6,   3,   4,   6,
         ]),
-        (59, 0, 0, vec![
+        (T::PRS(59), 0, 0, vec![
             // E -> E + E | - E | 0
             // - 0: E -> E_1 E_b
             // - 1: E_b -> + E_1 E_b
@@ -3085,7 +3096,7 @@ fn prs_calc_table() {
               1,   5,   5,   2,
               6,   3,   4,   6,
         ]),
-        (64, 0, 0, vec![
+        (T::PRS(64), 0, 0, vec![
             // E -> - E | E + E | 0
             // - 0: E -> E_1 E_b
             // - 1: E_b -> + E_1 E_b
@@ -3107,7 +3118,7 @@ fn prs_calc_table() {
               1,   5,   5,   2,
               6,   3,   4,   6,
         ]),
-        (63, 0, 0, vec![
+        (T::PRS(63), 0, 0, vec![
             // E -> <R>E ^ E | E * E | - E | E + E | ID
             // - 0: E -> E_1b E3
             // - 1: E3 -> ^ E_b E3     R-assoc (256)
@@ -3155,7 +3166,7 @@ fn prs_calc_table() {
              10,  11,  14,  11,  14,  11,
              15,  15,  12,  15,  13,  15,
         ]),
-        (65, 0, 0, vec![
+        (T::PRS(65), 0, 0, vec![
             // E -> E ! | E * E | E + | - E | ID
             // - 0: E -> E_2 E_b
             // - 1: E_b -> ! E_b
@@ -3192,7 +3203,7 @@ fn prs_calc_table() {
              11,  11,  11,   8,   9,  11,
         ]),
 
-        (100, 0, 0, vec![
+        (T::PRS(100), 0, 0, vec![
             // - 0: A -> c A_1
             // - 1: A_1 -> a A b A_1
             // - 2: A_1 -> ε
@@ -3207,7 +3218,7 @@ fn prs_calc_table() {
               3,   4,   0,   4,
               1,   2,   3,   2,
         ]),
-        (101, 0, 0, vec![
+        (T::PRS(101), 0, 0, vec![
             // - 0: A -> a A A
             // - 1: A -> b
             (0, prodf!(t 0, nt 0, nt 0)),
@@ -3218,7 +3229,7 @@ fn prs_calc_table() {
             // A |  0   1   p
               0,   1,   3,
         ]),
-        (102, 0, 0, vec![
+        (T::PRS(102), 0, 0, vec![
             // - 0: A -> A_2 A_1
             // - 1: A_1 -> a A b A_2 A_1
             // - 2: A_1 -> ε
@@ -3237,7 +3248,7 @@ fn prs_calc_table() {
               1,   2,   4,   2,
               5,   5,   3,   5,
         ]),
-        (103, 0, 0, vec![
+        (T::PRS(103), 0, 0, vec![
             // - 0: A -> a B c
             // - 1: A -> d
             // - 2: B -> A b A B
@@ -3254,7 +3265,7 @@ fn prs_calc_table() {
               0,   5,   5,   1,   5,
               2,   4,   3,   2,   4,
         ]),
-        (104, 0, 2, vec![
+        (T::PRS(104), 0, 2, vec![
             // - 0: A -> B c
             // - 1: A -> a
             // - 2: B -> A b A B
@@ -3273,7 +3284,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'A', T 'a': <B c> or <a> => <a> has been chosen
             // calc_table: ambiguity for NT 'B', T 'c': <A b A B> or <ε> => <ε> has been chosen
         ]),
-        (105, 0, 2, vec![
+        (T::PRS(105), 0, 2, vec![
             // - 0: A -> a B
             // - 1: A -> c
             // - 2: B -> A b A B
@@ -3292,7 +3303,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'a': <A b A B> or <ε> => <A b A B> has been chosen
             // calc_table: ambiguity for NT 'B', T 'c': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
-        (106, 0, 4, vec![
+        (T::PRS(106), 0, 4, vec![
             // - 0: A -> B
             // - 1: A -> a
             // - 2: B -> A b A B
@@ -3313,16 +3324,50 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'a': <A b A B> or <ε> => <A b A B> has been chosen
             // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
+        (T::RTS(56), 0, 1, vec![
+            // A -> (a b)* a
+            // - 0: A -> A_1 a
+            // - 1: A_1 -> a b A_1
+            // - 2: A_1 -> ε
+            (0, prodf!(nt 1, t 0)),
+            (1, prodf!(t 0, t 1, nt 1)),
+            (1, prodf!(e)),
+
+        ], vec![
+            //     |  a   b   $
+            // ----+-------------
+            // A   |  0   .   p
+            // A_1 |  1   .   .
+              0,   3,   4,
+              1,   3,   3,
+            // calc_table: ambiguity for NT 'A_1', T 'a': <a b A_1> or <ε> => <a b A_1> has been chosen
+        ]),
+        (T::RTS(57), 0, 0, vec![
+            // - 0: A -> a A_1
+            // - 1: A_1 -> b a A_1
+            // - 2: A_1 -> ε
+            (0, prodf!(t 0, nt 1)),
+            (1, prodf!(t 1, t 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //     |  a   b   $
+            // ----+-------------
+            // A   |  0   .   p
+            // A_1 |  .   1   2
+              0,   3,   4,
+              3,   1,   2,
+        ]),
+        // (T::RTS(57), 0, 0, vec![
+        // ], vec![
+        // ]),
     ];
     const VERBOSE: bool = false;
-    for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
-        let rules_lr = build_prs(ll_id, false);
+    for (test_id, (rule_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
+        let mut ll1 = rule_id.build_prs(test_id, start, false);
         if VERBOSE {
-            println!("{:=<80}\ntest {test_id} with {ll_id}/{start}:", "");
-            rules_lr.print_rules(false, false);
+            println!("{:=<80}\ntest {test_id} with {rule_id:?}/{start}:", "");
+            ll1.print_rules(false, false);
         }
-        let mut ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
-        ll1.set_start(start);
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         if VERBOSE {
@@ -3331,7 +3376,7 @@ fn prs_calc_table() {
         }
         let parsing_table = ll1.calc_table(&first, &follow, true);
         let LLParsingTable { num_nt, num_t, factors, table, .. } = &parsing_table;
-        assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{ll_id}/{start}");
+        assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{rule_id:?}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
             ll1.print_rules(false, false);
@@ -3365,10 +3410,10 @@ fn prs_calc_table() {
             }
             ll1.print_logs();
         }
-        assert_eq!(*factors, expected_factors, "test {test_id}/{ll_id}/{start} failed");
-        assert_eq!(*table, expected_table, "test {test_id}/{ll_id}/{start} failed");
-        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id}/{ll_id}/{start} failed on # errors");
-        assert_eq!(ll1.log.num_warnings(), expected_warnings, "test {test_id}/{ll_id}/{start} failed, warnings: {}", ll1.log.get_warnings().join("\n"));
+        assert_eq!(*factors, expected_factors, "test {test_id}/{rule_id:?}/{start} failed");
+        assert_eq!(*table, expected_table, "test {test_id}/{rule_id:?}/{start} failed");
+        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id}/{rule_id:?}/{start} failed on # errors");
+        assert_eq!(ll1.log.num_warnings(), expected_warnings, "test {test_id}/{rule_id:?}/{start} failed, warnings: {}", ll1.log.get_warnings().join("\n"));
    }
 }
 
