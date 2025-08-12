@@ -56,7 +56,7 @@ impl<R: Read> Lexi<'_, '_, R> {
         self.wrapper.get_listener()
     }
 
-    fn make(&mut self) -> Result<(), &BufLog> {
+    fn  make(&mut self) -> Result<(), &BufLog> {
         if !self.is_built {
             // we keep track of the built state because some unit tests are calling build() directly
             self.is_built = true;
@@ -117,7 +117,12 @@ impl<R: Read> TryBuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
 
     fn try_build_from(source: Lexi<'_, '_, R>) -> Result<Self, Self::Error> {
         if source.get_log().has_no_errors() {
-            Ok(SymbolicDfa::build_from(source))
+            let symbolic_dfa = SymbolicDfa::build_from(source);
+            if symbolic_dfa.dfa.get_log().has_no_errors() {
+                Ok(symbolic_dfa)
+            } else {
+                Err(BuildError::new(symbolic_dfa.dfa.give_log(), BuildErrorSource::Lexi))
+            }
         } else {
             Err(BuildError::new(source.give_log(), BuildErrorSource::Lexi))
         }
