@@ -882,6 +882,10 @@ impl<T> Dfa<T> {
     /// Normalizes the DFA: incremental state number0, starting at 0, with all the accepting states
     /// at the end.
     pub fn normalize(mut self) -> Dfa<Normalized> {
+        if !self.log.has_no_errors() {
+            // if there are errors, we bypass any processing and return a shell containing the log
+            return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
+        }
         let mut translate = BTreeMap::<StateId, StateId>::new();
         let mut state_graph = BTreeMap::<StateId, BTreeMap<Segments, StateId>>::new();
         let mut end_states = BTreeMap::<StateId, Terminal>::new();
@@ -927,6 +931,10 @@ impl<T> Dfa<T> {
     /// state ids to new state ids.
     pub fn optimize(mut self) -> Dfa<Normalized> {
         const VERBOSE: bool = false;
+        if !self.log.has_no_errors() {
+            // if there are errors, we bypass any processing and return a shell containing the log
+            return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
+        }
         // set `separate_end_states` = `true` if different end (accepting) states should be kept apart;
         // for example, when it's important to differentiate tokens.
         let separate_end_states = true;
