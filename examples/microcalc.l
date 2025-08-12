@@ -6,7 +6,7 @@ fragment LineComment    : '//' ~[\r\n]*;
 Add                     : '+';
 Comma                   : ',';
 Div                     : '/';
-Dot                     : '.';
+//Dot                     : '.';
 Equal                   : '=';
 Mul                     : '*';
 Lbracket                : '{';
