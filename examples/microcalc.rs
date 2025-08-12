@@ -2,8 +2,110 @@
 
 #![allow(unused)]   // TODO: remove; keeps those warnings silent for now
 
+use std::io::{Cursor, Read};
+use lexigram_lib::io::CharReader;
+use lexigram_lib::lexer::{Lexer, TokenSpliterator};
+use lexigram_lib::log::{BufLog, LogStatus, Logger};
+use lexigram_lib::parser::Parser;
+use crate::listener_types::*;
+use crate::microcalc_lexer::build_lexer;
+use crate::microcalc_parser::*;
+
+const VERBOSE_WRAPPER: bool = false;
+
+static TXT1: &str = r#"
+def const() { return 12; }
+def a(x) { let y = 2*x; return y; }
+def main() { let value = a(const()); print value; return value; }
+"#;
+
 pub fn main() {
-    todo!()
+    println!("{:=<80}\n{TXT1}\n{0:=<80}", "");
+    match parse_string(TXT1.to_string()) {
+        Ok(_) => println!("parsing successful"),
+        Err(log) => println!("errors during parsing:\n{}", log.get_messages_str())
+    }
+}
+
+fn parse_string(text: String) -> Result<(), BufLog> {
+    let mut mcalc = MCalc::new();
+    mcalc.parse(text)
+}
+
+// minimalist parser, top level
+
+pub struct MCalc<'l, 'p> {
+    lexer: Lexer<'l, Cursor<String>>,
+    parser: Parser<'p>,
+    wrapper: Wrapper<MCalcListener>,
+}
+
+impl MCalc<'_, '_> {
+    pub fn new() -> Self {
+        let lexer = build_lexer();
+        let parser = build_parser();
+        let wrapper = Wrapper::new(MCalcListener::new(), VERBOSE_WRAPPER);
+        MCalc { lexer, parser, wrapper }
+    }
+
+    pub fn parse(&mut self, text: String) -> Result<(), BufLog> {
+        let stream = CharReader::new(Cursor::new(text));
+        self.lexer.attach_stream(stream);
+        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
+            panic!("unexpected channel {ch} while parsing a file, line {line} col {col}, \"{text}\"")
+        );
+        if let Err(e) = self.parser.parse_stream(&mut self.wrapper, tokens) {
+            self.wrapper.get_mut_listener().get_mut_log().add_error(e.to_string());
+        }
+        let log = std::mem::take(&mut self.wrapper.get_mut_listener().log);
+        if log.has_no_errors() {
+            Ok(())
+        } else {
+            Err(log)
+        }
+    }
+}
+
+// listener implementation
+
+struct MCalcListener {
+    log: BufLog,
+}
+
+impl MCalcListener {
+    fn new() -> Self {
+        MCalcListener { log: BufLog::new() }
+    }
+}
+
+impl MicroCalcListener for MCalcListener {
+    fn get_mut_log(&mut self) -> &mut impl Logger {
+        &mut self.log
+    }
+
+    fn exit_program(&mut self, _ctx: CtxProgram) -> SynProgram {
+        SynProgram()
+    }
+
+    fn exit_function(&mut self, _ctx: CtxFunction) -> SynFunction {
+        SynFunction()
+    }
+
+    fn exit_fun_params(&mut self, _ctx: CtxFunParams) -> SynFunParams {
+        SynFunParams()
+    }
+
+    fn exit_instruction(&mut self, _ctx: CtxInstruction) -> SynInstruction {
+        SynInstruction()
+    }
+
+    fn exit_expr(&mut self, _ctx: CtxExpr) -> SynExpr {
+        SynExpr()
+    }
+
+    fn exit_fun_args(&mut self, _ctx: CtxFunArgs) -> SynFunArgs {
+        SynFunArgs()
+    }
 }
 
 // -------------------------------------------------------------------------
