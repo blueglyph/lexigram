@@ -11,7 +11,7 @@ use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::{BuildError, LL1};
-use lexigram_lib::log::{BufLog, TryBuildFrom, TryBuildInto};
+use lexigram_lib::log::{TryBuildFrom, TryBuildInto};
 use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::test_tools::replace_tagged_source;
 
@@ -32,7 +32,7 @@ fn main() {
     }
 }
 
-fn gen_microcalc_source() -> Result<(), BuildError<BufLog>> {
+fn gen_microcalc_source() -> Result<(), BuildError> {
     // 1. Lexer
 
     let file = File::open(LEXICON_FILENAME)

@@ -5,7 +5,7 @@ use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
 use lexigram::lexigram_lib::{BuildError, HasBuildErrorSource};
 use lexigram::lexigram_lib::grammar::ProdRuleSet;
-use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus};
+use lexigram::lexigram_lib::log::{BuildInto, LogReader, LogStatus};
 use lexigram_lib::{CollectJoin, LL1, SymbolTable};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::test_tools::replace_tagged_source;
@@ -34,7 +34,7 @@ static TERMINALS: [(&str, Option<&str>); 14] = [
 // [terminal_symbols]
 // -------------------------------------------------------------------------
 
-fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, BuildError<BufLog>> {
+fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, BuildError> {
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
     let file = File::open(grammar_filename).expect(&format!("couldn't open lexicon file {grammar_filename}"));

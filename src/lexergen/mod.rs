@@ -107,7 +107,7 @@ impl BuildFrom<LexerGen> for LexerTables {
 
 // not generated automatically since LexerTables isn't LogReader
 impl TryBuildFrom<LexerGen> for LexerTables {
-    type Error = BuildError<BufLog>;
+    type Error = BuildError;
 
     fn try_build_from(source: LexerGen) -> Result<Self, Self::Error> {
         if source.get_log().has_no_errors() {
@@ -298,7 +298,7 @@ impl LexerGen {
         indent_source(vec![self.lexer_source_code()], indent)
     }
 
-    pub fn try_gen_source_code(self, indent: usize) -> Result<String, BuildError<BufLog>> {
+    pub fn try_gen_source_code(self, indent: usize) -> Result<String, BuildError> {
         let src = self.gen_source_code(indent);
         if self.log.has_no_errors() {
             Ok(src)

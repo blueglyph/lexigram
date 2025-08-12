@@ -113,7 +113,7 @@ impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
 }
 
 impl<R: Read> TryBuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
-    type Error = BuildError<BufLog>;
+    type Error = BuildError;
 
     fn try_build_from(source: Lexi<'_, '_, R>) -> Result<Self, Self::Error> {
         if source.get_log().has_no_errors() {

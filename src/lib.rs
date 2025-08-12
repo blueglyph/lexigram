@@ -28,7 +28,7 @@ mod fixed_sym_table;
 
 pub use symbol_table::SymbolTable;
 pub use fixed_sym_table::{FixedSymTable, SymInfoTable};
-use crate::log::LogStatus;
+use crate::log::{BufLog, LogStatus};
 
 // package name & version
 pub const LIB_PKG_NAME: &str = env!("CARGO_PKG_NAME");
@@ -95,24 +95,24 @@ pub enum BuildErrorSource {
 }
 
 #[derive(Clone, Debug)]
-pub struct BuildError<T: LogStatus> {
-    log: T,
+pub struct BuildError {
+    log: BufLog,
     source: BuildErrorSource,
 }
 
-impl<T: LogStatus> BuildError<T> {
-    pub fn new(log: T, source: BuildErrorSource) -> Self {
+impl BuildError {
+    pub fn new(log: BufLog, source: BuildErrorSource) -> Self {
         BuildError { log, source }
     }
 }
 
-impl<T: LogStatus> Display for BuildError<T> {
+impl Display for BuildError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "Errors have occurred in {:?}:\n{}", self.source, self.log.get_messages_str())
     }
 }
 
-impl<T: LogStatus> Error for BuildError<T> {
+impl Error for BuildError {
 }
 
 pub trait HasBuildErrorSource {
@@ -418,7 +418,7 @@ mod libtests {
 
     #[test]
     fn test_build_error() {
-        fn build() -> Result<(), BuildError<BufLog>> {
+        fn build() -> Result<(), BuildError> {
             let mut log = BufLog::new();
             log.add_error("the test generated a fake error successfully");
             Err(BuildError { source: BuildErrorSource::ParserGen, log })

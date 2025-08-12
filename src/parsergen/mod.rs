@@ -177,7 +177,7 @@ impl BuildFrom<ParserGen> for ParserTables {
 
 // not generated automatically since ParserTables isn't LogReader
 impl TryBuildFrom<ParserGen> for ParserTables {
-    type Error = BuildError<BufLog>;
+    type Error = BuildError;
 
     fn try_build_from(source: ParserGen) -> Result<Self, Self::Error> {
         if source.get_log().has_no_errors() {
@@ -1300,7 +1300,7 @@ impl ParserGen {
         indent_source(parts, indent)
     }
 
-    pub fn try_gen_source_code(mut self, indent: usize, wrapper: bool) -> Result<String, BuildError<BufLog>> {
+    pub fn try_gen_source_code(mut self, indent: usize, wrapper: bool) -> Result<String, BuildError> {
         let src = self.gen_source_code(indent, wrapper);
         if self.log.has_no_errors() {
             Ok(src)

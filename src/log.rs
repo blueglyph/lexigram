@@ -314,10 +314,10 @@ where
 
 impl<S, T> TryBuildFrom<S> for T
 where
-    S: LogReader + HasBuildErrorSource,
-    T: LogReader<Item = S::Item> + BuildFrom<S> + HasBuildErrorSource,
+    S: LogReader<Item = BufLog> + HasBuildErrorSource,
+    T: LogReader<Item = BufLog> + BuildFrom<S> + HasBuildErrorSource,
 {
-    type Error = BuildError<S::Item>;
+    type Error = BuildError;
 
     fn try_build_from(source: S) -> Result<Self, Self::Error> {
         const VERBOSE: bool = false;
