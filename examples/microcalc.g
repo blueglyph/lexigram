@@ -11,7 +11,7 @@ function:
 ;
 
 fun_params:
-    (Id Comma)* Id
+    Id (Comma Id)*
 |
 ;
 
@@ -32,6 +32,6 @@ expr:
 ;
 
 fun_args:
-    (expr Comma)* expr
+    expr (Comma expr)*
 |
 ;
