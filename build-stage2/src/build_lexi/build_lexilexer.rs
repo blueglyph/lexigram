@@ -4,7 +4,7 @@ use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::dfa::{Dfa, DfaTables};
 use lexigram_lib::{branch, btreemap, term, Normalized, SymbolTable};
-use lexigram_lib::log::{BuildFrom};
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus};
 use super::{LEXILEXER_FILENAME, LEXILEXER_TAG};
 
 // -------------------------------------------------------------------------
@@ -50,8 +50,10 @@ static TERMINALS: [(&str, Option<&str>); 34] = [
 // [terminal_symbols]
 // -------------------------------------------------------------------------
 
+const EXPECTED_NBR_WARNINGS: usize = 0;
+
 /// Generates Lexi's lexer source code from the lexicon file.
-fn lexilexer_source(indent: usize, _verbose: bool) -> String {
+fn lexilexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
     // lexigram_lib: 0.5.0
@@ -191,11 +193,20 @@ fn lexilexer_source(indent: usize, _verbose: bool) -> String {
     // - builds the lexer
     let mut lexgen = LexerGen::build_from(dfa);
     lexgen.symbol_table = Some(symbol_table);
-    lexgen.gen_source_code(indent)
+    let src = lexgen.gen_source_code(indent);
+    let log = lexgen.give_log();
+    if EXPECTED_NBR_WARNINGS != log.num_warnings() {
+        Err(log)
+    } else {
+        Ok((log, src))
+    }
 }
 
 pub fn write_lexilexer() {
-    let result_src = lexilexer_source(0, true);
+    let (log, result_src) = lexilexer_source(0, true)
+        .inspect_err(|log| panic!("Failed to build lexer:\n{log}"))
+        .unwrap();
+    println!("Log:\n{log}");
     replace_tagged_source(LEXILEXER_FILENAME, LEXILEXER_TAG, &result_src)
         .expect("lexer source replacement failed");
 }
@@ -209,10 +220,13 @@ mod tests {
     fn test_source() {
         const VERBOSE: bool = false;
 
-        let _result_src = lexilexer_source(0, VERBOSE);
+        let (log, result_src) = lexilexer_source(0, VERBOSE)
+            .inspect_err(|log| panic!("Failed to build lexer:\n{log}"))
+            .unwrap();
         if !cfg!(miri) {
+            if VERBOSE { println!("Log:\n{log}"); }
             let expected_src = get_tagged_source(LEXILEXER_FILENAME, LEXILEXER_TAG).unwrap_or(String::new());
-            assert_eq!(_result_src, expected_src);
+            assert_eq!(result_src, expected_src);
         }
     }
 

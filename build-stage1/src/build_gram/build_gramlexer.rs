@@ -18,12 +18,6 @@ fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, St
     let stream = CharReader::new(reader);
     let lexi = Lexi::new(stream);
     let SymbolicDfa { dfa, symbol_table } = lexi.build_into();
-    if verbose {
-        let msg = dfa.get_log().get_messages_str();
-        if !msg.is_empty() {
-            println!("Parser messages:\n{msg}");
-        }
-    }
     if !dfa.get_log().has_no_errors() {
         return Err(dfa.give_log());
     }
@@ -35,12 +29,10 @@ fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, St
     // - exports data to stage 2
     let sym_src = symbol_table.gen_source_code_t(0, false, true);
     let dfa_src = dfa.gen_tables_source_code(4);
-
     let log = dfa.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {
         return Err(log);
     }
-
     Ok((log, sym_src, dfa_src))
 }
 
@@ -53,7 +45,7 @@ fn get_versions() -> String {
 
 pub fn write_gramlexer() {
     let (log, result_sym, result_src) = gramlexer_source(GRAMLEXER_LEXICON, true)
-        .inspect_err(|log| eprintln!("Failed to parse lexicon:\n{log}"))
+        .inspect_err(|log| panic!("Failed to parse lexicon:\n{log}"))
         .unwrap();
     println!("Log:\n{log}");
     replace_tagged_source(BUILD_GRAMPARSER_FILENAME, GRAM_SYM_T_TAG, &result_sym)
@@ -77,7 +69,7 @@ mod tests {
         const VERBOSE: bool = false;
 
         let (log, result_sym, result_src) = gramlexer_source(GRAMLEXER_LEXICON, VERBOSE)
-            .inspect_err(|log| eprintln!("Failed to parse lexicon:\n{log:?}"))
+            .inspect_err(|log| panic!("Failed to parse lexicon:\n{log}"))
             .unwrap();
         if !cfg!(miri) {
             if VERBOSE { println!("Log:\n{log}"); }

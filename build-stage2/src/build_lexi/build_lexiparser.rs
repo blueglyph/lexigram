@@ -1,16 +1,19 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use lexigram_lib::{CollectJoin, LL1};
-use lexigram_lib::log::{BuildFrom, LogReader, LogStatus};
+use lexigram_lib::LL1;
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::grammar::{ProdRuleSet, ProdRuleSetTables};
 use lexigram_lib::{hashmap, prod};
 use super::{LEXIPARSER_FILENAME, LEXIPARSER_TAG};
 
+const EXPECTED_NBR_WARNINGS: usize = 1;
+// - Warning: calc_first: unused terminals: T(26) = EOF
+
 /// Generates Lexi's parser source code from the grammar file and from the symbols in the lexicon
 /// (extracted in [`build_lexilexer`](crate::build_lexilexer::lexilexer_source())).
-fn lexiparser_source(indent: usize, verbose: bool) -> Result<String, String> {
+fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
     // lexigram_lib: 0.5.0
@@ -75,27 +78,30 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<String, String> {
 
     // - generates Lexi's parser source code (parser + listener):
     let mut builder = ParserGen::build_from(ll1);
-    let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
     if verbose {
         print_flags(&builder, 4);
         println!("Parsing table of grammar '{}':", builder.get_name());
         builder.get_parsing_table().print(builder.get_symbol_table(), 4);
-        if !builder.get_log().is_empty() {
-            println!("Messages:{msg}");
-        }
     }
     if !builder.get_log().has_no_errors() {
-        return Err(msg);
+        return Err(builder.give_log());
     }
     builder.set_parents_have_value();
     builder.add_lib("lexiparser_types::*");
-    Ok(builder.gen_source_code(indent, true))
+    let src = builder.gen_source_code(indent, true);
+    let log = builder.give_log();
+    if EXPECTED_NBR_WARNINGS != log.num_warnings() {
+        Err(log)
+    } else {
+        Ok((log, src))
+    }
 }
 
 pub fn write_lexiparser() {
-    let result_src = lexiparser_source(0, true)
-        .inspect_err(|e| eprintln!("Failed to parse grammar: {e:?}"))
+    let (log, result_src) = lexiparser_source(0, true)
+        .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
         .unwrap();
+    println!("Log:\n{log}");
     replace_tagged_source(LEXIPARSER_FILENAME, LEXIPARSER_TAG, &result_src)
         .expect("parser source replacement failed");
 }
@@ -108,10 +114,11 @@ mod tests {
     #[test]
     fn test_source() {
         const VERBOSE: bool = false;
-        let result_src = lexiparser_source(0, VERBOSE)
-            .inspect_err(|e| eprintln!("Failed to parse grammar: {e:?}"))
+        let (log, result_src) = lexiparser_source(0, VERBOSE)
+            .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
             .unwrap();
         if !cfg!(miri) {
+            if VERBOSE { println!("Log:\n{log}"); }
             let expected_src = get_tagged_source(LEXIPARSER_FILENAME, LEXIPARSER_TAG).unwrap_or(String::new());
             assert_eq!(result_src, expected_src);
         }

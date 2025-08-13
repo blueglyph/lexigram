@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use lexigram_lib::{CollectJoin, LL1};
+use lexigram_lib::LL1;
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
@@ -62,14 +62,10 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
 
     // - generates Gram's parser source code (parser + listener):
     let mut builder = ParserGen::build_from(ll1);
-    let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
     if verbose {
         print_flags(&builder, 4);
         println!("Parsing table of grammar '{}':", builder.get_name());
         builder.get_parsing_table().print(builder.get_symbol_table(), 4);
-        if !builder.get_log().is_empty() {
-            println!("Messages:{msg}");
-        }
     }
     if !builder.get_log().has_no_errors() {
         return Err(builder.give_log());
@@ -87,7 +83,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
 
 pub fn write_gramparser() {
     let (log, result_src) = gramparser_source(0, true)
-        .inspect_err(|log| eprintln!("Failed to build parser:\n{log}"))
+        .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
         .unwrap();
     println!("Log:\n{log}");
     replace_tagged_source(GRAMPARSER_FILENAME, GRAMPARSER_TAG, &result_src)
@@ -103,7 +99,7 @@ mod tests {
     fn test_source() {
         const VERBOSE: bool = false;
         let (log, result_src) = gramparser_source(0, VERBOSE)
-            .inspect_err(|log| eprintln!("Failed to build parser:\n{log:?}"))
+            .inspect_err(|log| panic!("Failed to build parser:\n{log}"))
             .unwrap();
         if !cfg!(miri) {
             if VERBOSE { println!("Log:\n{log}"); }

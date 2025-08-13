@@ -6,7 +6,7 @@ use lexigram::{lexigram_lib, Gram};
 use lexigram::lexigram_lib::{BuildError, HasBuildErrorSource};
 use lexigram::lexigram_lib::grammar::ProdRuleSet;
 use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus};
-use lexigram_lib::{CollectJoin, LL1, SymbolTable};
+use lexigram_lib::{LL1, SymbolTable};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::test_tools::replace_tagged_source;
 use super::{GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_GRAMMAR, GRAMPARSER_STAGE2_TAG, VERSIONS_TAG};
@@ -36,7 +36,7 @@ static TERMINALS: [(&str, Option<&str>); 14] = [
 
 const EXPECTED_NBR_WARNINGS: usize = 0;
 
-fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<(BufLog, String), BuildError> {
+fn gramparser_source(grammar_filename: &str, _verbose: bool) -> Result<(BufLog, String), BuildError> {
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
     let file = File::open(grammar_filename).expect(&format!("couldn't open lexicon file {grammar_filename}"));
@@ -44,12 +44,6 @@ fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<(BufLog, S
     let grammar_stream = CharReader::new(reader);
     let gram = Gram::new(symbol_table, grammar_stream);
     let ll1: ProdRuleSet<LL1> = gram.build_into();
-    if verbose {
-        let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
-        if !msg.is_empty() {
-            println!("Parser messages:\n{msg}");
-        }
-    }
     if !ll1.get_log().has_no_errors() || ll1.get_log().num_warnings() != EXPECTED_NBR_WARNINGS {
         return Err(BuildError::new(ll1.give_log(), ProdRuleSet::<LL1>::get_build_error_source()));
     }
@@ -69,7 +63,7 @@ fn get_versions() -> String {
 
 pub fn write_gramparser() {
     let (log, result_src) = gramparser_source(GRAMPARSER_GRAMMAR, true)
-        .inspect_err(|e| eprintln!("Failed to parse grammar:\n{e}"))
+        .inspect_err(|e| panic!("Failed to parse grammar:\n{e}"))
         .unwrap();
     println!("Log:\n{log}");
     replace_tagged_source(GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_STAGE2_TAG, &result_src)
@@ -88,7 +82,7 @@ mod tests {
     fn test_source() {
         const VERBOSE: bool = false;
         let (log, result_src) = gramparser_source(GRAMPARSER_GRAMMAR, VERBOSE)
-            .inspect_err(|e| eprintln!("Failed to parse grammar:\n{e:?}"))
+            .inspect_err(|e| panic!("Failed to parse grammar:\n{e}"))
             .unwrap();
         if !cfg!(miri) {
             if VERBOSE { println!("Log:\n{log}"); }

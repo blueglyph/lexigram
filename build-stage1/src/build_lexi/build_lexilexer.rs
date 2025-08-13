@@ -9,20 +9,16 @@ use lexigram_lib::io::CharReader;
 use lexigram_lib::test_tools::replace_tagged_source;
 use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_STAGE2_FILENAME, LEXILEXER_LEXICON, LEXILEXER_STAGE2_TAG, LEXI_SYM_T_TAG, VERSIONS_TAG};
 
+const EXPECTED_NBR_WARNINGS: usize = 0;
+
 /// Generates Lexi's lexer source code from the lexicon file.
-fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, String), BufLog> {
+fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, String, String), BufLog> {
     let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
     let reader = BufReader::new(file);
     let stream = CharReader::new(reader);
     let lexi = Lexi::new(stream);
     let SymbolicDfa { dfa, symbol_table } = lexi.build_into();
-    if verbose {
-        let msg = dfa.get_log().get_messages_str();
-        if !msg.is_empty() {
-            println!("Parser messages:\n{msg}");
-        }
-    }
-    if !dfa.get_log().has_no_errors() {
+    if !dfa.get_log().has_no_errors() || dfa.get_log().num_warnings() != EXPECTED_NBR_WARNINGS {
         return Err(dfa.give_log());
     }
     if verbose {
@@ -33,8 +29,7 @@ fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, St
     // - exports data to stage 2
     let sym_src = symbol_table.gen_source_code_t(0, false, true);
     let dfa_src = dfa.gen_tables_source_code(4);
-
-    Ok((sym_src, dfa_src))
+    Ok((dfa.give_log(), sym_src, dfa_src))
 }
 
 fn get_versions() -> String {
@@ -45,9 +40,10 @@ fn get_versions() -> String {
 }
 
 pub fn write_lexilexer() {
-    let (result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, true)
-        .inspect_err(|log| eprintln!("Failed to parse lexicon:\n{log}"))
+    let (log, result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, true)
+        .inspect_err(|log| panic!("Failed to parse lexicon:\n{log}"))
         .unwrap();
+    println!("Log:\n{log}");
     replace_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG, &result_sym)
         .expect("parser symbol replacement failed");
     replace_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXI_SYM_T_TAG, &result_sym)
@@ -68,10 +64,11 @@ mod tests {
     fn test_source() {
         const VERBOSE: bool = false;
 
-        let (result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, VERBOSE)
-            .inspect_err(|e| eprintln!("Failed to parse lexicon: {e:?}"))
+        let (log, result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, VERBOSE)
+            .inspect_err(|log| panic!("Failed to parse lexicon:\n{log}"))
             .unwrap();
         if !cfg!(miri) {
+            if VERBOSE { println!("Log:\n{log}"); }
             let expected_sym1 = get_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG).unwrap_or(String::new());
             let expected_sym2 = get_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXI_SYM_T_TAG).unwrap_or(String::new());
             assert_eq!(expected_sym1, expected_sym2, "T symbols are different in {BUILD_LEXIPARSER_FILENAME} and {LEXILEXER_STAGE2_FILENAME}");

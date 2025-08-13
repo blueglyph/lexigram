@@ -115,7 +115,7 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
 
 pub fn write_gramlexer() {
     let (log, result_src) = gramlexer_source(0, true)
-        .inspect_err(|log| eprintln!("Failed to build lexer:\n{log}"))
+        .inspect_err(|log| panic!("Failed to build lexer:\n{log}"))
         .unwrap();
     println!("Log:\n{log}");
     replace_tagged_source(GRAMLEXER_FILENAME, GRAMLEXER_TAG, &result_src)
@@ -132,7 +132,7 @@ mod tests {
         const VERBOSE: bool = false;
 
         let (log, result_src) = gramlexer_source(0, VERBOSE)
-            .inspect_err(|log| eprintln!("Failed to build lexer:\n{log}"))
+            .inspect_err(|log| panic!("Failed to build lexer:\n{log}"))
             .unwrap();
         if !cfg!(miri) {
             if VERBOSE { println!("Log:\n{log}"); }
