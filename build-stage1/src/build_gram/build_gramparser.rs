@@ -5,7 +5,7 @@ use std::io::BufReader;
 use lexigram::{lexigram_lib, Gram};
 use lexigram::lexigram_lib::{BuildError, HasBuildErrorSource};
 use lexigram::lexigram_lib::grammar::ProdRuleSet;
-use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus};
+use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus, Logger};
 use lexigram_lib::{LL1, SymbolTable};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::test_tools::replace_tagged_source;
@@ -45,7 +45,11 @@ fn gramparser_source(grammar_filename: &str, _verbose: bool) -> Result<(BufLog, 
     let gram = Gram::new(symbol_table, grammar_stream);
     let ll1: ProdRuleSet<LL1> = gram.build_into();
     if !ll1.get_log().has_no_errors() || ll1.get_log().num_warnings() != EXPECTED_NBR_WARNINGS {
-        return Err(BuildError::new(ll1.give_log(), ProdRuleSet::<LL1>::get_build_error_source()));
+        let mut log = ll1.give_log();
+        if log.num_warnings() != EXPECTED_NBR_WARNINGS {
+            log.add_error(format!("Unexpected number of warnings: {} instead of {EXPECTED_NBR_WARNINGS}", log.num_warnings()));
+        }
+        return Err(BuildError::new(log, ProdRuleSet::<LL1>::get_build_error_source()));
     }
 
     // - exports data to stage 2

@@ -8,8 +8,7 @@ use lexigram_lib::grammar::{ProdRuleSet, ProdRuleSetTables};
 use lexigram_lib::{hashmap, prod};
 use super::{LEXIPARSER_FILENAME, LEXIPARSER_TAG};
 
-const EXPECTED_NBR_WARNINGS: usize = 1;
-// - Warning: calc_first: unused terminals: T(26) = EOF
+const EXPECTED_NBR_WARNINGS: usize = 0;
 
 /// Generates Lexi's parser source code from the grammar file and from the symbols in the lexicon
 /// (extracted in [`build_lexilexer`](crate::build_lexilexer::lexilexer_source())).

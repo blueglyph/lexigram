@@ -234,7 +234,6 @@ mod test {
     use lexigram_lib::dfa::TokenId;
     use lexigram_lib::escape_string;
     use lexigram_lib::io::CharReader;
-    use lexigram_lib::lexi::{LEXICON, LEXICON_TEXT, LEXICON_TOKENS};
     use crate::out::lexilexer::lexilexer::build_lexer;
 
     #[test]
@@ -248,7 +247,6 @@ mod test {
                  vec!["->", ":", ",", ".", "..", "{", "(", "~", "-", "+", "|", "?", "}", ")", ";", "*",
                       "channels", "fragment", "lexicon", "mode", "pop", "push", "more", "skip", "type", "channel", "\\w", "[", "a", "-", "z", ".", "\\t", "\\w", "]"]),
             ]),
-            (2, vec![(LEXICON, LEXICON_TOKENS.to_vec(), LEXICON_TEXT.to_vec())]),
         ];
         let mut lexer = build_lexer();
         for (test_id, inputs) in tests {

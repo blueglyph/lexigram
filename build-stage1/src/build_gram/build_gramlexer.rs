@@ -4,7 +4,7 @@ use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Lexi};
 use lexigram::lexi::SymbolicDfa;
-use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus};
+use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus, Logger};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::test_tools::replace_tagged_source;
 use super::{BUILD_GRAMPARSER_FILENAME, GRAMLEXER_STAGE2_FILENAME, GRAMLEXER_LEXICON, GRAMLEXER_STAGE2_TAG, GRAM_SYM_T_TAG, VERSIONS_TAG};
@@ -29,11 +29,13 @@ fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, St
     // - exports data to stage 2
     let sym_src = symbol_table.gen_source_code_t(0, false, true);
     let dfa_src = dfa.gen_tables_source_code(4);
-    let log = dfa.give_log();
+    let mut log = dfa.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {
-        return Err(log);
+        log.add_error(format!("Unexpected number of warnings: {} instead of {EXPECTED_NBR_WARNINGS}", log.num_warnings()));
+        Err(log)
+    } else {
+        Ok((log, sym_src, dfa_src))
     }
-    Ok((log, sym_src, dfa_src))
 }
 
 fn get_versions() -> String {

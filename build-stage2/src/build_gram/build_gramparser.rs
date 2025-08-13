@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use lexigram_lib::LL1;
-use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus};
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::grammar::{ProdRuleSet, ProdRuleSetTables};
@@ -73,8 +73,9 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     builder.set_parents_have_value();
     builder.add_lib("gramparser_types::*");
     let src = builder.gen_source_code(indent, true);
-    let log = builder.give_log();
+    let mut log = builder.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {
+        log.add_error(format!("Unexpected number of warnings: {} instead of {EXPECTED_NBR_WARNINGS}", log.num_warnings()));
         Err(log)
     } else {
         Ok((log, src))

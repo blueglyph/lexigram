@@ -4,7 +4,7 @@ use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::dfa::{Dfa, DfaTables};
 use lexigram_lib::{branch, btreemap, term, Normalized, SymbolTable};
-use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus};
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use super::{LEXILEXER_FILENAME, LEXILEXER_TAG};
 
 // -------------------------------------------------------------------------
@@ -189,8 +189,9 @@ fn lexilexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), B
     let mut lexgen = LexerGen::build_from(dfa);
     lexgen.symbol_table = Some(symbol_table);
     let src = lexgen.gen_source_code(indent);
-    let log = lexgen.give_log();
+    let mut log = lexgen.give_log();
     if EXPECTED_NBR_WARNINGS != log.num_warnings() {
+        log.add_error(format!("Unexpected number of warnings: {} instead of {EXPECTED_NBR_WARNINGS}", log.num_warnings()));
         Err(log)
     } else {
         Ok((log, src))
