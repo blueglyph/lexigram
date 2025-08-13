@@ -106,7 +106,7 @@ impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
     fn build_from(mut lexi: Lexi<R>) -> Self {
         let _ = lexi.make();
         SymbolicDfa {
-            dfa: lexi.get_mut_listener().make_dfa().optimize(),
+            dfa: lexi.get_mut_listener().make_dfa(),
             symbol_table: lexi.wrapper.get_listener().make_symbol_table()
         }
     }

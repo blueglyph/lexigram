@@ -227,6 +227,7 @@ impl LexiListener {
         table
     }
 
+    /// Makes and optimizes the DFA
     pub fn make_dfa(&mut self) -> Dfa<Normalized> {
         const VERBOSE: bool = false;
         if !self.log.has_no_errors() {
