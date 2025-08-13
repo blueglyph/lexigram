@@ -122,7 +122,6 @@ mod listener {
 
 mod simple {
     use std::collections::BTreeMap;
-    use std::hint::black_box;
     use std::io::Cursor;
     use lexigram_lib::{branch, btreemap, term};
     use lexigram_lib::dfa::{tree_to_string, ActionOption, ReType};
@@ -130,8 +129,10 @@ mod simple {
     use lexigram_lib::lexer::LexerError;
     use lexigram_lib::lexergen::{LexerGen, LexerTables};
     use lexigram_lib::CollectJoin;
+    use lexigram_lib::log::{BuildFrom, BuildInto, LogReader, LogStatus};
     use crate::Lexi;
     use crate::lexi::listener::RuleType;
+    use crate::lexi::SymbolicDfa;
     use super::*;
 
     #[test]
@@ -306,9 +307,9 @@ mod simple {
         for (test_id, (input, expected_graph, expected_end_states, test_strs)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
-            let mut lexi = Lexi::new();
-            let result = lexi.build(stream);
-            let mut listener = lexi.wrapper.listener();
+            let mut lexi = Lexi::new(stream);
+            let result_is_ok = lexi.make().is_ok();
+            let listener = lexi.get_listener();
             if VERBOSE {
                 let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
@@ -316,7 +317,7 @@ mod simple {
                 }
             }
             let text = format!("test {test_id} failed");
-            assert_eq!(result, Ok(()), "{text}");
+            assert!(result_is_ok, "{text}");
             if VERBOSE {
                 println!("Rules:");
                 let mut rules = listener.rules.iter().to_vec();
@@ -330,7 +331,7 @@ mod simple {
                     println!("- [{i:3}] {rt:?} {s}: {}    {lit:?}", tree_to_string(t, None, true));
                 }
             }
-            let dfa = listener.make_dfa().optimize();
+            let SymbolicDfa { dfa, .. } = lexi.build_into();
             if VERBOSE {
                 println!("Final optimized Dfa:");
                 dfa.print(20);
@@ -338,7 +339,7 @@ mod simple {
             assert_eq!(dfa.get_state_graph(), &expected_graph, "{text}");
             assert_eq!(dfa.get_end_states(), &expected_end_states, "{text}");
 
-            let lexer_tables = LexerTables::from(LexerGen::from(dfa));
+            let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
             let mut lexer = lexer_tables.make_lexer();
             for (input_id, (input, expected_tokens)) in test_strs.into_iter().enumerate() {
                 if VERBOSE {
@@ -400,22 +401,22 @@ mod simple {
             if VERBOSE || JUST_SHOW_ANSWERS { println!("// {:=<80}\n// Test {test_id}", ""); }
             let text = format!("test {test_id} failed");
             let stream = CharReader::new(Cursor::new(lexicon));
-            let mut lexi = Lexi::new();
-            let result = lexi.build(stream);
-            let mut listener = lexi.wrapper.listener();
+            let mut lexi = Lexi::new(stream);
+            let result_is_ok = lexi.make().is_ok();
+            let listener = lexi.get_listener();
             if VERBOSE {
                 let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
                     println!("Messages:\n{msg}");
                 }
             }
-            assert_eq!(result, Ok(()), "{text}: couldn't parse the lexicon");
+            assert!(result_is_ok, "{text}: couldn't parse the lexicon");
 
             // - builds the dfa from the reg tree
-            let dfa = listener.make_dfa().optimize();
+            let SymbolicDfa { dfa, .. } = lexi.build_into();
 
             // - builds the lexer
-            let lexer_tables = LexerTables::from(LexerGen::from(dfa));
+            let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
             let mut lexer = lexer_tables.make_lexer();
 
             // 2) tests the lexer on inputs
@@ -492,9 +493,9 @@ mod simple {
         for (test_id, (input, expected_sym, expected_end)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}", ""); }
             let stream = CharReader::new(Cursor::new(input));
-            let mut lexi = Lexi::new();
-            let result = lexi.build(stream);
-            let mut listener = lexi.wrapper.listener();
+            let mut lexi = Lexi::new(stream);
+            let result_is_ok = lexi.make().is_ok();
+            let listener = lexi.get_listener();
             if VERBOSE {
                 let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
                 if !msg.is_empty() {
@@ -502,13 +503,11 @@ mod simple {
                 }
             }
             let text = format!("test {test_id} failed");
-            assert_eq!(result, Ok(()), "{text}");
+            assert!(result_is_ok, "{text}");
             if VERBOSE {
                 println!("Rules lexicon {}:\n{}", listener.get_name(), listener.rules_to_string(0));
             }
-            let symbol_table = listener.make_symbol_table();
             let expected_sym = expected_sym.into_iter().map(|s| s.to_string()).to_vec();
-            let result_sym = symbol_table.get_terminals().map(|(s, _)| s.to_string()).to_vec();
             let result_end = listener.terminals.iter().enumerate().filter_map(|(id, t)| {
                 t.iter_depth_simple().find_map(|n|
                     // unfortunately, we can't destructure entirely because term is a Box
@@ -523,6 +522,8 @@ mod simple {
                     }
                 )
             }).collect::<BTreeMap<_,_>>();
+            let SymbolicDfa { dfa: _dfa, symbol_table } = lexi.build_into();
+            let result_sym = symbol_table.get_terminals().map(|(s, _)| s.to_string()).to_vec();
             if JUST_SHOW_ANSWERS {
                 println!("             vec![{}],", result_sym.iter().map(|s| format!("\"{s}\"")).join(", "));
                 println!("             btreemap![{}],", result_end.iter().map(|(k, v)| format!("{k} => {v}")).join(", "));
@@ -530,8 +531,6 @@ mod simple {
                 assert_eq!(result_sym, expected_sym, "{text}: symbol table");
                 assert_eq!(result_end, expected_end, "{text}: end values");
             }
-            // checks that the Dfa can be built and optimized
-            black_box(listener.make_dfa().optimize());
         }
     }
 }
@@ -540,6 +539,7 @@ mod lexicon {
     use std::io::Cursor;
     use lexigram_lib::CollectJoin;
     use lexigram_lib::io::CharReader;
+    use lexigram_lib::log::{LogReader, LogStatus};
     use crate::Lexi;
 
     #[test]
@@ -620,8 +620,8 @@ mod lexicon {
         for (test_id, (lexicon, mut expected_errors)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("\n// {:=<80}\n// Test {test_id}\n{lexicon}\n", ""); }
             let stream = CharReader::new(Cursor::new(lexicon));
-            let mut lexi = Lexi::new();
-            let _result = lexi.build(stream);
+            let mut lexi = Lexi::new(stream);
+            let _result = lexi.make();
             let listener = lexi.wrapper.listener();
             let text = format!("test {test_id} failed");
             let msg = listener.get_log().get_messages().map(|s| format!("\n- {s}")).join("");

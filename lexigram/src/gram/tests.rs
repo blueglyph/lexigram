@@ -54,9 +54,9 @@ const TXT_GRAM2: &str = r#"
 mod listener {
     use super::*;
     use crate::{Lexi, Gram};
-    use lexigram_lib::log::{BufLog, Logger};
+    use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
     use lexigram_lib::parser::{Call, ListenerWrapper};
-    use lexigram_lib::grammar::{FactorId, VarId};
+    use lexigram_lib::grammar::{FactorId, ProdRuleSet, VarId};
     use lexigram_lib::io::CharReader;
     use lexigram_lib::lexer::{Lexer, TokenSpliterator};
     use lexigram_lib::lexergen::{LexerGen, LexerTables};
@@ -64,6 +64,7 @@ mod listener {
     use lexigram_lib::{CollectJoin, LL1};
     use std::io::Cursor;
     use iter_index::IndexerIterator;
+    use crate::lexi::SymbolicDfa;
 
     struct Stub {
         log: BufLog,
@@ -163,25 +164,21 @@ mod listener {
 
         // parses the test lexicon
         let lexicon_stream = CharReader::new(Cursor::new(TXT_LEXI1));
-        let mut lexi = Lexi::new();
-        let result = lexi.build(lexicon_stream);
-        let mut listener = lexi.wrapper.listener();
-        if VERBOSE {
-            let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
-            if !msg.is_empty() {
-                println!("Messages:\n{msg}");
-            }
+        let lexi = Lexi::new(lexicon_stream);
+        let symbolic_dfa: SymbolicDfa = lexi.build_into();
+        let SymbolicDfa { dfa, symbol_table } = symbolic_dfa;
+        let msg = dfa.get_log().get_messages_str();
+        assert!(dfa.get_log().has_no_errors(), "couldn't parse the lexicon:\n{msg}");
+        if VERBOSE && !msg.is_empty() {
+            println!("Messages:\n{msg}");
         }
-        assert_eq!(result, Ok(()), "couldn't parse the lexicon");
 
         // builds the lexer for the test lexicon
-        let dfa = listener.make_dfa().optimize();
-        let sym_table = listener.make_symbol_table();
         if VERBOSE {
             println!("Lexer symbol table:\n- T: {}",
-                     sym_table.get_terminals().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
+                     symbol_table.get_terminals().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
         }
-        let lexer_tables = LexerTables::from(LexerGen::from(dfa));
+        let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
         let mut lexer: Lexer<Cursor<&str>> = lexer_tables.make_lexer();
 
         for (test_id, (grammar, mut expected_grammar_errors, expected_warnings, inputs)) in tests.into_iter().enumerate() {
@@ -189,9 +186,9 @@ mod listener {
             let text = format!("test {test_id} failed");
 
             // grammar parser
-            let gram = Gram::<LL1, _>::new(sym_table.clone());
             let grammar_stream = CharReader::new(Cursor::new(grammar));
-            let ll1 = gram.into_ll1(grammar_stream);
+            let gram = Gram::new(symbol_table.clone(), grammar_stream);
+            let ll1: ProdRuleSet<LL1> = gram.build_into();
             let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
             let should_succeed = expected_grammar_errors.is_empty();
             if VERBOSE {
@@ -219,7 +216,7 @@ mod listener {
             assert!(expected_grammar_errors.is_empty(), "was expecting to find those errors while parsing the grammar:{}\nbut got those messages:{msg}",
                     expected_grammar_errors.iter().map(|s| format!("\n- {s}")).join(""));
             if should_succeed {
-                let builder = ParserGen::from(ll1);
+                let builder = ParserGen::build_from(ll1);
                 let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
                 if VERBOSE {
                     print_flags(&builder, 4);
@@ -230,7 +227,7 @@ mod listener {
                     }
                 }
                 assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
-                let parser_table = ParserTables::from(builder);
+                let parser_table = ParserTables::build_from(builder);
                 let mut parser = parser_table.make_parser();
 
                 for (input, expected_lexer_success, expected_parser_success) in inputs {

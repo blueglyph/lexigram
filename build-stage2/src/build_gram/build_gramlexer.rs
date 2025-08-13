@@ -2,8 +2,9 @@
 
 use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::test_tools::replace_tagged_source;
-use lexigram_lib::{branch, btreemap, term, SymbolTable};
-use lexigram_lib::dfa::DfaTables;
+use lexigram_lib::{branch, btreemap, term, Normalized, SymbolTable};
+use lexigram_lib::dfa::{Dfa, DfaTables};
+use lexigram_lib::log::{BuildFrom};
 use super::{GRAMLEXER_FILENAME, GRAMLEXER_TAG};
 
 // -------------------------------------------------------------------------
@@ -94,14 +95,14 @@ fn gramlexer_source(indent: usize, _verbose: bool) -> String {
     // -------------------------------------------------------------------------
 
     // - gets data from stage 1
-    let dfa = dfa_tables.make_dfa();
+    let dfa = Dfa::<Normalized>::build_from(dfa_tables);
     let mut symbol_table = SymbolTable::new();
     symbol_table.extend_terminals(TERMINALS);
 
     // - builds the lexer
-    let mut lexgen = LexerGen::from(dfa);
+    let mut lexgen = LexerGen::build_from(dfa);
     lexgen.symbol_table = Some(symbol_table);
-    lexgen.build_source_code(indent)
+    lexgen.gen_source_code(indent)
 }
 
 pub fn write_gramlexer() {

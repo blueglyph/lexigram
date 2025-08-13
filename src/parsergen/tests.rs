@@ -6,7 +6,7 @@ mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
     use crate::{CollectJoin, LL1, SymbolTable};
-    use crate::log::Logger;
+    use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
@@ -18,7 +18,7 @@ mod gen_integration {
         let rules = match rules_id {
             RTS(rts_id) => {
                 let rts = build_rts(rts_id);
-                let mut rules = ProdRuleSet::from(rts);
+                let mut rules = ProdRuleSet::build_from(rts);
                 rules.set_start(0);
                 if rules.get_symbol_table().is_none() {
                     let mut symbol_table = SymbolTable::new();
@@ -32,10 +32,10 @@ mod gen_integration {
             }
         };
         assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
-        let ll1 = ProdRuleSet::<LL1>::from(rules);
-        let mut builder = ParserGen::from_rules(ll1, name);
+        let ll1 = ProdRuleSet::<LL1>::build_from(rules);
+        let mut builder = ParserGen::build_from_rules(ll1, name);
         builder.set_include_factors(include_factors);
-        builder.build_source_code(indent, false)
+        builder.gen_source_code(indent, false)
     }
 
     fn get_test_data<'a>(id: u32) -> Option<(T, usize, bool, bool, &'a str, &'a str)> {
@@ -223,7 +223,8 @@ mod gen_integration {
 }
 
 mod opcodes {
-    use crate::grammar::{Symbol, VarId};
+    use crate::log::BuildFrom;
+use crate::grammar::{Symbol, VarId};
     use crate::grammar::tests::T;
     use crate::{CollectJoin, strip, columns_to_str};
     use crate::parser::{OpCode, Parser};
@@ -541,7 +542,7 @@ mod opcodes {
                 print!("- ");
                 ll1.print_prs_summary();
             }
-            let parser_tables = ParserTables::from(ParserGen::from_rules(ll1, "Test".to_string()));
+            let parser_tables = ParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
             let parser = parser_tables.make_parser();
             if VERBOSE {
                 println!("Final factors and opcodes:");
@@ -567,7 +568,7 @@ mod parser_source {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::build_prs;
     use crate::{CollectJoin, LL1};
-    use crate::log::Logger;
+    use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::{ParserGen, ParserTables};
 
     #[test]
@@ -575,13 +576,13 @@ mod parser_source {
         for include_factors in [false, true] {
             let rules = build_prs(9, true);
             assert_eq!(rules.get_log().num_errors(), 0, "building PRS(9) failed:\n- {}", rules.get_log().get_errors().join("\n- "));
-            let ll1 = ProdRuleSet::<LL1>::from(rules);
-            let mut builder = ParserGen::from_rules(ll1, "simple".to_string());
+            let ll1 = ProdRuleSet::<LL1>::build_from(rules);
+            let mut builder = ParserGen::build_from_rules(ll1, "simple".to_string());
             builder.set_include_factors(include_factors);
-            let src = builder.build_source_code(0, false);
+            let src = builder.gen_source_code(0, false);
             let factors_present = src.contains("static FACTORS");
             assert_eq!(factors_present, include_factors, "unexpected source code: include_factors = {include_factors}, code = \n{src}");
-            let pt = ParserTables::from(builder);
+            let pt = ParserTables::build_from(builder);
             let parser = pt.make_parser();
             let factors = parser.get_factors();
             assert_eq!(factors.is_empty(), !include_factors, "unexpected: include_factors = {include_factors}, factors = {factors:?}");
@@ -598,7 +599,7 @@ mod wrapper_source {
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::{print_flags, print_items, ParserGen};
     use crate::dfa::TokenId;
-    use crate::log::Logger;
+    use crate::log::{LogReader, LogStatus};
     use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
@@ -2125,12 +2126,12 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-// if rule_id != RTS(22)  { continue }
-// if !hashset!(PRS(55), PRS(66), RTS(41)).contains(&rule_id) { continue }
+// if rule_id != RTS(44)  { continue }
+// if !hashset!(RTS(42), RTS(43), RTS(44)).contains(&rule_id) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.build_prs(test_id, start_nt, true);
-            let mut builder = ParserGen::from_rules(ll1, "Test".to_string());
+            let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
             if VERBOSE {
                 println!("/*");
@@ -2139,7 +2140,7 @@ mod wrapper_source {
                              if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
                          ).join(", "));
             }
-            builder.build_item_ops();
+            builder.make_item_ops();
             if VERBOSE {
                 println!("after,  NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
@@ -2505,7 +2506,7 @@ mod wrapper_source {
             let expected_expanded = expected_expanded_full.iter().map(|(a, _)| a.to_string()).to_vec();
             let expected_full = expected_expanded_full.iter().map(|(_, b)| b.to_string()).to_vec();
             let ll1 = rule_id.build_prs(test_id, 0, true);
-            let builder = ParserGen::from_rules(ll1, "Test".to_string());
+            let builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             let symtable = builder.get_symbol_table();
             let mut result_expanded = vec![];
             let mut result_full = vec![];

@@ -1,10 +1,10 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use lexigram_lib::CollectJoin;
-use lexigram_lib::log::Logger;
+use lexigram_lib::{CollectJoin, LL1};
+use lexigram_lib::log::{BuildFrom, LogReader, LogStatus};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
-use lexigram_lib::grammar::ProdRuleSetTables;
+use lexigram_lib::grammar::{ProdRuleSet, ProdRuleSetTables};
 use lexigram_lib::{hashmap, prod, prodf};
 use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG};
 
@@ -56,10 +56,10 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<String, String> {
     // -------------------------------------------------------------------------
 
     // - gets data from stage 1
-    let ll1 = ll1_tables.make_prod_rule_set();
+    let ll1 = ProdRuleSet::<LL1>::build_from(ll1_tables);
 
     // - generates Gram's parser source code (parser + listener):
-    let mut builder = ParserGen::from(ll1);
+    let mut builder = ParserGen::build_from(ll1);
     let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
     if verbose {
         print_flags(&builder, 4);
@@ -74,7 +74,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<String, String> {
     }
     builder.set_parents_have_value();
     builder.add_lib("gramparser_types::*");
-    Ok(builder.build_source_code(indent, true))
+    Ok(builder.gen_source_code(indent, true))
 }
 
 pub fn write_gramparser() {

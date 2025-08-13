@@ -9,7 +9,7 @@ use crate::dfa::TokenId;
 use crate::grammar::{ProdFactor, ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::{build_prs, T};
 use crate::lexer::CaretCol;
-use crate::log::{BufLog, Logger};
+use crate::log::{BufLog, BuildFrom, LogStatus, Logger};
 use crate::parser::{ListenerWrapper, OpCode, Parser};
 use crate::parsergen::{ParserGen, ParserTables};
 
@@ -132,12 +132,12 @@ fn parser_parse_stream() {
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
-        let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id, false));
+        let mut ll1 = ProdRuleSet::<LL1>::build_from(build_prs(ll_id, false));
         ll1.set_start(start);
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
-        let parser_tables = ParserTables::from(ParserGen::from_rules(ll1, "Test".to_string()));
+        let parser_tables = ParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
         let mut parser = parser_tables.make_parser();
         for (input, expected_success) in sequences {
             if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }
@@ -264,7 +264,7 @@ fn parser_parse_stream_id() {
         let symbols = (0..ll1.get_num_t() as TokenId)
             .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
             .collect::<HashMap<_, _>>();
-        let parser_tables = ParserTables::from(ParserGen::from_rules(ll1, "Test".to_string()));
+        let parser_tables = ParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
         let mut parser = parser_tables.make_parser();
         for (input, expected_errors) in sequences {
             if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
@@ -305,7 +305,7 @@ mod listener {
     use crate::grammar::tests::build_prs;
     use crate::grammar::{FactorId, VarId};
     use crate::lexer::CaretCol;
-    use crate::log::BufLog;
+    use crate::log::{BufLog, LogStatus};
     use crate::parser::{Call, ListenerWrapper};
     use super::*;
 
@@ -521,12 +521,12 @@ mod listener {
         const VERBOSE: bool = false;
         for (test_id, (ll_id, start, sequences)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id}/{start}", ""); }
-            let mut ll1 = ProdRuleSet::<LL1>::from(build_prs(ll_id, false));
+            let mut ll1 = ProdRuleSet::<LL1>::build_from(build_prs(ll_id, false));
             ll1.set_start(start);
             let symbols = (0..ll1.get_num_t() as TokenId)
                 .map(|t| (Symbol::T(t).to_str(ll1.get_symbol_table()), t))
                 .collect::<HashMap<_, _>>();
-            let parser_tables = ParserTables::from(ParserGen::from_rules(ll1, "Test".to_string()));
+            let parser_tables = ParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
             let mut parser = parser_tables.make_parser();
             for (input, expected_success, expected_result) in sequences {
                 if VERBOSE { println!("{:-<60}\ninput '{input}'", ""); }

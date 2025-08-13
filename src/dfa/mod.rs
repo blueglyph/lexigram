@@ -7,8 +7,8 @@ use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::Add;
 use vectree::VecTree;
-use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized, indent_source};
-use crate::log::{BufLog, Logger};
+use crate::{btreeset, CollectJoin, escape_char, escape_string, General, Normalized, indent_source, HasBuildErrorSource, BuildErrorSource};
+use crate::log::{BufLog, LogReader, BuildFrom, LogStatus, Logger};
 use crate::segments::{Segments, Seg};
 use crate::take_until::TakeUntilIterator;
 
@@ -312,13 +312,14 @@ impl Display for ReNode {
 
 // ---------------------------------------------------------------------------------------------
 
+#[derive(Clone)]
 pub struct DfaBuilder {
     /// Regular Expression tree
     re: VecTree<ReNode>,
     /// `followpos` table, containing the `Id` -> `Id` graph of `re`
     followpos: HashMap<Id, HashSet<Id>>,
     /// `lazypos[id_child]` includes `id_lazy` when `id_child` is a child of a lazy operator `id_lazy`
-    lazypos: HashMap<Id, HashSet<usize>>,
+    lazypos: HashSet<Id>,
     /// `Id` -> node index
     ids: HashMap<Id, usize>,
     log: BufLog
@@ -329,7 +330,7 @@ impl DfaBuilder {
         DfaBuilder {
             re: VecTree::new(),
             followpos: HashMap::new(),
-            lazypos: HashMap::new(),
+            lazypos: HashSet::new(),
             ids: HashMap::new(),
             log: BufLog::new()
         }
@@ -340,22 +341,6 @@ impl DfaBuilder {
         &self.re
     }
 
-    #[inline(always)]
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
-    pub fn get_messages(&self) -> String {
-        let mut result = String::new();
-        if self.log.num_warnings() > 0 {
-            result.push_str(&format!("Warnings:\n- {}", self.log.get_warnings().join("\n- ")));
-        }
-        if self.log.num_errors() > 0 {
-            result.push_str(&format!("ERRORS:\n- {}", self.log.get_errors().join("\n- ")));
-        }
-        result
-    }
-
     /// Replaces ReType::String(s) with a concatenation of ReType::Char(s[i])
     fn preprocess_re(&mut self) {
         let mut nodes = vec![];
@@ -363,6 +348,10 @@ impl DfaBuilder {
             if matches!(inode.op, ReType::String(_)) {
                 // we have to do it again to move the string
                 if let ReType::String(s) = std::mem::take(&mut inode.op) {
+                    if s.is_empty() {
+                        // will be replaced by an empty Concat, but shouldn't exist
+                        self.log.add_error(format!("node #{} is an empty string", inode.index));
+                    }
                     nodes.push((inode.index, s));
                 }
             }
@@ -370,10 +359,8 @@ impl DfaBuilder {
         for (index, s) in nodes {
             let node = self.re.get_mut(index);
             match s.len() {
-                0 => panic!("empty string item at index {index}"),
-                1 => {
-                    node.op = ReType::Char(s.chars().nth(0).unwrap());
-                },
+                0 => node.op = ReType::Char('?'), // empty string replaced by '?'
+                1 => node.op = ReType::Char(s.chars().nth(0).unwrap()),
                 _ => {
                     node.op = ReType::Concat;
                     for c in s.chars() {
@@ -389,7 +376,9 @@ impl DfaBuilder {
         let mut id = 0;
         for mut inode in self.re.iter_depth_mut() {
             if inode.is_leaf() {
-                assert_eq!(inode.num_children(), 0);
+                if inode.num_children() > 0 {
+                    self.log.add_error(format!("node #{} {} had {} child(ren) but shouldn't have any", inode.index, inode.op, inode.num_children()));
+                }
                 id += 1;
                 inode.id = Some(id);
                 if !inode.is_empty() {
@@ -403,87 +392,97 @@ impl DfaBuilder {
             } else {
                 match inode.op {
                     ReType::Concat => {
-                        assert!(inode.num_children() > 0);
-                        // firstpos = union of all firstpos until the first non-nullable child (included)
-                        let mut firstpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_simple().take_until(|&n| !n.nullable.unwrap()) {
-                            firstpos.extend(&child.firstpos);
-                        }
-                        inode.firstpos.extend(firstpos);
-                        // lastpos = union of all lastpos until the first non-nullable child (included), starting from the end
-                        let mut lastpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_simple().rev().take_until(|&n| !n.nullable.unwrap()) {
-                            lastpos.extend(&child.lastpos);
-                        }
-                        inode.lastpos.extend(lastpos);
-                        // followpos:
-                        // for all pairs of consecutive children {c[i], c[i+1]},
-                        //     for all j in c[i].lastpos
-                        //         followpos[j].extend(c[i+1].firstpos)
-                        let mut iter = inode.iter_children_simple();
-                        let a = iter.next().unwrap();   // a is c[i]
-                        let mut lastpos = a.lastpos.clone();
-                        while let Some(b) = iter.next() {   // b is c[i+1]
-                            for j in &lastpos {
-                                if !self.followpos.contains_key(j) {
-                                    self.followpos.insert(*j, HashSet::new());
+                        if inode.num_children() > 0 {
+                            // firstpos = union of all firstpos until the first non-nullable child (included)
+                            let mut firstpos = HashSet::<Id>::new();
+                            for child in inode.iter_children_simple().take_until(|&n| !n.nullable.unwrap()) {
+                                firstpos.extend(&child.firstpos);
+                            }
+                            inode.firstpos.extend(firstpos);
+                            // lastpos = union of all lastpos until the first non-nullable child (included), starting from the end
+                            let mut lastpos = HashSet::<Id>::new();
+                            for child in inode.iter_children_simple().rev().take_until(|&n| !n.nullable.unwrap()) {
+                                lastpos.extend(&child.lastpos);
+                            }
+                            inode.lastpos.extend(lastpos);
+                            // followpos:
+                            // for all pairs of consecutive children {c[i], c[i+1]},
+                            //     for all j in c[i].lastpos
+                            //         followpos[j].extend(c[i+1].firstpos)
+                            let mut iter = inode.iter_children_simple();
+                            let a = iter.next().unwrap();   // a is c[i]
+                            let mut lastpos = a.lastpos.clone();
+                            while let Some(b) = iter.next() {   // b is c[i+1]
+                                for j in &lastpos {
+                                    if !self.followpos.contains_key(j) {
+                                        self.followpos.insert(*j, HashSet::new());
+                                    }
+                                    self.followpos.get_mut(j).unwrap().extend(&b.firstpos);
                                 }
-                                self.followpos.get_mut(j).unwrap().extend(&b.firstpos);
+                                // we must build the lastpos during the iteration
+                                // &(0,1,2,3) = &2(&1(&0(0,1),2),3) => &0.lpos=0.lpos, &1.lpos=lastpos("&",[&0,2])), ...
+                                if b.nullable.unwrap() {
+                                    lastpos.extend(&b.lastpos);
+                                } else {
+                                    lastpos = b.lastpos.clone();
+                                }
                             }
-                            // we must build the lastpos during the iteration
-                            // &(0,1,2,3) = &2(&1(&0(0,1),2),3) => &0.lpos=0.lpos, &1.lpos=lastpos("&",[&0,2])), ...
-                            if b.nullable.unwrap() {
-                                lastpos.extend(&b.lastpos);
-                            } else {
-                                lastpos = b.lastpos.clone();
-                            }
+                        } else {
+                            self.log.add_error(format!("node #{} is Concat but has no children", inode.index))
                         }
                     }
                     ReType::Star | ReType::Plus => {
-                        assert_eq!(inode.num_children(), 1);
-                        // firstpos, lastpos identical to child's
-                        let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).to_vec();
-                        inode.firstpos.extend(firstpos);
-                        let lastpos = inode.iter_children_simple().next().unwrap().lastpos.iter().map(|&n| n).to_vec();
-                        inode.lastpos.extend(lastpos);
-                        // followpos:
-                        // for all i in *.lastpos,
-                        //     followpos[i].extend(*.firstpos)
+                        if inode.num_children() == 1 {
+                            // firstpos, lastpos identical to child's
+                            let firstpos = inode.iter_children_simple().next().unwrap().firstpos.iter().map(|&n| n).to_vec();
+                            inode.firstpos.extend(firstpos);
+                            let lastpos = inode.iter_children_simple().next().unwrap().lastpos.iter().map(|&n| n).to_vec();
+                            inode.lastpos.extend(lastpos);
+                            // followpos:
+                            // for all i in *.lastpos,
+                            //     followpos[i].extend(*.firstpos)
 
-                        for i in &inode.lastpos {
-                            if !self.followpos.contains_key(i) {
-                                self.followpos.insert(*i, HashSet::new());
+                            for i in &inode.lastpos {
+                                if !self.followpos.contains_key(i) {
+                                    self.followpos.insert(*i, HashSet::new());
+                                }
+                                self.followpos.get_mut(i).unwrap().extend(&inode.firstpos);
                             }
-                            self.followpos.get_mut(i).unwrap().extend(&inode.firstpos);
+                        } else {
+                            self.log.add_error(format!("node #{} is {:?} but has {} child(ren) instead of 1 child",
+                                                       inode.index, inode.op, inode.num_children()))
                         }
                     }
                     ReType::Or => {
-                        assert!(inode.num_children() > 0);
-                        // firstpos, lastpost = union of children's
-                        let mut firstpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_simple() {
-                            firstpos.extend(&child.firstpos);
+                        if inode.num_children() > 0 {
+                            // firstpos, lastpost = union of children's
+                            let mut firstpos = HashSet::<Id>::new();
+                            for child in inode.iter_children_simple() {
+                                firstpos.extend(&child.firstpos);
+                            }
+                            inode.firstpos.extend(firstpos);
+                            let mut lastpos = HashSet::<Id>::new();
+                            for child in inode.iter_children_simple() {
+                                lastpos.extend(&child.lastpos);
+                            }
+                            inode.lastpos.extend(lastpos);
+                        } else {
+                            self.log.add_error(format!("node #{} is Or but has no children", inode.index));
                         }
-                        inode.firstpos.extend(firstpos);
-                        let mut lastpos = HashSet::<Id>::new();
-                        for child in inode.iter_children_simple() {
-                            lastpos.extend(&child.lastpos);
-                        }
-                        inode.lastpos.extend(lastpos);
                     }
                     ReType::Lazy => {
-                        assert_eq!(inode.num_children(), 1);
-                        let child = inode.iter_children_simple().next().unwrap();
-                        let firstpos = child.firstpos.clone();
-                        let lastpos = child.lastpos.clone();
-                        inode.firstpos = firstpos;
-                        inode.lastpos = lastpos;
-                        for ichild in inode.iter_depth_simple().filter(|node| node.is_leaf()) {
-                            let ichild_id = ichild.id.unwrap();
-                            if !self.lazypos.contains_key(&ichild_id) {
-                                self.lazypos.insert(ichild_id, HashSet::new());
+                        if inode.num_children() == 1 {
+                            let child = inode.iter_children_simple().next().unwrap();
+                            let firstpos = child.firstpos.clone();
+                            let lastpos = child.lastpos.clone();
+                            inode.firstpos = firstpos;
+                            inode.lastpos = lastpos;
+                            for ichild in inode.iter_depth_simple().filter(|node| node.is_leaf()) {
+                                self.lazypos.insert(ichild.id.unwrap());
                             }
-                            self.lazypos.get_mut(&ichild_id).unwrap().insert(inode.index); // FIXME: fake id
+                        } else {
+                            self.log.add_error(format!("node #{} is Lazy but has {} child(ren) instead of 1 child",
+                                                       inode.index, inode.num_children()));
                         }
                     }
                     _ => panic!("{:?}: no way to compute firstpos/...", &*inode)
@@ -507,6 +506,9 @@ impl DfaBuilder {
         const RM_LAZY_BRANCHES: bool = true;
         // initial state from firstpos(top node)
         let mut dfa = Dfa::new();
+        if !self.log.has_no_errors() {
+            return dfa;
+        }
         if VERBOSE { println!("new DFA"); }
         let mut current_id = 0;
         let key = BTreeSet::from_iter(self.re.get(0).firstpos.iter().map(|&id| id));
@@ -517,8 +519,8 @@ impl DfaBuilder {
         dfa.initial_state = Some(current_id);
 
         // gathers lazy ids and their immediate followpos to remove phantom branches:
-        let mut lazy_followpos = self.lazypos.iter().map(|(id, _)| *id).collect::<BTreeSet<Id>>();
-        lazy_followpos.extend(self.lazypos.iter().filter_map(|(id, _)| self.followpos.get(id)).flatten());
+        let mut lazy_followpos = self.lazypos.iter().map(|id| *id).collect::<BTreeSet<Id>>();
+        lazy_followpos.extend(self.lazypos.iter().filter_map(|id| self.followpos.get(id)).flatten());
         if VERBOSE { println!("lazy_followpos = {{{}}}", lazy_followpos.iter().join(", ")); }
 
         // gets a partition of the symbol segments and changes Char to CharRange
@@ -565,11 +567,10 @@ impl DfaBuilder {
                             }
                         }
                         if RESOLVE_END_STATES {
-                            if terminals.contains_key(&id) {
-                                panic!("overriding {id} -> {t} in end_states {}",
+                            if let Some(t2) = terminals.insert(id, t) {
+                                panic!("overriding {id} -> {t2} with {id} -> {t} in end_states {}",
                                        terminals.iter().map(|(id, t)| format!("{id} {t}")).join(", "));
                             }
-                            terminals.insert(id, t);
                         } else {
                             if !dfa.end_states.contains_key(&new_state_id) {
                                 dfa.end_states.insert(new_state_id, *t.clone());
@@ -583,23 +584,20 @@ impl DfaBuilder {
                     }
                 } else {
                     if let ReType::CharRange(segments) = symbol {
-                        if !self.followpos.contains_key(&id) {
-                            println!("{id} is not in followpos; are you missing an accepting state?");
-                            println!("dbg: {segments}");
-                            println!("dbg: {id}");
-                            println!("dbg: tree = {}", tree_to_string(&self.re, None, true));
-                            println!("dbg: followpos = {}", followpos_to_string(&self));
-                        }
-                        id_transitions.extend(&self.followpos[&id]);
-                        let cmp = segments.intersect(&symbols_part);
-                        assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
-                        if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
-                        for segment in cmp.common.into_iter() {
-                            if let Some(ids) = trans.get_mut(&segment) {
-                                ids.insert(id);
-                            } else {
-                                trans.insert(segment, btreeset![id]);
+                        if let Some(set) = self.followpos.get(&id) {
+                            id_transitions.extend(set);
+                            let cmp = segments.intersect(&symbols_part);
+                            assert!(cmp.internal.is_empty(), "{symbols_part} # {segments} = {cmp}");
+                            if VERBOSE { println!("  + {} to {}", &cmp.common, id); }
+                            for segment in cmp.common.into_iter() {
+                                if let Some(ids) = trans.get_mut(&segment) {
+                                    ids.insert(id);
+                                } else {
+                                    trans.insert(segment, btreeset![id]);
+                                }
                             }
+                        } else {
+                            self.log.add_error(format!("node #{id} is not in followpos; is an accepting state missing? Orphan segment: {segments}"));
                         }
                     }
                 }
@@ -620,7 +618,7 @@ impl DfaBuilder {
                         0 => {
                             if VERBOSE { println!("    all ids have transitions => AMBIGUOUS, selecting the first defined terminal"); }
                             self.log.add_warning(format!("conflicting terminals for state {new_state_id}, none having other transitions: {}",
-                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
+                                                         terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
                             first_terminal_id.unwrap()
                         }
                         1 => {
@@ -629,7 +627,7 @@ impl DfaBuilder {
                         }
                         n => {
                             self.log.add_warning(format!("conflicting terminals for state {new_state_id}, {n} having no other transition: {}",
-                                                       terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
+                                                         terminals.iter().map(|(id, t)| format!("ID {id} -> terminal {t}")).join(", ")));
                             if potentials.contains(&first_terminal_id.unwrap()) {
                                 if VERBOSE { println!("    {n} ids have no transitions => AMBIGUOUS, selecting the first defined terminal"); }
                                 first_terminal_id.unwrap()
@@ -693,20 +691,21 @@ impl DfaBuilder {
             // finally, updates the graph with the reverse (symbol -> state) data
             dfa.state_graph.insert(new_state_id, map.into_iter().map(|(id, segments)| (segments, id)).collect());
         }
+        dfa
+    }
+
+    fn build(mut self) -> Dfa<General> {
+        self.calc_node_pos();
+        let mut dfa = self.calc_states();
         // transfers all the log messages to the Dfa
         dfa.log.extend(std::mem::replace(&mut self.log, BufLog::new()));
         dfa
     }
 
-    pub fn build(&mut self) -> Dfa<General> {
-        self.log.clear();
-        self.calc_node_pos();
-        self.calc_states()
-    }
-
     #[cfg(test)]
-    pub(crate) fn build_from_graph<T>(&mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T) -> Option<Dfa<General>>
-        where T: IntoIterator<Item=(StateId, Terminal)>
+    pub(crate) fn build_from_graph<T: IntoIterator<Item=(StateId, Terminal)>>(
+        &mut self, graph: BTreeMap<StateId, BTreeMap<Segments, StateId>>, init_state: StateId, end_states: T,
+    ) -> Option<Dfa<General>>
     {
         let mut dfa = Dfa::<General> {
             state_graph: graph,
@@ -723,18 +722,29 @@ impl DfaBuilder {
 
     /// Merges several DFA graphs into one. The graphs represent different modes that are called with the
     /// `Action::pushMode(id)` action.
-    pub fn build_from_dfa_modes<T, U>(&mut self, dfas: T) -> Option<Dfa<General>>
-        where T: IntoIterator<Item = (ModeId, Dfa<U>)>
+    fn build_from_dfa_modes<T, U>(self, dfas: T) -> Dfa<General>
+    where
+        T: IntoIterator<Item=(ModeId, Dfa<U>)>,
     {
-        let mut iter = dfas.into_iter();
-        let (idx, mut dfa) = iter.next().expect("no DFA");
+        assert!(self.re.is_empty(), "build_from_dfa_modes() used on non-empty builder");
+        let mut dfa = Dfa::<General>::with_log(self.log);
+        dfa.log.add_note("combining DFA modes...");
         let mut init_states = BTreeMap::new();
-        init_states.insert(idx, dfa.initial_state.expect(&format!("no initial state in DFA {idx}")));
-        while let Some((idx, new_dfa)) = iter.next() {
+        for (idx, new_dfa) in dfas {
+            dfa.log.add_note(format!("- DFA mode #{idx}"));
             dfa.log.extend(new_dfa.log);
-            let offset = 1 + dfa.state_graph.keys().max().expect(&format!("empty DFA {idx}"));
-            assert!(!init_states.contains_key(&idx), "DFA {idx} defined multiple times");
-            init_states.insert(idx, offset + new_dfa.initial_state.expect(&format!("no initial state in DFA {idx}")));
+            if new_dfa.state_graph.is_empty() {
+                dfa.log.add_error(format!("DFA mode #{idx} is empty"));
+            }
+            let offset = if init_states.is_empty() { 0 } else { 1 + dfa.state_graph.keys().max().unwrap() };
+            dfa.initial_state = dfa.initial_state.or(new_dfa.initial_state);
+            if let Some(initial_state) = new_dfa.initial_state {
+                if init_states.insert(idx, offset + initial_state).is_some() {
+                    dfa.log.add_error(format!("DFA mode #{idx} defined multiple times"))
+                };
+            } else {
+                dfa.log.add_error(format!("DFA mode #{idx} has no initial state"));
+            }
             for (st_from, mut map) in new_dfa.state_graph {
                 for (_, st_to) in map.iter_mut() {
                     *st_to += offset;
@@ -751,7 +761,7 @@ impl DfaBuilder {
                     ModeOption::Mode(m) | ModeOption::Push(m) => {
                         let state_opt = init_states.get(&m);
                         if state_opt.is_none() {
-                            self.log.add_error(format!("unknown mode {m} in merged graph"));
+                            dfa.log.add_error(format!("unknown mode {m} in combined DFA"));
                         }
                         state_opt.cloned()
                     }
@@ -759,28 +769,44 @@ impl DfaBuilder {
             }
             dfa.first_end_state = None;
         }
-        if self.log.num_errors() == 0 {
-            Some(Dfa::<General> {
+        if dfa.log.has_no_errors() {
+            Dfa::<General> {
                 state_graph: dfa.state_graph,
                 initial_state: dfa.initial_state,
                 end_states: dfa.end_states,
                 first_end_state: dfa.first_end_state,
                 log: dfa.log,
                 _phantom: PhantomData,
-            })
+            }
         } else {
-            None
+            Dfa::with_log(dfa.log)
         }
     }
 }
 
-impl From<VecTree<ReNode>> for DfaBuilder {
+impl LogReader for DfaBuilder {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        &self.log
+    }
+
+    fn give_log(self) -> Self::Item {
+        self.log
+    }
+}
+
+impl HasBuildErrorSource for DfaBuilder {
+    const SOURCE: BuildErrorSource = BuildErrorSource::DfaBuilder;
+}
+
+impl BuildFrom<VecTree<ReNode>> for DfaBuilder {
     /// Creates a [`DfaBuilder`] from a tree of regular expression [`VecTree`]<[`ReNode`]>.
-    fn from(regex_tree: VecTree<ReNode>) -> Self {
+    fn build_from(regex_tree: VecTree<ReNode>) -> Self {
         let mut builder = DfaBuilder {
             re: regex_tree,
             followpos: HashMap::new(),
-            lazypos: HashMap::new(),
+            lazypos: HashSet::new(),
             ids: HashMap::new(),
             log: BufLog::new()
         };
@@ -800,20 +826,18 @@ pub struct Dfa<T> {
     _phantom: PhantomData<T>
 }
 
-impl Dfa<General> {
-    pub fn new() -> Dfa<General> {
-        Dfa::<General> {
+impl<T> Dfa<T> {
+    pub fn with_log(log: BufLog) -> Self {
+        Dfa {
             state_graph: BTreeMap::new(),
             initial_state: None,
             end_states: BTreeMap::new(),
             first_end_state: None,
-            log: BufLog::new(),
+            log,
             _phantom: PhantomData
         }
     }
-}
 
-impl<T> Dfa<T> {
     pub fn get_state_graph(&self) -> &BTreeMap<StateId, BTreeMap<Segments, StateId>> {
         &self.state_graph
     }
@@ -858,6 +882,10 @@ impl<T> Dfa<T> {
     /// Normalizes the DFA: incremental state number0, starting at 0, with all the accepting states
     /// at the end.
     pub fn normalize(mut self) -> Dfa<Normalized> {
+        if !self.log.has_no_errors() {
+            // if there are errors, we bypass any processing and return a shell containing the log
+            return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
+        }
         let mut translate = BTreeMap::<StateId, StateId>::new();
         let mut state_graph = BTreeMap::<StateId, BTreeMap<Segments, StateId>>::new();
         let mut end_states = BTreeMap::<StateId, Terminal>::new();
@@ -903,6 +931,10 @@ impl<T> Dfa<T> {
     /// state ids to new state ids.
     pub fn optimize(mut self) -> Dfa<Normalized> {
         const VERBOSE: bool = false;
+        if !self.log.has_no_errors() {
+            // if there are errors, we bypass any processing and return a shell containing the log
+            return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
+        }
         // set `separate_end_states` = `true` if different end (accepting) states should be kept apart;
         // for example, when it's important to differentiate tokens.
         let separate_end_states = true;
@@ -1053,8 +1085,30 @@ impl<T> Dfa<T> {
     }
 }
 
+impl<T> LogReader for Dfa<T> {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        &self.log
+    }
+
+    fn give_log(self) -> Self::Item {
+        self.log
+    }
+}
+
+impl<T> HasBuildErrorSource for Dfa<T> {
+    const SOURCE: BuildErrorSource = BuildErrorSource::Dfa;
+}
+
+impl Dfa<General> {
+    pub fn new() -> Dfa<General> {
+        Dfa::with_log(BufLog::new())
+    }
+}
+
 impl Dfa<Normalized> {
-    pub fn build_tables_source_code(&self, indent: usize) -> String {
+    pub fn gen_tables_source_code(&self, indent: usize) -> String {
         let mut source = Vec::<String>::new();
         source.push("let dfa_tables = DfaTables::new(".to_string());
         source.push("    btreemap![".to_string());
@@ -1070,6 +1124,45 @@ impl Dfa<Normalized> {
         indent_source(vec![source], indent)
     }
 }
+
+// ---------------------------------------------------------------------------------------------
+
+impl<T> BuildFrom<T> for Dfa<General>
+where
+    T: IntoIterator<Item=(ModeId, Dfa<General>)>,
+{
+    /// Builds a [`Dfa::<General>`] from multiple DFAs, each related to one mode.
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
+    fn build_from(dfas: T) -> Self {
+        let dfa_builder = DfaBuilder::new();
+        dfa_builder.build_from_dfa_modes(dfas)
+    }
+}
+
+impl BuildFrom<DfaBuilder> for Dfa<General> {
+    /// Builds a [`Dfa::<General>`] from a [`DfaBuilder`].
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
+    fn build_from(dfa_builder: DfaBuilder) -> Self {
+        dfa_builder.build()
+    }
+}
+
+// Dfa::optimize and Dfa::normalize both generate a Dfa::<Normalized>. Depending on the need,
+// it's best to use those methods.
+//
+// impl From<Dfa<General>> for Dfa<Normalized> {
+//     /// Builds a [`Dfa::<Normalized>`] from a [`Dfa::<General>`].
+//     ///
+//     /// If an error is encountered or was already encountered before, an empty shell object
+//     /// is built with the log detailing the error(s).
+//     fn from(dfa: Dfa<General>) -> Self {
+//         dfa.normalize() // or optimize()?
+//     }
+// }
 
 // ---------------------------------------------------------------------------------------------
 
@@ -1089,24 +1182,18 @@ impl DfaTables {
     ) -> Self {
         DfaTables { state_graph, initial_state, end_states, first_end_state }
     }
+}
 
-    pub fn make_dfa(self) -> Dfa<Normalized> {
+impl BuildFrom<DfaTables> for Dfa<Normalized> {
+    fn build_from(source: DfaTables) -> Self {
         Dfa {
-            state_graph: self.state_graph,
-            initial_state: self.initial_state,
-            end_states: self.end_states,
-            first_end_state: self.first_end_state,
+            state_graph: source.state_graph,
+            initial_state: source.initial_state,
+            end_states: source.end_states,
+            first_end_state: source.first_end_state,
             log: BufLog::new(),
             _phantom: PhantomData
         }
-    }
-}
-
-// ---------------------------------------------------------------------------------------------
-
-impl From<Dfa<General>> for Dfa<Normalized> {
-    fn from(dfa: Dfa<General>) -> Self {
-        dfa.normalize()
     }
 }
 
@@ -1117,6 +1204,7 @@ fn states_to_string<T: Display>(s: &BTreeSet<T>) -> String {
     s.iter().map(|id| id.to_string()).join(", ")
 }
 
+#[allow(dead_code)]
 pub(crate) fn followpos_to_string(dfa_builder: &DfaBuilder) -> String {
     let mut fpos = dfa_builder.followpos.iter()
         .map(|(id, ids)| format!("{id:3} -> {}", ids.iter().map(|x| x.to_string()).join(", ")))

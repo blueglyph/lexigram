@@ -4,6 +4,11 @@
 
 - [ ] clean-up of the unit & integration tests
 - [x] ~~more coherency in functions/methods that create source code (names, location)~~
+  - Name conventions:
+    - build:  creates object by consuming self (or non-method that creates object)
+    - make:   sets fields or creates object without consuming self
+    - gen:    creates string source code
+    - write:  writes source code into file
 - [ ] split huge files (
   - [ ] dfa
   - [ ] grammar 

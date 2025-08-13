@@ -1,6 +1,8 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use std::collections::BTreeSet;
+use std::error::Error;
+use std::fmt::{Display, Formatter};
 use std::ops::Deref;
 use vectree::VecTree;
 
@@ -26,6 +28,7 @@ mod fixed_sym_table;
 
 pub use symbol_table::SymbolTable;
 pub use fixed_sym_table::{FixedSymTable, SymInfoTable};
+use crate::log::{BufLog, LogStatus};
 
 // package name & version
 pub const LIB_PKG_NAME: &str = env!("CARGO_PKG_NAME");
@@ -76,7 +79,49 @@ pub struct LL1;
 ///   - a symbol
 ///   - a `&` with only symbols as children
 ///   - a `|` with only `&(symbols)` or symbols as children
+#[derive(Clone, Debug)]
 pub struct Normalized;
+
+#[derive(Clone, Debug)]
+pub enum BuildErrorSource {
+    RuleTreeSet,
+    Dfa,
+    DfaBuilder,
+    LexerGen,
+    Lexi,
+    ProdRuleSet,
+    ParserGen,
+    Gram,
+}
+
+#[derive(Clone, Debug)]
+pub struct BuildError {
+    log: BufLog,
+    source: BuildErrorSource,
+}
+
+impl BuildError {
+    pub fn new(log: BufLog, source: BuildErrorSource) -> Self {
+        BuildError { log, source }
+    }
+}
+
+impl Display for BuildError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "Errors have occurred in {:?}:\n{}", self.source, self.log.get_messages_str())
+    }
+}
+
+impl Error for BuildError {
+}
+
+pub trait HasBuildErrorSource {
+    const SOURCE: BuildErrorSource;
+
+    fn get_build_error_source() -> BuildErrorSource {
+        Self::SOURCE
+    }
+}
 
 // ---------------------------------------------------------------------------------------------
 // General helper functions
@@ -248,7 +293,7 @@ impl StructLibs {
         tree
     }
 
-    pub fn build_source_code(&self) -> Vec<String> {
+    pub fn gen_source_code(&self) -> Vec<String> {
         let mut stack = Vec::<Vec<String>>::new();
         let tree = self.to_tree();
         for node in tree.iter_depth_simple() {
@@ -278,6 +323,7 @@ impl StructLibs {
 #[cfg(test)]
 mod libtests {
     use super::*;
+    use crate::log::{Logger, BufLog};
 
     #[test]
     fn test_column_to_str() {
@@ -360,16 +406,26 @@ mod libtests {
             println!("{}", tree.iter_depth_simple().map(|n| format!("({}){}", n.depth, n.deref())).join(", "));
             println!("{}", StructLibs::tree_to_string(&tree, tree.get_root().unwrap()));
         }
-        let src = l.build_source_code();
+        let src = l.gen_source_code();
         if VERBOSE {
             println!("{}", src.join("\n"));
         }
         assert_eq!(src, ["use a::{self, a1::{self, a2::{self, a3}, b2}, b1, c1::a2};", "use b;"]);
 
-        let src_empty = StructLibs::new().build_source_code();
+        let src_empty = StructLibs::new().gen_source_code();
         assert_eq!(src_empty, Vec::<String>::new());
     }
 
+    #[test]
+    fn test_build_error() {
+        fn build() -> Result<(), BuildError> {
+            let mut log = BufLog::new();
+            log.add_error("the test generated a fake error successfully");
+            Err(BuildError { source: BuildErrorSource::ParserGen, log })
+        }
+        let err = build().err().expect("build() should return an error");
+        assert_eq!(err.to_string(), "Errors have occurred in ParserGen:\n- ERROR: the test generated a fake error successfully\n");
+    }
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -3,54 +3,43 @@
 use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Lexi};
-use lexigram_lib::CollectJoin;
+use lexigram::lexi::SymbolicDfa;
+use lexigram::lexigram_lib::log::{BuildInto, LogReader, LogStatus};
 use lexigram_lib::io::CharReader;
-use lexigram_lib::parser::ParserError;
 use lexigram_lib::test_tools::replace_tagged_source;
 use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_STAGE2_FILENAME, LEXILEXER_LEXICON, LEXILEXER_STAGE2_TAG, LEXI_SYM_T_TAG, VERSIONS_TAG};
 
 /// Generates Lexi's lexer source code from the lexicon file.
-fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, String), ParserError> {
+fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, String), impl LogStatus> {
     let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
     let reader = BufReader::new(file);
     let stream = CharReader::new(reader);
-    let mut lexi = Lexi::new();
-    let result = lexi.build(stream);
-    let mut listener = lexi.wrapper.listener();
+    let lexi = Lexi::new(stream);
+    let SymbolicDfa { dfa, symbol_table } = lexi.build_into();
     if verbose {
-        let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
+        let msg = dfa.get_log().get_messages_str();
         if !msg.is_empty() {
             println!("Parser messages:\n{msg}");
         }
-        let msg = listener.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
-        if !msg.is_empty() {
-            println!("Listener messages:\n{msg}");
-        }
     }
-    if let Err(error) = result {
-        return Err(error);
+    if !dfa.get_log().has_no_errors() {
+        return Err(dfa.give_log());
     }
-    let symbol_table = listener.make_symbol_table();
-    if verbose {
-        println!("Rules lexicon {}:\n{}", listener.get_name(), listener.rules_to_string(0));
-    }
-    // - builds the dfa from the reg tree
-    let dfa = listener.make_dfa().optimize();
     if verbose {
         println!("Dfa:");
         dfa.print(4);
     }
 
     // - exports data to stage 2
-    let sym_src = symbol_table.build_source_code_t(0, false, true);
-    let dfa_src = dfa.build_tables_source_code(4);
+    let sym_src = symbol_table.gen_source_code_t(0, false, true);
+    let dfa_src = dfa.gen_tables_source_code(4);
 
     Ok((sym_src, dfa_src))
 }
 
 pub fn write_lexilexer() {
     let (result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, true)
-        .inspect_err(|e| eprintln!("Failed to parse lexicon: {e:?}"))
+        .inspect_err(|log| eprintln!("Failed to parse lexicon: {}", log.get_messages_str()))
         .unwrap();
     replace_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG, &result_sym)
         .expect("parser symbol replacement failed");

@@ -11,9 +11,9 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource};
 use crate::grammar::NTConversion::{MovedTo, Removed};
-use crate::log::{BufLog, Logger};
+use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use crate::SymbolTable;
 
 pub type VarId = u16;
@@ -302,10 +302,10 @@ pub mod ruleflag {
     /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
     pub const CHILD_L_FACTOR: u32 = 64;
     /// Low-latency non-terminal factor, used with `CHILD_REPEAT` or `R_RECURSION`.
-    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in `flags`.
+    /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in `flags`.
     pub const L_FORM: u32 = 128;
     /// Right-associative factor.
-    /// Set by `ProdRuleSet<General>::from(rules: From<RuleTreeSet<Normalized>>` in factors.
+    /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in factors.
     pub const R_ASSOC: u32 = 256;
     /// Left-recursive parent NT.
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
@@ -384,13 +384,17 @@ pub struct RuleTreeSet<T> {
     _phantom: PhantomData<T>
 }
 
+impl<T> HasBuildErrorSource for RuleTreeSet<T> {
+    const SOURCE: BuildErrorSource = BuildErrorSource::RuleTreeSet;
+}
+
 // Methods for both General and Normalized forms. There can only be immutable methods
 // in the normalized form.
 impl<T> RuleTreeSet<T> {
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
+    pub fn get_num_nt(&self) -> VarId {
+        self.trees.len() as VarId
     }
-
+    
     pub fn get_tree(&self, var: VarId) -> Option<&GrTree> {
         self.trees.get(var as usize)
     }
@@ -430,6 +434,18 @@ impl<T> RuleTreeSet<T> {
     /// Sets the starting production rule.
     pub fn set_start(&mut self, start: VarId) {
         self.start = Some(start);
+    }
+}
+
+impl<T> LogReader for RuleTreeSet<T> {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        &self.log
+    }
+
+    fn give_log(self) -> Self::Item {
+        self.log
     }
 }
 
@@ -481,6 +497,7 @@ impl RuleTreeSet<General> {
 
     /// Normalizes all the production rules.
     pub fn normalize(&mut self) {
+        self.check_num_nt_coherency();
         let vars = self.get_vars().to_vec();
         for var in vars {
             self.normalize_var(var);
@@ -489,13 +506,22 @@ impl RuleTreeSet<General> {
         self.parent.resize(self.trees.len(), None);
     }
 
+    fn check_num_nt_coherency(&mut self) {
+        if let Some(n) = self.symbol_table.as_ref().and_then(|table| Some(table.get_num_nt())) {
+            if n != self.trees.len() {
+                self.log.add_error(format!("there are {} rules but the symbol table has {n} NT symbols: dropping the table", self.trees.len()));
+                self.symbol_table = None;
+            }
+        }
+    }
+
     /// Transforms the production rule tree into a list of rules in normalized format:
     /// `var -> &(leaf_1, leaf_2, ...leaf_n)`
     ///
     /// The product may have to be split if operators like `+` or `*` are used. In this
     /// case, new non-terminals are created, with increasing IDs starting from
     /// `new_var`.
-    pub fn normalize_var(&mut self, var: VarId) {
+    fn normalize_var(&mut self, var: VarId) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
         if VERBOSE { println!("normalize_var({})", Symbol::NT(var).to_str(self.get_symbol_table())); }
@@ -883,9 +909,12 @@ impl RuleTreeSet<General> {
     }
 }
 
-impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
+impl BuildFrom<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     /// Transforms a `General` ruleset to a `Normalized` ruleset
-    fn from(mut rules: RuleTreeSet<General>) -> Self {
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
+    fn build_from(mut rules: RuleTreeSet<General>) -> Self {
         // We handle the errors by transmitting the log to the next construct rather than returning a `Result` type.
         // This allows to cascade the transforms without getting a complicated error resolving system while preserving
         // the information about the errors easily.
@@ -905,9 +934,9 @@ impl From<RuleTreeSet<General>> for RuleTreeSet<Normalized> {
     }
 }
 
-// impl From<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
+// impl BuildFrom<RuleTreeSet<Normalized>> for RuleTreeSet<General> {
 //     /// Transforms a `Normalized` ruleset to a `General` ruleset
-//     fn from(mut rules: RuleTreeSet<Normalized>) -> Self {
+//     fn build_from(mut rules: RuleTreeSet<Normalized>) -> Self {
 //         RuleTreeSet::<General> { trees: rules.trees, next_var: rules.next_var, _phantom: PhantomData }
 //     }
 // }
@@ -1129,40 +1158,6 @@ pub struct ProdRuleSet<T> {
 }
 
 impl<T> ProdRuleSet<T> {
-    pub fn new() -> Self {
-        Self {
-            prods: Vec::new(),
-            original_factors: Vec::new(),
-            num_nt: 0,
-            num_t: 0,
-            symbol_table: None,
-            flags: Vec::new(),
-            parent: Vec::new(),
-            start: None,
-            name: None,
-            nt_conversion: HashMap::new(),
-            log: BufLog::new(),
-            _phantom: PhantomData
-        }
-    }
-
-    pub fn with_capacity(capacity: usize) -> Self {
-        Self {
-            prods: Vec::with_capacity(capacity),
-            original_factors: Vec::new(),
-            num_nt: 0,
-            num_t: 0,
-            symbol_table: None,
-            flags: Vec::with_capacity(capacity),
-            parent: Vec::with_capacity(capacity),
-            start: None,
-            name: None,
-            nt_conversion: HashMap::new(),
-            log: BufLog::new(),
-            _phantom: PhantomData
-        }
-    }
-
     /// Returns the starting production rule.
     pub fn get_start(&self) -> Option<VarId> {
         self.start
@@ -1214,10 +1209,6 @@ impl<T> ProdRuleSet<T> {
 
     pub fn get_num_t(&self) -> usize {
         self.num_t
-    }
-
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
     }
 
     pub fn give_symbol_table(&mut self) -> Option<SymbolTable> {
@@ -1321,6 +1312,16 @@ impl<T> ProdRuleSet<T> {
                 } else {
                     i += 1;
                 }
+            }
+        }
+    }
+
+    fn check_num_nt_coherency(&mut self) {
+        if let Some(n) = self.symbol_table.as_ref().and_then(|table| Some(table.get_num_nt())) {
+            let num_nt = self.prods.len();
+            if n != num_nt {
+                self.log.add_error(format!("there are {num_nt} rules but the symbol table has {n} NT symbols: dropping the table"));
+                self.symbol_table = None;
             }
         }
     }
@@ -1569,7 +1570,7 @@ impl<T> ProdRuleSet<T> {
     /// A[p]  -> A[indep] Ab[p]
     /// Ab[p] -> βj Ab[p] | γk A[var] Ab[p] | ε
     /// ```
-    pub fn remove_recursion(&mut self) {
+    fn remove_recursion(&mut self) {
         /// Maximum number of P/I factors that are distributed before creating a new nonterminal to hold them.
         /// They are never distributed in presence of a binary (L/R) because it would likely induce left factorization.
         const MAX_DISTRIB_LEN: Option<usize> = None; // always distributing makes for smaller tables
@@ -1577,10 +1578,10 @@ impl<T> ProdRuleSet<T> {
 
         const VERBOSE: bool = false;
 
-        self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.num_nt, "number of nt in symbol table doesn't match num_nt"));
+        self.check_num_nt_coherency();
         if VERBOSE {
             println!("ORIGINAL:");
-            self.print_rules(false);
+            self.print_rules(false, false);
         }
         let mut var_new = self.get_next_available_var() as usize;
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
@@ -1626,7 +1627,6 @@ impl<T> ProdRuleSet<T> {
                 let mut indep_factors = Vec::<FactorId>::new();
                 let mut pr_info = Vec::<FactorInfo>::new();  // information on each factor: type, priority, ...
                 let mut has_ambig = false;
-                //let same_as_prev = vec![false, true, false, true, false]; // test: factors with same priority as previous (L only)
 
                 for (i, f) in factors.iter().index::<FactorId>() {
                     let ty = FactorType::from(&symbol, f);
@@ -1831,7 +1831,7 @@ impl<T> ProdRuleSet<T> {
         self.num_nt = self.prods.len();
         if VERBOSE {
             println!("FINAL:");
-            self.print_rules(false);
+            self.print_rules(false, false);
             println!("FLAGS:\n{}", self.flags.iter().index::<VarId>()
                 .map(|(v, f)| format!("- ({v:2}) {}: {}", Symbol::NT(v).to_str(self.get_symbol_table()), ruleflag::to_string(*f).join(", "))).join("\n"));
             if let Some(table) = &self.symbol_table {
@@ -1964,6 +1964,41 @@ impl<T> ProdRuleSet<T> {
     }
 }
 
+impl<T> LogReader for ProdRuleSet<T> {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        &self.log
+    }
+
+    fn give_log(self) -> Self::Item {
+        self.log
+    }
+}
+
+impl<T> HasBuildErrorSource for ProdRuleSet<T> {
+    const SOURCE: BuildErrorSource = BuildErrorSource::ProdRuleSet;
+}
+
+impl ProdRuleSet<General> {
+    fn with_capacity(capacity: usize) -> Self {
+        Self {
+            prods: Vec::with_capacity(capacity),
+            original_factors: Vec::new(),
+            num_nt: 0,
+            num_t: 0,
+            symbol_table: None,
+            flags: Vec::with_capacity(capacity),
+            parent: Vec::with_capacity(capacity),
+            start: None,
+            name: None,
+            nt_conversion: HashMap::new(),
+            log: BufLog::new(),
+            _phantom: PhantomData
+        }
+    }
+}
+
 impl ProdRuleSet<LL1> {
     /// Creates the table for predictive top-down parsing.
     ///
@@ -2089,7 +2124,7 @@ impl ProdRuleSet<LL1> {
         self.calc_table(&first, &follow, error_recovery)
     }
 
-    pub fn build_tables_source_code(&self, indent: usize) -> String {
+    pub fn gen_tables_source_code(&self, indent: usize) -> String {
         let st = self.symbol_table.as_ref().unwrap();
         let mut source = Vec::<String>::new();
         source.push("let ll1_tables = ProdRuleSetTables::new(".to_string());
@@ -2147,22 +2182,24 @@ impl ProdRuleSetTables {
     pub fn get_name(&self) -> Option<&String> {
         self.name.as_ref()
     }
+}
 
-    pub fn make_prod_rule_set(self) -> ProdRuleSet<LL1> {
+impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
+    fn build_from(source: ProdRuleSetTables) -> Self {
         let mut symbol_table = SymbolTable::new();
-        symbol_table.extend_terminals(self.t);
-        symbol_table.extend_nonterminals(self.nt);
+        symbol_table.extend_terminals(source.t);
+        symbol_table.extend_nonterminals(source.nt);
         ProdRuleSet {
-            prods: self.prods,
-            original_factors: self.original_factors,
+            prods: source.prods,
+            original_factors: source.original_factors,
             num_nt: symbol_table.get_num_nt(),
             num_t: symbol_table.get_num_t(),
             symbol_table: Some(symbol_table),
-            flags: self.flags,
-            parent: self.parent,
-            start: self.start,
-            name: self.name,
-            nt_conversion: self.nt_conversion,
+            flags: source.flags,
+            parent: source.parent,
+            start: source.start,
+            name: source.name,
+            nt_conversion: source.nt_conversion,
             log: BufLog::new(),
             _phantom: PhantomData,
         }
@@ -2171,8 +2208,12 @@ impl ProdRuleSetTables {
 
 // ---------------------------------------------------------------------------------------------
 
-impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
-    fn from(rules: RuleTreeSet<Normalized>) -> Self {
+impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
+    /// Builds a [`ProdRuleSet<General>`] from a [`RuleTreeSet<Normalized>`].
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
+    fn build_from(rules: RuleTreeSet<Normalized>) -> Self {
         fn children_to_vec(tree: &GrTree, parent_id: usize) -> ProdFactor {
             let mut flags: u32 = 0;
             let factor = tree.children(parent_id).iter()
@@ -2267,9 +2308,13 @@ impl From<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     }
 }
 
-impl From<RuleTreeSet<General>> for ProdRuleSet<General> {
-    fn from(rules: RuleTreeSet<General>) -> Self {
-        let mut prods = ProdRuleSet::from(RuleTreeSet::<Normalized>::from(rules));
+impl BuildFrom<RuleTreeSet<General>> for ProdRuleSet<General> {
+    /// Builds a [`ProdRuleSet<General>`] from a [`RuleTreeSet<General>`].
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
+    fn build_from(rules: RuleTreeSet<General>) -> Self {
+        let mut prods = ProdRuleSet::build_from(RuleTreeSet::<Normalized>::build_from(rules));
         if prods.log.has_no_errors() {
             prods.simplify();
         }
@@ -2277,8 +2322,8 @@ impl From<RuleTreeSet<General>> for ProdRuleSet<General> {
     }
 }
 
-impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
-    fn from(mut rules: ProdRuleSet<General>) -> Self {
+impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
+    fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
             rules.remove_recursion();
             rules.left_factorize();
@@ -2302,8 +2347,8 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LL1> {
     }
 }
 
-impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
-    fn from(mut rules: ProdRuleSet<General>) -> Self {
+impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
+    fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
             rules.remove_ambiguity();
             rules.transfer_factor_flags();
@@ -2330,13 +2375,16 @@ impl From<ProdRuleSet<General>> for ProdRuleSet<LR> {
 // Supporting debug functions
 
 impl<T> ProdRuleSet<T> {
-    pub fn print_rules(&self, as_comment: bool) {
+    pub fn print_rules(&self, as_comment: bool, filter_empty_nt: bool) {
         let prefix = if as_comment { "            // " } else { "    " };
-        println!("{prefix}{}", self.get_prods_iter().map(|(var, p)|
-            format!("({var}) {} -> {}",
-                    Symbol::NT(var).to_str(self.get_symbol_table()),
-                    prod_to_str(p, self.get_symbol_table()))
-        ).join(&format!("\n{prefix}")));
+        println!("{prefix}{}",
+                 self.get_prods_iter()
+                     .filter(|(_, rule)| !filter_empty_nt || **rule != prod!(e))
+                     .map(|(var, p)|
+                         format!("({var}) {} -> {}",
+                                 Symbol::NT(var).to_str(self.get_symbol_table()),
+                                 prod_to_str(p, self.get_symbol_table())))
+                     .join(&format!("\n{prefix}")));
     }
 
     pub fn print_factors(&self) {

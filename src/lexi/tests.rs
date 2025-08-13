@@ -5,7 +5,7 @@
 use std::collections::BTreeSet;
 use std::io::Cursor;
 use std::mem::size_of_val;
-use crate::dfa::{Dfa, DfaBuilder, TokenId, tree_to_string, Terminal};
+use crate::dfa::{Dfa, DfaBuilder, TokenId, Terminal};
 use crate::{escape_string, gnode, CollectJoin, General, SymbolTable, LL1};
 use crate::SymInfoTable;
 use crate::io::CharReader;
@@ -13,7 +13,7 @@ use crate::lexer::Lexer;
 use crate::lexergen::{LexerGen, LexerTables};
 use super::*;
 use crate::grammar::{ProdRuleSet, GrTreeExt, VarId, RuleTreeSet};
-use crate::log::Logger;
+use crate::log::{BuildFrom, LogReader, LogStatus, TryBuildInto};
 use crate::parsergen::{print_flags, print_items, ParserGen};
 use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
@@ -28,23 +28,21 @@ fn make_dfa() -> Dfa<General> {
     let regs = build_re();
     let mut dfas = vec![];
     for (n, re) in regs {
-        let mut dfa_builder = DfaBuilder::from(re);
-        let dfa = dfa_builder.build();
+        let dfa_builder = DfaBuilder::build_from(re);
+        let dfa = Dfa::<General>::build_from(dfa_builder);
         if VERBOSE {
             println!("Mode {n}:");
-            println!("Tree: {}", tree_to_string(&dfa_builder.get_re(), None, true));
-            println!("Messages:\n{}", dfa_builder.get_messages());
+            println!("Messages:\n{}", dfa.get_log().get_messages_str());
         }
-        assert_eq!(dfa_builder.get_log().num_errors(), 0);
+        assert!(dfa.get_log().has_no_errors(), "Failed to build DFA:\n{}", dfa.get_log().get_messages_str());
         dfas.push((n, dfa));
     }
-    let mut dfa_builder = DfaBuilder::new();
-    let dfa = dfa_builder.build_from_dfa_modes(dfas);
+    let dfa = Dfa::<General>::build_from(dfas);
     if VERBOSE {
-        println!("Messages:\n{}", dfa_builder.get_messages());
+        println!("Messages:\n{}", dfa.get_log().get_messages_str());
     }
-    assert_eq!(dfa_builder.get_log().num_errors(), 0);
-    dfa.expect(&format!("failed to build Dfa:\n{}", dfa_builder.get_messages()))
+    assert!(dfa.get_log().has_no_errors(), "failed to build Dfa:\n{}", dfa.get_log().get_messages_str());
+    dfa
 }
 
 fn make_lexer_tables(ltype: LexerType) -> LexerTables {
@@ -56,12 +54,15 @@ fn make_lexer_tables(ltype: LexerType) -> LexerTables {
         dfa.optimize()
     };
     if VERBOSE { dfa.print(4); }
-    let lexgen = LexerGen::from(dfa);
+    let lexgen = LexerGen::build_from(dfa);
     if VERBOSE {
         println!("Sources:");
         lexgen.write_source_code(None, 0).expect("Couldn't output the source code");
     }
-    lexgen.into()
+    match lexgen.try_build_into() {
+        Ok(tables) => tables,
+        Err(build_error) => panic!("{build_error}"),
+    }
 }
 
 #[test]
@@ -74,8 +75,8 @@ fn lexilexer_source() {
     const TAG: &str = "lexilexer";
     let dfa = make_dfa();
     let dfa = dfa.optimize();
-    let lexgen = LexerGen::from(dfa);
-    let result_src = lexgen.build_source_code(4);
+    let lexgen = LexerGen::build_from(dfa);
+    let result_src = lexgen.gen_source_code(4);
     let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
     if result_src != expected_src {
         if REPLACE_SOURCE {
@@ -196,7 +197,7 @@ fn regexgen_optimize() {
                  dfa.get_end_states().len()
         );
         if VERBOSE { dfa.print(4); }
-        let lexgen = LexerGen::from_dfa(dfa, 0);
+        let lexgen = LexerGen::build_from_dfa(dfa, 0);
         let size_tables = size_of_val(&lexgen.state_table) +
                 size_of_val(&lexgen.ascii_to_group) +
                 size_of_val(&lexgen.utf8_to_group) +
@@ -251,7 +252,7 @@ fn lexiparser_source() {
             println!("{id} => {s}");
         }
     }
-    let rules = ProdRuleSet::from(rts);
+    let rules = ProdRuleSet::build_from(rts);
     if !rules.get_log().is_empty() {
         println!("messages PRS<General>: {}", rules.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
     }
@@ -259,27 +260,27 @@ fn lexiparser_source() {
         let st_num_nt = rules.get_symbol_table().unwrap().get_num_nt();
         println!("rules, num_nt = {}, NT symbols: {}", rules.get_num_nt(), st_num_nt);
         println!("- {}", (0..st_num_nt).map(|i| rules.get_symbol_table().unwrap().get_nt_name(i as VarId)).join(", "));
-        rules.print_rules(true);
+        rules.print_rules(true, false);
         let msg = rules.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
             println!("Messages:\n{msg}");
         }
     }
     assert_eq!(rules.get_log().num_errors(), 0);
-    let ll1 = ProdRuleSet::<LL1>::from(rules);
+    let ll1 = ProdRuleSet::<LL1>::build_from(rules);
     if !ll1.get_log().is_empty() {
         println!("messages PRS<LL1>: {}", ll1.get_log().get_messages().map(|l| format!("\n  {l:?}")).join(""));
     }
     if VERBOSE {
         println!("LL1, num_nt = {}, NT symbols: {}", ll1.get_num_nt(), ll1.get_symbol_table().unwrap().get_num_nt());
-        ll1.print_rules(true);
+        ll1.print_rules(true, false);
         let msg = ll1.get_log().get_messages().map(|s| format!("- {s:?}")).join("\n");
         if !msg.is_empty() {
             println!("Messages:\n{msg}");
         }
     }
     assert_eq!(ll1.get_log().num_errors(), 0);
-    let mut builder = ParserGen::from_rules(ll1, "LexiParser".to_string());
+    let mut builder = ParserGen::build_from_rules(ll1, "LexiParser".to_string());
     for v in 0..builder.get_symbol_table().unwrap().get_num_nt() as VarId {
         // print!("- {}: ", Symbol::NT(v).to_str(builder.get_symbol_table()));
         if builder.get_nt_parent(v).is_none() {
@@ -291,11 +292,11 @@ fn lexiparser_source() {
     }
     builder.add_lib("super::lexiparser_types::*");
     if VERBOSE {
-        builder.build_item_ops();
+        builder.make_item_ops();
         print_flags(&builder, 0);
         print_items(&builder, 0, false);
     }
-    let result_src = builder.build_source_code(4, true);
+    let result_src = builder.gen_source_code(4, true);
     if !cfg!(miri) {
         let expected_src = get_tagged_source(FILENAME, TAG).unwrap_or(String::new());
         if result_src != expected_src {

@@ -7,8 +7,8 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use lexigram_lib::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
 use lexigram_lib::dfa::ReNode;
-use lexigram_lib::log::{BufLog, Logger};
-use lexigram_lib::{hashmap, node, segments, CollectJoin, General, SymbolTable};
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+use lexigram_lib::{hashmap, node, segments, CollectJoin, General, Normalized, SymbolTable};
 use lexigram_lib::segments::Segments;
 use crate::action;
 use crate::lexi::lexiparser::*;
@@ -205,10 +205,6 @@ impl LexiListener {
         &self.name
     }
 
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
     pub fn get_sorted_modes(&self) -> Vec<(&ModeId, &String)> {
         let mut sorted_modes = self.modes.iter().map(|(name, id)| (id, name)).to_vec();
         sorted_modes.sort();
@@ -231,8 +227,12 @@ impl LexiListener {
         table
     }
 
-    pub fn make_dfa(&mut self) -> Dfa<General> {
+    pub fn make_dfa(&mut self) -> Dfa<Normalized> {
         const VERBOSE: bool = false;
+        if !self.log.has_no_errors() {
+            // if there are errors, we bypass any processing and return a shell containing the log
+            return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
+        }
         let num_t = self.terminals.len();
         let mut names = vec![String::new(); num_t];
         for (s, r) in &self.rules {
@@ -257,15 +257,16 @@ impl LexiListener {
                 }
             }
             if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
-            let mut dfa_builder = DfaBuilder::from(tree);
+            let dfa_builder = DfaBuilder::build_from(tree);
             assert_eq!(dfa_builder.get_log().num_errors(), 0, "failed to compile mode {mode_id}");
-            dfas.push((*mode_id as ModeId, dfa_builder.build()));
+            dfas.push((*mode_id as ModeId, Dfa::<General>::build_from(dfa_builder)));
             if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
         }
-        let mut dfa_builder = DfaBuilder::new();
+        // let mut dfa_builder = DfaBuilder::new();
         if VERBOSE { println!("merging dfa modes"); }
-        let dfa = dfa_builder.build_from_dfa_modes(dfas).expect(&format!("failed to build lexer\n{}", dfa_builder.get_messages()));
-        dfa
+        let dfa = Dfa::<General>::build_from(dfas);
+        assert!(dfa.get_log().has_no_errors(), "failed to build lexer\n{}", dfa.get_log().get_messages_str());
+        dfa.optimize()
     }
 
     pub fn rules_to_string(&self, indent: usize) -> String {
@@ -375,6 +376,18 @@ impl LexiListener {
                 }
             }
         }
+    }
+}
+
+impl LogReader for LexiListener {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &BufLog {
+        &self.log
+    }
+
+    fn give_log(self) -> BufLog {
+        self.log
     }
 }
 

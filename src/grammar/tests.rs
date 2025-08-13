@@ -7,6 +7,33 @@ use super::*;
 use crate::dfa::TokenId;
 use crate::{btreemap, gnode, hashmap, hashset, LL1, prod, prodf, sym};
 use crate::grammar::NTConversion::Removed;
+use crate::log::TryBuildFrom;
+// ---------------------------------------------------------------------------------------------
+
+#[allow(dead_code)]
+fn rts_to_str<T>(rules: &RuleTreeSet<T>) -> String {
+    rules.get_trees_iter()
+        .map(|(id, t)| format!("- {id} => {:#} (depth {})",
+                               t.to_str(None, rules.get_symbol_table()), t.depth().unwrap_or(0)))
+        .join("\n")
+}
+
+impl<T> RuleTreeSet<T> {
+    fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &GrTree)> {
+        self.get_trees_iter()
+            .filter(|(_, rule)|
+                rule.get_root()
+                    .and_then(|root| Some(*rule.get(root) != GrNode::Symbol(Symbol::Empty)))
+                    .unwrap_or(false)
+            )
+    }
+}
+
+impl<T> ProdRuleSet<T> {
+    fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
+        self.get_prods_iter().filter(|(_, rule)| **rule != prod!(e))
+    }
+}
 
 // ---------------------------------------------------------------------------------------------
 
@@ -129,6 +156,7 @@ fn check_rts_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> 
 pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();
     let tree = rules.get_tree_mut(0);
+    let mut extend_nt = true;
 
     match id {
         0 => { // A -> |(b, c, D)
@@ -628,10 +656,31 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.add(Some(cc2), gnode!(t 4));
             tree.add(Some(cc), gnode!(t 5));
         }
-
+        56 => { // A -> (a b)* a
+            let cc = tree.add_root(gnode!(&));
+            let star1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(star1), gnode!(&), [gnode!(t 0), gnode!(t 1)]);
+            tree.add(Some(cc), gnode!(t 0));
+        }
+        57 => { // A -> a (b a)*
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let star1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(star1), gnode!(&), [gnode!(t 1), gnode!(t 0)]);
+        }
         100 => {
             // lexiparser
             rules = crate::lexi::tests::build_rts();
+        }
+        101 => {
+            extend_nt = false;
+            let cc = tree.add_root(gnode!(&));
+            tree.add_iter(Some(cc), [gnode!(t 0), gnode!(nt 1)]);
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["A".to_string()]);
+            rules.symbol_table = Some(table);
         }
         _ => {}
     }
@@ -663,7 +712,24 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
                 }
             }
         }
-        table.extend_nonterminals((0..num_nt).map(|v| char::from(v as u8 + 65).to_string()));
+        assert!(extend_nt || lforms.is_empty(), "cannot disable extend_nt when there are lforms");
+        if extend_nt {
+            let table_num_nt = table.get_num_nt() as VarId;
+            if VERBOSE && table_num_nt < num_nt {
+                println!("adding {table_num_nt}..{num_nt} NTs to the symbol table");
+            }
+            table.extend_nonterminals((table_num_nt..num_nt).map(|v| char::from(v as u8 + 65).to_string()));
+            if VERBOSE && rules.get_num_nt() < num_nt {
+                println!("adding {num_nt}..{} rules to the RuleTreeSet", rules.get_num_nt());
+            }
+            for v in rules.get_num_nt()..num_nt {   // adds missing NT to avoid error messages in RTS or PRS methods
+                let tree = rules.get_tree_mut(v);
+                tree.add_root(gnode!(e));
+            }
+            if VERBOSE {
+                println!("rules have become:\n{}", rts_to_str(&rules));
+            }
+        }
         for (nt, name) in lforms {
             if nt >= num_nt {
                 table.extend_nonterminals((num_nt..=nt).map(|v| if v < nt { "???".to_string() } else { name.clone() }));
@@ -710,22 +776,26 @@ fn rts_normalize() {
         (17, btreemap![0 => "&(a, A_2, d)", 1 => "|(&(b, A_1), b)", 2 => "|(&(A_1, c, A_2), &(A_1, c))"]),
     ];
     const VERBOSE: bool = false;
+    const VERBOSE_DETAILS: bool = false;
     for (test_id, expected) in tests {
+        let mut rules = build_rts(test_id);
         if VERBOSE {
             println!("test {test_id}:");
         }
-        let mut rules = build_rts(test_id);
         rules.normalize();
         assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize: {}", log_to_str(&rules.log));
-        if let Some(err) = check_rts_sanity(&rules, VERBOSE) {
+        if let Some(err) = check_rts_sanity(&rules, VERBOSE_DETAILS) {
             panic!("test {test_id} failed:\n{}", err);
         }
-        let result = BTreeMap::from_iter(rules.get_trees_iter().map(|(id, t)| (id, format!("{}", t.to_str(None, rules.get_symbol_table())))));
+        let result = BTreeMap::from_iter(rules.get_non_empty_nts()
+            .map(|(id, t)| (id, format!("{}", t.to_str(None, rules.get_symbol_table())))));
         if VERBOSE {
             println!("flags:  {:?}", rules.flags);
             println!("parent: {:?}", rules.parent);
-            println!("{}", rules.get_trees_iter().map(|(id, t)|
-                format!("- {id} => {:#} (depth {})", t.to_str(None, rules.get_symbol_table()), t.depth().unwrap_or(0))).join("\n"));
+            println!("{}", rules.get_non_empty_nts()
+                .map(|(id, t)| format!("- {id} => {:#} (depth {})",
+                                       t.to_str(None, rules.get_symbol_table()),
+                                       t.depth().unwrap_or(0))).join("\n"));
             println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
@@ -803,27 +873,28 @@ fn rts_prodrule_from() {
     ];
     const VERBOSE: bool = false;
     for (test_id, expected, expected_flags, expected_parent) in tests {
+        let trees = build_rts(test_id);
         if VERBOSE {
             println!("\ntest {test_id}:");
         }
-        let trees = build_rts(test_id);
-        let mut rules = ProdRuleSet::from(trees);
-        assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to create production rules: {}", log_to_str(&rules.log));
+        let mut rules = ProdRuleSet::build_from(trees);
+        assert!(rules.log.has_no_errors(), "test {test_id} failed to create production rules: {}", log_to_str(&rules.log));
         rules.simplify();
-        let result = rules.get_prods_iter().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
+        let result = rules.get_non_empty_nts().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
+        let num_vars = result.len();
         if VERBOSE {
             println!("=>");
-            rules.print_rules(true);
+            rules.print_rules(true, true);
             print_expected_code(&result);
-            println!("  Flags: {}", rules.flags.iter().index::<VarId>().map(|(nt, flag)| format!("\n  - {}: {}",
+            println!("  Flags: {}", rules.flags.iter().take(num_vars).index::<VarId>().map(|(nt, flag)| format!("\n  - {}: {}",
                 Symbol::NT(nt).to_str(rules.get_symbol_table()), ruleflag::to_string(*flag).join(" "))).join(""));
             if !rules.log.is_empty() {
                 println!("  Messages:{}", rules.log.get_messages().map(|m| format!("\n  - {m:?}")).join(""));
             }
         }
         assert_eq!(result, expected, "test {test_id} failed");
-        assert_eq!(rules.flags, expected_flags, "test {test_id} failed (flags)");
-        assert_eq!(rules.parent, expected_parent, "test {test_id} failed (parent)");
+        assert_eq!(rules.flags[..num_vars], expected_flags, "test {test_id} failed (flags)");
+        assert_eq!(rules.parent[..num_vars], expected_parent, "test {test_id} failed (parent)");
     }
 }
 
@@ -831,6 +902,23 @@ fn rts_prodrule_from() {
 // ProdRuleSet
 
 impl<T> ProdRuleSet<T> {
+    fn new() -> Self {
+        Self {
+            prods: Vec::new(),
+            original_factors: Vec::new(),
+            num_nt: 0,
+            num_t: 0,
+            symbol_table: None,
+            flags: Vec::new(),
+            parent: Vec::new(),
+            start: None,
+            name: None,
+            nt_conversion: HashMap::new(),
+            log: BufLog::new(),
+            _phantom: PhantomData
+        }
+    }
+
     pub(crate) fn print_prs_summary(&self) {
         let factors = self.get_factors().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
         print_factors(&factors, self.get_symbol_table());
@@ -943,6 +1031,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut start = Some(0);
     let flags = HashMap::<VarId, u32>::new();
     let parents = HashMap::<VarId, VarId>::new();   // (child, parent)
+    let mut extend_nt = true;
     match id {
         // misc tests ----------------------------------------------------------
         0 => {
@@ -1774,6 +1863,15 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prod!(t 1),
                 prod!(t 1),
             ]);
+        },
+        1006 => { // symbol_table.num_nt != rules.num_nt
+            extend_nt = false;
+            symbol_table.extend_terminals([("a".to_string(), None), ("b".to_string(), None)]);
+            symbol_table.extend_nonterminals(["A".to_string()]);
+            prods.extend([
+                prod!(t 0, nt 1),
+                prod!(t 1),
+            ])
         }
         _ => {}
     };
@@ -1784,7 +1882,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         rules.set_parent(child, parent);
     }
     rules.calc_num_symbols();
-    complete_symbol_table(&mut symbol_table, rules.num_t, rules.num_nt, is_t_data);
+    let calc_num_nt = if extend_nt { rules.num_nt } else { symbol_table.get_num_nt() };
+    complete_symbol_table(&mut symbol_table, rules.num_t, calc_num_nt, is_t_data);
     rules.set_symbol_table(symbol_table);
     if let Some(start) = start {
         rules.set_start(start);
@@ -1830,13 +1929,13 @@ fn prs_remove_recursion() {
         let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("{:=<80}\ntest {test_id}:", "");
-            rules.print_rules(false);
+            rules.print_rules(false, false);
         }
         rules.remove_recursion();
         let result = <BTreeMap<_, _>>::from(&rules);
         if VERBOSE {
             println!("=>");
-            rules.print_rules(true);
+            rules.print_rules(true, false);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1904,13 +2003,13 @@ fn prs_left_factorize() {
         let mut rules = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
-            rules.print_rules(false);
+            rules.print_rules(false, false);
         }
         rules.left_factorize();
         let result = BTreeMap::<_, _>::from(&rules);
         if VERBOSE {
             println!("=>");
-            rules.print_rules(true);
+            rules.print_rules(true, false);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
@@ -1965,19 +2064,19 @@ fn prs_ll1_from() {
         let rules_lr = build_prs(test_id, false);
         if VERBOSE {
             println!("test {test_id}:");
-            rules_lr.print_rules(false);
+            rules_lr.print_rules(false, false);
         }
-        let ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&ll1);
         if VERBOSE {
             println!("=>");
-            ll1.print_rules(true);
+            ll1.print_rules(true, false);
             print_expected_code(&result);
         }
         assert_eq!(result, expected, "test {test_id} failed");
         assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id} failed");
         assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id} failed");
-        let rules_ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let rules_ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
         let result = BTreeMap::<_, _>::from(&rules_ll1);
         assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
    }
@@ -1994,7 +2093,7 @@ fn prs_lr_from() {
         if rules.prods.is_empty() {
             break;
         }
-        let _lr = ProdRuleSet::<LR>::from(rules);
+        let _lr = ProdRuleSet::<LR>::build_from(rules);
         test_id += 1;
     }
 }
@@ -2082,11 +2181,11 @@ fn prs_calc_first() {
         if VERBOSE {
             println!("test {test_id}:");
         }
-        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let mut ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
         ll1.set_start(start);
         let first = ll1.calc_first();
         if VERBOSE {
-            ll1.print_rules(false);
+            ll1.print_rules(false, false);
             let b = map_and_print_first(&first, ll1.get_symbol_table());
             for (sym, set) in &b {
                 println!("            sym!({}) => hashset![{}],", sym.to_macro_item(),
@@ -2145,12 +2244,12 @@ fn prs_calc_follow() {
         if VERBOSE {
             println!("test {test_id}:");
         }
-        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
+        let mut ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
         ll1.set_start(start);
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         if VERBOSE {
-            ll1.print_rules(false);
+            ll1.print_rules(false, false);
             let b = map_and_print_follow(&follow, ll1.get_symbol_table());
             for (sym, set) in &b {
                 println!("            sym!({}) => hashset![{}],", sym.to_macro_item(),
@@ -2165,8 +2264,8 @@ fn prs_calc_follow() {
 
 #[test]
 fn prs_calc_table() {
-    let tests: Vec<(u32, VarId, usize, Vec<(VarId, ProdFactor)>, Vec<FactorId>)> = vec![
-        (4, 0, 0, vec![
+    let tests: Vec<(T, VarId, usize, Vec<(VarId, ProdFactor)>, Vec<FactorId>)> = vec![
+        (T::PRS(4), 0, 0, vec![
             // E -> E + T | E - T | T
             // T -> T * F | T / F | F
             // F -> ( E ) | NUM | ID
@@ -2206,7 +2305,7 @@ fn prs_calc_table() {
               5,   6,  11,  11,  11,   7,  11,  11,   7,
              10,  10,   8,   9,  11,  10,  11,  11,  10,
         ]),
-        (5, 0, 0, vec![
+        (T::PRS(5), 0, 0, vec![
             // - 0: A -> A1 A2 ; ;
             // - 1: A1 -> - A1
             // - 2: A1 -> ε
@@ -2227,7 +2326,7 @@ fn prs_calc_table() {
               1,   2,   2,   5,
               5,   3,   4,   5,
         ]),
-        (6, 1, 0, vec![
+        (T::PRS(6), 1, 0, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: A -> A1 A2 ;
@@ -2248,7 +2347,7 @@ fn prs_calc_table() {
               2,   2,   2,   6,
               5,   3,   4,   5,
         ]),
-        (7, 1, 0, vec![
+        (T::PRS(7), 1, 0, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: X -> A
@@ -2273,7 +2372,7 @@ fn prs_calc_table() {
               6,   3,   3,   3,   7,
               6,   6,   4,   5,   6,
         ]),
-        (7, 2, 2, vec![
+        (T::PRS(7), 2, 2, vec![
             // - 0: A1 -> - A1
             // - 1: A1 -> ε
             // - 2: A -> A1 A2 ;
@@ -2294,7 +2393,7 @@ fn prs_calc_table() {
               5,   2,   2,   2,   6,
               5,   5,   3,   4,   5,
         ]),
-        (8, 0, 0, vec![
+        (T::PRS(8), 0, 0, vec![
             // A -> A a A | b
             // - 0: A -> A_2 A_1
             // - 1: A_1 -> a A_2 A_1
@@ -2314,7 +2413,7 @@ fn prs_calc_table() {
               1,   4,   2,
               5,   3,   5,
         ]),
-        (14, 0, 0, vec![
+        (T::PRS(14), 0, 0, vec![
             // - 0: A -> A_2 A_1
             // - 1: A_1 -> A_2 A_1
             // - 2: A_1 -> ε
@@ -2333,7 +2432,7 @@ fn prs_calc_table() {
               1,   2,
               3,   5,
         ]),
-        (17, 0, 0, vec![
+        (T::PRS(17), 0, 0, vec![
             // - 0: A -> B
             // - 1: A -> a
             // - 2: B -> C )
@@ -2352,7 +2451,7 @@ fn prs_calc_table() {
               4,   2,   5,   5,
               4,   3,   5,   4,
         ]),
-        (18, 0, 0, vec![
+        (T::PRS(18), 0, 0, vec![
             // - 0: A -> a
             (0, prodf!(t 0)),
         ], vec![
@@ -2361,7 +2460,7 @@ fn prs_calc_table() {
             // A |  0   p
               0,   2,
         ]),
-        (19, 0, 0, vec![
+        (T::PRS(19), 0, 0, vec![
             // - 0: A -> a
             (0, prodf!(t 0)),
             (0, prodf!(e)),
@@ -2371,7 +2470,7 @@ fn prs_calc_table() {
             // A |   0   1
               0,   1,
         ]),
-        (20, 0, 0, vec![
+        (T::PRS(20), 0, 0, vec![
             // - 0: STRUCT -> struct id { LIST
             // - 1: LIST -> id : id ; LIST
             // - 2: LIST -> }
@@ -2390,11 +2489,11 @@ fn prs_calc_table() {
         (22, 0, 0, vec![
         ], vec![
         ]),
-        (23, 0, 0, vec![
+        (T::PRS(23), 0, 0, vec![
         ], vec![
         ]),
 */
-        (24, 0, 0, vec![
+        (T::PRS(24), 0, 0, vec![
             // - 0: A -> a B d
             // - 1: A -> e
             // - 2: B -> b c B_1
@@ -2415,7 +2514,7 @@ fn prs_calc_table() {
               5,   2,   5,   6,   5,   5,
               5,   3,   5,   4,   5,   5,
         ]),
-        (25, 0, 0, vec![
+        (T::PRS(25), 0, 0, vec![
             // A -> A a b c | A a b d | A a e | f
             // - 0: A -> f A_1
             // - 1: A_1 -> a A_2
@@ -2443,7 +2542,7 @@ fn prs_calc_table() {
               7,   3,   7,   7,   4,   7,   8,
               7,   7,   5,   6,   7,   7,   8,
         ]),
-        (27, 0, 0, vec![
+        (T::PRS(27), 0, 0, vec![
             // A -> A a | A b | c | d
             // - 0: A -> c A_1
             // - 1: A -> d A_1
@@ -2463,7 +2562,7 @@ fn prs_calc_table() {
               5,   5,   0,   1,   6,
               2,   3,   5,   5,   4,
         ]),
-        (28, 0, 0, vec![
+        (T::PRS(28), 0, 0, vec![
             // - 0: A -> a A_1
             // - 1: A -> e
             // - 2: A_1 -> b A_2
@@ -2488,7 +2587,7 @@ fn prs_calc_table() {
               7,   2,   7,   7,   7,   3,
               7,   7,   4,   5,   7,   6,
         ]),
-        (43, 0, 0, vec![
+        (T::PRS(43), 0, 0, vec![
             // BATCH -> GROUP ';' BATCH <L> | ε
             // GROUP -> '[' EXPR ']' | '(' EXPR ')'
             // EXPR -> FACTOR '*' FACTOR;
@@ -2530,7 +2629,7 @@ fn prs_calc_table() {
               8,   9,   4,   9,   8,   4,   4,   8,   8,
               8,   9,   7,   9,   9,   5,   6,   8,   8,
         ]),
-        (51, 0, 0, vec![
+        (T::PRS(51), 0, 0, vec![
             // E -> abs E | E ^ E | E ' | E * E | - E | E + E | F
             // F -> ( E ) | NUM | ID
             // - 0: E -> E_3 E_b
@@ -2595,7 +2694,7 @@ fn prs_calc_table() {
              21,  21,  15,  17,  17,  21,  17,  21,  21,  16,  17,
              19,  18,  22,  22,  22,  20,  22,  20,  20,  22,  22,
         ]),
-        (52, 0, 0, vec![
+        (T::PRS(52), 0, 0, vec![
             // - 0: E -> E_4 E_1
             // - 1: F -> NUM
             // - 2: F -> ID
@@ -2640,7 +2739,7 @@ fn prs_calc_table() {
               9,  10,  11,  12,  14,  14,  12,
              15,  15,  15,  15,  13,  13,  15,
         ]),
-        (53, 0, 0, vec![
+        (T::PRS(53), 0, 0, vec![
             // E -> <R>E ^ E | <R>E * E | - E | E + E | F
             // F -> ID | NUM | ( E )
             // - 0: E -> E_3 E_b
@@ -2697,7 +2796,7 @@ fn prs_calc_table() {
              13,  14,  17,  14,  17,  17,  17,  14,  14,
              18,  18,  15,  18,  16,  16,  16,  18,  18,
         ]),
-        (54, 0, 0, vec![
+        (T::PRS(54), 0, 0, vec![
             // E -> <R>E * E | E ! | E -- | <R>E + E | ID | NUM
             // - 0: E -> E_2 E_b
             // - 1: E_b -> * E_1 E_b     R-assoc
@@ -2735,7 +2834,7 @@ fn prs_calc_table() {
               8,   7,   8,   8,  11,  11,   8,
              12,  12,  12,  12,   9,  10,  12,
         ]),
-        (55, 0, 0, vec![
+        (T::PRS(55), 0, 0, vec![
             // E -> E * E | E -- | ! E | E + E | ID | NUM
             // - 0: E -> E_2 E_b
             // - 1: E_b -> * E_2 E_b
@@ -2775,7 +2874,7 @@ fn prs_calc_table() {
              12,   6,   7,   8,  12,  12,   8,
               9,  13,  13,  13,  10,  11,  13,
         ]),
-        (56, 0, 0, vec![
+        (T::PRS(56), 0, 0, vec![
             // E -> E * E | ! E | E -- | E + E | ID | NUM
             // - 0: E -> E_3 E_b
             // - 1: E_b -> * E_3 E_b
@@ -2825,7 +2924,7 @@ fn prs_calc_table() {
              15,  10,  11,  11,  15,  15,  11,
              12,  16,  16,  16,  13,  14,  16,
         ]),
-        (57, 0, 0, vec![
+        (T::PRS(57), 0, 0, vec![
             // E -> E ^ E | E * E | E + E | ID | NUM
             // - 0: E -> E_3 E_b
             // - 1: E_b -> ^ E_3 E_b
@@ -2873,7 +2972,7 @@ fn prs_calc_table() {
              10,  11,  11,  14,  14,  11,
              15,  15,  15,  12,  13,  15,
         ]),
-        (66, 0, 0, vec![
+        (T::PRS(66), 0, 0, vec![
             // E -> E . * E | E -- | E . + E | ! E | ID
             // - 0: E -> E_4 E_1
             // - 1: E_1 -> <G> -- E_1
@@ -2915,7 +3014,7 @@ fn prs_calc_table() {
              12,  13,  12,   8,  13,   9,  13,
              10,  13,  11,  12,  13,  12,  13,
         ]),
-        (58, 0, 0, vec![
+        (T::PRS(58), 0, 0, vec![
             // E -> E + | - E | 0
             // - 0: E -> - E
             // - 1: E -> 0 E_1
@@ -2933,7 +3032,7 @@ fn prs_calc_table() {
               4,   0,   1,   5,
               2,   4,   4,   3,
         ]),
-        (61, 0, 0, vec![
+        (T::PRS(61), 0, 0, vec![
             // E -> E + | - E | 0 | 1
             // - 0: E -> - E
             // - 1: E -> 0 E_1
@@ -2953,7 +3052,7 @@ fn prs_calc_table() {
               5,   0,   1,   2,   6,
               3,   5,   5,   5,   4,
         ]),
-        (70, 0, 0, vec![
+        (T::PRS(70), 0, 0, vec![
             // E -> - E | E + | 0
             // - 0: E -> E_1 E_b
             // - 1: E_b -> + E_b
@@ -2975,7 +3074,7 @@ fn prs_calc_table() {
               1,   5,   5,   2,
               6,   3,   4,   6,
         ]),
-        (59, 0, 0, vec![
+        (T::PRS(59), 0, 0, vec![
             // E -> E + E | - E | 0
             // - 0: E -> E_1 E_b
             // - 1: E_b -> + E_1 E_b
@@ -2997,7 +3096,7 @@ fn prs_calc_table() {
               1,   5,   5,   2,
               6,   3,   4,   6,
         ]),
-        (64, 0, 0, vec![
+        (T::PRS(64), 0, 0, vec![
             // E -> - E | E + E | 0
             // - 0: E -> E_1 E_b
             // - 1: E_b -> + E_1 E_b
@@ -3019,7 +3118,7 @@ fn prs_calc_table() {
               1,   5,   5,   2,
               6,   3,   4,   6,
         ]),
-        (63, 0, 0, vec![
+        (T::PRS(63), 0, 0, vec![
             // E -> <R>E ^ E | E * E | - E | E + E | ID
             // - 0: E -> E_1b E3
             // - 1: E3 -> ^ E_b E3     R-assoc (256)
@@ -3067,7 +3166,7 @@ fn prs_calc_table() {
              10,  11,  14,  11,  14,  11,
              15,  15,  12,  15,  13,  15,
         ]),
-        (65, 0, 0, vec![
+        (T::PRS(65), 0, 0, vec![
             // E -> E ! | E * E | E + | - E | ID
             // - 0: E -> E_2 E_b
             // - 1: E_b -> ! E_b
@@ -3104,7 +3203,7 @@ fn prs_calc_table() {
              11,  11,  11,   8,   9,  11,
         ]),
 
-        (100, 0, 0, vec![
+        (T::PRS(100), 0, 0, vec![
             // - 0: A -> c A_1
             // - 1: A_1 -> a A b A_1
             // - 2: A_1 -> ε
@@ -3119,7 +3218,7 @@ fn prs_calc_table() {
               3,   4,   0,   4,
               1,   2,   3,   2,
         ]),
-        (101, 0, 0, vec![
+        (T::PRS(101), 0, 0, vec![
             // - 0: A -> a A A
             // - 1: A -> b
             (0, prodf!(t 0, nt 0, nt 0)),
@@ -3130,7 +3229,7 @@ fn prs_calc_table() {
             // A |  0   1   p
               0,   1,   3,
         ]),
-        (102, 0, 0, vec![
+        (T::PRS(102), 0, 0, vec![
             // - 0: A -> A_2 A_1
             // - 1: A_1 -> a A b A_2 A_1
             // - 2: A_1 -> ε
@@ -3149,7 +3248,7 @@ fn prs_calc_table() {
               1,   2,   4,   2,
               5,   5,   3,   5,
         ]),
-        (103, 0, 0, vec![
+        (T::PRS(103), 0, 0, vec![
             // - 0: A -> a B c
             // - 1: A -> d
             // - 2: B -> A b A B
@@ -3166,7 +3265,7 @@ fn prs_calc_table() {
               0,   5,   5,   1,   5,
               2,   4,   3,   2,   4,
         ]),
-        (104, 0, 2, vec![
+        (T::PRS(104), 0, 2, vec![
             // - 0: A -> B c
             // - 1: A -> a
             // - 2: B -> A b A B
@@ -3185,7 +3284,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'A', T 'a': <B c> or <a> => <a> has been chosen
             // calc_table: ambiguity for NT 'B', T 'c': <A b A B> or <ε> => <ε> has been chosen
         ]),
-        (105, 0, 2, vec![
+        (T::PRS(105), 0, 2, vec![
             // - 0: A -> a B
             // - 1: A -> c
             // - 2: B -> A b A B
@@ -3204,7 +3303,7 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'a': <A b A B> or <ε> => <A b A B> has been chosen
             // calc_table: ambiguity for NT 'B', T 'c': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
-        (106, 0, 4, vec![
+        (T::PRS(106), 0, 4, vec![
             // - 0: A -> B
             // - 1: A -> a
             // - 2: B -> A b A B
@@ -3225,16 +3324,50 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'B', T 'a': <A b A B> or <ε> => <A b A B> has been chosen
             // calc_table: ambiguity for NT 'B', T 'b': <A b A B> or <ε> => <A b A B> has been chosen
         ]),
+        (T::RTS(56), 0, 1, vec![
+            // A -> (a b)* a
+            // - 0: A -> A_1 a
+            // - 1: A_1 -> a b A_1
+            // - 2: A_1 -> ε
+            (0, prodf!(nt 1, t 0)),
+            (1, prodf!(t 0, t 1, nt 1)),
+            (1, prodf!(e)),
+
+        ], vec![
+            //     |  a   b   $
+            // ----+-------------
+            // A   |  0   .   p
+            // A_1 |  1   .   .
+              0,   3,   4,
+              1,   3,   3,
+            // calc_table: ambiguity for NT 'A_1', T 'a': <a b A_1> or <ε> => <a b A_1> has been chosen
+        ]),
+        (T::RTS(57), 0, 0, vec![
+            // - 0: A -> a A_1
+            // - 1: A_1 -> b a A_1
+            // - 2: A_1 -> ε
+            (0, prodf!(t 0, nt 1)),
+            (1, prodf!(t 1, t 0, nt 1)),
+            (1, prodf!(e)),
+        ], vec![
+            //     |  a   b   $
+            // ----+-------------
+            // A   |  0   .   p
+            // A_1 |  .   1   2
+              0,   3,   4,
+              3,   1,   2,
+        ]),
+        // (T::RTS(57), 0, 0, vec![
+        // ], vec![
+        // ]),
     ];
     const VERBOSE: bool = false;
-    for (test_id, (ll_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
-        let rules_lr = build_prs(ll_id, false);
+    for (test_id, (rule_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
+        let mut ll1 = rule_id.build_prs(test_id, start, false);
         if VERBOSE {
-            println!("{:=<80}\ntest {test_id} with {ll_id}/{start}:", "");
-            rules_lr.print_rules(false);
+            println!("{:=<80}\ntest {test_id} with {rule_id:?}/{start}:", "");
+            ll1.print_rules(false, false);
         }
-        let mut ll1 = ProdRuleSet::<LL1>::from(rules_lr.clone());
-        ll1.set_start(start);
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         if VERBOSE {
@@ -3243,10 +3376,10 @@ fn prs_calc_table() {
         }
         let parsing_table = ll1.calc_table(&first, &follow, true);
         let LLParsingTable { num_nt, num_t, factors, table, .. } = &parsing_table;
-        assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{ll_id}/{start}");
+        assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{rule_id:?}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
-            ll1.print_rules(false);
+            ll1.print_rules(false, false);
             print_factors(&factors, ll1.get_symbol_table());
             println!("{}",
                      factors.iter().enumerate().map(|(_id, (v, f))| {
@@ -3277,10 +3410,10 @@ fn prs_calc_table() {
             }
             ll1.print_logs();
         }
-        assert_eq!(*factors, expected_factors, "test {test_id}/{ll_id}/{start} failed");
-        assert_eq!(*table, expected_table, "test {test_id}/{ll_id}/{start} failed");
-        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id}/{ll_id}/{start} failed on # errors");
-        assert_eq!(ll1.log.num_warnings(), expected_warnings, "test {test_id}/{ll_id}/{start} failed, warnings: {}", ll1.log.get_warnings().join("\n"));
+        assert_eq!(*factors, expected_factors, "test {test_id}/{rule_id:?}/{start} failed");
+        assert_eq!(*table, expected_table, "test {test_id}/{rule_id:?}/{start} failed");
+        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id}/{rule_id:?}/{start} failed on # errors");
+        assert_eq!(ll1.log.num_warnings(), expected_warnings, "test {test_id}/{rule_id:?}/{start} failed, warnings: {}", ll1.log.get_warnings().join("\n"));
    }
 }
 
@@ -3290,12 +3423,13 @@ fn prs_grammar_notes() {
         //        warnings                                  errors
         //        -------------------------------------     -------------------------------------
         (T::PRS(1000), 0, vec![],                           vec!["recursive rules must have at least one independent factor"]),
-        // (T::PRS(1001), 0, vec![],                           vec!["cannot remove recursion from"]),
         (T::PRS(1002), 0, vec!["ambiguity for NT"],         vec![]),
         (T::PRS(1003), 0, vec![],                           vec!["no terminal in grammar"]),
         (T::PRS(1004), 0, vec![],                           vec!["no terminal used in the table"]),
         (T::PRS(1005), 0, vec!["unused non-terminals",
                                "unused terminals"],         vec![]),
+        (T::PRS(1006), 0, vec![],                           vec!["there are 2 rules but the symbol table has 1 NT symbols: dropping the table"]),
+        (T::RTS(101), 0,  vec![],                           vec!["there are 2 rules but the symbol table has 1 NT symbols: dropping the table"]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
@@ -3304,7 +3438,7 @@ fn prs_grammar_notes() {
         }
         let mut ll1 = ll_id.try_build_prs(start, false);
         if VERBOSE {
-            ll1.print_rules(false);
+            ll1.print_rules(false, false);
             ll1.print_logs();
         }
         let mut parsing_table = None;
@@ -3318,7 +3452,7 @@ fn prs_grammar_notes() {
             }
             if VERBOSE {
                 println!("=>");
-                ll1.print_rules(false);
+                ll1.print_rules(false, false);
                 if let Some(table) = &parsing_table {
                     print_factors(&table.factors, ll1.get_symbol_table());
                     println!("table:");
@@ -3387,8 +3521,8 @@ fn build_ll1_from_rts(id: u32) -> ProdRuleSet<LL1> {
         rts.set_start(start);
     }
 
-    let rules = ProdRuleSet::<General>::from(rts);
-    ProdRuleSet::<LL1>::from(rules)
+    let rules = ProdRuleSet::<General>::build_from(rts);
+    ProdRuleSet::<LL1>::build_from(rules)
 }
 
 #[test]
@@ -3460,12 +3594,12 @@ impl T {
                     complete_symbol_table(&mut symbol_table, num_t, num_nt, is_t_data);
                     rts.set_symbol_table(symbol_table);
                 }
-                let rules = ProdRuleSet::from(rts);
+                let rules = ProdRuleSet::build_from(rts);
                 if VERBOSE {
                     print!("General rules\n- ");
                     rules.print_prs_summary();
                 }
-                ProdRuleSet::<LL1>::from(rules)
+                ProdRuleSet::<LL1>::build_from(rules)
             }
             T::PRS(id) => {
                 let general = build_prs(*id, is_t_data);
@@ -3473,7 +3607,7 @@ impl T {
                     print!("General rules\n- ");
                     general.print_prs_summary();
                 }
-                ProdRuleSet::<LL1>::from(general)
+                ProdRuleSet::<LL1>::build_from(general)
             }
         };
         ll1.set_start(start_nt);
@@ -3654,4 +3788,21 @@ fn rts_prs_flags() {
         assert_eq!(result_parent, expected_parent, "test {test_id}/{rule_id:?}/{start_nt} failed");
         assert_eq!(result_nt_conversion, expected_nt_conversion, "test {test_id}/{rule_id:?}/{start_nt} failed");
     }
+}
+
+#[test]
+fn build_prs_error() {
+    let rts = build_rts(101);
+    let text = format!("rts errors: {}", rts.get_log().num_errors());
+    assert_eq!(rts.get_log().num_errors(), 0, "{text}");
+    let rts_normalized = RuleTreeSet::<Normalized>::build_from(rts.clone());
+    let rts_normalized_err = RuleTreeSet::<Normalized>::try_build_from(rts);
+    let text = format!("rts_normalized errors: {}, err: {}", rts_normalized.get_log().num_errors(), rts_normalized_err.is_err());
+    assert!(rts_normalized.get_log().num_errors() > 0, "{text}");
+    assert!(rts_normalized_err.is_err(), "{text}");
+    let prs = ProdRuleSet::build_from(rts_normalized.clone());
+    let prs_e = ProdRuleSet::try_build_from(rts_normalized);
+    let text = format!("prs errors: {}, err: {}", prs.get_log().num_errors(), prs_e.is_err());
+    assert!(prs.get_log().num_errors() > 0, "{text}");
+    assert!(prs_e.is_err(), "{text}");
 }

@@ -181,7 +181,7 @@ impl SymbolTable {
         removed
     }
 
-    pub fn build_source_code_t(&self, indent: usize, has_enum: bool, has_array: bool) -> String {
+    pub fn gen_source_code_t(&self, indent: usize, has_enum: bool, has_array: bool) -> String {
         let mut source = Vec::<String>::new();
         let (max_n, max_option) = self.get_terminals().fold((0, 0), |(n, option), t| {
             (n.max(t.0.len()), option.max(t.1.as_ref().map_or(0, |o| o.len())))

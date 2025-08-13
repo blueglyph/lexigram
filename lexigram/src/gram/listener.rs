@@ -4,8 +4,8 @@ use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
 use lexigram_lib::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
-use lexigram_lib::log::{BufLog, Logger};
-use lexigram_lib::{CollectJoin, General, SymbolTable};
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
+use lexigram_lib::{BuildErrorSource, CollectJoin, General, HasBuildErrorSource, SymbolTable};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use vectree::VecTree;
@@ -72,10 +72,6 @@ impl GramListener {
         self.start_rule
     }
 
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
-
     fn reserve_nt_symbol(&mut self, id: String) -> Option<VarId> {
         if let Some(v) = self.nt_reserved.get(&id) {
             Some(*v)
@@ -122,7 +118,27 @@ impl GramListener {
     }
 }
 
+impl LogReader for GramListener {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &BufLog {
+        &self.log
+    }
+
+    fn give_log(self) -> BufLog {
+        self.log
+    }
+}
+
+impl HasBuildErrorSource for GramListener {
+    const SOURCE: BuildErrorSource = BuildErrorSource::Gram;
+}
+
 impl From<GramListener> for ProdRuleSet<General> {
+    /// Builds a [`ProdRuleSet<General>`] from a [`GramListener`].
+    ///
+    /// If an error is encountered or was already encountered before, an empty shell object
+    /// is built with the log detailing the error(s).
     fn from(gram_listener: GramListener) -> ProdRuleSet<General> {
         let mut rts = RuleTreeSet::<General>::with_log(gram_listener.log);
         let no_error = rts.get_log().has_no_errors();
@@ -132,7 +148,7 @@ impl From<GramListener> for ProdRuleSet<General> {
             }
             rts.set_symbol_table(gram_listener.symbol_table);
         }
-        let mut prs = ProdRuleSet::<General>::from(rts);
+        let mut prs = ProdRuleSet::<General>::build_from(rts);
         if no_error {
             prs.set_start(gram_listener.start_rule.unwrap());
         }

@@ -8,9 +8,9 @@ use std::io::{BufWriter, Read, Write};
 use iter_index::IndexerIterator;
 #[cfg(test)]
 use crate::dfa::print_graph;
-use crate::{CollectJoin, escape_char, Normalized, indent_source, SymbolTable};
+use crate::{CollectJoin, escape_char, Normalized, indent_source, SymbolTable, HasBuildErrorSource, BuildError, BuildErrorSource};
 use crate::lexer::{Lexer, LexerError};
-use crate::log::{BufLog, Logger};
+use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger, TryBuildFrom};
 use crate::segments::{Segments, Seg, SegMap};
 use super::dfa::*;
 
@@ -88,8 +88,8 @@ impl LexerTables {
     }
 }
 
-impl From<LexerGen> for LexerTables {
-    fn from(lexer_gen: LexerGen) -> LexerTables {
+impl BuildFrom<LexerGen> for LexerTables {
+    fn build_from(lexer_gen: LexerGen) -> LexerTables {
         assert!(!lexer_gen.state_table.is_empty(), "tables are not built");
         LexerTables::new(
             lexer_gen.nbr_groups,
@@ -104,6 +104,20 @@ impl From<LexerGen> for LexerTables {
         )
     }
 }
+
+// not generated automatically since LexerTables isn't LogReader
+impl TryBuildFrom<LexerGen> for LexerTables {
+    type Error = BuildError;
+
+    fn try_build_from(source: LexerGen) -> Result<Self, Self::Error> {
+        if source.get_log().has_no_errors() {
+            Ok(LexerTables::build_from(source))
+        } else {
+            Err(BuildError::new(source.give_log(), BuildErrorSource::LexerGen))
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 
 pub type GroupId = u32;
@@ -148,22 +162,18 @@ impl LexerGen {
         }
     }
 
-    pub fn get_log(&self) -> &BufLog {
-        &self.log
-    }
+    // pub fn get_mut_log(&mut self) -> &mut BufLog {
+    //     &mut self.log
+    // }
 
-    pub fn get_mut_log(&mut self) -> &mut BufLog {
-        &mut self.log
-    }
-
-    pub fn from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
+    pub fn build_from_dfa(dfa: Dfa<Normalized>, max_utf8_chars: u32) -> Self {
         let mut lexergen = Self::new();
         lexergen.max_utf8_chars = max_utf8_chars;
-        lexergen.build_from_dfa(dfa);
+        lexergen.make_from_dfa(dfa);
         lexergen
     }
 
-    fn build_from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
+    fn make_from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
         self.log.extend(std::mem::replace(&mut dfa.log, BufLog::new()));
         self.create_input_tables(&dfa);
         self.create_state_tables(&dfa);
@@ -278,14 +288,23 @@ impl LexerGen {
             Some(file) => BufWriter::new(Box::new(file)),
             None => BufWriter::new(Box::new(std::io::stdout().lock()))
         };
-        let source = self.build_source_code(indent);
+        let source = self.gen_source_code(indent);
         out.write(source.as_bytes())?;
         // write!(out, "{source}");
         Ok(())
     }
 
-    pub fn build_source_code(&self, indent: usize) -> String {
+    pub fn gen_source_code(&self, indent: usize) -> String {
         indent_source(vec![self.lexer_source_code()], indent)
+    }
+
+    pub fn try_gen_source_code(self, indent: usize) -> Result<(BufLog, String), BuildError> {
+        let src = self.gen_source_code(indent);
+        if self.log.has_no_errors() {
+            Ok((self.give_log(), src))
+        } else {
+            Err(BuildError::new(self.give_log(), BuildErrorSource::LexerGen))
+        }
     }
 
     fn lexer_source_code(&self) -> Vec<String> {
@@ -377,10 +396,26 @@ impl LexerGen {
     }
 }
 
-impl From<Dfa<Normalized>> for LexerGen {
-    fn from(dfa: Dfa<Normalized>) -> Self {
+impl LogReader for LexerGen {
+    type Item = BufLog;
+
+    fn get_log(&self) -> &Self::Item {
+        &self.log
+    }
+
+    fn give_log(self) -> Self::Item {
+        self.log
+    }
+}
+
+impl HasBuildErrorSource for LexerGen {
+    const SOURCE: BuildErrorSource = BuildErrorSource::LexerGen;
+}
+
+impl BuildFrom<Dfa<Normalized>> for LexerGen {
+    fn build_from(dfa: Dfa<Normalized>) -> Self {
         let mut lexgen = LexerGen::new();
-        lexgen.build_from_dfa(dfa);
+        lexgen.make_from_dfa(dfa);
         lexgen
     }
 }
