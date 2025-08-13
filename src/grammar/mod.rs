@@ -497,6 +497,7 @@ impl RuleTreeSet<General> {
 
     /// Normalizes all the production rules.
     pub fn normalize(&mut self) {
+        self.log.add_note("normalizing rules...");
         self.check_num_nt_coherency();
         let vars = self.get_vars().to_vec();
         for var in vars {
@@ -1447,7 +1448,7 @@ impl<T> ProdRuleSet<T> {
                 .map(|v| Symbol::NT(v))
                 .to_vec();
             if !nt_removed.is_empty() {
-                self.log.add_warning(format!("calc_first: unused non-terminals: {}",
+                self.log.add_warning(format!("- calc_first: unused non-terminals: {}",
                                              nt_removed.into_iter().map(|s| format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))).join(", ")));
             }
             self.cleanup_symbols(&mut symbols);
@@ -1459,7 +1460,7 @@ impl<T> ProdRuleSet<T> {
                 if !symbols.contains(&s) { Some(format!("T({t_id}) = {}", s.to_str(self.get_symbol_table()))) } else { None }
             }).to_vec();
         if unused_t.len() > 0 {
-            self.log.add_warning(format!("calc_first: unused terminals: {}", unused_t.join(", ")))
+            self.log.add_warning(format!("- calc_first: unused terminals: {}", unused_t.join(", ")))
         }
 
         let mut first = symbols.into_iter().map(|sym| {
@@ -1502,10 +1503,10 @@ impl<T> ProdRuleSet<T> {
             if VERBOSE && change { println!("---------------------------- again"); }
         }
         if self.num_nt == 0 {
-            self.log.add_error("calc_first: no non-terminal in grammar".to_string());
+            self.log.add_error("- calc_first: no non-terminal in grammar".to_string());
         }
         if self.num_t == 0 {
-            self.log.add_error("calc_first: no terminal in grammar".to_string());
+            self.log.add_error("- calc_first: no terminal in grammar".to_string());
         }
         first
     }
@@ -1578,6 +1579,7 @@ impl<T> ProdRuleSet<T> {
 
         const VERBOSE: bool = false;
 
+        self.log.add_note("removing left / binary recursion in grammar...");
         self.check_num_nt_coherency();
         if VERBOSE {
             println!("ORIGINAL:");
@@ -1593,10 +1595,9 @@ impl<T> ProdRuleSet<T> {
             let var_name = symbol.to_str(self.get_symbol_table());
             let mut extra_prods = Vec::<ProdRule>::new();
             if prod.iter().any(|p| !p.is_empty() && (p.first().unwrap() == &symbol)) {
-                if VERBOSE {
-                    println!("processing: {}", format!("{var_name} -> {}",
-                                                       prod_to_str(prod, self.get_symbol_table())));
-                }
+                let orig_str = format!("{var_name} -> {}", prod_to_str(prod, self.get_symbol_table()));
+                self.log.add_note(format!("- modifying: {orig_str}"));
+                if VERBOSE { println!("processing: {orig_str}"); }
 
                 let (indep, mut factors) : (Vec<_>, Vec<_>) = take(prod).into_iter()
                     .partition(|factor| factor.first().unwrap() != &symbol && factor.last().unwrap() != &symbol);
@@ -1658,12 +1659,13 @@ impl<T> ProdRuleSet<T> {
                     } else {
                         indep_factors.push(i);
                     }
-                    if VERBOSE {
-                        println!("- [{i:2}] {:10}: {:10} => var_i = {var_i:2}, rule_var_i = {rule_var_i:2}, {{{}}}",
-                                 f.to_str(self.get_symbol_table()),
-                                 format!("{ty:?}"), // "debug ignores width" bug https://github.com/rust-lang/rust/issues/55584
-                                 var_factors.iter().enumerate().map(|(i, vf)| format!("{i}: {}", vf.iter().join(","))).join("  "));
-                    }
+                    let var_factor_str = format!(
+                        "[{i:2}] {:15}: {:10} => var_i = {var_i:2}, rule_var_i = {rule_var_i:2}, {{{}}}",
+                        f.to_str(self.get_symbol_table()),
+                        format!("{ty:?}"), // "debug ignores width" bug https://github.com/rust-lang/rust/issues/55584
+                        var_factors.iter().enumerate().map(|(i, vf)| format!("{i}: {}", vf.iter().join(","))).join("  "));
+                    self.log.add_note(format!("  - {var_factor_str}"));
+                    if VERBOSE { println!("- {var_factor_str}"); }
                 };
                 assert!(var_i <= rule_var_i + 1, "var_i = {var_i}, rule_var_i = {rule_var_i}");
 
@@ -1814,6 +1816,11 @@ impl<T> ProdRuleSet<T> {
                 }
                 self.parent.resize(var_new, None);
                 self.flags.resize(var_new, 0);
+                self.log.add_note(format!("  => {var_name} -> {}", prod_to_str(prod, self.get_symbol_table())));
+                for (v, p) in extra_prods.iter().index_start(prods.len() as VarId) {
+                    self.log.add_note(
+                        format!("     {} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), prod_to_str(p, self.get_symbol_table())));
+                }
             } else if prod.iter().any(|p| !p.is_empty() && p.last().unwrap() == &symbol) {
                 if self.get_flags(var) & ruleflag::CHILD_REPEAT == 0 {
                     self.set_flags(var, ruleflag::R_RECURSION);
@@ -1862,6 +1869,7 @@ impl<T> ProdRuleSet<T> {
         }
 
         const VERBOSE: bool = false;
+        self.log.add_note("removing left factorization...");
         let mut new_var = self.get_next_available_var();
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
         let mut prods = take(&mut self.prods);
@@ -1922,7 +1930,19 @@ impl<T> ProdRuleSet<T> {
                 extra.push(child);
             }
             if changed {
+                self.log.add_note(format!(
+                    "- modifying: {} -> {}",
+                    Symbol::NT(var).to_str(self.get_symbol_table()), prod.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")));
+                self.log.add_note(format!(
+                    "  => {} -> {}",
+                    Symbol::NT(var).to_str(self.get_symbol_table()), factors.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")));
                 *prod = factors;
+                let offset = prods.len() as VarId;
+                for (v, p) in extra.iter().index_start(offset) {
+                    self.log.add_note(format!(
+                        "     {} -> {}",
+                        Symbol::NT(v).to_str(self.get_symbol_table()), p.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")));
+                }
                 prods.extend(extra);
             }
         }
@@ -2082,7 +2102,7 @@ impl ProdRuleSet<LL1> {
                         if greedies.len() == 1 {
                             let chosen = greedies[0];
                             self.log.add_note(
-                                format!("calc_table: expected ambiguity for NT '{}', T '{}': {} => <{}> is specified as greedy and has been chosen",
+                                format!("- calc_table: expected ambiguity for NT '{}', T '{}': {} => <{}> is specified as greedy and has been chosen",
                                         Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
                                         if t_id < self.num_t { Symbol::T(t_id as VarId).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() },
                                         table[pos].iter().map(|f_id|
@@ -2095,7 +2115,7 @@ impl ProdRuleSet<LL1> {
                             let row = (0..num_t).filter(|j| *j != t_id).flat_map(|j| &table[nt_id * num_t + j]).collect::<HashSet<_>>();
                             let chosen = *table[pos].iter().find(|f| !row.contains(f)).unwrap_or(&table[pos][0]);
                             self.log.add_warning(
-                                format!("calc_table: ambiguity for NT '{}', T '{}': {} => <{}> has been chosen",
+                                format!("- calc_table: ambiguity for NT '{}', T '{}': {} => <{}> has been chosen",
                                         Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
                                         if t_id < self.num_t { Symbol::T(t_id as VarId).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() },
                                         table[pos].iter().map(|f_id|
@@ -2110,7 +2130,7 @@ impl ProdRuleSet<LL1> {
             }
         }
         if !(0..num_t - 1).any(|t_id| (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] < error_skip)) {
-            self.log.add_error("calc_table: no terminal used in the table".to_string());
+            self.log.add_error("- calc_table: no terminal used in the table".to_string());
         }
         for (_, f) in &mut factors {
             f.flags &= !ruleflag::GREEDY;
@@ -2119,6 +2139,7 @@ impl ProdRuleSet<LL1> {
     }
 
     pub fn make_parsing_table(&mut self, error_recovery: bool) -> LLParsingTable {
+        self.log.add_note("calculating parsing table...");
         let first = self.calc_first();
         let follow = self.calc_follow(&first);
         self.calc_table(&first, &follow, error_recovery)

@@ -262,7 +262,6 @@ impl LexiListener {
             dfas.push((*mode_id as ModeId, Dfa::<General>::build_from(dfa_builder)));
             if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
         }
-        // let mut dfa_builder = DfaBuilder::new();
         if VERBOSE { println!("merging dfa modes"); }
         let dfa = Dfa::<General>::build_from(dfas);
         assert!(dfa.get_log().has_no_errors(), "failed to build lexer\n{}", dfa.get_log().get_messages_str());

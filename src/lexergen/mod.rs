@@ -175,6 +175,7 @@ impl LexerGen {
 
     fn make_from_dfa(&mut self, mut dfa: Dfa<Normalized>) {
         self.log.extend(std::mem::replace(&mut dfa.log, BufLog::new()));
+        self.log.add_note("creating lexer from DFA...");
         self.create_input_tables(&dfa);
         self.create_state_tables(&dfa);
     }
@@ -235,6 +236,9 @@ impl LexerGen {
                 }
             }
         }
+        self.log.add_note(format!(
+            "- creating input tables: ASCII {} entries, UTF8 {} entries, segments {} entries",
+            self.ascii_to_group.len(), self.utf8_to_group.len(), self.seg_to_group.len()));
     }
 
     fn create_state_tables(&mut self, dfa: &Dfa<Normalized>) {
@@ -271,14 +275,17 @@ impl LexerGen {
                 acc
             }
         });
+        self.log.add_note(format!(
+            "- creating state tables: state table {} entries, terminal table {} entries",
+            self.state_table.len(), self.terminal_table.len()));
         match max_token_maybe {
             Some(max_token) => {
                 if max_token == TokenId::MAX {
-                    self.log.add_error(format!("the token {} is taken, but it's reserved for illegal characters", TokenId::MAX));
+                    self.log.add_error(format!("  the token {} is taken, but it's reserved for illegal characters", TokenId::MAX));
                 }
             }
             None => {
-                self.log.add_error("the lexer returns no tokens");
+                self.log.add_error("  the lexer returns no tokens");
             }
         }
     }

@@ -695,6 +695,7 @@ impl DfaBuilder {
     }
 
     fn build(mut self) -> Dfa<General> {
+        self.log.add_note("building DFA...");
         self.calc_node_pos();
         let mut dfa = self.calc_states();
         // transfers all the log messages to the Dfa
@@ -886,6 +887,7 @@ impl<T> Dfa<T> {
             // if there are errors, we bypass any processing and return a shell containing the log
             return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
         }
+        self.log.add_note("normalizing DFA...");
         let mut translate = BTreeMap::<StateId, StateId>::new();
         let mut state_graph = BTreeMap::<StateId, BTreeMap<Segments, StateId>>::new();
         let mut end_states = BTreeMap::<StateId, Terminal>::new();
@@ -935,6 +937,7 @@ impl<T> Dfa<T> {
             // if there are errors, we bypass any processing and return a shell containing the log
             return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
         }
+        self.log.add_note("optimizing DFA...");
         // set `separate_end_states` = `true` if different end (accepting) states should be kept apart;
         // for example, when it's important to differentiate tokens.
         let separate_end_states = true;

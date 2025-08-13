@@ -79,7 +79,7 @@ impl LogStatus for PrintLog {
 
 impl Logger for PrintLog {
     fn add_note<T: Into<String>>(&mut self, msg: T) {
-        eprintln!("NOTE: {}", msg.into());
+        eprintln!("NOTE:    {}", msg.into());
     }
 
     fn add_warning<T: Into<String>>(&mut self, msg: T) {
@@ -87,7 +87,7 @@ impl Logger for PrintLog {
     }
 
     fn add_error<T: Into<String>>(&mut self, msg: T) {
-        eprintln!("ERROR: {}", msg.into());
+        eprintln!("ERROR:   {}", msg.into());
     }
 }
 
@@ -100,9 +100,9 @@ impl Display for LogMsg {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             LogMsg::NoLogStore => write!(f, "The log messages were not stored"),
-            LogMsg::Note(s) => write!(f, "Note: {s}"),
+            LogMsg::Note(s) =>    write!(f, "Note:    {s}"),
             LogMsg::Warning(s) => write!(f, "Warning: {s}"),
-            LogMsg::Error(s) => write!(f, "ERROR: {s}"),
+            LogMsg::Error(s) =>   write!(f, "ERROR:   {s}"),
         }
     }
 }
