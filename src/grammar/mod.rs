@@ -1932,16 +1932,16 @@ impl<T> ProdRuleSet<T> {
             if changed {
                 self.log.add_note(format!(
                     "- modifying: {} -> {}",
-                    Symbol::NT(var).to_str(self.get_symbol_table()), prod.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")));
+                    Symbol::NT(var).to_str(self.get_symbol_table()), prod_to_str(prod, self.get_symbol_table())));
                 self.log.add_note(format!(
                     "  => {} -> {}",
-                    Symbol::NT(var).to_str(self.get_symbol_table()), factors.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")));
+                    Symbol::NT(var).to_str(self.get_symbol_table()), prod_to_str(&factors, self.get_symbol_table())));
                 *prod = factors;
                 let offset = prods.len() as VarId;
                 for (v, p) in extra.iter().index_start(offset) {
                     self.log.add_note(format!(
                         "     {} -> {}",
-                        Symbol::NT(v).to_str(self.get_symbol_table()), p.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")));
+                        Symbol::NT(v).to_str(self.get_symbol_table()), prod_to_str(p, self.get_symbol_table())));
                 }
                 prods.extend(extra);
             }
