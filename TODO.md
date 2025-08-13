@@ -3,7 +3,7 @@
 ## General
 
 - [ ] clean-up of the unit & integration tests
-- [ ] more coherency in functions/methods that create source code (names, location)
+- [x] ~~more coherency in functions/methods that create source code (names, location)~~
 - [ ] split huge files (
   - [ ] dfa
   - [ ] grammar 
@@ -11,7 +11,7 @@
   - [ ] parsergen
 - error reporting
   - [ ] create info/warning/error ID numbers
-  - [ ] return Result instead of objects in from<...> when errors in the log
+  - [x] ~~return Result instead of objects in from<...> when errors in the log~~
   - [ ] make messages parse-friendly and consistent (indentation structure, casing, ...)
 
 ## Lexer
