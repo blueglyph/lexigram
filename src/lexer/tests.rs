@@ -225,7 +225,7 @@ fn build_lexer_tables(test: usize) -> LexerTables {
         let dfa = Dfa::<General>::build_from(dfa_builder);
         let log = dfa.get_log();
         assert!(log.has_no_errors() && log.has_no_warnings(),
-                "warnings/errors when building lexer #{test}: (DFA #{dfa_id})\n{}", log.get_messages_str());
+                "warnings/errors when building lexer #{test}: (DFA #{dfa_id})\n{log}");
         if VERBOSE {
             dfa.print(4);
         }

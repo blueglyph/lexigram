@@ -4,13 +4,13 @@ use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Lexi};
 use lexigram::lexi::SymbolicDfa;
-use lexigram::lexigram_lib::log::{BuildInto, LogReader, LogStatus};
+use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::test_tools::replace_tagged_source;
 use super::{BUILD_LEXIPARSER_FILENAME, LEXILEXER_STAGE2_FILENAME, LEXILEXER_LEXICON, LEXILEXER_STAGE2_TAG, LEXI_SYM_T_TAG, VERSIONS_TAG};
 
 /// Generates Lexi's lexer source code from the lexicon file.
-fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, String), impl LogStatus> {
+fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, String), BufLog> {
     let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
     let reader = BufReader::new(file);
     let stream = CharReader::new(reader);
@@ -46,7 +46,7 @@ fn get_versions() -> String {
 
 pub fn write_lexilexer() {
     let (result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, true)
-        .inspect_err(|log| eprintln!("Failed to parse lexicon: {}", log.get_messages_str()))
+        .inspect_err(|log| eprintln!("Failed to parse lexicon:\n{log}"))
         .unwrap();
     replace_tagged_source(BUILD_LEXIPARSER_FILENAME, LEXI_SYM_T_TAG, &result_sym)
         .expect("parser symbol replacement failed");

@@ -90,7 +90,7 @@ fn get_versions() -> String {
 
 pub fn write_lexiparser() {
     let result_src = lexiparser_source(LEXIPARSER_GRAMMAR, 0, true)
-        .inspect_err(|log| eprintln!("Failed to parse grammar: {}", log.get_messages_str()))
+        .inspect_err(|log| eprintln!("Failed to parse grammar:\n{log}"))
         .unwrap();
     replace_tagged_source(LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TAG, &result_src)
         .expect("parser source replacement failed");

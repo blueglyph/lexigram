@@ -187,6 +187,12 @@ impl Default for BufLog {
     }
 }
 
+impl Display for BufLog {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.get_messages_str())
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // blanket implementations: LogReader -> LogStatus, LogWriter -> Logger
 

@@ -4,13 +4,15 @@ use std::fs::File;
 use std::io::BufReader;
 use lexigram::{lexigram_lib, Lexi};
 use lexigram::lexi::SymbolicDfa;
-use lexigram::lexigram_lib::log::{BuildInto, LogReader, LogStatus};
+use lexigram::lexigram_lib::log::{BufLog, BuildInto, LogReader, LogStatus};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::test_tools::replace_tagged_source;
 use super::{BUILD_GRAMPARSER_FILENAME, GRAMLEXER_STAGE2_FILENAME, GRAMLEXER_LEXICON, GRAMLEXER_STAGE2_TAG, GRAM_SYM_T_TAG, VERSIONS_TAG};
 
+const EXPECTED_NBR_WARNINGS: usize = 0;
+
 /// Generates Gram's lexer source code from the lexicon file.
-fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, String), impl LogStatus> {
+fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(BufLog, String, String), BufLog> {
     let file = File::open(lexicon_filename).expect(&format!("couldn't open lexicon file {lexicon_filename}"));
     let reader = BufReader::new(file);
     let stream = CharReader::new(reader);
@@ -34,7 +36,12 @@ fn gramlexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, St
     let sym_src = symbol_table.gen_source_code_t(0, false, true);
     let dfa_src = dfa.gen_tables_source_code(4);
 
-    Ok((sym_src, dfa_src))
+    let log = dfa.give_log();
+    if EXPECTED_NBR_WARNINGS != log.num_warnings() {
+        return Err(log);
+    }
+
+    Ok((log, sym_src, dfa_src))
 }
 
 fn get_versions() -> String {
@@ -45,9 +52,10 @@ fn get_versions() -> String {
 }
 
 pub fn write_gramlexer() {
-    let (result_sym, result_src) = gramlexer_source(GRAMLEXER_LEXICON, true)
-        .inspect_err(|e| eprintln!("Failed to parse lexicon:\n{}", e.get_messages_str()))
+    let (log, result_sym, result_src) = gramlexer_source(GRAMLEXER_LEXICON, true)
+        .inspect_err(|log| eprintln!("Failed to parse lexicon:\n{log}"))
         .unwrap();
+    println!("Log:\n{log}");
     replace_tagged_source(BUILD_GRAMPARSER_FILENAME, GRAM_SYM_T_TAG, &result_sym)
         .expect("parser symbol replacement failed");
     replace_tagged_source(GRAMLEXER_STAGE2_FILENAME, GRAM_SYM_T_TAG, &result_sym)
@@ -68,10 +76,11 @@ mod tests {
     fn test_source() {
         const VERBOSE: bool = false;
 
-        let (result_sym, result_src) = gramlexer_source(GRAMLEXER_LEXICON, VERBOSE)
-            .inspect_err(|e| eprintln!("Failed to parse lexicon: {e:?}"))
+        let (log, result_sym, result_src) = gramlexer_source(GRAMLEXER_LEXICON, VERBOSE)
+            .inspect_err(|log| eprintln!("Failed to parse lexicon:\n{log:?}"))
             .unwrap();
         if !cfg!(miri) {
+            if VERBOSE { println!("Log:\n{log}"); }
             let expected_sym1 = get_tagged_source(BUILD_GRAMPARSER_FILENAME, GRAM_SYM_T_TAG).unwrap_or(String::new());
             let expected_sym2 = get_tagged_source(GRAMLEXER_STAGE2_FILENAME, GRAM_SYM_T_TAG).unwrap_or(String::new());
             assert_eq!(expected_sym1, expected_sym2, "T symbols are different in {BUILD_GRAMPARSER_FILENAME} and {GRAMLEXER_STAGE2_FILENAME}");

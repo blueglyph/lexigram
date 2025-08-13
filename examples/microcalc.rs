@@ -23,8 +23,8 @@ def main() { let value = a(const()); print value; return value; }
 fn main() {
     println!("{:=<80}\n{TXT1}\n{0:=<80}", "");
     match MCalc::parse_text(TXT1.to_string()) {
-        Ok(log) => println!("parsing successful\n{}", log.get_messages_str()),
-        Err(log) => println!("errors during parsing:\n{}", log.get_messages_str())
+        Ok(log) => println!("parsing successful\n{log}"),
+        Err(log) => println!("errors during parsing:\n{log}"),
     }
 }
 

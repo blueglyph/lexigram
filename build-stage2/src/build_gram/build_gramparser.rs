@@ -1,16 +1,18 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 use lexigram_lib::{CollectJoin, LL1};
-use lexigram_lib::log::{BuildFrom, LogReader, LogStatus};
+use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::grammar::{ProdRuleSet, ProdRuleSetTables};
 use lexigram_lib::{hashmap, prod, prodf};
 use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG};
 
+const EXPECTED_NBR_WARNINGS: usize = 0;
+
 /// Generates Lexi's parser source code from the grammar file and from the symbols in the lexicon
 /// (extracted in [`build_lexilexer`](crate::build_lexilexer::lexilexer_source())).
-fn gramparser_source(indent: usize, verbose: bool) -> Result<String, String> {
+fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
     // lexigram_lib: 0.5.0
@@ -70,17 +72,24 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<String, String> {
         }
     }
     if !builder.get_log().has_no_errors() {
-        return Err(msg);
+        return Err(builder.give_log());
     }
     builder.set_parents_have_value();
     builder.add_lib("gramparser_types::*");
-    Ok(builder.gen_source_code(indent, true))
+    let src = builder.gen_source_code(indent, true);
+    let log = builder.give_log();
+    if EXPECTED_NBR_WARNINGS != log.num_warnings() {
+        Err(log)
+    } else {
+        Ok((log, src))
+    }
 }
 
 pub fn write_gramparser() {
-    let result_src = gramparser_source(0, true)
-        .inspect_err(|e| eprintln!("Failed to parse grammar: {e:?}"))
+    let (log, result_src) = gramparser_source(0, true)
+        .inspect_err(|log| eprintln!("Failed to build parser:\n{log}"))
         .unwrap();
+    println!("Log:\n{log}");
     replace_tagged_source(GRAMPARSER_FILENAME, GRAMPARSER_TAG, &result_src)
         .expect("parser source replacement failed");
 }
@@ -93,10 +102,11 @@ mod tests {
     #[test]
     fn test_source() {
         const VERBOSE: bool = false;
-        let result_src = gramparser_source(0, VERBOSE)
-            .inspect_err(|e| eprintln!("Failed to parse grammar: {e:?}"))
+        let (log, result_src) = gramparser_source(0, VERBOSE)
+            .inspect_err(|log| eprintln!("Failed to build parser:\n{log:?}"))
             .unwrap();
         if !cfg!(miri) {
+            if VERBOSE { println!("Log:\n{log}"); }
             let expected_src = get_tagged_source(GRAMPARSER_FILENAME, GRAMPARSER_TAG).unwrap_or(String::new());
             assert_eq!(result_src, expected_src);
         }
