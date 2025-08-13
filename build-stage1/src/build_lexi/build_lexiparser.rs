@@ -13,7 +13,7 @@ use super::{LEXIPARSER_GRAMMAR, LEXIPARSER_STAGE2_FILENAME, LEXIPARSER_STAGE2_TA
 // -------------------------------------------------------------------------
 // [terminal_symbols]
 
-static TERMINALS: [(&str, Option<&str>); 34] = [
+static TERMINALS: [(&str, Option<&str>); 33] = [
     ("Arrow",    Some("->")),       // 0
     ("Colon",    Some(":")),        // 1
     ("Comma",    Some(",")),        // 2
@@ -40,14 +40,13 @@ static TERMINALS: [(&str, Option<&str>); 34] = [
     ("Skip",     Some("skip")),     // 23
     ("Type",     Some("type")),     // 24
     ("Channel",  Some("channel")),  // 25
-    ("SymEof",   Some("EOF")),      // 26
-    ("Id",       None),             // 27
-    ("CharLit",  None),             // 28
-    ("StrLit",   None),             // 29
-    ("FixedSet", None),             // 30
-    ("LSbracket",Some("[")),        // 31
-    ("RSbracket",Some("]")),        // 32
-    ("SetChar",  None),             // 33
+    ("Id",       None),             // 26
+    ("CharLit",  None),             // 27
+    ("StrLit",   None),             // 28
+    ("FixedSet", None),             // 29
+    ("LSbracket",Some("[")),        // 30
+    ("RSbracket",Some("]")),        // 31
+    ("SetChar",  None),             // 32
 ];
 
 // [terminal_symbols]

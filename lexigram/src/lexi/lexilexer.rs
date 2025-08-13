@@ -10,27 +10,27 @@ use lexigram_lib::lexer::Lexer;
 use lexigram_lib::lexergen::GroupId;
 use lexigram_lib::segments::{Seg, SegMap};
 
-const NBR_GROUPS: u32 = 52;
+const NBR_GROUPS: u32 = 49;
 const INITIAL_STATE: StateId = 0;
 const FIRST_END_STATE: StateId = 21;
-const NBR_STATES: StateId = 95;
+const NBR_STATES: StateId = 92;
 static ASCII_TO_GROUP: [GroupId; 128] = [
-     38,  38,  38,  38,  38,  38,  38,  38,  38,  28,  51,  38,  38,  51,  38,  38,   // 0-15
-     38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,  38,   // 16-31
-      0,  38,  38,  38,  38,  38,  38,   1,   2,   3,   4,   5,   6,   7,   8,   9,   // 32-47
-     29,  29,  29,  29,  29,  29,  29,  29,  29,  29,  10,  11,  38,  38,  34,  12,   // 48-63
-     38,  32,  32,  32,  32,  14,  50,  35,  35,  35,  35,  35,  35,  35,  35,  39,   // 64-79
-     35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  35,  15,  16,  36,  38,  37,   // 80-95
-     38,  46,  32,  17,  13,  42,  18,  47,  40,  49,  35,  44,  19,  20,  30,  43,   // 96-111
-     21,  35,  41,  22,  23,  31,  35,  33,  48,  45,  35,  24,  25,  26,  27,  38,   // 112-127
+     37,  37,  37,  37,  37,  37,  37,  37,  37,  27,  48,  37,  37,  48,  37,  37,   // 0-15
+     37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,   // 16-31
+      0,  37,  37,  37,  37,  37,  37,   1,   2,   3,   4,   5,   6,   7,   8,   9,   // 32-47
+     28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  10,  11,  37,  37,  33,  12,   // 48-63
+     37,  31,  31,  31,  31,  31,  31,  34,  34,  34,  34,  34,  34,  34,  34,  34,   // 64-79
+     34,  34,  34,  34,  34,  34,  34,  34,  34,  34,  34,  14,  15,  35,  37,  36,   // 80-95
+     37,  44,  31,  16,  13,  40,  17,  45,  38,  47,  34,  42,  18,  19,  29,  41,   // 96-111
+     20,  34,  39,  21,  22,  30,  34,  32,  46,  43,  34,  23,  24,  25,  26,  37,   // 112-127
 ];
 static UTF8_TO_GROUP: [(char, GroupId); 0] = [
 ];
 static SEG_TO_GROUP: [(Seg, GroupId); 2] = [
-    (Seg(128, 55295), 38),
-    (Seg(57344, 1114111), 38),
+    (Seg(128, 55295), 37),
+    (Seg(57344, 1114111), 37),
 ];
-static TERMINAL_TABLE: [Terminal;74] = [
+static TERMINAL_TABLE: [Terminal;71] = [
     Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(13), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
@@ -42,167 +42,161 @@ static TERMINAL_TABLE: [Terminal;74] = [
     Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(14), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(11), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(31), channel: 0, mode: ModeOption::Push(1), mode_state: Some(12), pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(30), channel: 0, mode: ModeOption::Push(1), mode_state: Some(12), pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(12), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(25), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(17), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(18), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(19), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(20), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(21), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(22), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(23), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(24), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(23), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(26), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(24), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(27), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(28), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(29), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(30), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(33), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(32), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-    Terminal { action: ActionOption::Token(32), channel: 0, mode: ModeOption::None, mode_state: None, pop: true },
-    Terminal { action: ActionOption::Token(30), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+    Terminal { action: ActionOption::Token(31), channel: 0, mode: ModeOption::None, mode_state: None, pop: true },
+    Terminal { action: ActionOption::Token(29), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
 ];
-static STATE_TABLE: [StateId; 4941] = [
-     21,   1,  22,  23,  24,  25,  26,  27,  28,   2,  29,  30,  31,  32,  33,  34,   3,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  45,  21,  95,  32,  32,  32,  32,  95,  32,  95,  95,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  21, // state 0
-      6,  95,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   7,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,  95,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,  95, // state 1
-     95,  95,  95,  95,   4,  95,  95,  95,  95,  86,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 2
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  90,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  90,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 3
-      4,   4,   4,   4,   5,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4, // state 4
-      4,   4,   4,   4,   5,   4,   4,   4,   4,  87,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4, // state 5
-     11,  88,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  15,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  95,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  95, // state 6
-     95,   6,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,   6,  95,  95,  95,  95,  95,  95,   6,  95,  95,  95,  95,  95,  95,   6,   8,  95,  95,  95,  95,  95,  95,  95,  95,  95,   6,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 7
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,   9,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 8
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  10,  10,  95,  95,  10,  10,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  10,  95,  95,  10,  95,  95,  95,  95,  95,  95,  95,  95,  95,  10,  95,  95,  95,  10,  95,  95,  95,  10,  95, // state 9
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  10,  10,  95,  95,  10,  10,  95,  95,  95,  95,  95,  95,  95,   6,  95,  95,  10,  95,  95,  10,  95,  95,  95,  95,  95,  95,  95,  95,  95,  10,  95,  95,  95,  10,  95,  95,  95,  10,  95, // state 10
-     11,  89,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  15,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  95,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  95, // state 11
-     91,  91,  91,  91,  91,  91,  91,  92,  91,  91,  91,  91,  91,  91,  91,  91,  13,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  95,  91,  91,  91,  91,  91,  91,  91,  93,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  91,  95, // state 12
-     95,  95,  95,  95,  95,  95,  95,  91,  95,  95,  95,  95,  95,  94,  95,  91,  91,  95,  95,  95,  95,  95,  95,  91,  95,  95,  95,  95,  95,  95,  91,  18,  95,  94,  95,  95,  91,  95,  95,  95,  95,  91,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 13
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  14,  14,  95,  95,  14,  14,  95,  95,  95,  95,  95,  95,  95,  91,  95,  95,  14,  95,  95,  14,  95,  95,  95,  95,  95,  95,  95,  95,  95,  14,  95,  95,  95,  14,  95,  95,  95,  14,  95, // state 14
-     95,  11,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  11,  95,  95,  95,  95,  95,  95,  11,  95,  95,  95,  95,  95,  95,  11,  20,  95,  95,  95,  95,  95,  95,  95,  95,  95,  11,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 15
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  14,  14,  95,  95,  14,  14,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  14,  95,  95,  14,  95,  95,  95,  95,  95,  95,  95,  95,  95,  14,  95,  95,  95,  14,  95,  95,  95,  14,  95, // state 16
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  17,  17,  95,  95,  17,  17,  95,  95,  95,  95,  95,  95,  95,  11,  95,  95,  17,  95,  95,  17,  95,  95,  95,  95,  95,  95,  95,  95,  95,  17,  95,  95,  95,  17,  95,  95,  95,  17,  95, // state 17
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  16,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 18
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  17,  17,  95,  95,  17,  17,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  17,  95,  95,  17,  95,  95,  95,  95,  95,  95,  95,  95,  95,  17,  95,  95,  95,  17,  95,  95,  95,  17,  95, // state 19
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  19,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 20
-     21,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  21,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  21, // state 21 <skip>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 22 <end:6>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 23 <end:13>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 24 <end:15>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 25 <end:9>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 26 <end:2>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  46,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 27 <end:8>
-     95,  95,  95,  95,  95,  95,  95,  95,  47,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 28 <end:3>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 29 <end:1>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 30 <end:14>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 31 <end:11>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 32 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  84,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 33 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 34 <end:31,push(1,state 12)>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  48,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 35 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  55,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 36 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  62,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 37 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  68,  32,  32,  32,  32,  32,  32,  32,  95, // state 38 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  73,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  72,  32,  32,  32,  32,  32,  32,  32,  95, // state 39 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  78,  32,  32,  32,  32,  32,  32,  95, // state 40 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  81,  32,  32,  32,  32,  32,  95, // state 41 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 42 <end:5>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 43 <end:10>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 44 <end:12>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 45 <end:7>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 46 <end:0>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 47 <end:4>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  49,  32,  32,  32,  32,  95, // state 48 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  50,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 49 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  51,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 50 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  52,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 51 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  53,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 52 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  54,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 53 <end:25>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 54 <end:16>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  56,  32,  32,  32,  32,  95, // state 55 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  57,  32,  32,  32,  95, // state 56 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  58,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 57 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  59,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 58 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  60,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 59 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  61,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 60 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 61 <end:17>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  63,  32,  32,  95, // state 62 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  64,  32,  95, // state 63 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  65,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 64 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  66,  32,  32,  32,  32,  32,  32,  32,  95, // state 65 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  67,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 66 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 67 <end:18>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  69,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  70,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 68 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  71,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 69 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  77,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 70 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 71 <end:19>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  74,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 72 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  75,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 73 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 74 <end:20>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  76,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 75 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 76 <end:21>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 77 <end:22>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  79,  32,  95, // state 78 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  80,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 79 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 80 <end:23>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  82,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 81 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  83,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 82 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 83 <end:24>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  85,  95, // state 84 <end:27>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  32,  32,  95,  95,  32,  32,  32,  32,  32,  32,  32,  95,  95,  95,  95,  95,  32,  32,  32,  32,  32,  95,  32,  95,  32,  95,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  95, // state 85 <end:26>
-     86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  86,  95, // state 86 <skip>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 87 <skip>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 88 <end:28>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 89 <end:29>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 90 <end:30>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 91 <end:33>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 92 <end:8>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 93 <end:32,pop>
-     95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95,  95, // state 94 <end:30>
-     95 // error group in [nbr_state * nbr_group + nbr_group]
+static STATE_TABLE: [StateId; 4509] = [
+     21,   1,  22,  23,  24,  25,  26,  27,  28,   2,  29,  30,  31,  32,  33,   3,  34,  35,  36,  37,  38,  39,  40,  41,  42,  43,  44,  21,  92,  32,  32,  32,  32,  92,  32,  92,  92,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  21, // state 0
+      6,  92,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   7,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,  92,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,  92, // state 1
+     92,  92,  92,  92,   4,  92,  92,  92,  92,  83,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 2
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  87,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  87,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 3
+      4,   4,   4,   4,   5,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4, // state 4
+      4,   4,   4,   4,   5,   4,   4,   4,   4,  84,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4,   4, // state 5
+     11,  85,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  15,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  92,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  92, // state 6
+     92,   6,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,   6,  92,  92,  92,  92,  92,  92,   6,  92,  92,  92,  92,  92,  92,   6,   8,  92,  92,  92,  92,  92,  92,  92,  92,   6,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 7
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,   9,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 8
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  10,  92,  92,  10,  10,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  10,  92,  92,  10,  92,  92,  92,  92,  92,  92,  92,  92,  10,  92,  92,  92,  10,  92,  92,  92,  92, // state 9
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  10,  92,  92,  10,  10,  92,  92,  92,  92,  92,  92,  92,   6,  92,  92,  10,  92,  92,  10,  92,  92,  92,  92,  92,  92,  92,  92,  10,  92,  92,  92,  10,  92,  92,  92,  92, // state 10
+     11,  86,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  15,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  92,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  11,  92, // state 11
+     88,  88,  88,  88,  88,  88,  88,  89,  88,  88,  88,  88,  88,  88,  88,  13,  88,  88,  88,  88,  88,  88,  88,  88,  88,  88,  88,  92,  88,  88,  88,  88,  88,  88,  88,  90,  88,  88,  88,  88,  88,  88,  88,  88,  88,  88,  88,  88,  92, // state 12
+     92,  92,  92,  92,  92,  92,  92,  88,  92,  92,  92,  92,  92,  91,  88,  88,  92,  92,  92,  92,  92,  92,  88,  92,  92,  92,  92,  92,  92,  88,  18,  92,  91,  92,  92,  88,  92,  92,  92,  88,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 13
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  14,  92,  92,  14,  14,  92,  92,  92,  92,  92,  92,  92,  88,  92,  92,  14,  92,  92,  14,  92,  92,  92,  92,  92,  92,  92,  92,  14,  92,  92,  92,  14,  92,  92,  92,  92, // state 14
+     92,  11,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  11,  92,  92,  92,  92,  92,  92,  11,  92,  92,  92,  92,  92,  92,  11,  20,  92,  92,  92,  92,  92,  92,  92,  92,  11,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 15
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  14,  92,  92,  14,  14,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  14,  92,  92,  14,  92,  92,  92,  92,  92,  92,  92,  92,  14,  92,  92,  92,  14,  92,  92,  92,  92, // state 16
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  17,  92,  92,  17,  17,  92,  92,  92,  92,  92,  92,  92,  11,  92,  92,  17,  92,  92,  17,  92,  92,  92,  92,  92,  92,  92,  92,  17,  92,  92,  92,  17,  92,  92,  92,  92, // state 17
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  16,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 18
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  17,  92,  92,  17,  17,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  17,  92,  92,  17,  92,  92,  92,  92,  92,  92,  92,  92,  17,  92,  92,  92,  17,  92,  92,  92,  92, // state 19
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  19,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 20
+     21,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  21,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  21, // state 21 <skip>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 22 <end:6>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 23 <end:13>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 24 <end:15>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 25 <end:9>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 26 <end:2>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  45,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 27 <end:8>
+     92,  92,  92,  92,  92,  92,  92,  92,  46,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 28 <end:3>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 29 <end:1>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 30 <end:14>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 31 <end:11>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 32 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 33 <end:30,push(1,state 12)>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  47,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 34 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  54,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 35 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  61,  32,  32,  32,  32,  32,  32,  32,  92, // state 36 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  67,  32,  32,  32,  32,  32,  32,  92, // state 37 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  72,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  71,  32,  32,  32,  32,  32,  32,  92, // state 38 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  77,  32,  32,  32,  32,  32,  92, // state 39 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  80,  32,  32,  32,  32,  92, // state 40 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 41 <end:5>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 42 <end:10>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 43 <end:12>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 44 <end:7>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 45 <end:0>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 46 <end:4>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  48,  32,  32,  32,  92, // state 47 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  49,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 48 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  50,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 49 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  51,  32,  32,  32,  32,  32,  32,  32,  92, // state 50 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  52,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 51 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  53,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 52 <end:25>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 53 <end:16>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  55,  32,  32,  32,  92, // state 54 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  56,  32,  32,  92, // state 55 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  57,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 56 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  58,  32,  32,  32,  32,  32,  32,  32,  92, // state 57 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  59,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 58 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  60,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 59 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 60 <end:17>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  62,  32,  92, // state 61 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  63,  92, // state 62 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  64,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 63 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  65,  32,  32,  32,  32,  32,  32,  92, // state 64 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  66,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 65 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 66 <end:18>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  68,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  69,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 67 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  70,  32,  32,  32,  32,  32,  32,  32,  92, // state 68 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  76,  32,  32,  32,  32,  32,  32,  32,  92, // state 69 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 70 <end:19>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  73,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 71 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  74,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 72 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 73 <end:20>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  75,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 74 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 75 <end:21>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 76 <end:22>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  78,  92, // state 77 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  79,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 78 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 79 <end:23>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  81,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 80 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  82,  32,  32,  32,  32,  32,  32,  32,  92, // state 81 <end:26>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  32,  92,  92,  32,  32,  32,  32,  32,  32,  32,  92,  92,  92,  92,  92,  32,  32,  32,  32,  32,  92,  32,  92,  32,  92,  32,  32,  32,  32,  32,  32,  32,  32,  32,  32,  92, // state 82 <end:24>
+     83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  83,  92, // state 83 <skip>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 84 <skip>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 85 <end:27>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 86 <end:28>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 87 <end:29>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 88 <end:32>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 89 <end:8>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 90 <end:31,pop>
+     92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92,  92, // state 91 <end:29>
+     92 // error group in [nbr_state * nbr_group + nbr_group]
 ];
 
 pub fn build_lexer<R: Read>() -> Lexer<'static, R> {

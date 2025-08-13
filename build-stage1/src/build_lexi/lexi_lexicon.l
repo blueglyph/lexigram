@@ -39,7 +39,7 @@ More            : 'more';
 Skip            : 'skip';
 Type            : 'type';
 Channel         : 'channel';
-SymEof          : 'EOF';
+//SymEof          : 'EOF';
 
 SComment        : BlockComment              -> skip;
 SLineComment    : LineComment               -> skip;
