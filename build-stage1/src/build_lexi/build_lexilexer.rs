@@ -37,6 +37,13 @@ fn lexilexer_source(lexicon_filename: &str, verbose: bool) -> Result<(String, St
     Ok((sym_src, dfa_src))
 }
 
+fn get_versions() -> String {
+    format!("    // {}: {}\n    // {}: {}\n    // {}: {}\n",
+            lexigram_lib::LIB_PKG_NAME, lexigram_lib::LIB_PKG_VERSION,
+            lexigram::LEXIGRAM_PKG_NAME, lexigram::LEXIGRAM_PKG_VERSION,
+            crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION)
+}
+
 pub fn write_lexilexer() {
     let (result_sym, result_src) = lexilexer_source(LEXILEXER_LEXICON, true)
         .inspect_err(|log| eprintln!("Failed to parse lexicon: {}", log.get_messages_str()))
@@ -47,10 +54,7 @@ pub fn write_lexilexer() {
         .expect("parser symbol replacement failed");
     replace_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXILEXER_STAGE2_TAG, &result_src)
         .expect("lexer source replacement failed");
-    let versions = format!("    // {}: {}\n    // {}: {}\n    // {}: {}\n",
-        lexigram_lib::LIB_PKG_NAME, lexigram_lib::LIB_PKG_VERSION,
-        lexigram::LEXIGRAM_PKG_NAME, lexigram::LEXIGRAM_PKG_VERSION,
-        crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION);
+    let versions = get_versions();
     replace_tagged_source(LEXILEXER_STAGE2_FILENAME, VERSIONS_TAG, &versions)
         .expect("versions replacement failed");
 }
@@ -74,6 +78,9 @@ mod tests {
             let expected_src = get_tagged_source(LEXILEXER_STAGE2_FILENAME, LEXILEXER_STAGE2_TAG).unwrap_or(String::new());
             assert_eq!(result_sym, expected_sym1);
             assert_eq!(result_src, expected_src);
+            let result_ver = get_versions();
+            let expected_ver = get_tagged_source(LEXILEXER_STAGE2_FILENAME, VERSIONS_TAG).unwrap_or(String::new());
+            assert_eq!(result_ver, expected_ver);
         }
     }
 

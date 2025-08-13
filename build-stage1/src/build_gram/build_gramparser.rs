@@ -57,16 +57,20 @@ fn gramparser_source(grammar_filename: &str, verbose: bool) -> Result<String, Bu
     Ok(ll1_src)
 }
 
+fn get_versions() -> String {
+    format!("    // {}: {}\n    // {}: {}\n    // {}: {}\n",
+            lexigram_lib::LIB_PKG_NAME, lexigram_lib::LIB_PKG_VERSION,
+            lexigram::LEXIGRAM_PKG_NAME, lexigram::LEXIGRAM_PKG_VERSION,
+            crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION)
+}
+
 pub fn write_gramparser() {
     let result_src = gramparser_source(GRAMPARSER_GRAMMAR, true)
         .inspect_err(|log| eprintln!("{log}"))
         .unwrap();
     replace_tagged_source(GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_STAGE2_TAG, &result_src)
         .expect("parser source replacement failed");
-    let versions = format!("    // {}: {}\n    // {}: {}\n    // {}: {}\n",
-        lexigram_lib::LIB_PKG_NAME, lexigram_lib::LIB_PKG_VERSION,
-        lexigram::LEXIGRAM_PKG_NAME, lexigram::LEXIGRAM_PKG_VERSION,
-        crate::STAGE1_PKG_NAME, crate::STAGE1_PKG_VERSION);
+    let versions = get_versions();
     replace_tagged_source(GRAMPARSER_STAGE2_FILENAME, VERSIONS_TAG, &versions)
         .expect("versions replacement failed");
 }
@@ -85,6 +89,9 @@ mod tests {
         if !cfg!(miri) {
             let expected_src = get_tagged_source(GRAMPARSER_STAGE2_FILENAME, GRAMPARSER_STAGE2_TAG).unwrap_or(String::new());
             assert_eq!(result_src, expected_src);
+            let result_ver = get_versions();
+            let expected_ver = get_tagged_source(GRAMPARSER_STAGE2_FILENAME, VERSIONS_TAG).unwrap_or(String::new());
+            assert_eq!(result_ver, expected_ver);
         }
     }
 
