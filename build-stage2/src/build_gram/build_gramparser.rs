@@ -15,9 +15,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram_lib: 0.5.0
-    // lexigram: 0.5.0
-    // build-stage1: 0.5.0
+    // lexigram_lib: 0.5.2
+    // lexigram: 0.5.2
+    // build-stage1: 0.5.2
 
     // [versions]
 
