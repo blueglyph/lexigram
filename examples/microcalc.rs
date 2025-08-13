@@ -1,8 +1,9 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-#![allow(unused)]   // TODO: remove; keeps those warnings silent for now
+// =============================================================================================
+// Simple parser based on microcalc lexicon and grammar
 
-use std::io::{Cursor, Read};
+use std::io::Cursor;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogStatus, Logger};
@@ -19,25 +20,15 @@ def a(x) { let y = 2*x; return y; }
 def main() { let value = a(const()); print value; return value; }
 "#;
 
-pub fn main() {
+fn main() {
     println!("{:=<80}\n{TXT1}\n{0:=<80}", "");
-    match parse_string(TXT1.to_string()) {
+    match MCalc::parse_text(TXT1.to_string()) {
         Ok(log) => println!("parsing successful\n{}", log.get_messages_str()),
         Err(log) => println!("errors during parsing:\n{}", log.get_messages_str())
     }
 }
 
-fn parse_string(text: String) -> Result<BufLog, BufLog> {
-    let mut mcalc = MCalc::new();
-    mcalc.parse(text)
-}
-
-#[cfg(test)]
-#[test]
-fn test_gen_microcalc() {
-    main();
-}
-
+// -------------------------------------------------------------------------
 // minimalist parser, top level
 
 pub struct MCalc<'l, 'p> {
@@ -47,6 +38,11 @@ pub struct MCalc<'l, 'p> {
 }
 
 impl MCalc<'_, '_> {
+    pub fn parse_text(text: String) -> Result<BufLog, BufLog> {
+        let mut mcalc = MCalc::new();
+        mcalc.parse(text)
+    }
+
     pub fn new() -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
@@ -118,7 +114,7 @@ impl MicroCalcListener for MCalcListener {
 // User types used in the listener interface:
 // (initially copied/uncommented from the generated parser code)
 
-mod listener_types {
+pub mod listener_types {
     /// User-defined type for `program`
     #[derive(Debug, PartialEq)] pub struct SynProgram();
     /// User-defined type for `function`
@@ -135,7 +131,7 @@ mod listener_types {
 
 // -------------------------------------------------------------------------
 
-mod microcalc_lexer {
+pub mod microcalc_lexer {
     // Generated code, don't modify manually anything between the tags below
 
     // [microcalc_lexer]
@@ -270,7 +266,7 @@ mod microcalc_lexer {
 
 // -------------------------------------------------------------------------
 
-mod microcalc_parser {
+pub mod microcalc_parser {
     // Generated code, don't modify manually anything between the tags below
 
     // [microcalc_parser]
@@ -742,3 +738,13 @@ mod microcalc_parser {
 }
 
 // -------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_gen_microcalc() {
+        main();
+    }
+}
