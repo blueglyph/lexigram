@@ -22,7 +22,7 @@
 ## Lexer
 
 - basic lexi
-  - [ ] move 'make' methods from listener to Lexi 
+  - [x] ~~move 'make' methods from listener to Lexi~~ 
   - [ ] make binary application
   - [ ] verify it doesn't crash with erroneous lexicons
 - code generation

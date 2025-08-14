@@ -205,7 +205,7 @@ impl LexiListener {
         &self.name
     }
 
-    pub fn get_sorted_modes(&self) -> Vec<(&ModeId, &String)> {
+    fn get_sorted_modes(&self) -> Vec<(&ModeId, &String)> {
         let mut sorted_modes = self.modes.iter().map(|(name, id)| (id, name)).to_vec();
         sorted_modes.sort();
         sorted_modes
@@ -227,49 +227,7 @@ impl LexiListener {
         table
     }
 
-    /// Makes and optimizes the DFA
-    pub fn make_dfa(&mut self) -> Dfa<Normalized> {
-        const VERBOSE: bool = false;
-        if !self.log.has_no_errors() {
-            // if there are errors, we bypass any processing and return a shell containing the log
-            return Dfa::<Normalized>::with_log(std::mem::take(&mut self.log));
-        }
-        let num_t = self.terminals.len();
-        let mut names = vec![String::new(); num_t];
-        for (s, r) in &self.rules {
-            if let RuleType::Terminal(token) = r {
-                names[*token as usize] = s.clone();
-            }
-        }
-        let mut dfas = vec![];
-        let sorted_modes = self.get_sorted_modes();
-        for (mode_id, mode_name) in sorted_modes {
-            if VERBOSE { println!("mode {mode_id}: {mode_name}"); }
-            let range = &self.mode_terminals[*mode_id as usize];
-            if VERBOSE { println!("* mode {mode_id}: {mode_name} = rules {range:?} ({})", range.clone().map(|n| &names[n as usize]).join(", ")); }
-            let range = range.start as usize..range.end as usize;
-            let mut tree = VecTree::<ReNode>::new();
-            let top = tree.add_root(node!(|));
-            for (i, t) in self.terminals[range].iter().enumerate() {
-                if VERBOSE { println!("- adding tree for terminal {i}: {t:?}"); }
-                if !t.is_empty() {
-                    let cc = tree.add(Some(top), node!(&));
-                    tree.add_from_tree(Some(cc), t, None);
-                }
-            }
-            if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
-            let dfa_builder = DfaBuilder::build_from(tree);
-            assert_eq!(dfa_builder.get_log().num_errors(), 0, "failed to compile mode {mode_id}");
-            dfas.push((*mode_id as ModeId, Dfa::<General>::build_from(dfa_builder)));
-            if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
-        }
-        if VERBOSE { println!("merging dfa modes"); }
-        let dfa = Dfa::<General>::build_from(dfas);
-        assert!(dfa.get_log().has_no_errors(), "failed to build lexer\n{}", dfa.get_log().get_messages_str());
-        dfa.optimize()
-    }
-
-    pub fn rules_to_string(&self, indent: usize) -> String {
+    pub(crate) fn rules_to_string(&self, indent: usize) -> String {
         let mut cols = vec![vec!["      type".to_string(), "name".to_string(), "tree".to_string(), "lit".to_string(),
                                  "ret".to_string(), "token".to_string(), "end".to_string()]];
         let mut rules = self.rules.iter().to_vec();
@@ -388,6 +346,49 @@ impl LogReader for LexiListener {
 
     fn give_log(self) -> BufLog {
         self.log
+    }
+}
+
+impl BuildFrom<LexiListener> for Dfa<Normalized> {
+    /// Makes and optimizes the DFA
+    fn build_from(source: LexiListener) -> Self {
+        const VERBOSE: bool = false;
+        if !source.log.has_no_errors() {
+            // if there are errors, we bypass any processing and return a shell containing the log
+            return Dfa::<Normalized>::with_log(source.log);
+        }
+        let num_t = source.terminals.len();
+        let mut names = vec![String::new(); num_t];
+        for (s, r) in &source.rules {
+            if let RuleType::Terminal(token) = r {
+                names[*token as usize] = s.clone();
+            }
+        }
+        let mut dfas = vec![];
+        let sorted_modes = source.get_sorted_modes();
+        for (mode_id, mode_name) in sorted_modes {
+            if VERBOSE { println!("mode {mode_id}: {mode_name}"); }
+            let range = &source.mode_terminals[*mode_id as usize];
+            if VERBOSE { println!("* mode {mode_id}: {mode_name} = rules {range:?} ({})", range.clone().map(|n| &names[n as usize]).join(", ")); }
+            let range = range.start as usize..range.end as usize;
+            let mut tree = VecTree::<ReNode>::new();
+            let top = tree.add_root(node!(|));
+            for (i, t) in source.terminals[range].iter().enumerate() {
+                if VERBOSE { println!("- adding tree for terminal {i}: {t:?}"); }
+                if !t.is_empty() {
+                    let cc = tree.add(Some(top), node!(&));
+                    tree.add_from_tree(Some(cc), t, None);
+                }
+            }
+            if VERBOSE { println!("  => {}", tree_to_string(&tree, None, true)); }
+            let dfa_builder = DfaBuilder::build_from(tree);
+            assert_eq!(dfa_builder.get_log().num_errors(), 0, "failed to compile mode {mode_id}");
+            dfas.push((*mode_id as ModeId, Dfa::<General>::build_from(dfa_builder)));
+            if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
+        }
+        if VERBOSE { println!("merging dfa modes"); }
+        let dfa = Dfa::<General>::build_from(dfas);
+        dfa.optimize()
     }
 }
 
