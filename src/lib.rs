@@ -424,7 +424,7 @@ mod libtests {
             Err(BuildError { source: BuildErrorSource::ParserGen, log })
         }
         let err = build().err().expect("build() should return an error");
-        assert_eq!(err.to_string(), "Errors have occurred in ParserGen:\n- ERROR: the test generated a fake error successfully\n");
+        assert_eq!(err.to_string(), "Errors have occurred in ParserGen:\n- ERROR:   the test generated a fake error successfully\n");
     }
 }
 
