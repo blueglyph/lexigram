@@ -4,12 +4,13 @@ use std::io::Read;
 use lexigram_lib::dfa::Dfa;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, TryBuildFrom};
+use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, Logger, LogReader, LogStatus, TryBuildFrom};
 use lexigram_lib::parser::Parser;
 use lexigram_lib::{BuildError, BuildErrorSource, HasBuildErrorSource, Normalized, SymbolTable};
 use lexilexer::build_lexer;
 use lexiparser::{build_parser, Wrapper};
 use listener::LexiListener;
+use crate::lexi::lexiparser::LexiParserListener;
 
 mod lexilexer;
 mod lexiparser;
@@ -56,7 +57,7 @@ impl<R: Read> Lexi<'_, '_, R> {
         self.wrapper.get_listener()
     }
 
-    fn  make(&mut self) -> Result<(), &BufLog> {
+    fn make(&mut self) {
         if !self.is_built {
             // we keep track of the built state because some unit tests are calling build() directly
             self.is_built = true;
@@ -67,20 +68,11 @@ impl<R: Read> Lexi<'_, '_, R> {
                     println!("TOKEN: line {line} col {col}, Id {tok:?}, \"{text}\"");
                 }
             });
-            let _ = self.lexiparser.parse_stream(&mut self.wrapper, tokens);
-        }
-        let log = self.wrapper.get_listener().get_log();
-        if Self::VERBOSE_DETAILS {
-            println!("Lexilexer: {:?}", self.lexilexer.get_error());
-            let msg = log.get_messages_str();
-            if !msg.is_empty() {
-                println!("Lexi:\n{msg}");
+            if self.lexiparser.parse_stream(&mut self.wrapper, tokens).is_ok() {
+                for s in self.get_mut_listener().rules_to_vecstrings() {
+                    self.get_mut_listener().get_mut_log().add_note(s);
+                }
             }
-        }
-        if log.has_no_errors() {
-            Ok(())
-        } else {
-            Err(log)
         }
     }
 }
@@ -104,7 +96,7 @@ impl<R: Read> HasBuildErrorSource for Lexi<'_, '_, R> {
 
 impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
     fn build_from(mut lexi: Lexi<R>) -> Self {
-        let _ = lexi.make();
+        lexi.make();
         let listener = lexi.wrapper.listener();
         let symbol_table = listener.make_symbol_table();
         SymbolicDfa {

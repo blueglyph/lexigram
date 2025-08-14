@@ -2,6 +2,7 @@
 
 #![cfg(test)]
 
+use crate::dfa::DfaBundle;
 use std::collections::BTreeSet;
 use std::io::Cursor;
 use std::mem::size_of_val;
@@ -37,7 +38,7 @@ fn make_dfa() -> Dfa<General> {
         assert!(dfa.get_log().has_no_errors(), "Failed to build DFA:\n{}", dfa.get_log().get_messages_str());
         dfas.push((n, dfa));
     }
-    let dfa = Dfa::<General>::build_from(dfas);
+    let dfa = Dfa::<General>::build_from(DfaBundle::new(dfas));
     if VERBOSE {
         println!("Messages:\n{}", dfa.get_log().get_messages_str());
     }

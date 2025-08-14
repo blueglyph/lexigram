@@ -1572,7 +1572,7 @@ fn dfa_modes() {
             }
         }
         if VERBOSE { println!("## Merged:"); }
-        let dfa = Dfa::<General>::build_from(dfas);
+        let dfa = Dfa::<General>::build_from(DfaBundle::new(dfas));
         assert!(dfa.get_log().has_no_errors(), "test {test_id} failed to build Dfa:\n{}", dfa.get_log().get_messages_str());
         if VERBOSE {
             dfa.print(12);

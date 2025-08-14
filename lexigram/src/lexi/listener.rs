@@ -5,7 +5,7 @@ use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Range};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use lexigram_lib::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string};
+use lexigram_lib::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string, DfaBundle};
 use lexigram_lib::dfa::ReNode;
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, CollectJoin, General, Normalized, SymbolTable};
@@ -227,7 +227,7 @@ impl LexiListener {
         table
     }
 
-    pub(crate) fn rules_to_string(&self, indent: usize) -> String {
+    pub(crate) fn rules_to_vecstrings(&self) -> Vec<String> {
         let mut cols = vec![vec!["      type".to_string(), "name".to_string(), "tree".to_string(), "lit".to_string(),
                                  "ret".to_string(), "token".to_string(), "end".to_string()]];
         let mut rules = self.rules.iter().to_vec();
@@ -270,7 +270,11 @@ impl LexiListener {
                            if let Some(end) = end_maybe { format!(" {end} ") } else { String::new() },
             ]);
         }
-        let mut cols_out = lexigram_lib::columns_to_str(cols, None);
+        lexigram_lib::columns_to_str(cols, None)
+    }
+
+    pub(crate) fn rules_to_string(&self, indent: usize) -> String {
+        let mut cols_out = self.rules_to_vecstrings();
         let title = cols_out.remove(0);
         let tab = format!("{: <width$}", "", width = indent);
         format!("{tab}   {title}\n{tab}{:-<width$}{}", "",
@@ -387,7 +391,8 @@ impl BuildFrom<LexiListener> for Dfa<Normalized> {
             if VERBOSE { dfas[dfas.len() - 1].1.print(5); }
         }
         if VERBOSE { println!("merging dfa modes"); }
-        let dfa = Dfa::<General>::build_from(dfas);
+        let log = source.log;
+        let dfa = Dfa::<General>::build_from(DfaBundle::with_log(log, dfas));
         dfa.optimize()
     }
 }

@@ -232,7 +232,7 @@ fn build_lexer_tables(test: usize) -> LexerTables {
         (mode as u16, dfa)
     }).to_vec();
     if VERBOSE { println!("merging dfa modes"); }
-    let dfa = Dfa::<General>::build_from(dfas);
+    let dfa = Dfa::<General>::build_from(DfaBundle::new(dfas));
     assert!(dfa.get_log().has_no_errors() && dfa.get_log().has_no_warnings(),
             "warnings/errors when building lexer #{test} (merging DFAs):\n{}", dfa.get_log().get_messages_str());
     if VERBOSE {

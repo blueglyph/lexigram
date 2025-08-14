@@ -327,12 +327,16 @@ pub struct DfaBuilder {
 
 impl DfaBuilder {
     pub fn new() -> Self {
+        Self::with_log(BufLog::new())
+    }
+
+    pub fn with_log(log: BufLog) -> Self {
         DfaBuilder {
             re: VecTree::new(),
             followpos: HashMap::new(),
             lazypos: HashSet::new(),
             ids: HashMap::new(),
-            log: BufLog::new()
+            log
         }
     }
 
@@ -1130,17 +1134,51 @@ impl Dfa<Normalized> {
 
 // ---------------------------------------------------------------------------------------------
 
-impl<T> BuildFrom<T> for Dfa<General>
-where
-    T: IntoIterator<Item=(ModeId, Dfa<General>)>,
-{
+pub struct DfaBundle {
+    /// DFAs and their respective mode IDs
+    dfas: Vec<(ModeId, Dfa<General>)>,
+    /// Log of any potential process that occurred before getting the DFAs
+    log: Option<BufLog>,
+}
+
+impl DfaBundle {
+    pub fn new<T>(dfas: T) -> Self where T: IntoIterator<Item=(ModeId, Dfa<General>)> {
+        DfaBundle {
+            dfas: dfas.into_iter().collect(),
+            log: None
+        }
+    }
+
+    pub fn with_log<T>(log: BufLog, dfas: T) -> Self where T: IntoIterator<Item=(ModeId, Dfa<General>)> {
+        DfaBundle {
+            dfas: dfas.into_iter().collect(),
+            log: Some(log)
+        }
+    }
+}
+
+// impl<T> BuildFrom<T> for Dfa<General>
+// where
+//     T: IntoIterator<Item=(ModeId, Dfa<General>)>,
+// {
+//     /// Builds a [`Dfa::<General>`] from multiple DFAs, each related to one mode.
+//     ///
+//     /// If an error is encountered or was already encountered before, an empty shell object
+//     /// is built with the log detailing the error(s).
+//     fn build_from(dfas: T) -> Self {
+//         let dfa_builder = DfaBuilder::new();
+//         dfa_builder.build_from_dfa_modes(dfas)
+//     }
+// }
+
+impl BuildFrom<DfaBundle> for Dfa<General> {
     /// Builds a [`Dfa::<General>`] from multiple DFAs, each related to one mode.
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn build_from(dfas: T) -> Self {
-        let dfa_builder = DfaBuilder::new();
-        dfa_builder.build_from_dfa_modes(dfas)
+    fn build_from(bundle: DfaBundle) -> Self {
+        let dfa_builder = DfaBuilder::with_log(bundle.log.unwrap_or_default());
+        dfa_builder.build_from_dfa_modes(bundle.dfas)
     }
 }
 
