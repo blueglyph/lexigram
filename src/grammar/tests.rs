@@ -783,7 +783,7 @@ fn rts_normalize() {
             println!("test {test_id}:");
         }
         rules.normalize();
-        assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize: {}", log_to_str(&rules.log));
+        assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize:\n{}", rules.log.get_messages_str());
         if let Some(err) = check_rts_sanity(&rules, VERBOSE_DETAILS) {
             panic!("test {test_id} failed:\n{}", err);
         }
@@ -878,7 +878,7 @@ fn rts_prodrule_from() {
             println!("\ntest {test_id}:");
         }
         let mut rules = ProdRuleSet::build_from(trees);
-        assert!(rules.log.has_no_errors(), "test {test_id} failed to create production rules: {}", log_to_str(&rules.log));
+        assert!(rules.log.has_no_errors(), "test {test_id} failed to create production rules:\n{}", rules.log.get_messages_str());
         rules.simplify();
         let result = rules.get_non_empty_nts().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
         let num_vars = result.len();
@@ -933,7 +933,7 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub(crate) fn print_logs(&self) {
-        println!("{}\n", log_to_str(&self.log));
+        println!("{}\n", self.log.get_messages_str());
     }
 }
 
@@ -960,19 +960,6 @@ fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
         format!("{i} => prod!({}),", p.iter()
             .map(|f| format!("{}{}", if f.flags != 0 { format!("#{}, ", f.flags) } else { "".to_string() }, f.iter().map(|s| s.to_macro_item()).join(", ")))
             .join("; "))).join("\n            "))
-}
-
-pub(crate) fn log_to_str(log: &BufLog) -> String {
-    let mut msg = Vec::<String>::new();
-    msg.push(format!("Errors: {}", log.num_errors()));
-    msg.extend(log.get_errors().cloned());
-    msg.push("".to_string());
-    msg.push(format!("Warnings: {}", log.num_warnings()));
-    msg.extend(log.get_warnings().cloned());
-    msg.push("".to_string());
-    msg.push(format!("Notes: {}", log.num_notes()));
-    msg.extend(log.get_notes().cloned());
-    msg.join("\n")
 }
 
 fn map_and_print_first<'a>(first: &'a HashMap<Symbol, HashSet<Symbol>>, symbol_table: Option<&'a SymbolTable>) -> BTreeMap<&'a Symbol, BTreeSet<&'a Symbol>> {

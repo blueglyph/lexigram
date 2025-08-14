@@ -594,7 +594,7 @@ mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use iter_index::IndexerIterator;
     use crate::grammar::{factor_to_rule_str, factor_to_str, ruleflag, FactorId, Symbol, VarId};
-    use crate::grammar::tests::{log_to_str, T};
+    use crate::grammar::tests::T;
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source, SymInfoTable};
     use crate::grammar::tests::T::{PRS, RTS};
     use crate::parsergen::{print_flags, print_items, ParserGen};
@@ -2191,7 +2191,7 @@ mod wrapper_source {
             let wrapper_src = builder.source_wrapper();
             let builder_has_errors = builder.log.num_errors() > 0;
             if VERBOSE && builder_has_errors {
-                println!("log:\n{}", log_to_str(&builder.get_log()));
+                println!("log:\n{}", builder.get_log().get_messages_str());
             }
             let mut src = vec![builder.source_use()];
             src.push(wrapper_src);
