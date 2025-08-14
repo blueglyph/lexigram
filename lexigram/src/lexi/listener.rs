@@ -228,13 +228,19 @@ impl LexiListener {
     }
 
     pub(crate) fn rules_to_vecstrings(&self) -> Vec<String> {
-        let mut cols = vec![vec!["      type".to_string(), "name".to_string(), "tree".to_string(), "lit".to_string(),
-                                 "ret".to_string(), "token".to_string(), "end".to_string()]];
+        let mut lines = vec!["lexicon summary:".to_string(), "- modes:".to_string()];
+        lines.extend(self.get_sorted_modes().into_iter().map(|(id, name)| format!("  {id:2}: {name}")));
+        lines.push("- channels:".to_string());
+        let mut sorted_channels = self.channels.iter().map(|(name, id)| (id, name)).to_vec();
+        sorted_channels.sort();
+        lines.extend(sorted_channels.into_iter().map(|(id, name)| format!("  {id:2}: {name}")));
+        let mut cols = vec![vec!["  type".to_string(), "name".to_string(), "lit".to_string(), "mode".to_string(),
+                                 "ret".to_string(), "token ".to_string(), "tree".to_string()]];
         let mut rules = self.rules.iter().to_vec();
         rules.sort_by(|a, b| (&a.1, &a.0).cmp(&(&b.1, &b.0)));
-        // rules.sort_by_key(|(s, rt)| (rt, s));
-        for (i, (s, rt)) in rules.into_iter().enumerate() {
-            let (t, lit, ret, sym_maybe, end_maybe) = match rt {
+        let mut imode = 0;
+        for (_i, (s, rt)) in rules.into_iter().enumerate() {
+            let (t, lit, ret, sym_maybe, _end_maybe) = match rt {
                 RuleType::Fragment(id) => (
                     self.fragments.get(*id as usize).unwrap(),
                     self.fragment_literals.get(*id as usize).unwrap(),
@@ -261,16 +267,28 @@ impl LexiListener {
                     )
                 },
             };
-            cols.push(vec![format!("[{i:3}] {rt:?}"),
+            let mode = if let RuleType::Terminal(id) = rt {
+                if !self.mode_terminals[imode].contains(id) {
+                    imode += 1;
+                }
+                imode.to_string()
+            } else {
+                String::new()
+            };
+            cols.push(vec![format!("  {rt:?}"),
                            format!("{s}"),
+                           format!("{}", lit.as_ref().map(|s| format!("\"{s}\"")).unwrap_or_default()),
+                           format!("{mode}"),
+                           format!("{}", if let Some(b) = ret { if b { "Y" } else { "N" } } else { "" }),
+                           if let Some(sym) = sym_maybe { format!("{sym}") } else { String::new() },
                            format!("{}", tree_to_string(t, None, true)),
-                           format!("{lit:?}"),
-                           format!("{}", if let Some(b) = ret { b.to_string() } else { String::new() }),
-                           if let Some(sym) = sym_maybe { format!("{s} = {sym}") } else { String::new() },
-                           if let Some(end) = end_maybe { format!(" {end} ") } else { String::new() },
             ]);
         }
-        lexigram_lib::columns_to_str(cols, None)
+        lines.push("- definitions:".to_string());
+        let mut table = lexigram_lib::columns_to_str(cols, None);
+        table.insert(1, format!("  {:-<width$}", "", width = table.get(0).unwrap().len() + 10));
+        lines.extend(table);
+        lines
     }
 
     pub(crate) fn rules_to_string(&self, indent: usize) -> String {
