@@ -7,7 +7,7 @@ use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
 use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, ProdFactor, factor_to_rule_str};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable, HasBuildErrorSource, BuildError, BuildErrorSource};
-use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger, TryBuildFrom};
+use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
 use crate::parser::{OpCode, Parser};
 use crate::segments::{Seg, Segments};
 
@@ -1061,7 +1061,7 @@ impl ParserGen {
     /// }
     /// ```
     fn get_type_info(&self) -> (Vec<(String, String, String)>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -1314,6 +1314,7 @@ impl ParserGen {
     }
 
     fn source_build_parser(&mut self) -> Vec<String> {
+        self.log.add_note("generating build_parser() source...");
         let num_nt = self.symbol_table.get_num_nt();
         let num_t = self.symbol_table.get_num_t();
         for lib in [
@@ -1328,6 +1329,7 @@ impl ParserGen {
             self.used_libs.add(lib);
         }
 
+        self.log.add_note(format!("- creating symbol tables: {num_t} terminals, {num_nt} nonterminals"));
         let mut src = vec![
             format!("const PARSER_NUM_T: usize = {num_t};"),
             format!("const PARSER_NUM_NT: usize = {num_nt};"),
@@ -1345,6 +1347,7 @@ impl ParserGen {
                     self.parsing_table.factors.len(),
                     self.parsing_table.factors.iter().map(|(_, f)| format!("&[{}]", f.iter().map(|s| symbol_to_code(s)).join(", "))).join(", ")));
         }
+        self.log.add_note(format!("- creating parsing tables: {} items, {} opcodes", self.parsing_table.table.len(), self.opcodes.len()));
         src.extend(vec![
             format!("static PARSING_TABLE: [FactorId; {}] = [{}];",
                      self.parsing_table.table.len(),
@@ -1414,6 +1417,10 @@ impl ParserGen {
         const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_FACTORS: bool = false;
 
+        // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END
+
+        let mut log = std::mem::take(&mut self.log); // work-around for borrow checker (`let nt_type = self.get_nt_type(v)`: immutable borrow, etc)
+        log.add_note("generating wrapper source...");
         self.used_libs.extend([
             "lexigram_lib::CollectJoin", "lexigram_lib::grammar::VarId", "lexigram_lib::parser::Call", "lexigram_lib::parser::ListenerWrapper",
             "lexigram_lib::grammar::FactorId", "lexigram_lib::log::Logger",
@@ -1433,6 +1440,7 @@ impl ParserGen {
         }
 
         // Writes contexts
+        log.add_note(format!("- Contexts used in {}Listener trait:", self.name));
         for group in self.nt_parent.iter().filter(|vf| !vf.is_empty()) {
             let mut group_names = HashMap::<VarId, Vec<FactorId>>::new();
             // fetches the NT that have factor data
@@ -1447,17 +1455,22 @@ impl ParserGen {
             }
             for &nt in group {
                 if let Some(factors) = group_names.get(&nt) {
+                    log.add_note(format!("  - Ctx{}:", nt_name[nt as usize].0));
                     src.push(format!("#[derive(Debug)]"));
                     src.push(format!("pub enum Ctx{} {{", nt_name[nt as usize].0));
                     for &f_id in factors {
-                        src.push(format!("    /// {}", self.full_factor_str::<false>(f_id, None, true)));
+                        let comment = self.full_factor_str::<false>(f_id, None, true);
+                        log.add_note(format!("    /// {comment}"));
+                        src.push(format!("    /// {comment}"));
                         let ctx_content = self.source_infos(&item_info[f_id as usize], false);
                         let f_name = &factor_info[f_id as usize].as_ref().unwrap().1;
-                        if ctx_content.is_empty() {
-                            src.push(format!("    {f_name},", ))
+                        let ctx_item = if ctx_content.is_empty() {
+                            format!("    {f_name},", )
                         } else {
-                            src.push(format!("    {f_name} {{ {ctx_content} }},", ))
-                        }
+                            format!("    {f_name} {{ {ctx_content} }},", )
+                        };
+                        log.add_note(ctx_item.clone());
+                        src.push(ctx_item);
                     }
                     src.push(format!("}}"));
                 }
@@ -1466,6 +1479,7 @@ impl ParserGen {
 
         // Writes intermediate Syn types
         src.add_space();
+        log.add_note("- NT types and user-defined type templates:");
         src.push("// NT types and user-defined type templates (copy elsewhere and uncomment when necessary):".to_string());
         src.add_space();
         let mut syns = Vec::<VarId>::new(); // list of valuable NTs
@@ -1484,8 +1498,12 @@ impl ParserGen {
                 }).join(", ");
                 if let Some(infos) = nt_repeat.get(&(v)) {
                     if is_lform {
-                        src.push(format!("// /// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
-                        src.push(format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)));
+                        let user_def_type = vec![
+                            format!("// /// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
+                            format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
+                        ];
+                        log.extend_messages(user_def_type.iter().map(|s| LogMsg::Note(s[3..].to_string())));
+                        src.extend(user_def_type);
                         let extra_src = vec![
                             format!("/// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
                             format!("#[derive(Debug, PartialEq)]"),
@@ -1513,8 +1531,12 @@ impl ParserGen {
                     }
                 } else {
                     if is_lform {
-                        src.push(format!("// /// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
-                        src.push(format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)));
+                        let user_def_type = vec![
+                            format!("// /// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
+                            format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
+                        ];
+                        log.extend_messages(user_def_type.iter().map(|s| LogMsg::Note(s[3..].to_string())));
+                        src.extend(user_def_type);
                         let extra_src = vec![
                             format!("/// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
                             format!("#[derive(Debug, PartialEq)]"),
@@ -1529,8 +1551,12 @@ impl ParserGen {
                     }
                 }
             } else {
-                src.push(format!("// /// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())));
-                src.push(format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)));
+                let user_def_type = vec![
+                    format!("// /// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())),
+                    format!("// #[derive(Debug, PartialEq)] pub struct {}();", self.get_nt_type(v)),
+                ];
+                log.extend_messages(user_def_type.iter().map(|s| LogMsg::Note(s[3..].to_string())));
+                src.extend(user_def_type);
                 let extra_src = vec![
                     format!("/// User-defined type for `{}`", Symbol::NT(v).to_str(self.get_symbol_table())),
                     format!("#[derive(Debug, PartialEq)]"),
@@ -1808,8 +1834,8 @@ impl ParserGen {
                         src_wrapper_impl.push(format!("    fn {fn_name}(&mut self{}) {{", if is_factor_id { ", factor_id: FactorId" } else { "" }));
                     }
                     if flags & (ruleflag::CHILD_REPEAT | ruleflag::L_FORM) == ruleflag::CHILD_REPEAT {
-                        if exit_factors.len() > 2 {
-                            self.log.add_error(format!("alternatives in * and + are not supported: in {}. {} has too many factors: {}",
+                        if false && exit_factors.len() > 2 {
+                            log.add_error(format!("- alternatives in * and + are not supported: in {}. {} has too many factors: {}",
                                                        Symbol::NT(parent_nt as VarId).to_str(self.get_symbol_table()),
                                                        sym_nt.to_str(self.get_symbol_table()),
                                                        exit_factors.iter().join(", ")));
@@ -2134,6 +2160,7 @@ impl ParserGen {
 */
         src.extend(src_wrapper_impl);
         src.push(format!("}}"));
+        self.log = log;
 
         src
     }

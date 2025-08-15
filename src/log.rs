@@ -100,9 +100,9 @@ impl Display for LogMsg {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             LogMsg::NoLogStore => write!(f, "The log messages were not stored"),
-            LogMsg::Note(s) =>    write!(f, "Note:    {s}"),
+            LogMsg::Note(s) =>    write!(f, "Note   : {s}"),
             LogMsg::Warning(s) => write!(f, "Warning: {s}"),
-            LogMsg::Error(s) =>   write!(f, "ERROR:   {s}"),
+            LogMsg::Error(s) =>   write!(f, "ERROR  : {s}"),
         }
     }
 }
@@ -138,6 +138,18 @@ impl BufLog {
         self.num_warnings += other.num_warnings;
         self.num_errors += other.num_errors;
         self.messages.extend(other.messages)
+    }
+
+    pub fn extend_messages<T: IntoIterator<Item = LogMsg>>(&mut self, iter: T) {
+        self.messages.extend(iter.into_iter().inspect(|m| {
+            match m {
+                LogMsg::NoLogStore => {}
+                LogMsg::Note(_) => self.num_notes += 1,
+                LogMsg::Warning(_) => self.num_warnings += 1,
+                LogMsg::Error(_) => self.num_errors += 1,
+            }
+        }));
+
     }
 }
 
