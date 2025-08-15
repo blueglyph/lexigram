@@ -2109,9 +2109,9 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
-        const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
+        const PRINT_SOURCE: bool = true;   // prints the wrapper module (easier to set the other constants to false)
 
         // test options
         const TEST_SOURCE: bool = true;
@@ -2127,7 +2127,7 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
 // if rule_id != RTS(44)  { continue }
-// if !hashset!(RTS(42), RTS(43), RTS(44)).contains(&rule_id) { continue }
+if !hashset!(RTS(50), RTS(51)).contains(&rule_id) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.build_prs(test_id, start_nt, true);
