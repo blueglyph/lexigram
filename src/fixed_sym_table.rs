@@ -93,6 +93,8 @@ pub trait SymInfoTable {
     /// contains variable content: data like the ID specifier.
     fn is_symbol_t_data(&self, symbol: &Symbol) -> bool;
 
+    fn is_symbol_t_fixed(&self, symbol: &Symbol) -> bool;
+
     // fn get_t_name(&self, token: TokenId) -> String;
 
     fn get_t_str(&self, token: TokenId) -> String;
@@ -100,6 +102,8 @@ pub trait SymInfoTable {
     fn get_nt_name(&self, var: VarId) -> String;
 
     fn get_name(&self, symbol: &Symbol) -> String;
+
+    fn get_name_quote(&self, symbol: &Symbol) -> String;
 }
 
 impl SymInfoTable for FixedSymTable {
@@ -110,6 +114,14 @@ impl SymInfoTable for FixedSymTable {
     fn is_symbol_t_data(&self, symbol: &Symbol) -> bool {
         if let Symbol::T(token) = symbol {
             self.t[*token as usize].1.is_none()
+        } else {
+            false
+        }
+    }
+
+    fn is_symbol_t_fixed(&self, symbol: &Symbol) -> bool {
+        if let Symbol::T(token) = symbol {
+            self.t[*token as usize].1.is_some()
         } else {
             false
         }
@@ -135,6 +147,14 @@ impl SymInfoTable for FixedSymTable {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),
             Symbol::T(token) => self.get_t_str(*token),
+            Symbol::NT(var) => self.get_nt_name(*var),
+        }
+    }
+
+    fn get_name_quote(&self, symbol: &Symbol) -> String {
+        match symbol {
+            Symbol::Empty | Symbol::End => symbol.to_string(),
+            Symbol::T(token) => if self.is_symbol_t_fixed(symbol) { format!("\"{}\"", self.get_t_str(*token)) } else { self.get_t_str(*token) },
             Symbol::NT(var) => self.get_nt_name(*var),
         }
     }

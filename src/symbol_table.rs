@@ -229,6 +229,18 @@ impl SymInfoTable for SymbolTable {
         }
     }
 
+    fn is_symbol_t_fixed(&self, symbol: &Symbol) -> bool {
+        if let Symbol::T(token) = symbol {
+            if (*token as usize) < self.t.len() {
+                self.t[*token as usize].1.is_some()
+            } else {
+                false
+            }
+        } else {
+            false
+        }
+    }
+
     fn get_t_str(&self, token: TokenId) -> String {
         match token {
             _ if (token as usize) < self.t.len() => {
@@ -249,6 +261,14 @@ impl SymInfoTable for SymbolTable {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),
             Symbol::T(token) => self.get_t_str(*token),
+            Symbol::NT(var) => self.get_nt_name(*var),
+        }
+    }
+
+    fn get_name_quote(&self, symbol: &Symbol) -> String {
+        match symbol {
+            Symbol::Empty | Symbol::End => symbol.to_string(),
+            Symbol::T(token) => if self.is_symbol_t_fixed(symbol) { format!("\"{}\"", self.get_t_str(*token)) } else { self.get_t_str(*token) },
             Symbol::NT(var) => self.get_nt_name(*var),
         }
     }

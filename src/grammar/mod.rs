@@ -48,6 +48,10 @@ impl Symbol {
         symbol_table.map(|t| t.get_name(self)).unwrap_or(self.to_string())
     }
 
+    pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        symbol_table.map(|t| t.get_name_quote(self)).unwrap_or(self.to_string())
+    }
+
     pub fn to_str_ext<T: SymInfoTable>(&self, symbol_table: Option<&T>, ext: &String) -> String {
         let mut result = self.to_str(symbol_table);
         if let Some(t) = symbol_table {
@@ -454,12 +458,21 @@ impl<T> RuleTreeSet<T> {
         const PR_ATOM: u32 = 4;
         let mut children = vec![];
         let tree = &self.trees[var as usize];
-        let top = node.unwrap_or(tree.get_root().unwrap());
+        if tree.is_empty() {
+            return "<empty>".to_string();
+        }
+        let top = node.unwrap_or_else(|| tree.get_root().unwrap());
         for node in self.trees[var as usize].iter_depth_at(top) {
             let (pr, mut str) = match node.num_children() {
                 0 => {
                     match node.deref() {
-                        GrNode::Symbol(s) => (PR_ATOM, s.to_str(self.get_symbol_table())),
+                        GrNode::Symbol(s) => {
+                            let symb_str = match s {
+                                Symbol::T(_) => s.to_str_quote(self.get_symbol_table()),
+                                s => s.to_str(self.get_symbol_table()),
+                            };
+                            (PR_ATOM, symb_str)
+                        },
                         GrNode::LForm(var) => (PR_ATOM, format!("<L={}>", Symbol::NT(*var).to_str(self.get_symbol_table()))),
                         GrNode::RAssoc => (PR_ATOM, "<R>".to_string()),
                         GrNode::PrecEq => (PR_ATOM, "<P>".to_string()),
@@ -547,6 +560,9 @@ impl RuleTreeSet<General> {
 
     /// Normalizes all the production rules.
     pub fn normalize(&mut self) {
+        self.log.add_note("original rules:");
+        (0..self.trees.len() as VarId)
+            .for_each(|v| self.log.add_note(format!("- {} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), self.to_str(v, None, None))));
         self.log.add_note("normalizing rules...");
         self.check_num_nt_coherency();
         let vars = self.get_vars().to_vec();

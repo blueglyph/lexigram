@@ -796,22 +796,22 @@ fn ruletreeset_to_str() {
 #[test]
 fn rts_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
-        (0, btreemap![0 => "b | c | D"]),
-        (1, btreemap![0 => "B C | d | e | F G | h | i | J K"]),
-        (2, btreemap![0 => "B C D F G H | B C D F G I | B C E F G H | B C E F G I"]),
-        (3, btreemap![0 => "B C D F G H | B C D F I | B C E F G H | B C E F I"]),
-        (4, btreemap![0 => "A B C D F G H | A B C D F I | A B C E F G H | A B C E F I"]),
-        (5, btreemap![0 => "B | ε"]),
-        (6, btreemap![0 => "B C | ε"]),
-        (7, btreemap![0 => "B C | D | ε"]),
-        (8, btreemap![0 => "b A_1", 1 => "c A_1 | c"]),
-        (9, btreemap![0 => "var A_1", 1 => "id , A_1 | id ,"]),
-        (10, btreemap![0 => "b A_1", 1 => "c d A_1 | c d | e A_1 | e"]),
-        (11, btreemap![0 => "b A_1", 1 => "c A_1 | ε"]),
-        (12, btreemap![0 => "b A_1", 1 => "c d A_1 | ε"]),
-        (13, btreemap![0 => "b A_1", 1 => "c d A_1 | e A_1 | ε"]),
-        (15, btreemap![0 => "A b A | A c <R> A | A d A | e"]),
-        (17, btreemap![0 => "a A_2 d", 1 => "b A_1 | b", 2 => "A_1 c A_2 | A_1 c"]),
+        (0, btreemap![0 => r#"b | c | D"#]),
+        (1, btreemap![0 => r#"B C | d | e | F G | h | i | J K"#]),
+        (2, btreemap![0 => r#"B C D F G H | B C D F G I | B C E F G H | B C E F G I"#]),
+        (3, btreemap![0 => r#"B C D F G H | B C D F I | B C E F G H | B C E F I"#]),
+        (4, btreemap![0 => r#"A B C D F G H | A B C D F I | A B C E F G H | A B C E F I"#]),
+        (5, btreemap![0 => r#"B | ε"#]),
+        (6, btreemap![0 => r#"B C | ε"#]),
+        (7, btreemap![0 => r#"B C | D | ε"#]),
+        (8, btreemap![0 => r#"b A_1"#, 1 => r#"c A_1 | c"#]),
+        (9, btreemap![0 => r#""var" A_1"#, 1 => r#"id "," A_1 | id ",""#]),
+        (10, btreemap![0 => r#"b A_1"#, 1 => r#"c d A_1 | c d | e A_1 | e"#]),
+        (11, btreemap![0 => r#"b A_1"#, 1 => r#"c A_1 | ε"#]),
+        (12, btreemap![0 => r#"b A_1"#, 1 => r#"c d A_1 | ε"#]),
+        (13, btreemap![0 => r#"b A_1"#, 1 => r#"c d A_1 | e A_1 | ε"#]),
+        (15, btreemap![0 => r#"A b A | A c <R> A | A d A | e"#]),
+        (17, btreemap![0 => r#"a A_2 d"#, 1 => r#"b A_1 | b"#, 2 => r#"A_1 c A_2 | A_1 c"#]),
     ];
     const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
@@ -832,10 +832,10 @@ fn rts_normalize() {
             println!("flags:  {:?}", rules.flags);
             println!("parent: {:?}", rules.parent);
             println!("{}", rules.get_non_empty_nts()
-                .map(|(id, t)| format!("- {id} => {:#} (depth {})",
-                                       t.to_str(None, rules.get_symbol_table()),
+                .map(|(id, t)| format!("- {id} => {} (depth {})",
+                                       rules.to_str(id, None, None),
                                        t.depth().unwrap_or(0))).join("\n"));
-            println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => \"{t}\"")).join(", "));
+            println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
         if result != expected {
