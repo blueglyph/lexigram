@@ -170,7 +170,7 @@ mod listener {
         let msg = dfa.get_log().get_messages_str();
         assert!(dfa.get_log().has_no_errors(), "couldn't parse the lexicon:\n{msg}");
         if VERBOSE && !msg.is_empty() {
-            println!("Messages:\n{msg}");
+            println!("Lexi messages:\n{msg}");
         }
 
         // builds the lexer for the test lexicon
@@ -189,15 +189,11 @@ mod listener {
             let grammar_stream = CharReader::new(Cursor::new(grammar));
             let gram = Gram::new(symbol_table.clone(), grammar_stream);
             let ll1: ProdRuleSet<LL1> = gram.build_into();
-            let msg = ll1.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
+            let msg = ll1.get_log().get_messages_str();
             let should_succeed = expected_grammar_errors.is_empty();
             if VERBOSE {
                 ll1.print_factors();
-                if !should_succeed {
-                    if !msg.is_empty() {
-                        println!("Messages:{msg}");
-                    }
-                }
+                println!("Gram messages:\n{msg}");
             }
             assert_eq!(ll1.get_log().has_no_errors() && ll1.get_log().has_no_warnings(), should_succeed,
                        "{text}: was expecting grammar parsing to {}:{msg}", if expected_grammar_errors.is_empty() { "succeed" } else { "fail" });
@@ -217,13 +213,13 @@ mod listener {
                     expected_grammar_errors.iter().map(|s| format!("\n- {s}")).join(""));
             if should_succeed {
                 let builder = ParserGen::build_from(ll1);
-                let msg = builder.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
+                let msg = builder.get_log().get_messages_str();
                 if VERBOSE {
                     print_flags(&builder, 4);
                     println!("Parsing table of grammar '{}':", builder.get_name());
                     builder.get_parsing_table().print(builder.get_symbol_table(), 4);
                     if !builder.get_log().is_empty() {
-                        println!("Messages:{msg}");
+                        println!("Messages:\n{msg}");
                     }
                 }
                 assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
