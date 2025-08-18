@@ -9,7 +9,7 @@ use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{FactorId, ProdFactor, S
 const PARSER_NUM_T: usize = 14;
 const PARSER_NUM_NT: usize = 14;
 static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Id", None)];
-static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_factor", "prod_term", "term_item", "prod_factor_1", "rules_1", "prod_1", "rule_1", "prod_term_1"];
+static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "header", "rules", "rule", "rule_name", "prod", "prod_term", "prod_factor", "prod_atom", "prod_term_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"];
 static FACTOR_VAR: [VarId; 25] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 8, 8, 8, 8, 9, 9, 10, 10, 11, 11, 12, 12, 13, 13, 13, 13];
 static FACTORS: [&[Symbol]; 25] = [&[Symbol::NT(1), Symbol::NT(2)], &[Symbol::T(8), Symbol::T(13), Symbol::T(6)], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::NT(4), Symbol::T(0), Symbol::NT(5), Symbol::NT(12)], &[Symbol::T(13)], &[Symbol::NT(6), Symbol::NT(11)], &[Symbol::NT(9)], &[Symbol::NT(8), Symbol::NT(13)], &[Symbol::T(13)], &[Symbol::T(10)], &[Symbol::T(11)], &[Symbol::T(12)], &[Symbol::T(1), Symbol::NT(5), Symbol::T(5)], &[Symbol::NT(7), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(3), Symbol::NT(10)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(11)], &[Symbol::Empty], &[Symbol::T(6)], &[Symbol::T(9), Symbol::T(6)], &[Symbol::T(3)], &[Symbol::T(4)], &[Symbol::T(7)], &[Symbol::Empty]];
 static PARSING_TABLE: [FactorId; 210] = [25, 25, 25, 25, 25, 25, 25, 25, 0, 25, 25, 25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 25, 1, 25, 25, 25, 25, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 2, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 3, 26, 26, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 4, 25, 25, 5, 5, 25, 25, 5, 5, 25, 25, 5, 5, 5, 5, 5, 25, 25, 6, 6, 25, 25, 6, 6, 25, 25, 6, 6, 6, 6, 6, 25, 25, 7, 26, 25, 25, 26, 26, 25, 25, 26, 7, 7, 7, 7, 25, 25, 12, 26, 26, 26, 26, 26, 26, 25, 26, 9, 10, 11, 8, 25, 25, 13, 14, 25, 25, 14, 14, 25, 25, 14, 13, 13, 13, 13, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 15, 16, 25, 25, 17, 25, 25, 18, 18, 25, 25, 18, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 25, 19, 25, 25, 20, 25, 25, 25, 26, 26, 25, 24, 24, 21, 22, 24, 24, 23, 25, 24, 24, 24, 24, 24, 25];
@@ -63,39 +63,39 @@ pub enum CtxRuleName {
 }
 #[derive(Debug)]
 pub enum CtxProd {
-    /// `prod -> prod_factor`
-    Prod1 { prod_factor: SynProdFactor },
-    /// `prod -> prod | prod_factor`
-    Prod2 { prod: SynProd, prod_factor: SynProdFactor },
-}
-#[derive(Debug)]
-pub enum CtxProdFactor {
-    /// `prod_factor -> [prod_term]*`
-    ProdFactor { star: SynProdFactor1 },
+    /// `prod -> prod_term`
+    Prod1 { prod_term: SynProdTerm },
+    /// `prod -> prod | prod_term`
+    Prod2 { prod: SynProd, prod_term: SynProdTerm },
 }
 #[derive(Debug)]
 pub enum CtxProdTerm {
-    /// `prod_term -> term_item +`
-    ProdTerm1 { term_item: SynTermItem },
-    /// `prod_term -> term_item ?`
-    ProdTerm2 { term_item: SynTermItem },
-    /// `prod_term -> term_item *`
-    ProdTerm3 { term_item: SynTermItem },
-    /// `prod_term -> term_item`
-    ProdTerm4 { term_item: SynTermItem },
+    /// `prod_term -> [prod_factor]*`
+    ProdTerm { star: SynProdTerm1 },
 }
 #[derive(Debug)]
-pub enum CtxTermItem {
-    /// `term_item -> Id`
-    TermItem1 { id: String },
-    /// `term_item -> Lform`
-    TermItem2 { lform: String },
-    /// `term_item -> <R>`
-    TermItem3,
-    /// `term_item -> <P>`
-    TermItem4,
-    /// `term_item -> ( prod )`
-    TermItem5 { prod: SynProd },
+pub enum CtxProdFactor {
+    /// `prod_factor -> prod_atom +`
+    ProdFactor1 { prod_atom: SynProdAtom },
+    /// `prod_factor -> prod_atom ?`
+    ProdFactor2 { prod_atom: SynProdAtom },
+    /// `prod_factor -> prod_atom *`
+    ProdFactor3 { prod_atom: SynProdAtom },
+    /// `prod_factor -> prod_atom`
+    ProdFactor4 { prod_atom: SynProdAtom },
+}
+#[derive(Debug)]
+pub enum CtxProdAtom {
+    /// `prod_atom -> Id`
+    ProdAtom1 { id: String },
+    /// `prod_atom -> Lform`
+    ProdAtom2 { lform: String },
+    /// `prod_atom -> <R>`
+    ProdAtom3,
+    /// `prod_atom -> <P>`
+    ProdAtom4,
+    /// `prod_atom -> ( prod )`
+    ProdAtom5 { prod: SynProd },
 }
 
 // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -112,18 +112,18 @@ pub enum CtxTermItem {
 // #[derive(Debug, PartialEq)] pub struct SynRuleName();
 // /// User-defined type for `prod`
 // #[derive(Debug, PartialEq)] pub struct SynProd();
-// /// User-defined type for `prod_factor`
-// #[derive(Debug, PartialEq)] pub struct SynProdFactor();
 // /// User-defined type for `prod_term`
 // #[derive(Debug, PartialEq)] pub struct SynProdTerm();
-// /// User-defined type for `term_item`
-// #[derive(Debug, PartialEq)] pub struct SynTermItem();
-/// Computed `[prod_term]*` array in `prod_factor ->  ► [prod_term]* ◄ `
+// /// User-defined type for `prod_factor`
+// #[derive(Debug, PartialEq)] pub struct SynProdFactor();
+// /// User-defined type for `prod_atom`
+// #[derive(Debug, PartialEq)] pub struct SynProdAtom();
+/// Computed `[prod_factor]*` array in `prod_term ->  ► [prod_factor]* ◄ `
 #[derive(Debug, PartialEq)]
-pub struct SynProdFactor1(pub Vec<SynProdTerm>);
+pub struct SynProdTerm1(pub Vec<SynProdFactor>);
 
 #[derive(Debug)]
-enum SynValue { File(SynFile), Header(SynHeader), Rules(SynRules), Rule(SynRule), RuleName(SynRuleName), Prod(SynProd), ProdFactor(SynProdFactor), ProdTerm(SynProdTerm), TermItem(SynTermItem), ProdFactor1(SynProdFactor1) }
+enum SynValue { File(SynFile), Header(SynHeader), Rules(SynRules), Rule(SynRule), RuleName(SynRuleName), Prod(SynProd), ProdTerm(SynProdTerm), ProdFactor(SynProdFactor), ProdAtom(SynProdAtom), ProdTerm1(SynProdTerm1) }
 
 impl SynValue {
     fn get_file(self) -> SynFile {
@@ -144,17 +144,17 @@ impl SynValue {
     fn get_prod(self) -> SynProd {
         if let SynValue::Prod(val) = self { val } else { panic!() }
     }
-    fn get_prod_factor(self) -> SynProdFactor {
-        if let SynValue::ProdFactor(val) = self { val } else { panic!() }
-    }
     fn get_prod_term(self) -> SynProdTerm {
         if let SynValue::ProdTerm(val) = self { val } else { panic!() }
     }
-    fn get_term_item(self) -> SynTermItem {
-        if let SynValue::TermItem(val) = self { val } else { panic!() }
+    fn get_prod_factor(self) -> SynProdFactor {
+        if let SynValue::ProdFactor(val) = self { val } else { panic!() }
     }
-    fn get_prod_factor1(self) -> SynProdFactor1 {
-        if let SynValue::ProdFactor1(val) = self { val } else { panic!() }
+    fn get_prod_atom(self) -> SynProdAtom {
+        if let SynValue::ProdAtom(val) = self { val } else { panic!() }
+    }
+    fn get_prod_term1(self) -> SynProdTerm1 {
+        if let SynValue::ProdTerm1(val) = self { val } else { panic!() }
     }
 }
 
@@ -178,12 +178,12 @@ pub trait GramParserListener {
     fn init_prod(&mut self) {}
     fn exit_prod(&mut self, _ctx: CtxProd) -> SynProd;
     fn exitloop_prod(&mut self, _prod: &mut SynProd) {}
-    fn init_prod_factor(&mut self) {}
-    fn exit_prod_factor(&mut self, _ctx: CtxProdFactor) -> SynProdFactor;
     fn init_prod_term(&mut self) {}
     fn exit_prod_term(&mut self, _ctx: CtxProdTerm) -> SynProdTerm;
-    fn init_term_item(&mut self) {}
-    fn exit_term_item(&mut self, _ctx: CtxTermItem) -> SynTermItem;
+    fn init_prod_factor(&mut self) {}
+    fn exit_prod_factor(&mut self, _ctx: CtxProdFactor) -> SynProdFactor;
+    fn init_prod_atom(&mut self) {}
+    fn exit_prod_atom(&mut self, _ctx: CtxProdAtom) -> SynProdAtom;
 }
 
 pub struct Wrapper<T> {
@@ -214,11 +214,11 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
                     4 => self.listener.init_rule_name(),        // rule_name
                     5 => self.listener.init_prod(),             // prod
                     11 => {}                                    // prod_1
-                    6 => self.listener.init_prod_factor(),      // prod_factor
-                    9 => self.init_prod_factor1(),              // prod_factor_1
-                    7 => self.listener.init_prod_term(),        // prod_term
-                    13 => {}                                    // prod_term_1
-                    8 => self.listener.init_term_item(),        // term_item
+                    6 => self.listener.init_prod_term(),        // prod_term
+                    9 => self.init_prod_term1(),                // prod_term_1
+                    7 => self.listener.init_prod_factor(),      // prod_factor
+                    13 => {}                                    // prod_factor_1
+                    8 => self.listener.init_prod_atom(),        // prod_atom
                     _ => panic!("unexpected enter non-terminal id: {nt}")
                 }
             }
@@ -234,22 +234,22 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
                     20 => self.exit_rule(factor_id),            // rule_1 -> EOF ;
                  /* 3 */                                        // rule -> rule_name : prod rule_1 (never called)
                     4 => self.exit_rule_name(),                 // rule_name -> Id
-                    5 => self.inter_prod(),                     // prod -> prod_factor prod_1
-                    17 => self.exit_prod1(),                    // prod_1 -> | prod_factor prod_1
+                    5 => self.inter_prod(),                     // prod -> prod_term prod_1
+                    17 => self.exit_prod1(),                    // prod_1 -> | prod_term prod_1
                     18 => self.exitloop_prod1(),                // prod_1 -> ε
-                    6 => self.exit_prod_factor(),               // prod_factor -> prod_factor_1
-                    13 => self.exit_prod_factor1(),             // prod_factor_1 -> prod_term prod_factor_1
-                    14 => {}                                    // prod_factor_1 -> ε
-                    21 |                                        // prod_term_1 -> +
-                    22 |                                        // prod_term_1 -> ?
-                    23 |                                        // prod_term_1 -> *
-                    24 => self.exit_prod_term(factor_id),       // prod_term_1 -> ε
-                 /* 7 */                                        // prod_term -> term_item prod_term_1 (never called)
-                    8 |                                         // term_item -> Id
-                    9 |                                         // term_item -> Lform
-                    10 |                                        // term_item -> <R>
-                    11 |                                        // term_item -> <P>
-                    12 => self.exit_term_item(factor_id),       // term_item -> ( prod )
+                    6 => self.exit_prod_term(),                 // prod_term -> prod_term_1
+                    13 => self.exit_prod_term1(),               // prod_term_1 -> prod_factor prod_term_1
+                    14 => {}                                    // prod_term_1 -> ε
+                    21 |                                        // prod_factor_1 -> +
+                    22 |                                        // prod_factor_1 -> ?
+                    23 |                                        // prod_factor_1 -> *
+                    24 => self.exit_prod_factor(factor_id),     // prod_factor_1 -> ε
+                 /* 7 */                                        // prod_factor -> prod_atom prod_factor_1 (never called)
+                    8 |                                         // prod_atom -> Id
+                    9 |                                         // prod_atom -> Lform
+                    10 |                                        // prod_atom -> <R>
+                    11 |                                        // prod_atom -> <P>
+                    12 => self.exit_prod_atom(factor_id),       // prod_atom -> ( prod )
                     _ => panic!("unexpected exit factor id: {factor_id}")
                 }
             }
@@ -355,15 +355,15 @@ impl<T: GramParserListener> Wrapper<T> {
     }
 
     fn inter_prod(&mut self) {
-        let prod_factor = self.stack.pop().unwrap().get_prod_factor();
-        let val = self.listener.exit_prod(CtxProd::Prod1 { prod_factor });
+        let prod_term = self.stack.pop().unwrap().get_prod_term();
+        let val = self.listener.exit_prod(CtxProd::Prod1 { prod_term });
         self.stack.push(SynValue::Prod(val));
     }
 
     fn exit_prod1(&mut self) {
-        let prod_factor = self.stack.pop().unwrap().get_prod_factor();
+        let prod_term = self.stack.pop().unwrap().get_prod_term();
         let prod = self.stack.pop().unwrap().get_prod();
-        let val = self.listener.exit_prod(CtxProd::Prod2 { prod, prod_factor });
+        let val = self.listener.exit_prod(CtxProd::Prod2 { prod, prod_term });
         self.stack.push(SynValue::Prod(val));
     }
 
@@ -372,72 +372,72 @@ impl<T: GramParserListener> Wrapper<T> {
         self.listener.exitloop_prod(prod);
     }
 
-    fn exit_prod_factor(&mut self) {
-        let star = self.stack.pop().unwrap().get_prod_factor1();
-        let val = self.listener.exit_prod_factor(CtxProdFactor::ProdFactor { star });
-        self.stack.push(SynValue::ProdFactor(val));
-    }
-
-    fn init_prod_factor1(&mut self) {
-        let val = SynProdFactor1(Vec::new());
-        self.stack.push(SynValue::ProdFactor1(val));
-    }
-
-    fn exit_prod_factor1(&mut self) {
-        let prod_term = self.stack.pop().unwrap().get_prod_term();
-        let mut star_it = self.stack.pop().unwrap().get_prod_factor1();
-        star_it.0.push(prod_term);
-        self.stack.push(SynValue::ProdFactor1(star_it));
-    }
-
-    fn exit_prod_term(&mut self, factor_id: FactorId) {
-        let ctx = match factor_id {
-            21 => {
-                let term_item = self.stack.pop().unwrap().get_term_item();
-                CtxProdTerm::ProdTerm1 { term_item }
-            }
-            22 => {
-                let term_item = self.stack.pop().unwrap().get_term_item();
-                CtxProdTerm::ProdTerm2 { term_item }
-            }
-            23 => {
-                let term_item = self.stack.pop().unwrap().get_term_item();
-                CtxProdTerm::ProdTerm3 { term_item }
-            }
-            24 => {
-                let term_item = self.stack.pop().unwrap().get_term_item();
-                CtxProdTerm::ProdTerm4 { term_item }
-            }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_prod_term")
-        };
-        let val = self.listener.exit_prod_term(ctx);
+    fn exit_prod_term(&mut self) {
+        let star = self.stack.pop().unwrap().get_prod_term1();
+        let val = self.listener.exit_prod_term(CtxProdTerm::ProdTerm { star });
         self.stack.push(SynValue::ProdTerm(val));
     }
 
-    fn exit_term_item(&mut self, factor_id: FactorId) {
+    fn init_prod_term1(&mut self) {
+        let val = SynProdTerm1(Vec::new());
+        self.stack.push(SynValue::ProdTerm1(val));
+    }
+
+    fn exit_prod_term1(&mut self) {
+        let prod_factor = self.stack.pop().unwrap().get_prod_factor();
+        let mut star_it = self.stack.pop().unwrap().get_prod_term1();
+        star_it.0.push(prod_factor);
+        self.stack.push(SynValue::ProdTerm1(star_it));
+    }
+
+    fn exit_prod_factor(&mut self, factor_id: FactorId) {
+        let ctx = match factor_id {
+            21 => {
+                let prod_atom = self.stack.pop().unwrap().get_prod_atom();
+                CtxProdFactor::ProdFactor1 { prod_atom }
+            }
+            22 => {
+                let prod_atom = self.stack.pop().unwrap().get_prod_atom();
+                CtxProdFactor::ProdFactor2 { prod_atom }
+            }
+            23 => {
+                let prod_atom = self.stack.pop().unwrap().get_prod_atom();
+                CtxProdFactor::ProdFactor3 { prod_atom }
+            }
+            24 => {
+                let prod_atom = self.stack.pop().unwrap().get_prod_atom();
+                CtxProdFactor::ProdFactor4 { prod_atom }
+            }
+            _ => panic!("unexpected factor id {factor_id} in fn exit_prod_factor")
+        };
+        let val = self.listener.exit_prod_factor(ctx);
+        self.stack.push(SynValue::ProdFactor(val));
+    }
+
+    fn exit_prod_atom(&mut self, factor_id: FactorId) {
         let ctx = match factor_id {
             8 => {
                 let id = self.stack_t.pop().unwrap();
-                CtxTermItem::TermItem1 { id }
+                CtxProdAtom::ProdAtom1 { id }
             }
             9 => {
                 let lform = self.stack_t.pop().unwrap();
-                CtxTermItem::TermItem2 { lform }
+                CtxProdAtom::ProdAtom2 { lform }
             }
             10 => {
-                CtxTermItem::TermItem3
+                CtxProdAtom::ProdAtom3
             }
             11 => {
-                CtxTermItem::TermItem4
+                CtxProdAtom::ProdAtom4
             }
             12 => {
                 let prod = self.stack.pop().unwrap().get_prod();
-                CtxTermItem::TermItem5 { prod }
+                CtxProdAtom::ProdAtom5 { prod }
             }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_term_item")
+            _ => panic!("unexpected factor id {factor_id} in fn exit_prod_atom")
         };
-        let val = self.listener.exit_term_item(ctx);
-        self.stack.push(SynValue::TermItem(val));
+        let val = self.listener.exit_prod_atom(ctx);
+        self.stack.push(SynValue::ProdAtom(val));
     }
 }
 
@@ -458,10 +458,10 @@ pub(crate) mod gramparser_types {
     #[derive(Debug, PartialEq)] pub struct SynRuleName(pub String);
     /// User-defined type for `prod`
     #[derive(Debug, PartialEq)] pub struct SynProd(pub usize);
-    /// User-defined type for `prod_factor`
-    #[derive(Debug, PartialEq)] pub struct SynProdFactor(pub usize);
     /// User-defined type for `prod_term`
     #[derive(Debug, PartialEq)] pub struct SynProdTerm(pub usize);
-    /// User-defined type for `term_item`
-    #[derive(Debug, PartialEq)] pub struct SynTermItem(pub usize);
+    /// User-defined type for `prod_factor`
+    #[derive(Debug, PartialEq)] pub struct SynProdFactor(pub usize);
+    /// User-defined type for `prod_atom`
+    #[derive(Debug, PartialEq)] pub struct SynProdAtom(pub usize);
 }

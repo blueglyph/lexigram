@@ -1061,7 +1061,7 @@ impl ParserGen {
     /// }
     /// ```
     fn get_type_info(&self) -> (Vec<(String, String, String)>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();

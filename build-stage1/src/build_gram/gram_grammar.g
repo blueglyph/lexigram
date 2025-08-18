@@ -20,19 +20,19 @@ rule_name:
 ;
 
 prod:
-    prod_factor
-|   prod Or prod_factor
-;
-
-prod_factor:
-    prod_term*
+    prod_term
+|   prod Or prod_term
 ;
 
 prod_term:
-    term_item (Plus | Star | Question)?
+    prod_factor*
 ;
 
-term_item:
+prod_factor:
+    prod_atom (Plus | Star | Question)?
+;
+
+prod_atom:
     Id
 |   Lform
 |   Rform
