@@ -435,6 +435,56 @@ impl<T> RuleTreeSet<T> {
     pub fn set_start(&mut self, start: VarId) {
         self.start = Some(start);
     }
+
+    /// Builds the string representation of the [`rule tree set`](RuleTreeSet) of variable `var`,
+    /// optionally starting at node `node`. If `emphasis` contains a node ID, this subpart of the
+    /// tree is emphasized in the string.
+    pub fn to_str(&self, var: VarId, node: Option<usize>, emphasis: Option<usize>) -> String {
+        fn pr_join(children: Vec<(u32, String)>, str: &str, pr: u32) -> (u32, String) {
+            (pr, children.into_iter()
+                .map(|(p_ch, ch)| if p_ch >= pr { ch } else { format!("({ch})") })
+                .join(str))
+        }
+        fn pr_append(child: (u32, String), str: &str, pr: u32) -> (u32, String) {
+            (pr, if child.0 >= pr { format!("{}{str}", child.1) } else { format!("({}){str}", child.1) })
+        }
+        const PR_PROD: u32 = 1;
+        const PR_TERM: u32 = 2;
+        const PR_FACTOR : u32 = 3;
+        const PR_ATOM: u32 = 4;
+        let mut children = vec![];
+        let tree = &self.trees[var as usize];
+        let top = node.unwrap_or(tree.get_root().unwrap());
+        for node in self.trees[var as usize].iter_depth_at(top) {
+            let (pr, mut str) = match node.num_children() {
+                0 => {
+                    match node.deref() {
+                        GrNode::Symbol(s) => (PR_ATOM, s.to_str(self.get_symbol_table())),
+                        GrNode::LForm(var) => (PR_ATOM, format!("<L={}>", Symbol::NT(*var).to_str(self.get_symbol_table()))),
+                        GrNode::RAssoc => (PR_ATOM, "<R>".to_string()),
+                        GrNode::PrecEq => (PR_ATOM, "<P>".to_string()),
+                        s => panic!("{s:?} should have children"),
+                    }
+                }
+                n => {
+                    let mut node_children = children.split_off(children.len() - n);
+                    match node.deref() {
+                        GrNode::Concat => pr_join(node_children, " ", PR_TERM),
+                        GrNode::Or => pr_join(node_children, " | ", PR_PROD),
+                        GrNode::Maybe => pr_append(node_children.pop().unwrap(), "?", PR_FACTOR),
+                        GrNode::Plus => pr_append(node_children.pop().unwrap(), "+", PR_FACTOR),
+                        GrNode::Star => pr_append(node_children.pop().unwrap(), "*", PR_FACTOR),
+                        s => panic!("{s:?} shouldn't have {n} child(ren)"),
+                    }
+                }
+            };
+            if Some(node.index) == emphasis {
+                str = format!(" ►►► {str} ◄◄◄ ");
+            }
+            children.push((pr, str));
+        }
+        children.pop().unwrap().1
+    }
 }
 
 impl<T> LogReader for RuleTreeSet<T> {

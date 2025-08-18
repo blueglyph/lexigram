@@ -754,6 +754,44 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
     rules
 }
 
+#[test]
+fn ruletreeset_to_str() {
+    let tests = vec![
+        // RTS, var, node, emphasis, expected
+        (18, 0, None, None, "a | b | c"),
+        (56, 0, Some(2), None, "a b"),
+        (23, 0, None, None, "a b+ c"),
+        (56, 0, None, None, "(a b)* a"),
+        (38, 0, None, None, "A a c? | A b c? | d"),
+        (55, 0, None, None, "a ((b c | d)+ e)+ f"),
+        (55, 0, None, Some(3), "a ( ►►► (b c | d)+ e ◄◄◄ )+ f"),
+        (53, 0, None, None, "(<L=AIter1> a d | B)+ c"),
+    ];
+    const VERBOSE: bool = false;
+    let mut errors = 0;
+    for (test_id, (rts_id, var, node_maybe, emphasis_maybe, expected_str)) in tests.into_iter().enumerate() {
+        let rts = build_rts(rts_id);
+        let result_str = rts.to_str(var, node_maybe, emphasis_maybe);
+        if VERBOSE {
+            // println!("{test_id} ({rule_id})");
+            let tfmt = GrTreeFmt {
+                tree: &rts.get_tree(var).unwrap(),
+                show_ids: true,
+                show_depth: false,
+                symbol_table: rts.get_symbol_table(),
+                start_node: None,
+            };
+            println!("{test_id} ({rts_id}) => {tfmt}");
+            println!("        ({rts_id}, {var}, {node_maybe:?}, {emphasis_maybe:?}, \"{result_str}\"),");
+        }
+        if result_str != expected_str {
+            errors += 1;
+            println!("{test_id} is wrong: \"{result_str}\" instead of \"{expected_str}\"");
+        }
+    }
+    assert_eq!(errors, 0);
+}
+
 // cargo +nightly miri test --package lexigram --lib grammar::tests::ruletree_normalize -- --exact
 #[test]
 fn rts_normalize() {
