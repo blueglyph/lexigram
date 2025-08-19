@@ -265,6 +265,7 @@ pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>
 pub trait GrTreeExt {
     fn get_dup(&mut self, dup_index: &mut Dup) -> usize;
     fn to_str(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String;
+    fn to_str_index(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String;
 }
 
 impl GrTreeExt for GrTree {
@@ -282,6 +283,17 @@ impl GrTreeExt for GrTree {
         let tfmt = GrTreeFmt {
             tree: &self,
             show_ids: false,
+            show_depth: false,
+            symbol_table,
+            start_node,
+        };
+        tfmt.to_string()
+    }
+
+    fn to_str_index(&self, start_node: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
+        let tfmt = GrTreeFmt {
+            tree: &self,
+            show_ids: true,
             show_depth: false,
             symbol_table,
             start_node,
@@ -323,6 +335,9 @@ impl<'a> GrTreeFmt<'a> {
 
 impl Display for GrTreeFmt<'_> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.tree.is_empty() {
+            return write!(f, "<empty>");
+        }
         let start_node = self.start_node.unwrap_or(self.tree.get_root().expect("the tree must have a defined root"));
         let mut stack = Vec::<String>::new();
         for node in self.tree.iter_depth_at(start_node) {
