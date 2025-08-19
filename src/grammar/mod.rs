@@ -908,6 +908,11 @@ impl RuleTreeSet<General> {
         if let Some(v) = lform_nt {
             // `new_var` replaces `v`
             self.nt_conversion.insert(v, MovedTo(*new_var));
+            for mut node in qtree.iter_depth_simple_mut() {
+                if let GrNode::LForm(v2) = node.deref_mut() {
+                    if *v2 == v { *v2 = *new_var; }
+                }
+            }
         }
         self.symbol_table.as_mut().map(|st| {
             if let Some(v) = lform_nt {
