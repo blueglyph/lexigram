@@ -656,6 +656,29 @@ fn dfa_preprocess() {
 }
 
 #[test]
+fn retree_to_string() {
+    let tests = vec![
+        (0, 0, None, None, false, "('a' | 'b')* 'a' 'b' 'b' <end:0>"),
+        (0, 0, None, None, true, "0:1:3:5:7:(9:10:'a' | 11:'b')* 8:'a' 6:'b' 4:'b' 2:<end:0>"),
+    ];
+    const VERBOSE: bool = false;
+    let mut errors = 0;
+    for (test_id, (re_id, var, node_maybe, emphasis_maybe, show_index, expected_str)) in tests.into_iter().enumerate() {
+        let re = build_re(re_id);
+        let result_str = retree_to_str(&re, node_maybe, emphasis_maybe, show_index);
+        if VERBOSE {
+            println!("{test_id} ({re_id}) => {}", tree_to_string(&re, node_maybe, false));
+            println!("        ({re_id}, {var}, {node_maybe:?}, {emphasis_maybe:?}, \"{result_str}\"),");
+        }
+        if result_str != expected_str {
+            errors += 1;
+            println!("{test_id} is wrong: \"{result_str}\" instead of \"{expected_str}\"");
+        }
+    }
+    assert_eq!(errors, 0);
+}
+
+#[test]
 fn dfa_id() {
     let tests = vec![
         "&(&(&(&(*(|(1:'a',2:'b')),3:'a'),4:'b'),5:'b'),6:<end:0>)",

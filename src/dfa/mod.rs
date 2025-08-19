@@ -312,10 +312,12 @@ impl Display for ReNode {
 
 // ---------------------------------------------------------------------------------------------
 
+pub type ReTree = VecTree<ReNode>;
+
 #[derive(Clone)]
 pub struct DfaBuilder {
     /// Regular Expression tree
-    re: VecTree<ReNode>,
+    re: ReTree,
     /// `followpos` table, containing the `Id` -> `Id` graph of `re`
     followpos: HashMap<Id, HashSet<Id>>,
     /// `lazypos[id_child]` includes `id_lazy` when `id_child` is a child of a lazy operator `id_lazy`
@@ -341,7 +343,7 @@ impl DfaBuilder {
     }
 
     #[inline(always)]
-    pub fn get_re(&self) -> &VecTree<ReNode> {
+    pub fn get_re(&self) -> &ReTree {
         &self.re
     }
 
@@ -805,9 +807,9 @@ impl HasBuildErrorSource for DfaBuilder {
     const SOURCE: BuildErrorSource = BuildErrorSource::DfaBuilder;
 }
 
-impl BuildFrom<VecTree<ReNode>> for DfaBuilder {
+impl BuildFrom<ReTree> for DfaBuilder {
     /// Creates a [`DfaBuilder`] from a tree of regular expression [`VecTree`]<[`ReNode`]>.
-    fn build_from(regex_tree: VecTree<ReNode>) -> Self {
+    fn build_from(regex_tree: ReTree) -> Self {
         let mut builder = DfaBuilder {
             re: regex_tree,
             followpos: HashMap::new(),
@@ -1254,7 +1256,7 @@ pub(crate) fn followpos_to_string(dfa_builder: &DfaBuilder) -> String {
     fpos.join("\n")
 }
 
-fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
+fn node_to_string(tree: &ReTree, index: usize, basic: bool) -> String {
     let node = tree.get(index);
     let mut result = String::new();
     if !basic {
@@ -1274,11 +1276,68 @@ fn node_to_string(tree: &VecTree<ReNode>, index: usize, basic: bool) -> String {
     result
 }
 
+pub fn retree_to_str(tree: &ReTree, node: Option<usize>, emphasis: Option<usize>, show_index: bool) -> String {
+    fn pr_join(children: Vec<(u32, String)>, str: &str, pr: u32) -> (u32, String) {
+        (pr,
+         children.into_iter()
+             .map(|(p_ch, ch)| if p_ch < pr { format!("({ch})") } else { ch })
+             .join(str))
+    }
+
+    fn pr_append(child: (u32, String), str: &str, pr: u32, force_par: bool) -> (u32, String) {
+        (pr, if force_par || child.0 < pr { format!("({}){str}", child.1) } else { format!("{}{str}", child.1) })
+    }
+
+    const PR_MATCH: u32 = 1;
+    const PR_TERM: u32 = 2;
+    const PR_REPEAT: u32 = 3;
+    const PR_ITEM: u32 = 4;
+
+    let mut children = vec![];
+    if tree.is_empty() {
+        return "<empty>".to_string();
+    }
+    let top = node.unwrap_or_else(|| tree.get_root().unwrap());
+    for node in tree.iter_depth_at(top) {
+        let (pr, mut str) = match node.num_children() {
+            0 => {
+                match &node.op {
+                    ReType::Empty => (PR_ITEM, "ε".to_string()),
+                    ReType::End(t) => (PR_ITEM, t.to_string()),
+                    ReType::Char(ch) => (PR_ITEM, format!("{ch:?}")),
+                    ReType::CharRange(segments) => (PR_ITEM, format!("[{segments}]")),
+                    ReType::String(str) => (PR_ITEM, format!("{str:?}")),
+                    s => panic!("{s:?} should have children"),
+                }
+            }
+            n => {
+                let mut node_children = children.split_off(children.len() - n);
+                match &node.op {
+                    ReType::Concat => pr_join(node_children, " ", PR_TERM),
+                    ReType::Star => pr_append(node_children.pop().unwrap(), "*", PR_REPEAT, show_index),
+                    ReType::Plus => pr_append(node_children.pop().unwrap(), "+", PR_REPEAT, show_index),
+                    ReType::Or => pr_join(node_children, " | ", PR_MATCH),
+                    ReType::Lazy => pr_append(node_children.pop().unwrap(), "?", PR_REPEAT, show_index),
+                    s => panic!("{s:?} shouldn't have {n} child(ren)"),
+                }
+            }
+        };
+        if show_index {
+            str = format!("{}:{str}", node.index);
+        }
+        if Some(node.index) == emphasis {
+            str = format!(" ►►► {str} ◄◄◄ ");
+        }
+        children.push((pr, str));
+    }
+    children.pop().unwrap().1
+}
+
 // ---------------------------------------------------------------------------------------------
 // Supporting Debug functions
 
 /// Debug function to display the content of a tree.
-pub fn tree_to_string(tree: &VecTree<ReNode>, root: Option<usize>, basic: bool) -> String {
+pub fn tree_to_string(tree: &ReTree, root: Option<usize>, basic: bool) -> String {
     if tree.len() > 0 {
         node_to_string(tree, root.unwrap_or_else(|| tree.get_root().unwrap()), basic)
     } else {

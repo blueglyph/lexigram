@@ -5,7 +5,7 @@ use std::fmt::{Debug, Formatter};
 use std::ops::{Add, Range};
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use lexigram_lib::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string, DfaBundle};
+use lexigram_lib::dfa::{ChannelId, ModeOption, ReType, ActionOption, Terminal, TokenId, ModeId, Dfa, DfaBuilder, tree_to_string, DfaBundle, retree_to_str};
 use lexigram_lib::dfa::ReNode;
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::{hashmap, node, segments, CollectJoin, General, Normalized, SymbolTable};
@@ -281,7 +281,8 @@ impl LexiListener {
                            format!("{mode}"),
                            format!("{}", if let Some(b) = ret { if b { "Y" } else { "N" } } else { "" }),
                            if let Some(sym) = sym_maybe { format!("{sym}") } else { String::new() },
-                           format!("{}", tree_to_string(t, None, true)),
+                           // format!("{}", tree_to_string(t, None, true)),
+                           format!("{}", retree_to_str(t, None, None, false)),
             ]);
         }
         lines.push("- definitions:".to_string());
