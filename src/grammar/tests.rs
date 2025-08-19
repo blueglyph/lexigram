@@ -766,6 +766,7 @@ fn ruletreeset_to_str() {
         (55, 0, None, None, "a ((b c | d)+ e)+ f"),
         (55, 0, None, Some(3), "a ( ►►► (b c | d)+ e ◄◄◄ )+ f"),
         (53, 0, None, None, "(<L=AIter1> a d | B)+ c"),
+        (44, 0, None, None, r#""-" E | <R> E ("*" | "/" <P>) E | E ("+" | "-" <P>) E | ID"#),
     ];
     const VERBOSE: bool = false;
     let mut errors = 0;

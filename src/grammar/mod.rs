@@ -48,10 +48,13 @@ impl Symbol {
         symbol_table.map(|t| t.get_name(self)).unwrap_or(self.to_string())
     }
 
+    /// Converts the symbol to string, using the symbol table if available, and
+    /// surrounding it with quotes if it's a string literal.
     pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         symbol_table.map(|t| t.get_name_quote(self)).unwrap_or(self.to_string())
     }
 
+    /// Converts the symbol to string, using the symbol table if available.
     pub fn to_str_ext<T: SymInfoTable>(&self, symbol_table: Option<&T>, ext: &String) -> String {
         let mut result = self.to_str(symbol_table);
         if let Some(t) = symbol_table {
@@ -200,6 +203,61 @@ impl std::fmt::Debug for Dup {
 
 pub type GrTree = VecTree<GrNode>;
 
+/// Builds the string representation of the [`GrTree`], using the [`symbol table`](SymbolTable) if available
+/// and optionally starting at node `node`. If `emphasis` contains a node ID, this subpart of the tree
+/// is emphasized in the string.
+pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
+    fn pr_join(children: Vec<(u32, String)>, str: &str, pr: u32) -> (u32, String) {
+        (pr, children.into_iter()
+            .map(|(p_ch, ch)| if p_ch >= pr { ch } else { format!("({ch})") })
+            .join(str))
+    }
+
+    fn pr_append(child: (u32, String), str: &str, pr: u32) -> (u32, String) {
+        (pr, if child.0 >= pr { format!("{}{str}", child.1) } else { format!("({}){str}", child.1) })
+    }
+
+    const PR_PROD: u32 = 1;
+    const PR_TERM: u32 = 2;
+    const PR_FACTOR: u32 = 3;
+    const PR_ATOM: u32 = 4;
+
+    let mut children = vec![];
+    if tree.is_empty() {
+        return "<empty>".to_string();
+    }
+    let top = node.unwrap_or_else(|| tree.get_root().unwrap());
+    for node in tree.iter_depth_at(top) {
+        let (pr, mut str) = match node.num_children() {
+            0 => {
+                match node.deref() {
+                    GrNode::Symbol(s) => (PR_ATOM, s.to_str_quote(symbol_table)),
+                    GrNode::LForm(var) => (PR_ATOM, format!("<L={}>", Symbol::NT(*var).to_str(symbol_table))),
+                    GrNode::RAssoc => (PR_ATOM, "<R>".to_string()),
+                    GrNode::PrecEq => (PR_ATOM, "<P>".to_string()),
+                    s => panic!("{s:?} should have children"),
+                }
+            }
+            n => {
+                let mut node_children = children.split_off(children.len() - n);
+                match node.deref() {
+                    GrNode::Concat => pr_join(node_children, " ", PR_TERM),
+                    GrNode::Or => pr_join(node_children, " | ", PR_PROD),
+                    GrNode::Maybe => pr_append(node_children.pop().unwrap(), "?", PR_FACTOR),
+                    GrNode::Plus => pr_append(node_children.pop().unwrap(), "+", PR_FACTOR),
+                    GrNode::Star => pr_append(node_children.pop().unwrap(), "*", PR_FACTOR),
+                    s => panic!("{s:?} shouldn't have {n} child(ren)"),
+                }
+            }
+        };
+        if Some(node.index) == emphasis {
+            str = format!(" ►►► {str} ◄◄◄ ");
+        }
+        children.push((pr, str));
+    }
+    children.pop().unwrap().1
+}
+
 /// Adds methods to GrTree.
 ///
 /// _NOTE: We must create a trait for GrTree since we can't implement functions for an external type,
@@ -232,7 +290,7 @@ impl GrTreeExt for GrTree {
     }
 }
 
-struct GrTreeFmt<'a> {
+pub struct GrTreeFmt<'a> {
     tree: &'a GrTree,
     show_ids: bool,
     show_depth: bool,
@@ -444,59 +502,7 @@ impl<T> RuleTreeSet<T> {
     /// optionally starting at node `node`. If `emphasis` contains a node ID, this subpart of the
     /// tree is emphasized in the string.
     pub fn to_str(&self, var: VarId, node: Option<usize>, emphasis: Option<usize>) -> String {
-        fn pr_join(children: Vec<(u32, String)>, str: &str, pr: u32) -> (u32, String) {
-            (pr, children.into_iter()
-                .map(|(p_ch, ch)| if p_ch >= pr { ch } else { format!("({ch})") })
-                .join(str))
-        }
-        fn pr_append(child: (u32, String), str: &str, pr: u32) -> (u32, String) {
-            (pr, if child.0 >= pr { format!("{}{str}", child.1) } else { format!("({}){str}", child.1) })
-        }
-        const PR_PROD: u32 = 1;
-        const PR_TERM: u32 = 2;
-        const PR_FACTOR : u32 = 3;
-        const PR_ATOM: u32 = 4;
-        let mut children = vec![];
-        let tree = &self.trees[var as usize];
-        if tree.is_empty() {
-            return "<empty>".to_string();
-        }
-        let top = node.unwrap_or_else(|| tree.get_root().unwrap());
-        for node in self.trees[var as usize].iter_depth_at(top) {
-            let (pr, mut str) = match node.num_children() {
-                0 => {
-                    match node.deref() {
-                        GrNode::Symbol(s) => {
-                            let symb_str = match s {
-                                Symbol::T(_) => s.to_str_quote(self.get_symbol_table()),
-                                s => s.to_str(self.get_symbol_table()),
-                            };
-                            (PR_ATOM, symb_str)
-                        },
-                        GrNode::LForm(var) => (PR_ATOM, format!("<L={}>", Symbol::NT(*var).to_str(self.get_symbol_table()))),
-                        GrNode::RAssoc => (PR_ATOM, "<R>".to_string()),
-                        GrNode::PrecEq => (PR_ATOM, "<P>".to_string()),
-                        s => panic!("{s:?} should have children"),
-                    }
-                }
-                n => {
-                    let mut node_children = children.split_off(children.len() - n);
-                    match node.deref() {
-                        GrNode::Concat => pr_join(node_children, " ", PR_TERM),
-                        GrNode::Or => pr_join(node_children, " | ", PR_PROD),
-                        GrNode::Maybe => pr_append(node_children.pop().unwrap(), "?", PR_FACTOR),
-                        GrNode::Plus => pr_append(node_children.pop().unwrap(), "+", PR_FACTOR),
-                        GrNode::Star => pr_append(node_children.pop().unwrap(), "*", PR_FACTOR),
-                        s => panic!("{s:?} shouldn't have {n} child(ren)"),
-                    }
-                }
-            };
-            if Some(node.index) == emphasis {
-                str = format!(" ►►► {str} ◄◄◄ ");
-            }
-            children.push((pr, str));
-        }
-        children.pop().unwrap().1
+        grtree_to_str(&self.trees[var as usize], node, emphasis, self.get_symbol_table())
     }
 }
 
