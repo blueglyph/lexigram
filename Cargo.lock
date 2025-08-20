@@ -18,12 +18,6 @@ dependencies = [
 
 [[package]]
 name = "iter-index"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0cf0ae38911bcace7db2635fa7031be1488f71a6f08868f4c9701e9b1be5d132"
-
-[[package]]
-name = "iter-index"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bae738582aa13b8b43c735d5cfacd543508220dd23290fb52bd7a00d38cc6a36"
@@ -32,7 +26,7 @@ checksum = "bae738582aa13b8b43c735d5cfacd543508220dd23290fb52bd7a00d38cc6a36"
 name = "lexigram"
 version = "0.5.2"
 dependencies = [
- "iter-index 0.1.1",
+ "iter-index",
  "lexigram_lib",
  "vectree",
 ]
@@ -41,13 +35,13 @@ dependencies = [
 name = "lexigram_lib"
 version = "0.5.2"
 dependencies = [
- "iter-index 1.0.0",
+ "iter-index",
  "lexigram",
  "vectree",
 ]
 
 [[package]]
 name = "vectree"
-version = "0.1.6"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1e248cbb68954d924bf66b809b5884fbaf638b237a994db0a4dcda9579a50349"
+checksum = "5957601400f43a2d46ad0c3a7cba1dc30e145957adcdfa63e3cd50d69a1d127d"

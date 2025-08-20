@@ -227,7 +227,7 @@ pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>
         return "<empty>".to_string();
     }
     let top = node.unwrap_or_else(|| tree.get_root().unwrap());
-    for node in tree.iter_depth_at(top) {
+    for node in tree.iter_depth_simple_at(top) {
         let (pr, mut str) = match node.num_children() {
             0 => {
                 match node.deref() {
