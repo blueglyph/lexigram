@@ -18,14 +18,15 @@ fn rts_to_str<T>(rules: &RuleTreeSet<T>) -> String {
         .join("\n")
 }
 
+fn is_grtree_empty_symbol(rule: &GrTree) -> bool {
+    rule.get_root()
+        .and_then(|root| Some(*rule.get(root) == GrNode::Symbol(Symbol::Empty)))
+        .unwrap_or(false)
+}
+
 impl<T> RuleTreeSet<T> {
     fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &GrTree)> {
-        self.get_trees_iter()
-            .filter(|(_, rule)|
-                rule.get_root()
-                    .and_then(|root| Some(*rule.get(root) != GrNode::Symbol(Symbol::Empty)))
-                    .unwrap_or(false)
-            )
+        self.get_trees_iter().filter(|(_, rule)| !is_grtree_empty_symbol(&rule))
     }
 }
 
@@ -600,6 +601,19 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
             tree.add(Some(or), gnode!(t 4));
         }
+        46 => { // A -> (a | b) (c | d)
+            let cc = tree.add_root(gnode!(&));
+            tree.addc_iter(Some(cc), gnode!(|), [gnode!(t 0), gnode!(t 1)]);
+            tree.addc_iter(Some(cc), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
+        }
+        47 => { // A -> (a | b) (c d | e)*
+            let cc = tree.add_root(gnode!(&));
+            tree.addc_iter(Some(cc), gnode!(|), [gnode!(t 0), gnode!(t 1)]);
+            let s1 = tree.add(Some(cc), gnode!(*));
+            let o2 = tree.add(Some(s1), gnode!(|));
+            tree.addc_iter(Some(o2), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
+            tree.add(Some(o2), gnode!(t 4));
+        }
         50 => { // A -> (a d | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
             let cc = tree.add_root(gnode!(&));
             let p1 = tree.add(Some(cc), gnode!(*));
@@ -803,43 +817,67 @@ fn ruletreeset_to_str() {
 #[test]
 fn rts_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
+        //   A -> b | c | D
         (0, btreemap![0 => r#"b | c | D"#]),
+        //   A -> B C | d | e | F G | h | i | J K
         (1, btreemap![0 => r#"B C | d | e | F G | h | i | J K"#]),
+        //   A -> B C (D | E) F G (H | I)
         (2, btreemap![0 => r#"B C D F G H | B C D F G I | B C E F G H | B C E F G I"#]),
+        //   A -> B C (D | E) F (G H | I)
         (3, btreemap![0 => r#"B C D F G H | B C D F I | B C E F G H | B C E F I"#]),
+        //   A -> A B C (D | E) F (G H | I)
         (4, btreemap![0 => r#"A B C D F G H | A B C D F I | A B C E F G H | A B C E F I"#]),
+        //   A -> B?
         (5, btreemap![0 => r#"B | ε"#]),
+        //   A -> (B C)?
         (6, btreemap![0 => r#"B C | ε"#]),
+        //   A -> (B C | D)?
         (7, btreemap![0 => r#"B C | D | ε"#]),
+        //   A -> b c+
         (8, btreemap![0 => r#"b A_1"#, 1 => r#"c A_1 | c"#]),
+        //   A -> "var" (id ",")+
         (9, btreemap![0 => r#""var" A_1"#, 1 => r#"id "," A_1 | id ",""#]),
+        //   A -> b (c d | e)+
         (10, btreemap![0 => r#"b A_1"#, 1 => r#"c d A_1 | c d | e A_1 | e"#]),
+        //   A -> b c*
         (11, btreemap![0 => r#"b A_1"#, 1 => r#"c A_1 | ε"#]),
+        //   A -> b (c d)*
         (12, btreemap![0 => r#"b A_1"#, 1 => r#"c d A_1 | ε"#]),
+        //   A -> a (b+ c)+ d
         (17, btreemap![0 => r#"a A_2 d"#, 1 => r#"b A_1 | b"#, 2 => r#"A_1 c A_2 | A_1 c"#]),
-        // A -> b (c d | e)*
+        //   A -> b (c d | e)*
         (13, btreemap![0 => r#"b A_1"#, 1 => r#"c d A_1 | e A_1 | ε"#]),
-        // A -> A (b <L=B>)* c | d
+        //   A -> A (b <L=AIter1>)* c | d
         (19, btreemap![0 => r#"A AIter1 c | d"#, 2 => r#"b <L=AIter1> AIter1 | ε"#]),
-        // A -> A (b|c <R>|d) A|e
+        //   A -> A (b | c <R> | d) A | e
         (15, btreemap![0 => r#"A b A | A c <R> A | A d A | e"#]),
-        // E -> - E | E (* | / <P>) E | E (+ | - <P>) E | ID
+        //   E -> "-" E | E ("*" | "/" <P>) E | E ("+" | "-" <P>) E | ID
         (42, btreemap![0 => r#""-" E | E "*" E | E "/" <P> E | E "+" E | E "-" <P> E | ID"#]),
-        // A -> a b | (c | d) | e
+        //   A -> a b | c | d | e
         (45, btreemap![0 => r#"a b | c | d | e"#]),
+        //   A -> (a | b) (c | d)
+        (46, btreemap![0 => r#"a c | a d | b c | b d"#]),
+        //   A -> (a | b) (c d | e)*
+        (47, btreemap![0 => r#"a A_1 | b A_1"#, 1 => r#"c d A_1 | e A_1 | ε"#]),
     ];
     const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
+    const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
         let mut rules = build_rts(test_id);
+        let sym_tab = rules.get_symbol_table();
+        let originals = rules.get_non_empty_nts()
+            .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab)))
+            .to_vec();
+        if SHOW_RESULTS_ONLY {
+            println!("{}", originals.iter().map(|s| format!("        // {s}")).join(""));
+        }
         if VERBOSE {
-            let sym_tab = rules.get_symbol_table();
             println!("{:=<80}\ntest {test_id}:", "");
-            println!("- original:\n{}",
-                     (0..rules.trees.len() as VarId).map(|v| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), rules.to_str(v, None, None))).join("\n"));
+            println!("- original:\n{}", originals.join("\n"));
             println!("- original (detailed):\n{}",
-                     rules.trees.iter().index::<VarId>()
+                     rules.get_non_empty_nts()
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
         }
         rules.normalize();
@@ -852,7 +890,10 @@ fn rts_normalize() {
         if VERBOSE {
             let sym_tab = rules.get_symbol_table();
             println!("- normalized:\n{}",
-                     rules.trees.iter().index::<VarId>()
+                     rules.get_non_empty_nts()
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab))).join("\n"));
+            println!("- normalized (detailed):\n{}",
+                     rules.get_non_empty_nts()
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
             println!("flags:  {:?}", rules.flags);
             println!("parent: {:?}", rules.parent);
@@ -860,12 +901,135 @@ fn rts_normalize() {
                 .map(|(id, t)| format!("- {id} => {} (depth {})",
                                        rules.to_str(id, None, None),
                                        t.depth().unwrap_or(0))).join("\n"));
-            println!("({test_id}, btreemap![{}]),\n", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));
+        }
+        if SHOW_RESULTS_ONLY {
+            println!("        ({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
         if result != expected {
             errors += 1;
-            println!("## ERROR ## test {test_id} failed");
+            if !SHOW_RESULTS_ONLY {
+                println!("## ERROR ## test {test_id} failed");
+            }
+        };
+    }
+    assert_eq!(errors, 0);
+}
+
+#[test]
+fn orig_normalize() {
+    let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
+        //   A -> b | c | D
+        (0, btreemap![0 => r#"b | c | D"#]),
+        //   A -> B C | d | e | F G | h | i | J K
+        (1, btreemap![0 => r#"B C | d | e | F G | h | i | J K"#]),
+        //   A -> B C (D | E) F G (H | I)
+        (2, btreemap![0 => r#"B C D F G H | B C D F G I | B C E F G H | B C E F G I"#]),
+        //   A -> B C (D | E) F (G H | I)
+        (3, btreemap![0 => r#"B C D F G H | B C D F I | B C E F G H | B C E F I"#]),
+        //   A -> A B C (D | E) F (G H | I)
+        (4, btreemap![0 => r#"A B C D F G H | A B C D F I | A B C E F G H | A B C E F I"#]),
+        //   A -> B?
+        (5, btreemap![0 => r#"B | ε"#]),
+        //   A -> (B C)?
+        (6, btreemap![0 => r#"B C | ε"#]),
+        //   A -> (B C | D)?
+        (7, btreemap![0 => r#"B C | D | ε"#]),
+        //   A -> b c+
+        (8, btreemap![0 => r#"b c+"#]),
+        //   A -> "var" (id ",")+
+        (9, btreemap![0 => r#""var" (id ",")+"#]),
+        //   A -> b (c d | e)+
+        (10, btreemap![0 => r#"b (c d | e)+"#]),
+        //   A -> b c*
+        (11, btreemap![0 => r#"b c*"#]),
+        //   A -> b (c d)*
+        (12, btreemap![0 => r#"b (c d)*"#]),
+        //   A -> a (b+ c)+ d
+        (17, btreemap![0 => r#"a (b+ c)+ d"#]),
+        //   A -> b (c d | e)*
+        (13, btreemap![0 => r#"b (c d | e)*"#]),
+        //   A -> A (b <L=AIter1>)* c | d
+        (19, btreemap![0 => r#"A (b <L=1_removed1>)* c | d"#]),
+        //   A -> A (b | c <R> | d) A | e
+        (15, btreemap![0 => r#"A b A | A c <R> A | A d A | e"#]),
+        //   E -> "-" E | E ("*" | "/" <P>) E | E ("+" | "-" <P>) E | ID
+        (42, btreemap![0 => r#""-" E | E "*" E | E "/" <P> E | E "+" E | E "-" <P> E | ID"#]),
+        //   A -> a b | c | d | e
+        (45, btreemap![0 => r#"a b | c | d | e"#]),
+        //   A -> (a | b) (c | d)
+        (46, btreemap![0 => r#"a c | a d | b c | b d"#]),
+        //   A -> (a | b) (c d | e)*
+        (47, btreemap![0 => r#"a (c d | e)* | b (c d | e)*"#]),
+    ];
+    const VERBOSE: bool = false;
+    const SHOW_RESULTS_ONLY: bool = true;
+    let mut errors = 0;
+    for (test_id, expected) in tests {
+        let mut rules = build_rts(test_id);
+        let sym_tab = rules.get_symbol_table();
+        let originals = rules.get_non_empty_nts()
+            .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab)))
+            .to_vec();
+        if SHOW_RESULTS_ONLY {
+            println!("{}", originals.iter().map(|s| format!("        // {s}")).join(""));
+        }
+        if VERBOSE {
+            println!("{:=<80}\ntest {test_id}:", "");
+            println!("- original:\n{}", originals.join("\n"));
+            println!("- original (detailed):\n{}",
+                     rules.get_non_empty_nts()
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
+        }
+        let orig_table = rules.symbol_table.clone();
+        rules.normalize();
+        assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize:\n{}", rules.log.get_messages_str());
+        if let Some(err) = check_rts_sanity(&rules, false) {
+            panic!("test {test_id} failed:\n{}", err);
+        }
+        let sym_tab = rules.get_symbol_table();
+        let result = rules.origin.trees.iter().index::<VarId>()
+                .filter(|(_, t)| !is_grtree_empty_symbol(&t))
+                .map(|(v, t)| (v, grtree_to_str(t, None, None, sym_tab)))
+            .collect::<BTreeMap<_, _>>();
+        if VERBOSE {
+            println!("- normalized:\n{}",
+                     rules.get_non_empty_nts()
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab))).join("\n"));
+            println!("- normalized (detailed):\n{}",
+                     rules.get_non_empty_nts()
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
+            println!("- original tree partially normalized:\n{}",
+                     rules.origin.trees.iter().index::<VarId>()
+                         .filter(|(_, t)| !is_grtree_empty_symbol(&t))
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab))).join("\n"));
+            println!("  other format:\n{}",
+                     rules.origin.trees.iter().index::<VarId>()
+                         .filter(|(_, t)| !is_grtree_empty_symbol(&t))
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
+            println!("- mapping normalized -> original:");
+            let mut map = rules.origin.map.iter().map(|((va, ida), (vo, ido))| ((*va, *ida), (*vo, *ido))).collect::<Vec<_>>();
+            map.sort();
+            println!("{}", map.into_iter()
+                .map(|((va, ida), (vo, ido))| format!("  - {} #{ida}  was  {} #{ido}",
+                                                      Symbol::NT(va).to_str(rules.get_symbol_table()),
+                                                      Symbol::NT(vo).to_str(orig_table.as_ref()))).join("\n"));
+            println!("flags:  {:?}", rules.flags);
+            println!("parent: {:?}", rules.parent);
+            println!("{}", rules.get_non_empty_nts()
+                .map(|(id, t)| format!("- {id} => {} (depth {})",
+                                       rules.to_str(id, None, None),
+                                       t.depth().unwrap_or(0))).join("\n"));
+        }
+        if SHOW_RESULTS_ONLY {
+            println!("        ({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));
+        }
+        let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
+        if result != expected {
+            errors += 1;
+            if !SHOW_RESULTS_ONLY {
+                println!("## ERROR ## test {test_id} failed");
+            }
         };
     }
     assert_eq!(errors, 0);
