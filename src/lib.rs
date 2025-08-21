@@ -171,7 +171,8 @@ pub fn columns_to_str(lines: Vec<Vec<String>>, min_widths: Option<Vec<usize>>) -
 }
 
 pub(crate) fn indent_source(parts: Vec<Vec<String>>, indent: usize) -> String {
-    let s = String::from_utf8(vec![32; indent]).unwrap();
+    // SAFETY: ' ' is ASCII, and `indent` is >= 0
+    let s = unsafe { String::from_utf8_unchecked(vec![32; indent]) };
     let mut source = String::new();
     let mut first = true;
     for part in parts {
