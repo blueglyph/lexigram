@@ -142,11 +142,12 @@ pub fn escape_string(s: &str) -> String {
     s.chars().map(|c| escape_char(c)).collect::<String>()
 }
 
-pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, item: I) -> usize
+/// Gathers `iter_item` in a vector and pushes it into `v`.
+pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, iter_item: I) -> usize
     where I: IntoIterator<Item=T> + Clone
 {
     let new_index = v.len();
-    v.push(Vec::from_iter(item));
+    v.push(Vec::from_iter(iter_item));
     new_index
 }
 

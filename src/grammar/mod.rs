@@ -738,14 +738,14 @@ impl RuleTreeSet<General> {
                             // ?(&(A,B))      -> |(&(A,B),ε)
                             // ?(|(&(A,B),C)) -> |(&(A,B),C,ε)
                             if VERBOSE { print!("  ?: "); }
-                            let child = stack.pop().unwrap();
+                            let maybe_child = stack.pop().unwrap();
                             let empty = new.add(None, gnode!(e));
-                            let id = match new.get(child) {
+                            let id = match new.get(maybe_child) {
                                 GrNode::Or => {
-                                    new.add(Some(child), gnode!(e));
-                                    child
+                                    new.add(Some(maybe_child), gnode!(e));
+                                    maybe_child
                                 }
-                                _ => new.addci_iter(None, gnode!(|), [child, empty])
+                                _ => new.addci_iter(None, gnode!(|), [maybe_child, empty])
                             };
                             stack.push(id);
                         }
@@ -815,7 +815,7 @@ impl RuleTreeSet<General> {
         let root = stack.pop().unwrap();
         new.set_root(root);
 
-        let orig_root = orig_new.add_from_tree(None, &new, None);
+        let orig_root = orig_new.add_from_tree_callback(None, &new, None, |to, from, _| self.origin.add((var, to), (var, from)));
         orig_new.set_root(orig_root);
         while !orig_rep_vars.is_empty() {
             // We must replace new nonterminals with their original (though normalized) +* content, but we can't
@@ -831,6 +831,7 @@ impl RuleTreeSet<General> {
                     if let Some(rep_type) = orig_rep_vars.get(&rep_var) {
                         to_remove.push(*rep_var);
                         orig_rep_nodes.push((node.index, *rep_type));
+                        self.origin.add((*rep_var, self.get_tree(*rep_var).unwrap().get_root().unwrap()), (var, node.index));
                     }
                 }
             }

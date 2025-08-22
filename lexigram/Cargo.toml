@@ -7,4 +7,4 @@ edition = "2024"
 #lexigram_lib = { git = "ssh://git@github.com/blueglyph/lexigram.git", tag = "0.5.2", package = "lexigram_lib" }
 lexigram_lib = { path = "..", package = "lexigram_lib" }
 iter-index = "1.0.0"
-vectree = "0.2.0"
+vectree = "0.2.1"

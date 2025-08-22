@@ -963,7 +963,7 @@ fn orig_normalize() {
         (47, btreemap![0 => r#"a (c d | e)* | b (c d | e)*"#]),
     ];
     const VERBOSE: bool = false;
-    const SHOW_RESULTS_ONLY: bool = true;
+    const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
         let mut rules = build_rts(test_id);
@@ -981,7 +981,6 @@ fn orig_normalize() {
                      rules.get_non_empty_nts()
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
         }
-        let orig_table = rules.symbol_table.clone();
         rules.normalize();
         assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize:\n{}", rules.log.get_messages_str());
         if let Some(err) = check_rts_sanity(&rules, false) {
@@ -1008,18 +1007,21 @@ fn orig_normalize() {
                          .filter(|(_, t)| !is_grtree_empty_symbol(&t))
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
             println!("- mapping normalized -> original:");
-            let mut map = rules.origin.map.iter().map(|((va, ida), (vo, ido))| ((*va, *ida), (*vo, *ido))).collect::<Vec<_>>();
+            let mut map = rules.origin.map.iter()
+                .filter(|((va, _), (_, _))| !is_grtree_empty_symbol(&rules.get_tree(*va).unwrap()))
+                .map(|((va, ida), (vo, ido))| ((*va, *ida), (*vo, *ido)))
+                .collect::<Vec<_>>();
             map.sort();
             println!("{}", map.into_iter()
                 .map(|((va, ida), (vo, ido))| format!("  - {} #{ida}  was  {} #{ido}",
-                                                      Symbol::NT(va).to_str(rules.get_symbol_table()),
-                                                      Symbol::NT(vo).to_str(orig_table.as_ref()))).join("\n"));
-            println!("flags:  {:?}", rules.flags);
-            println!("parent: {:?}", rules.parent);
-            println!("{}", rules.get_non_empty_nts()
-                .map(|(id, t)| format!("- {id} => {} (depth {})",
-                                       rules.to_str(id, None, None),
-                                       t.depth().unwrap_or(0))).join("\n"));
+                                                      Symbol::NT(va).to_str(sym_tab),
+                                                      Symbol::NT(vo).to_str(sym_tab))).join("\n"));
+            // println!("flags:  {:?}", rules.flags);
+            // println!("parent: {:?}", rules.parent);
+            // println!("{}", rules.get_non_empty_nts()
+            //     .map(|(id, t)| format!("- {id} => {} (depth {})",
+            //                            rules.to_str(id, None, None),
+            //                            t.depth().unwrap_or(0))).join("\n"));
         }
         if SHOW_RESULTS_ONLY {
             println!("        ({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));
@@ -3576,6 +3578,21 @@ fn prs_calc_table() {
               0,   3,   4,
               3,   1,   2,
         ]),
+        // (T::RTS(57), 0, 0, vec![
+        //     // - 0: A -> a A_1
+        //     // - 1: A_1 -> b a A_1
+        //     // - 2: A_1 -> ε
+        //     (0, prodf!(t 0, nt 1)),
+        //     (1, prodf!(t 1, t 0, nt 1)),
+        //     (1, prodf!(e)),
+        // ], vec![
+        //     //     |  a   b   $
+        //     // ----+-------------
+        //     // A   |  0   .   p
+        //     // A_1 |  .   1   2
+        //       0,   3,   4,
+        //       3,   1,   2,
+        // ]),
         // (T::RTS(57), 0, 0, vec![
         // ], vec![
         // ]),
