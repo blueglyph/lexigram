@@ -127,6 +127,7 @@ pub enum GrNode {
     LForm(VarId),   // applied to NT
     RAssoc,         // applied to factor, right-associative
     PrecEq,         // applied to factor, same precedence as previous factor
+    Instance,       // instance of * or + in reference origin trees
 }
 
 impl Display for GrNode {
@@ -141,6 +142,7 @@ impl Display for GrNode {
             GrNode::LForm(v) => write!(f, "<L={v}>"),
             GrNode::RAssoc => write!(f, "<R>"),
             GrNode::PrecEq => write!(f, "<P>"),
+            GrNode::Instance => write!(f, "inst "),
         }
     }
 }
@@ -248,6 +250,7 @@ pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>
                     GrNode::Maybe => pr_append(node_children.pop().unwrap(), "?", PR_FACTOR),
                     GrNode::Plus => pr_append(node_children.pop().unwrap(), "+", PR_FACTOR),
                     GrNode::Star => pr_append(node_children.pop().unwrap(), "*", PR_FACTOR),
+                    GrNode::Instance => pr_join(node_children, " ", PR_FACTOR),
                     s => panic!("{s:?} shouldn't have {n} child(ren)"),
                 }
             }
@@ -613,8 +616,6 @@ impl RuleTreeSet<General> {
     /// case, new non-terminals are created, with increasing IDs starting from
     /// `new_var`.
     fn normalize_var(&mut self, var: VarId) {
-        #[derive(Clone, Copy)]
-        enum RepType { Star(usize), Plus(usize) }
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
         if VERBOSE { println!("normalize_var({})", Symbol::NT(var).to_str(self.get_symbol_table())); }
@@ -622,7 +623,7 @@ impl RuleTreeSet<General> {
         let orig = take(&mut self.trees[var as usize]);
         let mut new = GrTree::new();
         let mut orig_new = GrTree::new();
-        let mut orig_rep_vars = HashMap::<VarId, RepType>::new();
+        let mut orig_rep_vars = HashMap::<VarId, usize>::new();
         let mut stack = Vec::<usize>::new();    // indices in new
         for sym in orig.iter_depth() {
             let n = sym.num_children();
@@ -767,9 +768,10 @@ impl RuleTreeSet<General> {
                             // +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
                             if VERBOSE { print!("  +"); }
                             let plus_child = stack.pop().unwrap();
-                            let orig_plus_child = orig_new.add_from_tree(None, &new, Some(plus_child));
-                            orig_rep_vars.insert(new_var, RepType::Plus(orig_plus_child)); // to replace later
-                            stack.push(self.normalize_plus_or_star(plus_child, &mut new, var, &mut new_var, true));
+                            let orig_plus = orig_new.add(None, gnode!(+));
+                            let orig_plus_child = orig_new.add_from_tree(Some(orig_plus), &new, Some(plus_child));
+                            orig_rep_vars.insert(new_var, orig_plus); // to replace later
+                            stack.push(self.normalize_plus_or_star(plus_child, orig_plus_child, &mut new, &orig_new, var, &mut new_var, true));
                         }
                     }
                     GrNode::Star => {
@@ -789,9 +791,10 @@ impl RuleTreeSet<General> {
                             // *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
                             if VERBOSE { print!("  *"); }
                             let star_child = stack.pop().unwrap();
-                            let orig_star_child = orig_new.add_from_tree(None, &new, Some(star_child));
-                            orig_rep_vars.insert(new_var, RepType::Star(orig_star_child)); // to replace later
-                            stack.push(self.normalize_plus_or_star(star_child, &mut new, var, &mut new_var, false));
+                            let orig_star = orig_new.add(None, gnode!(*));
+                            let orig_star_child = orig_new.add_from_tree(Some(orig_star), &new, Some(star_child));
+                            orig_rep_vars.insert(new_var, orig_star); // to replace later
+                            stack.push(self.normalize_plus_or_star(star_child, orig_star_child, &mut new, &orig_new, var, &mut new_var, false));
                         }
                     }
                     _ => panic!("Unexpected {}", sym.deref())
@@ -815,7 +818,7 @@ impl RuleTreeSet<General> {
         let root = stack.pop().unwrap();
         new.set_root(root);
 
-        let orig_root = orig_new.add_from_tree_callback(None, &new, None, |to, from, _| self.origin.add((var, to), (var, from)));
+        let orig_root = orig_new.add_from_tree_callback(None, &new, None, |from, to, _| self.origin.add((var, to), (var, from)));
         orig_new.set_root(orig_root);
         while !orig_rep_vars.is_empty() {
             // We must replace new nonterminals with their original (though normalized) +* content, but we can't
@@ -824,23 +827,19 @@ impl RuleTreeSet<General> {
             // - iterate orig_rep_nodes and modify nodes in orig_new
             // Since each replacement can make new nonterminals visible (if they're embedded in one another),
             // we must repeat those steps until all `orig_rep_vars` have been found and replaced.
-            let mut orig_rep_nodes = Vec::<(usize, RepType)>::new();
+            let mut orig_rep_nodes = Vec::<(usize, usize)>::new();
             let mut to_remove = Vec::<VarId>::new();
             for node in orig_new.iter_depth() {
                 if let GrNode::Symbol(Symbol::NT(rep_var)) = node.deref() {
-                    if let Some(rep_type) = orig_rep_vars.get(&rep_var) {
+                    if let Some(&orig_rep_id) = orig_rep_vars.get(&rep_var) {
                         to_remove.push(*rep_var);
-                        orig_rep_nodes.push((node.index, *rep_type));
-                        self.origin.add((*rep_var, self.get_tree(*rep_var).unwrap().get_root().unwrap()), (var, node.index));
+                        orig_rep_nodes.push((node.index, orig_rep_id));
+                        self.origin.add((*rep_var, self.get_tree(*rep_var).unwrap().get_root().unwrap()), (var, orig_rep_id));
                     }
                 }
             }
-            for (orig_id, rep_type) in orig_rep_nodes {
-                let (rep, child_id) = match rep_type {
-                    RepType::Star(id) => (gnode!(*), id),
-                    RepType::Plus(id) => (gnode!(+), id),
-                };
-                *orig_new.get_mut(orig_id) = rep;
+            for (orig_id, child_id) in orig_rep_nodes {
+                *orig_new.get_mut(orig_id) = gnode!(inst);
                 orig_new.attach_child(orig_id, child_id);
             }
             for var in to_remove {
@@ -851,7 +850,11 @@ impl RuleTreeSet<General> {
         self.set_tree(var, new);
     }
 
-    fn normalize_plus_or_star(&mut self, rep_child: usize, new: &mut VecTree<GrNode>, var: VarId, new_var: &mut VarId, is_plus: bool) -> usize {
+    fn normalize_plus_or_star(
+        &mut self, rep_child: usize, orig_rep_child: usize,
+        new: &mut GrTree, orig_new: &GrTree, var: VarId, new_var: &mut VarId, is_plus: bool
+    ) -> usize
+    {
         const VERBOSE: bool = false;
         const OPTIMIZE_SUB_OR: bool = false;
         self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.trees.len(), "number of nt in symbol table doesn't match num_nt"));
@@ -865,9 +868,11 @@ impl RuleTreeSet<General> {
                 if VERBOSE { print!("({rep_child}:{s}) "); }
                 // note: we cannot use the child id in qtree!
                 let or = qtree.add_root(gnode!(|));
-                let cc = qtree.addc(Some(or), gnode!(&), GrNode::Symbol(s.clone()));
+                let cc = qtree.add(Some(or), gnode!(&));
+                let child = qtree.add(Some(cc), GrNode::Symbol(s.clone()));
                 qtree.add(Some(cc), gnode!(nt *new_var));
                 qtree.add(Some(or), if is_plus { GrNode::Symbol(s.clone()) } else { gnode!(e) });
+                self.origin.add((*new_var, child), (var, orig_rep_child));
             }
             GrNode::Concat => {
                 let id_grchildren = new.children(rep_child);
@@ -879,6 +884,7 @@ impl RuleTreeSet<General> {
                     }
                 }));
                 qtree.add(Some(cc1), gnode!(nt *new_var));
+                self.origin.add((*new_var, cc1), (var, orig_rep_child));
                 if is_plus {
                     qtree.add_from_tree(Some(or), &new, Some(rep_child));
                 } else {
@@ -888,16 +894,19 @@ impl RuleTreeSet<General> {
             #[allow(unreachable_patterns)]
             GrNode::Or => if !OPTIMIZE_SUB_OR {
                 let id_grchildren = new.children(rep_child);
+                let orig_id_grchildren = orig_new.children(orig_rep_child);
                 if VERBOSE { print!("({rep_child}:|({})) ", id_grchildren.iter().join(", ")); }
                 let or = qtree.add_root(gnode!(|));
-                for id_child in id_grchildren {
+                for (id_child, orig_id_child) in id_grchildren.iter().zip(orig_id_grchildren) {
                     let grchild = new.get(*id_child);
                     match grchild {
                         GrNode::Symbol(s) => {
-                            qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)]);
+                            let cc = qtree.add(Some(or), gnode!(&));
+                            let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)])[0];
                             if is_plus {
                                 qtree.add(Some(or), GrNode::Symbol(s.clone()));
                             }
+                            self.origin.add((*new_var, child), (var, *orig_id_child));
                         }
                         GrNode::Concat => {
                             let cc = qtree.add_from_tree_iter(Some(or), new.iter_depth_at(*id_child).inspect(|n| {
@@ -2628,6 +2637,7 @@ pub mod macros {
         (L $id:expr) => { $crate::grammar::GrNode::LForm($id) };
         (R) => { $crate::grammar::GrNode::RAssoc };
         (P) => { $crate::grammar::GrNode::PrecEq };
+        (inst) => { $crate::grammar::GrNode::Instance };
     }
 
     /// Generates a `Symbol` instance.

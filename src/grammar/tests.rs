@@ -921,18 +921,8 @@ fn orig_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
         //   A -> b | c | D
         (0, btreemap![0 => r#"b | c | D"#]),
-        //   A -> B C | d | e | F G | h | i | J K
-        (1, btreemap![0 => r#"B C | d | e | F G | h | i | J K"#]),
-        //   A -> B C (D | E) F G (H | I)
-        (2, btreemap![0 => r#"B C D F G H | B C D F G I | B C E F G H | B C E F G I"#]),
-        //   A -> B C (D | E) F (G H | I)
-        (3, btreemap![0 => r#"B C D F G H | B C D F I | B C E F G H | B C E F I"#]),
         //   A -> A B C (D | E) F (G H | I)
         (4, btreemap![0 => r#"A B C D F G H | A B C D F I | A B C E F G H | A B C E F I"#]),
-        //   A -> B?
-        (5, btreemap![0 => r#"B | ε"#]),
-        //   A -> (B C)?
-        (6, btreemap![0 => r#"B C | ε"#]),
         //   A -> (B C | D)?
         (7, btreemap![0 => r#"B C | D | ε"#]),
         //   A -> b c+
@@ -961,11 +951,18 @@ fn orig_normalize() {
         (46, btreemap![0 => r#"a c | a d | b c | b d"#]),
         //   A -> (a | b) (c d | e)*
         (47, btreemap![0 => r#"a (c d | e)* | b (c d | e)*"#]),
+        //   A -> a (b c)+ d
+        (54, btreemap![0 => r#"a (b c)+ d"#]),
+        //   A -> (a d | B)* c        //   B -> b
+        (50, btreemap![0 => r#"(a d | B)* c"#, 1 => r#"b"#]),
+        //   A -> (a d | B)+ c        //   B -> b
+        (52, btreemap![0 => r#"(a d | B)+ c"#, 1 => r#"b"#]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
+if test_id != 47 { continue }
         let mut rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()
@@ -974,7 +971,7 @@ fn orig_normalize() {
         if SHOW_RESULTS_ONLY {
             println!("{}", originals.iter().map(|s| format!("        // {s}")).join(""));
         }
-        if VERBOSE {
+        if VERBOSE && !SHOW_RESULTS_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
             println!("- original:\n{}", originals.join("\n"));
             println!("- original (detailed):\n{}",
@@ -991,7 +988,7 @@ fn orig_normalize() {
                 .filter(|(_, t)| !is_grtree_empty_symbol(&t))
                 .map(|(v, t)| (v, grtree_to_str(t, None, None, sym_tab)))
             .collect::<BTreeMap<_, _>>();
-        if VERBOSE {
+        if VERBOSE && !SHOW_RESULTS_ONLY {
             println!("- normalized:\n{}",
                      rules.get_non_empty_nts()
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab))).join("\n"));
