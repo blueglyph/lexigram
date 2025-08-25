@@ -962,7 +962,7 @@ fn orig_normalize() {
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
-if test_id != 47 { continue }
+if !matches!(test_id, 47|12|10) { continue }
         let mut rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()
