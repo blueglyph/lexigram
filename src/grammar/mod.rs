@@ -461,7 +461,7 @@ pub struct RuleTreeSet<T> {
     flags: Vec<u32>,            // NT -> flags (+ or * normalization)
     parent: Vec<Option<VarId>>, // NT -> parent NT
     nt_conversion: HashMap<VarId, NTConversion>,
-    origin: Origin<FromRTS>,
+    origin: Origin<(VarId, usize), FromRTS>,
     log: BufLog,
     _phantom: PhantomData<T>
 }

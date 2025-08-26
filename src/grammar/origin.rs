@@ -3,6 +3,7 @@
 #![allow(unused)]
 
 use std::collections::HashMap;
+use std::hash::Hash;
 use std::marker::PhantomData;
 use crate::grammar::{GrTree, VarId};
 
@@ -12,13 +13,13 @@ pub struct FromRTS;
 // pub struct FromPRS;
 
 #[derive(Clone, Debug)]
-pub struct Origin<T> {
+pub struct Origin<F, T> {
     pub(crate) trees: Vec<GrTree>,
-    pub(crate) map: HashMap<(VarId, usize), (VarId, usize)>,
+    pub(crate) map: HashMap<F, (VarId, usize)>,
     _phantom: PhantomData<T>,
 }
 
-impl<T> Origin<T> {
+impl<F, T> Origin<F, T> {
     pub fn new() -> Self {
         Origin {
             trees: Vec::new(),
@@ -30,6 +31,14 @@ impl<T> Origin<T> {
     pub fn with_capacity(size: usize) -> Self {
         Origin {
             trees: Vec::with_capacity(size),
+            map: HashMap::new(),
+            _phantom: PhantomData,
+        }
+    }
+
+    pub fn from_trees(trees: &mut Vec<GrTree>) -> Self {
+        Origin {
+            trees: std::mem::take(trees),
             map: HashMap::new(),
             _phantom: PhantomData,
         }
@@ -58,19 +67,19 @@ impl<T> Origin<T> {
     } 
 }
 
-impl Origin<FromRTS> {
+impl<F: Eq + Hash, T> Origin<F, T> {
     /// Adds a connection between a `new` node and its `origin` in the original [`GrTree`].
     /// 
     /// `new` is made up of a nonterminal index and its tree index.
-    pub fn add(&mut self, new: (VarId, usize), origin: (VarId, usize)) {
+    pub fn add(&mut self, new: F, origin: (VarId, usize)) {
         self.map.insert(new, origin);
     }
     
     /// Gets the original [`GrTree`] and node index, if they exist, from a `new` node. 
     /// 
     /// `new` is made up of a nonterminal index and its tree index.
-    pub fn get(&self, var: VarId, new: usize) -> Option<(&GrTree, usize)> {
-        self.map.get(&(var, new)).cloned()
+    pub fn get(&self, new: F) -> Option<(&GrTree, usize)> {
+        self.map.get(&new).cloned()
             .map(|(v, node)| (&self.trees[v as usize], node))
     }
 }
