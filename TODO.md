@@ -104,6 +104,7 @@
 - [ ] handle token ambiguity in context (e.g. to allow IDs with names of keywords)
   - dfa::calc_states: when terminals.len() > 1, returns the 1st defined + alternatives
   - parser: if var/token not in table, check alternatives to recover
+  - parser: hook to transform tokens from lexer (e.g. change Id to TypeId or VarId)
 - [ ] lexer hooks? (using traits?)
 - AST tree builder
   - [ ] create code (nodes, listener) that returns a VecTree

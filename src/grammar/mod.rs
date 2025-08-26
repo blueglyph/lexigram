@@ -907,6 +907,7 @@ impl RuleTreeSet<General> {
                         GrNode::Symbol(s) => {
                             let cc = qtree.add(Some(or), gnode!(&));
                             let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)])[0];
+                            self.origin.add((*new_var, cc), (var, *orig_id_grchild));
                             self.origin.add((*new_var, child), (var, *orig_id_grchild));
                             if is_plus {
                                 let plus_or = qtree.add(Some(or), GrNode::Symbol(s.clone()));
