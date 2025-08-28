@@ -14,7 +14,7 @@ use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
 use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource};
 use crate::grammar::NTConversion::{MovedTo, Removed};
-use crate::grammar::origin::{FromRTS, Origin};
+use crate::grammar::origin::{FromPRS, FromRTS, Origin};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use crate::SymbolTable;
 
@@ -89,7 +89,7 @@ impl Display for Symbol {
     }
 }
 
-#[derive(Clone, PartialEq, Debug)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum GrNode {
     Symbol(Symbol),
     Concat,
@@ -153,6 +153,21 @@ impl GrNode {
             GrNode::Symbol(s) => symbol_table.map(|t| t.get_name(s)).unwrap_or(s.to_string()),
             GrNode::LForm(v) => format!("<L={}>", symbol_table.map(|t| t.get_name(&Symbol::NT(*v))).unwrap_or(v.to_string())),
             _ => self.to_string()
+        }
+    }
+
+    pub fn gen_source_code(&self) -> String {
+        match self {
+            GrNode::Symbol(s) => format!("gnode!({})", s.to_macro_item()),
+            GrNode::Concat    => "gnode!(&)".to_string(),
+            GrNode::Or        => "gnode!(|)".to_string(),
+            GrNode::Maybe     => "gnode!(?)".to_string(),
+            GrNode::Plus      => "gnode!(+)".to_string(),
+            GrNode::Star      => "gnode!(*)".to_string(),
+            GrNode::LForm(v)  => format!("gnode!(L {v})"),
+            GrNode::RAssoc    => "gnode!(R)".to_string(),
+            GrNode::PrecEq    => "gnode!(P)".to_string(),
+            GrNode::Instance  => "gnode!(inst)".to_string(),
         }
     }
 }
@@ -1307,6 +1322,7 @@ impl LLParsingTable {
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
     original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
+    origin: Origin<(VarId, FactorId), FromPRS>,
     num_nt: usize,
     num_t: usize,
     symbol_table: Option<SymbolTable>,
@@ -2166,6 +2182,7 @@ impl ProdRuleSet<General> {
         Self {
             prods: Vec::with_capacity(capacity),
             original_factors: Vec::new(),
+            origin: Origin::new(),
             num_nt: 0,
             num_t: 0,
             symbol_table: None,
@@ -2309,6 +2326,24 @@ impl ProdRuleSet<LL1> {
     pub fn gen_tables_source_code(&self, indent: usize) -> String {
         let st = self.symbol_table.as_ref().unwrap();
         let mut source = Vec::<String>::new();
+        // ----- source code example for Origin's trees:
+        // static ORIGIN: [(Option<usize>, &[(GrNode, &[usize])]); 2] = [
+        //     (Some(0), &[(gnode!(&), &[1, 4]), (gnode!(|), &[2, 3, 4]), (gnode!(t 0), &[]), (gnode!(nt 1), &[]), (gnode!(e), &[]),]),
+        //     (Some(0), &[(gnode!(&), &[1, 2]), (gnode!(*), &[1]), (gnode!(t 0), &[]),]),
+        // ];
+        // let trees: Vec<GrTree> = ORIGIN.into_iter()
+        //     .map(|(root, nodes)| GrTree::from((root, nodes.to_vec())))
+        //     .collect();
+        // -----
+        source.push(format!("static ORIGIN: [(Option<usize>, &[(GrNode, &[usize])]); {}] = [", self.origin.trees.len()));
+        for t in &self.origin.trees {
+            let tree_str = (0..t.len()).into_iter()
+                .map(|i| format!("({}, &[{}])", t.get(i).gen_source_code(), t.children(i).into_iter().join(",")))
+                .join("");
+            source.push(format!("    ({:?}, &[{}]),", t.get_root(), tree_str));
+        }
+        source.push(format!("];"));
+        source.push(String::new());
         source.push("let ll1_tables = ProdRuleSetTables::new(".to_string());
         source.push(format!("    {:?},", self.name));
         source.push("    vec![".to_string());
@@ -2316,6 +2351,7 @@ impl ProdRuleSet<LL1> {
         source.push("    ],".to_string());
         source.push("    vec![".to_string());
         source.extend(self.original_factors.iter().map(|factor| format!("        {},", factor.to_macro())));
+        source.push(format!("    origin: ORIGIN.into_iter().map(|(root, nodes)| GrTree::from((root, nodes.to_vec()))).collect(),"));
         source.push("    ],".to_string());
         source.push(format!("    vec![{}],", st.get_terminals().map(|x| format!("{x:?}")).join(", ")));
         source.push(format!("    vec![{}],", st.get_nonterminals().map(|x| format!("{x:?}")).join(", ")));
@@ -2334,6 +2370,7 @@ pub struct ProdRuleSetTables {
     name: Option<String>,
     prods: Vec<ProdRule>,
     original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
+    origin: Origin<(VarId, FactorId), FromPRS>,
     t: Vec<(String, Option<String>)>,   // terminal identifiers and optional representation
     nt: Vec<String>,                    // nt to nonterminal identifier
     flags: Vec<u32>,
@@ -2347,6 +2384,7 @@ impl ProdRuleSetTables {
         name: Option<T>,
         prods: Vec<ProdRule>,
         original_factors: Vec<ProdFactor>,
+        origin: Origin<(VarId, FactorId), FromPRS>,
         t: Vec<(T, Option<T>)>,
         nt: Vec<T>,
         flags: Vec<u32>,
@@ -2357,7 +2395,7 @@ impl ProdRuleSetTables {
         let t = t.into_iter().map(|(t, t_maybe)| (t.into(), t_maybe.map(|t| t.into()))).collect();
         let nt = nt.into_iter().map(|nt| nt.into()).collect();
         ProdRuleSetTables {
-            name: name.map(|s| s.into()), prods, original_factors, t, nt, flags, parent, start, nt_conversion,
+            name: name.map(|s| s.into()), prods, original_factors, origin, t, nt, flags, parent, start, nt_conversion,
         }
     }
 
@@ -2374,6 +2412,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
         ProdRuleSet {
             prods: source.prods,
             original_factors: source.original_factors,
+            origin: source.origin,
             num_nt: symbol_table.get_num_nt(),
             num_t: symbol_table.get_num_t(),
             symbol_table: Some(symbol_table),
@@ -2395,7 +2434,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn build_from(rules: RuleTreeSet<Normalized>) -> Self {
+    fn build_from(mut rules: RuleTreeSet<Normalized>) -> Self {
         fn children_to_vec(tree: &GrTree, parent_id: usize) -> ProdFactor {
             let mut flags: u32 = 0;
             let factor = tree.children(parent_id).iter()
@@ -2438,20 +2477,24 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             // the information about the errors easily.
             return prules;
         }
+        prules.origin = Origin::<(VarId, FactorId), FromPRS>::from_trees(&mut rules.origin.trees);
         for (var, tree) in rules.trees.iter().index() {
             if !tree.is_empty() {
                 let root = tree.get_root().expect("tree {var} has no root");
                 let root_sym = tree.get(root);
                 let mut prod = match root_sym {
                     GrNode::Symbol(s) => {
+                        prules.origin.add((var, 0), rules.origin.map[&(var, root)]);
                         vec![ProdFactor::new(vec![s.clone()])]
                     },
                     GrNode::Concat => {
+                        prules.origin.add((var, 0), rules.origin.map[&(var, root)]);
                         vec![children_to_vec(tree, root)]
                     },
-                    GrNode::Or => tree.children(root).iter()
-                        .map(|id| {
+                    GrNode::Or => tree.children(root).iter().index::<FactorId>()
+                        .map(|(fid, id)| {
                             let child = tree.get(*id);
+                            prules.origin.add((var, fid), rules.origin.map[&(var, *id)]);
                             if let GrNode::Symbol(s) = child {
                                 ProdFactor::new(vec![s.clone()])
                             } else {
@@ -2515,6 +2558,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
         ProdRuleSet::<LL1> {
             prods: rules.prods,
             original_factors: rules.original_factors,
+            origin: rules.origin,
             num_nt: rules.num_nt,
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,
@@ -2539,6 +2583,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
         ProdRuleSet::<LR> {
             prods: rules.prods,
             original_factors: rules.original_factors,
+            origin: rules.origin,
             num_nt: rules.num_nt,
             num_t: rules.num_t,
             symbol_table: rules.symbol_table,

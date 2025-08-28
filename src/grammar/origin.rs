@@ -9,8 +9,8 @@ use crate::grammar::{GrTree, VarId};
 
 #[derive(Clone, Debug)]
 pub struct FromRTS;
-// #[derive(Clone, Debug)]
-// pub struct FromPRS;
+#[derive(Clone, Debug)]
+pub struct FromPRS;
 
 #[derive(Clone, Debug)]
 pub struct Origin<F, T> {
@@ -48,9 +48,9 @@ impl<F, T> Origin<F, T> {
     //     self.trees.push(tree);
     // }
     
-    // pub fn set_trees<'a, I: IntoIterator<Item = &'a GrTree>>(&mut self, iter_tree: I) {
-    //     self.trees = iter_tree.into_iter().cloned().collect()
-    // }
+    pub fn from_tree_iter<'a, I: IntoIterator<Item = &'a GrTree>>(&mut self, iter_tree: I) {
+        self.trees = iter_tree.into_iter().cloned().collect()
+    }
 
     /// Sets the original [`tree`](GrTree) of nonterminal `var`.
     pub fn set_tree(&mut self, var: VarId, tree: GrTree) {

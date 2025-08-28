@@ -963,7 +963,7 @@ fn orig_normalize() {
     let mut errors = 0;
     for (test_id, expected) in tests {
 if !matches!(test_id, 47|12|10) { continue }
-        let mut rules = build_rts(test_id);
+        let rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()
             .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab)))
@@ -978,7 +978,8 @@ if !matches!(test_id, 47|12|10) { continue }
                      rules.get_non_empty_nts()
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
         }
-        rules.normalize();
+        // rules.normalize();
+        let rules = RuleTreeSet::<Normalized>::build_from(rules);
         assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize:\n{}", rules.log.get_messages_str());
         if let Some(err) = check_rts_sanity(&rules, false) {
             panic!("test {test_id} failed:\n{}", err);
@@ -1019,6 +1020,9 @@ if !matches!(test_id, 47|12|10) { continue }
             //     .map(|(id, t)| format!("- {id} => {} (depth {})",
             //                            rules.to_str(id, None, None),
             //                            t.depth().unwrap_or(0))).join("\n"));
+
+            let prules = ProdRuleSet::<General>::build_from(rules);
+            println!("PRS origin:\n{:?}", prules.origin);
         }
         if SHOW_RESULTS_ONLY {
             println!("        ({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));
@@ -1137,6 +1141,7 @@ impl<T> ProdRuleSet<T> {
         Self {
             prods: Vec::new(),
             original_factors: Vec::new(),
+            origin: Origin::new(),
             num_nt: 0,
             num_t: 0,
             symbol_table: None,
