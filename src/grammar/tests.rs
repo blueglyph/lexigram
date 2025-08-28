@@ -962,7 +962,7 @@ fn orig_normalize() {
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
-if !matches!(test_id, 47|12|10) { continue }
+// if !matches!(test_id, 47|12|10) { continue }
         let rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()
@@ -1021,8 +1021,8 @@ if !matches!(test_id, 47|12|10) { continue }
             //                            rules.to_str(id, None, None),
             //                            t.depth().unwrap_or(0))).join("\n"));
 
-            let prules = ProdRuleSet::<General>::build_from(rules);
-            println!("PRS origin:\n{:?}", prules.origin);
+            let mut prules = ProdRuleSet::<General>::build_from(rules);
+            println!("PRS origin:\n{}", indent_source(vec![prules.prs_factor_origins_str()], 4));
         }
         if SHOW_RESULTS_ONLY {
             println!("        ({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));

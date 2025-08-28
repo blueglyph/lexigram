@@ -12,7 +12,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource, columns_to_str};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::grammar::origin::{FromPRS, FromRTS, Origin};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
@@ -2158,6 +2158,30 @@ impl<T> ProdRuleSet<T> {
                 }
             }
         }
+    }
+
+    /// Generates a side-by-side comparison between the production rules and the original rule
+    /// each factor represents (or which part of that rule).
+    ///
+    /// The output can be formatted with [`indent_source`].
+    pub fn prs_factor_origins_str(&self) -> Vec<String> {
+        let mut cols = vec![vec!["ProdRuleSet".to_string(), "|".to_string(), "Original rules".to_string()]];
+        cols.push(vec!["-----------".to_string(), "|".to_string(), "--------------".to_string()]);
+        cols.extend(self.get_prods_iter()
+            .flat_map(|(v, prod)| prod.iter().index::<FactorId>()
+                .map(move |(fid, f)| vec![
+                    factor_to_rule_str(v, &f.v, self.get_symbol_table()),
+                    "|".to_string(),
+                    if let Some((vo, ido)) = self.origin.map.get(&(v, fid)) {
+                        let tree = &self.origin.trees[*vo as usize];
+                        let orig_rule = grtree_to_str(tree, None, if tree.get_root() == Some(*ido) { None } else { Some(*ido) }, self.get_symbol_table());
+                        format!("{} -> {orig_rule}", Symbol::NT(*vo).to_str(self.get_symbol_table()))
+                    } else {
+                        String::new()
+                    }
+                ])
+            ));
+        columns_to_str(cols, None)
     }
 }
 
