@@ -1,11 +1,13 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use lexigram_lib::LL1;
+use std::collections::HashMap;
+use lexigram_lib::{gnode, LL1};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
-use lexigram_lib::grammar::{ProdRuleSet, ProdRuleSetTables};
+use lexigram_lib::grammar::{FactorId, GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
 use lexigram_lib::{hashmap, prod, prodf};
+use lexigram_lib::grammar::origin::Origin;
 use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG};
 
 const EXPECTED_NBR_WARNINGS: usize = 0;
@@ -15,14 +17,35 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram_lib: 0.5.2
-    // lexigram: 0.5.2
-    // build-stage1: 0.5.2
+    // lexigram_lib: 0.5.3
+    // lexigram: 0.5.3
+    // build-stage1: 0.5.3
 
     // [versions]
 
     // -------------------------------------------------------------------------
     // [gramparser_stage_2]
+
+    static ORIGIN: [(Option<usize>, &[(GrNode, &[usize])]); 9] = [
+        (Some(2), &[(gnode!(nt 1), &[]), (gnode!(nt 2), &[]), (gnode!(&), &[0,1])]),
+        (Some(3), &[(gnode!(t 8), &[]), (gnode!(t 13), &[]), (gnode!(t 6), &[]), (gnode!(&), &[0,1,2])]),
+        (Some(4), &[(gnode!(nt 3), &[]), (gnode!(nt 2), &[]), (gnode!(nt 3), &[]), (gnode!(&), &[1,2]), (gnode!(|), &[0,3])]),
+        (Some(12), &[(gnode!(nt 4), &[]), (gnode!(t 0), &[]), (gnode!(nt 5), &[]), (gnode!(t 9), &[]), (gnode!(t 6), &[]), (gnode!(&), &[0,1,2,3,4]), (gnode!(nt 4), &[]), (gnode!(t 0), &[]), (gnode!(nt 5), &[]), (gnode!(e), &[]), (gnode!(t 6), &[]), (gnode!(&), &[6,7,8,9,10]), (gnode!(|), &[5,11])]),
+        (Some(0), &[(gnode!(t 13), &[])]),
+        (Some(5), &[(gnode!(nt 6), &[]), (gnode!(nt 5), &[]), (gnode!(t 2), &[]), (gnode!(nt 6), &[]), (gnode!(&), &[1,2,3]), (gnode!(|), &[0,4])]),
+        (Some(2), &[(gnode!(*), &[1]), (gnode!(nt 7), &[]), (gnode!(inst), &[0])]),
+        (Some(12), &[(gnode!(nt 8), &[]), (gnode!(t 3), &[]), (gnode!(&), &[0,1]), (gnode!(nt 8), &[]), (gnode!(t 7), &[]), (gnode!(&), &[3,4]), (gnode!(nt 8), &[]), (gnode!(t 4), &[]), (gnode!(&), &[6,7]), (gnode!(nt 8), &[]), (gnode!(e), &[]), (gnode!(&), &[9,10]), (gnode!(|), &[2,5,8,11])]),
+        (Some(8), &[(gnode!(t 13), &[]), (gnode!(t 10), &[]), (gnode!(t 11), &[]), (gnode!(t 12), &[]), (gnode!(t 1), &[]), (gnode!(nt 5), &[]), (gnode!(t 5), &[]), (gnode!(&), &[4,5,6]), (gnode!(|), &[0,1,2,3,7])]),
+    ];
+    static MAP: [((VarId, FactorId), (VarId, usize)); 19] = [
+        ((0, 0), (0, 2)), ((1, 0), (1, 3)), ((2, 0), (2, 0)), ((2, 1), (2, 3)), ((3, 0), (3, 5)),
+        ((3, 1), (3, 11)), ((4, 0), (4, 0)), ((5, 0), (5, 0)), ((5, 1), (5, 4)), ((6, 0), (6, 2)),
+        ((7, 0), (7, 2)), ((7, 1), (7, 5)), ((7, 2), (7, 8)), ((7, 3), (7, 11)), ((8, 0), (8, 0)),
+        ((8, 1), (8, 1)), ((8, 2), (8, 2)), ((8, 3), (8, 3)), ((8, 4), (8, 7)),
+    ];
+    let origin = Origin::from_data(
+        ORIGIN.into_iter().map(|(root, nodes)| GrTree::from((root, nodes.to_vec()))).collect(),
+        HashMap::from(MAP));
 
     let ll1_tables = ProdRuleSetTables::new(
         Some("GramParser"),
@@ -46,6 +69,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
             prodf!(nt 2, nt 3),
             prodf!(nt 5, t 2, nt 6),
         ],
+        origin,
         vec![("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Id", None)],
         vec!["file", "header", "rules", "rule", "rule_name", "prod", "prod_term", "prod_factor", "prod_atom", "prod_term_1", "rules_1", "prod_1", "rule_1", "prod_factor_1"],
         vec![0, 0, 512, 32, 0, 512, 2048, 32, 0, 1, 4, 4, 64, 64],

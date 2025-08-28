@@ -8,18 +8,34 @@ use std::marker::PhantomData;
 use crate::grammar::{GrTree, VarId};
 
 #[derive(Clone, Debug)]
+/// Origin from a RuleTreeSet perspective: [`Origin<(VarId, usize), FromRTS>`](Origin), where
+/// `(VarId, usize)` identifies a node in the processed [`RuleTreeSet`]:
+/// * [`VarId`] is the variable
+/// * `usize` is the node index in the [`GrTree`] of that variable
+///
+/// and associates it with a node [`VarId`, usize] of the original [`RuleTreeSet`] rules
+/// after normalization (but keeping the * and + ops).
 pub struct FromRTS;
+
 #[derive(Clone, Debug)]
+/// Origin from a ProdRuleSet perspective: [`Origin<(VarId, FactorId), FromPRS>`](Origin), where
+/// `(VarId, FactorId)` identifies a node in the processed [`ProdRuleSet`]:
+/// * [`VarId`] is the variable
+/// - [`FactorId`] is the factor index within that variable
+///
+/// and associates it with a node [`VarId`, usize] of the original [`RuleTreeSet`] rules
+/// after normalization (but keeping the * and + ops).
 pub struct FromPRS;
 
 #[derive(Clone, Debug)]
 pub struct Origin<F, T> {
-    pub(crate) trees: Vec<GrTree>,
-    pub(crate) map: HashMap<F, (VarId, usize)>,
+    pub trees: Vec<GrTree>,
+    pub map: HashMap<F, (VarId, usize)>,
     _phantom: PhantomData<T>,
 }
 
 impl<F, T> Origin<F, T> {
+    /// Creates a blank [`Origin`] object.
     pub fn new() -> Self {
         Origin {
             trees: Vec::new(),
@@ -28,6 +44,9 @@ impl<F, T> Origin<F, T> {
         }
     }
     
+    /// Creates a blank [`Origin`] object with a tree capacity of `size`. Use this method when
+    /// you can't give the data in a form that suits the other constructors but when you know
+    /// the number of variables.
     pub fn with_capacity(size: usize) -> Self {
         Origin {
             trees: Vec::with_capacity(size),
@@ -36,20 +55,20 @@ impl<F, T> Origin<F, T> {
         }
     }
 
-    pub fn from_trees(trees: &mut Vec<GrTree>) -> Self {
-        Origin {
-            trees: std::mem::take(trees),
-            map: HashMap::new(),
-            _phantom: PhantomData,
-        }
+    /// Creates an [`Origin`] object with the given trees and mapping.
+    pub fn from_data(trees: Vec<GrTree>, map: HashMap<F, (VarId, usize)>) -> Self {
+        Origin { trees, map, _phantom: PhantomData }
     }
 
-    // pub fn add_tree(&mut self, tree: GrTree) {
-    //     self.trees.push(tree);
-    // }
-    
-    pub fn from_tree_iter<'a, I: IntoIterator<Item = &'a GrTree>>(&mut self, iter_tree: I) {
-        self.trees = iter_tree.into_iter().cloned().collect()
+    /// Creates an [`Origin`] object with the given trees as mutable reference. It will
+    /// take the content from `trees` to create the object. After that, `trees` is empty.
+    ///
+    /// Use this method to create an [`Origin`] object from another generic form of the
+    /// same type; typically when creating an `Origin<(VarId, FactorId), FromPRS>` from an
+    /// `Origin<(VarId, usize), FromRTS>` if you can't move the original.
+    pub fn from_trees_mut(trees: &mut Vec<GrTree>) -> Self {
+        let trees = std::mem::take(trees);
+        Self::from_data(trees, HashMap::new())
     }
 
     /// Sets the original [`tree`](GrTree) of nonterminal `var`.

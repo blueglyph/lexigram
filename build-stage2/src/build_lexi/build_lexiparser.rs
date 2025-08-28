@@ -1,11 +1,13 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use lexigram_lib::LL1;
+use std::collections::HashMap;
+use lexigram_lib::{gnode, LL1};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
-use lexigram_lib::grammar::{ProdRuleSet, ProdRuleSetTables};
+use lexigram_lib::grammar::{FactorId, GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
 use lexigram_lib::{hashmap, prod};
+use lexigram_lib::grammar::origin::Origin;
 use super::{LEXIPARSER_FILENAME, LEXIPARSER_TAG};
 
 const EXPECTED_NBR_WARNINGS: usize = 0;
@@ -15,14 +17,49 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram_lib: 0.5.2
-    // lexigram: 0.5.2
-    // build-stage1: 0.5.2
+    // lexigram_lib: 0.5.3
+    // lexigram: 0.5.3
+    // build-stage1: 0.5.3
 
     // [versions]
 
     // -------------------------------------------------------------------------
     // [lexiparser_stage_2]
+
+    static ORIGIN: [(Option<usize>, &[(GrNode, &[usize])]); 17] = [
+        (Some(8), &[(gnode!(*), &[1]), (gnode!(nt 1), &[]), (gnode!(nt 2), &[]), (gnode!(inst), &[0]), (gnode!(&), &[2,3]), (gnode!(e), &[]), (gnode!(inst), &[0]), (gnode!(&), &[5,6]), (gnode!(|), &[4,7])]),
+        (Some(3), &[(gnode!(nt 4), &[]), (gnode!(nt 3), &[]), (gnode!(nt 5), &[]), (gnode!(|), &[0,1,2])]),
+        (Some(3), &[(gnode!(t 18), &[]), (gnode!(t 26), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2])]),
+        (Some(3), &[(gnode!(t 19), &[]), (gnode!(t 26), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2])]),
+        (Some(9), &[(gnode!(*), &[3]), (gnode!(t 2), &[]), (gnode!(t 26), &[]), (gnode!(&), &[1,2]), (gnode!(t 16), &[]), (gnode!(t 5), &[]), (gnode!(t 26), &[]), (gnode!(inst), &[0]), (gnode!(t 12), &[]), (gnode!(&), &[4,5,6,7,8])]),
+        (Some(18), &[(gnode!(nt 6), &[]), (gnode!(t 1), &[]), (gnode!(nt 10), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2,3]), (gnode!(nt 7), &[]), (gnode!(t 1), &[]), (gnode!(nt 10), &[]), (gnode!(t 0), &[]), (gnode!(nt 8), &[]), (gnode!(t 14), &[]), (gnode!(&), &[5,6,7,8,9,10]), (gnode!(nt 7), &[]), (gnode!(t 1), &[]), (gnode!(nt 10), &[]), (gnode!(e), &[]), (gnode!(t 14), &[]), (gnode!(&), &[12,13,14,15,16]), (gnode!(|), &[4,11,17])]),
+        (Some(2), &[(gnode!(t 17), &[]), (gnode!(t 26), &[]), (gnode!(&), &[0,1])]),
+        (Some(0), &[(gnode!(t 26), &[])]),
+        (Some(6), &[(gnode!(*), &[3]), (gnode!(t 2), &[]), (gnode!(nt 9), &[]), (gnode!(&), &[1,2]), (gnode!(nt 9), &[]), (gnode!(inst), &[0]), (gnode!(&), &[4,5])]),
+        (Some(23), &[(gnode!(t 19), &[]), (gnode!(t 6), &[]), (gnode!(t 26), &[]), (gnode!(t 13), &[]), (gnode!(&), &[0,1,2,3]), (gnode!(t 21), &[]), (gnode!(t 6), &[]), (gnode!(t 26), &[]), (gnode!(t 13), &[]), (gnode!(&), &[5,6,7,8]), (gnode!(t 20), &[]), (gnode!(t 23), &[]), (gnode!(t 22), &[]), (gnode!(t 24), &[]), (gnode!(t 6), &[]), (gnode!(t 26), &[]), (gnode!(t 13), &[]), (gnode!(&), &[13,14,15,16]), (gnode!(t 25), &[]), (gnode!(t 6), &[]), (gnode!(t 26), &[]), (gnode!(t 13), &[]), (gnode!(&), &[18,19,20,21]), (gnode!(|), &[4,9,10,11,12,17,22])]),
+        (Some(0), &[(gnode!(nt 11), &[])]),
+        (Some(6), &[(gnode!(*), &[3]), (gnode!(t 10), &[]), (gnode!(nt 12), &[]), (gnode!(&), &[1,2]), (gnode!(nt 12), &[]), (gnode!(inst), &[0]), (gnode!(&), &[4,5])]),
+        (Some(2), &[(gnode!(+), &[1]), (gnode!(nt 13), &[]), (gnode!(inst), &[0])]),
+        (Some(22), &[(gnode!(nt 14), &[]), (gnode!(t 15), &[]), (gnode!(t 11), &[]), (gnode!(&), &[0,1,2]), (gnode!(nt 14), &[]), (gnode!(t 15), &[]), (gnode!(e), &[]), (gnode!(&), &[4,5,6]), (gnode!(nt 14), &[]), (gnode!(t 9), &[]), (gnode!(t 11), &[]), (gnode!(&), &[8,9,10]), (gnode!(nt 14), &[]), (gnode!(t 9), &[]), (gnode!(e), &[]), (gnode!(&), &[12,13,14]), (gnode!(nt 14), &[]), (gnode!(t 11), &[]), (gnode!(&), &[16,17]), (gnode!(nt 14), &[]), (gnode!(e), &[]), (gnode!(&), &[19,20]), (gnode!(|), &[3,7,11,15,18,21])]),
+        (Some(17), &[(gnode!(t 26), &[]), (gnode!(t 27), &[]), (gnode!(t 4), &[]), (gnode!(t 27), &[]), (gnode!(&), &[1,2,3]), (gnode!(t 27), &[]), (gnode!(e), &[]), (gnode!(&), &[5,6]), (gnode!(t 28), &[]), (gnode!(nt 15), &[]), (gnode!(t 6), &[]), (gnode!(nt 11), &[]), (gnode!(t 13), &[]), (gnode!(&), &[10,11,12]), (gnode!(t 7), &[]), (gnode!(nt 14), &[]), (gnode!(&), &[14,15]), (gnode!(|), &[0,4,7,8,9,13,16])]),
+        (Some(8), &[(gnode!(+), &[1]), (gnode!(nt 16), &[]), (gnode!(t 30), &[]), (gnode!(inst), &[0]), (gnode!(t 31), &[]), (gnode!(&), &[2,3,4]), (gnode!(t 3), &[]), (gnode!(t 29), &[]), (gnode!(|), &[5,6,7])]),
+        (Some(6), &[(gnode!(t 32), &[]), (gnode!(t 8), &[]), (gnode!(t 32), &[]), (gnode!(&), &[0,1,2]), (gnode!(t 32), &[]), (gnode!(t 29), &[]), (gnode!(|), &[3,4,5])]),
+    ];
+    static MAP: [((VarId, FactorId), (VarId, usize)); 46] = [
+        ((0, 0), (0, 4)), ((0, 1), (0, 7)), ((1, 0), (1, 0)), ((1, 1), (1, 1)), ((1, 2), (1, 2)),
+        ((2, 0), (2, 3)), ((3, 0), (3, 3)), ((4, 0), (4, 9)), ((5, 0), (5, 4)), ((5, 1), (5, 11)),
+        ((5, 2), (5, 17)), ((6, 0), (6, 2)), ((7, 0), (7, 0)), ((8, 0), (8, 6)), ((9, 0), (9, 4)),
+        ((9, 1), (9, 9)), ((9, 2), (9, 10)), ((9, 3), (9, 11)), ((9, 4), (9, 12)), ((9, 5), (9, 17)),
+        ((9, 6), (9, 22)), ((10, 0), (10, 0)), ((11, 0), (11, 6)), ((12, 0), (12, 2)), ((13, 0), (13, 3)),
+        ((13, 1), (13, 7)), ((13, 2), (13, 11)), ((13, 3), (13, 15)), ((13, 4), (13, 18)), ((13, 5), (13, 21)),
+        ((14, 0), (14, 0)), ((14, 1), (14, 4)), ((14, 2), (14, 7)), ((14, 3), (14, 8)), ((14, 4), (14, 9)),
+        ((14, 5), (14, 13)), ((14, 6), (14, 16)), ((15, 0), (15, 5)), ((15, 1), (15, 6)), ((15, 2), (15, 7)),
+        ((16, 0), (16, 3)), ((16, 1), (16, 4)), ((16, 2), (16, 5)), ((18, 0), (4, 3)), ((19, 0), (8, 3)),
+        ((20, 0), (11, 3)),
+    ];
+    let origin = Origin::from_data(
+        ORIGIN.into_iter().map(|(root, nodes)| GrTree::from((root, nodes.to_vec()))).collect(),
+        HashMap::from(MAP));
 
     let ll1_tables = ProdRuleSetTables::new(
         Some("LexiParser"),
@@ -61,6 +98,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
         ],
         vec![
         ],
+        origin,
         vec![("Arrow", Some("->")), ("Colon", Some(":")), ("Comma", Some(",")), ("Dot", Some(".")), ("Ellipsis", Some("..")), ("Lbracket", Some("{")), ("Lparen", Some("(")), ("Negate", Some("~")), ("Minus", Some("-")), ("Plus", Some("+")), ("Or", Some("|")), ("Question", Some("?")), ("Rbracket", Some("}")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Channels", Some("channels")), ("Fragment", Some("fragment")), ("Lexicon", Some("lexicon")), ("Mode", Some("mode")), ("Pop", Some("pop")), ("Push", Some("push")), ("More", Some("more")), ("Skip", Some("skip")), ("Type", Some("type")), ("Channel", Some("channel")), ("Id", None), ("CharLit", None), ("StrLit", None), ("FixedSet", None), ("LSbracket", Some("[")), ("RSbracket", Some("]")), ("SetChar", None)],
         vec!["file", "file_item", "header", "declaration", "option", "rule", "rule_fragment_name", "rule_terminal_name", "actions", "action", "match", "alt_items", "alt_item", "repeat_item", "item", "char_set", "char_set_one", "file_1", "option_1", "actions_1", "alt_items_1", "alt_item_1", "char_set_1", "rule_1", "repeat_item_1", "item_1", "char_set_one_1", "alt_item_2", "char_set_2", "repeat_item_2", "repeat_item_3"],
         vec![2048, 0, 0, 0, 2048, 32, 0, 0, 2048, 0, 0, 2048, 6144, 32, 34, 6144, 32, 1, 1, 1, 1, 4129, 4129, 64, 96, 64, 64, 64, 64, 64, 64],

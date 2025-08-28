@@ -35,9 +35,9 @@ const EXPECTED_NBR_WARNINGS: usize = 0;
 fn gramlexer_source(indent: usize, _verbose: bool) -> Result<(BufLog, String), BufLog> {
     // [versions]
 
-    // lexigram_lib: 0.5.2
-    // lexigram: 0.5.2
-    // build-stage1: 0.5.2
+    // lexigram_lib: 0.5.3
+    // lexigram: 0.5.3
+    // build-stage1: 0.5.3
 
     // [versions]
 

@@ -1,7 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
 pub(crate) mod tests;
-mod origin;
+pub mod origin;
 
 use std::collections::{HashMap, HashSet};
 use std::fmt::{Display, Formatter};
@@ -2326,23 +2326,25 @@ impl ProdRuleSet<LL1> {
     pub fn gen_tables_source_code(&self, indent: usize) -> String {
         let st = self.symbol_table.as_ref().unwrap();
         let mut source = Vec::<String>::new();
-        // ----- source code example for Origin's trees:
-        // static ORIGIN: [(Option<usize>, &[(GrNode, &[usize])]); 2] = [
-        //     (Some(0), &[(gnode!(&), &[1, 4]), (gnode!(|), &[2, 3, 4]), (gnode!(t 0), &[]), (gnode!(nt 1), &[]), (gnode!(e), &[]),]),
-        //     (Some(0), &[(gnode!(&), &[1, 2]), (gnode!(*), &[1]), (gnode!(t 0), &[]),]),
-        // ];
-        // let trees: Vec<GrTree> = ORIGIN.into_iter()
-        //     .map(|(root, nodes)| GrTree::from((root, nodes.to_vec())))
-        //     .collect();
-        // -----
+        // "origin" preparation
         source.push(format!("static ORIGIN: [(Option<usize>, &[(GrNode, &[usize])]); {}] = [", self.origin.trees.len()));
         for t in &self.origin.trees {
             let tree_str = (0..t.len()).into_iter()
                 .map(|i| format!("({}, &[{}])", t.get(i).gen_source_code(), t.children(i).into_iter().join(",")))
-                .join("");
+                .join(", ");
             source.push(format!("    ({:?}, &[{}]),", t.get_root(), tree_str));
         }
-        source.push(format!("];"));
+        source.push("];".to_string());
+        source.push(format!("static MAP: [((VarId, FactorId), (VarId, usize)); {}] = [", self.origin.map.len()));
+        let mut sorted_map = self.origin.map.iter().to_vec();
+        sorted_map.sort(); // we must sort it so that its output is reproducible
+        source.extend(sorted_map.chunks(5)
+            .map(|chk| format!("    {},", chk.into_iter().map(|((a, b), (c, d))| format!("(({a}, {b}), ({c}, {d}))")).join(", "))));
+        source.push("];".to_string());
+        source.push("let origin = Origin::from_data(".to_string());
+        source.push("    ORIGIN.into_iter().map(|(root, nodes)| GrTree::from((root, nodes.to_vec()))).collect(),".to_string());
+        source.push("    HashMap::from(MAP));".to_string());
+        // ProdRuleSetTables:
         source.push(String::new());
         source.push("let ll1_tables = ProdRuleSetTables::new(".to_string());
         source.push(format!("    {:?},", self.name));
@@ -2351,8 +2353,8 @@ impl ProdRuleSet<LL1> {
         source.push("    ],".to_string());
         source.push("    vec![".to_string());
         source.extend(self.original_factors.iter().map(|factor| format!("        {},", factor.to_macro())));
-        source.push(format!("    origin: ORIGIN.into_iter().map(|(root, nodes)| GrTree::from((root, nodes.to_vec()))).collect(),"));
         source.push("    ],".to_string());
+        source.push("    origin,".to_string());
         source.push(format!("    vec![{}],", st.get_terminals().map(|x| format!("{x:?}")).join(", ")));
         source.push(format!("    vec![{}],", st.get_nonterminals().map(|x| format!("{x:?}")).join(", ")));
         source.push(format!("    vec![{}],", self.flags.iter().join(", ")));
@@ -2477,24 +2479,30 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             // the information about the errors easily.
             return prules;
         }
-        prules.origin = Origin::<(VarId, FactorId), FromPRS>::from_trees(&mut rules.origin.trees);
+        prules.origin = Origin::<(VarId, FactorId), FromPRS>::from_trees_mut(&mut rules.origin.trees);
         for (var, tree) in rules.trees.iter().index() {
             if !tree.is_empty() {
                 let root = tree.get_root().expect("tree {var} has no root");
                 let root_sym = tree.get(root);
                 let mut prod = match root_sym {
                     GrNode::Symbol(s) => {
-                        prules.origin.add((var, 0), rules.origin.map[&(var, root)]);
+                        if let Some(&(v, ch)) = rules.origin.map.get(&(var, root)) {
+                            prules.origin.add((var, 0), (v, ch));
+                        }
                         vec![ProdFactor::new(vec![s.clone()])]
                     },
                     GrNode::Concat => {
-                        prules.origin.add((var, 0), rules.origin.map[&(var, root)]);
+                        if let Some(&(v, ch)) = rules.origin.map.get(&(var, root)) {
+                            prules.origin.add((var, 0), (v, ch));
+                        }
                         vec![children_to_vec(tree, root)]
                     },
                     GrNode::Or => tree.children(root).iter().index::<FactorId>()
                         .map(|(fid, id)| {
                             let child = tree.get(*id);
-                            prules.origin.add((var, fid), rules.origin.map[&(var, *id)]);
+                            if let Some(&(v, ch)) = rules.origin.map.get(&(var, *id)) {
+                                prules.origin.add((var, fid), (v, ch));
+                            }
                             if let GrNode::Symbol(s) = child {
                                 ProdFactor::new(vec![s.clone()])
                             } else {
