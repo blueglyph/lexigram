@@ -5,7 +5,7 @@ use lexigram_lib::{gnode, LL1};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
-use lexigram_lib::grammar::{FactorId, GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
+use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
 use lexigram_lib::{hashmap, prod, prodf};
 use lexigram_lib::grammar::origin::Origin;
 use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG};
@@ -37,11 +37,8 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
         (Some(12), &[(gnode!(nt 8), &[]), (gnode!(t 3), &[]), (gnode!(&), &[0,1]), (gnode!(nt 8), &[]), (gnode!(t 7), &[]), (gnode!(&), &[3,4]), (gnode!(nt 8), &[]), (gnode!(t 4), &[]), (gnode!(&), &[6,7]), (gnode!(nt 8), &[]), (gnode!(e), &[]), (gnode!(&), &[9,10]), (gnode!(|), &[2,5,8,11])]),
         (Some(8), &[(gnode!(t 13), &[]), (gnode!(t 10), &[]), (gnode!(t 11), &[]), (gnode!(t 12), &[]), (gnode!(t 1), &[]), (gnode!(nt 5), &[]), (gnode!(t 5), &[]), (gnode!(&), &[4,5,6]), (gnode!(|), &[0,1,2,3,7])]),
     ];
-    static MAP: [((VarId, FactorId), (VarId, usize)); 19] = [
-        ((0, 0), (0, 2)), ((1, 0), (1, 3)), ((2, 0), (2, 0)), ((2, 1), (2, 3)), ((3, 0), (3, 5)),
-        ((3, 1), (3, 11)), ((4, 0), (4, 0)), ((5, 0), (5, 0)), ((5, 1), (5, 4)), ((6, 0), (6, 2)),
-        ((7, 0), (7, 2)), ((7, 1), (7, 5)), ((7, 2), (7, 8)), ((7, 3), (7, 11)), ((8, 0), (8, 0)),
-        ((8, 1), (8, 1)), ((8, 2), (8, 2)), ((8, 3), (8, 3)), ((8, 4), (8, 7)),
+    static MAP: [(VarId, (VarId, usize)); 1] = [
+        (9, (6, 0)),
     ];
     let origin = Origin::from_data(
         ORIGIN.into_iter().map(|(root, nodes)| GrTree::from((root, nodes.to_vec()))).collect(),
@@ -50,24 +47,24 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     let ll1_tables = ProdRuleSetTables::new(
         Some("GramParser"),
         vec![
-            prod!(nt 1, nt 2),
-            prod!(t 8, t 13, t 6),
-            prod!(nt 3, nt 10),
+            prod!(%(0, 2), nt 1, nt 2),
+            prod!(%(1, 3), t 8, t 13, t 6),
+            prod!(%(2, 0), nt 3, nt 10),
             prod!(nt 4, t 0, nt 5, nt 12),
-            prod!(t 13),
-            prod!(nt 6, nt 11),
-            prod!(nt 9),
+            prod!(%(4, 0), t 13),
+            prod!(%(5, 0), nt 6, nt 11),
+            prod!(%(6, 2), nt 9),
             prod!(nt 8, nt 13),
-            prod!(t 13; t 10; t 11; t 12; t 1, nt 5, t 5),
-            prod!(nt 7, nt 9; e),
+            prod!(%(8, 0), t 13; %(8, 1), t 10; %(8, 2), t 11; %(8, 3), t 12; %(8, 7), t 1, nt 5, t 5),
+            prod!(%(6, 1), nt 7, nt 9; e),
             prod!(#(0, 0), nt 3, nt 10; e),
             prod!(#(0, 1), t 2, nt 6, nt 11; e),
-            prod!(t 6; t 9, t 6),
-            prod!(t 3; t 4; t 7; e),
+            prod!(%(3, 11), t 6; %(3, 5), t 9, t 6),
+            prod!(%(7, 2), t 3; %(7, 8), t 4; %(7, 5), t 7; e),
         ],
         vec![
-            prodf!(nt 2, nt 3),
-            prodf!(nt 5, t 2, nt 6),
+            prodf!(%(2, 3), nt 2, nt 3),
+            prodf!(%(5, 4), nt 5, t 2, nt 6),
         ],
         origin,
         vec![("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Id", None)],

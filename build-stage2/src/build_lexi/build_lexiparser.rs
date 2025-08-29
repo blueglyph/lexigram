@@ -5,7 +5,7 @@ use lexigram_lib::{gnode, LL1};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
-use lexigram_lib::grammar::{FactorId, GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
+use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
 use lexigram_lib::{hashmap, prod};
 use lexigram_lib::grammar::origin::Origin;
 use super::{LEXIPARSER_FILENAME, LEXIPARSER_TAG};
@@ -45,17 +45,9 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
         (Some(8), &[(gnode!(+), &[1]), (gnode!(nt 16), &[]), (gnode!(t 30), &[]), (gnode!(inst), &[0]), (gnode!(t 31), &[]), (gnode!(&), &[2,3,4]), (gnode!(t 3), &[]), (gnode!(t 29), &[]), (gnode!(|), &[5,6,7])]),
         (Some(6), &[(gnode!(t 32), &[]), (gnode!(t 8), &[]), (gnode!(t 32), &[]), (gnode!(&), &[0,1,2]), (gnode!(t 32), &[]), (gnode!(t 29), &[]), (gnode!(|), &[3,4,5])]),
     ];
-    static MAP: [((VarId, FactorId), (VarId, usize)); 46] = [
-        ((0, 0), (0, 4)), ((0, 1), (0, 7)), ((1, 0), (1, 0)), ((1, 1), (1, 1)), ((1, 2), (1, 2)),
-        ((2, 0), (2, 3)), ((3, 0), (3, 3)), ((4, 0), (4, 9)), ((5, 0), (5, 4)), ((5, 1), (5, 11)),
-        ((5, 2), (5, 17)), ((6, 0), (6, 2)), ((7, 0), (7, 0)), ((8, 0), (8, 6)), ((9, 0), (9, 4)),
-        ((9, 1), (9, 9)), ((9, 2), (9, 10)), ((9, 3), (9, 11)), ((9, 4), (9, 12)), ((9, 5), (9, 17)),
-        ((9, 6), (9, 22)), ((10, 0), (10, 0)), ((11, 0), (11, 6)), ((12, 0), (12, 2)), ((13, 0), (13, 3)),
-        ((13, 1), (13, 7)), ((13, 2), (13, 11)), ((13, 3), (13, 15)), ((13, 4), (13, 18)), ((13, 5), (13, 21)),
-        ((14, 0), (14, 0)), ((14, 1), (14, 4)), ((14, 2), (14, 7)), ((14, 3), (14, 8)), ((14, 4), (14, 9)),
-        ((14, 5), (14, 13)), ((14, 6), (14, 16)), ((15, 0), (15, 5)), ((15, 1), (15, 6)), ((15, 2), (15, 7)),
-        ((16, 0), (16, 3)), ((16, 1), (16, 4)), ((16, 2), (16, 5)), ((18, 0), (4, 3)), ((19, 0), (8, 3)),
-        ((20, 0), (11, 3)),
+    static MAP: [(VarId, (VarId, usize)); 6] = [
+        (17, (0, 0)), (18, (4, 0)), (19, (8, 0)), (20, (11, 0)), (21, (12, 0)),
+        (22, (15, 0)),
     ];
     let origin = Origin::from_data(
         ORIGIN.into_iter().map(|(root, nodes)| GrTree::from((root, nodes.to_vec()))).collect(),
@@ -64,37 +56,37 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     let ll1_tables = ProdRuleSetTables::new(
         Some("LexiParser"),
         vec![
-            prod!(nt 2, nt 17; nt 17),
-            prod!(nt 4; nt 3; nt 5),
-            prod!(t 18, t 26, t 14),
-            prod!(t 19, t 26, t 14),
-            prod!(t 16, t 5, t 26, nt 18, t 12),
-            prod!(nt 6, t 1, nt 10, t 14; nt 7, t 1, nt 10, nt 23),
-            prod!(t 17, t 26),
-            prod!(t 26),
-            prod!(nt 9, nt 19),
-            prod!(t 19, t 6, t 26, t 13; t 21, t 6, t 26, t 13; t 20; t 23; t 22; t 24, t 6, t 26, t 13; t 25, t 6, t 26, t 13),
-            prod!(nt 11),
-            prod!(nt 12, nt 20),
-            prod!(nt 21),
+            prod!(%(0, 4), nt 2, nt 17; %(0, 7), nt 17),
+            prod!(%(1, 0), nt 4; %(1, 1), nt 3; %(1, 2), nt 5),
+            prod!(%(2, 3), t 18, t 26, t 14),
+            prod!(%(3, 3), t 19, t 26, t 14),
+            prod!(%(4, 9), t 16, t 5, t 26, nt 18, t 12),
+            prod!(%(5, 4), nt 6, t 1, nt 10, t 14; nt 7, t 1, nt 10, nt 23),
+            prod!(%(6, 2), t 17, t 26),
+            prod!(%(7, 0), t 26),
+            prod!(%(8, 6), nt 9, nt 19),
+            prod!(%(9, 4), t 19, t 6, t 26, t 13; %(9, 9), t 21, t 6, t 26, t 13; %(9, 10), t 20; %(9, 11), t 23; %(9, 12), t 22; %(9, 17), t 24, t 6, t 26, t 13; %(9, 22), t 25, t 6, t 26, t 13),
+            prod!(%(10, 0), nt 11),
+            prod!(%(11, 6), nt 12, nt 20),
+            prod!(%(12, 2), nt 21),
             prod!(nt 14, nt 24),
-            prod!(t 6, nt 11, t 13; t 7, nt 14; t 26; t 27, nt 25; t 28; nt 15),
-            prod!(t 30, nt 22, t 31; t 3; t 29),
-            prod!(t 29; t 32, nt 26),
-            prod!(nt 1, nt 17; e),
-            prod!(t 2, t 26, nt 18; e),
-            prod!(t 2, nt 9, nt 19; e),
-            prod!(t 10, nt 12, nt 20; e),
+            prod!(%(14, 13), t 6, nt 11, t 13; %(14, 16), t 7, nt 14; %(14, 0), t 26; t 27, nt 25; %(14, 8), t 28; %(14, 9), nt 15),
+            prod!(%(15, 5), t 30, nt 22, t 31; %(15, 6), t 3; %(15, 7), t 29),
+            prod!(%(16, 5), t 29; t 32, nt 26),
+            prod!(%(0, 1), nt 1, nt 17; e),
+            prod!(%(4, 3), t 2, t 26, nt 18; e),
+            prod!(%(8, 3), t 2, nt 9, nt 19; e),
+            prod!(%(11, 3), t 10, nt 12, nt 20; e),
             prod!(nt 13, nt 27),
             prod!(nt 16, nt 28),
-            prod!(t 0, nt 8, t 14; t 14),
-            prod!(t 9, nt 29; t 11; t 15, nt 30; e),
-            prod!(t 4, t 27; e),
-            prod!(t 8, t 32; e),
-            prod!(nt 21; e),
-            prod!(nt 22; e),
-            prod!(t 11; e),
-            prod!(t 11; e),
+            prod!(%(5, 11), t 0, nt 8, t 14; %(5, 17), t 14),
+            prod!(t 9, nt 29; %(13, 18), t 11; t 15, nt 30; e),
+            prod!(%(14, 4), t 4, t 27; e),
+            prod!(%(16, 3), t 8, t 32; e),
+            prod!(%(12, 1), nt 21; e),
+            prod!(%(15, 1), nt 22; e),
+            prod!(%(13, 11), t 11; e),
+            prod!(%(13, 3), t 11; e),
         ],
         vec![
         ],

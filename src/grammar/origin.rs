@@ -18,13 +18,15 @@ use crate::grammar::{GrTree, VarId};
 pub struct FromRTS;
 
 #[derive(Clone, Debug)]
-/// Origin from a ProdRuleSet perspective: [`Origin<(VarId, FactorId), FromPRS>`](Origin), where
-/// `(VarId, FactorId)` identifies a node in the processed [`ProdRuleSet`]:
+/// Origin from a ProdRuleSet perspective: [`Origin<VarId, FromPRS>`](Origin), where
+/// `VarId` identifies a children nonterminal in the processed [`ProdRuleSet`]:
 /// * [`VarId`] is the variable
-/// - [`FactorId`] is the factor index within that variable
 ///
 /// and associates it with a node [`VarId`, usize] of the original [`RuleTreeSet`] rules
 /// after normalization (but keeping the * and + ops).
+///
+/// The factors of the ProdRuleSet store their own [`VarId`, usize] links to the original
+/// nodes because it's easier than to track the data when they're moved around.
 pub struct FromPRS;
 
 #[derive(Clone, Debug)]

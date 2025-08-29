@@ -225,7 +225,9 @@ pub type GrTree = VecTree<GrNode>;
 /// Builds the string representation of the [`GrTree`], using the [`symbol table`](SymbolTable) if available
 /// and optionally starting at node `node`. If `emphasis` contains a node ID, this subpart of the tree
 /// is emphasized in the string.
-pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
+pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>, ansi: bool)
+    -> String
+{
     fn pr_join(children: Vec<(u32, String)>, str: &str, pr: u32) -> (u32, String) {
         (pr, children.into_iter()
             .map(|(p_ch, ch)| if p_ch >= pr { ch } else { format!("({ch})") })
@@ -241,10 +243,17 @@ pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>
     const PR_FACTOR: u32 = 3;
     const PR_ATOM: u32 = 4;
 
+    const BEFORE: &str = " ►►► ";
+    const AFTER : &str = " ◄◄◄ ";
+    const BEFORE_ANSI: &str = "\u{1b}[4;1;36m";
+    const AFTER_ANSI : &str = "\u{1b}[0m";
+
     let mut children = vec![];
     if tree.is_empty() {
         return "<empty>".to_string();
     }
+    let before = if ansi { BEFORE_ANSI } else { BEFORE };
+    let after = if ansi { AFTER_ANSI } else { AFTER };
     let top = node.unwrap_or_else(|| tree.get_root().unwrap());
     for node in tree.iter_depth_simple_at(top) {
         let (pr, mut str) = match node.num_children() {
@@ -271,11 +280,19 @@ pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>
             }
         };
         if Some(node.index) == emphasis {
-            str = format!(" ►►► {str} ◄◄◄ ");
+            str = format!("{before}{str}{after}");
         }
         children.push((pr, str));
     }
     children.pop().unwrap().1
+}
+
+pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
+    grtree_to_str_custom(tree, node, emphasis, symbol_table, false)
+}
+
+pub fn grtree_to_str_ansi(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
+    grtree_to_str_custom(tree, node, emphasis, symbol_table, true)
 }
 
 /// Adds methods to GrTree.
@@ -889,8 +906,12 @@ impl RuleTreeSet<General> {
                 let cc = qtree.add(Some(or), gnode!(&));
                 let child = qtree.add(Some(cc), GrNode::Symbol(s.clone()));
                 qtree.add(Some(cc), gnode!(nt *new_var));
-                qtree.add(Some(or), if is_plus { GrNode::Symbol(s.clone()) } else { gnode!(e) });
-                self.origin.add((*new_var, child), (var, orig_rep_child));
+                let child2 = qtree.add(Some(or), if is_plus { GrNode::Symbol(s.clone()) } else { gnode!(e) });
+                self.origin.add((*new_var, child), (var, orig_rep_child));     // useful?
+                self.origin.add((*new_var, cc), (var, orig_rep_child));
+                if is_plus {
+                    self.origin.add((*new_var, child2), (var, orig_rep_child));
+                }
             }
             GrNode::Concat => {
                 let id_grchildren = new.children(rep_child);
@@ -905,7 +926,8 @@ impl RuleTreeSet<General> {
                 let loop_id = qtree.add(Some(cc1), gnode!(nt *new_var));
                 self.origin.add((*new_var, loop_id), (var, orig_rep));
                 if is_plus {
-                    qtree.add_from_tree(Some(or), &new, Some(rep_child));
+                    let loop_id2 = qtree.add_from_tree(Some(or), &new, Some(rep_child));
+                    self.origin.add((*new_var, loop_id2), (var, rep_child));
                 } else {
                     qtree.add(Some(or), gnode!(e));
                 }
@@ -1140,11 +1162,12 @@ pub struct ProdFactor {
     v: Vec<Symbol>,
     flags: u32,          // only for GREEDY, L_FORM and R_ASSOC
     original_factor_id: Option<FactorId>,
+    origin: Option<(VarId, usize)>,
 }
 
 impl ProdFactor {
     pub fn new(v: Vec<Symbol>) -> Self {
-        ProdFactor { v, flags: 0, original_factor_id: None }
+        ProdFactor { v, flags: 0, original_factor_id: None, origin: None }
     }
 
     pub fn with_flags(mut self, flags: u32) -> Self {
@@ -1154,6 +1177,11 @@ impl ProdFactor {
 
     pub fn with_orig_fid(mut self, original_factor_id: FactorId) -> Self {
         self.original_factor_id = Some(original_factor_id);
+        self
+    }
+
+    pub fn with_orig(mut self, original_var: VarId, original_index: usize) -> Self {
+        self.origin = Some((original_var, original_index));
         self
     }
 
@@ -1190,10 +1218,13 @@ impl ProdFactor {
     }
 
     pub fn to_macro_item(&self) -> String {
-        let mut src = match (self.flags, self.original_factor_id) {
-            (0, None) => String::new(),
-            (f, None) => format!("#{f}, "),
-            (f, Some(o)) => format!("#({f}, {o}), "),
+        let mut src = match (self.flags, self.original_factor_id, self.origin) {
+            (0, None, None) => String::new(),
+            (f, None, None) => format!("#{f}, "),
+            (f, Some(o), None) => format!("#({f}, {o}), "),
+            (0, None, Some((v, id))) => format!("%({v}, {id}), "),
+            (f, None, Some((v, id))) => format!("#{f}, %({v}, {id}), "),
+            (f, Some(o), Some((v, id))) => format!("#({f}, {o}), %({v}, {id}), "),
         };
         src.push_str(&self.v.iter().map(|s| s.to_macro_item()).join(", "));
         src
@@ -1322,7 +1353,7 @@ impl LLParsingTable {
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
     original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
-    origin: Origin<(VarId, FactorId), FromPRS>,
+    origin: Origin<VarId, FromPRS>,
     num_nt: usize,
     num_t: usize,
     symbol_table: Option<SymbolTable>,
@@ -2164,23 +2195,39 @@ impl<T> ProdRuleSet<T> {
     /// each factor represents (or which part of that rule).
     ///
     /// The output can be formatted with [`indent_source`].
-    pub fn prs_factor_origins_str(&self) -> Vec<String> {
+    pub fn prs_factor_origins_str(&self, ansi: bool) -> Vec<String> {
         let mut cols = vec![vec!["ProdRuleSet".to_string(), "|".to_string(), "Original rules".to_string()]];
         cols.push(vec!["-----------".to_string(), "|".to_string(), "--------------".to_string()]);
+        // adds the current factors
         cols.extend(self.get_prods_iter()
-            .flat_map(|(v, prod)| prod.iter().index::<FactorId>()
-                .map(move |(fid, f)| vec![
+            .flat_map(|(v, prod)| prod.iter()
+                .map(move |f| vec![
                     factor_to_rule_str(v, &f.v, self.get_symbol_table()),
                     "|".to_string(),
-                    if let Some((vo, ido)) = self.origin.map.get(&(v, fid)) {
-                        let tree = &self.origin.trees[*vo as usize];
-                        let orig_rule = grtree_to_str(tree, None, if tree.get_root() == Some(*ido) { None } else { Some(*ido) }, self.get_symbol_table());
-                        format!("{} -> {orig_rule}", Symbol::NT(*vo).to_str(self.get_symbol_table()))
+                    if let Some((vo, ido)) = f.origin {
+                        let tree = &self.origin.trees[vo as usize];
+                        let emphasis = if tree.get_root() == Some(ido) { None } else { Some(ido) };
+                        let orig_rule = grtree_to_str_custom(tree, None, emphasis, self.get_symbol_table(), ansi);
+                        format!("{} -> {orig_rule}", Symbol::NT(vo).to_str(self.get_symbol_table()))
                     } else {
                         String::new()
                     }
                 ])
             ));
+        // adds child nonterminals that represent a part of the original nonterminals
+        cols.extend((0..self.num_nt)
+            .filter_map(|var|
+                self.parent[var]
+                    .and_then(|_| self.origin.map.get(&(var as VarId))
+                        .and_then(|&(v, index)| Some((var as VarId, v, index)))))
+            .map(|(var, v, index)| vec![
+                Symbol::NT(var).to_str(self.get_symbol_table()),
+                "|".to_string(),
+                format!("{} -> {}",
+                        Symbol::NT(v).to_str(self.get_symbol_table()),
+                        grtree_to_str_custom(&self.origin.trees[v as usize], None, Some(index), self.get_symbol_table(), ansi))
+
+            ]));
         columns_to_str(cols, None)
     }
 }
@@ -2359,11 +2406,11 @@ impl ProdRuleSet<LL1> {
             source.push(format!("    ({:?}, &[{}]),", t.get_root(), tree_str));
         }
         source.push("];".to_string());
-        source.push(format!("static MAP: [((VarId, FactorId), (VarId, usize)); {}] = [", self.origin.map.len()));
+        source.push(format!("static MAP: [(VarId, (VarId, usize)); {}] = [", self.origin.map.len()));
         let mut sorted_map = self.origin.map.iter().to_vec();
         sorted_map.sort(); // we must sort it so that its output is reproducible
         source.extend(sorted_map.chunks(5)
-            .map(|chk| format!("    {},", chk.into_iter().map(|((a, b), (c, d))| format!("(({a}, {b}), ({c}, {d}))")).join(", "))));
+            .map(|chk| format!("    {},", chk.into_iter().map(|(a, (c, d))| format!("({a}, ({c}, {d}))")).join(", "))));
         source.push("];".to_string());
         source.push("let origin = Origin::from_data(".to_string());
         source.push("    ORIGIN.into_iter().map(|(root, nodes)| GrTree::from((root, nodes.to_vec()))).collect(),".to_string());
@@ -2396,7 +2443,7 @@ pub struct ProdRuleSetTables {
     name: Option<String>,
     prods: Vec<ProdRule>,
     original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
-    origin: Origin<(VarId, FactorId), FromPRS>,
+    origin: Origin<VarId, FromPRS>,
     t: Vec<(String, Option<String>)>,   // terminal identifiers and optional representation
     nt: Vec<String>,                    // nt to nonterminal identifier
     flags: Vec<u32>,
@@ -2410,7 +2457,7 @@ impl ProdRuleSetTables {
         name: Option<T>,
         prods: Vec<ProdRule>,
         original_factors: Vec<ProdFactor>,
-        origin: Origin<(VarId, FactorId), FromPRS>,
+        origin: Origin<VarId, FromPRS>,
         t: Vec<(T, Option<T>)>,
         nt: Vec<T>,
         flags: Vec<u32>,
@@ -2503,36 +2550,39 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
             // the information about the errors easily.
             return prules;
         }
-        prules.origin = Origin::<(VarId, FactorId), FromPRS>::from_trees_mut(&mut rules.origin.trees);
+        prules.origin = Origin::<VarId, FromPRS>::from_trees_mut(&mut rules.origin.trees);
         for (var, tree) in rules.trees.iter().index() {
             if !tree.is_empty() {
                 let root = tree.get_root().expect("tree {var} has no root");
                 let root_sym = tree.get(root);
                 let mut prod = match root_sym {
                     GrNode::Symbol(s) => {
+                        let mut fact = ProdFactor::new(vec![s.clone()]);
                         if let Some(&(v, ch)) = rules.origin.map.get(&(var, root)) {
-                            prules.origin.add((var, 0), (v, ch));
+                            fact.origin = Some((v, ch));
                         }
-                        vec![ProdFactor::new(vec![s.clone()])]
+                        vec![fact]
                     },
                     GrNode::Concat => {
+                        let mut fact = children_to_vec(tree, root);
                         if let Some(&(v, ch)) = rules.origin.map.get(&(var, root)) {
-                            prules.origin.add((var, 0), (v, ch));
+                            fact.origin = Some((v, ch));
                         }
-                        vec![children_to_vec(tree, root)]
+                        vec![fact]
                     },
-                    GrNode::Or => tree.children(root).iter().index::<FactorId>()
-                        .map(|(fid, id)| {
+                    GrNode::Or => tree.children(root).iter()
+                        .map(|id| {
                             let child = tree.get(*id);
-                            if let Some(&(v, ch)) = rules.origin.map.get(&(var, *id)) {
-                                prules.origin.add((var, fid), (v, ch));
-                            }
-                            if let GrNode::Symbol(s) = child {
+                            let mut fact = if let GrNode::Symbol(s) = child {
                                 ProdFactor::new(vec![s.clone()])
                             } else {
                                 assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
                                 children_to_vec(tree, *id)
+                            };
+                            if let Some(&(v, ch)) = rules.origin.map.get(&(var, *id)) {
+                                fact.origin = Some((v, ch));
                             }
+                            fact
                         }).to_vec(),
                     s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var).to_str(prules.get_symbol_table()))
                 };
@@ -2553,6 +2603,13 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     // not really necessary, but cleaner:
                     for f in prod.iter_mut() {
                         f.flags &= !ruleflag::L_FORM;
+                    }
+                }
+                // the children NTs that represent a part of the original NT are stored in ProdRuleSet::origin
+                // rather than in the factors themselves
+                if prules.parent[var as usize].is_some() {
+                    if let Some(&(v, index)) = rules.origin.map.get(&(var, root)) {
+                        prules.origin.add(var, (v, index));
                     }
                 }
                 prules.prods.push(prod);
@@ -2784,10 +2841,21 @@ pub mod macros {
         ($($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
         (#$f:literal, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
         (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
-        (#$f:ident, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
-        (#$f:ident, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)) };
-        (#($f:expr, $o:expr), $($a:ident $($b:expr)?,)+) => { prodf!(#($f, $o), $($a $($b)?),+) };
-        (#($f:expr, $o:expr), $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_orig_fid($o) };
+        // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $(%($v, $id),)? $($a $($b)?),+) };
+        // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
+        //     => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f))$(.with_orig($v, $id))? };
+        ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { prodf!($(#$f,)? $(%($v, $id),)? $($a $($b)?),+) };
+        ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
+            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::prodflag!($f)))?$(.with_orig($v, $id))? };
+        // TODO: change "#" parts below
+        (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+)
+            => { prodf!(#($f, $o), $(%($v, $id),)? $($a $($b)?),+) };
+        (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
+            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_orig_fid($o)$(.with_orig($v, $id))? };
+        (%($v:expr, $id:expr), $($a:ident $($b:expr)?,)+)
+            => { prodf!(%($v, $id), $($a $($b)?),+) };
+        (%($v:expr, $id:expr), $($a:ident $($b:expr)?),*)
+            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_orig($v, $id) };
     }
 
     #[macro_export()]
@@ -2816,21 +2884,16 @@ pub mod macros {
     ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
     ///                 ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
     ///                 ProdFactor::new(vec![sym!(e)])]);
-    /// let x = 256;
-    /// let o_id = 4;
-    /// assert_eq!(prod!(nt 0, t 1; #(x, o_id), nt 1; #(x + 1, o_id + 2), nt 2, t 2),
-    ///            vec![ProdFactor::new(vec![sym!(nt 0), sym!(t 1)]),
-    ///                 ProdFactor::new(vec![sym!(nt 1)]).with_flags(256).with_orig_fid(4),
-    ///                 ProdFactor::new(vec![sym!(nt 2), sym!(t 2)]).with_flags(257).with_orig_fid(6)]);
     /// ```
     #[macro_export()]
     macro_rules! prod {
         () => { std::vec![] };
         ($($(#$f:literal,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
         ($($(#$f:literal,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $($a $($b)?),+]),*]};
-        ($($(#$f:ident,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
-        ($($(#$f:ident,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $($a $($b)?),+]),*]};
-        ($($(#($f:expr, $o:expr),)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#($f, $o),)? $($a $($b)?),+);+] };
-        ($($(#($f:expr, $o:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#($f,$o),)? $($a $($b)?),+]),*]};
+        ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $(%($v, $id),)? $($a $($b)?),+);+] };
+        ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $(%($v, $id),)? $($a $($b)?),+]),*]};
+        // TODO: change "#" part below
+        ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#($f, $o),)? $(%($v, $id),)? $($a $($b)?),+);+] };
+        ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#($f,$o),)? $(%($v, $id),)? $($a $($b)?),+]),*]};
     }
 }

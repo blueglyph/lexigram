@@ -86,6 +86,21 @@ fn prod_macros() {
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
                     ProdFactor::new(vec![sym!(nt  2)]).with_flags(256),
                     ProdFactor::new(vec![sym!(e)])]);
+    assert_eq!(prod!(%(1, 2), nt 0),
+               vec![ProdFactor::new(vec![Symbol::NT(0)]).with_orig(1, 2)]);
+    assert_eq!(prod!(nt 0; %(2, 3), t 0),
+               vec![ProdFactor::new(vec![Symbol::NT(0)]),
+                    ProdFactor::new(vec![Symbol::T(0)]).with_orig(2, 3)]);
+    assert_eq!(prod!(#L, %(3, 4), t 1),
+               vec![ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_orig(3, 4)]);
+    assert_eq!(prod!(#(1, 2), %(3, 4), t 2),
+               vec![ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_orig_fid(2).with_orig(3, 4)]);
+    assert_eq!(prod!(nt 0; #L, %(3, 4), t 1),
+               vec![ProdFactor::new(vec![Symbol::NT(0)]),
+                    ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_orig(3, 4)]);
+    assert_eq!(prod!(nt 0; #(1, 2), %(3, 4), t 2),
+               vec![ProdFactor::new(vec![Symbol::NT(0)]),
+                    ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_orig_fid(2).with_orig(3, 4)]);
 }
 
 #[test]
@@ -1010,19 +1025,20 @@ fn orig_normalize() {
                 .map(|((va, ida), (vo, ido))| ((*va, *ida), (*vo, *ido)))
                 .collect::<Vec<_>>();
             map.sort();
-            println!("{}", map.into_iter()
-                .map(|((va, ida), (vo, ido))| format!("  - {} #{ida}  was  {} #{ido}",
-                                                      Symbol::NT(va).to_str(sym_tab),
-                                                      Symbol::NT(vo).to_str(sym_tab))).join("\n"));
-            // println!("flags:  {:?}", rules.flags);
-            // println!("parent: {:?}", rules.parent);
-            // println!("{}", rules.get_non_empty_nts()
-            //     .map(|(id, t)| format!("- {id} => {} (depth {})",
-            //                            rules.to_str(id, None, None),
-            //                            t.depth().unwrap_or(0))).join("\n"));
-
-            let mut prules = ProdRuleSet::<General>::build_from(rules);
-            println!("PRS origin:\n{}", indent_source(vec![prules.prs_factor_origins_str()], 4));
+            let cols = map.chunks(5)
+                .map(|chunk| {
+                    let mut v = chunk.into_iter()
+                        .map(|&((va, ida), (vo, ido))| format!("| {} #{ida}  =>  {} #{ido}", Symbol::NT(va).to_str(sym_tab), Symbol::NT(vo).to_str(sym_tab)))
+                        .to_vec();
+                    v.resize(5, "|".to_string());
+                    v
+                })
+                .to_vec();
+            println!("{}", indent_source(vec![columns_to_str(cols, Some(vec![20; 5]))], 2));
+        }
+        let prules = ProdRuleSet::<General>::build_from(rules);
+        if VERBOSE {
+            println!("PRS origin:\n{}", indent_source(vec![prules.prs_factor_origins_str(true)], 4));
         }
         if SHOW_RESULTS_ONLY {
             println!("        ({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));
