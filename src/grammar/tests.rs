@@ -955,7 +955,7 @@ fn orig_normalize() {
         //   A -> b (c d | e)*
         (13, btreemap![0 => r#"b (c d | e)*"#]),
         //   A -> A (b <L=AIter1>)* c | d
-        (19, btreemap![0 => r#"A (b <L=1_removed1>)* c | d"#]),
+        (19, btreemap![0 => r#"A (b <L=AIter1>)* c | d"#]),
         //   A -> A (b | c <R> | d) A | e
         (15, btreemap![0 => r#"A b A | A c <R> A | A d A | e"#]),
         //   E -> "-" E | E ("*" | "/" <P>) E | E ("+" | "-" <P>) E | ID
@@ -977,7 +977,7 @@ fn orig_normalize() {
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
-// if !matches!(test_id, 47|12|10) { continue }
+// if !matches!(test_id, 19) { continue }
         let rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()
@@ -993,7 +993,6 @@ fn orig_normalize() {
                      rules.get_non_empty_nts()
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
         }
-        // rules.normalize();
         let rules = RuleTreeSet::<Normalized>::build_from(rules);
         assert_eq!(rules.log.num_errors(), 0, "test {test_id} failed to normalize:\n{}", rules.log.get_messages_str());
         if let Some(err) = check_rts_sanity(&rules, false) {

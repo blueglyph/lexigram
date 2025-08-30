@@ -804,7 +804,7 @@ impl RuleTreeSet<General> {
                             let orig_plus_child = orig_new.add_from_tree(Some(orig_plus), &new, Some(plus_child));
                             orig_rep_vars.insert(new_var, orig_plus); // to replace later
                             stack.push(self.normalize_plus_or_star(
-                                plus_child, orig_plus, orig_plus_child, &mut new, &orig_new, var, &mut new_var, true));
+                                plus_child, orig_plus, orig_plus_child, &mut new, &mut orig_new, var, &mut new_var, true));
                         }
                     }
                     GrNode::Star => {
@@ -828,7 +828,7 @@ impl RuleTreeSet<General> {
                             let orig_star_child = orig_new.add_from_tree(Some(orig_star), &new, Some(star_child));
                             orig_rep_vars.insert(new_var, orig_star); // to replace later
                             stack.push(self.normalize_plus_or_star(
-                                star_child, orig_star, orig_star_child, &mut new, &orig_new, var, &mut new_var, false));
+                                star_child, orig_star, orig_star_child, &mut new, &mut orig_new, var, &mut new_var, false));
                         }
                     }
                     _ => panic!("Unexpected {}", sym.deref())
@@ -886,7 +886,7 @@ impl RuleTreeSet<General> {
 
     fn normalize_plus_or_star(
         &mut self, rep_child: usize, orig_rep: usize, orig_rep_child: usize,
-        new: &mut GrTree, orig_new: &GrTree, var: VarId, new_var: &mut VarId, is_plus: bool
+        new: &mut GrTree, orig_new: &mut GrTree, var: VarId, new_var: &mut VarId, is_plus: bool
     ) -> usize
     {
         const VERBOSE: bool = false;
@@ -1031,6 +1031,11 @@ impl RuleTreeSet<General> {
             // `new_var` replaces `v`
             self.nt_conversion.insert(v, MovedTo(*new_var));
             for mut node in qtree.iter_depth_simple_mut() {
+                if let GrNode::LForm(v2) = node.deref_mut() {
+                    if *v2 == v { *v2 = *new_var; }
+                }
+            }
+            for mut node in orig_new.iter_depth_simple_at_mut(orig_rep_child) {
                 if let GrNode::LForm(v2) = node.deref_mut() {
                     if *v2 == v { *v2 = *new_var; }
                 }
