@@ -1922,6 +1922,7 @@ impl<T> ProdRuleSet<T> {
                     }
                     new_f.flags |= f.flags & ruleflag::FACTOR_INFO;
                     new_f.original_factor_id = Some(self.original_factors.len() as FactorId);
+                    new_f.origin = f.origin;
                     self.original_factors.push(f.clone());
                     new_f
                 }).to_vec();

@@ -1040,6 +1040,11 @@ fn orig_normalize() {
         if VERBOSE {
             println!("PRS origin:\n{}", indent_source(vec![prules.prs_factor_origins_str(true)], 4));
         }
+        let ll1 = ProdRuleSet::<LL1>::build_from(prules);
+        if VERBOSE {
+            println!("LL1 origin:\n{}", indent_source(vec![ll1.prs_factor_origins_str(true)], 4));
+        }
+
         if SHOW_RESULTS_ONLY {
             println!("        ({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));
         }
