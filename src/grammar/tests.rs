@@ -703,6 +703,12 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let star1 = tree.add(Some(cc), gnode!(*));
             tree.addc_iter(Some(star1), gnode!(&), [gnode!(t 1), gnode!(t 0)]);
         }
+        58 => { // A -> A a | b
+            let cc = tree.add_root(gnode!(&));
+            let or = tree.add(Some(cc), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 0), gnode!(t 0)]);
+            tree.add(Some(or), gnode!(t 1));
+        }
         100 => {
             // lexiparser
             rules = crate::lexi::tests::build_rts();
@@ -954,6 +960,10 @@ fn orig_normalize() {
         (17, btreemap![0 => r#"a (b+ c)+ d"#]),
         //   A -> b (c d | e)*
         (13, btreemap![0 => r#"b (c d | e)*"#]),
+        // A -> a A | b
+        (35, btreemap![0 => r#"a A | b"#]),
+        //   A -> (A a | b)
+        (58, btreemap![0 => r#"A a | b"#]),
         //   A -> A (b <L=AIter1>)* c | d
         (19, btreemap![0 => r#"A (b <L=AIter1>)* c | d"#]),
         //   A -> A (b | c <R> | d) A | e
@@ -983,9 +993,6 @@ fn orig_normalize() {
         let originals = rules.get_non_empty_nts()
             .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab)))
             .to_vec();
-        if SHOW_RESULTS_ONLY {
-            println!("{}", originals.iter().map(|s| format!("        // {s}")).join(""));
-        }
         if VERBOSE && !SHOW_RESULTS_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
             println!("- original:\n{}", originals.join("\n"));
@@ -1044,7 +1051,8 @@ fn orig_normalize() {
             println!("LL1 origin:\n{}", indent_source(vec![ll1.prs_factor_origins_str(true)], 4));
         }
 
-        if SHOW_RESULTS_ONLY {
+        if VERBOSE || SHOW_RESULTS_ONLY {
+            println!("{}", originals.iter().map(|s| format!("        // {s}")).join(""));
             println!("        ({test_id}, btreemap![{}]),", result.iter().map(|(ref id, t)| format!("{id} => r#\"{t}\"#")).join(", "));
         }
         let expected = expected.into_iter().map(|(id, s)| (id, s.to_string())).collect::<BTreeMap<_, _>>();
