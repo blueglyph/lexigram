@@ -5,13 +5,16 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, ProdFactor, factor_to_rule_str};
+use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, ProdFactor, factor_to_rule_str, grtree_to_str};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable, HasBuildErrorSource, BuildError, BuildErrorSource};
+use crate::grammar::origin::{FromPRS, Origin};
 use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
 use crate::parser::{OpCode, Parser};
 use crate::segments::{Seg, Segments};
 
 pub(crate) mod tests;
+
+const USE_ORIGIN: bool = true;
 
 // ---------------------------------------------------------------------------------------------
 
@@ -202,6 +205,7 @@ pub struct ParserGen {
     nt_parent: Vec<Vec<VarId>>,
     var_factors: Vec<Vec<FactorId>>,
     original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
+    origin: Origin<VarId, FromPRS>,
     item_ops: HashMap<FactorId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
     start: VarId,
@@ -232,26 +236,25 @@ impl ParserGen {
         let parsing_table = ll1_rules.make_parsing_table(true);
         let num_nt = ll1_rules.get_num_nt();
         let start = ll1_rules.get_start().unwrap();
-        let symbol_table = ll1_rules.give_symbol_table().expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>()));
-        let nt_conversion = ll1_rules.give_nt_conversion();
         let mut var_factors = vec![vec![]; num_nt];
         for (factor_id, (var_id, _)) in parsing_table.factors.iter().index() {
             var_factors[*var_id as usize].push(factor_id);
         }
-        let original_factors = ll1_rules.give_original_factors();
         let mut nt_parent: Vec<Vec<VarId>> = vec![vec![]; num_nt];
         for var_id in 0..num_nt {
             let top_var_id = parsing_table.get_top_parent(var_id as VarId) as usize;
             nt_parent[top_var_id].push(var_id as VarId);
         }
+        let ProdRuleSet { symbol_table, nt_conversion, original_factors, origin, .. } = ll1_rules;
         let mut builder = ParserGen {
             parsing_table,
-            symbol_table,
+            symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
             name,
             nt_value: vec![false; num_nt],
             nt_parent,
             var_factors,
             original_factors,
+            origin,
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
             start,
@@ -353,11 +356,21 @@ impl ParserGen {
     #[cfg(test)] // we keep it here because we'll need it later for doc comments and logs
     fn get_original_factor_str(&self, f_id: FactorId, symbol_table: Option<&SymbolTable>) -> Option<String> {
         let (var, f) = &self.parsing_table.factors[f_id as usize];
-        f.get_original_factor_id().and_then(|orig_id| {
-            let o_f = &self.original_factors[orig_id as usize];
-            let parent = self.parsing_table.get_top_parent(*var);
-            Some(format!("{} -> {}", Symbol::NT(parent).to_str(symbol_table), o_f.to_str(symbol_table)))
-        })
+        if USE_ORIGIN {
+            f.get_origin().and_then(|(o_v, o_id)| {
+                Some(format!(
+                    "{} =► {}",
+                    Symbol::NT(o_v).to_str(symbol_table),
+                    grtree_to_str(self.origin.get_tree(o_v).unwrap(), Some(o_id), None, symbol_table)
+                ))
+            })
+        } else {
+            f.get_original_factor_id().and_then(|orig_id| {
+                let o_f = &self.original_factors[orig_id as usize];
+                let parent = self.parsing_table.get_top_parent(*var);
+                Some(format!("{} -> {}", Symbol::NT(parent).to_str(symbol_table), o_f.to_str(symbol_table)))
+            })
+        }
     }
 
     /// Converts the original index of an NT to its current index.
@@ -499,23 +512,31 @@ impl ParserGen {
         // const VERBOSE: bool = true;
         if VERBOSE { println!("full_factor_components(f_id = {f_id}):"); }
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
-        if let Some(id) = prodf.get_original_factor_id() {
-            let parent_nt = self.parsing_table.get_top_parent(*v_f);
-            let orig_f = &self.original_factors[id as usize];
-            let mut pf = orig_f.iter().map(|s| {
-                match s {
-                    Symbol::NT(nt) if *nt != parent_nt && self.parsing_table.get_top_parent(*nt) == parent_nt => {
-                        self.repeat_factor_str(&vec![*s], emphasis)
-                    }
-                    _ => s.to_str(self.get_symbol_table())
-                }
-            }).join(" ");
-            let flags = orig_f.get_flags() & (ruleflag::L_FORM | ruleflag::R_ASSOC);
-            if flags != 0 {
-                pf.push_str(&format!(" <{}>", ruleflag::factor_info_to_string(flags).join(",")));
+        if USE_ORIGIN {
+            if let Some((vo, id)) = prodf.get_origin() {
+                let t = self.origin.get_tree(vo).unwrap();
+                let emph = if Some(id) == t.get_root() { None } else { Some(id) };
+                return (Symbol::NT(vo).to_str(self.get_symbol_table()), grtree_to_str(t, None, emph, self.get_symbol_table()));
             }
-            if VERBOSE { println!(" => ({}, {pf})", Symbol::NT(parent_nt).to_str(self.get_symbol_table())); }
-            return (Symbol::NT(parent_nt).to_str(self.get_symbol_table()), pf);
+        } else {
+            if let Some(id) = prodf.get_original_factor_id() {
+                let parent_nt = self.parsing_table.get_top_parent(*v_f);
+                let orig_f = &self.original_factors[id as usize];
+                let mut pf = orig_f.iter().map(|s| {
+                    match s {
+                        Symbol::NT(nt) if *nt != parent_nt && self.parsing_table.get_top_parent(*nt) == parent_nt => {
+                            self.repeat_factor_str(&vec![*s], emphasis)
+                        }
+                        _ => s.to_str(self.get_symbol_table())
+                    }
+                }).join(" ");
+                let flags = orig_f.get_flags() & (ruleflag::L_FORM | ruleflag::R_ASSOC);
+                if flags != 0 {
+                    pf.push_str(&format!(" <{}>", ruleflag::factor_info_to_string(flags).join(",")));
+                }
+                if VERBOSE { println!(" => ({}, {pf})", Symbol::NT(parent_nt).to_str(self.get_symbol_table())); }
+                return (Symbol::NT(parent_nt).to_str(self.get_symbol_table()), pf);
+            }
         }
         let mut v_par_lf =  *v_f;
         let mut syms = prodf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();

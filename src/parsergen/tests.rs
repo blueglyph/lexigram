@@ -747,6 +747,22 @@ mod wrapper_source {
                 2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
             ], Set(symbols![nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
 
+            // A -> a (b <L=B>)* C
+            // C -> c
+            // NT flags:
+            //  - A: parent_+_or_* (2048)
+            //  - AIter1: child_+_or_* | L-form (129)
+            // parents:
+            //  - AIter1 -> A
+            (RTS(48), true, 0, btreemap![
+                2 => "SynAIter".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, nt 2, nt 1],         //  0: A -> a AIter1 C    | ◄0 ►C ►AIter1 a! | a AIter1 C
+                1 => symbols![t 2],                     //  1: C -> c             | ◄1 c!            | c
+                2 => symbols![nt 2, t 1],               //  2: AIter1 -> b AIter1 | ●AIter1 ◄2 b!    | AIter1 b
+                3 => symbols![nt 2],                    //  3: AIter1 -> ε        | ◄3               | AIter1
+            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
             // A -> a (a | c) (b <L=AIter1>)* c
             // NT flags:
             //  - A: parent_left_fact | parent_+_or_* (2080)
@@ -2126,8 +2142,7 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
-// if rule_id != RTS(44)  { continue }
-if !hashset!(RTS(50), RTS(51), RTS(52)).contains(&rule_id) { continue }
+if !matches!(rule_id, RTS(48)) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.build_prs(test_id, start_nt, true);

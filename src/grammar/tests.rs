@@ -629,6 +629,17 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(o2), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
             tree.add(Some(o2), gnode!(t 4));
         }
+        48 => { // A -> a (b <L=B>)* C; C -> c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
+            tree.add(Some(cc), gnode!(nt 2));
+            let _b_tree = rules.get_tree_mut(1);
+            // symbol table defined below
+            let c_tree = rules.get_tree_mut(2);
+            c_tree.add_root(gnode!(t 2));
+        }
         50 => { // A -> (a d | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
             let cc = tree.add_root(gnode!(&));
             let p1 = tree.add(Some(cc), gnode!(*));
@@ -982,12 +993,14 @@ fn orig_normalize() {
         (50, btreemap![0 => r#"(a d | B)* c"#, 1 => r#"b"#]),
         //   A -> (a d | B)+ c        //   B -> b
         (52, btreemap![0 => r#"(a d | B)+ c"#, 1 => r#"b"#]),
+        //   A -> a (b <L=AIter1>)* c
+        (22, btreemap![0 => r#"a (b <L=AIter1>)* c"#]),
     ];
     const VERBOSE: bool = true;
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
-// if !matches!(test_id, 19) { continue }
+if !matches!(test_id, 22) { continue }
         let rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()
@@ -1047,8 +1060,14 @@ fn orig_normalize() {
             println!("PRS origin:\n{}", indent_source(vec![prules.prs_factor_origins_str(true)], 4));
         }
         let ll1 = ProdRuleSet::<LL1>::build_from(prules);
+        // println!("{}", ll1.symbol_table.as_ref().unwrap().get_nonterminals().enumerate().map(|(idx, nt)| format!("{idx}:{nt}")).join(", "));
         if VERBOSE {
+            let sym_tab = ll1.get_symbol_table();
             println!("LL1 origin:\n{}", indent_source(vec![ll1.prs_factor_origins_str(true)], 4));
+            // println!("  other format:\n{}",
+            //          ll1.origin.trees.iter().index::<VarId>()
+            //              .filter(|(_, t)| !is_grtree_empty_symbol(&t))
+            //              .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
         }
 
         if VERBOSE || SHOW_RESULTS_ONLY {

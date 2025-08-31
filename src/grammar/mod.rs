@@ -1198,6 +1198,10 @@ impl ProdFactor {
         self.original_factor_id
     }
 
+    pub fn get_origin(&self) -> Option<(VarId, usize)> {
+        self.origin
+    }
+
     pub fn get_flags(&self) -> u32 {
         self.flags
     }
@@ -1357,16 +1361,16 @@ impl LLParsingTable {
 #[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
-    original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
-    origin: Origin<VarId, FromPRS>,
+    pub(crate) original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
+    pub(crate) origin: Origin<VarId, FromPRS>,
     num_nt: usize,
     num_t: usize,
-    symbol_table: Option<SymbolTable>,
+    pub(crate) symbol_table: Option<SymbolTable>,
     flags: Vec<u32>,
     parent: Vec<Option<VarId>>,
     start: Option<VarId>,
     pub(crate) name: Option<String>,
-    nt_conversion: HashMap<VarId, NTConversion>,
+    pub(crate) nt_conversion: HashMap<VarId, NTConversion>,
     pub(crate) log: BufLog,
     _phantom: PhantomData<T>
 }
@@ -1423,18 +1427,6 @@ impl<T> ProdRuleSet<T> {
 
     pub fn get_num_t(&self) -> usize {
         self.num_t
-    }
-
-    pub fn give_symbol_table(&mut self) -> Option<SymbolTable> {
-        take(&mut self.symbol_table)
-    }
-
-    pub fn give_nt_conversion(&mut self) -> HashMap<VarId, NTConversion> {
-        take(&mut self.nt_conversion)
-    }
-
-    pub fn give_original_factors(&mut self) -> Vec<ProdFactor> {
-        take(&mut self.original_factors)
     }
 
     /// Adds new flags to `flags[nt]` by or'ing them.
@@ -1593,6 +1585,10 @@ impl<T> ProdRuleSet<T> {
                 self.symbol_table.as_mut().map(|t| t.remove_nonterminal(v));
                 self.flags.remove(i);
                 self.parent.remove(i);
+                if self.origin.trees.len() > i {
+                    self.origin.trees.remove(i);
+                }
+
             } else {
                 new_v -= 1;
                 conv.insert(v, new_v);
@@ -1608,6 +1604,11 @@ impl<T> ProdRuleSet<T> {
                         }
                     }
                 }
+                if let Some((ref mut var, _id)) = f.origin {
+                    if let Some(new_var) = conv.get(&var) {
+                        *var = *new_var;
+                    }
+                }
             }
         }
         for p in &mut self.parent {
@@ -1617,6 +1618,25 @@ impl<T> ProdRuleSet<T> {
                 }
             }
         }
+        for t in &mut self.origin.trees {
+            for mut node in t.iter_depth_simple_mut() {
+                match *node {
+                    GrNode::Symbol(Symbol::NT(ref mut v)) | GrNode::LForm(ref mut v) => {
+                        if let Some(new_v) = conv.get(&v) {
+                            *v = *new_v;
+                        }
+                    }
+                    _ => {}
+                }
+            }
+        }
+        let new_map = self.origin.map.iter()
+            .map(|(v1, (v2, id))| (*conv.get(&v1).unwrap_or(&v1), (*conv.get(&v2).unwrap_or(&v2), *id)))
+            .collect::<HashMap<_, _>>();
+        // println!("old origin map: {:?}", self.origin.map);
+        // println!("new origin map: {:?}", new_map);
+        // println!("trees:\n{}", self.origin.trees.iter().enumerate().map(|(i, t)| format!("{i}:{}", grtree_to_str(t, None, None, None))).join("\n"));
+        self.origin.map = new_map;
         keep.retain(|s| !matches!(s, Symbol::NT(_)));
         keep.extend((0..new_num_nt as VarId).map(|v| Symbol::NT(v)));
         self.num_nt = new_num_nt as usize;
