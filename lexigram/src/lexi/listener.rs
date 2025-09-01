@@ -911,7 +911,7 @@ pub(crate) fn decode_str(strlit: &str) -> Result<String, String> {
                             hex.push(h);
                         };
                         let code = u32::from_str_radix(&hex, 16).map_err(|_| format!("'{hex}' isn't a valid hexadecimal value"))?;
-                        char::from_u32(code).ok_or(format!("'{hex}' isn't a valid unicode hexadecimal value"))?
+                        char::from_u32(code).ok_or_else(|| format!("'{hex}' isn't a valid unicode hexadecimal value"))?
                     }
                     unknown => return Err(format!("unknown escape code '\\{unknown}' in string literal '{strlit}'"))
                 });
