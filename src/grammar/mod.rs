@@ -299,12 +299,41 @@ pub fn grtree_to_str_ansi(tree: &GrTree, node: Option<usize>, emphasis: Option<u
     grtree_to_str_custom(tree, node, emphasis, symbol_table, true)
 }
 
-/// Removes duplicate 'ε' symbols in `nodes` before adding them in a concat.
-fn remove_duplicate_empty_syms(tree: &GrTree, nodes: &mut Vec<usize>) {
+/// Removes duplicate 'ε' symbols in `nodes` before adding them in a `&`.
+///
+/// ## Examples:
+/// * `ε ε` -> `ε`
+/// * `ε A` -> `A`
+/// * `ε` -> `ε`
+fn remove_concat_dup_empty(tree: &GrTree, nodes: &mut Vec<usize>) {
     if nodes.len() > 1 {
         let mut i = 0;
         while i < nodes.len() && nodes.len() > 1 {
             if tree.get(nodes[i]).is_empty() {
+                nodes.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
+}
+
+/// Removes duplicate 'ε' symbols in `nodes` before adding them in a `|`.
+///
+/// ## Examples
+/// * `ε | ε` -> `ε`
+/// * `A | ε | ε` -> `A | ε`
+/// * `ε` -> `ε`
+fn remove_or_dup_empty(tree: &GrTree, nodes: &mut Vec<usize>) {
+    fn factor_is_empty(tree: &GrTree, id: usize) -> bool {
+        let ch = tree.children(id);
+        ch.len() == 1 && tree.get(ch[0]).is_empty()
+    }
+
+    if nodes.len() > 1 {
+        let mut i = 0;
+        while i < nodes.len() && nodes.len() > 1 {
+            if factor_is_empty(tree, nodes[i]) {
                 nodes.remove(i);
             } else {
                 i += 1;
@@ -719,6 +748,7 @@ impl RuleTreeSet<General> {
                                         x => panic!("unexpected node type under | node: {x}"),
                                     }
                                 }
+                                remove_or_dup_empty(&new, &mut new_children);
                                 new.addci_iter(None, gnode!(|), new_children)
                             } else { // GrNode::Concat
                                 if VERBOSE_CC { println!("  &: children={children:?}"); }
@@ -765,7 +795,7 @@ impl RuleTreeSet<General> {
                                         let mut nodes = dup_ids.into_iter()
                                             .flat_map(|dup_id| dups.get_mut(dup_id).unwrap().iter_mut()
                                                 .map(|dup| new.get_dup(dup)).to_vec()).to_vec();
-                                        remove_duplicate_empty_syms(&new, &mut nodes);
+                                        remove_concat_dup_empty(&new, &mut nodes);
                                         nodes
                                     })
                                     // .inspect(|x| println!("      :: {}", x.iter().map(|i| format!("{i}")).join(", ")))
@@ -963,13 +993,15 @@ impl RuleTreeSet<General> {
                     let orig_grchild = orig_new.get(*orig_id_grchild);
                     match orig_grchild {
                         GrNode::Symbol(s) => {
-                            let cc = qtree.add(Some(or), gnode!(&));
-                            let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)])[0];
-                            self.origin.add((*new_var, cc), (var, *orig_id_grchild));
-                            self.origin.add((*new_var, child), (var, *orig_id_grchild));
-                            if is_plus {
-                                let plus_or = qtree.add(Some(or), GrNode::Symbol(s.clone()));
-                                self.origin.add((*new_var, plus_or), (var, *orig_id_grchild));
+                            if !s.is_empty() {
+                                let cc = qtree.add(Some(or), gnode!(&));
+                                let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)])[0];
+                                self.origin.add((*new_var, cc), (var, *orig_id_grchild));
+                                self.origin.add((*new_var, child), (var, *orig_id_grchild));
+                                if is_plus {
+                                    let plus_or = qtree.add(Some(or), GrNode::Symbol(s.clone()));
+                                    self.origin.add((*new_var, plus_or), (var, *orig_id_grchild));
+                                }
                             }
                         }
                         GrNode::Concat => {
