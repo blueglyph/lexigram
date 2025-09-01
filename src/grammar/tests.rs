@@ -720,6 +720,21 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 0), gnode!(t 0)]);
             tree.add(Some(or), gnode!(t 1));
         }
+        59 => { // A -> a? b* c?
+            let cc = tree.add_root(gnode!(&));
+            tree.addc(Some(cc), gnode!(?), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.addc(Some(cc), gnode!(?), gnode!(t 2));
+        }
+        60 => { // A -> a? (b? | c?)*
+            let cc = tree.add_root(gnode!(&));
+            tree.addc(Some(cc), gnode!(?), gnode!(t 0));
+            let star = tree.add(Some(cc), gnode!(*));
+            let or1 = tree.add(Some(star), gnode!(|));
+            tree.addc(Some(or1), gnode!(?), gnode!(t 1));
+            let cc2 = tree.add(Some(or1), gnode!(&));
+            tree.addc(Some(cc2), gnode!(?), gnode!(t 2));
+        }
         100 => {
             // lexiparser
             rules = crate::lexi::tests::build_rts();
@@ -968,10 +983,18 @@ fn orig_normalize() {
         //   A -> b (c d)*
         (12, btreemap![0 => r#"b (c d)*"#]),
         //   A -> a (b+ c)+ d
+        (13, btreemap![0 => r#"b (c d | e)*"#]),
+        //   A -> b? (c | d)?
+        (14, btreemap![0 => r#"b c | b d | b | c | d | ε"#]),
+        //   A -> A a c? | A b c? | d
+        (38, btreemap![0 => r#"A a c | A a | A b c | A b | d"#]),
+        //   A -> a? b* c?
+        (59, btreemap![0 => r#"a b* c | a b* | b* c | b*"#]),
+        //   A -> a? (b? | c?)*
+        (60, btreemap![0 => r#"a (b | ε | c | ε)* | (b | ε | c | ε)*"#]),
+        // A -> a A | b
         (17, btreemap![0 => r#"a (b+ c)+ d"#]),
         //   A -> b (c d | e)*
-        (13, btreemap![0 => r#"b (c d | e)*"#]),
-        // A -> a A | b
         (35, btreemap![0 => r#"a A | b"#]),
         //   A -> (A a | b)
         (58, btreemap![0 => r#"A a | b"#]),
@@ -1000,7 +1023,7 @@ fn orig_normalize() {
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
-if !matches!(test_id, 22) { continue }
+// if !matches!(test_id, 60) { continue }
         let rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()
@@ -1062,8 +1085,8 @@ if !matches!(test_id, 22) { continue }
         let ll1 = ProdRuleSet::<LL1>::build_from(prules);
         // println!("{}", ll1.symbol_table.as_ref().unwrap().get_nonterminals().enumerate().map(|(idx, nt)| format!("{idx}:{nt}")).join(", "));
         if VERBOSE {
-            let sym_tab = ll1.get_symbol_table();
             println!("LL1 origin:\n{}", indent_source(vec![ll1.prs_factor_origins_str(true)], 4));
+            // let sym_tab = ll1.get_symbol_table();
             // println!("  other format:\n{}",
             //          ll1.origin.trees.iter().index::<VarId>()
             //              .filter(|(_, t)| !is_grtree_empty_symbol(&t))

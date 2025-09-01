@@ -170,6 +170,10 @@ impl GrNode {
             GrNode::Instance  => "gnode!(inst)".to_string(),
         }
     }
+
+    pub fn is_empty(&self) -> bool {
+        matches!(self, GrNode::Symbol(Symbol::Empty))
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -293,6 +297,20 @@ pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>
 
 pub fn grtree_to_str_ansi(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
     grtree_to_str_custom(tree, node, emphasis, symbol_table, true)
+}
+
+/// Removes duplicate 'ε' symbols in `nodes` before adding them in a concat.
+fn remove_duplicate_empty_syms(tree: &GrTree, nodes: &mut Vec<usize>) {
+    if nodes.len() > 1 {
+        let mut i = 0;
+        while i < nodes.len() && nodes.len() > 1 {
+            if tree.get(nodes[i]).is_empty() {
+                nodes.remove(i);
+            } else {
+                i += 1;
+            }
+        }
+    }
 }
 
 /// Adds methods to GrTree.
@@ -743,10 +761,13 @@ impl RuleTreeSet<General> {
                                     // .inspect(|x| println!("      << {}", x.iter().map(|i| format!("_{i}")).join(", ")))
                                     // [dup(A),dup(B),dup(C),dup(E),d(&)] -> [dup(A),dup(B),dup(C),dup(E),d(H)] ->
                                     //       [dup(A),dup(B),dup(D),dup(E),d(&)] -> [dup(A),dup(B),dup(D),dup(E),d(H)]
-                                    .map(|dup_ids| dup_ids.into_iter()
-                                        .flat_map(|dup_id| dups.get_mut(dup_id).unwrap().iter_mut()
-                                            .map(|dup| new.get_dup(dup)).to_vec()).to_vec()
-                                    )
+                                    .map(|dup_ids| {
+                                        let mut nodes = dup_ids.into_iter()
+                                            .flat_map(|dup_id| dups.get_mut(dup_id).unwrap().iter_mut()
+                                                .map(|dup| new.get_dup(dup)).to_vec()).to_vec();
+                                        remove_duplicate_empty_syms(&new, &mut nodes);
+                                        nodes
+                                    })
                                     // .inspect(|x| println!("      :: {}", x.iter().map(|i| format!("{i}")).join(", ")))
                                     .to_vec();
                                     // [A,B,C,E,F,G] -> [A',B',C',E',H] -> [A'',B'',D,E'',F',G'] -> [A''',B''',D',E''',H']

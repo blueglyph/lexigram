@@ -359,7 +359,7 @@ impl ParserGen {
         if USE_ORIGIN {
             f.get_origin().and_then(|(o_v, o_id)| {
                 Some(format!(
-                    "{} =► {}",
+                    "{} -> {}",
                     Symbol::NT(o_v).to_str(symbol_table),
                     grtree_to_str(self.origin.get_tree(o_v).unwrap(), Some(o_id), None, symbol_table)
                 ))
