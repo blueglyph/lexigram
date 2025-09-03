@@ -767,6 +767,31 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(P), gnode!(e)]);
             tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(P)]);
         }
+        67 => { // A -> <P> ε | <R> <P>
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(P), gnode!(e)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(P)]);
+        }
+        68 => { // A -> <P> ε
+            let cc = tree.add_root(gnode!(&));
+            tree.add_iter(Some(cc), [gnode!(P), gnode!(e)]);
+        }
+        69 => { // A -> |(<P> ε)
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(P), gnode!(e)]);
+        }
+        70 => { // A -> &(ε)
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(e));
+        }
+        71 => { // A -> |(&(ε))
+            let or = tree.add_root(gnode!(|));
+            tree.addc(Some(or), gnode!(&), gnode!(e));
+        }
+        72 => { // A -> a | ε
+            let or = tree.add_root(gnode!(|));
+            tree.add_iter(Some(or), [gnode!(t 0), gnode!(e)]);
+        }
         100 => {
             // lexiparser
             rules = crate::lexi::tests::build_rts();
@@ -997,26 +1022,60 @@ fn rts_normalize() {
 
 #[test]
 fn cleanup_tree() {
-    let tests: Vec<u32> = vec![
-        65, // A -> a b ε c ε
-        66, // A -> a b | c ε | ε | d | <P> ε | <R> <P>
+    let tests: Vec<(u32, Option<usize>, (Option<(bool, bool)>, &str), (Option<(bool, bool)>, &str))> = vec![
+        // a b ε c ε
+        (65, None, (Some((false, false)), "a b c"), (Some((false, false)), "a b c")),
+        // a b | c ε | ε | d | ε | <P> ε | <R> <P>
+        (66, None, (Some((false, true)), "a b | c | d | ε"), (Some((false, true)), "a b | c | d")),
+        // <P> ε | <R> <P>
+        (67, None, (Some((true, true)), "ε"), (Some((true, true)), "ε")),
+        // <P> ε
+        (68, None, (Some((true, true)), "ε"), (Some((true, true)), "ε")),
+        // <P> ε
+        (69, None, (Some((true, true)), "ε"), (Some((true, true)), "ε")),
+        // ε
+        (70, None, (Some((true, true)), "ε"), (Some((true, true)), "ε")),
+        // ε
+        (71, None, (Some((true, true)), "ε"), (Some((true, true)), "ε")),
+        // a | ε
+        (72, None, (Some((false, true)), "a | ε"), (Some((false, true)), "a")),
+        // (a b)*
+        (56, Some(1), (None, "(a b)*"), (None, "(a b)*")),
     ];
-    for test_id in tests {
-        println!("{:=<80}\ntest {test_id}:", "");
-        let mut rules = build_rts(test_id);
+    const VERBOSE: bool = true;
+    const VERBOSE_SOLUTION: bool = true;
+    let mut errors = 0;
+    for (test_id, root, expected_false, expected_true) in tests {
+        if VERBOSE { println!("{:=<80}\ntest {test_id}:", ""); }
+        let rules = build_rts(test_id);
         let sym_tab = rules.symbol_table.clone();
         let st = sym_tab.as_ref();
-        for (v, t) in rules.trees.iter_mut().index::<VarId>() {
-            println!("{}: ", Symbol::NT(v).to_str(st));
-            let s1 = grtree_to_str(&t, None, None, st);
-            let si1 = t.to_str_index(None, st);
-            let result = grtree_cleanup(t, None, false);
-            let s2 = grtree_to_str(&t, None, None, st);
-            let si2 = t.to_str_index(None, st);
-            println!("  {s1}  =>  {s2}   {result:?}");
-            println!("  {si1}  =>  {si2}");
+        let mut result = vec![];
+        let s1 = rules.to_str(0, root, None);
+        for del_empty_term in [false, true] {
+            if VERBOSE { println!("del_empty_term = {del_empty_term}"); }
+            let mut t = rules.trees[0].clone();
+            let si1 = t.to_str_index(root, st);
+            let output = grtree_cleanup(&mut t, root, del_empty_term);
+            let s2 = grtree_to_str(&t, root, None, st);
+            let si2 = t.to_str_index(root, st);
+            if VERBOSE {
+                println!("  {s1}  =>  {s2}   {output:?}");
+                println!("  {si1}  =>  {si2}");
+            }
+            result.push((output, s2));
+        }
+        let expected = [expected_false, expected_true].into_iter().map(|(a, b)| (a, b.to_string())).to_vec();
+        if VERBOSE_SOLUTION {
+            println!("        // {s1}");
+            println!("        ({test_id}, {root:?}, {:?}, {:?}),", result[0], result[1]);
+        }
+        if result != expected {
+            errors += 1;
+            if VERBOSE { println!("## error:\n- result   = {result:?}\n- expected = {expected:?}"); }
         }
     }
+    assert_eq!(errors, 0);
 }
 
 /// Cleans the empty symbols in a normalized tree. Removes empty terms if `del_empty_terms` is true.
@@ -1039,48 +1098,42 @@ fn cleanup_tree() {
 /// a | <R>     =>   a        a | ε
 /// <P> ε a     =>   <P> a    <P> a
 /// ```
-fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_terms: bool) -> Option<(bool, bool)> {
-    const VERBOSE: bool = true;
+fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_term: bool) -> Option<(bool, bool)> {
+    const VERBOSE: bool = false;
     let root = top.unwrap_or_else(|| tree.get_root().unwrap());
-    let mut is_empty = false;
     let mut had_empty_term = false;
-    let terms = match tree.get(root) {
+    let (terms, is_or) = match tree.get(root) {
         GrNode::Symbol(s) => {
-            is_empty = *s == Symbol::Empty;
+            let is_empty = *s == Symbol::Empty;
             return Some((is_empty, is_empty));
         }
-        GrNode::Concat => vec![root],
-        GrNode::Or => tree.children(root).to_owned(),
+        GrNode::Concat => (vec![root], false),
+        GrNode::Or => (tree.children(root).to_owned(), true),
         // we don't handle those cases:
         GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_)
         | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance => { return None }
     };
+    let terms_len = terms.len();
     let mut empty_terms = vec![];
-    for term in terms {
+    for (term_pos, term) in terms.into_iter().enumerate() {
         match *tree.get(term) {
             GrNode::Concat => {
                 let children = tree.children(term);
                 let len = children.len();
                 let mut empty_pos = vec![];
-                let mut last_empty = None;
                 let n_modifiers = children.iter().enumerate()
                     .fold(0, |n_mod, (pos, &index)| {
                         let n = tree.get(index);
                         if n.is_empty() {
-                            last_empty = Some(index);
                             empty_pos.push(pos);
                         }
                         n_mod + if n.is_modifier() { 1 } else { 0 }
                     });
-                if VERBOSE { print!("checking term {}  => {empty_pos:?} empty, {n_modifiers} modifier", tree.to_str_index(Some(term), None)); }
+                if VERBOSE { print!("- term {}  => {empty_pos:?} empty, {n_modifiers} modifier", tree.to_str_index(Some(term), None)); }
                 if empty_pos.len() + n_modifiers == len {
-                    if empty_pos.is_empty() {
-                        if VERBOSE { print!(" (creating a new ε)"); }
-                        last_empty = Some(tree.add(None, gnode!(e)));
-                    }
-                    let new_children = tree.children_mut(term);
-                    new_children.clear();
-                    new_children.push(last_empty.unwrap());
+                    *tree.get_mut(term) = gnode!(e);
+                    tree.children_mut(term).clear();
+                    empty_terms.push(term_pos);
                     if VERBOSE { println!(" (replacing everything with ε)"); }
                 } else if !empty_pos.is_empty() {
                     if VERBOSE { println!("  => (removing {} ε)", empty_pos.len()); }
@@ -1093,17 +1146,43 @@ fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_terms: bool) 
                 }
             }
             GrNode::Symbol(Symbol::Empty) => {
-                empty_terms.push(term);
+                empty_terms.push(term_pos);
             }
-            n if n.is_modifier() => {
+            n if n.is_modifier() => {   // lone modifier
                 *tree.get_mut(term) = gnode!(e);
-                empty_terms.push(term);
+                empty_terms.push(term_pos);
             }
             _ => {}
         }
     }
-    // TODO: remove empty terms
-    println!("  {} empty terms: {empty_terms:?}", empty_terms.len());
+    if VERBOSE { println!("  {} empty terms: {empty_terms:?}", empty_terms.len()); }
+    if !empty_terms.is_empty() {
+        had_empty_term = true;
+        if is_or {
+            if !del_empty_term && terms_len > 1 || empty_terms.len() == terms_len {
+                empty_terms.pop();
+            }
+            let or_children = tree.children_mut(root);
+            for i in empty_terms.into_iter().rev() {
+                or_children.remove(i);
+            }
+            if VERBOSE { println!("or_children => {or_children:?}"); }
+        }
+    }
+    if is_or && tree.children(root).len() == 1 {
+        // removes the top | if it has only one child (not entirely necessary but simplifies the rest)
+        let subroot_index = tree.children(root)[0];
+        let subroot = *tree.get(subroot_index);
+        let subroot_children = tree.children(subroot_index).to_owned();
+        *tree.get_mut(root) = subroot;
+        *tree.children_mut(root) = subroot_children;
+    }
+    let is_empty = match tree.get(root) {
+        GrNode::Symbol(s) => s.is_empty(),
+        GrNode::Concat => false, // an empty `&` is simplified to `ε` above // matches!(tree.children(root), &[i] if tree.get(i).is_empty()),
+        GrNode::Or => false, // an empty `|` is simplified to `ε` above
+        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_) | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance => false,
+    };
     Some((is_empty, had_empty_term))
 }
 
