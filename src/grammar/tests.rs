@@ -735,6 +735,38 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let cc2 = tree.add(Some(or1), gnode!(&));
             tree.addc(Some(cc2), gnode!(?), gnode!(t 2));
         }
+        61 => { // A -> a ε?
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(?), gnode!(e));
+        }
+        62 => { // A -> (a | ε)?
+            let cc = tree.add_root(gnode!(&));
+            let maybe1 = tree.add(Some(cc), gnode!(?));
+            tree.addc_iter(Some(maybe1), gnode!(|), [gnode!(t 0), gnode!(e)]);
+        }
+        63 => { // A -> a ε*
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(*), gnode!(e));
+        }
+        64 => { // A -> a ε+
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(+), gnode!(e));
+        }
+        65 => { // A -> a b ε c ε
+            let cc = tree.add_root(gnode!(&));
+            tree.add_iter(Some(cc), [gnode!(t 0), gnode!(t 1), gnode!(e), gnode!(t 2), gnode!(e)]);
+        }
+        66 => { // A -> a b | c ε | ε | d | <P> ε | <R> <P>
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 0), gnode!(t 1)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(e)]);
+            tree.add_iter(Some(or), [gnode!(e), gnode!(t 3), gnode!(e)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(P), gnode!(e)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(P)]);
+        }
         100 => {
             // lexiparser
             rules = crate::lexi::tests::build_rts();
@@ -964,6 +996,118 @@ fn rts_normalize() {
 }
 
 #[test]
+fn cleanup_tree() {
+    let tests: Vec<u32> = vec![
+        65, // A -> a b ε c ε
+        66, // A -> a b | c ε | ε | d | <P> ε | <R> <P>
+    ];
+    for test_id in tests {
+        println!("{:=<80}\ntest {test_id}:", "");
+        let mut rules = build_rts(test_id);
+        let sym_tab = rules.symbol_table.clone();
+        let st = sym_tab.as_ref();
+        for (v, t) in rules.trees.iter_mut().index::<VarId>() {
+            println!("{}: ", Symbol::NT(v).to_str(st));
+            let s1 = grtree_to_str(&t, None, None, st);
+            let si1 = t.to_str_index(None, st);
+            let result = grtree_cleanup(t, None, false);
+            let s2 = grtree_to_str(&t, None, None, st);
+            let si2 = t.to_str_index(None, st);
+            println!("  {s1}  =>  {s2}   {result:?}");
+            println!("  {si1}  =>  {si2}");
+        }
+    }
+}
+
+/// Cleans the empty symbols in a normalized tree. Removes empty terms if `del_empty_terms` is true.
+///
+/// Returns `Some((is_empty, had_empty_term))` for normalized trees, where
+/// * `is_empty` = true if only ε remains
+/// * `had_empty_term` = true if the tree had an empty term (was of the form `α | ε`)
+///
+/// If the top of the tree isn't a symbol, a `&`, or & `|`, the function doesn't process the tree
+/// and returns `None`. If something else than those 3 types of nodes is met inside the tree, it's
+/// simply ignored.
+///
+/// The modifiers `<L>`, `<R>`, or `<P>` alone(s) with `ε` in a term will be simplified, but not
+/// if there are other items in the term:
+///
+/// ```text
+/// del_empty_terms: true     false
+///                  ----     -----
+/// a | <L> ε   =>   a        a | ε
+/// a | <R>     =>   a        a | ε
+/// <P> ε a     =>   <P> a    <P> a
+/// ```
+fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_terms: bool) -> Option<(bool, bool)> {
+    const VERBOSE: bool = true;
+    let root = top.unwrap_or_else(|| tree.get_root().unwrap());
+    let mut is_empty = false;
+    let mut had_empty_term = false;
+    let terms = match tree.get(root) {
+        GrNode::Symbol(s) => {
+            is_empty = *s == Symbol::Empty;
+            return Some((is_empty, is_empty));
+        }
+        GrNode::Concat => vec![root],
+        GrNode::Or => tree.children(root).to_owned(),
+        // we don't handle those cases:
+        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_)
+        | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance => { return None }
+    };
+    let mut empty_terms = vec![];
+    for term in terms {
+        match *tree.get(term) {
+            GrNode::Concat => {
+                let children = tree.children(term);
+                let len = children.len();
+                let mut empty_pos = vec![];
+                let mut last_empty = None;
+                let n_modifiers = children.iter().enumerate()
+                    .fold(0, |n_mod, (pos, &index)| {
+                        let n = tree.get(index);
+                        if n.is_empty() {
+                            last_empty = Some(index);
+                            empty_pos.push(pos);
+                        }
+                        n_mod + if n.is_modifier() { 1 } else { 0 }
+                    });
+                if VERBOSE { print!("checking term {}  => {empty_pos:?} empty, {n_modifiers} modifier", tree.to_str_index(Some(term), None)); }
+                if empty_pos.len() + n_modifiers == len {
+                    if empty_pos.is_empty() {
+                        if VERBOSE { print!(" (creating a new ε)"); }
+                        last_empty = Some(tree.add(None, gnode!(e)));
+                    }
+                    let new_children = tree.children_mut(term);
+                    new_children.clear();
+                    new_children.push(last_empty.unwrap());
+                    if VERBOSE { println!(" (replacing everything with ε)"); }
+                } else if !empty_pos.is_empty() {
+                    if VERBOSE { println!("  => (removing {} ε)", empty_pos.len()); }
+                    let new_children = tree.children_mut(term);
+                    for i in empty_pos.into_iter().rev() {
+                        new_children.remove(i);
+                    }
+                } else {
+                    if VERBOSE { println!(" (nothing to do)"); }
+                }
+            }
+            GrNode::Symbol(Symbol::Empty) => {
+                empty_terms.push(term);
+            }
+            n if n.is_modifier() => {
+                *tree.get_mut(term) = gnode!(e);
+                empty_terms.push(term);
+            }
+            _ => {}
+        }
+    }
+    // TODO: remove empty terms
+    println!("  {} empty terms: {empty_terms:?}", empty_terms.len());
+    Some((is_empty, had_empty_term))
+}
+
+#[test]
 fn orig_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
         //   A -> b | c | D
@@ -992,12 +1136,17 @@ fn orig_normalize() {
         (59, btreemap![0 => r#"a b* c | a b* | b* c | b*"#]),
         //   A -> a? (b? | c?)*
         (60, btreemap![0 => r#"a (b | ε | c | ε)* | (b | ε | c | ε)*"#]),
-        // A -> a A | b
+        //   A -> a ε?
+        (61, btreemap![0 => r#"a"#]),
+        //   A -> (a | ε)?
+        (62, btreemap![0 => r#"a"#]),
+        //   A -> a ε*
+        (63, btreemap![0 => r#"a"#]),
+        //   A -> a ε+
+        (64, btreemap![0 => r#"a"#]),
         (17, btreemap![0 => r#"a (b+ c)+ d"#]),
-        //   A -> b (c d | e)*
+        //   A -> a A | b
         (35, btreemap![0 => r#"a A | b"#]),
-        //   A -> (A a | b)
-        (58, btreemap![0 => r#"A a | b"#]),
         //   A -> A (b <L=AIter1>)* c | d
         (19, btreemap![0 => r#"A (b <L=AIter1>)* c | d"#]),
         //   A -> A (b | c <R> | d) A | e
@@ -1023,7 +1172,7 @@ fn orig_normalize() {
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
-if !matches!(test_id, 60) { continue }
+if !matches!(test_id, 60..=64) { continue }
         let rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()

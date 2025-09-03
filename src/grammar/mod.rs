@@ -171,6 +171,10 @@ impl GrNode {
         }
     }
 
+    pub fn is_modifier(&self) -> bool {
+        matches!(self, GrNode::LForm(_) | GrNode::RAssoc | GrNode::PrecEq)
+    }
+
     pub fn is_empty(&self) -> bool {
         matches!(self, GrNode::Symbol(Symbol::Empty))
     }
@@ -299,7 +303,7 @@ pub fn grtree_to_str_ansi(tree: &GrTree, node: Option<usize>, emphasis: Option<u
     grtree_to_str_custom(tree, node, emphasis, symbol_table, true)
 }
 
-/// Removes duplicate 'ε' symbols in `nodes` before adding them in a `&`.
+/// Removes duplicate 'ε' symbols in `nodes` factors before adding them as children in a `&`.
 ///
 /// ## Examples:
 /// * `ε ε` -> `ε`
@@ -318,26 +322,41 @@ fn remove_concat_dup_empty(tree: &GrTree, nodes: &mut Vec<usize>) {
     }
 }
 
-/// Removes duplicate 'ε' symbols in `nodes` before adding them in a `|`.
+/// Removes duplicate 'ε' symbols in `nodes` terms before adding them as children in a `|`. The
+/// `nodes` terms are normalized, so either symbols or concatenations of symbols.
 ///
 /// ## Examples
 /// * `ε | ε` -> `ε`
-/// * `A | ε | ε` -> `A | ε`
+/// * `A b | ε | ε` -> `A b | ε`
 /// * `ε` -> `ε`
-fn remove_or_dup_empty(tree: &GrTree, nodes: &mut Vec<usize>) {
-    fn factor_is_empty(tree: &GrTree, id: usize) -> bool {
-        let ch = tree.children(id);
-        ch.len() == 1 && tree.get(ch[0]).is_empty()
+fn clean_normalized_empty_syms(tree: &GrTree, nodes: &mut Vec<usize>) {
+    let mut i = 0;
+    while nodes.len() > 1 && i < nodes.len() {
+        let ch = tree.children(nodes[i]);
+        print!("## nodes[{i}] = {}:{}, {} children? ", nodes[i], grtree_to_str(tree, Some(nodes[i]), None, None), ch.len());
+        if tree.get(nodes[i]).is_empty() || ch.len() == 1 && tree.get(ch[0]).is_empty() {
+            print!("## removed {}", nodes[i]);
+            nodes.remove(i);
+            println!(" -> {nodes:?}");
+        } else {
+            println!("-> no");
+            i += 1;
+        }
     }
+}
 
-    if nodes.len() > 1 {
-        let mut i = 0;
-        while i < nodes.len() && nodes.len() > 1 {
-            if factor_is_empty(tree, nodes[i]) {
-                nodes.remove(i);
-            } else {
-                i += 1;
-            }
+#[allow(unused)]
+/// Removes `ε` symbols from a list of children under either `|` or `&`. If
+/// `leave_one` is true (`|`), leave at least one `ε`, otherwise removes them all.
+fn clean_empty_syms(tree: &GrTree, nodes: &mut Vec<usize>, leave_one: bool) {
+    let min = if leave_one { 1 } else { 0 };
+    let mut i = 0;
+    while nodes.len() > min && i < nodes.len() {
+        if tree.get(nodes[i]).is_empty() {
+            println!("# removed {}", nodes[i]);
+            nodes.remove(i);
+        } else {
+            i += 1;
         }
     }
 }
@@ -422,7 +441,7 @@ impl Display for GrTreeFmt<'_> {
         if self.tree.is_empty() {
             return write!(f, "<empty>");
         }
-        let start_node = self.start_node.unwrap_or(self.tree.get_root().expect("the tree must have a defined root"));
+        let start_node = self.start_node.unwrap_or_else(|| self.tree.get_root().expect("the tree must have a defined root"));
         let mut stack = Vec::<String>::new();
         for node in self.tree.iter_depth_at(start_node) {
             let n = node.num_children();
@@ -433,7 +452,7 @@ impl Display for GrTreeFmt<'_> {
                 stack.push(self.snode(&node, node.index, node.depth));
             }
         }
-        write!(f, "{}", stack.pop().unwrap_or("empty".to_string()))
+        write!(f, "{}", stack.pop().unwrap_or_else(|| "empty".to_string()))
     }
 }
 
@@ -695,7 +714,7 @@ impl RuleTreeSet<General> {
     /// case, new non-terminals are created, with increasing IDs starting from
     /// `new_var`.
     fn normalize_var(&mut self, var: VarId) {
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const VERBOSE_CC: bool = false;
         if VERBOSE { println!("normalize_var({})", Symbol::NT(var).to_str(self.get_symbol_table())); }
         let mut new_var = self.get_next_available_var();
@@ -721,12 +740,17 @@ impl RuleTreeSet<General> {
                     GrNode::Concat | GrNode::Or => {
                         let children = stack.split_off(stack.len() - n);
                         let new_id = if children.iter().all(|&idx| !matches!(new.get(idx), GrNode::Concat|GrNode::Or)) {
-                            if VERBOSE { print!("  trivial {}: children={children:?}\n  ", sym.deref()); }
+                            if VERBOSE { print!("  trivial {}: children={}\n  ", sym.deref(), children.iter().map(|s| new.get(*s).to_str(self.get_symbol_table())).join(", ")); }
                             // trivial case with only leaves as children (could be removed and treated as a general case)
+// TODO: remove extra ε for either | or &
+//                             clean_empty_syms(&new, &mut children, *sym == GrNode::Or);
                             new.addci_iter(None, sym.clone(), children)
                         } else {
-                            if let GrNode::Or = sym.deref() {
-                                if VERBOSE { println!("  or: children={children:?}"); }
+                            if *sym == GrNode::Or {
+                                if VERBOSE {
+                                    // println!("  or: children={}", children.iter().map(|&id| format!("{id}:{}", grtree_to_str(&new, Some(id), None, self.get_symbol_table()))).join(", "));
+                                    println!("  or: children={}", children.iter().map(|&id| format!("{}", new.to_str_index(Some(id), self.get_symbol_table()))).join(", "));
+                                }
                                 // if parent sym is p:|
                                 // - preserving the children's order:
                                 //   - attach '|' children's children directly under p (discarding the '|' children)
@@ -748,9 +772,10 @@ impl RuleTreeSet<General> {
                                         x => panic!("unexpected node type under | node: {x}"),
                                     }
                                 }
-                                remove_or_dup_empty(&new, &mut new_children);
+// TODO: don't remove here; remove where GrNode::Or are found, plus at the end?
+                                clean_normalized_empty_syms(&new, &mut new_children);
                                 new.addci_iter(None, gnode!(|), new_children)
-                            } else { // GrNode::Concat
+                            } else { // *sym == GrNode::Concat
                                 if VERBOSE_CC { println!("  &: children={children:?}"); }
                                 // if parent sym is p:&
                                 // - merge adjacent leaves and '&' children (optional)
@@ -826,9 +851,11 @@ impl RuleTreeSet<General> {
                             let empty = new.add(None, gnode!(e));
                             let id = match new.get(maybe_child) {
                                 GrNode::Or => {
+// TODO: rm all ε factors in children; the whole ? becomes ε if no remaining child
                                     new.add(Some(maybe_child), gnode!(e));
                                     maybe_child
                                 }
+// TODO: the whole ? becomes ε if only child is ε
                                 _ => new.addci_iter(None, gnode!(|), [maybe_child, empty])
                             };
                             stack.push(id);
@@ -901,6 +928,7 @@ impl RuleTreeSet<General> {
         }
         if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
         let root = stack.pop().unwrap();
+// TODO: if GrNode::Or, remove extra ε (opt: remove | if only one remaining child)
         new.set_root(root);
 
         let orig_root = orig_new.add_from_tree_callback(None, &new, None, |from, to, _| self.origin.add((var, to), (var, from)));
@@ -951,6 +979,7 @@ impl RuleTreeSet<General> {
         // We copy from the origin tree `orig_new` to trace the new node IDs to the original ones.
         match orig_new.get(orig_rep_child) {
             GrNode::Symbol(s) => {
+// TODO: if ε, the whole * or + becomes ε
                 if VERBOSE { print!("({rep_child}:{s}) "); }
                 // note: we cannot use the child id in qtree!
                 let or = qtree.add_root(gnode!(|));
@@ -985,7 +1014,8 @@ impl RuleTreeSet<General> {
             }
             #[allow(unreachable_patterns)]
             GrNode::Or => if !OPTIMIZE_SUB_OR {
-                let id_grchildren = orig_new.children(orig_rep_child);
+// TODO: remove all ε; the whole * or + becomes ε if no remaining child
+                let id_grchildren = new.children(orig_rep_child);
                 if VERBOSE { print!("({rep_child}:|({})) ", id_grchildren.iter().join(", ")); }
                 let orig_id_grchildren = orig_new.children(orig_rep_child);
                 let or = qtree.add_root(gnode!(|));
@@ -993,7 +1023,9 @@ impl RuleTreeSet<General> {
                     let orig_grchild = orig_new.get(*orig_id_grchild);
                     match orig_grchild {
                         GrNode::Symbol(s) => {
-                            if !s.is_empty() {
+                            if s.is_empty() {
+                                todo!("no * or +, no new var, makes ε instead")
+                            } else {
                                 let cc = qtree.add(Some(or), gnode!(&));
                                 let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)])[0];
                                 self.origin.add((*new_var, cc), (var, *orig_id_grchild));
