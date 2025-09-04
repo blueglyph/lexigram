@@ -430,45 +430,6 @@ fn remove_concat_dup_empty(tree: &GrTree, nodes: &mut Vec<usize>) {
     }
 }
 
-// /// Removes duplicate 'ε' symbols in `nodes` terms before adding them as children in a `|`. The
-// /// `nodes` terms are normalized, so either symbols or concatenations of symbols.
-// ///
-// /// ## Examples
-// /// * `ε | ε` -> `ε`
-// /// * `A b | ε | ε` -> `A b | ε`
-// /// * `ε` -> `ε`
-// fn clean_normalized_empty_syms(tree: &GrTree, nodes: &mut Vec<usize>) {
-//     let mut i = 0;
-//     while nodes.len() > 1 && i < nodes.len() {
-//         let ch = tree.children(nodes[i]);
-//         print!("## nodes[{i}] = {}:{}, {} children? ", nodes[i], grtree_to_str(tree, Some(nodes[i]), None, None), ch.len());
-//         if tree.get(nodes[i]).is_empty() || ch.len() == 1 && tree.get(ch[0]).is_empty() {
-//             print!("## removed {}", nodes[i]);
-//             nodes.remove(i);
-//             println!(" -> {nodes:?}");
-//         } else {
-//             println!("-> no");
-//             i += 1;
-//         }
-//     }
-// }
-//
-// #[allow(unused)]
-// /// Removes `ε` symbols from a list of children under either `|` or `&`. If
-// /// `leave_one` is true (`|`), leave at least one `ε`, otherwise removes them all.
-// fn clean_empty_syms(tree: &GrTree, nodes: &mut Vec<usize>, leave_one: bool) {
-//     let min = if leave_one { 1 } else { 0 };
-//     let mut i = 0;
-//     while nodes.len() > min && i < nodes.len() {
-//         if tree.get(nodes[i]).is_empty() {
-//             println!("# removed {}", nodes[i]);
-//             nodes.remove(i);
-//         } else {
-//             i += 1;
-//         }
-//     }
-// }
-
 /// Adds methods to GrTree.
 ///
 /// _NOTE: We must create a trait for GrTree since we can't implement functions for an external type,
@@ -815,8 +776,6 @@ impl RuleTreeSet<General> {
         }
     }
 
-    const CLEAN_UP_EMPTY: bool = true;
-
     /// Transforms the production rule tree into a list of rules in normalized format:
     /// `var -> &(leaf_1, leaf_2, ...leaf_n)`
     ///
@@ -926,9 +885,7 @@ impl RuleTreeSet<General> {
                                         let mut nodes = dup_ids.into_iter()
                                             .flat_map(|dup_id| dups.get_mut(dup_id).unwrap().iter_mut()
                                                 .map(|dup| new.get_dup(dup)).to_vec()).to_vec();
-                                        if Self::CLEAN_UP_EMPTY {
-                                            remove_concat_dup_empty(&new, &mut nodes);
-                                        }
+                                        remove_concat_dup_empty(&new, &mut nodes);
                                         nodes
                                     })
                                     // .inspect(|x| println!("      :: {}", x.iter().map(|i| format!("{i}")).join(", ")))

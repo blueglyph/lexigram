@@ -11,7 +11,8 @@
     - write:  writes source code into file
 - [ ] split huge files (
   - [ ] dfa
-  - [ ] grammar 
+  - [ ] grammar
+    - [ ] make GrTree a proper wrapper type + methods
   - [ ] lexergen 
   - [ ] parsergen
 - error reporting
