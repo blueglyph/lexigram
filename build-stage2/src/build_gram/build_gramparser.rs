@@ -30,11 +30,11 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
         (Some(2), &[(gnode!(nt 1), &[]), (gnode!(nt 2), &[]), (gnode!(&), &[0,1])]),
         (Some(3), &[(gnode!(t 8), &[]), (gnode!(t 13), &[]), (gnode!(t 6), &[]), (gnode!(&), &[0,1,2])]),
         (Some(4), &[(gnode!(nt 3), &[]), (gnode!(nt 2), &[]), (gnode!(nt 3), &[]), (gnode!(&), &[1,2]), (gnode!(|), &[0,3])]),
-        (Some(12), &[(gnode!(nt 4), &[]), (gnode!(t 0), &[]), (gnode!(nt 5), &[]), (gnode!(t 9), &[]), (gnode!(t 6), &[]), (gnode!(&), &[0,1,2,3,4]), (gnode!(nt 4), &[]), (gnode!(t 0), &[]), (gnode!(nt 5), &[]), (gnode!(e), &[]), (gnode!(t 6), &[]), (gnode!(&), &[6,7,8,9,10]), (gnode!(|), &[5,11])]),
+        (Some(11), &[(gnode!(nt 4), &[]), (gnode!(t 0), &[]), (gnode!(nt 5), &[]), (gnode!(t 9), &[]), (gnode!(t 6), &[]), (gnode!(&), &[0,1,2,3,4]), (gnode!(nt 4), &[]), (gnode!(t 0), &[]), (gnode!(nt 5), &[]), (gnode!(t 6), &[]), (gnode!(&), &[6,7,8,9]), (gnode!(|), &[5,10])]),
         (Some(0), &[(gnode!(t 13), &[])]),
         (Some(5), &[(gnode!(nt 6), &[]), (gnode!(nt 5), &[]), (gnode!(t 2), &[]), (gnode!(nt 6), &[]), (gnode!(&), &[1,2,3]), (gnode!(|), &[0,4])]),
         (Some(2), &[(gnode!(*), &[1]), (gnode!(nt 7), &[]), (gnode!(inst), &[0])]),
-        (Some(12), &[(gnode!(nt 8), &[]), (gnode!(t 3), &[]), (gnode!(&), &[0,1]), (gnode!(nt 8), &[]), (gnode!(t 7), &[]), (gnode!(&), &[3,4]), (gnode!(nt 8), &[]), (gnode!(t 4), &[]), (gnode!(&), &[6,7]), (gnode!(nt 8), &[]), (gnode!(e), &[]), (gnode!(&), &[9,10]), (gnode!(|), &[2,5,8,11])]),
+        (Some(11), &[(gnode!(nt 8), &[]), (gnode!(t 3), &[]), (gnode!(&), &[0,1]), (gnode!(nt 8), &[]), (gnode!(t 7), &[]), (gnode!(&), &[3,4]), (gnode!(nt 8), &[]), (gnode!(t 4), &[]), (gnode!(&), &[6,7]), (gnode!(nt 8), &[]), (gnode!(&), &[9]), (gnode!(|), &[2,5,8,10])]),
         (Some(8), &[(gnode!(t 13), &[]), (gnode!(t 10), &[]), (gnode!(t 11), &[]), (gnode!(t 12), &[]), (gnode!(t 1), &[]), (gnode!(nt 5), &[]), (gnode!(t 5), &[]), (gnode!(&), &[4,5,6]), (gnode!(|), &[0,1,2,3,7])]),
     ];
     static MAP: [(VarId, (VarId, usize)); 1] = [
@@ -59,7 +59,7 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
             prod!(%(6, 1), nt 7, nt 9; e),
             prod!(#(0, 0), %(2, 3), nt 3, nt 10; e),
             prod!(#(0, 1), %(5, 4), t 2, nt 6, nt 11; e),
-            prod!(%(3, 11), t 6; %(3, 5), t 9, t 6),
+            prod!(%(3, 10), t 6; %(3, 5), t 9, t 6),
             prod!(%(7, 2), t 3; %(7, 8), t 4; %(7, 5), t 7; e),
         ],
         vec![

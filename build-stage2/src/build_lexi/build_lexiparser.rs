@@ -27,12 +27,12 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     // [lexiparser_stage_2]
 
     static ORIGIN: [(Option<usize>, &[(GrNode, &[usize])]); 17] = [
-        (Some(8), &[(gnode!(*), &[1]), (gnode!(nt 1), &[]), (gnode!(nt 2), &[]), (gnode!(inst), &[0]), (gnode!(&), &[2,3]), (gnode!(e), &[]), (gnode!(inst), &[0]), (gnode!(&), &[5,6]), (gnode!(|), &[4,7])]),
+        (Some(7), &[(gnode!(*), &[1]), (gnode!(nt 1), &[]), (gnode!(nt 2), &[]), (gnode!(inst), &[0]), (gnode!(&), &[2,3]), (gnode!(inst), &[0]), (gnode!(&), &[5]), (gnode!(|), &[4,6])]),
         (Some(3), &[(gnode!(nt 4), &[]), (gnode!(nt 3), &[]), (gnode!(nt 5), &[]), (gnode!(|), &[0,1,2])]),
         (Some(3), &[(gnode!(t 18), &[]), (gnode!(t 26), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2])]),
         (Some(3), &[(gnode!(t 19), &[]), (gnode!(t 26), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2])]),
         (Some(9), &[(gnode!(*), &[3]), (gnode!(t 2), &[]), (gnode!(t 26), &[]), (gnode!(&), &[1,2]), (gnode!(t 16), &[]), (gnode!(t 5), &[]), (gnode!(t 26), &[]), (gnode!(inst), &[0]), (gnode!(t 12), &[]), (gnode!(&), &[4,5,6,7,8])]),
-        (Some(18), &[(gnode!(nt 6), &[]), (gnode!(t 1), &[]), (gnode!(nt 10), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2,3]), (gnode!(nt 7), &[]), (gnode!(t 1), &[]), (gnode!(nt 10), &[]), (gnode!(t 0), &[]), (gnode!(nt 8), &[]), (gnode!(t 14), &[]), (gnode!(&), &[5,6,7,8,9,10]), (gnode!(nt 7), &[]), (gnode!(t 1), &[]), (gnode!(nt 10), &[]), (gnode!(e), &[]), (gnode!(t 14), &[]), (gnode!(&), &[12,13,14,15,16]), (gnode!(|), &[4,11,17])]),
+        (Some(17), &[(gnode!(nt 6), &[]), (gnode!(t 1), &[]), (gnode!(nt 10), &[]), (gnode!(t 14), &[]), (gnode!(&), &[0,1,2,3]), (gnode!(nt 7), &[]), (gnode!(t 1), &[]), (gnode!(nt 10), &[]), (gnode!(t 0), &[]), (gnode!(nt 8), &[]), (gnode!(t 14), &[]), (gnode!(&), &[5,6,7,8,9,10]), (gnode!(nt 7), &[]), (gnode!(t 1), &[]), (gnode!(nt 10), &[]), (gnode!(t 14), &[]), (gnode!(&), &[12,13,14,15]), (gnode!(|), &[4,11,16])]),
         (Some(2), &[(gnode!(t 17), &[]), (gnode!(t 26), &[]), (gnode!(&), &[0,1])]),
         (Some(0), &[(gnode!(t 26), &[])]),
         (Some(6), &[(gnode!(*), &[3]), (gnode!(t 2), &[]), (gnode!(nt 9), &[]), (gnode!(&), &[1,2]), (gnode!(nt 9), &[]), (gnode!(inst), &[0]), (gnode!(&), &[4,5])]),
@@ -40,8 +40,8 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
         (Some(0), &[(gnode!(nt 11), &[])]),
         (Some(6), &[(gnode!(*), &[3]), (gnode!(t 10), &[]), (gnode!(nt 12), &[]), (gnode!(&), &[1,2]), (gnode!(nt 12), &[]), (gnode!(inst), &[0]), (gnode!(&), &[4,5])]),
         (Some(2), &[(gnode!(+), &[1]), (gnode!(nt 13), &[]), (gnode!(inst), &[0])]),
-        (Some(22), &[(gnode!(nt 14), &[]), (gnode!(t 15), &[]), (gnode!(t 11), &[]), (gnode!(&), &[0,1,2]), (gnode!(nt 14), &[]), (gnode!(t 15), &[]), (gnode!(e), &[]), (gnode!(&), &[4,5,6]), (gnode!(nt 14), &[]), (gnode!(t 9), &[]), (gnode!(t 11), &[]), (gnode!(&), &[8,9,10]), (gnode!(nt 14), &[]), (gnode!(t 9), &[]), (gnode!(e), &[]), (gnode!(&), &[12,13,14]), (gnode!(nt 14), &[]), (gnode!(t 11), &[]), (gnode!(&), &[16,17]), (gnode!(nt 14), &[]), (gnode!(e), &[]), (gnode!(&), &[19,20]), (gnode!(|), &[3,7,11,15,18,21])]),
-        (Some(17), &[(gnode!(t 26), &[]), (gnode!(t 27), &[]), (gnode!(t 4), &[]), (gnode!(t 27), &[]), (gnode!(&), &[1,2,3]), (gnode!(t 27), &[]), (gnode!(e), &[]), (gnode!(&), &[5,6]), (gnode!(t 28), &[]), (gnode!(nt 15), &[]), (gnode!(t 6), &[]), (gnode!(nt 11), &[]), (gnode!(t 13), &[]), (gnode!(&), &[10,11,12]), (gnode!(t 7), &[]), (gnode!(nt 14), &[]), (gnode!(&), &[14,15]), (gnode!(|), &[0,4,7,8,9,13,16])]),
+        (Some(19), &[(gnode!(nt 14), &[]), (gnode!(t 15), &[]), (gnode!(t 11), &[]), (gnode!(&), &[0,1,2]), (gnode!(nt 14), &[]), (gnode!(t 15), &[]), (gnode!(&), &[4,5]), (gnode!(nt 14), &[]), (gnode!(t 9), &[]), (gnode!(t 11), &[]), (gnode!(&), &[7,8,9]), (gnode!(nt 14), &[]), (gnode!(t 9), &[]), (gnode!(&), &[11,12]), (gnode!(nt 14), &[]), (gnode!(t 11), &[]), (gnode!(&), &[14,15]), (gnode!(nt 14), &[]), (gnode!(&), &[17]), (gnode!(|), &[3,6,10,13,16,18])]),
+        (Some(16), &[(gnode!(t 26), &[]), (gnode!(t 27), &[]), (gnode!(t 4), &[]), (gnode!(t 27), &[]), (gnode!(&), &[1,2,3]), (gnode!(t 27), &[]), (gnode!(&), &[5]), (gnode!(t 28), &[]), (gnode!(nt 15), &[]), (gnode!(t 6), &[]), (gnode!(nt 11), &[]), (gnode!(t 13), &[]), (gnode!(&), &[9,10,11]), (gnode!(t 7), &[]), (gnode!(nt 14), &[]), (gnode!(&), &[13,14]), (gnode!(|), &[0,4,6,7,8,12,15])]),
         (Some(8), &[(gnode!(+), &[1]), (gnode!(nt 16), &[]), (gnode!(t 30), &[]), (gnode!(inst), &[0]), (gnode!(t 31), &[]), (gnode!(&), &[2,3,4]), (gnode!(t 3), &[]), (gnode!(t 29), &[]), (gnode!(|), &[5,6,7])]),
         (Some(6), &[(gnode!(t 32), &[]), (gnode!(t 8), &[]), (gnode!(t 32), &[]), (gnode!(&), &[0,1,2]), (gnode!(t 32), &[]), (gnode!(t 29), &[]), (gnode!(|), &[3,4,5])]),
     ];
@@ -56,7 +56,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     let ll1_tables = ProdRuleSetTables::new(
         Some("LexiParser"),
         vec![
-            prod!(%(0, 4), nt 2, nt 17; %(0, 7), nt 17),
+            prod!(%(0, 4), nt 2, nt 17; %(0, 6), nt 17),
             prod!(%(1, 0), nt 4; %(1, 1), nt 3; %(1, 2), nt 5),
             prod!(%(2, 3), t 18, t 26, t 14),
             prod!(%(3, 3), t 19, t 26, t 14),
@@ -70,7 +70,7 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
             prod!(%(11, 6), nt 12, nt 20),
             prod!(%(12, 2), nt 21),
             prod!(nt 14, nt 24),
-            prod!(%(14, 13), t 6, nt 11, t 13; %(14, 16), t 7, nt 14; %(14, 0), t 26; t 27, nt 25; %(14, 8), t 28; %(14, 9), nt 15),
+            prod!(%(14, 12), t 6, nt 11, t 13; %(14, 15), t 7, nt 14; %(14, 0), t 26; t 27, nt 25; %(14, 7), t 28; %(14, 8), nt 15),
             prod!(%(15, 5), t 30, nt 22, t 31; %(15, 6), t 3; %(15, 7), t 29),
             prod!(%(16, 5), t 29; t 32, nt 26),
             prod!(%(0, 1), nt 1, nt 17; e),
@@ -79,13 +79,13 @@ fn lexiparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
             prod!(%(11, 3), t 10, nt 12, nt 20; e),
             prod!(nt 13, nt 27),
             prod!(nt 16, nt 28),
-            prod!(%(5, 11), t 0, nt 8, t 14; %(5, 17), t 14),
-            prod!(t 9, nt 29; %(13, 18), t 11; t 15, nt 30; e),
+            prod!(%(5, 11), t 0, nt 8, t 14; %(5, 16), t 14),
+            prod!(t 9, nt 29; %(13, 16), t 11; t 15, nt 30; e),
             prod!(%(14, 4), t 4, t 27; e),
             prod!(%(16, 3), t 8, t 32; e),
             prod!(%(12, 1), nt 21; e),
             prod!(%(15, 1), nt 22; e),
-            prod!(%(13, 11), t 11; e),
+            prod!(%(13, 10), t 11; e),
             prod!(%(13, 3), t 11; e),
         ],
         vec![
