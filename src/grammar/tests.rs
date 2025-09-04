@@ -1154,7 +1154,6 @@ fn orig_normalize() {
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
-if !matches!(test_id, 60..=64) { continue }
         let rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()

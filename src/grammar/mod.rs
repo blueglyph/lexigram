@@ -1130,8 +1130,7 @@ impl RuleTreeSet<General> {
             }
             #[allow(unreachable_patterns)]
             GrNode::Or => if !OPTIMIZE_SUB_OR {
-// TODO: remove all ε; the whole * or + becomes ε if no remaining child
-                let id_grchildren = new.children(orig_rep_child);
+                let id_grchildren = new.children(rep_child);
                 if VERBOSE { print!("({rep_child}:|({})) ", id_grchildren.iter().join(", ")); }
                 let orig_id_grchildren = orig_new.children(orig_rep_child);
                 let or = qtree.add_root(gnode!(|));
