@@ -629,16 +629,16 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(o2), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
             tree.add(Some(o2), gnode!(t 4));
         }
-        48 => { // A -> a (b <L=B>)* C; C -> c
+        48 => { // A -> a (b <L=C>)* B; B -> c
             let cc = tree.add_root(gnode!(&));
             tree.add(Some(cc), gnode!(t 0));
             let p1 = tree.add(Some(cc), gnode!(*));
-            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
-            tree.add(Some(cc), gnode!(nt 2));
-            let _b_tree = rules.get_tree_mut(1);
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 2)]);
+            tree.add(Some(cc), gnode!(nt 1));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 2));
             // symbol table defined below
-            let c_tree = rules.get_tree_mut(2);
-            c_tree.add_root(gnode!(t 2));
+            let _c_tree = rules.get_tree_mut(2);
         }
         50 => { // A -> (a d | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
             let cc = tree.add_root(gnode!(&));
