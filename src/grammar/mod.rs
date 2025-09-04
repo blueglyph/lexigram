@@ -2337,6 +2337,7 @@ impl<T> ProdRuleSet<T> {
                 let stop = start + simi.len();
                 let mut factorized = ProdFactor::new(factors[start].v.iter().take(min).cloned().to_vec());
                 let mut child = factors.drain(start..=stop).to_vec();
+                if VERBOSE { println!("child:\n{}", child.iter().enumerate().map(|(i, c)| format!("- [{i}] = {}  org = {:?}", c.to_str(self.get_symbol_table()), c.origin)).join("\n")); }
                 if child.iter().all(|f| f.is_greedy()) {
                     factorized.flags |= ruleflag::GREEDY;
                 }
@@ -2344,8 +2345,9 @@ impl<T> ProdRuleSet<T> {
                     f.v.drain(0..min);
                 }
                 if child[0].v.is_empty() {
+                    child[0].v.push(Symbol::Empty);
                     let empty = child.remove(0);
-                    child.push(ProdFactor::new(vec![Symbol::Empty]).with_flags(empty.flags));
+                    child.push(empty);
                 }
                 let var_prime = new_var;
                 new_var += 1;

@@ -214,11 +214,11 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
             tree.add(Some(or), gnode!(nt 8));
         }
-        5 => { // A -> |(B, ε)
+        5 => { // A -> B?
             let top = tree.add_root(gnode!(?));
             tree.add(Some(top), gnode!(nt 1));
         }
-        6 => { // A -> |(&(B, C), ε)
+        6 => { // A -> (B C)?
             let top = tree.add_root(gnode!(?));
             tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
         }
@@ -792,6 +792,11 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             let or = tree.add_root(gnode!(|));
             tree.add_iter(Some(or), [gnode!(t 0), gnode!(e)]);
         }
+        73 => { // A -> a b?
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(?), gnode!(t 1));
+        }
         100 => {
             // lexiparser
             rules = crate::lexi::tests::build_rts();
@@ -1085,8 +1090,14 @@ fn orig_normalize() {
         (0, btreemap![0 => r#"b | c | D"#]),
         //   A -> A B C (D | E) F (G H | I)
         (4, btreemap![0 => r#"A B C D F G H | A B C D F I | A B C E F G H | A B C E F I"#]),
+        //   A -> B?
+        (5, btreemap![0 => r#"B | ε"#]),
+        //   A -> (B C)?
+        (6, btreemap![0 => r#"B C | ε"#]),
         //   A -> (B C | D)?
         (7, btreemap![0 => r#"B C | D | ε"#]),
+        //   A -> a b?
+        (73, btreemap![0 => r#"a b | a"#]),
         //   A -> b c+
         (8, btreemap![0 => r#"b c+"#]),
         //   A -> "var" (id ",")+
