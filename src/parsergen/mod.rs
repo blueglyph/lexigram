@@ -14,7 +14,7 @@ use crate::segments::{Seg, Segments};
 
 pub(crate) mod tests;
 
-const USE_ORIGIN: bool = false;
+const USE_ORIGIN: bool = true;
 
 // ---------------------------------------------------------------------------------------------
 
@@ -513,10 +513,21 @@ impl ParserGen {
         if VERBOSE { println!("full_factor_components(f_id = {f_id}):"); }
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
         if USE_ORIGIN {
+            if let Some(v_emph) = emphasis {
+                let parent_nt = self.parsing_table.get_top_parent(v_emph);
+                if let Some((t_emph, id_emph)) = self.origin.get(v_emph) {
+                    return ((Symbol::NT(parent_nt).to_str(self.get_symbol_table())), grtree_to_str(t_emph, None, Some(id_emph), self.get_symbol_table()));
+                } else {
+                    return (Symbol::NT(parent_nt).to_str(self.get_symbol_table()), format!("<VAR {v_emph} NOT FOUND>"));
+                }
+            }
             if let Some((vo, id)) = prodf.get_origin() {
                 let t = self.origin.get_tree(vo).unwrap();
-                let emph = if Some(id) == t.get_root() { None } else { Some(id) };
-                return (Symbol::NT(vo).to_str(self.get_symbol_table()), grtree_to_str(t, None, emph, self.get_symbol_table()));
+                let root = Some(id);
+                // let emph = if Some(id) == t.get_root() { None } else { Some(id) };
+                return (Symbol::NT(vo).to_str(self.get_symbol_table()), grtree_to_str(t, root, None, self.get_symbol_table()));
+            } else {
+                return (Symbol::NT(*v_f).to_str(self.get_symbol_table()), format!("<factor {f_id} NOT FOUND>"));
             }
         } else {
             if let Some(id) = prodf.get_original_factor_id() {
