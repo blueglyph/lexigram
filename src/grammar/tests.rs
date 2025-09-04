@@ -1042,8 +1042,8 @@ fn cleanup_tree() {
         // (a b)*
         (56, Some(1), (None, "(a b)*"), (None, "(a b)*")),
     ];
-    const VERBOSE: bool = true;
-    const VERBOSE_SOLUTION: bool = true;
+    const VERBOSE: bool = false;
+    const VERBOSE_SOLUTION: bool = false;
     let mut errors = 0;
     for (test_id, root, expected_false, expected_true) in tests {
         if VERBOSE { println!("{:=<80}\ntest {test_id}:", ""); }
@@ -1078,114 +1078,6 @@ fn cleanup_tree() {
     assert_eq!(errors, 0);
 }
 
-/// Cleans the empty symbols in a normalized tree. Removes empty terms if `del_empty_terms` is true.
-///
-/// Returns `Some((is_empty, had_empty_term))` for normalized trees, where
-/// * `is_empty` = true if only ε remains
-/// * `had_empty_term` = true if the tree had an empty term (was of the form `α | ε`)
-///
-/// If the top of the tree isn't a symbol, a `&`, or & `|`, the function doesn't process the tree
-/// and returns `None`. If something else than those 3 types of nodes is met inside the tree, it's
-/// simply ignored.
-///
-/// The modifiers `<L>`, `<R>`, or `<P>` alone(s) with `ε` in a term will be simplified, but not
-/// if there are other items in the term:
-///
-/// ```text
-/// del_empty_terms: true     false
-///                  ----     -----
-/// a | <L> ε   =>   a        a | ε
-/// a | <R>     =>   a        a | ε
-/// <P> ε a     =>   <P> a    <P> a
-/// ```
-fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_term: bool) -> Option<(bool, bool)> {
-    const VERBOSE: bool = false;
-    let root = top.unwrap_or_else(|| tree.get_root().unwrap());
-    let mut had_empty_term = false;
-    let (terms, is_or) = match tree.get(root) {
-        GrNode::Symbol(s) => {
-            let is_empty = *s == Symbol::Empty;
-            return Some((is_empty, is_empty));
-        }
-        GrNode::Concat => (vec![root], false),
-        GrNode::Or => (tree.children(root).to_owned(), true),
-        // we don't handle those cases:
-        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_)
-        | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance => { return None }
-    };
-    let terms_len = terms.len();
-    let mut empty_terms = vec![];
-    for (term_pos, term) in terms.into_iter().enumerate() {
-        match *tree.get(term) {
-            GrNode::Concat => {
-                let children = tree.children(term);
-                let len = children.len();
-                let mut empty_pos = vec![];
-                let n_modifiers = children.iter().enumerate()
-                    .fold(0, |n_mod, (pos, &index)| {
-                        let n = tree.get(index);
-                        if n.is_empty() {
-                            empty_pos.push(pos);
-                        }
-                        n_mod + if n.is_modifier() { 1 } else { 0 }
-                    });
-                if VERBOSE { print!("- term {}  => {empty_pos:?} empty, {n_modifiers} modifier", tree.to_str_index(Some(term), None)); }
-                if empty_pos.len() + n_modifiers == len {
-                    *tree.get_mut(term) = gnode!(e);
-                    tree.children_mut(term).clear();
-                    empty_terms.push(term_pos);
-                    if VERBOSE { println!(" (replacing everything with ε)"); }
-                } else if !empty_pos.is_empty() {
-                    if VERBOSE { println!("  => (removing {} ε)", empty_pos.len()); }
-                    let new_children = tree.children_mut(term);
-                    for i in empty_pos.into_iter().rev() {
-                        new_children.remove(i);
-                    }
-                } else {
-                    if VERBOSE { println!(" (nothing to do)"); }
-                }
-            }
-            GrNode::Symbol(Symbol::Empty) => {
-                empty_terms.push(term_pos);
-            }
-            n if n.is_modifier() => {   // lone modifier
-                *tree.get_mut(term) = gnode!(e);
-                empty_terms.push(term_pos);
-            }
-            _ => {}
-        }
-    }
-    if VERBOSE { println!("  {} empty terms: {empty_terms:?}", empty_terms.len()); }
-    if !empty_terms.is_empty() {
-        had_empty_term = true;
-        if is_or {
-            if !del_empty_term && terms_len > 1 || empty_terms.len() == terms_len {
-                empty_terms.pop();
-            }
-            let or_children = tree.children_mut(root);
-            for i in empty_terms.into_iter().rev() {
-                or_children.remove(i);
-            }
-            if VERBOSE { println!("or_children => {or_children:?}"); }
-        }
-    }
-    if is_or && tree.children(root).len() == 1 {
-        // removes the top | if it has only one child (not entirely necessary but simplifies the rest)
-        let subroot_index = tree.children(root)[0];
-        let subroot = *tree.get(subroot_index);
-        let subroot_children = tree.children(subroot_index).to_owned();
-        *tree.get_mut(root) = subroot;
-        *tree.children_mut(root) = subroot_children;
-    }
-    let is_empty = match tree.get(root) {
-        GrNode::Symbol(s) => s.is_empty(),
-        GrNode::Concat => false, // an empty `&` is simplified to `ε` above // matches!(tree.children(root), &[i] if tree.get(i).is_empty()),
-        GrNode::Or => false, // an empty `|` is simplified to `ε` above
-        GrNode::Maybe | GrNode::Plus | GrNode::Star | GrNode::LForm(_) | GrNode::RAssoc | GrNode::PrecEq | GrNode::Instance => false,
-    };
-    Some((is_empty, had_empty_term))
-}
-
 #[test]
 fn orig_normalize() {
     let tests: Vec<(u32, BTreeMap<VarId, &str>)> = vec![
@@ -1214,7 +1106,7 @@ fn orig_normalize() {
         //   A -> a? b* c?
         (59, btreemap![0 => r#"a b* c | a b* | b* c | b*"#]),
         //   A -> a? (b? | c?)*
-        (60, btreemap![0 => r#"a (b | ε | c | ε)* | (b | ε | c | ε)*"#]),
+        (60, btreemap![0 => r#"a (b | c)* | (b | c)*"#]),
         //   A -> a ε?
         (61, btreemap![0 => r#"a"#]),
         //   A -> (a | ε)?
@@ -1247,7 +1139,7 @@ fn orig_normalize() {
         //   A -> a (b <L=AIter1>)* c
         (22, btreemap![0 => r#"a (b <L=AIter1>)* c"#]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
