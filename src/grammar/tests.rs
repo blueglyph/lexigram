@@ -1139,7 +1139,7 @@ fn orig_normalize() {
         //   A -> a (b <L=AIter1>)* c
         (22, btreemap![0 => r#"a (b <L=AIter1>)* c"#]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {

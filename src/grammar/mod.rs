@@ -852,8 +852,6 @@ impl RuleTreeSet<General> {
                         let new_id = if children.iter().all(|&idx| !matches!(new.get(idx), GrNode::Concat|GrNode::Or)) {
                             if VERBOSE { print!("  trivial {}: children={}\n  ", *sym, children.iter().map(|s| new.get(*s).to_str(self.get_symbol_table())).join(", ")); }
                             // trivial case with only leaves as children (could be removed and treated as a general case)
-// TODO: remove extra ε for either | or &
-//                             clean_empty_syms(&new, &mut children, *sym == GrNode::Or);
                             new.addci_iter(None, sym.clone(), children)
                         } else {
                             if *sym == GrNode::Or {
@@ -882,8 +880,6 @@ impl RuleTreeSet<General> {
                                         x => panic!("unexpected node type under | node: {x}"),
                                     }
                                 }
-// TODO: don't remove here; remove where GrNode::Or are found, plus at the end?
-//                                 clean_normalized_empty_syms(&new, &mut new_children);
                                 new.addci_iter(None, gnode!(|), new_children)
                             } else { // *sym == GrNode::Concat
                                 if VERBOSE_CC { println!("  &: children={children:?}"); }
@@ -960,17 +956,34 @@ impl RuleTreeSet<General> {
                             // ?(|(&(A,B),C)) -> |(&(A,B),C,ε)
                             if VERBOSE { print!("  ?: "); }
                             let maybe_child = stack.pop().unwrap();
-                            let empty = new.add(None, gnode!(e));
-                            let id = match new.get(maybe_child) {
-                                GrNode::Or => {
-// TODO: rm all ε factors in children; the whole ? becomes ε if no remaining child
-                                    new.add(Some(maybe_child), gnode!(e));
-                                    maybe_child
+                            let proceed = match grtree_cleanup(&mut new, Some(maybe_child), true) {
+                                None => {
+                                    self.log.add_error(format!(
+                                        "unexpected child of ?: {} (should be &, |, or symbol)",
+                                        grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table())));
+                                    if VERBOSE { println!("ERROR: unexpected child of ?: {}", grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table())); }
+                                    return;
                                 }
-// TODO: the whole ? becomes ε if only child is ε
-                                _ => new.addci_iter(None, gnode!(|), [maybe_child, empty])
+                                // (is_empty, had_empty_term)
+                                Some((true, _)) => {
+                                    // the child is `ε`
+                                    stack.push(maybe_child);
+                                    if VERBOSE { println!("child of ? simplified to ε"); }
+                                    false
+                                },
+                                _ => true,
                             };
-                            stack.push(id);
+                            if proceed {
+                                let empty = new.add(None, gnode!(e));
+                                let id = match new.get(maybe_child) {
+                                    GrNode::Or => {
+                                        new.add(Some(maybe_child), gnode!(e));
+                                        maybe_child
+                                    }
+                                    _ => new.addci_iter(None, gnode!(|), [maybe_child, empty])
+                                };
+                                stack.push(id);
+                            }
                         }
                     }
                     GrNode::Plus | GrNode::Star => {
@@ -993,7 +1006,6 @@ impl RuleTreeSet<General> {
                         //     *(A)           -> Q    |(&(A,Q), ε)           AQ|ε
                         //     *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
                         //     *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
-
                         let mut is_plus = *sym == GrNode::Plus;
                         let sym_char = if is_plus { '+' } else { '*' };
                         if VERBOSE { print!("  {sym_char}: "); }
@@ -1063,7 +1075,6 @@ impl RuleTreeSet<General> {
         }
         if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
         let root = stack.pop().unwrap();
-// TODO: if GrNode::Or, remove extra ε (opt: remove | if only one remaining child)
         new.set_root(root);
         match grtree_cleanup(&mut new, None, false) {
             None => {
