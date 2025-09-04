@@ -1065,7 +1065,20 @@ impl RuleTreeSet<General> {
         let root = stack.pop().unwrap();
 // TODO: if GrNode::Or, remove extra ε (opt: remove | if only one remaining child)
         new.set_root(root);
-
+        match grtree_cleanup(&mut new, None, false) {
+            None => {
+                self.log.add_error(format!(
+                    "unexpected root of {} -> {} (should be &, |, or symbol)",
+                    Symbol::NT(var).to_str(self.get_symbol_table()),
+                    grtree_to_str(&new, None, None, self.get_symbol_table())));
+                if VERBOSE { println!("ERROR: unexpected root {}", grtree_to_str(&new, None, None, self.get_symbol_table())); }
+            }
+            // (is_empty, had_empty_term)
+            Some((true, _)) => {
+                self.log.add_warning(format!("{} is empty", Symbol::NT(var).to_str(self.get_symbol_table())));
+            }
+            _ => {}
+        }
         let orig_root = orig_new.add_from_tree_callback(None, &new, None, |from, to, _| self.origin.add((var, to), (var, from)));
         orig_new.set_root(orig_root);
         while !orig_rep_vars.is_empty() {

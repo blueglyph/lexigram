@@ -1110,7 +1110,7 @@ fn orig_normalize() {
         //   A -> a ε?
         (61, btreemap![0 => r#"a"#]),
         //   A -> (a | ε)?
-        (62, btreemap![0 => r#"a"#]),
+        (62, btreemap![0 => r#"a | ε"#]),
         //   A -> a ε*
         (63, btreemap![0 => r#"a"#]),
         //   A -> a ε+
@@ -1139,7 +1139,7 @@ fn orig_normalize() {
         //   A -> a (b <L=AIter1>)* c
         (22, btreemap![0 => r#"a (b <L=AIter1>)* c"#]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
