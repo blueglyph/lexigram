@@ -1122,7 +1122,7 @@ impl RuleTreeSet<General> {
                 self.origin.add((*new_var, loop_id), (var, orig_rep));
                 if is_plus {
                     let loop_id2 = qtree.add_from_tree(Some(or), &new, Some(rep_child));
-                    self.origin.add((*new_var, loop_id2), (var, rep_child));
+                    self.origin.add((*new_var, loop_id2), (var, orig_rep_child));
                 } else {
                     qtree.add(Some(or), gnode!(e));
                 }
