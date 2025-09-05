@@ -1149,6 +1149,8 @@ fn orig_normalize() {
         (52, btreemap![0 => r#"(a d | B)+ c"#, 1 => r#"b"#]),
         //   A -> a (b <L=AIter1>)* c
         (22, btreemap![0 => r#"a (b <L=AIter1>)* c"#]),
+        //   A -> (a B)+ c        //   B -> b
+        (28, btreemap![0 => r#"(a B)+ c"#, 1 => r#"b"#]),
     ];
     const VERBOSE: bool = true;
     const SHOW_RESULTS_ONLY: bool = false;

@@ -2339,6 +2339,9 @@ impl<T> ProdRuleSet<T> {
                     f.v.drain(0..min);
                 }
                 if child[0].v.is_empty() {
+                    if self.flags[var as usize] & ruleflag::CHILD_REPEAT != 0 {
+                        factorized.origin = child[0].origin;
+                    }
                     child[0].v.push(Symbol::Empty);
                     let empty = child.remove(0);
                     child.push(empty);
