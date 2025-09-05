@@ -2149,6 +2149,9 @@ if !matches!(rule_id, RTS(_)) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.build_prs(test_id, start_nt, true);
+            if VERBOSE { println!("T: {}", ll1.get_symbol_table().unwrap()
+                .get_terminals().enumerate()
+                .map(|(i,(s1, s2))| format!("{i}:{s1}{}", if let Some(s2t) = s2 { format!("=\"{s2t}\"") } else { String::new() })).join(", ")); }
             let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
             if VERBOSE {

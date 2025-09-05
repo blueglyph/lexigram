@@ -517,7 +517,7 @@ impl ParserGen {
             if let Some(v_emph) = emphasis {
                 let parent_nt = self.parsing_table.get_top_parent(v_emph);
                 if let Some((t_emph, id_emph)) = self.origin.get(v_emph) {
-                    return ((Symbol::NT(parent_nt).to_str(symtab)), grtree_to_str(t_emph, None, Some(id_emph), symtab, false));
+                    return ((Symbol::NT(parent_nt).to_str(symtab)), grtree_to_str(t_emph, None, Some(id_emph), symtab, true));
                 } else {
                     return (Symbol::NT(parent_nt).to_str(symtab), format!("<VAR {v_emph} NOT FOUND>"));
                 }
@@ -1571,7 +1571,11 @@ impl ParserGen {
                             src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
                             let mut fact = self.parsing_table.factors[self.var_factors[v as usize][0] as usize].1.symbols().to_vec();
                             fact.pop();
-                            src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
+                            //src.push(format!("/// coucou `{}` {comment2}", self.repeat_factor_str(&fact, None)));
+                            let first_factor = self.var_factors[v as usize][0];
+                            // let first_factor = tf[0].1;
+                            let fstr = format!("v={v}, f={first_factor}");
+                            src.push(format!("/// coucou {fstr}: {}", self.full_factor_str::<false>(first_factor, None, false)));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
                         }
