@@ -1095,7 +1095,6 @@ impl RuleTreeSet<General> {
         // We copy from the origin tree `orig_new` to trace the new node IDs to the original ones.
         match orig_new.get(orig_rep_child) {
             GrNode::Symbol(s) => {
-// TODO: if ε, the whole * or + becomes ε
                 if VERBOSE { print!("({rep_child}:{s}) "); }
                 // note: we cannot use the child id in qtree!
                 let or = qtree.add_root(gnode!(|));
@@ -1138,17 +1137,13 @@ impl RuleTreeSet<General> {
                     let orig_grchild = orig_new.get(*orig_id_grchild);
                     match orig_grchild {
                         GrNode::Symbol(s) => {
-                            if s.is_empty() {
-                                todo!("no * or +, no new var, makes ε instead")
-                            } else {
-                                let cc = qtree.add(Some(or), gnode!(&));
-                                let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)])[0];
-                                self.origin.add((*new_var, cc), (var, *orig_id_grchild));
-                                self.origin.add((*new_var, child), (var, *orig_id_grchild));
-                                if is_plus {
-                                    let plus_or = qtree.add(Some(or), GrNode::Symbol(s.clone()));
-                                    self.origin.add((*new_var, plus_or), (var, *orig_id_grchild));
-                                }
+                            let cc = qtree.add(Some(or), gnode!(&));
+                            let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)])[0];
+                            self.origin.add((*new_var, cc), (var, *orig_id_grchild));
+                            self.origin.add((*new_var, child), (var, *orig_id_grchild));
+                            if is_plus {
+                                let plus_or = qtree.add(Some(or), GrNode::Symbol(s.clone()));
+                                self.origin.add((*new_var, plus_or), (var, *orig_id_grchild));
                             }
                         }
                         GrNode::Concat => {
