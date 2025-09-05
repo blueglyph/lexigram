@@ -233,8 +233,8 @@ pub type GrTree = VecTree<GrNode>;
 /// Builds the string representation of the [`GrTree`], using the [`symbol table`](SymbolTable) if available
 /// and optionally starting at node `node`. If `emphasis` contains a node ID, this subpart of the tree
 /// is emphasized in the string.
-pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>, ansi: bool)
-    -> String
+pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>, simplified: bool, ansi: bool)
+                            -> String
 {
     fn pr_join(children: Vec<(u32, String)>, str: &str, pr: u32) -> (u32, String) {
         (pr, children.into_iter()
@@ -251,8 +251,8 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
     const PR_FACTOR: u32 = 3;
     const PR_ATOM: u32 = 4;
 
-    const BEFORE: &str = " ►►► ";
-    const AFTER : &str = " ◄◄◄ ";
+    const BEFORE: &str = " ►► ";
+    const AFTER : &str = " ◄◄ ";
     const BEFORE_ANSI: &str = "\u{1b}[4;1;36m";
     const AFTER_ANSI : &str = "\u{1b}[0m";
 
@@ -268,7 +268,7 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
             0 => {
                 match node.deref() {
                     GrNode::Symbol(s) => (PR_ATOM, s.to_str_quote(symbol_table)),
-                    GrNode::LForm(var) => (PR_ATOM, format!("<L={}>", Symbol::NT(*var).to_str(symbol_table))),
+                    GrNode::LForm(var) => (PR_ATOM, if simplified { "<L>".to_string() } else { format!("<L={}>", Symbol::NT(*var).to_str(symbol_table)) }),
                     GrNode::RAssoc => (PR_ATOM, "<R>".to_string()),
                     GrNode::PrecEq => (PR_ATOM, "<P>".to_string()),
                     s => panic!("{s:?} should have children"),
@@ -295,12 +295,12 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
     children.pop().unwrap().1
 }
 
-pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
-    grtree_to_str_custom(tree, node, emphasis, symbol_table, false)
+pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>, simplified: bool) -> String {
+    grtree_to_str_custom(tree, node, emphasis, symbol_table, simplified, false)
 }
 
-pub fn grtree_to_str_ansi(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>) -> String {
-    grtree_to_str_custom(tree, node, emphasis, symbol_table, true)
+pub fn grtree_to_str_ansi(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>, simplified: bool) -> String {
+    grtree_to_str_custom(tree, node, emphasis, symbol_table, simplified, true)
 }
 
 /// Cleans the empty symbols in a normalized tree. Removes empty terms if `del_empty_terms` is true.
@@ -689,7 +689,7 @@ impl<T> RuleTreeSet<T> {
     /// optionally starting at node `node`. If `emphasis` contains a node ID, this subpart of the
     /// tree is emphasized in the string.
     pub fn to_str(&self, var: VarId, node: Option<usize>, emphasis: Option<usize>) -> String {
-        grtree_to_str(&self.trees[var as usize], node, emphasis, self.get_symbol_table())
+        grtree_to_str(&self.trees[var as usize], node, emphasis, self.get_symbol_table(), false)
     }
 }
 
@@ -917,8 +917,8 @@ impl RuleTreeSet<General> {
                                 None => {
                                     self.log.add_error(format!(
                                         "unexpected child of ?: {} (should be &, |, or symbol)",
-                                        grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table())));
-                                    if VERBOSE { println!("ERROR: unexpected child of ?: {}", grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table())); }
+                                        grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table(), false)));
+                                    if VERBOSE { println!("ERROR: unexpected child of ?: {}", grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table(), false)); }
                                     return;
                                 }
                                 // (is_empty, had_empty_term)
@@ -980,8 +980,8 @@ impl RuleTreeSet<General> {
                             None => {
                                 self.log.add_error(format!(
                                     "unexpected child of {sym_char}: {} (should be &, |, or symbol)",
-                                    grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table())));
-                                if VERBOSE { println!("ERROR: unexpected child {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table())); }
+                                    grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)));
+                                if VERBOSE { println!("ERROR: unexpected child {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)); }
                                 return;
                             },
                             // (is_empty, had_empty_term)
@@ -1005,7 +1005,7 @@ impl RuleTreeSet<General> {
                             Some((false, false)) => true, // nothing special, processing below
                         };
                         if proceed {
-                            if VERBOSE { println!("=> {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table())); }
+                            if VERBOSE { println!("=> {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)); }
                             let orig_rep = orig_new.add(None, if is_plus { gnode!(+) } else { gnode!(*) });
                             let orig_rep_child = orig_new.add_from_tree(Some(orig_rep), &new, Some(rep_child));
                             orig_rep_vars.insert(new_var, orig_rep); // to replace later
@@ -1038,8 +1038,8 @@ impl RuleTreeSet<General> {
                 self.log.add_error(format!(
                     "unexpected root of {} -> {} (should be &, |, or symbol)",
                     Symbol::NT(var).to_str(self.get_symbol_table()),
-                    grtree_to_str(&new, None, None, self.get_symbol_table())));
-                if VERBOSE { println!("ERROR: unexpected root {}", grtree_to_str(&new, None, None, self.get_symbol_table())); }
+                    grtree_to_str(&new, None, None, self.get_symbol_table(), false)));
+                if VERBOSE { println!("ERROR: unexpected root {}", grtree_to_str(&new, None, None, self.get_symbol_table(), false)); }
             }
             // (is_empty, had_empty_term)
             Some((true, _)) => {
@@ -2430,7 +2430,7 @@ impl<T> ProdRuleSet<T> {
                     if let Some((vo, ido)) = f.origin {
                         let tree = &self.origin.trees[vo as usize];
                         let emphasis = if tree.get_root() == Some(ido) { None } else { Some(ido) };
-                        let orig_rule = grtree_to_str_custom(tree, None, emphasis, self.get_symbol_table(), ansi);
+                        let orig_rule = grtree_to_str_custom(tree, None, emphasis, self.get_symbol_table(), false, ansi);
                         format!("{} -> {orig_rule}", Symbol::NT(vo).to_str(self.get_symbol_table()))
                     } else {
                         String::new()
@@ -2448,7 +2448,7 @@ impl<T> ProdRuleSet<T> {
                 "|".to_string(),
                 format!("{} -> {}",
                         Symbol::NT(v).to_str(self.get_symbol_table()),
-                        grtree_to_str_custom(&self.origin.trees[v as usize], None, Some(index), self.get_symbol_table(), ansi))
+                        grtree_to_str_custom(&self.origin.trees[v as usize], None, Some(index), self.get_symbol_table(), false, ansi))
 
             ]));
         columns_to_str(cols, None)

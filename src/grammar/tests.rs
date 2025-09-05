@@ -977,7 +977,7 @@ fn rts_normalize() {
         let mut rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()
-            .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab)))
+            .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false)))
             .to_vec();
         if SHOW_RESULTS_ONLY {
             println!("{}", originals.iter().map(|s| format!("        // {s}")).join(""));
@@ -1000,7 +1000,7 @@ fn rts_normalize() {
             let sym_tab = rules.get_symbol_table();
             println!("- normalized:\n{}",
                      rules.get_non_empty_nts()
-                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab))).join("\n"));
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false))).join("\n"));
             println!("- normalized (detailed):\n{}",
                      rules.get_non_empty_nts()
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
@@ -1062,7 +1062,7 @@ fn cleanup_tree() {
             let mut t = rules.trees[0].clone();
             let si1 = t.to_str_index(root, st);
             let output = grtree_cleanup(&mut t, root, del_empty_term);
-            let s2 = grtree_to_str(&t, root, None, st);
+            let s2 = grtree_to_str(&t, root, None, st, false);
             let si2 = t.to_str_index(root, st);
             if VERBOSE {
                 println!("  {s1}  =>  {s2}   {output:?}");
@@ -1150,14 +1150,14 @@ fn orig_normalize() {
         //   A -> a (b <L=AIter1>)* c
         (22, btreemap![0 => r#"a (b <L=AIter1>)* c"#]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
         let rules = build_rts(test_id);
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_non_empty_nts()
-            .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab)))
+            .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false)))
             .to_vec();
         if VERBOSE && !SHOW_RESULTS_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
@@ -1174,19 +1174,19 @@ fn orig_normalize() {
         let sym_tab = rules.get_symbol_table();
         let result = rules.origin.trees.iter().index::<VarId>()
                 .filter(|(_, t)| !is_grtree_empty_symbol(&t))
-                .map(|(v, t)| (v, grtree_to_str(t, None, None, sym_tab)))
+                .map(|(v, t)| (v, grtree_to_str(t, None, None, sym_tab, false)))
             .collect::<BTreeMap<_, _>>();
         if VERBOSE && !SHOW_RESULTS_ONLY {
             println!("- normalized:\n{}",
                      rules.get_non_empty_nts()
-                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab))).join("\n"));
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false))).join("\n"));
             println!("- normalized (detailed):\n{}",
                      rules.get_non_empty_nts()
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
             println!("- original tree partially normalized:\n{}",
                      rules.origin.trees.iter().index::<VarId>()
                          .filter(|(_, t)| !is_grtree_empty_symbol(&t))
-                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab))).join("\n"));
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false))).join("\n"));
             println!("  other format:\n{}",
                      rules.origin.trees.iter().index::<VarId>()
                          .filter(|(_, t)| !is_grtree_empty_symbol(&t))
@@ -3766,19 +3766,19 @@ fn prs_calc_table() {
             // calc_table: ambiguity for NT 'A_1', T 'a': <a b A_1> or <ε> => <a b A_1> has been chosen
         ]),
         (T::RTS(57), 0, 0, vec![
-            // - 0: A -> a A_1
-            // - 1: A_1 -> b a A_1
-            // - 2: A_1 -> ε
-            (0, prodf!(t 0, nt 1)),
-            (1, prodf!(t 1, t 0, nt 1)),
-            (1, prodf!(e)),
+                // - 0: A -> a A_1
+                // - 1: A_1 -> b a A_1
+                // - 2: A_1 -> ε
+                (0, prodf!(t 0, nt 1)),
+                (1, prodf!(t 1, t 0, nt 1)),
+                (1, prodf!(e)),
         ], vec![
-            //     |  a   b   $
-            // ----+-------------
-            // A   |  0   .   p
-            // A_1 |  .   1   2
-              0,   3,   4,
-              3,   1,   2,
+                //     |  a   b   $
+                // ----+-------------
+                // A   |  0   .   p
+                // A_1 |  .   1   2
+                  0,   3,   4,
+                  3,   1,   2,
         ]),
         // (T::RTS(57), 0, 0, vec![
         //     // - 0: A -> a A_1

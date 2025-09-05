@@ -361,7 +361,7 @@ impl ParserGen {
                 Some(format!(
                     "{} -> {}",
                     Symbol::NT(o_v).to_str(symbol_table),
-                    grtree_to_str(self.origin.get_tree(o_v).unwrap(), Some(o_id), None, symbol_table)
+                    grtree_to_str(self.origin.get_tree(o_v).unwrap(), Some(o_id), None, symbol_table, false)
                 ))
             })
         } else {
@@ -513,21 +513,33 @@ impl ParserGen {
         if VERBOSE { println!("full_factor_components(f_id = {f_id}):"); }
         let (v_f, prodf) = &self.parsing_table.factors[f_id as usize];
         if USE_ORIGIN {
+            let symtab = self.get_symbol_table();
             if let Some(v_emph) = emphasis {
                 let parent_nt = self.parsing_table.get_top_parent(v_emph);
                 if let Some((t_emph, id_emph)) = self.origin.get(v_emph) {
-                    return ((Symbol::NT(parent_nt).to_str(self.get_symbol_table())), grtree_to_str(t_emph, None, Some(id_emph), self.get_symbol_table()));
+                    return ((Symbol::NT(parent_nt).to_str(symtab)), grtree_to_str(t_emph, None, Some(id_emph), symtab, false));
                 } else {
-                    return (Symbol::NT(parent_nt).to_str(self.get_symbol_table()), format!("<VAR {v_emph} NOT FOUND>"));
+                    return (Symbol::NT(parent_nt).to_str(symtab), format!("<VAR {v_emph} NOT FOUND>"));
                 }
             }
             if let Some((vo, id)) = prodf.get_origin() {
                 let t = self.origin.get_tree(vo).unwrap();
-                let root = Some(id);
-                // let emph = if Some(id) == t.get_root() { None } else { Some(id) };
-                return (Symbol::NT(vo).to_str(self.get_symbol_table()), grtree_to_str(t, root, None, self.get_symbol_table()));
+                let flags = self.parsing_table.flags[*v_f as usize];
+                if *v_f != vo && flags & ruleflag::CHILD_REPEAT != 0 {
+                    // iteration in parent rule
+                    return (
+                        String::new(),
+                        format!("`{}` iteration in `{} -> {}`",
+                                grtree_to_str(t, Some(id), None, symtab, true),
+                                Symbol::NT(vo).to_str(symtab),
+                                grtree_to_str(t, None, Some(id), symtab, true))
+                    );
+                } else {
+                    let root = Some(id);
+                    return (Symbol::NT(vo).to_str(symtab), grtree_to_str(t, root, None, symtab, true));
+                }
             } else {
-                return (Symbol::NT(*v_f).to_str(self.get_symbol_table()), format!("<factor {f_id} NOT FOUND>"));
+                return (Symbol::NT(*v_f).to_str(symtab), format!("<factor {f_id} NOT FOUND>"));
             }
         } else {
             if let Some(id) = prodf.get_original_factor_id() {
@@ -549,6 +561,8 @@ impl ParserGen {
                 return (Symbol::NT(parent_nt).to_str(self.get_symbol_table()), pf);
             }
         }
+        panic!("shouldn't be used any more");
+/*
         let mut v_par_lf =  *v_f;
         let mut syms = prodf.symbols().iter().filter(|s| !s.is_empty()).cloned().to_vec();
         let mut left = *v_f;
@@ -693,6 +707,7 @@ impl ParserGen {
         };
         if VERBOSE { println!("=> {result:?}"); }
         result
+ */
     }
 
     fn full_factor_str<const VERBOSE: bool>(&self, f_id: FactorId, emphasis: Option<VarId>, quote: bool) -> String {
