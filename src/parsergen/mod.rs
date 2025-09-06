@@ -529,8 +529,9 @@ impl ParserGen {
                     // iteration in parent rule
                     return (
                         String::new(),
-                        format!("`{}` iteration in `{} -> {}`",
+                        format!("`{}` {} in `{} -> {}`",
                                 grtree_to_str(t, Some(id), None, symtab, true),
+                                if flags & ruleflag::L_FORM != 0 { "iteration" } else { "item" },
                                 Symbol::NT(vo).to_str(symtab),
                                 grtree_to_str(t, None, Some(id), symtab, true))
                     );
@@ -1543,6 +1544,7 @@ impl ParserGen {
                 let comment2 = tf.iter().map(|(_var, f_id)| {
                     format!("{} in {}", if is_lform { "iteration" } else { "item" }, self.full_factor_str::<false>(*f_id, Some(v), true))
                 }).join(", ");
+                let first_factor = self.var_factors[v as usize][0];
                 if let Some(infos) = nt_repeat.get(&(v)) {
                     if is_lform {
                         let user_def_type = vec![
@@ -1561,21 +1563,32 @@ impl ParserGen {
                         if infos.len() == 1 {
                             // single + * item; for ex. A -> (B)+
                             let type_name = self.get_info_type(&infos, &infos[0]);
-                            src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                            //src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                            let (t, var_oid) = self.origin.get(v).unwrap();
+                            let top_parent = self.parsing_table.get_top_parent(v);
+                            src.push(format!("/// [new1] Computed `{}` array in `{} -> {}`",
+                                             grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true),
+                                             Symbol::NT(top_parent).to_str(self.get_symbol_table()),
+                                             grtree_to_str(t, None, Some(var_oid), self.get_symbol_table(), true),
+                            ));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
                         } else {
                             // complex + * items; for ex. A -> (B b)+
-                            src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                            // src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
+                            let (t, var_oid) = self.origin.get(v).unwrap();
+                            let top_parent = self.parsing_table.get_top_parent(v);
+                            src.push(format!("/// [new2] Computed `{}` array in `{} -> {}`",
+                                             grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true),
+                                             Symbol::NT(top_parent).to_str(self.get_symbol_table()),
+                                             grtree_to_str(t, None, Some(var_oid), self.get_symbol_table(), true),
+                            ));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
                             let mut fact = self.parsing_table.factors[self.var_factors[v as usize][0] as usize].1.symbols().to_vec();
                             fact.pop();
-                            //src.push(format!("/// coucou `{}` {comment2}", self.repeat_factor_str(&fact, None)));
-                            let first_factor = self.var_factors[v as usize][0];
-                            // let first_factor = tf[0].1;
-                            let fstr = format!("v={v}, f={first_factor}");
-                            src.push(format!("/// coucou {fstr}: {}", self.full_factor_str::<false>(first_factor, None, false)));
+                            //src.push(format!("/// `{}` {comment2}", self.repeat_factor_str(&fact, None)));
+                            src.push(format!("/// [new3] {}", self.full_factor_str::<false>(first_factor, None, false)));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
                         }

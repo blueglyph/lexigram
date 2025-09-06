@@ -2149,13 +2149,16 @@ if !matches!(rule_id, RTS(_)) { continue }
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}, start {start_nt}:", ""); }
             let ll1 = rule_id.build_prs(test_id, start_nt, true);
-            if VERBOSE { println!("T: {}", ll1.get_symbol_table().unwrap()
-                .get_terminals().enumerate()
-                .map(|(i,(s1, s2))| format!("{i}:{s1}{}", if let Some(s2t) = s2 { format!("=\"{s2t}\"") } else { String::new() })).join(", ")); }
+            if VERBOSE {
+                println!("/*");
+                println!("Terminals: {}", ll1.get_symbol_table().unwrap()
+                    .get_terminals().enumerate()
+                    .map(|(i, (s1, s2))| format!("{i}:{s1}{}", if let Some(s2t) = s2 { format!("=\"{s2t}\"") } else { String::new() })).join(", "));
+                println!("LL1 <-> origin:\n{}", indent_source(vec![ll1.prs_factor_origins_str(false)], 4));
+            }
             let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
             if VERBOSE {
-                println!("/*");
                 println!("before, NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
                              if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
