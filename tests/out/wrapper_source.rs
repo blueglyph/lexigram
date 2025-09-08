@@ -231,7 +231,7 @@ pub(crate) mod rules_rts_21_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [b]* c`
+        /// `A -> a b* c`
         A { a: String, star: SynA1, c: String },
     }
 
@@ -239,7 +239,7 @@ pub(crate) mod rules_rts_21_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `[b]*` array in `A -> a  ► [b]* ◄  c`
+    /// Computed `b*` array in `A -> a  ►► b* ◄◄  c`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
 
@@ -396,7 +396,7 @@ pub(crate) mod rules_rts_21_2 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [b]* c`
+        /// `A -> a "b"* c`
         A { a: String, c: String },
     }
 
@@ -549,7 +549,7 @@ pub(crate) mod rules_rts_22_1 {
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+        /// `b <L>` iteration in `A -> a ( ►► b <L> ◄◄ )* c`
         Aiter1 { star_it: SynAIter, b: String },
     }
 
@@ -557,7 +557,7 @@ pub(crate) mod rules_rts_22_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+    // /// User-defined type for `b <L>` iteration in `A -> a ( ►► b <L> ◄◄ )* c`
     // #[derive(Debug, PartialEq)] pub struct SynAIter();
 
     #[derive(Debug)]
@@ -726,12 +726,12 @@ pub(crate) mod rules_rts_22_2 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a (b <L>)* c`
+        /// `A -> a ("b" <L>)* c`
         A { a: String, c: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+        /// `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
         Aiter1,
     }
 
@@ -885,12 +885,12 @@ pub(crate) mod rules_rts_22_3 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a (b <L>)* c`
+        /// `A -> a ("b" <L>)* c`
         A { a: String, star: SynAIter, c: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+        /// `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
         Aiter1 { star_it: SynAIter },
     }
 
@@ -898,7 +898,7 @@ pub(crate) mod rules_rts_22_3 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+    // /// User-defined type for `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
     // #[derive(Debug, PartialEq)] pub struct SynAIter();
 
     #[derive(Debug)]
@@ -1061,18 +1061,18 @@ pub(crate) mod rules_rts_22_4 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a (b <L>)* c`
+        /// `A -> a ("b" <L>)* c`
         A { a: String, star: SynAIter, c: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+        /// `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
         Aiter1 { star_it: SynAIter },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  c`
+    // /// User-defined type for `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
     // #[derive(Debug, PartialEq)] pub struct SynAIter();
     /// Top non-terminal A (has no value)
     #[derive(Debug, PartialEq)]
@@ -1236,7 +1236,7 @@ pub(crate) mod rules_rts_48_1 {
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  B`
+        /// `b <L>` iteration in `A -> a ( ►► b <L> ◄◄ )* B`
         Aiter1 { star_it: SynAIter, b: String },
     }
     #[derive(Debug)]
@@ -1251,7 +1251,7 @@ pub(crate) mod rules_rts_48_1 {
     // #[derive(Debug, PartialEq)] pub struct SynA();
     // /// User-defined type for `B`
     // #[derive(Debug, PartialEq)] pub struct SynB();
-    // /// User-defined type for `(b <L>)*` iteration in `A -> a  ► (b <L>)* ◄  B`
+    // /// User-defined type for `b <L>` iteration in `A -> a ( ►► b <L> ◄◄ )* B`
     // #[derive(Debug, PartialEq)] pub struct SynAIter();
 
     #[derive(Debug)]
@@ -1440,7 +1440,7 @@ pub(crate) mod rules_rts_32_1 {
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | ...`
+        /// `b <L>` iteration in `A -> a a ( ►► b <L> ◄◄ )* c | a c ( ►► b <L> ◄◄ )* c`
         Aiter1 { star_it: SynAIter, b: String },
     }
 
@@ -1448,7 +1448,7 @@ pub(crate) mod rules_rts_32_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `(b <L>)*` iteration in `A -> a a  ► (b <L>)* ◄  c | a c  ► (b <L>)* ◄  c`
+    // /// User-defined type for `b <L>` iteration in `A -> a a ( ►► b <L> ◄◄ )* c | a c ( ►► b <L> ◄◄ )* c`
     // #[derive(Debug, PartialEq)] pub struct SynAIter();
 
     #[derive(Debug)]
@@ -1629,7 +1629,7 @@ pub(crate) mod rules_rts_25_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [#]* c`
+        /// `A -> a "#"* c`
         A { a: String, c: String },
     }
 
@@ -1780,7 +1780,7 @@ pub(crate) mod rules_rts_23_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [b]+ c`
+        /// `A -> a b+ c`
         A { a: String, plus: SynA1, c: String },
     }
 
@@ -1788,7 +1788,7 @@ pub(crate) mod rules_rts_23_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `[b]+` array in `A -> a  ► [b]+ ◄  c`
+    /// Computed `b+` array in `A -> a  ►► b+ ◄◄  c`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
 
@@ -1953,7 +1953,7 @@ pub(crate) mod rules_rts_27_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [B]+ c`
+        /// `A -> a B+ c`
         A { a: String, plus: SynA1, c: String },
     }
     #[derive(Debug)]
@@ -1968,7 +1968,7 @@ pub(crate) mod rules_rts_27_1 {
     // #[derive(Debug, PartialEq)] pub struct SynA();
     // /// User-defined type for `B`
     // #[derive(Debug, PartialEq)] pub struct SynB();
-    /// Computed `[B]+` array in `A -> a  ► [B]+ ◄  c`
+    /// Computed `B+` array in `A -> a  ►► B+ ◄◄  c`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynB>);
 
@@ -2146,7 +2146,7 @@ pub(crate) mod rules_rts_28_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> [a B]+ c`
+        /// `A -> (a B)+ c`
         A { plus: SynA1, c: String },
     }
     #[derive(Debug)]
@@ -2161,10 +2161,10 @@ pub(crate) mod rules_rts_28_1 {
     // #[derive(Debug, PartialEq)] pub struct SynA();
     // /// User-defined type for `B`
     // #[derive(Debug, PartialEq)] pub struct SynB();
-    /// Computed `[a B]+` array in `A ->  ► [a B]+ ◄  c`
+    /// Computed `(a B)+` array in `A ->  ►► (a B)+ ◄◄  c`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
-    /// `a B` item in `A ->  ► [a B]+ ◄  c`
+    /// `a B` item in `A -> ( ►► a B ◄◄ )+ c`
     #[derive(Debug, PartialEq)]
     pub struct SynA1Item { pub a: String, pub b: SynB }
 
@@ -2345,7 +2345,7 @@ pub(crate) mod rules_rts_24_1 {
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+        /// `A -> b <L>`
         Aiter1 { plus_it: SynMyAIter, b: String, last_iteration: bool },
     }
 
@@ -2353,7 +2353,7 @@ pub(crate) mod rules_rts_24_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynMyA();
-    // /// User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+    // /// User-defined type for `b <L>` iteration in `A -> a ( ►► b <L> ◄◄ )+ c`
     // #[derive(Debug, PartialEq)] pub struct SynMyAIter();
 
     #[derive(Debug)]
@@ -2517,12 +2517,12 @@ pub(crate) mod rules_rts_24_2 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a (b <L>)+ c`
+        /// `A -> a ("b" <L>)+ c`
         A { a: String, c: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+        /// `A -> "b" <L>`
         Aiter1 { last_iteration: bool },
     }
 
@@ -2682,12 +2682,12 @@ pub(crate) mod rules_rts_24_3 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a (b <L>)+ c`
+        /// `A -> a ("b" <L>)+ c`
         A { a: String, plus: SynMyAIter, c: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+        /// `A -> "b" <L>`
         Aiter1 { plus_it: SynMyAIter, last_iteration: bool },
     }
 
@@ -2695,7 +2695,7 @@ pub(crate) mod rules_rts_24_3 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynMyA();
-    // /// User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+    // /// User-defined type for `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )+ c`
     // #[derive(Debug, PartialEq)] pub struct SynMyAIter();
 
     #[derive(Debug)]
@@ -2859,18 +2859,18 @@ pub(crate) mod rules_rts_24_4 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a (b <L>)+ c`
+        /// `A -> a ("b" <L>)+ c`
         A { a: String, plus: SynMyAIter, c: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+        /// `A -> "b" <L>`
         Aiter1 { plus_it: SynMyAIter, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `(b <L>)+` iteration in `A -> a  ► (b <L>)+ ◄  c`
+    // /// User-defined type for `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )+ c`
     // #[derive(Debug, PartialEq)] pub struct SynMyAIter();
     /// Top non-terminal A (has no value)
     #[derive(Debug, PartialEq)]
@@ -3033,7 +3033,7 @@ pub(crate) mod rules_rts_29_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [[B b]* c]* d`
+        /// `A -> a ((B b)* c)* d`
         A { a: String, star: SynA2, d: String },
     }
     #[derive(Debug)]
@@ -3048,16 +3048,16 @@ pub(crate) mod rules_rts_29_1 {
     // #[derive(Debug, PartialEq)] pub struct SynA();
     // /// User-defined type for `B`
     // #[derive(Debug, PartialEq)] pub struct SynB();
-    /// Computed `[B b]*` array in `A -> a [ ► [B b]* ◄  c]* d`
+    /// Computed `(B b)*` array in `A -> a ( ►► (B b)* ◄◄  c)* d`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
-    /// `B b` item in `A -> a [ ► [B b]* ◄  c]* d`
+    /// `B b` item in `A -> a (( ►► B b ◄◄ )* c)* d`
     #[derive(Debug, PartialEq)]
     pub struct SynA1Item { pub b: SynB, pub b1: String }
-    /// Computed `[[B b]* c]*` array in `A -> a  ► [[B b]* c]* ◄  d`
+    /// Computed `((B b)* c)*` array in `A -> a  ►► ((B b)* c)* ◄◄  d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2(pub Vec<SynA2Item>);
-    /// `[B b]* c` item in `A -> a  ► [[B b]* c]* ◄  d`
+    /// `(B b)* c` item in `A -> a ( ►► (B b)* c ◄◄ )* d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2Item { pub star: SynA1, pub c: String }
 
@@ -3253,12 +3253,12 @@ pub(crate) mod rules_rts_29_2 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [[B b]* c]* d`
+        /// `A -> a ((B "b")* c)* d`
         A { a: String, star: SynA2, d: String },
     }
     #[derive(Debug)]
     pub enum CtxB {
-        /// `B -> b`
+        /// `B -> "b"`
         B,
     }
 
@@ -3266,7 +3266,7 @@ pub(crate) mod rules_rts_29_2 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `[[B b]* c]*` array in `A -> a  ► [[B b]* c]* ◄  d`
+    /// Computed `((B "b")* c)*` array in `A -> a  ►► ((B "b")* c)* ◄◄  d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2(pub Vec<String>);
 
@@ -3439,7 +3439,7 @@ pub(crate) mod rules_rts_29_3 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [[B b]* c]* d`
+        /// `A -> a ((B b)* c)* d`
         A { a: String, star: SynA2, d: String },
     }
     #[derive(Debug)]
@@ -3450,13 +3450,13 @@ pub(crate) mod rules_rts_29_3 {
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    /// Computed `[B b]*` array in `A -> a [ ► [B b]* ◄  c]* d`
+    /// Computed `(B b)*` array in `A -> a ( ►► (B b)* ◄◄  c)* d`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
-    /// Computed `[[B b]* c]*` array in `A -> a  ► [[B b]* c]* ◄  d`
+    /// Computed `((B b)* c)*` array in `A -> a  ►► ((B b)* c)* ◄◄  d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2(pub Vec<SynA2Item>);
-    /// `[B b]* c` item in `A -> a  ► [[B b]* c]* ◄  d`
+    /// `(B b)* c` item in `A -> a ( ►► (B b)* c ◄◄ )* d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2Item { pub star: SynA1, pub c: String }
     /// Top non-terminal A (has no value)
@@ -3641,17 +3641,17 @@ pub(crate) mod rules_rts_39_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a ((b <L>)* c <L>)* d`
+        /// `A -> a (<L> (<L> b)* c)* d`
         A { a: String, star: SynAiter1, d: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter2 {
-        /// `(b <L>)*` iteration in `A -> a ( ► (b <L>)* ◄  c <L>)* d`
+        /// `<L> b` iteration in `A -> a (<L> ( ►► <L> b ◄◄ )* c)* d`
         Aiter2 { star_it: SynAiter2, b: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `((b <L>)* c <L>)*` iteration in `A -> a  ► ((b <L>)* c <L>)* ◄  d`
+        /// `<L> (<L> b)* c` iteration in `A -> a ( ►► <L> (<L> b)* c ◄◄ )* d`
         Aiter1 { star_it: SynAiter1, star: SynAiter2, c: String },
     }
 
@@ -3659,9 +3659,9 @@ pub(crate) mod rules_rts_39_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `(b <L>)*` iteration in `A -> a ( ► (b <L>)* ◄  c <L>)* d`
+    // /// User-defined type for `<L> b` iteration in `A -> a (<L> ( ►► <L> b ◄◄ )* c)* d`
     // #[derive(Debug, PartialEq)] pub struct SynAiter2();
-    // /// User-defined type for `((b <L>)* c <L>)*` iteration in `A -> a  ► ((b <L>)* c <L>)* ◄  d`
+    // /// User-defined type for `<L> (<L> b)* c` iteration in `A -> a ( ►► <L> (<L> b)* c ◄◄ )* d`
     // #[derive(Debug, PartialEq)] pub struct SynAiter1();
 
     #[derive(Debug)]
@@ -3858,12 +3858,12 @@ pub(crate) mod rules_rts_40_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [(b <L>)* c]* d`
+        /// `A -> a ((<L> b)* c)* d`
         A { a: String, star: SynA1, d: String },
     }
     #[derive(Debug)]
     pub enum CtxAiter1 {
-        /// `(b <L>)*` iteration in `A -> a [ ► (b <L>)* ◄  c]* d`
+        /// `<L> b` iteration in `A -> a (( ►► <L> b ◄◄ )* c)* d`
         Aiter1 { star_it: SynAiter1, b: String },
     }
 
@@ -3871,12 +3871,12 @@ pub(crate) mod rules_rts_40_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `(b <L>)*` iteration in `A -> a [ ► (b <L>)* ◄  c]* d`
+    // /// User-defined type for `<L> b` iteration in `A -> a (( ►► <L> b ◄◄ )* c)* d`
     // #[derive(Debug, PartialEq)] pub struct SynAiter1();
-    /// Computed `[(b <L>)* c]*` array in `A -> a  ► [(b <L>)* c]* ◄  d`
+    /// Computed `((<L> b)* c)*` array in `A -> a  ►► ((<L> b)* c)* ◄◄  d`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
-    /// `(b <L>)* c` item in `A -> a  ► [(b <L>)* c]* ◄  d`
+    /// `(<L> b)* c` item in `A -> a ( ►► (<L> b)* c ◄◄ )* d`
     #[derive(Debug, PartialEq)]
     pub struct SynA1Item { pub star: SynAiter1, pub c: String }
 
@@ -4074,7 +4074,7 @@ pub(crate) mod rules_rts_30_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [[B b]+ c]+ d`
+        /// `A -> a ((B b)+ c)+ d`
         A { a: String, plus: SynA2, d: String },
     }
     #[derive(Debug)]
@@ -4089,16 +4089,16 @@ pub(crate) mod rules_rts_30_1 {
     // #[derive(Debug, PartialEq)] pub struct SynA();
     // /// User-defined type for `B`
     // #[derive(Debug, PartialEq)] pub struct SynB();
-    /// Computed `[B b]+` array in `A -> a [ ► [B b]+ ◄  c]+ d`
+    /// Computed `(B b)+` array in `A -> a ( ►► (B b)+ ◄◄  c)+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
-    /// `B b` item in `A -> a [ ► [B b]+ ◄  c]+ d`
+    /// `B b` item in `A -> a (( ►► B b ◄◄ )+ c)+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA1Item { pub b: SynB, pub b1: String }
-    /// Computed `[[B b]+ c]+` array in `A -> a  ► [[B b]+ c]+ ◄  d`
+    /// Computed `((B b)+ c)+` array in `A -> a  ►► ((B b)+ c)+ ◄◄  d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2(pub Vec<SynA2Item>);
-    /// `[B b]+ c` item in `A -> a  ► [[B b]+ c]+ ◄  d`
+    /// `(B b)+ c` item in `A -> a ( ►► (B b)+ c ◄◄ )+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2Item { pub plus: SynA1, pub c: String }
 
@@ -4302,7 +4302,7 @@ pub(crate) mod rules_rts_30_2 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [[B b]+ c]+ d`
+        /// `A -> a ((B b)+ c)+ d`
         A { a: String, plus: SynA2, d: String },
     }
     #[derive(Debug)]
@@ -4313,13 +4313,13 @@ pub(crate) mod rules_rts_30_2 {
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    /// Computed `[B b]+` array in `A -> a [ ► [B b]+ ◄  c]+ d`
+    /// Computed `(B b)+` array in `A -> a ( ►► (B b)+ ◄◄  c)+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
-    /// Computed `[[B b]+ c]+` array in `A -> a  ► [[B b]+ c]+ ◄  d`
+    /// Computed `((B b)+ c)+` array in `A -> a  ►► ((B b)+ c)+ ◄◄  d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2(pub Vec<SynA2Item>);
-    /// `[B b]+ c` item in `A -> a  ► [[B b]+ c]+ ◄  d`
+    /// `(B b)+ c` item in `A -> a ( ►► (B b)+ c ◄◄ )+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2Item { pub plus: SynA1, pub c: String }
     /// Top non-terminal A (has no value)
@@ -4545,7 +4545,7 @@ pub(crate) mod rules_rts_34_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d`
+        /// `A -> a (b+ b+)+ c (b+ b+)+ d`
         A { a: String, plus: SynA3, c: String, plus1: SynA6, d: String },
     }
 
@@ -4553,28 +4553,28 @@ pub(crate) mod rules_rts_34_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `[b]+` array in `A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d`
+    /// Computed `b+` array in `A -> a ( ►► b+ ◄◄  b+)+ c (b+ b+)+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
-    /// Computed `[b]+` array in `A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d`
+    /// Computed `b+` array in `A -> a (b+  ►► b+ ◄◄ )+ c (b+ b+)+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA2(pub Vec<String>);
-    /// Computed `[[b]+ [b]+]+` array in `A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d`
+    /// Computed `(b+ b+)+` array in `A -> a  ►► (b+ b+)+ ◄◄  c (b+ b+)+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA3(pub Vec<SynA3Item>);
-    /// `[b]+ [b]+` item in `A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d`
+    /// `b+ b+` item in `A -> a ( ►► b+ b+ ◄◄ )+ c (b+ b+)+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA3Item { pub plus: SynA1, pub plus1: SynA2 }
-    /// Computed `[b]+` array in `A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d`
+    /// Computed `b+` array in `A -> a (b+ b+)+ c ( ►► b+ ◄◄  b+)+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA4(pub Vec<String>);
-    /// Computed `[b]+` array in `A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d`
+    /// Computed `b+` array in `A -> a (b+ b+)+ c (b+  ►► b+ ◄◄ )+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA5(pub Vec<String>);
-    /// Computed `[[b]+ [b]+]+` array in `A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d`
+    /// Computed `(b+ b+)+` array in `A -> a (b+ b+)+ c  ►► (b+ b+)+ ◄◄  d`
     #[derive(Debug, PartialEq)]
     pub struct SynA6(pub Vec<SynA6Item>);
-    /// `[b]+ [b]+` item in `A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d`
+    /// `b+ b+` item in `A -> a (b+ b+)+ c ( ►► b+ b+ ◄◄ )+ d`
     #[derive(Debug, PartialEq)]
     pub struct SynA6Item { pub plus: SynA4, pub plus1: SynA5 }
 
@@ -6562,13 +6562,13 @@ pub(crate) mod rules_rts_38_2 {
     pub enum CtxA {
         /// `A -> d`
         A1 { d: String },
-        /// `A -> A a c`
+        /// `A -> A "a" "c"`
         A2 { a: SynA },
-        /// `A -> A a`
+        /// `A -> A "a"`
         A3 { a: SynA },
-        /// `A -> A b c`
+        /// `A -> A "b" "c"`
         A4 { a: SynA },
-        /// `A -> A b`
+        /// `A -> A "b"`
         A5 { a: SynA },
     }
 
@@ -6756,15 +6756,15 @@ pub(crate) mod rules_rts_38_3 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> d`
+        /// `A -> "d"`
         A1,
-        /// `A -> A a c`
+        /// `A -> A "a" "c"`
         A2,
-        /// `A -> A a`
+        /// `A -> A "a"`
         A3,
-        /// `A -> A b c`
+        /// `A -> A "b" "c"`
         A4,
-        /// `A -> A b`
+        /// `A -> A "b"`
         A5,
     }
 
@@ -8142,7 +8142,7 @@ pub(crate) mod rules_rts_26_1 {
     pub enum CtxA {
         /// `A -> a`
         A1 { a: String },
-        /// `A -> A [c]* b`
+        /// `A -> A c* b`
         A2 { a: SynA, star: SynA1, b: String },
     }
 
@@ -8150,7 +8150,7 @@ pub(crate) mod rules_rts_26_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `[c]*` array in `A -> a`
+    /// Computed `c*` array in `A -> A  ►► c* ◄◄  b | a`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
 
@@ -8332,7 +8332,7 @@ pub(crate) mod rules_rts_16_1 {
     pub enum CtxA {
         /// `A -> a`
         A1 { a: String },
-        /// `A -> A [c]+ b`
+        /// `A -> A c+ b`
         A2 { a: SynA, plus: SynA1, b: String },
     }
 
@@ -8340,7 +8340,7 @@ pub(crate) mod rules_rts_16_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `[c]+` array in `A -> a`
+    /// Computed `c+` array in `A -> A  ►► c+ ◄◄  b | a`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
 
@@ -8687,7 +8687,7 @@ pub(crate) mod rules_rts_33_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> [B c]* b`
+        /// `A -> (B c)* b`
         A1 { star: SynA1, b: String },
         /// `A -> a`
         A2 { a: String },
@@ -8704,10 +8704,10 @@ pub(crate) mod rules_rts_33_1 {
     // #[derive(Debug, PartialEq)] pub struct SynMyA();
     // /// User-defined type for `B`
     // #[derive(Debug, PartialEq)] pub struct SynB();
-    /// Computed `[B c]*` array in `A ->  ► [B c]* ◄  b`
+    /// Computed `(B c)*` array in `A ->  ►► (B c)* ◄◄  b | a`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<SynA1Item>);
-    /// `B c` item in `A ->  ► [B c]* ◄  b`
+    /// `B c` item in `A -> ( ►► B c ◄◄ )* b | a`
     #[derive(Debug, PartialEq)]
     pub struct SynA1Item { pub b: SynB, pub c: String }
 
@@ -9816,11 +9816,11 @@ pub(crate) mod rules_rts_41_1 {
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> A x A`
+        /// `A -> A "x" A`
         A1 { a: [SynA; 2] },
-        /// `A -> A * [ [NUM]+ ]`
+        /// `A -> A "*" "[" NUM+ "]"`
         A2 { a: SynA, plus: SynA1 },
-        /// `A -> - A`
+        /// `A -> "-" A`
         A3 { a: SynA },
         /// `A -> ID`
         A4 { id: String },
@@ -9830,7 +9830,7 @@ pub(crate) mod rules_rts_41_1 {
 
     // /// User-defined type for `A`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `[NUM]+` array in `A -> A_3 A_2`
+    /// Computed `NUM+` array in `A -> A "x" A | A "*" "["  ►► NUM+ ◄◄  "]" | "-" A | ID`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
 
@@ -10008,15 +10008,15 @@ pub(crate) mod rules_rts_42_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> E * E`
+        /// `E -> E "*" E`
         E1 { e: [SynE; 2] },
-        /// `E -> E / E`
+        /// `E -> E "/" <P> E`
         E2 { e: [SynE; 2] },
-        /// `E -> E + E`
+        /// `E -> E "+" E`
         E3 { e: [SynE; 2] },
-        /// `E -> E - E`
+        /// `E -> E "-" <P> E`
         E4 { e: [SynE; 2] },
-        /// `E -> - E`
+        /// `E -> "-" E`
         E5 { e: SynE },
         /// `E -> ID`
         E6 { id: String },
@@ -10333,15 +10333,15 @@ pub(crate) mod rules_rts_43_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> E * E <R>`
+        /// `E -> <R> E "*" E`
         E1 { e: [SynE; 2] },
-        /// `E -> E / E <R>`
+        /// `E -> <R> E "/" <P> E`
         E2 { e: [SynE; 2] },
-        /// `E -> E + E <R>`
+        /// `E -> <R> E "+" E`
         E3 { e: [SynE; 2] },
-        /// `E -> E - E <R>`
+        /// `E -> <R> E "-" <P> E`
         E4 { e: [SynE; 2] },
-        /// `E -> - E`
+        /// `E -> "-" E`
         E5 { e: SynE },
         /// `E -> ID`
         E6 { id: String },
@@ -10658,15 +10658,15 @@ pub(crate) mod rules_rts_44_1 {
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> E * E <R>`
+        /// `E -> <R> E "*" E`
         E1 { e: [SynE; 2] },
-        /// `E -> E / E <R>`
+        /// `E -> <R> E "/" <P> E`
         E2 { e: [SynE; 2] },
-        /// `E -> E + E`
+        /// `E -> E "+" E`
         E3 { e: [SynE; 2] },
-        /// `E -> E - E`
+        /// `E -> E "-" <P> E`
         E4 { e: [SynE; 2] },
-        /// `E -> - E`
+        /// `E -> "-" E`
         E5 { e: SynE },
         /// `E -> ID`
         E6 { id: String },
@@ -11290,9 +11290,9 @@ pub(crate) mod rules_rts_100_1 {
 
     #[derive(Debug)]
     pub enum CtxFile {
-        /// `file -> header [file_item]*`
+        /// `file -> header file_item*`
         File1 { header: SynHeader, star: SynFile1 },
-        /// `file -> [file_item]*`
+        /// `file -> file_item*`
         File2 { star: SynFile1 },
     }
     #[derive(Debug)]
@@ -11306,48 +11306,48 @@ pub(crate) mod rules_rts_100_1 {
     }
     #[derive(Debug)]
     pub enum CtxHeader {
-        /// `header -> lexicon Id ;`
+        /// `header -> "lexicon" Id ";"`
         Header { id: String },
     }
     #[derive(Debug)]
     pub enum CtxDeclaration {
-        /// `declaration -> mode Id ;`
+        /// `declaration -> "mode" Id ";"`
         Declaration { id: String },
     }
     #[derive(Debug)]
     pub enum CtxOption {
-        /// `option -> channels { Id [, Id]* }`
+        /// `option -> "channels" "{" Id ("," Id)* "}"`
         Option { id: String, star: SynOption1 },
     }
     #[derive(Debug)]
     pub enum CtxRule {
-        /// `rule -> fragment Id : match ;`
+        /// `rule -> "fragment" Id ":" match ";"`
         Rule1 { id: String, match1: SynMatch },
-        /// `rule -> Id : match -> actions ;`
+        /// `rule -> Id ":" match "->" actions ";"`
         Rule2 { id: String, match1: SynMatch, actions: SynActions },
-        /// `rule -> Id : match ;`
+        /// `rule -> Id ":" match ";"`
         Rule3 { id: String, match1: SynMatch },
     }
     #[derive(Debug)]
     pub enum CtxActions {
-        /// `actions -> action [, action]*`
+        /// `actions -> action ("," action)*`
         Actions { action: SynAction, star: SynActions1 },
     }
     #[derive(Debug)]
     pub enum CtxAction {
-        /// `action -> mode ( Id )`
+        /// `action -> "mode" "(" Id ")"`
         Action1 { id: String },
-        /// `action -> push ( Id )`
+        /// `action -> "push" "(" Id ")"`
         Action2 { id: String },
-        /// `action -> pop`
+        /// `action -> "pop"`
         Action3,
-        /// `action -> skip`
+        /// `action -> "skip"`
         Action4,
-        /// `action -> more`
+        /// `action -> "more"`
         Action5,
-        /// `action -> type ( Id )`
+        /// `action -> "type" "(" Id ")"`
         Action6 { id: String },
-        /// `action -> channel ( Id )`
+        /// `action -> "channel" "(" Id ")"`
         Action7 { id: String },
     }
     #[derive(Debug)]
@@ -11357,34 +11357,34 @@ pub(crate) mod rules_rts_100_1 {
     }
     #[derive(Debug)]
     pub enum CtxAltItems {
-        /// `alt_items -> alt_item [| alt_item]*`
+        /// `alt_items -> alt_item ("|" alt_item)*`
         AltItems { alt_item: SynAltItem, star: SynAltItems1 },
     }
     #[derive(Debug)]
     pub enum CtxAltItem {
-        /// `alt_item -> [repeat_item]+`
+        /// `alt_item -> repeat_item+`
         AltItem { plus: SynAltItem1 },
     }
     #[derive(Debug)]
     pub enum CtxRepeatItem {
-        /// `repeat_item -> item ?`
+        /// `repeat_item -> item "?"`
         RepeatItem1 { item: SynItem },
         /// `repeat_item -> item`
         RepeatItem2 { item: SynItem },
-        /// `repeat_item -> item + ?`
+        /// `repeat_item -> item "+" "?"`
         RepeatItem3 { item: SynItem },
-        /// `repeat_item -> item +`
+        /// `repeat_item -> item "+"`
         RepeatItem4 { item: SynItem },
-        /// `repeat_item -> item * ?`
+        /// `repeat_item -> item "*" "?"`
         RepeatItem5 { item: SynItem },
-        /// `repeat_item -> item *`
+        /// `repeat_item -> item "*"`
         RepeatItem6 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxItem {
-        /// `item -> ( alt_items )`
+        /// `item -> "(" alt_items ")"`
         Item1 { alt_items: SynAltItems },
-        /// `item -> ~ item`
+        /// `item -> "~" item`
         Item2 { item: SynItem },
         /// `item -> Id`
         Item3 { id: String },
@@ -11392,16 +11392,16 @@ pub(crate) mod rules_rts_100_1 {
         Item4 { strlit: String },
         /// `item -> char_set`
         Item5 { char_set: SynCharSet },
-        /// `item -> CharLit .. CharLit`
+        /// `item -> CharLit ".." CharLit`
         Item6 { charlit: [String; 2] },
         /// `item -> CharLit`
         Item7 { charlit: String },
     }
     #[derive(Debug)]
     pub enum CtxCharSet {
-        /// `char_set -> [ [char_set_one]+ ]`
+        /// `char_set -> "[" char_set_one+ "]"`
         CharSet1 { plus: SynCharSet1 },
-        /// `char_set -> .`
+        /// `char_set -> "."`
         CharSet2,
         /// `char_set -> FixedSet`
         CharSet3 { fixedset: String },
@@ -11410,7 +11410,7 @@ pub(crate) mod rules_rts_100_1 {
     pub enum CtxCharSetOne {
         /// `char_set_one -> FixedSet`
         CharSetOne1 { fixedset: String },
-        /// `char_set_one -> SetChar - SetChar`
+        /// `char_set_one -> SetChar "-" SetChar`
         CharSetOne2 { setchar: [String; 2] },
         /// `char_set_one -> SetChar`
         CharSetOne3 { setchar: String },
@@ -11448,22 +11448,22 @@ pub(crate) mod rules_rts_100_1 {
     // #[derive(Debug, PartialEq)] pub struct SynCharSet();
     // /// User-defined type for `char_set_one`
     // #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
-    /// Computed `[file_item]*` array in `file -> header  ► [file_item]* ◄ `, array in `file ->  ► [file_item]* ◄ `
+    /// Computed `file_item*` array in `file -> header  ►► file_item* ◄◄  |  ►► file_item* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynFile1(pub Vec<SynFileItem>);
-    /// Computed `[, Id]*` array in `option -> channels { Id  ► [, Id]* ◄  }`
+    /// Computed `("," Id)*` array in `option -> "channels" "{" Id  ►► ("," Id)* ◄◄  "}"`
     #[derive(Debug, PartialEq)]
     pub struct SynOption1(pub Vec<String>);
-    /// Computed `[, action]*` array in `actions -> action  ► [, action]* ◄ `
+    /// Computed `("," action)*` array in `actions -> action  ►► ("," action)* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynActions1(pub Vec<SynAction>);
-    /// Computed `[| alt_item]*` array in `alt_items -> alt_item  ► [| alt_item]* ◄ `
+    /// Computed `("|" alt_item)*` array in `alt_items -> alt_item  ►► ("|" alt_item)* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynAltItems1(pub Vec<SynAltItem>);
-    /// Computed `[repeat_item]+` array in `alt_item ->  ► [repeat_item]+ ◄ `
+    /// Computed `repeat_item+` array in `alt_item ->  ►► repeat_item+ ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynAltItem1(pub Vec<SynRepeatItem>);
-    /// Computed `[char_set_one]+` array in `char_set -> [  ► [char_set_one]+ ◄  ]`
+    /// Computed `char_set_one+` array in `char_set -> "["  ►► char_set_one+ ◄◄  "]" | "." | FixedSet`
     #[derive(Debug, PartialEq)]
     pub struct SynCharSet1(pub Vec<SynCharSetOne>);
 

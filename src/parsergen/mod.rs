@@ -1544,11 +1544,7 @@ impl ParserGen {
                 let (t, var_oid) = self.origin.get(v).unwrap();
                 if let Some(infos) = nt_repeat.get(&(v)) {
                     if is_lform {
-                        let top_parent = self.parsing_table.get_top_parent(v);
-                        let fstr = format!("/// [new1] User-defined type for `{}` iteration in `{} -> {}`",
-                                           grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true),
-                                           Symbol::NT(top_parent).to_str(self.get_symbol_table()),
-                                           grtree_to_str(t, None, Some(var_oid), self.get_symbol_table(), true));
+                        let fstr = format!("/// User-defined type for {}", self.full_factor_str::<false>(first_factor, None, true));
                         let user_def_type = vec![
                             // format!("// /// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
                             format!("// {fstr}"),
@@ -1569,7 +1565,7 @@ impl ParserGen {
                             let type_name = self.get_info_type(&infos, &infos[0]);
                             //src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
                             let top_parent = self.parsing_table.get_top_parent(v);
-                            src.push(format!("/// [new2] Computed `{}` array in `{} -> {}`",
+                            src.push(format!("/// Computed `{}` array in `{} -> {}`",
                                              grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true),
                                              Symbol::NT(top_parent).to_str(self.get_symbol_table()),
                                              grtree_to_str(t, None, Some(var_oid), self.get_symbol_table(), true),
@@ -1580,7 +1576,7 @@ impl ParserGen {
                             // complex + * items; for ex. A -> (B b)+
                             // src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
                             let top_parent = self.parsing_table.get_top_parent(v);
-                            src.push(format!("/// [new3] Computed `{}` array in `{} -> {}`",
+                            src.push(format!("/// Computed `{}` array in `{} -> {}`",
                                              grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true),
                                              Symbol::NT(top_parent).to_str(self.get_symbol_table()),
                                              grtree_to_str(t, None, Some(var_oid), self.get_symbol_table(), true),
@@ -1589,7 +1585,7 @@ impl ParserGen {
                             src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
                             let mut fact = self.parsing_table.factors[self.var_factors[v as usize][0] as usize].1.symbols().to_vec();
                             fact.pop();
-                            src.push(format!("/// [new4] {}", self.full_factor_str::<false>(first_factor, None, false)));
+                            src.push(format!("/// {}", self.full_factor_str::<false>(first_factor, None, false)));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct Syn{nu}Item {{ {} }}", self.source_infos(&infos, true)));
                         }
@@ -1598,7 +1594,7 @@ impl ParserGen {
                     if is_lform {
                         // let fstr = format!("/// [new5] User-defined type for `{}` {comment1}",
                         //     grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true));
-                        let fstr = format!("/// [new5] User-defined type for {}", self.full_factor_str::<false>(first_factor, None, true));
+                        let fstr = format!("/// User-defined type for {}", self.full_factor_str::<false>(first_factor, None, true));
                         let user_def_type = vec![
                             // format!("// /// User-defined type for `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)),
                             format!("// {fstr}"),
@@ -1616,7 +1612,7 @@ impl ParserGen {
                         // + * item is only a terminal
                         // src.push(format!("/// Computed `{}` {comment1}", self.repeat_factor_str(&vec![Symbol::NT(v)], None)));
                         let top_parent = self.parsing_table.get_top_parent(v);
-                        src.push(format!("/// [new6] Computed `{}` array in `{} -> {}`",
+                        src.push(format!("/// Computed `{}` array in `{} -> {}`",
                                              grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true),
                                              Symbol::NT(top_parent).to_str(self.get_symbol_table()),
                                              grtree_to_str(t, None, Some(var_oid), self.get_symbol_table(), true)));
