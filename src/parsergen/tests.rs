@@ -2540,7 +2540,7 @@ if !matches!(rule_id, RTS(_)) { continue }
                 result_expanded.push(format!("{} -> {}",
                                              Symbol::NT(*v).to_str(symtable),
                                              expanded.iter().map(|fact| factor_to_str(fact, symtable)).join(" | ")));
-                result_full.push(format!("{}", builder.full_factor_str::<false>(f_id, None, false)));
+                result_full.push(format!("{}", builder.full_factor_str(f_id, None, false)));
             }
             let mut result_top_factors = BTreeMap::<VarId, Vec<(VarId, FactorId)>>::new();
             for group in builder.nt_parent.iter().filter(|v| !v.is_empty()) {
