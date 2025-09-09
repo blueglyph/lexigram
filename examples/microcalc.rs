@@ -302,54 +302,54 @@ pub mod microcalc_parser {
 
     #[derive(Debug)]
     pub enum CtxProgram {
-        /// `program -> [function]+`
+        /// `program -> function+`
         Program { plus: SynProgram1 },
     }
     #[derive(Debug)]
     pub enum CtxFunction {
-        /// `function -> def Id ( fun_params ) { [instruction]+ }`
+        /// `function -> "def" Id "(" fun_params ")" "{" instruction+ "}"`
         Function { id: String, fun_params: SynFunParams, plus: SynFunction1 },
     }
     #[derive(Debug)]
     pub enum CtxFunParams {
-        /// `fun_params -> Id [, Id]*`
+        /// `fun_params -> Id ("," Id)*`
         FunParams1 { id: String, star: SynFunParams1 },
         /// `fun_params -> ε`
         FunParams2,
     }
     #[derive(Debug)]
     pub enum CtxInstruction {
-        /// `instruction -> let Id = expr ;`
+        /// `instruction -> "let" Id "=" expr ";"`
         Instruction1 { id: String, expr: SynExpr },
-        /// `instruction -> return expr ;`
+        /// `instruction -> "return" expr ";"`
         Instruction2 { expr: SynExpr },
-        /// `instruction -> print expr ;`
+        /// `instruction -> "print" expr ";"`
         Instruction3 { expr: SynExpr },
     }
     #[derive(Debug)]
     pub enum CtxExpr {
-        /// `expr -> expr * expr`
+        /// `expr -> expr "*" expr`
         Expr1 { expr: [SynExpr; 2] },
-        /// `expr -> expr / expr`
+        /// `expr -> expr <P> "/" expr`
         Expr2 { expr: [SynExpr; 2] },
-        /// `expr -> expr + expr`
+        /// `expr -> expr "+" expr`
         Expr3 { expr: [SynExpr; 2] },
-        /// `expr -> expr - expr`
+        /// `expr -> expr <P> "-" expr`
         Expr4 { expr: [SynExpr; 2] },
-        /// `expr -> ( expr )`
+        /// `expr -> "(" expr ")"`
         Expr5 { expr: SynExpr },
-        /// `expr -> - expr`
+        /// `expr -> "-" expr`
         Expr6 { expr: SynExpr },
         /// `expr -> Num`
         Expr7 { num: String },
-        /// `expr -> Id ( fun_args )`
+        /// `expr -> Id "(" fun_args ")"`
         Expr8 { id: String, fun_args: SynFunArgs },
         /// `expr -> Id`
         Expr9 { id: String },
     }
     #[derive(Debug)]
     pub enum CtxFunArgs {
-        /// `fun_args -> expr [, expr]*`
+        /// `fun_args -> expr ("," expr)*`
         FunArgs1 { expr: SynExpr, star: SynFunArgs1 },
         /// `fun_args -> ε`
         FunArgs2,
@@ -369,16 +369,16 @@ pub mod microcalc_parser {
     // #[derive(Debug, PartialEq)] pub struct SynExpr();
     // /// User-defined type for `fun_args`
     // #[derive(Debug, PartialEq)] pub struct SynFunArgs();
-    /// Computed `[function]+` array in `program ->  ► [function]+ ◄ `
+    /// Computed `function+` array in `program ->  ►► function+ ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynProgram1(pub Vec<SynFunction>);
-    /// Computed `[instruction]+` array in `function -> def Id ( fun_params ) {  ► [instruction]+ ◄  }`
+    /// Computed `instruction+` array in `function -> "def" Id "(" fun_params ")" "{"  ►► instruction+ ◄◄  "}"`
     #[derive(Debug, PartialEq)]
     pub struct SynFunction1(pub Vec<SynInstruction>);
-    /// Computed `[, Id]*` array in `fun_params -> Id  ► [, Id]* ◄ `
+    /// Computed `("," Id)*` array in `fun_params -> Id  ►► ("," Id)* ◄◄  | ε`
     #[derive(Debug, PartialEq)]
     pub struct SynFunParams1(pub Vec<String>);
-    /// Computed `[, expr]*` array in `fun_args -> expr  ► [, expr]* ◄ `
+    /// Computed `("," expr)*` array in `fun_args -> expr  ►► ("," expr)* ◄◄  | ε`
     #[derive(Debug, PartialEq)]
     pub struct SynFunArgs1(pub Vec<SynExpr>);
 

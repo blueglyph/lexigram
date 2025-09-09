@@ -39,7 +39,7 @@ pub enum CtxFile {
 }
 #[derive(Debug)]
 pub enum CtxHeader {
-    /// `header -> grammar Id ;`
+    /// `header -> "grammar" Id ";"`
     Header { id: String },
 }
 #[derive(Debug)]
@@ -51,9 +51,9 @@ pub enum CtxRules {
 }
 #[derive(Debug)]
 pub enum CtxRule {
-    /// `rule -> rule_name : prod ;`
+    /// `rule -> rule_name ":" prod ";"`
     Rule1 { rule_name: SynRuleName, prod: SynProd },
-    /// `rule -> rule_name : prod EOF ;`
+    /// `rule -> rule_name ":" prod "EOF" ";"`
     Rule2 { rule_name: SynRuleName, prod: SynProd },
 }
 #[derive(Debug)]
@@ -65,21 +65,21 @@ pub enum CtxRuleName {
 pub enum CtxProd {
     /// `prod -> prod_term`
     Prod1 { prod_term: SynProdTerm },
-    /// `prod -> prod | prod_term`
+    /// `prod -> prod "|" prod_term`
     Prod2 { prod: SynProd, prod_term: SynProdTerm },
 }
 #[derive(Debug)]
 pub enum CtxProdTerm {
-    /// `prod_term -> [prod_factor]*`
+    /// `prod_term -> prod_factor*`
     ProdTerm { star: SynProdTerm1 },
 }
 #[derive(Debug)]
 pub enum CtxProdFactor {
-    /// `prod_factor -> prod_atom +`
+    /// `prod_factor -> prod_atom "+"`
     ProdFactor1 { prod_atom: SynProdAtom },
-    /// `prod_factor -> prod_atom ?`
+    /// `prod_factor -> prod_atom "?"`
     ProdFactor2 { prod_atom: SynProdAtom },
-    /// `prod_factor -> prod_atom *`
+    /// `prod_factor -> prod_atom "*"`
     ProdFactor3 { prod_atom: SynProdAtom },
     /// `prod_factor -> prod_atom`
     ProdFactor4 { prod_atom: SynProdAtom },
@@ -90,11 +90,11 @@ pub enum CtxProdAtom {
     ProdAtom1 { id: String },
     /// `prod_atom -> Lform`
     ProdAtom2 { lform: String },
-    /// `prod_atom -> <R>`
+    /// `prod_atom -> "<R>"`
     ProdAtom3,
-    /// `prod_atom -> <P>`
+    /// `prod_atom -> "<P>"`
     ProdAtom4,
-    /// `prod_atom -> ( prod )`
+    /// `prod_atom -> "(" prod ")"`
     ProdAtom5 { prod: SynProd },
 }
 
@@ -118,7 +118,7 @@ pub enum CtxProdAtom {
 // #[derive(Debug, PartialEq)] pub struct SynProdFactor();
 // /// User-defined type for `prod_atom`
 // #[derive(Debug, PartialEq)] pub struct SynProdAtom();
-/// Computed `[prod_factor]*` array in `prod_term ->  ► [prod_factor]* ◄ `
+/// Computed `prod_factor*` array in `prod_term ->  ►► prod_factor* ◄◄ `
 #[derive(Debug, PartialEq)]
 pub struct SynProdTerm1(pub Vec<SynProdFactor>);
 

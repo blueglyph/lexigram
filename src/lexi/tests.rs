@@ -238,7 +238,7 @@ fn type_size() {
 #[test]
 fn lexiparser_source() {
     // CAUTION! Setting this to 'true' modifies the validation file with the current result
-    const REPLACE_SOURCE: bool = false;
+    const REPLACE_SOURCE: bool = true;
 
     const VERBOSE: bool = false;
     const FILENAME: &str = "tests/out/lexiparser.rs";

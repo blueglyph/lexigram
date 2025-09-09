@@ -37,9 +37,9 @@ pub(crate) mod lexiparser {
 
     #[derive(Debug)]
     pub enum CtxFile {
-        /// `file -> header [file_item]*`
+        /// `file -> header file_item*`
         File1 { header: SynHeader, star: SynFile1 },
-        /// `file -> [file_item]*`
+        /// `file -> file_item*`
         File2 { star: SynFile1 },
     }
     #[derive(Debug)]
@@ -53,48 +53,48 @@ pub(crate) mod lexiparser {
     }
     #[derive(Debug)]
     pub enum CtxHeader {
-        /// `header -> lexicon Id ;`
+        /// `header -> "lexicon" Id ";"`
         Header { id: String },
     }
     #[derive(Debug)]
     pub enum CtxDeclaration {
-        /// `declaration -> mode Id ;`
+        /// `declaration -> "mode" Id ";"`
         Declaration { id: String },
     }
     #[derive(Debug)]
     pub enum CtxOption {
-        /// `option -> channels { Id [, Id]* }`
+        /// `option -> "channels" "{" Id ("," Id)* "}"`
         Option { id: String, star: SynOption1 },
     }
     #[derive(Debug)]
     pub enum CtxRule {
-        /// `rule -> fragment Id : match ;`
+        /// `rule -> "fragment" Id ":" match ";"`
         Rule1 { id: String, match1: SynMatch },
-        /// `rule -> Id : match -> actions ;`
+        /// `rule -> Id ":" match "->" actions ";"`
         Rule2 { id: String, match1: SynMatch, actions: SynActions },
-        /// `rule -> Id : match ;`
+        /// `rule -> Id ":" match ";"`
         Rule3 { id: String, match1: SynMatch },
     }
     #[derive(Debug)]
     pub enum CtxActions {
-        /// `actions -> action [, action]*`
+        /// `actions -> action ("," action)*`
         Actions { action: SynAction, star: SynActions1 },
     }
     #[derive(Debug)]
     pub enum CtxAction {
-        /// `action -> mode ( Id )`
+        /// `action -> "mode" "(" Id ")"`
         Action1 { id: String },
-        /// `action -> push ( Id )`
+        /// `action -> "push" "(" Id ")"`
         Action2 { id: String },
-        /// `action -> pop`
+        /// `action -> "pop"`
         Action3,
-        /// `action -> skip`
+        /// `action -> "skip"`
         Action4,
-        /// `action -> more`
+        /// `action -> "more"`
         Action5,
-        /// `action -> type ( Id )`
+        /// `action -> "type" "(" Id ")"`
         Action6 { id: String },
-        /// `action -> channel ( Id )`
+        /// `action -> "channel" "(" Id ")"`
         Action7 { id: String },
     }
     #[derive(Debug)]
@@ -104,34 +104,34 @@ pub(crate) mod lexiparser {
     }
     #[derive(Debug)]
     pub enum CtxAltItems {
-        /// `alt_items -> alt_item [| alt_item]*`
+        /// `alt_items -> alt_item ("|" alt_item)*`
         AltItems { alt_item: SynAltItem, star: SynAltItems1 },
     }
     #[derive(Debug)]
     pub enum CtxAltItem {
-        /// `alt_item -> [repeat_item]+`
+        /// `alt_item -> repeat_item+`
         AltItem { plus: SynAltItem1 },
     }
     #[derive(Debug)]
     pub enum CtxRepeatItem {
-        /// `repeat_item -> item ?`
+        /// `repeat_item -> item "?"`
         RepeatItem1 { item: SynItem },
         /// `repeat_item -> item`
         RepeatItem2 { item: SynItem },
-        /// `repeat_item -> item + ?`
+        /// `repeat_item -> item "+" "?"`
         RepeatItem3 { item: SynItem },
-        /// `repeat_item -> item +`
+        /// `repeat_item -> item "+"`
         RepeatItem4 { item: SynItem },
-        /// `repeat_item -> item * ?`
+        /// `repeat_item -> item "*" "?"`
         RepeatItem5 { item: SynItem },
-        /// `repeat_item -> item *`
+        /// `repeat_item -> item "*"`
         RepeatItem6 { item: SynItem },
     }
     #[derive(Debug)]
     pub enum CtxItem {
-        /// `item -> ( alt_items )`
+        /// `item -> "(" alt_items ")"`
         Item1 { alt_items: SynAltItems },
-        /// `item -> ~ item`
+        /// `item -> "~" item`
         Item2 { item: SynItem },
         /// `item -> Id`
         Item3 { id: String },
@@ -139,16 +139,16 @@ pub(crate) mod lexiparser {
         Item4 { strlit: String },
         /// `item -> char_set`
         Item5 { char_set: SynCharSet },
-        /// `item -> CharLit .. CharLit`
+        /// `item -> CharLit ".." CharLit`
         Item6 { charlit: [String; 2] },
         /// `item -> CharLit`
         Item7 { charlit: String },
     }
     #[derive(Debug)]
     pub enum CtxCharSet {
-        /// `char_set -> [ [char_set_one]+ ]`
+        /// `char_set -> "[" char_set_one+ "]"`
         CharSet1 { plus: SynCharSet1 },
-        /// `char_set -> .`
+        /// `char_set -> "."`
         CharSet2,
         /// `char_set -> FixedSet`
         CharSet3 { fixedset: String },
@@ -157,7 +157,7 @@ pub(crate) mod lexiparser {
     pub enum CtxCharSetOne {
         /// `char_set_one -> FixedSet`
         CharSetOne1 { fixedset: String },
-        /// `char_set_one -> SetChar - SetChar`
+        /// `char_set_one -> SetChar "-" SetChar`
         CharSetOne2 { setchar: [String; 2] },
         /// `char_set_one -> SetChar`
         CharSetOne3 { setchar: String },
@@ -195,22 +195,22 @@ pub(crate) mod lexiparser {
     // #[derive(Debug, PartialEq)] pub struct SynCharSet();
     // /// User-defined type for `char_set_one`
     // #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
-    /// Computed `[file_item]*` array in `file -> header  ► [file_item]* ◄ `, array in `file ->  ► [file_item]* ◄ `
+    /// Computed `file_item*` array in `file -> header  ►► file_item* ◄◄  |  ►► file_item* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynFile1(pub Vec<SynFileItem>);
-    /// Computed `[, Id]*` array in `option -> channels { Id  ► [, Id]* ◄  }`
+    /// Computed `("," Id)*` array in `option -> "channels" "{" Id  ►► ("," Id)* ◄◄  "}"`
     #[derive(Debug, PartialEq)]
     pub struct SynOption1(pub Vec<String>);
-    /// Computed `[, action]*` array in `actions -> action  ► [, action]* ◄ `
+    /// Computed `("," action)*` array in `actions -> action  ►► ("," action)* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynActions1(pub Vec<SynAction>);
-    /// Computed `[| alt_item]*` array in `alt_items -> alt_item  ► [| alt_item]* ◄ `
+    /// Computed `("|" alt_item)*` array in `alt_items -> alt_item  ►► ("|" alt_item)* ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynAltItems1(pub Vec<SynAltItem>);
-    /// Computed `[repeat_item]+` array in `alt_item ->  ► [repeat_item]+ ◄ `
+    /// Computed `repeat_item+` array in `alt_item ->  ►► repeat_item+ ◄◄ `
     #[derive(Debug, PartialEq)]
     pub struct SynAltItem1(pub Vec<SynRepeatItem>);
-    /// Computed `[char_set_one]+` array in `char_set -> [  ► [char_set_one]+ ◄  ]`
+    /// Computed `char_set_one+` array in `char_set -> "["  ►► char_set_one+ ◄◄  "]" | "." | FixedSet`
     #[derive(Debug, PartialEq)]
     pub struct SynCharSet1(pub Vec<SynCharSetOne>);
 
