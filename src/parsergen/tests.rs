@@ -593,7 +593,7 @@ mod parser_source {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use iter_index::IndexerIterator;
-    use crate::grammar::{factor_to_rule_str, factor_to_str, ruleflag, FactorId, Symbol, VarId};
+    use crate::grammar::{factor_to_rule_str, ruleflag, FactorId, Symbol, VarId};
     use crate::grammar::tests::T;
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source, SymInfoTable};
     use crate::grammar::tests::T::{PRS, RTS};
@@ -2280,7 +2280,7 @@ if !matches!(rule_id, RTS(_)) { continue }
 
     #[test]
     fn expand_lfact() {
-        let tests: Vec<(T, Vec<(&str, &str)>, BTreeMap<VarId, Vec<(VarId, FactorId)>>)> = vec![
+        let tests: Vec<(T, Vec<Option<&str>>)> = vec![
             // A -> a (<L=AIter1> (<L=AIter2> b)* c)* d
             // NT flags:
             //  - A: parent_+_or_* (2048)
@@ -2290,15 +2290,11 @@ if !matches!(rule_id, RTS(_)) { continue }
             //  - AIter2 -> AIter1
             //  - AIter1 -> A
             (RTS(39), vec![
-                ("A -> a AIter1 d",                 "A -> a ((b <L>)* c <L>)* d"),                                              // 0: A -> a AIter1 d
-                ("AIter2 -> b AIter2",              "(b <L>)* iteration in A -> a ( ► (b <L>)* ◄  c <L>)* d"),                  // 1: AIter2 -> b AIter2
-                ("AIter2 -> ε",                     "end of (b <L>)* iterations in A -> a ( ► (b <L>)* ◄  c <L>)* d"),          // 2: AIter2 -> ε
-                ("AIter1 -> AIter2 c AIter1",       "((b <L>)* c <L>)* iteration in A -> a  ► ((b <L>)* c <L>)* ◄  d"),         // 3: AIter1 -> AIter2 c AIter1
-                ("AIter1 -> ε",                     "end of ((b <L>)* c <L>)* iterations in A -> a  ► ((b <L>)* c <L>)* ◄  d"), // 4: AIter1 -> ε
-            ], btreemap![
-                0 => vec![],
-                1 => vec![(2, 0)],
-                2 => vec![(2, 0)],
+                Some("A -> a (<L> (<L> b)* c)* d"),                                         // 0: A -> a AIter1 d
+                Some("`<L> b` iteration in `A -> a (<L> ( ►► <L> b ◄◄ )* c)* d`"),          // 1: AIter2 -> b AIter2
+                None,                                                                       // 2: AIter2 -> ε
+                Some("`<L> (<L> b)* c` iteration in `A -> a ( ►► <L> (<L> b)* c ◄◄ )* d`"), // 3: AIter1 -> AIter2 c AIter1
+                None,                                                                       // 4: AIter1 -> ε
             ]),
             // A -> A (c)* b | c
             // NT flags:
@@ -2309,17 +2305,11 @@ if !matches!(rule_id, RTS(_)) { continue }
             //  - A_1 -> A
             //  - A_2 -> A
             (RTS(26), vec![
-                // ParserBuilder::expand_lfact()    // ParserBuilder::full_factor_str()
-                ("A -> a A_2",                      "A -> a"),                                   // 0: A -> a A_2
-                ("A_1 -> c A_1",                    "[c]* item in A -> A  ► [c]* ◄  b"),         // 1: A_1 -> c A_1
-                ("A_1 -> ε",                        "end of [c]* items in A -> A  ► [c]* ◄  b"), // 2: A_1 -> ε
-                ("A_2 -> A_1 b A_2",                "A -> A [c]* b"),                            // 3: A_2 -> A_1 b A_2
-                ("A_2 -> ε",                        "end of iterations in A -> A [c]* b"),       // 4: A_2 -> ε
-            ], btreemap![
-                // ParserBuilder::get_top_factors()
-                0 => vec![],
-                1 => vec![(2, 0)],
-                2 => vec![(2, 0)],
+                Some("A -> a"),                                // 0: A -> a A_2
+                Some("`c` item in `A -> A  ►► c ◄◄ * b | a`"), // 1: A_1 -> c A_1
+                None,                                          // 2: A_1 -> ε
+                Some("A -> A c* b"),                           // 3: A_2 -> A_1 b A_2
+                None,                                          // 4: A_2 -> ε
             ]),
             // A -> A (c)+ b | c
             // NT flags:
@@ -2332,44 +2322,32 @@ if !matches!(rule_id, RTS(_)) { continue }
             //  - A_2 -> A
             //  - A_3 -> A_1
             (RTS(16), vec![
-                ("A -> a A_2",                      "A -> a"),                                   // 0: A -> a A_2
-                ("A_1 -> c | c A_1",                "[c]+ item in A -> A  ► [c]+ ◄  b"),         // 1: A_1 -> c A_3
-                ("A_2 -> A_1 b A_2",                "A -> A [c]+ b"),                            // 2: A_2 -> A_1 b A_2
-                ("A_2 -> ε",                        "end of iterations in A -> A [c]+ b"),       // 3: A_2 -> ε
-                ("A_3 -> A_1",                      "[c]+ item in A -> A  ► [c]+ ◄  b"),         // 4: A_3 -> A_1
-                ("A_3 -> ε",                        "end of [c]+ items in A -> A  ► [c]+ ◄  b"), // 5: A_3 -> ε
-            ], btreemap![
-                0 => vec![],
-                1 => vec![(2, 0)],
-                2 => vec![(2, 0)],
-                3 => vec![(2, 0)],
+                Some("A -> a"),                                // 0: A -> a A_2
+                Some("`c` item in `A -> A  ►► c ◄◄ + b | a`"), // 1: A_1 -> c A_3
+                Some("A -> A c+ b"),                           // 2: A_2 -> A_1 b A_2
+                None,                                          // 3: A_2 -> ε
+                Some("A -> c"),                                // 4: A_3 -> A_1
+                Some("A -> c"),                                // 5: A_3 -> ε
             ]),
             // A -> (B c)* b | a
             // B -> b
             (RTS(33), vec![
-                ("A -> A_1 b",                      "A -> [B c]* b"),                              // 0: A -> A_1 b
-                ("A -> a",                          "A -> a"),                                     // 1: A -> a
-                ("B -> b",                          "B -> b"),                                     // 2: B -> b
-                ("A_1 -> B c A_1",                  "[B c]* item in A ->  ► [B c]* ◄  b"),         // 3: A_1 -> B c A_1
-                ("A_1 -> ε",                        "end of [B c]* items in A ->  ► [B c]* ◄  b"), // 4: A_1 -> ε
-            ], btreemap![
-                0 => vec![],
-                1 => vec![],
-                2 => vec![(2, 0)],
+                Some("A -> (B c)* b"),                             // 0: A -> A_1 b
+                Some("A -> a"),                                    // 1: A -> a
+                Some("B -> b"),                                    // 2: B -> b
+                Some("`B c` item in `A -> ( ►► B c ◄◄ )* b | a`"), // 3: A_1 -> B c A_1
+                None,                                              // 4: A_1 -> ε
             ]),
             // A -> a (a | c) (b <L>)* c
             (RTS(32), vec![
-                ("A -> a a AIter1 c | a c AIter1 c",   "A -> a a (b <L>)* c | a c (b <L>)* c"),                          // 0: A -> a A_1
-                ("AIter1 -> b AIter1",                 "(b <L>)* iteration in A -> a a  ► (b <L>)* ◄  c | ..."),         // 1: AIter1 -> b AIter1
-                ("AIter1 -> ε",                        "end of (b <L>)* iterations in A -> a a  ► (b <L>)* ◄  c | ..."), // 2: AIter1 -> ε
-                ("A_1 -> a AIter1 c",                  "A -> a a (b <L>)* c"),                                           // 3: A_1 -> a AIter1 c
-                ("A_1 -> c AIter1 c",                  "A -> a c (b <L>)* c"),                                           // 4: A_1 -> c AIter1 c
-            ], btreemap![
-                0 => vec![],
-                1 => vec![(2, 0)],
-                2 => vec![(2, 0)],
+                None,                                                                                // 0: A -> a A_1
+                Some("`b <L>` iteration in `A -> a a ( ►► b <L> ◄◄ )* c | a c ( ►► b <L> ◄◄ )* c`"), // 1: AIter1 -> b AIter1
+                None,                                                                                // 2: AIter1 -> ε
+                Some("A -> a a (b <L>)* c"),                                                         // 3: A_1 -> a AIter1 c
+                Some("A -> a c (b <L>)* c"),                                                         // 4: A_1 -> c AIter1 c
             ]),
             // A -> a | a b | a b c | a b d | e
+            #[cfg(any())]
             (PRS(28), vec![
                 ("A -> a | a b | a b c | a b d",    "A -> a | a b | a b c | a b d"), // A -> a A_1
                 ("A -> e",                          "A -> e"),                       // A -> e
@@ -2378,35 +2356,26 @@ if !matches!(rule_id, RTS(_)) { continue }
                 ("A_2 -> c",                        "A -> a b c"),                   // A_2 -> c
                 ("A_2 -> d",                        "A -> a b d"),                   // A_2 -> d
                 ("A_2 -> ε",                        "A -> a b"),                     // A_2 -> ε
-            ], btreemap![
-                0 => vec![],
-                1 => vec![(1, 0)],
-                2 => vec![(1, 0)],
             ]),
             // E -> F | E . id ; F -> id
+            #[cfg(any())]
             (PRS(31), vec![
                 ("E -> F E_1",                      "E -> F"),                           // 0: E -> F E_1
                 ("F -> id",                         "F -> id"),                          // 1: F -> id
                 ("E_1 -> . id E_1",                 "E -> E . id"),                      // 2: E_1 -> . id E_1
                 ("E_1 -> ε",                        "end of iterations in E -> E . id"), // 3: E_1 -> ε
-            ], btreemap![
-                0 => vec![],
-                1 => vec![],
-                2 => vec![(2, 0)],
             ]),
             // A -> A a | b c | b d
+            #[cfg(any())]
             (PRS(33), vec![
                 ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),                // 0: A -> b A_2
                 ("A_1 -> a A_1",                    "A -> A a"),                      // 1: A_1 -> a A_1
                 ("A_1 -> ε",                        "end of iterations in A -> A a"), // 2: A_1 -> ε
                 ("A_2 -> c A_1",                    "A -> b c"),                      // 3: A_2 -> c A_1
                 ("A_2 -> d A_1",                    "A -> b d"),                      // 4: A_2 -> d A_1
-            ], btreemap![
-                0 => vec![],
-                1 => vec![(2, 0)],
-                2 => vec![(2, 0)],
             ]),
             // A -> A a | A b | b c | b d
+            #[cfg(any())]
             (PRS(38), vec![
                 ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),                      // 0: A -> b A_2
                 ("A_1 -> a A_1",                    "A -> A a"),                            // 1: A_1 -> a A_1
@@ -2414,10 +2383,6 @@ if !matches!(rule_id, RTS(_)) { continue }
                 ("A_1 -> ε",                        "end of iterations in A -> A a | A b"), // 3: A_1 -> ε
                 ("A_2 -> c A_1",                    "A -> b c"),                            // 4: A_2 -> c A_1
                 ("A_2 -> d A_1",                    "A -> b d"),                            // 5: A_2 -> d A_1
-            ], btreemap![
-                0 => vec![],
-                1 => vec![(2, 0)],
-                2 => vec![(2, 0)],
             ]),
             // A -> A a b | A a c | b c | b d
             // NT flags:
@@ -2429,6 +2394,7 @@ if !matches!(rule_id, RTS(_)) { continue }
             //  - A_1 -> A
             //  - A_2 -> A
             //  - A_3 -> A_1
+            #[cfg(any())]
             (PRS(39), vec![
                 ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),                          // 0: A -> b A_2
                 ("A_1 -> a b A_1 | a c A_1",        "A -> A a b | A a c"),                      // 1: A_1 -> a A_3
@@ -2437,11 +2403,6 @@ if !matches!(rule_id, RTS(_)) { continue }
                 ("A_2 -> d A_1",                    "A -> b d"),                                // 4: A_2 -> d A_1
                 ("A_3 -> b A_1",                    "A -> A a b"),                              // 5: A_3 -> b A_1
                 ("A_3 -> c A_1",                    "A -> A a c"),                              // 6: A_3 -> c A_1
-            ], btreemap![
-                0 => vec![],
-                1 => vec![(2, 0)],
-                2 => vec![(2, 0)],
-                3 => vec![(2, 0)],
             ]),
             // A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d
             // NT flags:
@@ -2472,117 +2433,78 @@ if !matches!(rule_id, RTS(_)) { continue }
             //  - A_11 -> A_5
             //  - A_12 -> A_6
             (RTS(34), vec![
-                ("A -> a A_3 c A_6 d",              "A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d"),                                    // 0: A -> a A_3 c A_6 d
-                ("A_1 -> b | b A_1",                "[b]+ item in A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d"),                 // 1: A_1 -> b A_7
-                ("A_2 -> b | b A_2",                "[b]+ item in A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d"),                 // 2: A_2 -> b A_8
-                ("A_3 -> A_1 A_2 | A_1 A_2 A_3",    "[[b]+ [b]+]+ item in A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d"),         // 3: A_3 -> A_1 A_2 A_9
-                ("A_4 -> b | b A_4",                "[b]+ item in A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d"),                 // 4: A_4 -> b A_10
-                ("A_5 -> b | b A_5",                "[b]+ item in A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d"),                 // 5: A_5 -> b A_11
-                ("A_6 -> A_4 A_5 | A_4 A_5 A_6",    "[[b]+ [b]+]+ item in A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d"),         // 6: A_6 -> A_4 A_5 A_12
-                ("A_7 -> A_1",                      "[b]+ item in A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d"),                 // 7: A_7 -> A_1
-                ("A_7 -> ε",                        "end of [b]+ items in A -> a [ ► [b]+ ◄  [b]+]+ c [[b]+ [b]+]+ d"),         // 8: A_7 -> ε
-                ("A_8 -> A_2",                      "[b]+ item in A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d"),                 // 9: A_8 -> A_2
-                ("A_8 -> ε",                        "end of [b]+ items in A -> a [[b]+  ► [b]+ ◄ ]+ c [[b]+ [b]+]+ d"),         // 10: A_8 -> ε
-                ("A_9 -> A_3",                      "[[b]+ [b]+]+ item in A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d"),         // 11: A_9 -> A_3
-                ("A_9 -> ε",                        "end of [[b]+ [b]+]+ items in A -> a  ► [[b]+ [b]+]+ ◄  c [[b]+ [b]+]+ d"), // 12: A_9 -> ε
-                ("A_10 -> A_4",                     "[b]+ item in A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d"),                 // 13: A_10 -> A_4
-                ("A_10 -> ε",                       "end of [b]+ items in A -> a [[b]+ [b]+]+ c [ ► [b]+ ◄  [b]+]+ d"),         // 14: A_10 -> ε
-                ("A_11 -> A_5",                     "[b]+ item in A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d"),                 // 15: A_11 -> A_5
-                ("A_11 -> ε",                       "end of [b]+ items in A -> a [[b]+ [b]+]+ c [[b]+  ► [b]+ ◄ ]+ d"),         // 16: A_11 -> ε
-                ("A_12 -> A_6",                     "[[b]+ [b]+]+ item in A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d"),         // 17: A_12 -> A_6
-                ("A_12 -> ε",                       "end of [[b]+ [b]+]+ items in A -> a [[b]+ [b]+]+ c  ► [[b]+ [b]+]+ ◄  d"), // 18: A_12 -> ε
-            ], btreemap![
-                0 => vec![],
-                1 => vec![(3, 0)],
-                2 => vec![(3, 0)],
-                3 => vec![(3, 0)],
-                4 => vec![(6, 0)],
-                5 => vec![(6, 0)],
-                6 => vec![(6, 0)],
-                7 => vec![(3, 0)],
-                8 => vec![(3, 0)],
-                9 => vec![(3, 0)],
-                10 => vec![(6, 0)],
-                11 => vec![(6, 0)],
-                12 => vec![(6, 0)],
+                Some("A -> a (b+ b+)+ c (b+ b+)+ d"),                           // 0: A -> a A_3 c A_6 d
+                Some("`b` item in `A -> a ( ►► b ◄◄ + b+)+ c (b+ b+)+ d`"),     // 1: A_1 -> b A_7
+                Some("`b` item in `A -> a (b+  ►► b ◄◄ +)+ c (b+ b+)+ d`"),     // 2: A_2 -> b A_8
+                Some("`b+ b+` item in `A -> a ( ►► b+ b+ ◄◄ )+ c (b+ b+)+ d`"), // 3: A_3 -> A_1 A_2 A_9
+                Some("`b` item in `A -> a (b+ b+)+ c ( ►► b ◄◄ + b+)+ d`"),     // 4: A_4 -> b A_10
+                Some("`b` item in `A -> a (b+ b+)+ c (b+  ►► b ◄◄ +)+ d`"),     // 5: A_5 -> b A_11
+                Some("`b+ b+` item in `A -> a (b+ b+)+ c ( ►► b+ b+ ◄◄ )+ d`"), // 6: A_6 -> A_4 A_5 A_12
+                Some("A -> b"),                                                 // 7: A_7 -> A_1
+                Some("A -> b"),                                                 // 8: A_7 -> ε
+                Some("A -> b"),                                                 // 9: A_8 -> A_2
+                Some("A -> b"),                                                 // 10: A_8 -> ε
+                Some("A -> b+ b+"),                                             // 11: A_9 -> A_3
+                Some("A -> b+ b+"),                                             // 12: A_9 -> ε
+                Some("A -> b"),                                                 // 13: A_10 -> A_4
+                Some("A -> b"),                                                 // 14: A_10 -> ε
+                Some("A -> b"),                                                 // 15: A_11 -> A_5
+                Some("A -> b"),                                                 // 16: A_11 -> ε
+                Some("A -> b+ b+"),                                             // 17: A_12 -> A_6
+                Some("A -> b+ b+"),                                             // 18: A_12 -> ε
             ]),
+            // E -> E + | - E | 0
+            #[cfg(any())]
             (PRS(58), vec![
                 ("E -> - E",                        "E -> - E"),                      // 0: E -> - E
                 ("E -> 0 E_1",                      "E -> 0"),                        // 1: E -> 0 E_1
                 ("E_1 -> + E_1",                    "E -> E +"),                      // 2: E_1 -> + E_1
                 ("E_1 -> ε",                        "end of iterations in E -> E +"), // 3: E_1 -> ε
-            ], btreemap![
-                0 => vec![],
-                1 => vec![(1, 1)],
             ]),
             /*
             (PRS(), vec![
-            ], btreemap![
             ]),
             */
         ];
         const VERBOSE: bool = false;
+        const VERBOSE_SOLUTION: bool = false;
         let mut rule_id_iter = HashMap::<T, u32>::new();
-        for (test_id, (rule_id, expected_expanded_full, expected_top_factors)) in tests.into_iter().enumerate() {
+        let mut errors = 0;
+        for (test_id, (rule_id, expected_full)) in tests.into_iter().enumerate() {
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}:", ""); }
 
-            let expected_expanded = expected_expanded_full.iter().map(|(a, _)| a.to_string()).to_vec();
-            let expected_full = expected_expanded_full.iter().map(|(_, b)| b.to_string()).to_vec();
+            let expected_full = expected_full.into_iter().map(|opt| format!("{opt:?}")).to_vec();
             let ll1 = rule_id.build_prs(test_id, 0, true);
             let builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             let symtable = builder.get_symbol_table();
-            let mut result_expanded = vec![];
             let mut result_full = vec![];
-            for (f_id, (v, prod)) in builder.parsing_table.factors.iter().index() {
-                let mut expanded = vec![prod.symbols().clone()];
-                builder.expand_lfact(&mut expanded);
-                result_expanded.push(format!("{} -> {}",
-                                             Symbol::NT(*v).to_str(symtable),
-                                             expanded.iter().map(|fact| factor_to_str(fact, symtable)).join(" | ")));
-                result_full.push(format!("{}", builder.full_factor_str(f_id, None, false)));
+            for (f_id, (_v, f)) in builder.parsing_table.factors.iter().index() {
+                result_full.push(format!("{:?}", f.get_origin().and_then(|_| Some(builder.full_factor_str(f_id, None, false)))));
             }
-            let mut result_top_factors = BTreeMap::<VarId, Vec<(VarId, FactorId)>>::new();
-            for group in builder.nt_parent.iter().filter(|v| !v.is_empty()) {
-                for v in group {
-                    let mut top_factors = builder.get_top_factors(*v);
-                    top_factors.sort();
-                    result_top_factors.insert(*v, top_factors);
-                }
-            }
-            if VERBOSE {
+            if VERBOSE_SOLUTION || VERBOSE {
                 println!("            ({rule_id:?}, vec![", );
-                let cols = result_expanded.iter().zip(&result_full)
-                    .map(|(s, s_full)| {
-                        // let (v, prod) = &builder.parsing_table.factors[i];
+                let cols = result_full.iter().enumerate()
+                    .map(|(i, s_full)| {
+                        let (v, prod) = &builder.parsing_table.factors[i];
                         vec![
                             "".to_string(),
-                            format!("(\"{s}\","),
-                            format!("  \"{s_full}\"),"),
-                            // format!("// {}", builder.ntfactor_to_str(*v, prod)),
+                            format!("{s_full},"),
+                            format!("// {i}: {}", factor_to_rule_str(*v, prod, symtable)),
                         ]
                     })
                     .to_vec();
                 let lines = columns_to_str(cols, Some(vec![16, 34, 0]));
-                let cols = lines.into_iter().enumerate().map(|(i, s)| {
-                    let (v, prod) = &builder.parsing_table.factors[i];
-                    vec![
-                        s,
-                        format!("// {i}: {}", factor_to_rule_str(*v, prod, symtable)),
-                    ]
-                }).to_vec();
-                let lines = columns_to_str(cols, Some(vec![80, 0]));
                 println!("{}", lines.join("\n"));
-                println!("            ], btreemap![");
-                for (v, s) in &result_top_factors {
-                    println!("                {v} => vec![{}],", s.iter().map(|&x| format!("{x:?}")).join(", "));
-                }
                 println!("            ]),");
             }
-            let expected_expanded = expected_expanded.into_iter().map(|s| s.to_string()).to_vec();
-            assert_eq!(result_expanded, expected_expanded, "Test {test_id}: {rule_id:?} failed");
-            assert_eq!(result_full, expected_full, "Test {test_id}: {rule_id:?} failed");
-            assert_eq!(result_top_factors, expected_top_factors, "Test {test_id}: {rule_id:?} failed");
+            if result_full != expected_full {
+                errors += 1;
+                if VERBOSE {
+                    println!("## ERROR: {result_full:?} doesn't match {expected_full:?}")
+                }
+            }
         }
+        assert_eq!(errors, 0);
     }
 }

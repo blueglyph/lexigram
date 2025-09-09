@@ -5,7 +5,7 @@ use std::fmt::{Display, Formatter};
 use std::fs::File;
 use std::io::{BufWriter, Write};
 use iter_index::IndexerIterator;
-use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, ProdFactor, factor_to_rule_str, grtree_to_str};
+use crate::grammar::{LLParsingTable, ProdRuleSet, ruleflag, RuleTreeSet, Symbol, VarId, FactorId, NTConversion, ProdFactor, grtree_to_str};
 use crate::{CollectJoin, General, LL1, Normalized, SourceSpacer, SymbolTable, SymInfoTable, NameTransformer, NameFixer, columns_to_str, StructLibs, indent_source, FixedSymTable, HasBuildErrorSource, BuildError, BuildErrorSource};
 use crate::grammar::origin::{FromPRS, Origin};
 use crate::log::{BufLog, BuildFrom, LogMsg, LogReader, LogStatus, Logger, TryBuildFrom};
@@ -396,104 +396,6 @@ impl ParserGen {
             Symbol::NT(nt) => self.nt_value[*nt as usize],
             _ => false
         }
-    }
-
-    /// Expands all the parents of left factorization by replacing the NTs on the right that are CHILD_L_FACTOR
-    /// with their factors. Proceeds until there are no more substitutions. Removes the empty symbols unless
-    /// they're alone in a factor.
-    ///
-    /// Example:
-    /// ```text
-    /// - A -> a A_1
-    /// - A -> e
-    /// - A_1 -> b A_2
-    /// - A_1 -> ε
-    /// - A_2 -> c
-    /// - A_2 -> d
-    /// - A_2 -> ε
-    ///
-    /// expand_lfact(a b A_2) -> a b | a b c | a b d
-    /// ```
-    fn expand_lfact(&self, factors: &mut Vec<Vec<Symbol>>) {
-        let mut change = true;
-        while change {
-            change = false;
-            let mut extra = Vec::<Vec<Symbol>>::new();
-            for f in &mut *factors {
-                // we have to complicate in order to please the borrow checker:
-                if matches!(f.last(), Some(Symbol::NT(v)) if self.parsing_table.flags[*v as usize] & ruleflag::CHILD_L_FACTOR != 0) {
-                    let Symbol::NT(child) = f.pop().unwrap() else { panic!() };
-                    let mut exp = self.var_factors[child as usize].iter().map(|child_f| {
-                        let mut new = f.clone();
-                        new.extend(self.parsing_table.factors[*child_f as usize].1.symbols());
-                        new
-                    }).to_vec();
-                    *f = exp.pop().unwrap();
-                    extra.extend(exp);
-                    change = true;
-                }
-            }
-            if change {
-                factors.extend(extra);
-            }
-        }
-        for f in &mut *factors {
-            if matches!(f.last(), Some(Symbol::Empty)) && f.len() > 1 {
-                f.pop();
-            }
-        }
-        factors.sort();
-    }
-
-    /// Finds the factors, in the group parent, that reference the variable `nt`, directly or through intermediate children variables.
-    ///
-    /// Return `(nt_id, factor_id)` couples, where
-    /// - `factor_id` is the factor in the group's parent
-    /// - `nt_id` is the intermediate variable, in that factor, which depends on `nt`.
-    fn get_top_factors(&self, nt: VarId) -> Vec<(VarId, FactorId)> {
-        const VERBOSE: bool = false;
-        let parent = self.parsing_table.get_top_parent(nt);
-        let group_facts = self.get_group_factors(&self.nt_parent[parent as usize]);
-        let mut result = Vec::<(VarId, FactorId)>::new();
-        let mut new = vec![nt];
-        let mut old = HashSet::<VarId>::new();
-        let _symtable = self.get_symbol_table();
-        if VERBOSE {
-            println!("get_top_factors({nt}:{})", Symbol::NT(nt).to_str(_symtable));
-            println!("group_facts = {group_facts:?}");
-        }
-        while !new.is_empty() {
-            if VERBOSE {
-                print!("new = [{}]", new.iter().map(|x| format!("{x}:{}", Symbol::NT(*x).to_str(_symtable))).join(", "));
-                print!(", old = [{}]", old.iter().map(|x| format!("{x}:{}", Symbol::NT(*x).to_str(_symtable))).join(", "));
-            }
-            let goal = new.pop().unwrap();
-            if VERBOSE { println!(" => testing {goal}:{}", Symbol::NT(goal).to_str(_symtable)); }
-            for (v, f) in group_facts.iter().filter(|(v, _)| *v != goal && *v != nt) {
-                if VERBOSE { print!("- {f}: {}: ", factor_to_rule_str(*v, self.parsing_table.factors[*f as usize].1.symbols(), _symtable)); }
-                if old.contains(v) || new.contains(v) {
-                    if VERBOSE { println!(" {} {}", if old.contains(v) { "already visited" } else { "" }, if new.contains(v) { "already in stack" } else { "" })}
-                    continue
-                }
-                if self.parsing_table.factors[*f as usize].1.symbols().iter().any(|s| *s == Symbol::NT(goal)) {
-                    if *v == parent {
-                        if VERBOSE { println!("found top ({goal}, {f})"); }
-                        result.push((goal, *f));
-                        old.insert(goal);
-                    } else {
-                        if !old.contains(v) {
-                            if VERBOSE { println!("found intermediate {v}"); }
-                            new.push(*v);
-                        }
-                    }
-                } else {
-                    if VERBOSE { println!("/"); }
-                }
-            }
-            old.insert(goal);
-        }
-        if VERBOSE { println!("=> result = {result:?}"); }
-        result
     }
 
     fn full_factor_components(&self, f_id: FactorId, emphasis: Option<VarId>) -> (String, String) {
