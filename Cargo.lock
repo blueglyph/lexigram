@@ -42,4 +42,6 @@ dependencies = [
 
 [[package]]
 name = "vectree"
-version = "0.2.2"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c6054a0d9bc1569f330e5bce0dca0838c692a31e968fea0867a0ce02c52cd906"

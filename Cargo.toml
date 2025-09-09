@@ -8,8 +8,7 @@ authors = []
 
 [dependencies]
 iter-index = "1.0.0"
-#vectree = "0.2.2"
-vectree = { path = "../vectree" }
+vectree = "0.2.3"
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
