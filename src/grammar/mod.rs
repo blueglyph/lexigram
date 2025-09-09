@@ -1361,13 +1361,13 @@ pub fn factor_to_rule_str<T: SymInfoTable>(nt: VarId, f: &Vec<Symbol>, symbol_ta
 pub struct ProdFactor {
     v: Vec<Symbol>,
     flags: u32,          // only for GREEDY, L_FORM and R_ASSOC
-    original_factor_id: Option<FactorId>,
+    ambig_factor_id: Option<FactorId>,
     origin: Option<(VarId, usize)>,
 }
 
 impl ProdFactor {
     pub fn new(v: Vec<Symbol>) -> Self {
-        ProdFactor { v, flags: 0, original_factor_id: None, origin: None }
+        ProdFactor { v, flags: 0, ambig_factor_id: None, origin: None }
     }
 
     pub fn with_flags(mut self, flags: u32) -> Self {
@@ -1375,12 +1375,12 @@ impl ProdFactor {
         self
     }
 
-    pub fn with_orig_fid(mut self, original_factor_id: FactorId) -> Self {
-        self.original_factor_id = Some(original_factor_id);
+    pub fn with_ambig_factor_id(mut self, ambig_factor_id: FactorId) -> Self {
+        self.ambig_factor_id = Some(ambig_factor_id);
         self
     }
 
-    pub fn with_orig(mut self, original_var: VarId, original_index: usize) -> Self {
+    pub fn with_origin(mut self, original_var: VarId, original_index: usize) -> Self {
         self.origin = Some((original_var, original_index));
         self
     }
@@ -1389,8 +1389,8 @@ impl ProdFactor {
         &self.v
     }
 
-    pub fn get_original_factor_id(&self) -> Option<FactorId> {
-        self.original_factor_id
+    pub fn get_ambig_factor_id(&self) -> Option<FactorId> {
+        self.ambig_factor_id
     }
 
     pub fn get_origin(&self) -> Option<(VarId, usize)> {
@@ -1422,7 +1422,7 @@ impl ProdFactor {
     }
 
     pub fn to_macro_item(&self) -> String {
-        let mut src = match (self.flags, self.original_factor_id, self.origin) {
+        let mut src = match (self.flags, self.ambig_factor_id, self.origin) {
             (0, None, None) => String::new(),
             (f, None, None) => format!("#{f}, "),
             (f, Some(o), None) => format!("#({f}, {o}), "),
@@ -1556,7 +1556,7 @@ impl LLParsingTable {
 #[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
-    pub(crate) original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
+    pub(crate) ambig_factors: Vec<ProdFactor>,   // ambiguous/l-rec factors before transformation
     pub(crate) origin: Origin<VarId, FromPRS>,
     num_nt: usize,
     num_t: usize,
@@ -2141,9 +2141,9 @@ impl<T> ProdRuleSet<T> {
                         FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
                     }
                     new_f.flags |= f.flags & ruleflag::FACTOR_INFO;
-                    new_f.original_factor_id = Some(self.original_factors.len() as FactorId);
                     new_f.origin = f.origin;
-                    self.original_factors.push(f.clone());
+                    new_f.ambig_factor_id = Some(self.ambig_factors.len() as FactorId);
+                    self.ambig_factors.push(f.clone());
                     new_f
                 }).to_vec();
                 let mut used_sym = HashSet::<Symbol>::new();
@@ -2478,7 +2478,7 @@ impl ProdRuleSet<General> {
     fn with_capacity(capacity: usize) -> Self {
         Self {
             prods: Vec::with_capacity(capacity),
-            original_factors: Vec::new(),
+            ambig_factors: Vec::new(),
             origin: Origin::new(),
             num_nt: 0,
             num_t: 0,
@@ -2649,7 +2649,7 @@ impl ProdRuleSet<LL1> {
         source.extend(self.prods.iter().map(|prod| format!("        {},", prod_to_macro(prod))));
         source.push("    ],".to_string());
         source.push("    vec![".to_string());
-        source.extend(self.original_factors.iter().map(|factor| format!("        {},", factor.to_macro())));
+        source.extend(self.ambig_factors.iter().map(|factor| format!("        {},", factor.to_macro())));
         source.push("    ],".to_string());
         source.push("    origin,".to_string());
         source.push(format!("    vec![{}],", st.get_terminals().map(|x| format!("{x:?}")).join(", ")));
@@ -2668,7 +2668,7 @@ impl ProdRuleSet<LL1> {
 pub struct ProdRuleSetTables {
     name: Option<String>,
     prods: Vec<ProdRule>,
-    original_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
+    ambig_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
     origin: Origin<VarId, FromPRS>,
     t: Vec<(String, Option<String>)>,   // terminal identifiers and optional representation
     nt: Vec<String>,                    // nt to nonterminal identifier
@@ -2682,7 +2682,7 @@ impl ProdRuleSetTables {
     pub fn new<T: Into<String>>(
         name: Option<T>,
         prods: Vec<ProdRule>,
-        original_factors: Vec<ProdFactor>,
+        ambig_factors: Vec<ProdFactor>,
         origin: Origin<VarId, FromPRS>,
         t: Vec<(T, Option<T>)>,
         nt: Vec<T>,
@@ -2694,7 +2694,8 @@ impl ProdRuleSetTables {
         let t = t.into_iter().map(|(t, t_maybe)| (t.into(), t_maybe.map(|t| t.into()))).collect();
         let nt = nt.into_iter().map(|nt| nt.into()).collect();
         ProdRuleSetTables {
-            name: name.map(|s| s.into()), prods, original_factors, origin, t, nt, flags, parent, start, nt_conversion,
+            name: name.map(|s| s.into()), prods,
+            ambig_factors, origin, t, nt, flags, parent, start, nt_conversion,
         }
     }
 
@@ -2710,7 +2711,7 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
         symbol_table.extend_nonterminals(source.nt);
         ProdRuleSet {
             prods: source.prods,
-            original_factors: source.original_factors,
+            ambig_factors: source.ambig_factors,
             origin: source.origin,
             num_nt: symbol_table.get_num_nt(),
             num_t: symbol_table.get_num_t(),
@@ -2872,7 +2873,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
         }
         ProdRuleSet::<LL1> {
             prods: rules.prods,
-            original_factors: rules.original_factors,
+            ambig_factors: rules.ambig_factors,
             origin: rules.origin,
             num_nt: rules.num_nt,
             num_t: rules.num_t,
@@ -2897,7 +2898,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
         }
         ProdRuleSet::<LR> {
             prods: rules.prods,
-            original_factors: rules.original_factors,
+            ambig_factors: rules.ambig_factors,
             origin: rules.origin,
             num_nt: rules.num_nt,
             num_t: rules.num_t,
@@ -3058,7 +3059,7 @@ pub mod macros {
     /// assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
     /// let x = 256;
     /// let o_id = 4;
-    /// assert_eq!(prodf!(#(x, o_id), nt 0, t 1, e), ProdFactor::new(vec![sym!(nt 0), sym!(t 1), sym!(e)]).with_flags(256).with_orig_fid(4));
+    /// assert_eq!(prodf!(#(x, o_id), nt 0, t 1, e), ProdFactor::new(vec![sym!(nt 0), sym!(t 1), sym!(e)]).with_flags(256).with_ambig_factor_id(4));
     /// ```
     #[macro_export()]
     macro_rules! prodf {
@@ -3072,16 +3073,16 @@ pub mod macros {
         //     => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f))$(.with_orig($v, $id))? };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { prodf!($(#$f,)? $(%($v, $id),)? $($a $($b)?),+) };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::prodflag!($f)))?$(.with_orig($v, $id))? };
+            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::prodflag!($f)))?$(.with_origin($v, $id))? };
         // TODO: change "#" parts below
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+)
             => { prodf!(#($f, $o), $(%($v, $id),)? $($a $($b)?),+) };
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_orig_fid($o)$(.with_orig($v, $id))? };
+            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_ambig_factor_id($o)$(.with_origin($v, $id))? };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?,)+)
             => { prodf!(%($v, $id), $($a $($b)?),+) };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_orig($v, $id) };
+            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_origin($v, $id) };
     }
 
     #[macro_export()]

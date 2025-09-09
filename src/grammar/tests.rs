@@ -87,20 +87,20 @@ fn prod_macros() {
                     ProdFactor::new(vec![sym!(nt  2)]).with_flags(256),
                     ProdFactor::new(vec![sym!(e)])]);
     assert_eq!(prod!(%(1, 2), nt 0),
-               vec![ProdFactor::new(vec![Symbol::NT(0)]).with_orig(1, 2)]);
+               vec![ProdFactor::new(vec![Symbol::NT(0)]).with_origin(1, 2)]);
     assert_eq!(prod!(nt 0; %(2, 3), t 0),
                vec![ProdFactor::new(vec![Symbol::NT(0)]),
-                    ProdFactor::new(vec![Symbol::T(0)]).with_orig(2, 3)]);
+                    ProdFactor::new(vec![Symbol::T(0)]).with_origin(2, 3)]);
     assert_eq!(prod!(#L, %(3, 4), t 1),
-               vec![ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_orig(3, 4)]);
+               vec![ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_origin(3, 4)]);
     assert_eq!(prod!(#(1, 2), %(3, 4), t 2),
-               vec![ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_orig_fid(2).with_orig(3, 4)]);
+               vec![ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_ambig_factor_id(2).with_origin(3, 4)]);
     assert_eq!(prod!(nt 0; #L, %(3, 4), t 1),
                vec![ProdFactor::new(vec![Symbol::NT(0)]),
-                    ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_orig(3, 4)]);
+                    ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_origin(3, 4)]);
     assert_eq!(prod!(nt 0; #(1, 2), %(3, 4), t 2),
                vec![ProdFactor::new(vec![Symbol::NT(0)]),
-                    ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_orig_fid(2).with_orig(3, 4)]);
+                    ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_ambig_factor_id(2).with_origin(3, 4)]);
 }
 
 #[test]
@@ -1342,7 +1342,7 @@ impl<T> ProdRuleSet<T> {
     fn new() -> Self {
         Self {
             prods: Vec::new(),
-            original_factors: Vec::new(),
+            ambig_factors: Vec::new(),
             origin: Origin::new(),
             num_nt: 0,
             num_t: 0,
