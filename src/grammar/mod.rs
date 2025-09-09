@@ -1556,7 +1556,6 @@ impl LLParsingTable {
 #[derive(Clone, Debug)]
 pub struct ProdRuleSet<T> {
     prods: Vec<ProdRule>,
-    pub(crate) ambig_factors: Vec<ProdFactor>,   // ambiguous/l-rec factors before transformation
     pub(crate) origin: Origin<VarId, FromPRS>,
     num_nt: usize,
     num_t: usize,
@@ -2016,6 +2015,7 @@ impl<T> ProdRuleSet<T> {
         let mut var_new = self.get_next_available_var() as usize;
         // we must take prods out because of the borrow checker and other &mut borrows we need later...
         let mut prods = take(&mut self.prods);
+        let mut ambig_factor_id = 0;
         for var in 0..var_new {
             let prod = prods.get_mut(var).unwrap();
             let var = var as VarId;
@@ -2142,8 +2142,8 @@ impl<T> ProdRuleSet<T> {
                     }
                     new_f.flags |= f.flags & ruleflag::FACTOR_INFO;
                     new_f.origin = f.origin;
-                    new_f.ambig_factor_id = Some(self.ambig_factors.len() as FactorId);
-                    self.ambig_factors.push(f.clone());
+                    new_f.ambig_factor_id = Some(ambig_factor_id);
+                    ambig_factor_id += 1;
                     new_f
                 }).to_vec();
                 let mut used_sym = HashSet::<Symbol>::new();
@@ -2478,7 +2478,6 @@ impl ProdRuleSet<General> {
     fn with_capacity(capacity: usize) -> Self {
         Self {
             prods: Vec::with_capacity(capacity),
-            ambig_factors: Vec::new(),
             origin: Origin::new(),
             num_nt: 0,
             num_t: 0,
@@ -2648,9 +2647,6 @@ impl ProdRuleSet<LL1> {
         source.push("    vec![".to_string());
         source.extend(self.prods.iter().map(|prod| format!("        {},", prod_to_macro(prod))));
         source.push("    ],".to_string());
-        source.push("    vec![".to_string());
-        source.extend(self.ambig_factors.iter().map(|factor| format!("        {},", factor.to_macro())));
-        source.push("    ],".to_string());
         source.push("    origin,".to_string());
         source.push(format!("    vec![{}],", st.get_terminals().map(|x| format!("{x:?}")).join(", ")));
         source.push(format!("    vec![{}],", st.get_nonterminals().map(|x| format!("{x:?}")).join(", ")));
@@ -2668,7 +2664,6 @@ impl ProdRuleSet<LL1> {
 pub struct ProdRuleSetTables {
     name: Option<String>,
     prods: Vec<ProdRule>,
-    ambig_factors: Vec<ProdFactor>,   // factors before transformation, for future reference
     origin: Origin<VarId, FromPRS>,
     t: Vec<(String, Option<String>)>,   // terminal identifiers and optional representation
     nt: Vec<String>,                    // nt to nonterminal identifier
@@ -2682,7 +2677,6 @@ impl ProdRuleSetTables {
     pub fn new<T: Into<String>>(
         name: Option<T>,
         prods: Vec<ProdRule>,
-        ambig_factors: Vec<ProdFactor>,
         origin: Origin<VarId, FromPRS>,
         t: Vec<(T, Option<T>)>,
         nt: Vec<T>,
@@ -2695,7 +2689,7 @@ impl ProdRuleSetTables {
         let nt = nt.into_iter().map(|nt| nt.into()).collect();
         ProdRuleSetTables {
             name: name.map(|s| s.into()), prods,
-            ambig_factors, origin, t, nt, flags, parent, start, nt_conversion,
+            origin, t, nt, flags, parent, start, nt_conversion,
         }
     }
 
@@ -2711,7 +2705,6 @@ impl BuildFrom<ProdRuleSetTables> for ProdRuleSet<LL1> {
         symbol_table.extend_nonterminals(source.nt);
         ProdRuleSet {
             prods: source.prods,
-            ambig_factors: source.ambig_factors,
             origin: source.origin,
             num_nt: symbol_table.get_num_nt(),
             num_t: symbol_table.get_num_t(),
@@ -2873,7 +2866,6 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
         }
         ProdRuleSet::<LL1> {
             prods: rules.prods,
-            ambig_factors: rules.ambig_factors,
             origin: rules.origin,
             num_nt: rules.num_nt,
             num_t: rules.num_t,
@@ -2898,7 +2890,6 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
         }
         ProdRuleSet::<LR> {
             prods: rules.prods,
-            ambig_factors: rules.ambig_factors,
             origin: rules.origin,
             num_nt: rules.num_nt,
             num_t: rules.num_t,

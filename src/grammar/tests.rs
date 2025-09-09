@@ -1342,7 +1342,6 @@ impl<T> ProdRuleSet<T> {
     fn new() -> Self {
         Self {
             prods: Vec::new(),
-            ambig_factors: Vec::new(),
             origin: Origin::new(),
             num_nt: 0,
             num_t: 0,

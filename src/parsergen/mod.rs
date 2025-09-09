@@ -202,7 +202,6 @@ pub struct ParserGen {
     /// `nt_parent[v]` is the vector of all variables having `v` has top parent (including `v` itself)
     nt_parent: Vec<Vec<VarId>>,
     var_factors: Vec<Vec<FactorId>>,
-    ambig_factors: Vec<ProdFactor>,   // ambiguous/l-rec factors before transformation
     origin: Origin<VarId, FromPRS>,
     item_ops: HashMap<FactorId, Vec<Symbol>>,
     opcodes: Vec<Vec<OpCode>>,
@@ -243,7 +242,7 @@ impl ParserGen {
             let top_var_id = parsing_table.get_top_parent(var_id as VarId) as usize;
             nt_parent[top_var_id].push(var_id as VarId);
         }
-        let ProdRuleSet { symbol_table, nt_conversion, ambig_factors, origin, .. } = ll1_rules;
+        let ProdRuleSet { symbol_table, nt_conversion, origin, .. } = ll1_rules;
         let mut builder = ParserGen {
             parsing_table,
             symbol_table: symbol_table.expect(stringify!("symbol table is required to create a {}", std::any::type_name::<Self>())),
@@ -251,7 +250,6 @@ impl ParserGen {
             nt_value: vec![false; num_nt],
             nt_parent,
             var_factors,
-            ambig_factors,
             origin,
             item_ops: HashMap::new(),
             opcodes: Vec::new(),
