@@ -3,7 +3,7 @@
 use super::*;
 use crate::{CollectJoin, SymInfoTable, SymbolTable};
 
-pub fn factor_to_str<T: SymInfoTable>(f: &Vec<Symbol>, symbol_table: Option<&T>) -> String {
+pub fn alt_to_str<T: SymInfoTable>(f: &Vec<Symbol>, symbol_table: Option<&T>) -> String {
     if f.is_empty() {
         "<empty>".to_string()
     } else {
@@ -11,24 +11,25 @@ pub fn factor_to_str<T: SymInfoTable>(f: &Vec<Symbol>, symbol_table: Option<&T>)
     }
 }
 
-pub fn factor_to_rule_str<T: SymInfoTable>(nt: VarId, f: &Vec<Symbol>, symbol_table: Option<&T>) -> String {
-    format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), factor_to_str(f, symbol_table))
+pub fn alt_to_rule_str<T: SymInfoTable>(nt: VarId, f: &Vec<Symbol>, symbol_table: Option<&T>) -> String {
+    format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), alt_to_str(f, symbol_table))
 }
 
-/// Stores a factor of a normalized production rule, along with accompanying flags.
-/// The `ProdFactor` type behaves like a `Vec<Symbol>` (`Deref` / `DerefMut`), but must be
-/// created with `ProdFactor::new(f: Vec<Symbol)`.
+/// Stores a production alternative (or alternative body): `A a` or `B` in `A -> A a | B`.
+///
+/// The [`Alternative`] type behaves like a `Vec<Symbol>` (`Deref` / `DerefMut`), and must be
+/// created with [`Alternative::new`].
 #[derive(Clone, Eq, PartialOrd, Ord, Debug)]
-pub struct ProdFactor {
+pub struct Alternative {
     v: Vec<Symbol>,
     flags: u32,          // only for GREEDY, L_FORM and R_ASSOC
-    ambig_factor_id: Option<FactorId>,
+    ambig_alt_id: Option<AltId>,
     origin: Option<(VarId, usize)>,
 }
 
-impl ProdFactor {
+impl Alternative {
     pub fn new(v: Vec<Symbol>) -> Self {
-        ProdFactor { v, flags: 0, ambig_factor_id: None, origin: None }
+        Alternative { v, flags: 0, ambig_alt_id: None, origin: None }
     }
 
     pub fn with_flags(mut self, flags: u32) -> Self {
@@ -36,8 +37,8 @@ impl ProdFactor {
         self
     }
 
-    pub fn with_ambig_factor_id(mut self, ambig_factor_id: FactorId) -> Self {
-        self.ambig_factor_id = Some(ambig_factor_id);
+    pub fn with_ambig_alt_id(mut self, ambig_alt_id: AltId) -> Self {
+        self.ambig_alt_id = Some(ambig_alt_id);
         self
     }
 
@@ -50,8 +51,8 @@ impl ProdFactor {
         &self.v
     }
 
-    pub fn get_ambig_factor_id(&self) -> Option<FactorId> {
-        self.ambig_factor_id
+    pub fn get_ambig_alt_id(&self) -> Option<AltId> {
+        self.ambig_alt_id
     }
 
     pub fn get_origin(&self) -> Option<(VarId, usize)> {
@@ -63,27 +64,27 @@ impl ProdFactor {
     }
 
     pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        let mut s = if self.flags & ruleflag::FACTOR_INFO != 0 {
-            format!("<{}> ", ruleflag::factor_info_to_string(self.flags).join(","))
+        let mut s = if self.flags & ruleflag::ALTERNATIVE_INFO != 0 {
+            format!("<{}> ", ruleflag::alt_info_to_string(self.flags).join(","))
         } else {
             String::new()
         };
-        s.push_str(&factor_to_str(&self.v, symbol_table));
+        s.push_str(&alt_to_str(&self.v, symbol_table));
         s
     }
 
     pub fn to_rule_str(&self, nt: VarId, symbol_table: Option<&SymbolTable>, mut extra_flags: u32) -> String {
-        extra_flags = (extra_flags | self.flags) & ruleflag::FACTOR_INFO;
+        extra_flags = (extra_flags | self.flags) & ruleflag::ALTERNATIVE_INFO;
         let s = if extra_flags != 0 {
-            format!("<{}> ", ruleflag::factor_info_to_string(extra_flags).join(","))
+            format!("<{}> ", ruleflag::alt_info_to_string(extra_flags).join(","))
         } else {
             String::new()
         };
-        format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), factor_to_str(&self.v, symbol_table))
+        format!("{} -> {s}{}", Symbol::NT(nt).to_str(symbol_table), alt_to_str(&self.v, symbol_table))
     }
 
     pub fn to_macro_item(&self) -> String {
-        let mut src = match (self.flags, self.ambig_factor_id, self.origin) {
+        let mut src = match (self.flags, self.ambig_alt_id, self.origin) {
             (0, None, None) => String::new(),
             (f, None, None) => format!("#{f}, "),
             (f, Some(o), None) => format!("#({f}, {o}), "),
@@ -96,15 +97,14 @@ impl ProdFactor {
     }
 
     pub fn to_macro(&self) -> String {
-        format!("prodf!({})", self.to_macro_item())
+        format!("alt!({})", self.to_macro_item())
     }
 
     pub fn is_sym_empty(&self) -> bool {
         self.v.len() == 1 && self.v[0] == Symbol::Empty
     }
 
-    fn factor_first(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashSet<Symbol> {
-        // factor.iter().map(|s| first.get(s).unwrap().clone()).take_until(|h| !h.contains(&Symbol::Empty)).flatten().collect()
+    fn calc_alt_first(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashSet<Symbol> {
         let mut new = HashSet::<Symbol>::new();
         new.extend(first[&self.v[0]].iter().filter(|s| *s != &Symbol::Empty));
         let mut trail = true;
@@ -128,14 +128,14 @@ impl ProdFactor {
     }
 }
 
-// we exclude `original_factor_id` from the equality test
-impl PartialEq for ProdFactor {
+// we use only `v` (the string of symbols) and `flags` the equality test
+impl PartialEq for Alternative {
     fn eq(&self, other: &Self) -> bool {
         self.flags == other.flags && self.v == other.v
     }
 }
 
-impl Deref for ProdFactor {
+impl Deref for Alternative {
     type Target = Vec<Symbol>;
 
     fn deref(&self) -> &Self::Target {
@@ -143,63 +143,63 @@ impl Deref for ProdFactor {
     }
 }
 
-impl DerefMut for ProdFactor {
+impl DerefMut for Alternative {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.v
     }
 }
 
-/// Stores a normalized production rule, where each factor (e.g. `BC`) is stored in
-/// a `Vec<GrNode>` and all the factors are stored in a `Vec`.
+/// Stores a normalized production rule, where each alternative (e.g. `B C`) is stored in
+/// a `Vec<GrNode>` and all the alternatives are stored in a `Vec`.
 ///
 /// ## Example
-/// `A -> BC | D | ε`
+/// `A -> B C | D | ε`
 ///
-/// where A=0, B=1, C=2, D=3, is stored as:
+/// where the nonterminal indices A=0, B=1, C=2, D=3, is stored as:
 ///
 /// `[[gnode!(nt 1), gnode!(nt 2)],[gnode!(nt 3)],[gnode!(e)]]`
 ///
-/// (where the representation of vectors has been simplified to square brackets).
-pub type ProdRule = Vec<ProdFactor>;
+/// (where the representation of vectors & type names has been simplified to square brackets).
+pub type ProdRule = Vec<Alternative>;
 
 pub fn prule_to_str(prule: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
-    prule.iter().map(|factor| factor.to_str(symbol_table)).join(" | ")
+    prule.iter().map(|alt| alt.to_str(symbol_table)).join(" | ")
 }
 
 pub fn prule_to_macro(prule: &ProdRule) -> String {
-    format!("prule!({})", prule.iter().map(|factor| factor.to_macro_item()).join("; "))
+    format!("prule!({})", prule.iter().map(|alt| alt.to_macro_item()).join("; "))
 }
 
 #[derive(Clone, Copy, PartialEq, Debug)]
-enum FactorType { Independant, LeftAssoc, Prefix, RightAssoc, Suffix }
+enum AltType { Independant, LeftAssoc, Prefix, RightAssoc, Suffix }
 
-impl FactorType {
-    fn from(nt: &Symbol, factor: &ProdFactor) -> Self {
-        let left = matches!(factor.first(), Some(var) if var == nt);
-        let right = factor.len() > 1 && matches!(factor.last(), Some(var) if var == nt);
+impl AltType {
+    fn from(nt: &Symbol, alt: &Alternative) -> Self {
+        let left = matches!(alt.first(), Some(var) if var == nt);
+        let right = alt.len() > 1 && matches!(alt.last(), Some(var) if var == nt);
         match (left, right) {
-            (false, false) => FactorType::Independant,
-            (false, true)  => FactorType::Prefix,
-            (true, false)  => FactorType::Suffix,
-            (true, true)   => if factor.flags & ruleflag::R_ASSOC != 0 { FactorType::RightAssoc } else { FactorType::LeftAssoc },
+            (false, false) => AltType::Independant,
+            (false, true)  => AltType::Prefix,
+            (true, false)  => AltType::Suffix,
+            (true, true)   => if alt.flags & ruleflag::R_ASSOC != 0 { AltType::RightAssoc } else { AltType::LeftAssoc },
         }
     }
 }
 
 #[derive(Debug, Clone)]
-struct FactorInfo {
+struct AltInfo {
     #[allow(unused)]
-    pred_priority: Option<FactorId>,
+    pred_priority: Option<AltId>,
     ivar: usize,
-    ty: FactorType
+    ty: AltType
 }
 
 #[derive(Debug)]
 pub struct LLParsingTable {
     pub num_nt: usize,
     pub num_t: usize,
-    pub factors: Vec<(VarId, ProdFactor)>,
-    pub table: Vec<FactorId>,
+    pub alts: Vec<(VarId, Alternative)>,
+    pub table: Vec<AltId>,
     pub flags: Vec<u32>,            // NT -> flags (+ or * normalization)
     pub parent: Vec<Option<VarId>>, // NT -> parent NT
 }
@@ -263,9 +263,9 @@ impl<T> ProdRuleSet<T> {
         self.prules.iter_mut().enumerate().filter_map(|(id, p)| if p.is_empty() { None } else { Some((id as VarId, p)) })
     }
 
-    pub fn get_factors(&self) -> impl Iterator<Item=(VarId, &ProdFactor)> {
+    pub fn get_alts(&self) -> impl Iterator<Item=(VarId, &Alternative)> {
         self.prules.iter().enumerate()
-            .flat_map(|(v, p)| p.iter().map(move |f| (v as VarId, f)))
+            .flat_map(|(v, p)| p.iter().map(move |alt| (v as VarId, alt)))
     }
 
     pub fn set_symbol_table(&mut self, symbol_table: SymbolTable) {
@@ -354,16 +354,16 @@ impl<T> ProdRuleSet<T> {
             let mut has_empty = false;
             let mut i = 0;
             while i < p.len() {
-                let f = p.get_mut(i).unwrap();
+                let alt = p.get_mut(i).unwrap();
                 let mut j = 0;
-                while j < f.len() {
-                    if f[j].is_empty() && (j > 0 || j + 1 < f.len()) {
-                        f.v.remove(j);
+                while j < alt.len() {
+                    if alt[j].is_empty() && (j > 0 || j + 1 < alt.len()) {
+                        alt.v.remove(j);
                     } else {
                         j += 1;
                     }
                 }
-                if f.len() == 1 && f[0].is_empty() {
+                if alt.len() == 1 && alt[0].is_empty() {
                     if has_empty {
                         p.remove(i);
                     } else {
@@ -381,16 +381,16 @@ impl<T> ProdRuleSet<T> {
         if let Some(n) = self.symbol_table.as_ref().and_then(|table| Some(table.get_num_nt())) {
             let num_nt = self.prules.len();
             if n != num_nt {
-                self.log.add_error(format!("there are {num_nt} rules but the symbol table has {n} NT symbols: dropping the table"));
+                self.log.add_error(format!("there are {num_nt} rules but the symbol table has {n} nonterminal symbols: dropping the table"));
                 self.symbol_table = None;
             }
         }
     }
 
-    /// Removes the unused non-terminals and renumbers everything accordingly.
+    /// Removes the unused nonterminals and renumbers everything accordingly.
     /// Note that we don't remove unused T symbols because it would create a coherency problem with the lexer.
     ///
-    /// Returns the conversion `HashMap[old symbol => new symbol]` for non-terminals.
+    /// Returns the conversion `HashMap[old symbol => new symbol]` for nonterminals.
     fn cleanup_symbols(&mut self, keep: &mut HashSet<Symbol>) {
         const VERBOSE: bool = false;
         let mut nt_content = (0..self.num_nt).map(|v| if self.parent[v].is_none() { Some(v as VarId) } else { None }).to_vec();
@@ -401,7 +401,7 @@ impl<T> ProdRuleSet<T> {
             nt_content[*to as usize] = Some(*from);
         }
         if VERBOSE {
-            println!("Removing unused non-terminals:");
+            println!("Removing unused nonterminals:");
             let mut all_h = self.prules.iter().flat_map(|p| p.iter().map(|x| &x.v).flatten()).cloned().collect::<HashSet<_>>();
             all_h.extend((0..self.num_nt).map(|i| Symbol::NT(i as VarId)));
             let mut all = all_h.into_iter().collect::<Vec<_>>();
@@ -536,7 +536,7 @@ impl<T> ProdRuleSet<T> {
                 .map(|v| Symbol::NT(v))
                 .to_vec();
             if !nt_removed.is_empty() {
-                self.log.add_warning(format!("- calc_first: unused non-terminals: {}",
+                self.log.add_warning(format!("- calc_first: unused nonterminals: {}",
                                              nt_removed.into_iter().map(|s| format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))).join(", ")));
             }
             self.cleanup_symbols(&mut symbols);
@@ -568,15 +568,15 @@ impl<T> ProdRuleSet<T> {
                 let symbol = Symbol::NT(*i as VarId);
                 if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prule_to_str(prule, self.symbol_table.as_ref())); }
                 let num_items = first[&symbol].len();
-                for factor in prule {
-                    if VERBOSE { println!("  - {}", factor.to_str(self.symbol_table.as_ref())); }
-                    assert!(factor.len() > 0, "empty factor for {}: {}",
-                            symbol.to_str(self.symbol_table.as_ref()), factor.to_str(self.symbol_table.as_ref()));
+                for alt in prule {
+                    if VERBOSE { println!("  - {}", alt.to_str(self.symbol_table.as_ref())); }
+                    assert!(alt.len() > 0, "empty alternative for {}: {}",
+                            symbol.to_str(self.symbol_table.as_ref()), alt.to_str(self.symbol_table.as_ref()));
                     if VERBOSE {
-                        print!("    [0] {}", factor[0].to_str(self.symbol_table.as_ref()));
-                        println!(", first = {}", first[&factor[0]].iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", "));
+                        print!("    [0] {}", alt[0].to_str(self.symbol_table.as_ref()));
+                        println!(", first = {}", first[&alt[0]].iter().map(|s| s.to_str(self.symbol_table.as_ref())).join(", "));
                     }
-                    let new = factor.factor_first(&first);
+                    let new = alt.calc_alt_first(&first);
                     let _n = first.get(&symbol).unwrap().len();
                     first.get_mut(&symbol).unwrap().extend(new);
                     if VERBOSE {
@@ -614,10 +614,10 @@ impl<T> ProdRuleSet<T> {
                 let prule = &self.prules[*i as usize];
                 let symbol = Symbol::NT(*i as VarId);
                 if VERBOSE { println!("- {} -> {}", symbol.to_str(self.symbol_table.as_ref()), prule_to_str(prule, self.symbol_table.as_ref())); }
-                for factor in prule {
-                    if VERBOSE { println!("  - {}", factor.to_str(self.symbol_table.as_ref())); }
+                for alt in prule {
+                    if VERBOSE { println!("  - {}", alt.to_str(self.symbol_table.as_ref())); }
                     let mut trail = follow.get(&symbol).unwrap().clone();
-                    for sym_i in factor.iter().rev() {
+                    for sym_i in alt.iter().rev() {
                         if let Symbol::NT(_) = sym_i {
                             let num_items = follow.get(sym_i).unwrap().len();
                             follow.get_mut(sym_i).unwrap().extend(&trail);
@@ -660,7 +660,7 @@ impl<T> ProdRuleSet<T> {
     /// Ab[p] -> βj Ab[p] | γk A[var] Ab[p] | ε
     /// ```
     pub(super) fn remove_recursion(&mut self) {
-        /// Maximum number of P/I factors that are distributed before creating a new nonterminal to hold them.
+        /// Maximum number of P/I alternatives that are distributed before creating a new nonterminal to hold them.
         /// They are never distributed in presence of a binary (L/R) because it would likely induce left factorization.
         const MAX_DISTRIB_LEN: Option<usize> = None; // always distributing makes for smaller tables
         const DONT_DISTRIB_IN_AMBIG: bool = true;   // E -> E * E | E + E | F  will keep F in an independent NT
@@ -676,7 +676,7 @@ impl<T> ProdRuleSet<T> {
         let mut var_new = self.get_next_available_var() as usize;
         // we must take prules out because of the borrow checker and other &mut borrows we need later...
         let mut prules = take(&mut self.prules);
-        let mut ambig_factor_id = 0;
+        let mut ambig_alt_id = 0;
         for var in 0..var_new {
             let prule = prules.get_mut(var).unwrap();
             let var = var as VarId;
@@ -688,10 +688,10 @@ impl<T> ProdRuleSet<T> {
                 self.log.add_note(format!("- modifying: {orig_str}"));
                 if VERBOSE { println!("processing: {orig_str}"); }
 
-                let (indep, mut factors) : (Vec<_>, Vec<_>) = take(prule).into_iter()
-                    .partition(|factor| factor.first().unwrap() != &symbol && factor.last().unwrap() != &symbol);
-                factors.reverse();
-                let mut prec_eq = factors.iter_mut()
+                let (indep, mut alts) : (Vec<_>, Vec<_>) = take(prule).into_iter()
+                    .partition(|alt| alt.first().unwrap() != &symbol && alt.last().unwrap() != &symbol);
+                alts.reverse();
+                let mut prec_eq = alts.iter_mut()
                     .map(|f| {
                         let p = f.flags & ruleflag::PREC_EQ != 0;
                         f.flags &= !ruleflag::PREC_EQ;
@@ -700,10 +700,10 @@ impl<T> ProdRuleSet<T> {
                 prec_eq.pop();
                 prec_eq.insert(0, false);
                 if indep.is_empty() {
-                    self.log.add_error(format!("recursive rules must have at least one independent factor: {} -> {}",
+                    self.log.add_error(format!("recursive rules must have at least one independent alternative: {} -> {}",
                                                Symbol::NT(var).to_str(self.get_symbol_table()),
                                                prule_to_str(prule, self.get_symbol_table())));
-                    prule.extend(factors);
+                    prule.extend(alts);
                     prule.extend(indep);
                     continue;
                 }
@@ -713,62 +713,63 @@ impl<T> ProdRuleSet<T> {
 
                 let mut var_i = 0;        // index of E[i] variable used in a rule (... | α[i] E[i] | ...)
                 let mut rule_var_i = 0;   // index of E[i] variable defined as a rule (E[i] -> ...)
-                let mut var_factors: Vec<Vec<FactorId>> = vec![vec![]]; // pr_rule[i] = factors present in E[i]
-                let mut indep_factors = Vec::<FactorId>::new();
-                let mut pr_info = Vec::<FactorInfo>::new();  // information on each factor: type, priority, ...
+                let mut var_alts: Vec<Vec<AltId>> = vec![vec![]]; // pr_rule[i] = alternatives present in E[i]
+                let mut indep_alts = Vec::<AltId>::new();
+                let mut pr_info = Vec::<AltInfo>::new();  // information on each alternative: type, priority, ...
                 let mut has_ambig = false;
 
-                for (i, f) in factors.iter().index::<FactorId>() {
-                    let ty = FactorType::from(&symbol, f);
-                    has_ambig |= ty == FactorType::LeftAssoc || ty == FactorType::RightAssoc;
+                for (i, alt) in alts.iter().index::<AltId>() {
+                    let ty = AltType::from(&symbol, alt);
+                    has_ambig |= ty == AltType::LeftAssoc || ty == AltType::RightAssoc;
                     var_i = match ty {
-                        FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
-                        FactorType::LeftAssoc => if prec_eq[i as usize] { var_i } else { var_i + 1 },
-                        FactorType::Prefix
-                        | FactorType::RightAssoc => if var_i > rule_var_i || prec_eq[i as usize] || var_factors[var_i].is_empty() { var_i } else { var_i + 1 },
-                        FactorType::Suffix => var_i,
+                        AltType::Independant => panic!("there can't be an independent alternative in `alts`"),
+                        AltType::LeftAssoc => if prec_eq[i as usize] { var_i } else { var_i + 1 },
+                        AltType::Prefix
+                        | AltType::RightAssoc => if var_i > rule_var_i || prec_eq[i as usize] || var_alts[var_i].is_empty() { var_i } else { var_i + 1 },
+                        AltType::Suffix => var_i,
                     };
-                    let fact = FactorInfo {
-                        pred_priority: if ty == FactorType::Prefix { None } else { Some(i) },
+                    let alt_info = AltInfo {
+                        pred_priority: if ty == AltType::Prefix { None } else { Some(i) },
                         ivar: var_i,
                         ty
                     };
-                    pr_info.push(fact);
+                    pr_info.push(alt_info);
                     let top_maybe = match ty {
-                        FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
-                        FactorType::LeftAssoc => Some(var_i - 1),    // uses factor in rules of < priority
-                        FactorType::Prefix => None,                     // uses factor in independent rule only
-                        FactorType::RightAssoc
-                        | FactorType::Suffix => Some(var_i),         // uses factor in rules of <= priority
+                        AltType::Independant => panic!("there can't be an independent alternative in `alts`"),
+                        AltType::LeftAssoc => Some(var_i - 1),    // uses alternative in rules of < priority
+                        AltType::Prefix => None,                  // uses alternative in independent rule only
+                        AltType::RightAssoc
+                        | AltType::Suffix => Some(var_i),         // uses alternative in rules of <= priority
                     };
                     if let Some(top) = top_maybe {
                         rule_var_i = top;
-                        var_factors.resize(1 + top, vec![]);
-                        (0..=top).for_each(|v| var_factors[v].push(i));
+                        var_alts.resize(1 + top, vec![]);
+                        (0..=top).for_each(|v| var_alts[v].push(i));
                     } else {
-                        indep_factors.push(i);
+                        indep_alts.push(i);
                     }
-                    let var_factor_str = format!(
+                    let var_alt_str = format!(
                         "[{i:2}] {:15}: {:10} => var_i = {var_i:2}, rule_var_i = {rule_var_i:2}, {{{}}}",
-                        f.to_str(self.get_symbol_table()),
+                        alt.to_str(self.get_symbol_table()),
                         format!("{ty:?}"), // "debug ignores width" bug https://github.com/rust-lang/rust/issues/55584
-                        var_factors.iter().enumerate().map(|(i, vf)| format!("{i}: {}", vf.iter().join(","))).join("  "));
-                    self.log.add_note(format!("  - {var_factor_str}"));
-                    if VERBOSE { println!("- {var_factor_str}"); }
+                        var_alts.iter().enumerate().map(|(i, va)| format!("{i}: {}", va.iter().join(","))).join("  "));
+                    self.log.add_note(format!("  - {var_alt_str}"));
+                    if VERBOSE { println!("- {var_alt_str}"); }
                 };
                 assert!(var_i <= rule_var_i + 1, "var_i = {var_i}, rule_var_i = {rule_var_i}");
 
-                // (var, prime) for each rule except independent factors. CAUTION! Includes the independent NT if last op is left-assoc
+                // (var, prime) for each rule except independent alternatives.
+                // CAUTION! Includes the independent NT if last op is left-assoc
 
-                let need_indep = indep.len() + indep_factors.len() > 1
-                    && (MAX_DISTRIB_LEN.map(|max| indep.len() + indep_factors.len() > max).unwrap_or(false) || has_ambig || rule_var_i < var_i)
+                let need_indep = indep.len() + indep_alts.len() > 1
+                    && (MAX_DISTRIB_LEN.map(|max| indep.len() + indep_alts.len() > max).unwrap_or(false) || has_ambig || rule_var_i < var_i)
                     || DONT_DISTRIB_IN_AMBIG && has_ambig;
                 let num_indep = if need_indep { 1 } else { 0 };
                 let mut var_i_nt = Vec::<(VarId, VarId)>::with_capacity(var_i + 1);
                 var_i_nt.push((var, var_new as VarId));
                 var_i_nt.extend((0..var_i).map(|i| ((var_new + i*2 + 1) as VarId, (var_new + i*2 + 2) as VarId)));
                 var_new += rule_var_i * 2 + 1 + num_indep;
-                if VERBOSE { println!("adding {} variables (w/o independent factors), need_indep = {need_indep}, var_new: {} -> {var_new}",
+                if VERBOSE { println!("adding {} variables (w/o independent alternatives), need_indep = {need_indep}, var_new: {} -> {var_new}",
                                       rule_var_i * 2 + 1 + num_indep, var_new - (rule_var_i * 2 + 1 + num_indep)); }
                 let nt_indep_maybe = if need_indep { Some(var_new as VarId - 1) } else { None };
                 if var_new > VarId::MAX as usize {
@@ -776,60 +777,61 @@ impl<T> ProdRuleSet<T> {
                     return;
                 }
 
-                // prepares the operation factor parts, which will be assembled in each rule according to their priority
+                // prepares the operation alternative parts, which will be assembled in each rule according to their priority
                 // (the Ab[p] loop nonterminals will be added later since they're specific to each rule)
-                let new_factors = factors.iter().zip(&pr_info).map(|(f, FactorInfo { ivar, ty, .. })| {
-                    let mut new_f: ProdFactor;
+                let new_alts = alts.iter().zip(&pr_info).map(|(a, AltInfo { ivar, ty, .. })| {
+                    let mut new_a: Alternative;
                     match ty {
-                        FactorType::LeftAssoc | FactorType::RightAssoc => {
-                            new_f = ProdFactor::new(f.v[1..f.len() - 1].to_owned());
+                        AltType::LeftAssoc | AltType::RightAssoc => {
+                            new_a = Alternative::new(a.v[1..a.len() - 1].to_owned());
                             if need_indep || *ivar <= rule_var_i {
-                                new_f.v.push(Symbol::NT(var_i_nt[*ivar].0));
+                                new_a.v.push(Symbol::NT(var_i_nt[*ivar].0));
                             } else {
-                                new_f.v.extend(&indep[0].v);
+                                new_a.v.extend(&indep[0].v);
                             }
-                            if ty == &FactorType::RightAssoc {
-                                new_f.flags = ruleflag::R_ASSOC;
+                            if ty == &AltType::RightAssoc {
+                                new_a.flags = ruleflag::R_ASSOC;
                             }
                         }
-                        FactorType::Suffix => {
-                            new_f = ProdFactor::new(f.v[1..f.len()].to_owned());
+                        AltType::Suffix => {
+                            new_a = Alternative::new(a.v[1..a.len()].to_owned());
                         }
-                        FactorType::Prefix => {
-                            new_f = ProdFactor::new(f.v[..f.len() - 1].to_owned());
-                            new_f.v.push(Symbol::NT(var_i_nt[*ivar].0));
+                        AltType::Prefix => {
+                            new_a = Alternative::new(a.v[..a.len() - 1].to_owned());
+                            new_a.v.push(Symbol::NT(var_i_nt[*ivar].0));
                         }
-                        FactorType::Independant => panic!("there can't be an independent factor in `factors`"),
+                        AltType::Independant => panic!("there can't be an independent alternative in `alts`"),
                     }
-                    new_f.flags |= f.flags & ruleflag::FACTOR_INFO;
-                    new_f.origin = f.origin;
-                    new_f.ambig_factor_id = Some(ambig_factor_id);
-                    ambig_factor_id += 1;
-                    new_f
+                    new_a.flags |= a.flags & ruleflag::ALTERNATIVE_INFO;
+                    new_a.origin = a.origin;
+                    new_a.ambig_alt_id = Some(ambig_alt_id);
+                    ambig_alt_id += 1;
+                    new_a
                 }).to_vec();
                 let mut used_sym = HashSet::<Symbol>::new();
-                let mut prod_indep = new_factors.iter()
+                let mut prod_indep = new_alts.iter()
                     .zip(&pr_info)
-                    .filter_map(|(nf, FactorInfo { ty, .. })| if ty == &FactorType::Prefix { Some(nf.clone()) } else { None })
+                    .filter_map(|(nf, AltInfo { ty, .. })| if ty == &AltType::Prefix { Some(nf.clone()) } else { None })
                     .to_vec();
-                // when the lowest priority factor is P or R, all the factors of the first variable rule will sprout an ambiguity:
-                let greedy_prologue = pr_info[0].ty == FactorType::Prefix && need_indep || pr_info[0].ty == FactorType::RightAssoc;
-                for (i, fs) in var_factors.into_iter().enumerate() {
+                // when the lowest priority alternative is P or R, all the alternatives
+                // of the first variable rule will sprout an ambiguity:
+                let greedy_prologue = pr_info[0].ty == AltType::Prefix && need_indep || pr_info[0].ty == AltType::RightAssoc;
+                for (i, va) in var_alts.into_iter().enumerate() {
                     let (nt, nt_loop) = var_i_nt[i];
                     let prod_nt = if let Some(nt_indep) = nt_indep_maybe {
                         prule!(nt nt_indep, nt nt_loop)
                     } else {
-                        // distributes the independent factors (only works if there are no L/R types in the original rule)
+                        // distributes the independent alternatives (only works if there are no L/R types in the original rule)
                         prod_indep.iter().cloned()
-                            .chain(indep.iter().map(|f| {
-                            let mut new_f = f.clone();
-                            new_f.push(sym!(nt nt_loop));
-                            new_f
+                            .chain(indep.iter().map(|a| {
+                            let mut new_a = a.clone();
+                            new_a.push(sym!(nt nt_loop));
+                            new_a
                         })).collect()
                     };
                     let mut new_used_sym = Vec::<Symbol>::new();
-                    let mut prod_nt_loop = fs.iter().enumerate().rev().map(|(_, &f_id)| {
-                        let mut f = new_factors[f_id as usize].clone();
+                    let mut prod_nt_loop = va.iter().enumerate().rev().map(|(_, &a_id)| {
+                        let mut f = new_alts[a_id as usize].clone();
                         f.v.push(Symbol::NT(nt_loop));
                         let sym = f.first().unwrap();
                         let is_used_sym = used_sym.contains(sym);
@@ -839,26 +841,23 @@ impl<T> ProdRuleSet<T> {
                         if is_used_sym || (i == 0 && greedy_prologue) {
                             f.flags |= ruleflag::GREEDY;
                         }
-                        if !has_ambig && pr_info[f_id as usize].ty == FactorType::Suffix {
+                        if !has_ambig && pr_info[a_id as usize].ty == AltType::Suffix {
                             self.set_flags(nt, ruleflag::PARENT_L_RECURSION);
                             self.set_flags(nt_loop, ruleflag::CHILD_L_RECURSION);
                         }
                         f
                     }).to_vec();
                     used_sym.extend(new_used_sym);
-                    prod_nt_loop.push(prodf!(e));
+                    prod_nt_loop.push(alt!(e));
                     if i == 0 {
                         *prule = prod_nt;
                         extra_prods.push(prod_nt_loop);
                         self.symbol_table.as_mut().map(|t| {
-                            // t.add_non_terminal(format!("{var_name}_{}", if rule_var_i + num_indep > 0 { "b" } else { "1" }));
                             assert_eq!(t.add_child_nonterminal(var), var_i_nt[0].1);
                         });
                     } else {
                         extra_prods.extend([prod_nt, prod_nt_loop]);
                         self.symbol_table.as_mut().map(|t| {
-                            // t.add_non_terminal(format!("{var_name}_{i}"));
-                            // t.add_non_terminal(format!("{var_name}_{i}b"));
                             assert_eq!(t.add_child_nonterminal(var), var_i_nt[i].0);
                             assert_eq!(t.add_child_nonterminal(var), var_i_nt[i].1);
                         });
@@ -869,15 +868,13 @@ impl<T> ProdRuleSet<T> {
                     }
                 }
                 if need_indep {
-                    // self.symbol_table.as_mut().map(|t| t.add_non_terminal(format!("{var_name}_{}", rule_var_i + 1)));
                     self.symbol_table.as_mut().map(|t| {
-                        // t.add_non_terminal(format!("{var_name}_{}", rule_var_i + 1))
                         assert_eq!(t.add_child_nonterminal(var), nt_indep_maybe.unwrap());
                     });
                 }
                 if VERBOSE {
-                    println!("new factors: {}", new_factors.iter().enumerate()
-                        .filter_map(|(i, nf)| if nf.is_empty() { None } else { Some(format!("[{i}] {}", nf.to_str(self.get_symbol_table()))) }).join(", "));
+                    println!("new alternatives: {}", new_alts.iter().enumerate()
+                        .filter_map(|(i, na)| if na.is_empty() { None } else { Some(format!("[{i}] {}", na.to_str(self.get_symbol_table()))) }).join(", "));
                     println!("vars: {}{}", var_i_nt.iter().take(rule_var_i + 1).enumerate().map(|(i, (v1, v2))|
                         format!("[{i}]:{},{}", Symbol::NT(*v1).to_str(self.get_symbol_table()),
                                 Symbol::NT(*v2).to_str(self.get_symbol_table()))).join("  "),
@@ -954,7 +951,7 @@ impl<T> ProdRuleSet<T> {
     ///         - extract the number of starting symbols common to all factors of the group (1 or more): `α`
     ///         - create a new NT with the group, where `α` has been removed at the beginning
     pub fn left_factorize(&mut self) {
-        fn similarity(a: &ProdFactor, b: &ProdFactor) -> usize {
+        fn similarity(a: &Alternative, b: &Alternative) -> usize {
             a.iter().zip(b.iter()).take_while(|(a, b)| a == b).count()
         }
 
@@ -990,7 +987,7 @@ impl<T> ProdRuleSet<T> {
                 let min = simi.iter().map(|(_, s)| *s).min().unwrap();
                 let start = simi[0].0;
                 let stop = start + simi.len();
-                let mut factorized = ProdFactor::new(factors[start].v.iter().take(min).cloned().to_vec());
+                let mut factorized = Alternative::new(factors[start].v.iter().take(min).cloned().to_vec());
                 let mut child = factors.drain(start..=stop).to_vec();
                 if VERBOSE { println!("child:\n{}", child.iter().enumerate().map(|(i, c)| format!("- [{i}] = {}  org = {:?}", c.to_str(self.get_symbol_table()), c.origin)).join("\n")); }
                 if child.iter().all(|f| f.is_greedy()) {
@@ -1010,7 +1007,7 @@ impl<T> ProdRuleSet<T> {
                 let var_prime = new_var;
                 new_var += 1;
                 self.set_flags(var, ruleflag::PARENT_L_FACTOR);
-                self.set_flags(var_prime, ruleflag::CHILD_L_FACTOR);
+                self.set_flags(var_prime, ruleflag::CHILD_L_FACT);
                 let top = self.get_top_parent(var);
                 self.symbol_table.as_mut().map(|table| assert_eq!(table.add_child_nonterminal(top), var_prime));
                 self.set_parent(var_prime, var);
@@ -1068,7 +1065,7 @@ impl<T> ProdRuleSet<T> {
         for v in 0..self.num_nt {
             if self.flags[v] & FLAG_CHECK_MASK == ruleflag::L_FORM {
                 // it's also fine to have L-form on a l-factor children of a right-recursive parent
-                if self.flags[v] & ruleflag::CHILD_L_FACTOR == 0 || self.flags[self.parent[v].unwrap() as usize] & ruleflag::R_RECURSION == 0 {
+                if self.flags[v] & ruleflag::CHILD_L_FACT == 0 || self.flags[self.parent[v].unwrap() as usize] & ruleflag::R_RECURSION == 0 {
                     self.log.add_error(format!("{} has an illegal flag L-Form (only used with +, *, or right recursion): {}",
                                                Symbol::NT(v as VarId).to_str(self.get_symbol_table()),
                                                ruleflag::to_string(self.flags[v]).join(" ")
@@ -1079,19 +1076,19 @@ impl<T> ProdRuleSet<T> {
     }
 
     /// Generates a side-by-side comparison between the production rules and the original rule
-    /// each factor represents (or which part of that rule).
+    /// each alternative represents (or which part of that rule).
     ///
     /// The output can be formatted with [`indent_source`].
-    pub fn prs_factor_origins_str(&self, ansi: bool) -> Vec<String> {
+    pub fn prs_alt_origins_str(&self, ansi: bool) -> Vec<String> {
         let mut cols = vec![vec!["ProdRuleSet".to_string(), "|".to_string(), "Original rules".to_string()]];
         cols.push(vec!["-----------".to_string(), "|".to_string(), "--------------".to_string()]);
-        // adds the current factors
+        // adds the current alternatives
         cols.extend(self.get_prules_iter()
             .flat_map(|(v, prule)| prule.iter()
-                .map(move |f| vec![
-                    factor_to_rule_str(v, &f.v, self.get_symbol_table()),
+                .map(move |alt| vec![
+                    alt_to_rule_str(v, &alt.v, self.get_symbol_table()),
                     "|".to_string(),
-                    if let Some((vo, ido)) = f.origin {
+                    if let Some((vo, ido)) = alt.origin {
                         let tree = &self.origin.trees[vo as usize];
                         let emphasis = if tree.get_root() == Some(ido) { None } else { Some(ido) };
                         let orig_rule = grtree_to_str_custom(tree, None, emphasis, self.get_symbol_table(), false, ansi);
@@ -1158,48 +1155,48 @@ impl ProdRuleSet<LL1> {
     /// Creates the table for predictive top-down parsing.
     ///
     /// Returns:
-    /// - `num_nt` = number of non-terminals
+    /// - `num_nt` = number of nonterminals
     /// - `num_t` = number of terminals (including the end symbol)
-    /// - `factors`, the production factors: (VarId, ProdFactor) where the first value is the non-terminal index and the second one of its factors
-    /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production factor for
-    /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `factors.len()` stands for a syntactic error.
+    /// - `alts`, the production factors: (VarId, Alternative) where the first value is the non-terminal index and the second one of its factors
+    /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production alternative for
+    /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `alts.len()` stands for a syntax error.
     pub(super) fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>, error_recovery: bool) -> LLParsingTable {
-        fn add_table(table: &mut Vec<Vec<FactorId>>, num_t: usize, nt_id: VarId, t_id: VarId, f_id: FactorId) {
+        fn add_table(table: &mut Vec<Vec<AltId>>, num_t: usize, nt_id: VarId, t_id: VarId, a_id: AltId) {
             let pos = nt_id as usize * num_t + t_id as usize;
-            table[pos].push(f_id);
+            table[pos].push(a_id);
         }
         const VERBOSE: bool = false;
         const DISABLE_FILTER: bool = false;
-        let mut factors = self.prules.iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
-            .flat_map(|(v, x)| x.iter().map(move |f| (v, f.clone()))).to_vec();
-        let error_skip = factors.len() as FactorId; // table entry for syntactic error; recovery by skipping input symbol
-        let error_pop = error_skip + 1;             // table entry for syntactic error; recovery by popping T or NT from stack
+        let mut alts = self.prules.iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
+            .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone()))).to_vec();
+        let error_skip = alts.len() as AltId;   // table entry for syntactic error; recovery by skipping input symbol
+        let error_pop = error_skip + 1;         // table entry for syntactic error; recovery by popping T or NT from stack
         let num_nt = self.num_nt;
         let num_t = self.num_t + 1;
         let end = (num_t - 1) as VarId; // index of end symbol
         let mut used_t = HashSet::<Symbol>::new();
-        let mut table: Vec<Vec<FactorId>> = vec![vec![]; num_nt * num_t];
-        for (f_id, (nt_id, factor)) in factors.iter().index() {
-            used_t.extend(factor.iter().filter(|s| s.is_t()));
-            if VERBOSE { println!("- {f_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
-                                  factor.to_str(self.get_symbol_table()),
-                                  factor.factor_first(first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+        let mut table: Vec<Vec<AltId>> = vec![vec![]; num_nt * num_t];
+        for (a_id, (nt_id, alt)) in alts.iter().index() {
+            used_t.extend(alt.iter().filter(|s| s.is_t()));
+            if VERBOSE { println!("- {a_id}: {} -> {}  => {}", Symbol::NT(*nt_id).to_str(self.get_symbol_table()),
+                                  alt.to_str(self.get_symbol_table()),
+                                  alt.calc_alt_first(first).iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut has_end = false;
             let mut has_empty = false;
-            for s in factor.factor_first(first) {
+            for s in alt.calc_alt_first(first) {
                 match s {
                     Symbol::Empty => {
                         has_empty = true;
                         for s in &follow[&Symbol::NT(*nt_id)] {
                             match s {
-                                Symbol::T(t_id) => add_table(&mut table, num_t, *nt_id, *t_id, f_id),
-                                Symbol::End     => add_table(&mut table, num_t, *nt_id, end, f_id),
+                                Symbol::T(t_id) => add_table(&mut table, num_t, *nt_id, *t_id, a_id),
+                                Symbol::End     => add_table(&mut table, num_t, *nt_id, end, a_id),
                                 _ => {}
                             }
                         }
                     }
                     Symbol::T(t_id) => {
-                        add_table(&mut table, num_t, *nt_id, t_id, f_id);
+                        add_table(&mut table, num_t, *nt_id, t_id, a_id);
                     }
                     Symbol::NT(_) => {}
                     Symbol::End => {
@@ -1212,7 +1209,7 @@ impl ProdRuleSet<LL1> {
             }
         }
         // creates the table and removes ambiguities
-        let mut final_table = Vec::<FactorId>::new();
+        let mut final_table = Vec::<AltId>::new();
         for nt_id in 0..num_nt {
             for t_id in 0..num_t {
                 let pos = nt_id * num_t + t_id;
@@ -1233,29 +1230,29 @@ impl ProdRuleSet<LL1> {
                     1 => *table[pos].first().unwrap(),
                     _ => {
                         // we take the first item which isn't already in another position on the same NT row
-                        let greedies = table[pos].iter().filter(|&f_id| factors[*f_id as usize].1.is_greedy()).cloned().to_vec();
+                        let greedies = table[pos].iter().filter(|&a_id| alts[*a_id as usize].1.is_greedy()).cloned().to_vec();
                         if greedies.len() == 1 {
                             let chosen = greedies[0];
                             self.log.add_note(
                                 format!("- calc_table: expected ambiguity for NT '{}', T '{}': {} => <{}> is specified as greedy and has been chosen",
                                         Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
                                         if t_id < self.num_t { Symbol::T(t_id as VarId).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() },
-                                        table[pos].iter().map(|f_id|
-                                            format!("<{}>", factors[*f_id as usize].1.to_str(self.get_symbol_table()))).join(" or "),
-                                        factors[chosen as usize].1.to_str(self.get_symbol_table())
+                                        table[pos].iter().map(|a_id|
+                                            format!("<{}>", alts[*a_id as usize].1.to_str(self.get_symbol_table()))).join(" or "),
+                                        alts[chosen as usize].1.to_str(self.get_symbol_table())
                                 ));
                             table[pos] = greedies;
                             chosen
                         } else {
                             let row = (0..num_t).filter(|j| *j != t_id).flat_map(|j| &table[nt_id * num_t + j]).collect::<HashSet<_>>();
-                            let chosen = *table[pos].iter().find(|f| !row.contains(f)).unwrap_or(&table[pos][0]);
+                            let chosen = *table[pos].iter().find(|a| !row.contains(a)).unwrap_or(&table[pos][0]);
                             self.log.add_warning(
                                 format!("- calc_table: ambiguity for NT '{}', T '{}': {} => <{}> has been chosen",
                                         Symbol::NT(nt_id as VarId).to_str(self.get_symbol_table()),
                                         if t_id < self.num_t { Symbol::T(t_id as VarId).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() },
-                                        table[pos].iter().map(|f_id|
-                                            format!("<{}>", factors[*f_id as usize].1.to_str(self.get_symbol_table()))).join(" or "),
-                                        factors[chosen as usize].1.to_str(self.get_symbol_table())
+                                        table[pos].iter().map(|a_id|
+                                            format!("<{}>", alts[*a_id as usize].1.to_str(self.get_symbol_table()))).join(" or "),
+                                        alts[chosen as usize].1.to_str(self.get_symbol_table())
                                 ));
                             table[pos] = vec![chosen];
                             chosen
@@ -1267,10 +1264,10 @@ impl ProdRuleSet<LL1> {
         if !(0..num_t - 1).any(|t_id| (0..num_nt).any(|nt_id| final_table[nt_id * num_t + t_id] < error_skip)) {
             self.log.add_error("- calc_table: no terminal used in the table".to_string());
         }
-        for (_, f) in &mut factors {
-            f.flags &= !ruleflag::GREEDY;
+        for (_, a) in &mut alts {
+            a.flags &= !ruleflag::GREEDY;
         }
-        LLParsingTable { num_nt, num_t, factors, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() }
+        LLParsingTable { num_nt, num_t, alts, table: final_table, flags: self.flags.clone(), parent: self.parent.clone() }
     }
 
     pub fn make_parsing_table(&mut self, error_recovery: bool) -> LLParsingTable {
@@ -1390,9 +1387,9 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
     fn build_from(mut rules: RuleTreeSet<Normalized>) -> Self {
-        fn children_to_vec(tree: &GrTree, parent_id: usize) -> ProdFactor {
+        fn children_to_vec(tree: &GrTree, parent_id: usize) -> Alternative {
             let mut flags: u32 = 0;
-            let factor = tree.children(parent_id).iter()
+            let alt = tree.children(parent_id).iter()
                 .map(|id| tree.get(*id))
                 .filter(|node| {
                     match **node {
@@ -1417,7 +1414,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     x => panic!("unexpected symbol {x} under &")
                 }
             }).to_vec();
-            ProdFactor::new(factor).with_flags(flags)
+            Alternative::new(alt).with_flags(flags)
         }
         let mut prules = Self::with_capacity(rules.trees.len());
         prules.start = rules.start;
@@ -1439,32 +1436,32 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                 let root_sym = tree.get(root);
                 let mut prule = match root_sym {
                     GrNode::Symbol(s) => {
-                        let mut fact = ProdFactor::new(vec![s.clone()]);
+                        let mut alt = Alternative::new(vec![s.clone()]);
                         if let Some(&(v, ch)) = rules.origin.map.get(&(var, root)) {
-                            fact.origin = Some((v, ch));
+                            alt.origin = Some((v, ch));
                         }
-                        vec![fact]
+                        vec![alt]
                     },
                     GrNode::Concat => {
-                        let mut fact = children_to_vec(tree, root);
+                        let mut alt = children_to_vec(tree, root);
                         if let Some(&(v, ch)) = rules.origin.map.get(&(var, root)) {
-                            fact.origin = Some((v, ch));
+                            alt.origin = Some((v, ch));
                         }
-                        vec![fact]
+                        vec![alt]
                     },
                     GrNode::Or => tree.children(root).iter()
                         .map(|id| {
                             let child = tree.get(*id);
-                            let mut fact = if let GrNode::Symbol(s) = child {
-                                ProdFactor::new(vec![s.clone()])
+                            let mut alt = if let GrNode::Symbol(s) = child {
+                                Alternative::new(vec![s.clone()])
                             } else {
                                 assert_eq!(*child, GrNode::Concat, "unexpected symbol {child} under |");
                                 children_to_vec(tree, *id)
                             };
                             if let Some(&(v, ch)) = rules.origin.map.get(&(var, *id)) {
-                                fact.origin = Some((v, ch));
+                                alt.origin = Some((v, ch));
                             }
-                            fact
+                            alt
                         }).to_vec(),
                     s => panic!("unexpected symbol {s} as root of normalized GrTree for NT {}", Symbol::NT(var).to_str(prules.get_symbol_table()))
                 };
@@ -1483,8 +1480,8 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     // }
                     prules.set_flags(var, ruleflag::L_FORM);
                     // not really necessary, but cleaner:
-                    for f in prule.iter_mut() {
-                        f.flags &= !ruleflag::L_FORM;
+                    for a in prule.iter_mut() {
+                        a.flags &= !ruleflag::L_FORM;
                     }
                 }
                 // the children NTs that represent a part of the original NT are stored in ProdRuleSet::origin
@@ -1585,7 +1582,7 @@ impl<T> ProdRuleSet<T> {
 
     pub fn print_factors(&self) {
         println!("Factors:\n{}",
-                 self.get_factors().enumerate().map(|(id, (v, f))|
+                 self.get_alts().enumerate().map(|(id, (v, f))|
                      format!("    // - {id}: {} -> {}{}",
                              Symbol::NT(v).to_str(self.get_symbol_table()),
                              f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
@@ -1597,8 +1594,8 @@ impl<T> ProdRuleSet<T> {
 
 impl LLParsingTable {
     pub fn print(&self, symbol_table: Option<&SymbolTable>, indent: usize) {
-        let LLParsingTable { num_nt, num_t, factors, table, .. } = self;
-        let error_skip = factors.len() as FactorId;
+        let LLParsingTable { num_nt, num_t, alts: factors, table, .. } = self;
+        let error_skip = factors.len() as AltId;
         let error_pop = error_skip + 1;
         let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
         let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();

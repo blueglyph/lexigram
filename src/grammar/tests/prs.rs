@@ -378,16 +378,16 @@ fn prs_grammar_notes() {
     let tests: Vec<(T, VarId, Vec<&str>, Vec<&str>)> = vec![
         //        warnings                                  errors
         //        -------------------------------------     -------------------------------------
-        (T::PRS(1000), 0, vec![],                           vec!["recursive rules must have at least one independent factor"]),
+        (T::PRS(1000), 0, vec![],                           vec!["recursive rules must have at least one independent alternative"]),
         (T::PRS(1002), 0, vec!["ambiguity for NT"],         vec![]),
         (T::PRS(1003), 0, vec![],                           vec!["no terminal in grammar"]),
         (T::PRS(1004), 0, vec![],                           vec!["no terminal used in the table"]),
-        (T::PRS(1005), 0, vec!["unused non-terminals",
+        (T::PRS(1005), 0, vec!["unused nonterminals",
                                "unused terminals"],         vec![]),
-        (T::PRS(1006), 0, vec![],                           vec!["there are 2 rules but the symbol table has 1 NT symbols: dropping the table"]),
-        (T::RTS(101), 0,  vec![],                           vec!["there are 2 rules but the symbol table has 1 NT symbols: dropping the table"]),
+        (T::PRS(1006), 0, vec![],                           vec!["there are 2 rules but the symbol table has 1 nonterminal symbols: dropping the table"]),
+        (T::RTS(101), 0,  vec![],                           vec!["there are 2 rules but the symbol table has 1 nonterminal symbols: dropping the table"]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {ll_id:?}/{start}:", "");
@@ -410,7 +410,7 @@ fn prs_grammar_notes() {
                 println!("=>");
                 ll1.print_rules(false, false);
                 if let Some(table) = &parsing_table {
-                    print_factors(&table.factors, ll1.get_symbol_table());
+                    print_factors(&table.alts, ll1.get_symbol_table());
                     println!("table:");
                     table.print(ll1.get_symbol_table(), 12);
                 }
@@ -432,7 +432,7 @@ fn prs_grammar_notes() {
 
 #[test]
 fn prs_calc_table() {
-    let tests: Vec<(T, VarId, usize, Vec<(VarId, ProdFactor)>, Vec<FactorId>)> = vec![
+    let tests: Vec<(T, VarId, usize, Vec<(VarId, Alternative)>, Vec<AltId>)> = vec![
         (T::PRS(4), 0, 0, vec![
             // E -> E + T | E - T | T
             // T -> T * F | T / F | F
@@ -448,17 +448,17 @@ fn prs_calc_table() {
             // - 8: T_1 -> * F T_1
             // - 9: T_1 -> / F T_1
             // - 10: T_1 -> ε
-            (0, prodf!(nt 1, nt 3)),
-            (1, prodf!(nt 2, nt 4)),
-            (2, prodf!(t 4, nt 0, t 5)),
-            (2, prodf!(t 6)),
-            (2, prodf!(t 7)),
-            (3, prodf!(t 0, nt 1, nt 3)),
-            (3, prodf!(t 1, nt 1, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(t 2, nt 2, nt 4)),
-            (4, prodf!(t 3, nt 2, nt 4)),
-            (4, prodf!(e)),
+            (0, alt!(nt 1, nt 3)),
+            (1, alt!(nt 2, nt 4)),
+            (2, alt!(t 4, nt 0, t 5)),
+            (2, alt!(t 6)),
+            (2, alt!(t 7)),
+            (3, alt!(t 0, nt 1, nt 3)),
+            (3, alt!(t 1, nt 1, nt 3)),
+            (3, alt!(e)),
+            (4, alt!(t 2, nt 2, nt 4)),
+            (4, alt!(t 3, nt 2, nt 4)),
+            (4, alt!(e)),
         ], vec![
             //     |  -   +   /   *   (   )   N   I   $
             // ----+-------------------------------------
@@ -479,11 +479,11 @@ fn prs_calc_table() {
             // - 2: A1 -> ε
             // - 3: A2 -> + A2
             // - 4: A2 -> ε
-            (0, prodf!(nt 1, nt 2, t 2, t 2)),
-            (1, prodf!(t 0, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(t 1, nt 2)),
-            (2, prodf!(e)),
+            (0, alt!(nt 1, nt 2, t 2, t 2)),
+            (1, alt!(t 0, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(t 1, nt 2)),
+            (2, alt!(e)),
         ], vec![
             //    |  -   +   ;   $
             // ---+-----------------
@@ -500,11 +500,11 @@ fn prs_calc_table() {
             // - 2: A -> A1 A2 ;
             // - 3: A2 -> + A2
             // - 4: A2 -> ε
-            (0, prodf!(t 0, nt 0)),
-            (0, prodf!(e)),
-            (1, prodf!(nt 0, nt 2, t 2)),
-            (2, prodf!(t 1, nt 2)),
-            (2, prodf!(e)),
+            (0, alt!(t 0, nt 0)),
+            (0, alt!(e)),
+            (1, alt!(nt 0, nt 2, t 2)),
+            (2, alt!(t 1, nt 2)),
+            (2, alt!(e)),
         ], vec![
             //    |  -   +   ;   $
             // ---+-----------------
@@ -522,12 +522,12 @@ fn prs_calc_table() {
             // - 3: A -> A1 A2 ;
             // - 4: A2 -> + A2
             // - 5: A2 -> ε
-            (0, prodf!(t 1, nt 0)),
-            (0, prodf!(e)),
-            (1, prodf!(t 0, nt 2)),
-            (2, prodf!(nt 0, nt 3, t 3)),
-            (3, prodf!(t 2, nt 3)),
-            (3, prodf!(e)),
+            (0, alt!(t 1, nt 0)),
+            (0, alt!(e)),
+            (1, alt!(t 0, nt 2)),
+            (2, alt!(nt 0, nt 3, t 3)),
+            (3, alt!(t 2, nt 3)),
+            (3, alt!(e)),
         ], vec![
             //    |  >   -   +   ;   $
             // ---+---------------------
@@ -546,11 +546,11 @@ fn prs_calc_table() {
             // - 2: A -> A1 A2 ;
             // - 3: A2 -> + A2
             // - 4: A2 -> ε
-            (0, prodf!(t 1, nt 0)),
-            (0, prodf!(e)),
-            (1, prodf!(nt 0, nt 2, t 3)),
-            (2, prodf!(t 2, nt 2)),
-            (2, prodf!(e)),
+            (0, alt!(t 1, nt 0)),
+            (0, alt!(e)),
+            (1, alt!(nt 0, nt 2, t 3)),
+            (2, alt!(t 2, nt 2)),
+            (2, alt!(e)),
         ], vec![
             //    |  >   -   +   ;   $
             // ---+---------------------
@@ -567,10 +567,10 @@ fn prs_calc_table() {
             // - 1: A_1 -> a A_2 A_1
             // - 2: A_1 -> ε
             // - 3: A_2 -> b
-            (0, prodf!(nt 2, nt 1)),
-            (1, prodf!(t 0, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(t 1)),
+            (0, alt!(nt 2, nt 1)),
+            (1, alt!(t 0, nt 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(t 1)),
         ], vec![
             //     |  a   b   $
             // ----+-------------
@@ -586,10 +586,10 @@ fn prs_calc_table() {
             // - 1: A_1 -> A_2 A_1
             // - 2: A_1 -> ε
             // - 3: A_2 -> a
-            (0, prodf!(nt 2, nt 1)),
-            (1, prodf!(nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(t 0)),
+            (0, alt!(nt 2, nt 1)),
+            (1, alt!(nt 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(t 0)),
         ], vec![
             //     |  a   $
             // ----+---------
@@ -605,10 +605,10 @@ fn prs_calc_table() {
             // - 1: A -> a
             // - 2: B -> C )
             // - 3: C -> ( A
-            (0, prodf!(nt 1)),
-            (0, prodf!(t 0)),
-            (1, prodf!(nt 2, t 2)),
-            (2, prodf!(t 1, nt 0)),
+            (0, alt!(nt 1)),
+            (0, alt!(t 0)),
+            (1, alt!(nt 2, t 2)),
+            (2, alt!(t 1, nt 0)),
         ], vec![
             //   |  a   (   )   $
             // --+-----------------
@@ -621,7 +621,7 @@ fn prs_calc_table() {
         ]),
         (T::PRS(18), 0, 0, vec![
             // - 0: A -> a
-            (0, prodf!(t 0)),
+            (0, alt!(t 0)),
         ], vec![
             //   |  a   $
             // --+---------
@@ -630,8 +630,8 @@ fn prs_calc_table() {
         ]),
         (T::PRS(19), 0, 0, vec![
             // - 0: A -> a
-            (0, prodf!(t 0)),
-            (0, prodf!(e)),
+            (0, alt!(t 0)),
+            (0, alt!(e)),
         ], vec![
             //   |   a   $
             // --+---------
@@ -642,9 +642,9 @@ fn prs_calc_table() {
             // - 0: STRUCT -> struct id { LIST
             // - 1: LIST -> id : id ; LIST
             // - 2: LIST -> }
-            (0, prodf!(t 0, t 5, t 1, nt 1)),
-            (1, prodf!(t 5, t 3, t 5, t 4, nt 1)),
-            (1, prodf!(t 2)),
+            (0, alt!(t 0, t 5, t 1, nt 1)),
+            (1, alt!(t 5, t 3, t 5, t 4, nt 1)),
+            (1, alt!(t 2)),
         ], vec![
             //        | struct  {   }   :   ;  id   $
             // -------+--------------------------------
@@ -667,11 +667,11 @@ fn prs_calc_table() {
             // - 2: B -> b c B_1
             // - 3: B_1 -> B
             // - 4: B_1 -> ε
-            (0, prodf!(t 0, nt 1, t 3)),
-            (0, prodf!(t 4)),
-            (1, prodf!(t 1, t 2, nt 2)),
-            (2, prodf!(nt 1)),
-            (2, prodf!(e)),
+            (0, alt!(t 0, nt 1, t 3)),
+            (0, alt!(t 4)),
+            (1, alt!(t 1, t 2, nt 2)),
+            (2, alt!(nt 1)),
+            (2, alt!(e)),
         ], vec![
             //     |  a   b   c   d   e   $
             // ----+-------------------------
@@ -691,13 +691,13 @@ fn prs_calc_table() {
             // - 4: A_2 -> e A_1
             // - 5: A_3 -> c A_1
             // - 6: A_3 -> d A_1
-            (0, prodf!(t 5, nt 1)),
-            (1, prodf!(t 0, nt 2)),
-            (1, prodf!(e)),
-            (2, prodf!(t 1, nt 3)),
-            (2, prodf!(t 4, nt 1)),
-            (3, prodf!(t 2, nt 1)),
-            (3, prodf!(t 3, nt 1)),
+            (0, alt!(t 5, nt 1)),
+            (1, alt!(t 0, nt 2)),
+            (1, alt!(e)),
+            (2, alt!(t 1, nt 3)),
+            (2, alt!(t 4, nt 1)),
+            (3, alt!(t 2, nt 1)),
+            (3, alt!(t 3, nt 1)),
         ], vec![
             //     |  a   b   c   d   e   f   $
             // ----+-----------------------------
@@ -717,11 +717,11 @@ fn prs_calc_table() {
             // - 2: A_1 -> a A_1
             // - 3: A_1 -> b A_1
             // - 4: A_1 -> ε
-            (0, prodf!(t 2, nt 1)),
-            (0, prodf!(t 3, nt 1)),
-            (1, prodf!(t 0, nt 1)),
-            (1, prodf!(t 1, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(t 2, nt 1)),
+            (0, alt!(t 3, nt 1)),
+            (1, alt!(t 0, nt 1)),
+            (1, alt!(t 1, nt 1)),
+            (1, alt!(e)),
         ], vec![
             //     |  a   b   c   d   $
             // ----+---------------------
@@ -738,13 +738,13 @@ fn prs_calc_table() {
             // - 4: A_2 -> c
             // - 5: A_2 -> d
             // - 6: A_2 -> ε
-            (0, prodf!(t 0, nt 1)),
-            (0, prodf!(t 4)),
-            (1, prodf!(t 1, nt 2)),
-            (1, prodf!(e)),
-            (2, prodf!(t 2)),
-            (2, prodf!(t 3)),
-            (2, prodf!(e)),
+            (0, alt!(t 0, nt 1)),
+            (0, alt!(t 4)),
+            (1, alt!(t 1, nt 2)),
+            (1, alt!(e)),
+            (2, alt!(t 2)),
+            (2, alt!(t 3)),
+            (2, alt!(e)),
         ], vec![
             //     |  a   b   c   d   e   $
             // ----+-------------------------
@@ -777,14 +777,14 @@ fn prs_calc_table() {
             // FACTOR => ( id int
             // ε => ε
             //
-            (0, prodf!(nt 1, t 7, nt 0)),   // - 0: BATCH -> GROUP ; BATCH
-            (0, prodf!(e)),                 // - 1: BATCH -> ε
-            (1, prodf!(t 0, nt 2, t 1)),    // - 2: GROUP -> [ EXPR ]
-            (1, prodf!(t 2, nt 2, t 3)),    // - 3: GROUP -> ( EXPR )
-            (2, prodf!(nt 3, t 4, nt 3)),   // - 4: EXPR -> FACTOR * FACTOR
-            (3, prodf!(t 5)),               // - 5: FACTOR -> id
-            (3, prodf!(t 6)),               // - 6: FACTOR -> int
-            (3, prodf!(t 2, nt 2, t 3)),    // - 7: FACTOR -> ( EXPR )
+            (0, alt!(nt 1, t 7, nt 0)),   // - 0: BATCH -> GROUP ; BATCH
+            (0, alt!(e)),                 // - 1: BATCH -> ε
+            (1, alt!(t 0, nt 2, t 1)),    // - 2: GROUP -> [ EXPR ]
+            (1, alt!(t 2, nt 2, t 3)),    // - 3: GROUP -> ( EXPR )
+            (2, alt!(nt 3, t 4, nt 3)),   // - 4: EXPR -> FACTOR * FACTOR
+            (3, alt!(t 5)),               // - 5: FACTOR -> id
+            (3, alt!(t 6)),               // - 6: FACTOR -> int
+            (3, alt!(t 2, nt 2, t 3)),    // - 7: FACTOR -> ( EXPR )
         ], vec![
             //        |  [   ]   (   )   *  id  int  ;   $
             // -------+-------------------------------------
@@ -821,27 +821,27 @@ fn prs_calc_table() {
             // - 18: E_3 -> - E_1
             // - 19: E_3 -> abs E_3
             // - 20: E_3 -> F
-            (0, prodf!(nt 7, nt 2)),
-            (1, prodf!(t 5, nt 0, t 6)),
-            (1, prodf!(t 7)),
-            (1, prodf!(t 8)),
-            (2, prodf!(t 2, nt 7, nt 2)),
-            (2, prodf!(t 9, nt 2)),
-            (2, prodf!(t 3, nt 5, nt 2)),
-            (2, prodf!(t 4, nt 3, nt 2)),
-            (2, prodf!(e)),
-            (3, prodf!(nt 7, nt 4)),
-            (4, prodf!(t 2, nt 7, nt 4)),
-            (4, prodf!(t 9, nt 4)),
-            (4, prodf!(t 3, nt 5, nt 4)),
-            (4, prodf!(e)),
-            (5, prodf!(nt 7, nt 6)),
-            (6, prodf!(t 2, nt 7, nt 6)),
-            (6, prodf!(t 9, nt 6)),
-            (6, prodf!(e)),
-            (7, prodf!(t 1, nt 3)),
-            (7, prodf!(t 0, nt 7)),
-            (7, prodf!(nt 1)),
+            (0, alt!(nt 7, nt 2)),
+            (1, alt!(t 5, nt 0, t 6)),
+            (1, alt!(t 7)),
+            (1, alt!(t 8)),
+            (2, alt!(t 2, nt 7, nt 2)),
+            (2, alt!(t 9, nt 2)),
+            (2, alt!(t 3, nt 5, nt 2)),
+            (2, alt!(t 4, nt 3, nt 2)),
+            (2, alt!(e)),
+            (3, alt!(nt 7, nt 4)),
+            (4, alt!(t 2, nt 7, nt 4)),
+            (4, alt!(t 9, nt 4)),
+            (4, alt!(t 3, nt 5, nt 4)),
+            (4, alt!(e)),
+            (5, alt!(nt 7, nt 6)),
+            (6, alt!(t 2, nt 7, nt 6)),
+            (6, alt!(t 9, nt 6)),
+            (6, alt!(e)),
+            (7, alt!(t 1, nt 3)),
+            (7, alt!(t 0, nt 7)),
+            (7, alt!(nt 1)),
         ], vec![
             //      | abs  -   ^   *   +   (   )  NUM ID   '   $
             // -----+---------------------------------------------
@@ -877,20 +877,20 @@ fn prs_calc_table() {
             // - 11: E_3 -> <G> ' E_3
             // - 12: E_3 -> ε
             // - 13: E_4 -> F
-            (0, prodf!(nt 5, nt 2)),
-            (1, prodf!(t 4)),
-            (1, prodf!(t 5)),
-            (2, prodf!(t 0, nt 5, nt 2)),
-            (2, prodf!(t 1, nt 2)),
-            (2, prodf!(t 2, nt 2)),
-            (2, prodf!(t 3, nt 3, nt 2)),
-            (2, prodf!(e)),
-            (3, prodf!(nt 5, nt 4)),
-            (4, prodf!(t 0, nt 5, nt 4)),
-            (4, prodf!(t 1, nt 4)),
-            (4, prodf!(t 2, nt 4)),
-            (4, prodf!(e)),
-            (5, prodf!(nt 1)),
+            (0, alt!(nt 5, nt 2)),
+            (1, alt!(t 4)),
+            (1, alt!(t 5)),
+            (2, alt!(t 0, nt 5, nt 2)),
+            (2, alt!(t 1, nt 2)),
+            (2, alt!(t 2, nt 2)),
+            (2, alt!(t 3, nt 3, nt 2)),
+            (2, alt!(e)),
+            (3, alt!(nt 5, nt 4)),
+            (4, alt!(t 0, nt 5, nt 4)),
+            (4, alt!(t 1, nt 4)),
+            (4, alt!(t 2, nt 4)),
+            (4, alt!(e)),
+            (5, alt!(nt 1)),
         ], vec![
             //     |  *   !   '   +  NUM ID   $
             // ----+-----------------------------
@@ -927,23 +927,23 @@ fn prs_calc_table() {
             // - 14: E_2b -> ε
             // - 15: E_3 -> - E_1
             // - 16: E_3 -> F
-            (0, prodf!(nt 7, nt 2)),
-            (1, prodf!(t 4)),
-            (1, prodf!(t 5)),
-            (1, prodf!(t 6, nt 0, t 7)),
-            (2, prodf!(#R, t 0, nt 5, nt 2)),
-            (2, prodf!(#R, t 1, nt 3, nt 2)),
-            (2, prodf!(t 3, nt 3, nt 2)),
-            (2, prodf!(e)),
-            (3, prodf!(nt 7, nt 4)),
-            (4, prodf!(#R, t 0, nt 5, nt 4)),
-            (4, prodf!(#R, t 1, nt 3, nt 4)),
-            (4, prodf!(e)),
-            (5, prodf!(nt 7, nt 6)),
-            (6, prodf!(#R, t 0, nt 5, nt 6)),
-            (6, prodf!(e)),
-            (7, prodf!(t 2, nt 3)),
-            (7, prodf!(nt 1)),
+            (0, alt!(nt 7, nt 2)),
+            (1, alt!(t 4)),
+            (1, alt!(t 5)),
+            (1, alt!(t 6, nt 0, t 7)),
+            (2, alt!(#R, t 0, nt 5, nt 2)),
+            (2, alt!(#R, t 1, nt 3, nt 2)),
+            (2, alt!(t 3, nt 3, nt 2)),
+            (2, alt!(e)),
+            (3, alt!(nt 7, nt 4)),
+            (4, alt!(#R, t 0, nt 5, nt 4)),
+            (4, alt!(#R, t 1, nt 3, nt 4)),
+            (4, alt!(e)),
+            (5, alt!(nt 7, nt 6)),
+            (6, alt!(#R, t 0, nt 5, nt 6)),
+            (6, alt!(e)),
+            (7, alt!(t 2, nt 3)),
+            (7, alt!(nt 1)),
         ], vec![
             //      |  ^   *   -   +  ID  NUM  (   )   $
             // -----+-------------------------------------
@@ -977,17 +977,17 @@ fn prs_calc_table() {
             // - 8: E_1b -> ε
             // - 9: E_2 -> ID
             // - 10: E_2 -> NUM
-            (0, prodf!(nt 4, nt 1)),
-            (1, prodf!(#R, t 1, nt 2, nt 1)),
-            (1, prodf!(t 0, nt 1)),
-            (1, prodf!(t 2, nt 1)),
-            (1, prodf!(#R, t 3, nt 0, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(#R, t 1, nt 2, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(t 4)),
-            (4, prodf!(t 5)),
+            (0, alt!(nt 4, nt 1)),
+            (1, alt!(#R, t 1, nt 2, nt 1)),
+            (1, alt!(t 0, nt 1)),
+            (1, alt!(t 2, nt 1)),
+            (1, alt!(#R, t 3, nt 0, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(nt 4, nt 3)),
+            (3, alt!(#R, t 1, nt 2, nt 3)),
+            (3, alt!(e)),
+            (4, alt!(t 4)),
+            (4, alt!(t 5)),
         ], vec![
             //      |  !   *  --   +  ID  NUM  $
             // -----+-----------------------------
@@ -1016,18 +1016,18 @@ fn prs_calc_table() {
             // - 9: E_2 -> ! E_1
             // - 10: E_2 -> ID
             // - 11: E_2 -> NUM
-            (0, prodf!(nt 4, nt 1)),
-            (1, prodf!(t 1, nt 4, nt 1)),
-            (1, prodf!(t 2, nt 1)),
-            (1, prodf!(t 3, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(t 1, nt 4, nt 3)),
-            (3, prodf!(t 2, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(t 0, nt 2)),
-            (4, prodf!(t 4)),
-            (4, prodf!(t 5)),
+            (0, alt!(nt 4, nt 1)),
+            (1, alt!(t 1, nt 4, nt 1)),
+            (1, alt!(t 2, nt 1)),
+            (1, alt!(t 3, nt 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(nt 4, nt 3)),
+            (3, alt!(t 1, nt 4, nt 3)),
+            (3, alt!(t 2, nt 3)),
+            (3, alt!(e)),
+            (4, alt!(t 0, nt 2)),
+            (4, alt!(t 4)),
+            (4, alt!(t 5)),
         ], vec![
             //      |  !   *  --   +  ID  NUM  $
             // -----+-----------------------------
@@ -1059,21 +1059,21 @@ fn prs_calc_table() {
             // - 12: E_3 -> ! E_2
             // - 13: E_3 -> ID
             // - 14: E_3 -> NUM
-            (0, prodf!(nt 6, nt 1)),
-            (1, prodf!(t 1, nt 6, nt 1)),
-            (1, prodf!(t 2, nt 1)),
-            (1, prodf!(t 3, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(nt 6, nt 3)),
-            (3, prodf!(t 1, nt 6, nt 3)),
-            (3, prodf!(t 2, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(nt 6, nt 5)),
-            (5, prodf!(t 1, nt 6, nt 5)),
-            (5, prodf!(e)),
-            (6, prodf!(t 0, nt 4)),
-            (6, prodf!(t 4)),
-            (6, prodf!(t 5)),
+            (0, alt!(nt 6, nt 1)),
+            (1, alt!(t 1, nt 6, nt 1)),
+            (1, alt!(t 2, nt 1)),
+            (1, alt!(t 3, nt 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(nt 6, nt 3)),
+            (3, alt!(t 1, nt 6, nt 3)),
+            (3, alt!(t 2, nt 3)),
+            (3, alt!(e)),
+            (4, alt!(nt 6, nt 5)),
+            (5, alt!(t 1, nt 6, nt 5)),
+            (5, alt!(e)),
+            (6, alt!(t 0, nt 4)),
+            (6, alt!(t 4)),
+            (6, alt!(t 5)),
         ], vec![
             //      |  !   *  --   +  ID  NUM  $
             // -----+-----------------------------
@@ -1108,20 +1108,20 @@ fn prs_calc_table() {
             // - 11: E_2b -> ε
             // - 12: E_3 -> ID
             // - 13: E_3 -> NUM
-            (0, prodf!(nt 6, nt 1)),
-            (1, prodf!(t 0, nt 6, nt 1)),
-            (1, prodf!(t 1, nt 4, nt 1)),
-            (1, prodf!(t 2, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(nt 6, nt 3)),
-            (3, prodf!(t 0, nt 6, nt 3)),
-            (3, prodf!(t 1, nt 4, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(nt 6, nt 5)),
-            (5, prodf!(t 0, nt 6, nt 5)),
-            (5, prodf!(e)),
-            (6, prodf!(t 3)),
-            (6, prodf!(t 4)),
+            (0, alt!(nt 6, nt 1)),
+            (1, alt!(t 0, nt 6, nt 1)),
+            (1, alt!(t 1, nt 4, nt 1)),
+            (1, alt!(t 2, nt 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(nt 6, nt 3)),
+            (3, alt!(t 0, nt 6, nt 3)),
+            (3, alt!(t 1, nt 4, nt 3)),
+            (3, alt!(e)),
+            (4, alt!(nt 6, nt 5)),
+            (5, alt!(t 0, nt 6, nt 5)),
+            (5, alt!(e)),
+            (6, alt!(t 3)),
+            (6, alt!(t 4)),
         ], vec![
             //      |  ^   *   +  ID  NUM  $
             // -----+-------------------------
@@ -1154,18 +1154,18 @@ fn prs_calc_table() {
             // - 9: E_4 -> ID
             // - 10: E_5 -> <G> * E_4 E_1
             // - 11: E_5 -> <G> + E_2 E_1
-            (0, prodf!(nt 4, nt 1)),
-            (1, prodf!(t 1, nt 1)),
-            (1, prodf!(t 4, nt 5)),
-            (1, prodf!(e)),
-            (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(t 4, t 0, nt 4, nt 3)),
-            (3, prodf!(t 1, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(t 3, nt 0)),
-            (4, prodf!(t 5)),
-            (5, prodf!(t 0, nt 4, nt 1)),
-            (5, prodf!(t 2, nt 2, nt 1)),
+            (0, alt!(nt 4, nt 1)),
+            (1, alt!(t 1, nt 1)),
+            (1, alt!(t 4, nt 5)),
+            (1, alt!(e)),
+            (2, alt!(nt 4, nt 3)),
+            (3, alt!(t 4, t 0, nt 4, nt 3)),
+            (3, alt!(t 1, nt 3)),
+            (3, alt!(e)),
+            (4, alt!(t 3, nt 0)),
+            (4, alt!(t 5)),
+            (5, alt!(t 0, nt 4, nt 1)),
+            (5, alt!(t 2, nt 2, nt 1)),
         ], vec![
             //     |  *  --   +   !   .  ID   $
             // ----+-----------------------------
@@ -1188,10 +1188,10 @@ fn prs_calc_table() {
             // - 1: E -> 0 E_1
             // - 2: E_1 -> + E_1
             // - 3: E_1 -> ε
-            (0, prodf!(t 1, nt 0)),
-            (0, prodf!(t 2, nt 1)),
-            (1, prodf!(t 0, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(t 1, nt 0)),
+            (0, alt!(t 2, nt 1)),
+            (1, alt!(t 0, nt 1)),
+            (1, alt!(e)),
         ], vec![
             //     |  +   -   0   $
             // ----+-----------------
@@ -1207,11 +1207,11 @@ fn prs_calc_table() {
             // - 2: E -> 1 E_1
             // - 3: E_1 -> + E_1
             // - 4: E_1 -> ε
-            (0, prodf!(t 1, nt 0)),
-            (0, prodf!(t 2, nt 1)),
-            (0, prodf!(t 3, nt 1)),
-            (1, prodf!(t 0, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(t 1, nt 0)),
+            (0, alt!(t 2, nt 1)),
+            (0, alt!(t 3, nt 1)),
+            (1, alt!(t 0, nt 1)),
+            (1, alt!(e)),
         ], vec![
             //     |  +   -   0   1   $
             // ----+---------------------
@@ -1227,11 +1227,11 @@ fn prs_calc_table() {
             // - 2: E_b -> ε
             // - 3: E_1 -> - E_1
             // - 4: E_1 -> 0
-            (0, prodf!(nt 2, nt 1)),
-            (1, prodf!(t 0, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(t 1, nt 2)),
-            (2, prodf!(t 2)),
+            (0, alt!(nt 2, nt 1)),
+            (1, alt!(t 0, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(t 1, nt 2)),
+            (2, alt!(t 2)),
         ], vec![
             //     |  +   -   0   $
             // ----+-----------------
@@ -1249,11 +1249,11 @@ fn prs_calc_table() {
             // - 2: E_b -> ε
             // - 3: E_1 -> - E
             // - 4: E_1 -> 0
-            (0, prodf!(nt 2, nt 1)),
-            (1, prodf!(t 0, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(t 1, nt 0)),
-            (2, prodf!(t 2)),
+            (0, alt!(nt 2, nt 1)),
+            (1, alt!(t 0, nt 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(t 1, nt 0)),
+            (2, alt!(t 2)),
         ], vec![
             //     |  +   -   0   $
             // ----+-----------------
@@ -1271,11 +1271,11 @@ fn prs_calc_table() {
             // - 2: E_b -> ε
             // - 3: E_1 -> - E_1
             // - 4: E_1 -> 0
-            (0, prodf!(nt 2, nt 1)),
-            (1, prodf!(t 0, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(t 1, nt 2)),
-            (2, prodf!(t 2)),
+            (0, alt!(nt 2, nt 1)),
+            (1, alt!(t 0, nt 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(t 1, nt 2)),
+            (2, alt!(t 2)),
         ], vec![
             //     |  +   -   0   $
             // ----+-----------------
@@ -1302,20 +1302,20 @@ fn prs_calc_table() {
             // - 11: E_1 -> ε
             // - 12: E_1b -> - E5
             // - 13: E_1b -> ID
-            (0, prodf!(nt 6, nt 1)),
-            (1, prodf!(#R, t 0, nt 4, nt 1)),
-            (1, prodf!(t 1, nt 4, nt 1)),
-            (1, prodf!(t 3, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(nt 6, nt 3)),
-            (3, prodf!(#R, t 0, nt 4, nt 3)),
-            (3, prodf!(t 1, nt 4, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(nt 6, nt 5)),
-            (5, prodf!(#R, t 0, nt 4, nt 5)),
-            (5, prodf!(e)),
-            (6, prodf!(t 2, nt 2)),
-            (6, prodf!(t 4)),
+            (0, alt!(nt 6, nt 1)),
+            (1, alt!(#R, t 0, nt 4, nt 1)),
+            (1, alt!(t 1, nt 4, nt 1)),
+            (1, alt!(t 3, nt 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(nt 6, nt 3)),
+            (3, alt!(#R, t 0, nt 4, nt 3)),
+            (3, alt!(t 1, nt 4, nt 3)),
+            (3, alt!(e)),
+            (4, alt!(nt 6, nt 5)),
+            (5, alt!(#R, t 0, nt 4, nt 5)),
+            (5, alt!(e)),
+            (6, alt!(t 2, nt 2)),
+            (6, alt!(t 4)),
         ], vec![
             //      |  ^   *   -   +  ID   $
             // -----+-------------------------
@@ -1346,16 +1346,16 @@ fn prs_calc_table() {
             // - 7: E_1b -> ε
             // - 8: E_2 -> - E
             // - 9: E_2 -> ID
-            (0, prodf!(nt 4, nt 1)),
-            (1, prodf!(t 1, nt 1)),
-            (1, prodf!(t 0, nt 2, nt 1)),
-            (1, prodf!(t 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(nt 4, nt 3)),
-            (3, prodf!(t 1, nt 3)),
-            (3, prodf!(e)),
-            (4, prodf!(t 3, nt 0)),
-            (4, prodf!(t 4)),
+            (0, alt!(nt 4, nt 1)),
+            (1, alt!(t 1, nt 1)),
+            (1, alt!(t 0, nt 2, nt 1)),
+            (1, alt!(t 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(nt 4, nt 3)),
+            (3, alt!(t 1, nt 3)),
+            (3, alt!(e)),
+            (4, alt!(t 3, nt 0)),
+            (4, alt!(t 4)),
         ], vec![
             //      |  *   !   +   -  ID   $
             // -----+-------------------------
@@ -1375,9 +1375,9 @@ fn prs_calc_table() {
             // - 0: A -> c A_1
             // - 1: A_1 -> a A b A_1
             // - 2: A_1 -> ε
-            (0, prodf!(t 2, nt 1)),
-            (1, prodf!(t 0, nt 0, t 1, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(t 2, nt 1)),
+            (1, alt!(t 0, nt 0, t 1, nt 1)),
+            (1, alt!(e)),
         ], vec![
             //     |  a   b   c   $
             // ----+-----------------
@@ -1389,8 +1389,8 @@ fn prs_calc_table() {
         (T::PRS(101), 0, 0, vec![
             // - 0: A -> a A A
             // - 1: A -> b
-            (0, prodf!(t 0, nt 0, nt 0)),
-            (0, prodf!(t 1)),
+            (0, alt!(t 0, nt 0, nt 0)),
+            (0, alt!(t 1)),
         ], vec![
             //   |  a   b   $
             // --+-------------
@@ -1402,10 +1402,10 @@ fn prs_calc_table() {
             // - 1: A_1 -> a A b A_2 A_1
             // - 2: A_1 -> ε
             // - 3: A_2 -> c
-            (0, prodf!(nt 2, nt 1)),
-            (1, prodf!(t 0, nt 0, t 1, nt 2, nt 1)),
-            (1, prodf!(e)),
-            (2, prodf!(t 2)),
+            (0, alt!(nt 2, nt 1)),
+            (1, alt!(t 0, nt 0, t 1, nt 2, nt 1)),
+            (1, alt!(e)),
+            (2, alt!(t 2)),
         ], vec![
             //     |  a   b   c   $
             // ----+-----------------
@@ -1421,10 +1421,10 @@ fn prs_calc_table() {
             // - 1: A -> d
             // - 2: B -> A b A B
             // - 3: B -> ε
-            (0, prodf!(t 0, nt 1, t 2)),
-            (0, prodf!(t 3)),
-            (1, prodf!(nt 0, t 1, nt 0, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(t 0, nt 1, t 2)),
+            (0, alt!(t 3)),
+            (1, alt!(nt 0, t 1, nt 0, nt 1)),
+            (1, alt!(e)),
         ], vec![
             //   |  a   b   c   d   $
             // --+---------------------
@@ -1438,10 +1438,10 @@ fn prs_calc_table() {
             // - 1: A -> a
             // - 2: B -> A b A B
             // - 3: B -> ε
-            (0, prodf!(nt 1, t 2)),
-            (0, prodf!(t 0)),
-            (1, prodf!(nt 0, t 1, nt 0, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(nt 1, t 2)),
+            (0, alt!(t 0)),
+            (1, alt!(nt 0, t 1, nt 0, nt 1)),
+            (1, alt!(e)),
         ], vec![
             //   |  a   b   c   $
             // --+-----------------
@@ -1457,10 +1457,10 @@ fn prs_calc_table() {
             // - 1: A -> c
             // - 2: B -> A b A B
             // - 3: B -> ε
-            (0, prodf!(t 0, nt 1)),
-            (0, prodf!(t 2)),
-            (1, prodf!(nt 0, t 1, nt 0, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(t 0, nt 1)),
+            (0, alt!(t 2)),
+            (1, alt!(nt 0, t 1, nt 0, nt 1)),
+            (1, alt!(e)),
         ], vec![
             //   |  a   b   c   $
             // --+-----------------
@@ -1476,10 +1476,10 @@ fn prs_calc_table() {
             // - 1: A -> a
             // - 2: B -> A b A B
             // - 3: B -> ε
-            (0, prodf!(nt 1)),
-            (0, prodf!(t 0)),
-            (1, prodf!(nt 0, t 1, nt 0, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(nt 1)),
+            (0, alt!(t 0)),
+            (1, alt!(nt 0, t 1, nt 0, nt 1)),
+            (1, alt!(e)),
         ], vec![
             //   | a  b  $
             // --+----------
@@ -1497,9 +1497,9 @@ fn prs_calc_table() {
             // - 0: A -> A_1 a
             // - 1: A_1 -> a b A_1
             // - 2: A_1 -> ε
-            (0, prodf!(nt 1, t 0)),
-            (1, prodf!(t 0, t 1, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(nt 1, t 0)),
+            (1, alt!(t 0, t 1, nt 1)),
+            (1, alt!(e)),
 
         ], vec![
             //     |  a   b   $
@@ -1514,9 +1514,9 @@ fn prs_calc_table() {
             // - 0: A -> a A_1
             // - 1: A_1 -> b a A_1
             // - 2: A_1 -> ε
-            (0, prodf!(t 0, nt 1)),
-            (1, prodf!(t 1, t 0, nt 1)),
-            (1, prodf!(e)),
+            (0, alt!(t 0, nt 1)),
+            (1, alt!(t 1, t 0, nt 1)),
+            (1, alt!(e)),
         ], vec![
             //     |  a   b   $
             // ----+-------------
@@ -1529,9 +1529,9 @@ fn prs_calc_table() {
         //     // - 0: A -> a A_1
         //     // - 1: A_1 -> b a A_1
         //     // - 2: A_1 -> ε
-        //     (0, prodf!(t 0, nt 1)),
-        //     (1, prodf!(t 1, t 0, nt 1)),
-        //     (1, prodf!(e)),
+        //     (0, alt!(t 0, nt 1)),
+        //     (1, alt!(t 1, t 0, nt 1)),
+        //     (1, alt!(e)),
         // ], vec![
         //     //     |  a   b   $
         //     // ----+-------------
@@ -1558,7 +1558,7 @@ fn prs_calc_table() {
             map_and_print_follow(&follow, ll1.get_symbol_table());
         }
         let parsing_table = ll1.calc_table(&first, &follow, true);
-        let LLParsingTable { num_nt, num_t, factors, table, .. } = &parsing_table;
+        let LLParsingTable { num_nt, num_t, alts: factors, table, .. } = &parsing_table;
         assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{rule_id:?}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
@@ -1567,12 +1567,12 @@ fn prs_calc_table() {
             println!("{}",
                      factors.iter().enumerate().map(|(_id, (v, f))| {
                          let flags = if f.get_flags() != 0 {
-                             let mut vf = ruleflag::factor_info_to_string(f.get_flags());
+                             let mut vf = ruleflag::alt_info_to_string(f.get_flags());
                              format!("#{}, ", if vf.len() == 1 { vf.pop().unwrap() } else { f.get_flags().to_string() })
                          } else {
                              String::new()
                          };
-                         format!("            ({v}, prodf!({flags}{})),", f.iter().map(|s| s.to_macro_item()).join(", "))
+                         format!("            ({v}, alt!({flags}{})),", f.iter().map(|s| s.to_macro_item()).join(", "))
                      }
             ).join("\n"));
             println!("table:");

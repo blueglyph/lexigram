@@ -30,7 +30,7 @@ pub(crate) mod rules_prs_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(34) #1, start S]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_34_1::*;
 
     #[derive(Debug)]
@@ -90,7 +90,7 @@ pub(crate) mod rules_prs_34_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -162,7 +162,7 @@ pub(crate) mod rules_prs_34_1 {
             self.listener.exit(s);
         }
 
-        fn exit_s(&mut self, factor_id: FactorId) {
+        fn exit_s(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 0 => {
                     let val = self.stack.pop().unwrap().get_val();
@@ -182,7 +182,7 @@ pub(crate) mod rules_prs_34_1 {
             self.stack.push(SynValue::S(val));
         }
 
-        fn exit_val(&mut self, factor_id: FactorId) {
+        fn exit_val(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 3 => {
                     let id = self.stack_t.pop().unwrap();
@@ -226,7 +226,7 @@ pub(crate) mod rules_rts_21_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_21_1::*;
 
     #[derive(Debug)]
@@ -274,9 +274,9 @@ pub(crate) mod rules_rts_21_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -286,16 +286,16 @@ pub(crate) mod rules_rts_21_1 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_a1(),                        // A_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
                         1 => self.exit_a1(),                        // A_1 -> b A_1
                         2 => {}                                     // A_1 -> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -391,7 +391,7 @@ pub(crate) mod rules_rts_21_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(21) #2, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_21_2::*;
 
     #[derive(Debug)]
@@ -434,9 +434,9 @@ pub(crate) mod rules_rts_21_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -446,16 +446,16 @@ pub(crate) mod rules_rts_21_2 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 => {}                                     // A_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
                         1 |                                         // A_1 -> b A_1
                         2 => {}                                     // A_1 -> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -539,7 +539,7 @@ pub(crate) mod rules_rts_22_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_1::*;
 
     #[derive(Debug)]
@@ -594,9 +594,9 @@ pub(crate) mod rules_rts_22_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -606,16 +606,16 @@ pub(crate) mod rules_rts_22_1 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_aiter1(),                    // AIter1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
                         2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -721,7 +721,7 @@ pub(crate) mod rules_rts_22_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #2, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_2::*;
 
     #[derive(Debug)]
@@ -771,9 +771,9 @@ pub(crate) mod rules_rts_22_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -783,16 +783,16 @@ pub(crate) mod rules_rts_22_2 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 => self.listener.init_aiter1(),           // AIter1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
                         2 => {}                                     // AIter1 -> <L> ε (not used)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -880,7 +880,7 @@ pub(crate) mod rules_rts_22_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #3, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_3::*;
 
     #[derive(Debug)]
@@ -935,9 +935,9 @@ pub(crate) mod rules_rts_22_3 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -947,16 +947,16 @@ pub(crate) mod rules_rts_22_3 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_aiter1(),                    // AIter1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
                         2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -1056,7 +1056,7 @@ pub(crate) mod rules_rts_22_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(22) #4, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_22_4::*;
 
     #[derive(Debug)]
@@ -1110,9 +1110,9 @@ pub(crate) mod rules_rts_22_4 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1122,16 +1122,16 @@ pub(crate) mod rules_rts_22_4 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_aiter1(),                    // AIter1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
                         2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -1226,7 +1226,7 @@ pub(crate) mod rules_rts_48_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(48) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_48_1::*;
 
     #[derive(Debug)]
@@ -1293,9 +1293,9 @@ pub(crate) mod rules_rts_48_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1306,17 +1306,17 @@ pub(crate) mod rules_rts_48_1 {
                         0 => self.listener.init_a(),                // A
                         2 => self.init_aiter1(),                    // AIter1
                         1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 B
                         2 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
                         3 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                         1 => self.exit_b(),                         // B -> c
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -1428,7 +1428,7 @@ pub(crate) mod rules_rts_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(32) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_32_1::*;
 
     #[derive(Debug)]
@@ -1485,9 +1485,9 @@ pub(crate) mod rules_rts_32_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1498,18 +1498,18 @@ pub(crate) mod rules_rts_32_1 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_aiter1(),                    // AIter1
                         2 => {}                                     // A_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         3 |                                         // A_1 -> a AIter1 c
-                        4 => self.exit_a(factor_id),                // A_1 -> c AIter1 c
+                        4 => self.exit_a(alt_id),                   // A_1 -> c AIter1 c
                         1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
                         2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                      /* 0 */                                        // A -> a A_1 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -1558,8 +1558,8 @@ pub(crate) mod rules_rts_32_1 {
             self.listener.exit(a);
         }
 
-        fn exit_a(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_a(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 3 => {
                     let c = self.stack_t.pop().unwrap();
                     let star = self.stack.pop().unwrap().get_aiter1();
@@ -1574,7 +1574,7 @@ pub(crate) mod rules_rts_32_1 {
                     let a = self.stack_t.pop().unwrap();
                     CtxA::A2 { a, c: [c_1, c_2], star }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -1624,7 +1624,7 @@ pub(crate) mod rules_rts_25_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(25) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_25_1::*;
 
     #[derive(Debug)]
@@ -1667,9 +1667,9 @@ pub(crate) mod rules_rts_25_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1679,16 +1679,16 @@ pub(crate) mod rules_rts_25_1 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 => {}                                     // A_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
                         1 |                                         // A_1 -> # A_1
                         2 => {}                                     // A_1 -> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -1775,7 +1775,7 @@ pub(crate) mod rules_rts_23_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(23) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_23_1::*;
 
     #[derive(Debug)]
@@ -1823,9 +1823,9 @@ pub(crate) mod rules_rts_23_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -1836,17 +1836,17 @@ pub(crate) mod rules_rts_23_1 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_a1(),                        // A_1
                         2 => {}                                     // A_2
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
                         2 |                                         // A_2 -> A_1
                         3 => self.exit_a1(),                        // A_2 -> ε
                      /* 1 */                                        // A_1 -> b A_2 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -1948,7 +1948,7 @@ pub(crate) mod rules_rts_27_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(27) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_27_1::*;
 
     #[derive(Debug)]
@@ -2008,9 +2008,9 @@ pub(crate) mod rules_rts_27_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2022,18 +2022,18 @@ pub(crate) mod rules_rts_27_1 {
                         2 => self.init_a1(),                        // A_1
                         3 => {}                                     // A_2
                         1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
                         3 |                                         // A_2 -> A_1
                         4 => self.exit_a1(),                        // A_2 -> ε
                      /* 2 */                                        // A_1 -> B A_2 (never called)
                         1 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -2141,7 +2141,7 @@ pub(crate) mod rules_rts_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(28) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_28_1::*;
 
     #[derive(Debug)]
@@ -2204,9 +2204,9 @@ pub(crate) mod rules_rts_28_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2218,18 +2218,18 @@ pub(crate) mod rules_rts_28_1 {
                         2 => self.init_a1(),                        // A_1
                         3 => {}                                     // A_2
                         1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> A_1 c
                         3 |                                         // A_2 -> A_1
                         4 => self.exit_a1(),                        // A_2 -> ε
                      /* 2 */                                        // A_1 -> a B A_2 (never called)
                         1 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -2335,7 +2335,7 @@ pub(crate) mod rules_rts_24_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_1::*;
 
     #[derive(Debug)]
@@ -2389,9 +2389,9 @@ pub(crate) mod rules_rts_24_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2402,17 +2402,17 @@ pub(crate) mod rules_rts_24_1 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_aiter1(),                    // AIter1
                         2 => {}                                     // A_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         2 |                                         // A_1 -> AIter1
-                        3 => self.exit_aiter1(factor_id),           // A_1 -> ε
+                        3 => self.exit_aiter1(alt_id),              // A_1 -> ε
                      /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -2474,8 +2474,8 @@ pub(crate) mod rules_rts_24_1 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let last_iteration = factor_id == 3;
+        fn exit_aiter1(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 3;
             let b = self.stack_t.pop().unwrap();
             let plus_it = self.stack.pop().unwrap().get_aiter1();
             let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { plus_it, b, last_iteration });
@@ -2512,7 +2512,7 @@ pub(crate) mod rules_rts_24_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #2, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_2::*;
 
     #[derive(Debug)]
@@ -2562,9 +2562,9 @@ pub(crate) mod rules_rts_24_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2575,17 +2575,17 @@ pub(crate) mod rules_rts_24_2 {
                         0 => self.listener.init_a(),                // A
                         1 => self.listener.init_aiter1(),           // AIter1
                         2 => {}                                     // A_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         2 |                                         // A_1 -> AIter1
-                        3 => self.exit_aiter1(factor_id),           // A_1 -> ε
+                        3 => self.exit_aiter1(alt_id),              // A_1 -> ε
                      /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -2641,8 +2641,8 @@ pub(crate) mod rules_rts_24_2 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let last_iteration = factor_id == 3;
+        fn exit_aiter1(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 3;
             self.listener.exit_aiter1(CtxAiter1::Aiter1 { last_iteration });
         }
     }
@@ -2677,7 +2677,7 @@ pub(crate) mod rules_rts_24_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #3, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_3::*;
 
     #[derive(Debug)]
@@ -2731,9 +2731,9 @@ pub(crate) mod rules_rts_24_3 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2744,17 +2744,17 @@ pub(crate) mod rules_rts_24_3 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_aiter1(),                    // AIter1
                         2 => {}                                     // A_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         2 |                                         // A_1 -> AIter1
-                        3 => self.exit_aiter1(factor_id),           // A_1 -> ε
+                        3 => self.exit_aiter1(alt_id),              // A_1 -> ε
                      /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -2816,8 +2816,8 @@ pub(crate) mod rules_rts_24_3 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let last_iteration = factor_id == 3;
+        fn exit_aiter1(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 3;
             let plus_it = self.stack.pop().unwrap().get_aiter1();
             let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { plus_it, last_iteration });
             self.stack.push(SynValue::Aiter1(val));
@@ -2854,7 +2854,7 @@ pub(crate) mod rules_rts_24_4 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(24) #4, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_24_4::*;
 
     #[derive(Debug)]
@@ -2907,9 +2907,9 @@ pub(crate) mod rules_rts_24_4 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -2920,17 +2920,17 @@ pub(crate) mod rules_rts_24_4 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_aiter1(),                    // AIter1
                         2 => {}                                     // A_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         2 |                                         // A_1 -> AIter1
-                        3 => self.exit_aiter1(factor_id),           // A_1 -> ε
+                        3 => self.exit_aiter1(alt_id),              // A_1 -> ε
                      /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -2986,8 +2986,8 @@ pub(crate) mod rules_rts_24_4 {
             self.stack.push(SynValue::Aiter1(val));
         }
 
-        fn exit_aiter1(&mut self, factor_id: FactorId) {
-            let last_iteration = factor_id == 3;
+        fn exit_aiter1(&mut self, alt_id: AltId) {
+            let last_iteration = alt_id == 3;
             let plus_it = self.stack.pop().unwrap().get_aiter1();
             let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { plus_it, last_iteration });
             self.stack.push(SynValue::Aiter1(val));
@@ -3028,7 +3028,7 @@ pub(crate) mod rules_rts_29_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_29_1::*;
 
     #[derive(Debug)]
@@ -3100,9 +3100,9 @@ pub(crate) mod rules_rts_29_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3114,19 +3114,19 @@ pub(crate) mod rules_rts_29_1 {
                         2 => self.init_a1(),                        // A_1
                         3 => self.init_a2(),                        // A_2
                         1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
                         2 => self.exit_a1(),                        // A_1 -> B b A_1
                         3 => {}                                     // A_1 -> ε
                         4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
                         5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -3248,7 +3248,7 @@ pub(crate) mod rules_rts_29_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #2, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_29_2::*;
 
     #[derive(Debug)]
@@ -3303,9 +3303,9 @@ pub(crate) mod rules_rts_29_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3317,19 +3317,19 @@ pub(crate) mod rules_rts_29_2 {
                         3 => self.init_a2(),                        // A_2
                         2 => {}                                     // A_1
                         1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
                         2 |                                         // A_1 -> B b A_1
                         3 => {}                                     // A_1 -> ε
                         4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
                         5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -3435,7 +3435,7 @@ pub(crate) mod rules_rts_29_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(29) #3, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -3496,9 +3496,9 @@ pub(crate) mod rules_rts_29_3 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3510,19 +3510,19 @@ pub(crate) mod rules_rts_29_3 {
                         2 => self.init_a1(),                        // A_1
                         3 => self.init_a2(),                        // A_2
                         1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
                         2 => self.exit_a1(),                        // A_1 -> B b A_1
                         3 => {}                                     // A_1 -> ε
                         4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
                         5 => {}                                     // A_2 -> ε
                         1 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -3636,7 +3636,7 @@ pub(crate) mod rules_rts_39_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(39) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_39_1::*;
 
     #[derive(Debug)]
@@ -3704,9 +3704,9 @@ pub(crate) mod rules_rts_39_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3717,18 +3717,18 @@ pub(crate) mod rules_rts_39_1 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_aiter2(),                    // AIter2
                         2 => self.init_aiter1(),                    // AIter1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 d
                         1 => self.exit_aiter2(),                    // AIter2 -> <L> b AIter2
                         2 => self.exitloop_aiter2(),                // AIter2 -> <L> ε
                         3 => self.exit_aiter1(),                    // AIter1 -> <L> AIter2 c AIter1
                         4 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -3853,7 +3853,7 @@ pub(crate) mod rules_rts_40_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(40) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_40_1::*;
 
     #[derive(Debug)]
@@ -3917,9 +3917,9 @@ pub(crate) mod rules_rts_40_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -3930,18 +3930,18 @@ pub(crate) mod rules_rts_40_1 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_aiter1(),                    // AIter1
                         2 => self.init_a1(),                        // A_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_1 d
                         1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
                         2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                         3 => self.exit_a1(),                        // A_1 -> AIter1 c A_1
                         4 => {}                                     // A_1 -> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -4069,7 +4069,7 @@ pub(crate) mod rules_rts_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_30_1::*;
 
     #[derive(Debug)]
@@ -4141,9 +4141,9 @@ pub(crate) mod rules_rts_30_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -4156,12 +4156,12 @@ pub(crate) mod rules_rts_30_1 {
                         3 => self.init_a2(),                        // A_2
                         4 | 5 => {}                                 // A_3, A_4
                         1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
                         4 |                                         // A_3 -> A_1
                         5 => self.exit_a1(),                        // A_3 -> ε
@@ -4170,7 +4170,7 @@ pub(crate) mod rules_rts_30_1 {
                      /* 2 */                                        // A_1 -> B b A_3 (never called)
                      /* 3 */                                        // A_2 -> A_1 c A_4 (never called)
                         1 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -4298,7 +4298,7 @@ pub(crate) mod rules_rts_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(30) #2, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -4359,9 +4359,9 @@ pub(crate) mod rules_rts_30_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -4374,12 +4374,12 @@ pub(crate) mod rules_rts_30_2 {
                         3 => self.init_a2(),                        // A_2
                         4 | 5 => {}                                 // A_3, A_4
                         1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
                         4 |                                         // A_3 -> A_1
                         5 => self.exit_a1(),                        // A_3 -> ε
@@ -4388,7 +4388,7 @@ pub(crate) mod rules_rts_30_2 {
                      /* 2 */                                        // A_1 -> B b A_3 (never called)
                      /* 3 */                                        // A_2 -> A_1 c A_4 (never called)
                         1 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -4540,7 +4540,7 @@ pub(crate) mod rules_rts_34_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(34) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_34_1::*;
 
     #[derive(Debug)]
@@ -4624,9 +4624,9 @@ pub(crate) mod rules_rts_34_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -4642,12 +4642,12 @@ pub(crate) mod rules_rts_34_1 {
                         5 => self.init_a5(),                        // A_5
                         6 => self.init_a6(),                        // A_6
                         7 ..= 12 => {}                              // A_7, A_8, A_9, A_10, A_11, A_12
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_a(),                         // A -> a A_3 c A_6 d
                         7 |                                         // A_7 -> A_1
                         8 => self.exit_a1(),                        // A_7 -> ε
@@ -4667,7 +4667,7 @@ pub(crate) mod rules_rts_34_1 {
                      /* 4 */                                        // A_4 -> b A_10 (never called)
                      /* 5 */                                        // A_5 -> b A_11 (never called)
                      /* 6 */                                        // A_6 -> A_4 A_5 A_12 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -4833,7 +4833,7 @@ pub(crate) mod rules_prs_28_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(28) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_28_1::*;
 
     #[derive(Debug)]
@@ -4884,7 +4884,7 @@ pub(crate) mod rules_prs_28_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -4958,7 +4958,7 @@ pub(crate) mod rules_prs_28_1 {
             self.listener.exit(a);
         }
 
-        fn exit_a(&mut self, factor_id: FactorId) {
+        fn exit_a(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     let e = self.stack_t.pop().unwrap();
@@ -5020,7 +5020,7 @@ pub(crate) mod rules_prs_31_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(31) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_31_1::*;
 
     #[derive(Debug)]
@@ -5077,7 +5077,7 @@ pub(crate) mod rules_prs_31_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -5201,7 +5201,7 @@ pub(crate) mod rules_prs_31_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(31) #2, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_31_2::*;
 
     #[derive(Debug)]
@@ -5256,7 +5256,7 @@ pub(crate) mod rules_prs_31_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -5369,7 +5369,7 @@ pub(crate) mod rules_prs_36_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(36) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_36_1::*;
 
     #[derive(Debug)]
@@ -5428,7 +5428,7 @@ pub(crate) mod rules_prs_36_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -5501,7 +5501,7 @@ pub(crate) mod rules_prs_36_1 {
             self.listener.exit(e);
         }
 
-        fn inter_e(&mut self, factor_id: FactorId) {
+        fn inter_e(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 0 => {
                     let f = self.stack.pop().unwrap().get_f();
@@ -5566,7 +5566,7 @@ pub(crate) mod rules_prs_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(33) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_33_1::*;
 
     #[derive(Debug)]
@@ -5614,7 +5614,7 @@ pub(crate) mod rules_prs_33_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -5686,7 +5686,7 @@ pub(crate) mod rules_prs_33_1 {
             self.listener.exit(a);
         }
 
-        fn inter_a(&mut self, factor_id: FactorId) {
+        fn inter_a(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 3 => {
                     let c = self.stack_t.pop().unwrap();
@@ -5748,7 +5748,7 @@ pub(crate) mod rules_prs_38_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(38) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_38_1::*;
 
     #[derive(Debug)]
@@ -5798,7 +5798,7 @@ pub(crate) mod rules_prs_38_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -5871,7 +5871,7 @@ pub(crate) mod rules_prs_38_1 {
             self.listener.exit(a);
         }
 
-        fn inter_a(&mut self, factor_id: FactorId) {
+        fn inter_a(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 4 => {
                     let c = self.stack_t.pop().unwrap();
@@ -5889,7 +5889,7 @@ pub(crate) mod rules_prs_38_1 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     let a1 = self.stack_t.pop().unwrap();
@@ -5947,7 +5947,7 @@ pub(crate) mod rules_prs_39_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(39) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_39_1::*;
 
     #[derive(Debug)]
@@ -5997,7 +5997,7 @@ pub(crate) mod rules_prs_39_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -6071,7 +6071,7 @@ pub(crate) mod rules_prs_39_1 {
             self.listener.exit(a);
         }
 
-        fn inter_a(&mut self, factor_id: FactorId) {
+        fn inter_a(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 3 => {
                     let c = self.stack_t.pop().unwrap();
@@ -6089,7 +6089,7 @@ pub(crate) mod rules_prs_39_1 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
+        fn exit_a1(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 5 => {
                     let b = self.stack_t.pop().unwrap();
@@ -6147,7 +6147,7 @@ pub(crate) mod rules_prs_32_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(32) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_32_1::*;
 
     #[derive(Debug)]
@@ -6206,7 +6206,7 @@ pub(crate) mod rules_prs_32_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -6286,7 +6286,7 @@ pub(crate) mod rules_prs_32_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
+        fn exit_e1(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 4 => {
                     let id = self.stack_t.pop().unwrap();
@@ -6351,7 +6351,7 @@ pub(crate) mod rules_rts_38_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_38_1::*;
 
     #[derive(Debug)]
@@ -6403,9 +6403,9 @@ pub(crate) mod rules_rts_38_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -6415,21 +6415,21 @@ pub(crate) mod rules_rts_38_1 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 ..= 3 => {}                               // A_1, A_2, A_3
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.inter_a(),                        // A -> d A_1
                         4 |                                         // A_2 -> c A_1
                         5 |                                         // A_2 -> A_1
                         6 |                                         // A_3 -> c A_1
-                        7 => self.exit_a1(factor_id),               // A_3 -> A_1
+                        7 => self.exit_a1(alt_id),                  // A_3 -> A_1
                         3 => self.exitloop_a1(),                    // A_1 -> ε
                      /* 1 */                                        // A_1 -> a A_2 (never called)
                      /* 2 */                                        // A_1 -> b A_3 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -6484,8 +6484,8 @@ pub(crate) mod rules_rts_38_1 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_a1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 4 => {
                     let c = self.stack_t.pop().unwrap();
                     let a1 = self.stack_t.pop().unwrap();
@@ -6508,7 +6508,7 @@ pub(crate) mod rules_rts_38_1 {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A5 { a, b }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -6555,7 +6555,7 @@ pub(crate) mod rules_rts_38_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #2, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_38_2::*;
 
     #[derive(Debug)]
@@ -6607,9 +6607,9 @@ pub(crate) mod rules_rts_38_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -6619,21 +6619,21 @@ pub(crate) mod rules_rts_38_2 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 ..= 3 => {}                               // A_1, A_2, A_3
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.inter_a(),                        // A -> d A_1
                         4 |                                         // A_2 -> c A_1
                         5 |                                         // A_2 -> A_1
                         6 |                                         // A_3 -> c A_1
-                        7 => self.exit_a1(factor_id),               // A_3 -> A_1
+                        7 => self.exit_a1(alt_id),                  // A_3 -> A_1
                         3 => self.exitloop_a1(),                    // A_1 -> ε
                      /* 1 */                                        // A_1 -> a A_2 (never called)
                      /* 2 */                                        // A_1 -> b A_3 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -6688,8 +6688,8 @@ pub(crate) mod rules_rts_38_2 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_a1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 4 => {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A2 { a }
@@ -6706,7 +6706,7 @@ pub(crate) mod rules_rts_38_2 {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A5 { a }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -6752,7 +6752,7 @@ pub(crate) mod rules_rts_38_3 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(38) #3, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
 
     #[derive(Debug)]
     pub enum CtxA {
@@ -6796,9 +6796,9 @@ pub(crate) mod rules_rts_38_3 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -6808,21 +6808,21 @@ pub(crate) mod rules_rts_38_3 {
                     match nt {
                         0 => self.listener.init_a(),                // A
                         1 ..= 3 => {}                               // A_1, A_2, A_3
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.inter_a(),                        // A -> d A_1
                         4 |                                         // A_2 -> c A_1
                         5 |                                         // A_2 -> A_1
                         6 |                                         // A_3 -> c A_1
-                        7 => self.exit_a1(factor_id),               // A_3 -> A_1
+                        7 => self.exit_a1(alt_id),                  // A_3 -> A_1
                      /* 1 */                                        // A_1 -> a A_2 (never called)
                      /* 2 */                                        // A_1 -> b A_3 (never called)
                         3 => {}                                     // A_1 -> ε (not used)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -6870,8 +6870,8 @@ pub(crate) mod rules_rts_38_3 {
             self.listener.exit_a(CtxA::A1);
         }
 
-        fn exit_a1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_a1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 4 => {
                     CtxA::A2
                 }
@@ -6884,7 +6884,7 @@ pub(crate) mod rules_rts_38_3 {
                 7 => {
                     CtxA::A5
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
             };
             self.listener.exit_a(ctx);
         }
@@ -6916,7 +6916,7 @@ pub(crate) mod rules_prs_20_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #1, start STRUCT]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_20_1::*;
 
     #[derive(Debug)]
@@ -6972,7 +6972,7 @@ pub(crate) mod rules_prs_20_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -7049,7 +7049,7 @@ pub(crate) mod rules_prs_20_1 {
             self.stack.push(SynValue::Struct(val));
         }
 
-        fn exit_list(&mut self, factor_id: FactorId) {
+        fn exit_list(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     let list = self.stack.pop().unwrap().get_list();
@@ -7092,7 +7092,7 @@ pub(crate) mod rules_prs_20_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(20) #2, start STRUCT]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_20_2::*;
 
     #[derive(Debug)]
@@ -7144,7 +7144,7 @@ pub(crate) mod rules_prs_20_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -7220,7 +7220,7 @@ pub(crate) mod rules_prs_20_2 {
             self.stack.push(SynValue::Struct(val));
         }
 
-        fn exit_list(&mut self, factor_id: FactorId) {
+        fn exit_list(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     let id_2 = self.stack_t.pop().unwrap();
@@ -7265,7 +7265,7 @@ pub(crate) mod rules_prs_37_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(37) #1, start STRUCT]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_37_1::*;
 
     #[derive(Debug)]
@@ -7323,7 +7323,7 @@ pub(crate) mod rules_prs_37_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -7403,7 +7403,7 @@ pub(crate) mod rules_prs_37_1 {
             self.stack.push(SynValue::Struct(val));
         }
 
-        fn exit_list(&mut self, factor_id: FactorId) {
+        fn exit_list(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     CtxList::List1
@@ -7434,7 +7434,7 @@ pub(crate) mod rules_prs_44_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(44) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_44_1::*;
 
     #[derive(Debug)]
@@ -7490,7 +7490,7 @@ pub(crate) mod rules_prs_44_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -7562,7 +7562,7 @@ pub(crate) mod rules_prs_44_1 {
             self.listener.exit(a);
         }
 
-        fn exit_a(&mut self, factor_id: FactorId) {
+        fn exit_a(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 2 => {
                     let a1 = self.stack.pop().unwrap().get_a();
@@ -7595,7 +7595,7 @@ pub(crate) mod rules_prs_48_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(48) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_48_1::*;
 
     #[derive(Debug)]
@@ -7651,7 +7651,7 @@ pub(crate) mod rules_prs_48_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -7726,7 +7726,7 @@ pub(crate) mod rules_prs_48_1 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a(&mut self, factor_id: FactorId) {
+        fn exit_a(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 0 => {
                     let a1 = self.stack_t.pop().unwrap();
@@ -7778,7 +7778,7 @@ pub(crate) mod rules_prs_30_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(30) #1, start STRUCT]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_30_1::*;
 
     #[derive(Debug)]
@@ -7834,7 +7834,7 @@ pub(crate) mod rules_prs_30_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -7916,7 +7916,7 @@ pub(crate) mod rules_prs_30_1 {
             self.stack.push(SynValue::List(val));
         }
 
-        fn exit_list(&mut self, factor_id: FactorId) {
+        fn exit_list(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     let id_2 = self.stack_t.pop().unwrap();
@@ -7960,7 +7960,7 @@ pub(crate) mod rules_prs_30_2 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(30) #2, start STRUCT]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_30_2::*;
 
     #[derive(Debug)]
@@ -8012,7 +8012,7 @@ pub(crate) mod rules_prs_30_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -8088,7 +8088,7 @@ pub(crate) mod rules_prs_30_2 {
             self.stack.push(SynValue::Struct(val));
         }
 
-        fn exit_list(&mut self, factor_id: FactorId) {
+        fn exit_list(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     let id_2 = self.stack_t.pop().unwrap();
@@ -8135,7 +8135,7 @@ pub(crate) mod rules_rts_26_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(26) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_26_1::*;
 
     #[derive(Debug)]
@@ -8186,9 +8186,9 @@ pub(crate) mod rules_rts_26_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -8199,18 +8199,18 @@ pub(crate) mod rules_rts_26_1 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_a1(),                        // A_1
                         2 => {}                                     // A_2
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.inter_a(),                        // A -> a A_2
                         1 => self.exit_a1(),                        // A_1 -> c A_1
                         2 => {}                                     // A_1 -> ε
                         3 => self.exit_a2(),                        // A_2 -> A_1 b A_2
                         4 => self.exitloop_a2(),                    // A_2 -> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -8325,7 +8325,7 @@ pub(crate) mod rules_rts_16_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(16) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_16_1::*;
 
     #[derive(Debug)]
@@ -8376,9 +8376,9 @@ pub(crate) mod rules_rts_16_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -8389,19 +8389,19 @@ pub(crate) mod rules_rts_16_1 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_a1(),                        // A_1
                         2 | 3 => {}                                 // A_2, A_3
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.inter_a(),                        // A -> a A_2
                         4 |                                         // A_3 -> A_1
                         5 => self.exit_a1(),                        // A_3 -> ε
                         2 => self.exit_a2(),                        // A_2 -> A_1 b A_2
                         3 => self.exitloop_a2(),                    // A_2 -> ε
                      /* 1 */                                        // A_1 -> c A_3 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -8509,7 +8509,7 @@ pub(crate) mod rules_prs_35_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(35) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_35_1::*;
 
     #[derive(Debug)]
@@ -8556,7 +8556,7 @@ pub(crate) mod rules_prs_35_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -8627,7 +8627,7 @@ pub(crate) mod rules_prs_35_1 {
             self.listener.exit(a);
         }
 
-        fn exit_a(&mut self, factor_id: FactorId) {
+        fn exit_a(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     let b_2 = self.stack_t.pop().unwrap();
@@ -8682,7 +8682,7 @@ pub(crate) mod rules_rts_33_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(33) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_33_1::*;
 
     #[derive(Debug)]
@@ -8747,9 +8747,9 @@ pub(crate) mod rules_rts_33_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -8760,18 +8760,18 @@ pub(crate) mod rules_rts_33_1 {
                         0 => self.listener.init_a(),                // A
                         2 => self.init_a1(),                        // A_1
                         1 => self.listener.init_b(),                // B
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 |                                         // A -> A_1 b
-                        1 => self.exit_a(factor_id),                // A -> a
+                        1 => self.exit_a(alt_id),                   // A -> a
                         3 => self.exit_a1(),                        // A_1 -> B c A_1
                         4 => {}                                     // A_1 -> ε
                         2 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -8820,8 +8820,8 @@ pub(crate) mod rules_rts_33_1 {
             self.listener.exit(a);
         }
 
-        fn exit_a(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_a(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 0 => {
                     let b = self.stack_t.pop().unwrap();
                     let star = self.stack.pop().unwrap().get_a1();
@@ -8831,7 +8831,7 @@ pub(crate) mod rules_rts_33_1 {
                     let a = self.stack_t.pop().unwrap();
                     CtxA::A2 { a }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -8904,7 +8904,7 @@ pub(crate) mod rules_prs_58_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(58) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_58_1::*;
 
     #[derive(Debug)]
@@ -8952,7 +8952,7 @@ pub(crate) mod rules_prs_58_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -9023,7 +9023,7 @@ pub(crate) mod rules_prs_58_1 {
             self.listener.exit(e);
         }
 
-        fn inter_e(&mut self, factor_id: FactorId) {
+        fn inter_e(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
@@ -9172,7 +9172,7 @@ pub(crate) mod rules_prs_60_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(60) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_60_1::*;
 
     #[derive(Debug)]
@@ -9220,7 +9220,7 @@ pub(crate) mod rules_prs_60_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -9296,7 +9296,7 @@ pub(crate) mod rules_prs_60_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn inter_e(&mut self, factor_id: FactorId) {
+        fn inter_e(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
@@ -9447,7 +9447,7 @@ pub(crate) mod rules_prs_55_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(55) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_55_1::*;
 
     #[derive(Debug)]
@@ -9500,7 +9500,7 @@ pub(crate) mod rules_prs_55_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -9579,7 +9579,7 @@ pub(crate) mod rules_prs_55_1 {
             self.listener.exit(e);
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
+        fn exit_e1(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
@@ -9601,7 +9601,7 @@ pub(crate) mod rules_prs_55_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e4(&mut self, factor_id: FactorId) {
+        fn exit_e4(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 9 => {
                     let e = self.stack.pop().unwrap().get_e();
@@ -9632,7 +9632,7 @@ pub(crate) mod rules_prs_66_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(66) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_66_1::*;
 
     #[derive(Debug)]
@@ -9683,7 +9683,7 @@ pub(crate) mod rules_prs_66_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -9762,7 +9762,7 @@ pub(crate) mod rules_prs_66_1 {
             self.listener.exit(e);
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
+        fn exit_e1(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 10 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
@@ -9784,7 +9784,7 @@ pub(crate) mod rules_prs_66_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e4(&mut self, factor_id: FactorId) {
+        fn exit_e4(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 8 => {
                     let e = self.stack.pop().unwrap().get_e();
@@ -9811,7 +9811,7 @@ pub(crate) mod rules_rts_41_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(41) #1, start A]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_41_1::*;
 
     #[derive(Debug)]
@@ -9865,9 +9865,9 @@ pub(crate) mod rules_rts_41_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -9878,22 +9878,22 @@ pub(crate) mod rules_rts_41_1 {
                         0 => self.listener.init_a(),                // A
                         1 => self.init_a1(),                        // A_1
                         2 ..= 4 => {}                               // A_2, A_3, A_4
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         7 |                                         // A_4 -> A_1
                         8 => self.exit_a1(),                        // A_4 -> ε
                         2 |                                         // A_2 -> x A_3 A_2
-                        3 => self.exit_a2(factor_id),               // A_2 -> * [ A_1 ] A_2
+                        3 => self.exit_a2(alt_id),                  // A_2 -> * [ A_1 ] A_2
                         5 |                                         // A_3 -> - A
-                        6 => self.exit_a3(factor_id),               // A_3 -> ID
+                        6 => self.exit_a3(alt_id),                  // A_3 -> ID
                         0 => {}                                     // A -> A_3 A_2 (not used)
                      /* 1 */                                        // A_1 -> NUM A_4 (never called)
                         4 => {}                                     // A_2 -> ε (not used)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -9954,8 +9954,8 @@ pub(crate) mod rules_rts_41_1 {
             self.stack.push(SynValue::A1(plus_it));
         }
 
-        fn exit_a2(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_a2(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 2 => {
                     let a_2 = self.stack.pop().unwrap().get_a();
                     let a_1 = self.stack.pop().unwrap().get_a();
@@ -9966,14 +9966,14 @@ pub(crate) mod rules_rts_41_1 {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A2 { a, plus }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a2")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a2")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a3(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_a3(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 5 => {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A3 { a }
@@ -9982,7 +9982,7 @@ pub(crate) mod rules_rts_41_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxA::A4 { id }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a3")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a3")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -10003,7 +10003,7 @@ pub(crate) mod rules_rts_42_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(42) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_42_1::*;
 
     #[derive(Debug)]
@@ -10056,9 +10056,9 @@ pub(crate) mod rules_rts_42_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -10068,25 +10068,25 @@ pub(crate) mod rules_rts_42_1 {
                     match nt {
                         0 => self.listener.init_e(),                // E
                         1 ..= 4 => {}                               // E_1, E_2, E_3, E_4
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         1 |                                         // E_1 -> * E_4 E_1
                         2 |                                         // E_1 -> / E_4 E_1
                         3 |                                         // E_1 -> + E_2 E_1
-                        4 => self.exit_e1(factor_id),               // E_1 -> - E_2 E_1
+                        4 => self.exit_e1(alt_id),                  // E_1 -> - E_2 E_1
                         7 => self.exit_e1(1),                       // E_3 -> * E_4 E_3 (duplicate of 1)
                         8 => self.exit_e1(2),                       // E_3 -> / E_4 E_3 (duplicate of 2)
                         10 |                                        // E_4 -> - E_4
-                        11 => self.exit_e4(factor_id),              // E_4 -> ID
+                        11 => self.exit_e4(alt_id),                 // E_4 -> ID
                         0 => {}                                     // E -> E_4 E_1 (not used)
                         5 => {}                                     // E_1 -> ε (not used)
                         6 => {}                                     // E_2 -> E_4 E_3 (not used)
                         9 => {}                                     // E_3 -> ε (not used)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -10135,8 +10135,8 @@ pub(crate) mod rules_rts_42_1 {
             self.listener.exit(e);
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_e1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
@@ -10157,14 +10157,14 @@ pub(crate) mod rules_rts_42_1 {
                     let e_1 = self.stack.pop().unwrap().get_e();
                     CtxE::E4 { e: [e_1, e_2] }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e4(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_e4(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E5 { e }
@@ -10173,7 +10173,7 @@ pub(crate) mod rules_rts_42_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxE::E6 { id }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e4")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -10328,7 +10328,7 @@ pub(crate) mod rules_rts_43_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(43) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_43_1::*;
 
     #[derive(Debug)]
@@ -10381,9 +10381,9 @@ pub(crate) mod rules_rts_43_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -10393,25 +10393,25 @@ pub(crate) mod rules_rts_43_1 {
                     match nt {
                         0 => self.listener.init_e(),                // E
                         1 ..= 4 => {}                               // E_1, E_2, E_3, E_4
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         1 |                                         // E_1 -> <R> * E_2 E_1
                         2 |                                         // E_1 -> <R> / E_2 E_1
                         3 |                                         // E_1 -> <R> + E E_1
-                        4 => self.exit_e1(factor_id),               // E_1 -> <R> - E E_1
+                        4 => self.exit_e1(alt_id),                  // E_1 -> <R> - E E_1
                         7 => self.exit_e1(1),                       // E_3 -> <R> * E_2 E_3 (duplicate of 1)
                         8 => self.exit_e1(2),                       // E_3 -> <R> / E_2 E_3 (duplicate of 2)
                         10 |                                        // E_4 -> - E_4
-                        11 => self.exit_e4(factor_id),              // E_4 -> ID
+                        11 => self.exit_e4(alt_id),                 // E_4 -> ID
                         0 => {}                                     // E -> E_4 E_1 (not used)
                         5 => {}                                     // E_1 -> ε (not used)
                         6 => {}                                     // E_2 -> E_4 E_3 (not used)
                         9 => {}                                     // E_3 -> ε (not used)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -10460,8 +10460,8 @@ pub(crate) mod rules_rts_43_1 {
             self.listener.exit(e);
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_e1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
@@ -10482,14 +10482,14 @@ pub(crate) mod rules_rts_43_1 {
                     let e_1 = self.stack.pop().unwrap().get_e();
                     CtxE::E4 { e: [e_1, e_2] }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e4(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_e4(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E5 { e }
@@ -10498,7 +10498,7 @@ pub(crate) mod rules_rts_43_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxE::E6 { id }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e4")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -10653,7 +10653,7 @@ pub(crate) mod rules_rts_44_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(44) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_44_1::*;
 
     #[derive(Debug)]
@@ -10706,9 +10706,9 @@ pub(crate) mod rules_rts_44_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -10718,25 +10718,25 @@ pub(crate) mod rules_rts_44_1 {
                     match nt {
                         0 => self.listener.init_e(),                // E
                         1 ..= 4 => {}                               // E_1, E_2, E_3, E_4
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         1 |                                         // E_1 -> <R> * E_2 E_1
                         2 |                                         // E_1 -> <R> / E_2 E_1
                         3 |                                         // E_1 -> + E_2 E_1
-                        4 => self.exit_e1(factor_id),               // E_1 -> - E_2 E_1
+                        4 => self.exit_e1(alt_id),                  // E_1 -> - E_2 E_1
                         7 => self.exit_e1(1),                       // E_3 -> <R> * E_2 E_3 (duplicate of 1)
                         8 => self.exit_e1(2),                       // E_3 -> <R> / E_2 E_3 (duplicate of 2)
                         10 |                                        // E_4 -> - E_4
-                        11 => self.exit_e4(factor_id),              // E_4 -> ID
+                        11 => self.exit_e4(alt_id),                 // E_4 -> ID
                         0 => {}                                     // E -> E_4 E_1 (not used)
                         5 => {}                                     // E_1 -> ε (not used)
                         6 => {}                                     // E_2 -> E_4 E_3 (not used)
                         9 => {}                                     // E_3 -> ε (not used)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -10785,8 +10785,8 @@ pub(crate) mod rules_rts_44_1 {
             self.listener.exit(e);
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_e1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
@@ -10807,14 +10807,14 @@ pub(crate) mod rules_rts_44_1 {
                     let e_1 = self.stack.pop().unwrap().get_e();
                     CtxE::E4 { e: [e_1, e_2] }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e4(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_e4(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 10 => {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E5 { e }
@@ -10823,7 +10823,7 @@ pub(crate) mod rules_rts_44_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxE::E6 { id }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e4")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -10977,7 +10977,7 @@ pub(crate) mod rules_prs_63_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule PRS(63) #1, start E]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_63_1::*;
 
     #[derive(Debug)]
@@ -11028,7 +11028,7 @@ pub(crate) mod rules_prs_63_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
             }
@@ -11109,7 +11109,7 @@ pub(crate) mod rules_prs_63_1 {
             self.listener.exit(e);
         }
 
-        fn exit_e1(&mut self, factor_id: FactorId) {
+        fn exit_e1(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
@@ -11132,7 +11132,7 @@ pub(crate) mod rules_prs_63_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e6(&mut self, factor_id: FactorId) {
+        fn exit_e6(&mut self, factor_id: AltId) {
             let ctx = match factor_id {
                 12 => {
                     let e = self.stack.pop().unwrap().get_e();
@@ -11285,7 +11285,7 @@ pub(crate) mod rules_rts_100_1 {
     // ------------------------------------------------------------
     // [wrapper source for rule RTS(100) #1, start file]
 
-    use lexigram_lib::{CollectJoin, grammar::{FactorId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_rts_100_1::*;
 
     #[derive(Debug)]
@@ -11583,9 +11583,9 @@ pub(crate) mod rules_rts_100_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -11621,19 +11621,19 @@ pub(crate) mod rules_rts_100_1 {
                         26 => {}                                    // char_set_2
                         14 => self.listener.init_char_set_one(),    // char_set_one
                         24 => {}                                    // char_set_one_1
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 |                                         // file -> header file_1
-                        1 => self.exit_file(factor_id),             // file -> file_1
+                        1 => self.exit_file(alt_id),                // file -> file_1
                         33 => self.exit_file1(),                    // file_1 -> file_item file_1
                         34 => {}                                    // file_1 -> ε
                         2 |                                         // file_item -> option
                         3 |                                         // file_item -> declaration
-                        4 => self.exit_file_item(factor_id),        // file_item -> rule
+                        4 => self.exit_file_item(alt_id),           // file_item -> rule
                         5 => self.exit_header(),                    // header -> lexicon Id ;
                         6 => self.exit_declaration(),               // declaration -> mode Id ;
                         7 => self.exit_option(),                    // option -> channels { Id option_1 }
@@ -11641,7 +11641,7 @@ pub(crate) mod rules_rts_100_1 {
                         36 => {}                                    // option_1 -> ε
                         8 |                                         // rule -> fragment Id : match ;
                         43 |                                        // rule_1 -> -> actions ;
-                        44 => self.exit_rule(factor_id),            // rule_1 -> ;
+                        44 => self.exit_rule(alt_id),               // rule_1 -> ;
                      /* 9 */                                        // rule -> Id : match rule_1 (never called)
                         10 => self.exit_actions(),                  // actions -> action actions_1
                         37 => self.exit_actions1(),                 // actions_1 -> , action actions_1
@@ -11652,7 +11652,7 @@ pub(crate) mod rules_rts_100_1 {
                         14 |                                        // action -> skip
                         15 |                                        // action -> more
                         16 |                                        // action -> type ( Id )
-                        17 => self.exit_action(factor_id),          // action -> channel ( Id )
+                        17 => self.exit_action(alt_id),             // action -> channel ( Id )
                         18 => self.exit_match(),                    // match -> alt_items
                         19 => self.exit_alt_items(),                // alt_items -> alt_item alt_items_1
                         39 => self.exit_alt_items1(),               // alt_items_1 -> | alt_item alt_items_1
@@ -11666,7 +11666,7 @@ pub(crate) mod rules_rts_100_1 {
                         57 |                                        // repeat_item_2 -> ?
                         58 |                                        // repeat_item_2 -> ε
                         59 |                                        // repeat_item_3 -> ?
-                        60 => self.exit_repeat_item(factor_id),     // repeat_item_3 -> ε
+                        60 => self.exit_repeat_item(alt_id),        // repeat_item_3 -> ε
                      /* 21 */                                       // repeat_item -> item repeat_item_1 (never called)
                      /* 45 */                                       // repeat_item_1 -> + repeat_item_2 (never called)
                      /* 47 */                                       // repeat_item_1 -> * repeat_item_3 (never called)
@@ -11676,19 +11676,19 @@ pub(crate) mod rules_rts_100_1 {
                         26 |                                        // item -> StrLit
                         27 |                                        // item -> char_set
                         49 |                                        // item_1 -> .. CharLit
-                        50 => self.exit_item(factor_id),            // item_1 -> ε
+                        50 => self.exit_item(alt_id),               // item_1 -> ε
                      /* 25 */                                       // item -> CharLit item_1 (never called)
                         28 |                                        // char_set -> [ char_set_1 ]
                         29 |                                        // char_set -> .
-                        30 => self.exit_char_set(factor_id),        // char_set -> FixedSet
+                        30 => self.exit_char_set(alt_id),           // char_set -> FixedSet
                         55 |                                        // char_set_2 -> char_set_1
                         56 => self.exit_char_set1(),                // char_set_2 -> ε
                      /* 42 */                                       // char_set_1 -> char_set_one char_set_2 (never called)
                         31 |                                        // char_set_one -> FixedSet
                         51 |                                        // char_set_one_1 -> - SetChar
-                        52 => self.exit_char_set_one(factor_id),    // char_set_one_1 -> ε
+                        52 => self.exit_char_set_one(alt_id),       // char_set_one_1 -> ε
                      /* 32 */                                       // char_set_one -> SetChar char_set_one_1 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -11737,8 +11737,8 @@ pub(crate) mod rules_rts_100_1 {
             self.listener.exit(file);
         }
 
-        fn exit_file(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_file(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 0 => {
                     let star = self.stack.pop().unwrap().get_file1();
                     let header = self.stack.pop().unwrap().get_header();
@@ -11748,7 +11748,7 @@ pub(crate) mod rules_rts_100_1 {
                     let star = self.stack.pop().unwrap().get_file1();
                     CtxFile::File2 { star }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_file")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_file")
             };
             let val = self.listener.exit_file(ctx);
             self.stack.push(SynValue::File(val));
@@ -11766,8 +11766,8 @@ pub(crate) mod rules_rts_100_1 {
             self.stack.push(SynValue::File1(star_it));
         }
 
-        fn exit_file_item(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_file_item(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 2 => {
                     let option = self.stack.pop().unwrap().get_option();
                     CtxFileItem::FileItem1 { option }
@@ -11780,7 +11780,7 @@ pub(crate) mod rules_rts_100_1 {
                     let rule = self.stack.pop().unwrap().get_rule();
                     CtxFileItem::FileItem3 { rule }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_file_item")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_file_item")
             };
             let val = self.listener.exit_file_item(ctx);
             self.stack.push(SynValue::FileItem(val));
@@ -11817,8 +11817,8 @@ pub(crate) mod rules_rts_100_1 {
             self.stack.push(SynValue::Option1(star_it));
         }
 
-        fn exit_rule(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_rule(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 8 => {
                     let match1 = self.stack.pop().unwrap().get_match();
                     let id = self.stack_t.pop().unwrap();
@@ -11835,7 +11835,7 @@ pub(crate) mod rules_rts_100_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxRule::Rule3 { id, match1 }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_rule")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
             };
             let val = self.listener.exit_rule(ctx);
             self.stack.push(SynValue::Rule(val));
@@ -11860,8 +11860,8 @@ pub(crate) mod rules_rts_100_1 {
             self.stack.push(SynValue::Actions1(star_it));
         }
 
-        fn exit_action(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_action(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 11 => {
                     let id = self.stack_t.pop().unwrap();
                     CtxAction::Action1 { id }
@@ -11887,7 +11887,7 @@ pub(crate) mod rules_rts_100_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxAction::Action7 { id }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_action")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_action")
             };
             let val = self.listener.exit_action(ctx);
             self.stack.push(SynValue::Action(val));
@@ -11936,8 +11936,8 @@ pub(crate) mod rules_rts_100_1 {
             self.stack.push(SynValue::AltItem1(plus_it));
         }
 
-        fn exit_repeat_item(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_repeat_item(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 46 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRepeatItem::RepeatItem1 { item }
@@ -11962,14 +11962,14 @@ pub(crate) mod rules_rts_100_1 {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRepeatItem::RepeatItem6 { item }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_repeat_item")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
             };
             let val = self.listener.exit_repeat_item(ctx);
             self.stack.push(SynValue::RepeatItem(val));
         }
 
-        fn exit_item(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_item(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 22 => {
                     let alt_items = self.stack.pop().unwrap().get_alt_items();
                     CtxItem::Item1 { alt_items }
@@ -11999,14 +11999,14 @@ pub(crate) mod rules_rts_100_1 {
                     let charlit = self.stack_t.pop().unwrap();
                     CtxItem::Item7 { charlit }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_item")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
             let val = self.listener.exit_item(ctx);
             self.stack.push(SynValue::Item(val));
         }
 
-        fn exit_char_set(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_char_set(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 28 => {
                     let plus = self.stack.pop().unwrap().get_char_set1();
                     CtxCharSet::CharSet1 { plus }
@@ -12018,7 +12018,7 @@ pub(crate) mod rules_rts_100_1 {
                     let fixedset = self.stack_t.pop().unwrap();
                     CtxCharSet::CharSet3 { fixedset }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_char_set")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_char_set")
             };
             let val = self.listener.exit_char_set(ctx);
             self.stack.push(SynValue::CharSet(val));
@@ -12036,8 +12036,8 @@ pub(crate) mod rules_rts_100_1 {
             self.stack.push(SynValue::CharSet1(plus_it));
         }
 
-        fn exit_char_set_one(&mut self, factor_id: FactorId) {
-            let ctx = match factor_id {
+        fn exit_char_set_one(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 31 => {
                     let fixedset = self.stack_t.pop().unwrap();
                     CtxCharSetOne::CharSetOne1 { fixedset }
@@ -12051,7 +12051,7 @@ pub(crate) mod rules_rts_100_1 {
                     let setchar = self.stack_t.pop().unwrap();
                     CtxCharSetOne::CharSetOne3 { setchar }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_char_set_one")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
             };
             let val = self.listener.exit_char_set_one(ctx);
             self.stack.push(SynValue::CharSetOne(val));

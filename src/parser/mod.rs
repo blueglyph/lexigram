@@ -3,7 +3,7 @@
 use std::fmt::{Display, Formatter};
 use crate::{CollectJoin, FixedSymTable, SymInfoTable};
 use crate::dfa::TokenId;
-use crate::grammar::{ProdFactor, Symbol, VarId, FactorId};
+use crate::grammar::{Alternative, Symbol, VarId, AltId};
 use crate::lexer::{CaretCol, CaretLine};
 use crate::log::Logger;
 
@@ -26,7 +26,7 @@ pub enum Call { Enter, Loop, Exit, End }
 
 pub trait ListenerWrapper {
     /// Calls the listener to execute Enter, Loop, Exit, and End actions.
-    fn switch(&mut self, _call: Call, _nt: VarId, _factor_id: FactorId, _t_data: Option<Vec<String>>) {}
+    fn switch(&mut self, _call: Call, _nt: VarId, _alt_id: AltId, _t_data: Option<Vec<String>>) {}
     /// Checks if the wrapper requests an abort. This happens if an error is too difficult to recover from
     /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
     fn check_abort_request(&self) -> bool { false }
@@ -70,10 +70,10 @@ impl Display for ParserError {
 pub struct Parser<'a> {
     num_nt: usize,
     num_t: usize,
-    factor_var: &'a [VarId],
-    factors: Vec<ProdFactor>,
+    alt_var: &'a [VarId],
+    alts: Vec<Alternative>,
     opcodes: Vec<Vec<OpCode>>,
-    table: &'a [FactorId],
+    table: &'a [AltId],
     symbol_table: FixedSymTable,
     start: VarId,
     try_recover: bool,          // tries to recover from syntactical errors
@@ -86,14 +86,14 @@ impl<'a> Parser<'a> {
     pub fn new(
         num_nt: usize,
         num_t: usize,
-        factor_var: &'a [VarId],
-        factors: Vec<ProdFactor>,
+        alt_var: &'a [VarId],
+        alts: Vec<Alternative>,
         opcodes: Vec<Vec<OpCode>>,
-        table: &'a [FactorId],
+        table: &'a [AltId],
         symbol_table: FixedSymTable,
         start: VarId,
     ) -> Self {
-        Parser { num_nt, num_t, factor_var, factors, opcodes, table, symbol_table, start, try_recover: true }
+        Parser { num_nt, num_t, alt_var, alts, opcodes, table, symbol_table, start, try_recover: true }
     }
 
     pub fn get_symbol_table(&self) -> Option<&FixedSymTable> {
@@ -113,7 +113,7 @@ impl<'a> Parser<'a> {
     /// `stack` and current stack symbol `stack_sym`.
     fn simulate(&self, stream_sym: Symbol, mut stack: Vec<OpCode>, mut stack_sym: OpCode) -> bool {
         const VERBOSE: bool = false;
-        let error_skip_factor_id = self.factor_var.len() as FactorId;
+        let error_skip_alt_id = self.alt_var.len() as AltId;
         let end_var_id = (self.num_t - 1) as VarId;
         if VERBOSE { print!("  next symbol could be: {}?", stream_sym.to_str(self.get_symbol_table())); }
 
@@ -122,7 +122,7 @@ impl<'a> Parser<'a> {
                 (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {
                     let sr = if let Symbol::T(sr) = stream_sym { sr } else { end_var_id };
                     let factor_id = self.table[var as usize * self.num_t + sr as usize];
-                    if factor_id >= error_skip_factor_id {
+                    if factor_id >= error_skip_alt_id {
                         break false;
                     }
                     stack.extend(self.opcodes[factor_id as usize].clone());
@@ -160,9 +160,9 @@ impl<'a> Parser<'a> {
         let sym_table: Option<&FixedSymTable> = Some(&self.symbol_table);
         let mut stack = Vec::<OpCode>::new();
         let mut stack_t = Vec::<String>::new();
-        let error_skip_factor_id = self.factor_var.len() as FactorId;
-        let error_pop_factor_id = error_skip_factor_id + 1;
-        if VERBOSE { println!("skip = {error_skip_factor_id}, pop = {error_pop_factor_id}"); }
+        let error_skip_alt_id = self.alt_var.len() as AltId;
+        let error_pop_alt_id = error_skip_alt_id + 1;
+        if VERBOSE { println!("skip = {error_skip_alt_id}, pop = {error_pop_alt_id}"); }
         let mut recover_mode = false;
         let mut nbr_recovers = 0;
         let mut nbr_lexer_errors = 0;
@@ -215,22 +215,22 @@ impl<'a> Parser<'a> {
                 }
                 (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {
                     let sr = if let Symbol::T(sr) = stream_sym { sr } else { end_var_id };
-                    let factor_id = self.table[var as usize * self.num_t + sr as usize];
+                    let alt_id = self.table[var as usize * self.num_t + sr as usize];
                     if VERBOSE {
-                        println!("- table[{var}, {sr}] = {factor_id}: {} -> {}",
+                        println!("- table[{var}, {sr}] = {alt_id}: {} -> {}",
                                  Symbol::NT(var).to_str(self.get_symbol_table()),
-                                 if factor_id >= error_skip_factor_id {
+                                 if alt_id >= error_skip_alt_id {
                                      "ERROR".to_string()
                                  } else {
-                                     if let Some(f) = self.factors.get(factor_id as usize) {
-                                         f.to_str(sym_table)
+                                     if let Some(a) = self.alts.get(alt_id as usize) {
+                                         a.to_str(sym_table)
                                      } else {
-                                         "(factor)".to_string()
+                                         "(alternative)".to_string()
                                      }
                                  });
                     }
-                    if !recover_mode && factor_id >= error_skip_factor_id {
-                        let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_factor_id)
+                    if !recover_mode && alt_id >= error_skip_alt_id {
+                        let expected = (0..self.num_t as VarId).filter(|t| self.table[var as usize * self.num_t + *t as usize] < error_skip_alt_id)
                             .filter(|t| self.simulate(Symbol::T(*t), stack.clone(), stack_sym))
                             .into_iter().map(|t| format!("'{}'", if t < end_var_id { Symbol::T(t).to_str(self.get_symbol_table()) } else { "<EOF>".to_string() }))
                             .join(", ");
@@ -254,8 +254,8 @@ impl<'a> Parser<'a> {
                         }
                     }
                     if recover_mode {
-                        if VERBOSE { println!("!NT {} <-> {}, factor_id = {factor_id}", stack_sym.to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
-                        if factor_id == error_skip_factor_id {
+                        if VERBOSE { println!("!NT {} <-> {}, alt_id = {alt_id}", stack_sym.to_str(self.get_symbol_table()), stream_sym.to_str(self.get_symbol_table())); }
+                        if alt_id == error_skip_alt_id {
                             if stream_sym == Symbol::End {
                                 let msg = "irrecoverable error, reached end of stream".to_string();
                                 if VERBOSE { println!("(recovering) {msg}"); }
@@ -265,18 +265,18 @@ impl<'a> Parser<'a> {
                             }
                             if VERBOSE { println!("(recovering) skipping token {}", stream_sym.to_str(self.get_symbol_table())); }
                             advance_stream = true;
-                        } else if factor_id == error_pop_factor_id {
+                        } else if alt_id == error_pop_alt_id {
                             if VERBOSE { println!("(recovering) popping {}", stack_sym.to_str(self.get_symbol_table())); }
                             stack_sym = stack.pop().unwrap();
                         } else {
-                            if factor_id < error_skip_factor_id {
+                            if alt_id < error_skip_alt_id {
                                 recover_mode = false;
                                 let pos_str = if let Some((line, col)) = stream_pos { format!(", line {line}, col {col}") } else { String::new() };
                                 wrapper.get_mut_log().add_note(format!("resynchronized on '{}'{pos_str}",
                                                                        stream_sym.to_str(self.get_symbol_table())));
                                 if VERBOSE { println!("(recovering) resynchronized{pos_str}"); }
                             } else {
-                                panic!("illegal factor_id {factor_id}")
+                                panic!("illegal alt_id {alt_id}")
                             }
                         }
                     }
@@ -284,28 +284,28 @@ impl<'a> Parser<'a> {
                         let call = if stack_sym.is_loop() { Call::Loop } else { Call::Enter };
                         let t_data = std::mem::take(&mut stack_t);
                         if VERBOSE {
-                            let f_str = if let Some(f) = &self.factors.get(factor_id as usize) {
+                            let f_str = if let Some(f) = &self.alts.get(alt_id as usize) {
                                 f.to_str(sym_table)
                             } else {
-                                "(factor)".to_string()
+                                "(alternative)".to_string()
                             };
-                            println!("- to stack: [{}]", self.opcodes[factor_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(" "));
+                            println!("- to stack: [{}]", self.opcodes[alt_id as usize].iter().filter(|s| !s.is_empty()).map(|s| s.to_str(sym_table)).join(" "));
                             println!("- {} {} -> {f_str} ({}): [{}]", if stack_sym.is_loop() { "LOOP" } else { "ENTER" },
-                                     Symbol::NT(self.factor_var[factor_id as usize]).to_str(sym_table), t_data.len(), t_data.iter().join(" "));
+                                     Symbol::NT(self.alt_var[alt_id as usize]).to_str(sym_table), t_data.len(), t_data.iter().join(" "));
                         }
                         if nbr_recovers == 0 {
-                            wrapper.switch(call, var, factor_id, Some(t_data));
+                            wrapper.switch(call, var, alt_id, Some(t_data));
                         }
-                        stack.extend(self.opcodes[factor_id as usize].clone());
+                        stack.extend(self.opcodes[alt_id as usize].clone());
                         stack_sym = stack.pop().unwrap();
                     }
                 }
-                (OpCode::Exit(factor_id), _) => {
-                    let var = self.factor_var[factor_id as usize];
+                (OpCode::Exit(alt_id), _) => {
+                    let var = self.alt_var[alt_id as usize];
                     let t_data = std::mem::take(&mut stack_t);
                     if VERBOSE { println!("- EXIT {} syn ({}): [{}]", Symbol::NT(var).to_str(sym_table), t_data.len(), t_data.iter().join(" ")); }
                     if nbr_recovers == 0 {
-                        wrapper.switch(Call::Exit, var, factor_id, Some(t_data));
+                        wrapper.switch(Call::Exit, var, alt_id, Some(t_data));
                     }
                     stack_sym = stack.pop().unwrap();
                 }

@@ -8,7 +8,7 @@ mod rts;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use super::*;
 use crate::dfa::TokenId;
-use crate::{btreemap, gnode, hashmap, hashset, LL1, prule, prodf, sym};
+use crate::{btreemap, gnode, hashmap, hashset, LL1, prule, alt, sym};
 use crate::grammar::NTConversion::Removed;
 use crate::log::TryBuildFrom;
 
@@ -57,54 +57,54 @@ fn gnode_macro() {
 
 #[test]
 fn prod_macros() {
-    assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
-    assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
-    assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    assert_eq!(alt!(nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
+    assert_eq!(alt!(#128, nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    assert_eq!(alt!(#L, nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
     // with extra comma:
-    assert_eq!(prodf!(nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
-    assert_eq!(prodf!(#128, nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
-    assert_eq!(prodf!(#L, nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    assert_eq!(alt!(nt 1, t 2, e,), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
+    assert_eq!(alt!(#128, nt 1, t 2, e,), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    assert_eq!(alt!(#L, nt 1, t 2, e,), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
 
     assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e),
-               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::new(vec![sym!(nt  2)]),
-                     ProdFactor::new(vec![sym!(e)])]);
+               vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    Alternative::new(vec![sym!(nt  2)]),
+                    Alternative::new(vec![sym!(e)])]);
     assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
-               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
-                    ProdFactor::new(vec![sym!(e)])]);
+               vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    Alternative::new(vec![sym!(nt  2)]).with_flags(128),
+                    Alternative::new(vec![sym!(e)])]);
     assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
-               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
-                    ProdFactor::new(vec![sym!(e)])]);
+               vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    Alternative::new(vec![sym!(nt  2)]).with_flags(128),
+                    Alternative::new(vec![sym!(e)])]);
     // with extra semicolon:
     assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e;),
-               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::new(vec![sym!(nt  2)]),
-                     ProdFactor::new(vec![sym!(e)])]);
+               vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    Alternative::new(vec![sym!(nt  2)]),
+                    Alternative::new(vec![sym!(e)])]);
     assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #R, nt 2; e;),
-               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::new(vec![sym!(nt  2)]).with_flags(256),
-                    ProdFactor::new(vec![sym!(e)])]);
+               vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    Alternative::new(vec![sym!(nt  2)]).with_flags(256),
+                    Alternative::new(vec![sym!(e)])]);
     assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #256, nt 2; e;),
-               vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-                    ProdFactor::new(vec![sym!(nt  2)]).with_flags(256),
-                    ProdFactor::new(vec![sym!(e)])]);
+               vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+                    Alternative::new(vec![sym!(nt  2)]).with_flags(256),
+                    Alternative::new(vec![sym!(e)])]);
     assert_eq!(prule!(%(1, 2), nt 0),
-               vec![ProdFactor::new(vec![Symbol::NT(0)]).with_origin(1, 2)]);
+               vec![Alternative::new(vec![Symbol::NT(0)]).with_origin(1, 2)]);
     assert_eq!(prule!(nt 0; %(2, 3), t 0),
-               vec![ProdFactor::new(vec![Symbol::NT(0)]),
-                    ProdFactor::new(vec![Symbol::T(0)]).with_origin(2, 3)]);
+               vec![Alternative::new(vec![Symbol::NT(0)]),
+                    Alternative::new(vec![Symbol::T(0)]).with_origin(2, 3)]);
     assert_eq!(prule!(#L, %(3, 4), t 1),
-               vec![ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_origin(3, 4)]);
+               vec![Alternative::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_origin(3, 4)]);
     assert_eq!(prule!(#(1, 2), %(3, 4), t 2),
-               vec![ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_ambig_factor_id(2).with_origin(3, 4)]);
+               vec![Alternative::new(vec![Symbol::T(2)]).with_flags(1).with_ambig_alt_id(2).with_origin(3, 4)]);
     assert_eq!(prule!(nt 0; #L, %(3, 4), t 1),
-               vec![ProdFactor::new(vec![Symbol::NT(0)]),
-                    ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_origin(3, 4)]);
+               vec![Alternative::new(vec![Symbol::NT(0)]),
+                    Alternative::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_origin(3, 4)]);
     assert_eq!(prule!(nt 0; #(1, 2), %(3, 4), t 2),
-               vec![ProdFactor::new(vec![Symbol::NT(0)]),
-                    ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_ambig_factor_id(2).with_origin(3, 4)]);
+               vec![Alternative::new(vec![Symbol::NT(0)]),
+                    Alternative::new(vec![Symbol::T(2)]).with_flags(1).with_ambig_alt_id(2).with_origin(3, 4)]);
 }
 
 #[test]
@@ -909,7 +909,7 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub(crate) fn print_prs_summary(&self) {
-        let factors = self.get_factors().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
+        let factors = self.get_alts().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
         print_factors(&factors, self.get_symbol_table());
         let nt_flags = self.flags.iter().index().filter_map(|(nt, &f)|
             if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt).to_str(self.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
@@ -926,7 +926,7 @@ impl<T> ProdRuleSet<T> {
     }
 }
 
-pub fn print_factors<T: SymInfoTable>(factors: &Vec<(VarId, ProdFactor)>, symbol_table: Option<&T>) {
+pub fn print_factors<T: SymInfoTable>(factors: &Vec<(VarId, Alternative)>, symbol_table: Option<&T>) {
     println!("factors:\n{}",
              factors.iter().enumerate().map(|(id, (v, f))|
                  format!("            // - {id}: {} -> {}{}",
@@ -1346,7 +1346,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             rules.set_flags(0, ruleflag::L_FORM);
         }
         42 => {
-            // A -> a A <L> | b (l-form set through the ProdFactor flags)
+            // A -> a A <L> | b (l-form set through the Alternative flags)
             prules.extend([
                 prule!(#L, t 0, nt 0; t 1),
             ]);
@@ -1802,7 +1802,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         }
 
         // warnings and errors -------------------------------------------------
-        1000 => { // A -> A a  (error: missing non-recursive factor)
+        1000 => { // A -> A a  (error: missing non-recursive alternative)
             prules.extend([
                 prule!(nt 0, t 0)
             ]);
@@ -1831,7 +1831,7 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 prule!(nt 0),
             ]);
         },
-        1005 => { // (warnings: unused terminals, unused non-terminals)
+        1005 => { // (warnings: unused terminals, unused nonterminals)
             symbol_table.extend_terminals([("a".to_string(), None), ("b".to_string(), None)]);
             symbol_table.extend_nonterminals(["A".to_string(), "B".to_string()]);
             prules.extend([
@@ -1923,8 +1923,8 @@ fn rts_prs() {
         (100, 0, vec![
             // - 0: A -> a b
             // - 1: A -> c
-            (0, prodf!(t 0, t 1)),
-            (0, prodf!(t 2)),
+            (0, alt!(t 0, t 1)),
+            (0, alt!(t 2)),
         ]),
         (102, 0, vec![
             // A -> A a A b A | c
@@ -1937,14 +1937,14 @@ fn rts_prs() {
             // - 5: A_2 -> ε
             // - 6: A_3 -> A_1
             // - 7: A_3 -> ε
-            (0, prodf!(t 0, nt 2)),
-            (1, prodf!(t 0)),
-            (2, prodf!(t 1, nt 1, nt 3)),
-            (2, prodf!(t 2, nt 4)),
-            (3, prodf!(nt 2)),
-            (3, prodf!(e)),
-            (4, prodf!(nt 2)),
-            (4, prodf!(e)),
+            (0, alt!(t 0, nt 2)),
+            (1, alt!(t 0)),
+            (2, alt!(t 1, nt 1, nt 3)),
+            (2, alt!(t 2, nt 4)),
+            (3, alt!(nt 2)),
+            (3, alt!(e)),
+            (4, alt!(nt 2)),
+            (4, alt!(e)),
         ])
     ];
     const VERBOSE: bool = false;
@@ -1954,12 +1954,12 @@ fn rts_prs() {
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         let parsing_table = ll1.calc_table(&first, &follow, false);
-        let LLParsingTable { factors, .. } = &parsing_table;
+        let LLParsingTable { alts: factors, .. } = &parsing_table;
         if VERBOSE {
             print_factors(&factors, ll1.get_symbol_table());
             println!("{}",
                      factors.iter().enumerate().map(|(_id, (v, f))|
-                         format!("            ({v}, prodf!({})),", f.iter().map(|s| s.to_macro_item()).join(", "))
+                         format!("            ({v}, alt!({})),", f.iter().map(|s| s.to_macro_item()).join(", "))
                      ).join("\n"));
         }
         assert_eq!(*factors, expected_factors, "test {ll_id}/{start} failed");
@@ -2018,7 +2018,7 @@ impl T {
 fn rts_prs_flags() {
     let tests: Vec<(T, VarId, BTreeMap<VarId, u32>, BTreeMap<usize, u32>, BTreeMap<VarId, VarId>, BTreeMap<VarId, NTConversion>)> = vec![
         (T::RTS(9), 0,btreemap![0 => 6144, 1 => 4129, 2 => 64],     // NT flags
-         btreemap![],                                               // factor flags
+         btreemap![],                                               // alternative flags
          btreemap![1 => 0, 2 => 1],                                 // parents
          btreemap![]),
         (T::RTS(11), 0, btreemap![0 => 2048, 1 => 1],

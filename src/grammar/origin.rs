@@ -66,7 +66,7 @@ impl<F, T> Origin<F, T> {
     /// take the content from `trees` to create the object. After that, `trees` is empty.
     ///
     /// Use this method to create an [`Origin`] object from another generic form of the
-    /// same type; typically when creating an `Origin<(VarId, FactorId), FromPRS>` from an
+    /// same type; typically when creating an `Origin<(VarId, AltId), FromPRS>` from an
     /// `Origin<(VarId, usize), FromRTS>` if you can't move the original.
     pub fn from_trees_mut(trees: &mut Vec<GrTree>) -> Self {
         let trees = std::mem::take(trees);

@@ -34,7 +34,7 @@ mod gen_integration {
         assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let ll1 = ProdRuleSet::<LL1>::build_from(rules);
         let mut builder = ParserGen::build_from_rules(ll1, name);
-        builder.set_include_factors(include_factors);
+        builder.set_include_alts(include_factors);
         builder.gen_source_code(indent, false)
     }
 
@@ -231,12 +231,12 @@ use crate::grammar::{Symbol, VarId};
     use crate::parsergen::{ParserGen, ParserTables};
 
     fn get_factors_str(parser: &Parser) -> Vec<String> {
-        let pv = parser.get_factor_var();
-        let pf = parser.get_factors();
+        let pv = parser.get_alt_var();
+        let pf = parser.get_alts();
         pv.iter().enumerate().map(|(id, v)|
             format!("{id:2}: {} -> {}",
                     Symbol::NT(*v).to_str(parser.get_symbol_table()),
-                    if let Some(f) = pf.get(id) { f.iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ") } else { "(factor)".to_string() }
+                    if let Some(f) = pf.get(id) { f.iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ") } else { "(alternative)".to_string() }
             )
         ).collect()
     }
@@ -273,8 +273,8 @@ use crate::grammar::{Symbol, VarId};
     fn parser_opcodes() {
         // terminal:     t (static) or t! (contains a string)
         // non-terminal: ►A
-        // exit:         ◄2 (factor #2)
-        // loop:         ●1 (factor #1)
+        // exit:         ◄2 (alternative #2)
+        // loop:         ●1 (alternative #1)
         let tests: Vec<(T, VarId, Vec<Vec<OpCode>>)> = vec![
             // basic rules -----------------------------------------------------------------
             (T::PRS(9), 0, vec![
@@ -573,19 +573,19 @@ mod parser_source {
 
     #[test]
     fn factors() {
-        for include_factors in [false, true] {
+        for include_alts in [false, true] {
             let rules = build_prs(9, true);
             assert_eq!(rules.get_log().num_errors(), 0, "building PRS(9) failed:\n- {}", rules.get_log().get_errors().join("\n- "));
             let ll1 = ProdRuleSet::<LL1>::build_from(rules);
             let mut builder = ParserGen::build_from_rules(ll1, "simple".to_string());
-            builder.set_include_factors(include_factors);
+            builder.set_include_alts(include_alts);
             let src = builder.gen_source_code(0, false);
-            let factors_present = src.contains("static FACTORS");
-            assert_eq!(factors_present, include_factors, "unexpected source code: include_factors = {include_factors}, code = \n{src}");
+            let factors_present = src.contains("static ALTERNATIVES");
+            assert_eq!(factors_present, include_alts, "unexpected source code: include_alts = {include_alts}, code = \n{src}");
             let pt = ParserTables::build_from(builder);
             let parser = pt.make_parser();
-            let factors = parser.get_factors();
-            assert_eq!(factors.is_empty(), !include_factors, "unexpected: include_factors = {include_factors}, factors = {factors:?}");
+            let alts = parser.get_alts();
+            assert_eq!(alts.is_empty(), !include_alts, "unexpected: include_alts = {include_alts}, alts = {alts:?}");
         }
     }
 }
@@ -593,7 +593,7 @@ mod parser_source {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use iter_index::IndexerIterator;
-    use crate::grammar::{factor_to_rule_str, ruleflag, FactorId, Symbol, VarId};
+    use crate::grammar::{alt_to_rule_str, ruleflag, AltId, Symbol, VarId};
     use crate::grammar::tests::T;
     use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source, SymInfoTable};
     use crate::grammar::tests::T::{PRS, RTS};
@@ -655,7 +655,7 @@ mod wrapper_source {
             BTreeMap<VarId, String>,        // NT types
             BTreeMap<u16, Vec<Symbol>>,     // expected items
             HasValue,                       // which symbols have a value
-            BTreeMap<VarId, Vec<FactorId>>, // expected factor groups
+            BTreeMap<VarId, Vec<AltId>>, // expected alt groups
         )> = vec![
             // -----------------------------------------------------------------------------
             // NT flags:
@@ -2154,7 +2154,7 @@ if !matches!(rule_id, RTS(_)) { continue }
                 println!("Terminals: {}", ll1.get_symbol_table().unwrap()
                     .get_terminals().enumerate()
                     .map(|(i, (s1, s2))| format!("{i}:{s1}{}", if let Some(s2t) = s2 { format!("=\"{s2t}\"") } else { String::new() })).join(", "));
-                println!("LL1 <-> origin:\n{}", indent_source(vec![ll1.prs_factor_origins_str(false)], 4));
+                println!("LL1 <-> origin:\n{}", indent_source(vec![ll1.prs_alt_origins_str(false)], 4));
             }
             let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             set_has_value(&mut builder, has_value.clone());
@@ -2171,9 +2171,9 @@ if !matches!(rule_id, RTS(_)) { continue }
                              if builder.nt_value[v] { Some(Symbol::NT(v as VarId).to_str(builder.get_symbol_table())) } else { None }
                          ).join(", "));
             }
-            let result_items = builder.item_ops.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<FactorId, Vec<Symbol>>>();
+            let result_items = builder.item_ops.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<AltId, Vec<Symbol>>>();
             let result_factors = (0..builder.parsing_table.num_nt).filter_map(|v|
-                if builder.parsing_table.parent[v].is_none() { Some((v as VarId, builder.gather_factors(v as VarId))) } else { None }
+                if builder.parsing_table.parent[v].is_none() { Some((v as VarId, builder.gather_alts(v as VarId))) } else { None }
             ).collect::<BTreeMap<_, _>>();
             let test_name = format!("wrapper source for rule {rule_id:?} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
             let rule_name = match rule_id {
@@ -2203,9 +2203,9 @@ if !matches!(rule_id, RTS(_)) { continue }
                 println!("            ], {has_value_str}, btreemap![{}]),",
                     if result_factors.is_empty() { "".to_string() } else { result_factors.iter().map(|(v, factors)| format!("{v} => vec![{}]", factors.iter().join(", "))).join(", ") }
                 );
-                let nbr_factors = builder.parsing_table.factors.len();
+                let nbr_factors = builder.parsing_table.alts.len();
                 let original = (0..nbr_factors)
-                    .filter_map(|i| builder.get_original_factor_str(i as FactorId, builder.get_symbol_table()).and_then(|s| Some(format!("- {i:3}: {s}"))))
+                    .filter_map(|i| builder.get_original_alt_str(i as AltId, builder.get_symbol_table()).and_then(|s| Some(format!("- {i:3}: {s}"))))
                     .join("\n");
                 if !original.is_empty() {
                     println!("Original factors:\n{original}");
@@ -2479,18 +2479,18 @@ if !matches!(rule_id, RTS(_)) { continue }
             let builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             let symtable = builder.get_symbol_table();
             let mut result_full = vec![];
-            for (f_id, (_v, f)) in builder.parsing_table.factors.iter().index() {
-                result_full.push(format!("{:?}", f.get_origin().and_then(|_| Some(builder.full_factor_str(f_id, None, false)))));
+            for (a_id, (_v, a)) in builder.parsing_table.alts.iter().index() {
+                result_full.push(format!("{:?}", a.get_origin().and_then(|_| Some(builder.full_alt_str(a_id, None, false)))));
             }
             if VERBOSE_SOLUTION || VERBOSE {
                 println!("            ({rule_id:?}, vec![", );
                 let cols = result_full.iter().enumerate()
                     .map(|(i, s_full)| {
-                        let (v, prod) = &builder.parsing_table.factors[i];
+                        let (v, prod) = &builder.parsing_table.alts[i];
                         vec![
                             "".to_string(),
                             format!("{s_full},"),
-                            format!("// {i}: {}", factor_to_rule_str(*v, prod, symtable)),
+                            format!("// {i}: {}", alt_to_rule_str(*v, prod, symtable)),
                         ]
                     })
                     .to_vec();

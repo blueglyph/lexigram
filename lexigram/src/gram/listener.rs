@@ -42,7 +42,7 @@ impl GramListener {
             .index::<VarId>()
             .map(|(t, (s, _))| (s.clone(), Symbol::T(t)))
             .collect::<HashMap<_,_>>();
-        assert_eq!(symbol_table.get_num_nt(), 0, "the symbol table cannot contain non-terminals");
+        assert_eq!(symbol_table.get_num_nt(), 0, "the symbol table cannot contain nonterminals");
         GramListener {
             verbose: false,
             name: String::new(),
@@ -80,7 +80,7 @@ impl GramListener {
                 Ok(len) => {
                     let v = VarId::MAX - len;
                     if self.num_nt > v as usize {
-                        self.log.add_error(format!("not enough space for defined ({}) + reserved non-terminals ({len}): can't reserve '{id}'", self.num_nt));
+                        self.log.add_error(format!("not enough space for defined ({}) + reserved nonterminals ({len}): can't reserve '{id}'", self.num_nt));
                         None
                     } else {
                         self.nt_reserved.insert(id, v);
@@ -96,7 +96,7 @@ impl GramListener {
     }
 
     fn add_nt_symbol(&mut self, name: &str) -> Option<VarId> {
-        let nt = VarId::try_from(self.num_nt).map_err(|_| self.log.add_error("too many non-terminals")).ok()?;
+        let nt = VarId::try_from(self.num_nt).map_err(|_| self.log.add_error("too many nonterminals")).ok()?;
         match self.symbols.insert(name.to_string(), Symbol::NT(nt)) {
             Some(Symbol::NT(_)) => {
                 self.log.add_error(format!("rule {}: non-terminal '{name}' already defined", self.curr_name.as_ref().unwrap()));

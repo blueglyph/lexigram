@@ -331,12 +331,12 @@ fn orig_normalize() {
         }
         let prules = ProdRuleSet::<General>::build_from(rules);
         if VERBOSE {
-            println!("PRS origin:\n{}", indent_source(vec![prules.prs_factor_origins_str(true)], 4));
+            println!("PRS origin:\n{}", indent_source(vec![prules.prs_alt_origins_str(true)], 4));
         }
         let ll1 = ProdRuleSet::<LL1>::build_from(prules);
         // println!("{}", ll1.symbol_table.as_ref().unwrap().get_nonterminals().enumerate().map(|(idx, nt)| format!("{idx}:{nt}")).join(", "));
         if VERBOSE {
-            println!("LL1 origin:\n{}", indent_source(vec![ll1.prs_factor_origins_str(true)], 4));
+            println!("LL1 origin:\n{}", indent_source(vec![ll1.prs_alt_origins_str(true)], 4));
             // let sym_tab = ll1.get_symbol_table();
             // println!("  other format:\n{}",
             //          ll1.origin.trees.iter().index::<VarId>()

@@ -56,7 +56,7 @@ mod listener {
     use crate::{Lexi, Gram};
     use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
     use lexigram_lib::parser::{Call, ListenerWrapper};
-    use lexigram_lib::grammar::{FactorId, ProdRuleSet, VarId};
+    use lexigram_lib::grammar::{AltId, ProdRuleSet, VarId};
     use lexigram_lib::io::CharReader;
     use lexigram_lib::lexer::{Lexer, TokenSpliterator};
     use lexigram_lib::lexergen::{LexerGen, LexerTables};
@@ -86,7 +86,7 @@ mod listener {
     }
 
     impl ListenerWrapper for Stub {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
                 println!(":: {call:?} nt={nt} factor_id={factor_id}{}",
                          if let Some(t) = t_data { format!(" - {}", t.iter().join(",")) } else { String::new() });

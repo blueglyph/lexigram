@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use iter_index::IndexerIterator;
 use crate::{CollectJoin, LL1};
 use crate::dfa::TokenId;
-use crate::grammar::{ProdFactor, ProdRuleSet, Symbol, VarId};
+use crate::grammar::{Alternative, ProdRuleSet, Symbol, VarId};
 use crate::grammar::tests::{build_prs, T};
 use crate::lexer::CaretCol;
 use crate::log::{BufLog, BuildFrom, LogStatus, Logger};
@@ -15,12 +15,12 @@ use crate::parsergen::{ParserGen, ParserTables};
 
 
 impl<'a> Parser<'a> {
-    pub(crate) fn get_factor_var(&self) -> &[VarId] {
-        self.factor_var
+    pub(crate) fn get_alt_var(&self) -> &[VarId] {
+        self.alt_var
     }
 
-    pub(crate) fn get_factors(&self) -> &Vec<ProdFactor> {
-        &self.factors
+    pub(crate) fn get_alts(&self) -> &Vec<Alternative> {
+        &self.alts
     }
 
     pub(crate) fn get_opcodes(&self) -> &Vec<Vec<OpCode>> {
@@ -67,7 +67,7 @@ pub mod macros {
     /// # Example
     /// ```
     /// # use lexigram_lib::dfa::TokenId;
-    /// # use lexigram_lib::grammar::{ProdFactor, Symbol, VarId};
+    /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
     /// # use lexigram_lib::{strip, opcode};
     /// # use lexigram_lib::parser::OpCode;
     /// assert_eq!(strip!(nt 1, loop 5, t 3, e), vec![opcode!(nt 1), opcode!(loop 5), opcode!(t 3), opcode!(e)]);
@@ -303,7 +303,7 @@ fn parser_parse_stream_id() {
 
 mod listener {
     use crate::grammar::tests::build_prs;
-    use crate::grammar::{FactorId, VarId};
+    use crate::grammar::{AltId, VarId};
     use crate::lexer::CaretCol;
     use crate::log::{BufLog, LogStatus};
     use crate::parser::{Call, ListenerWrapper};
@@ -360,7 +360,7 @@ mod listener {
     // `Listener` on a local type, not as a blanket implementation on any type implementing `ExprListenerTrait`,
     // so we must have the `ListenerWrapper` wrapper type above.
     impl<T: ExprListenerTrait> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
             }
@@ -376,7 +376,7 @@ mod listener {
                     }
                 }
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => {}
                         1 => {}
                         2 => self.listener.exit_f(CtxF::LpRp),
@@ -388,7 +388,7 @@ mod listener {
                         8 => self.listener.exit_t_1(CtxT1::Mul),
                         9 => self.listener.exit_t_1(CtxT1::Div),
                         10 => self.exit_t_1(),
-                        _ => panic!("unexpected nt exit factor id: {nt}")
+                        _ => panic!("unexpected nt exit alternative id: {nt}")
                     }
                 }
                 Call::End => {

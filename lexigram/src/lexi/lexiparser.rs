@@ -5,16 +5,16 @@
 
 // [lexiparser]
 
-use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{FactorId, ProdFactor, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
 use lexiparser_types::*;
 
 const PARSER_NUM_T: usize = 33;
 const PARSER_NUM_NT: usize = 31;
 static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("Colon", Some(":")), ("Comma", Some(",")), ("Dot", Some(".")), ("Ellipsis", Some("..")), ("Lbracket", Some("{")), ("Lparen", Some("(")), ("Negate", Some("~")), ("Minus", Some("-")), ("Plus", Some("+")), ("Or", Some("|")), ("Question", Some("?")), ("Rbracket", Some("}")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Channels", Some("channels")), ("Fragment", Some("fragment")), ("Lexicon", Some("lexicon")), ("Mode", Some("mode")), ("Pop", Some("pop")), ("Push", Some("push")), ("More", Some("more")), ("Skip", Some("skip")), ("Type", Some("type")), ("Channel", Some("channel")), ("Id", None), ("CharLit", None), ("StrLit", None), ("FixedSet", None), ("LSbracket", Some("[")), ("RSbracket", Some("]")), ("SetChar", None)];
 static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "file_item", "header", "declaration", "option", "rule", "rule_fragment_name", "rule_terminal_name", "actions", "action", "match", "alt_items", "alt_item", "repeat_item", "item", "char_set", "char_set_one", "file_1", "option_1", "actions_1", "alt_items_1", "alt_item_1", "char_set_1", "rule_1", "repeat_item_1", "item_1", "char_set_one_1", "alt_item_2", "char_set_2", "repeat_item_2", "repeat_item_3"];
-static FACTOR_VAR: [VarId; 63] = [0, 0, 1, 1, 1, 2, 3, 4, 5, 5, 6, 7, 8, 9, 9, 9, 9, 9, 9, 9, 10, 11, 12, 13, 14, 14, 14, 14, 14, 14, 15, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 22, 23, 23, 24, 24, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29, 30, 30];
-static FACTORS: [&[Symbol]; 63] = [&[Symbol::NT(2), Symbol::NT(17)], &[Symbol::NT(17)], &[Symbol::NT(4)], &[Symbol::NT(3)], &[Symbol::NT(5)], &[Symbol::T(18), Symbol::T(26), Symbol::T(14)], &[Symbol::T(19), Symbol::T(26), Symbol::T(14)], &[Symbol::T(16), Symbol::T(5), Symbol::T(26), Symbol::NT(18), Symbol::T(12)], &[Symbol::NT(6), Symbol::T(1), Symbol::NT(10), Symbol::T(14)], &[Symbol::NT(7), Symbol::T(1), Symbol::NT(10), Symbol::NT(23)], &[Symbol::T(17), Symbol::T(26)], &[Symbol::T(26)], &[Symbol::NT(9), Symbol::NT(19)], &[Symbol::T(19), Symbol::T(6), Symbol::T(26), Symbol::T(13)], &[Symbol::T(21), Symbol::T(6), Symbol::T(26), Symbol::T(13)], &[Symbol::T(20)], &[Symbol::T(23)], &[Symbol::T(22)], &[Symbol::T(24), Symbol::T(6), Symbol::T(26), Symbol::T(13)], &[Symbol::T(25), Symbol::T(6), Symbol::T(26), Symbol::T(13)], &[Symbol::NT(11)], &[Symbol::NT(12), Symbol::NT(20)], &[Symbol::NT(21)], &[Symbol::NT(14), Symbol::NT(24)], &[Symbol::T(6), Symbol::NT(11), Symbol::T(13)], &[Symbol::T(7), Symbol::NT(14)], &[Symbol::T(26)], &[Symbol::T(27), Symbol::NT(25)], &[Symbol::T(28)], &[Symbol::NT(15)], &[Symbol::T(30), Symbol::NT(22), Symbol::T(31)], &[Symbol::T(3)], &[Symbol::T(29)], &[Symbol::T(29)], &[Symbol::T(32), Symbol::NT(26)], &[Symbol::NT(1), Symbol::NT(17)], &[Symbol::Empty], &[Symbol::T(2), Symbol::T(26), Symbol::NT(18)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(9), Symbol::NT(19)], &[Symbol::Empty], &[Symbol::T(10), Symbol::NT(12), Symbol::NT(20)], &[Symbol::Empty], &[Symbol::NT(13), Symbol::NT(27)], &[Symbol::NT(16), Symbol::NT(28)], &[Symbol::T(0), Symbol::NT(8), Symbol::T(14)], &[Symbol::T(14)], &[Symbol::T(9), Symbol::NT(29)], &[Symbol::T(11)], &[Symbol::T(15), Symbol::NT(30)], &[Symbol::Empty], &[Symbol::T(4), Symbol::T(27)], &[Symbol::Empty], &[Symbol::T(8), Symbol::T(32)], &[Symbol::Empty], &[Symbol::NT(21)], &[Symbol::Empty], &[Symbol::NT(22)], &[Symbol::Empty], &[Symbol::T(11)], &[Symbol::Empty], &[Symbol::T(11)], &[Symbol::Empty]];
-static PARSING_TABLE: [FactorId; 1054] = [63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 1, 1, 0, 1, 63, 63, 63, 63, 63, 63, 1, 63, 63, 63, 63, 63, 63, 1, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 2, 4, 63, 3, 63, 63, 63, 63, 63, 63, 4, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 64, 5, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 64, 63, 6, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 7, 64, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 8, 63, 64, 63, 63, 63, 63, 63, 63, 9, 63, 63, 63, 63, 63, 63, 64, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 10, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 11, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 12, 12, 12, 12, 12, 12, 12, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 13, 15, 14, 17, 16, 18, 19, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 20, 63, 63, 20, 20, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 20, 20, 20, 20, 20, 63, 63, 63, 64, 63, 63, 21, 63, 63, 21, 21, 63, 63, 63, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 21, 21, 21, 21, 21, 63, 63, 63, 64, 63, 63, 22, 63, 63, 22, 22, 63, 63, 64, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 22, 22, 22, 22, 22, 63, 63, 63, 64, 63, 63, 23, 63, 63, 23, 23, 63, 63, 64, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 23, 23, 23, 23, 23, 63, 63, 63, 64, 63, 63, 29, 63, 63, 24, 25, 63, 64, 64, 64, 63, 64, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 26, 27, 28, 29, 29, 63, 63, 63, 64, 63, 63, 31, 63, 63, 64, 64, 63, 64, 64, 64, 63, 64, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 64, 64, 32, 30, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 33, 63, 64, 34, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 35, 35, 63, 35, 63, 63, 63, 63, 63, 63, 35, 63, 63, 63, 63, 63, 63, 36, 63, 63, 37, 63, 63, 63, 63, 63, 63, 63, 63, 63, 38, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 39, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 40, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 42, 63, 63, 63, 63, 63, 63, 63, 63, 63, 41, 63, 63, 42, 42, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 43, 63, 63, 43, 43, 63, 63, 64, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 43, 43, 43, 43, 43, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 44, 63, 64, 44, 63, 45, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 46, 63, 64, 64, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 50, 63, 63, 50, 63, 63, 50, 50, 63, 47, 50, 48, 63, 50, 50, 49, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 50, 50, 50, 50, 50, 63, 63, 63, 52, 63, 63, 52, 51, 63, 52, 52, 63, 52, 52, 52, 63, 52, 52, 52, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 52, 52, 52, 52, 52, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 53, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 54, 63, 54, 54, 63, 56, 63, 63, 55, 63, 63, 55, 55, 63, 63, 56, 63, 63, 56, 56, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 55, 55, 55, 55, 55, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 57, 63, 58, 57, 63, 60, 63, 63, 60, 63, 63, 60, 60, 63, 63, 60, 59, 63, 60, 60, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 60, 60, 60, 60, 60, 63, 63, 63, 62, 63, 63, 62, 63, 63, 62, 62, 63, 63, 62, 61, 63, 62, 62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 62, 62, 62, 62, 62, 63, 63, 63];
+static ALT_VAR: [VarId; 63] = [0, 0, 1, 1, 1, 2, 3, 4, 5, 5, 6, 7, 8, 9, 9, 9, 9, 9, 9, 9, 10, 11, 12, 13, 14, 14, 14, 14, 14, 14, 15, 15, 15, 16, 16, 17, 17, 18, 18, 19, 19, 20, 20, 21, 22, 23, 23, 24, 24, 24, 24, 25, 25, 26, 26, 27, 27, 28, 28, 29, 29, 30, 30];
+static ALTERNATIVES: [&[Symbol]; 63] = [&[Symbol::NT(2), Symbol::NT(17)], &[Symbol::NT(17)], &[Symbol::NT(4)], &[Symbol::NT(3)], &[Symbol::NT(5)], &[Symbol::T(18), Symbol::T(26), Symbol::T(14)], &[Symbol::T(19), Symbol::T(26), Symbol::T(14)], &[Symbol::T(16), Symbol::T(5), Symbol::T(26), Symbol::NT(18), Symbol::T(12)], &[Symbol::NT(6), Symbol::T(1), Symbol::NT(10), Symbol::T(14)], &[Symbol::NT(7), Symbol::T(1), Symbol::NT(10), Symbol::NT(23)], &[Symbol::T(17), Symbol::T(26)], &[Symbol::T(26)], &[Symbol::NT(9), Symbol::NT(19)], &[Symbol::T(19), Symbol::T(6), Symbol::T(26), Symbol::T(13)], &[Symbol::T(21), Symbol::T(6), Symbol::T(26), Symbol::T(13)], &[Symbol::T(20)], &[Symbol::T(23)], &[Symbol::T(22)], &[Symbol::T(24), Symbol::T(6), Symbol::T(26), Symbol::T(13)], &[Symbol::T(25), Symbol::T(6), Symbol::T(26), Symbol::T(13)], &[Symbol::NT(11)], &[Symbol::NT(12), Symbol::NT(20)], &[Symbol::NT(21)], &[Symbol::NT(14), Symbol::NT(24)], &[Symbol::T(6), Symbol::NT(11), Symbol::T(13)], &[Symbol::T(7), Symbol::NT(14)], &[Symbol::T(26)], &[Symbol::T(27), Symbol::NT(25)], &[Symbol::T(28)], &[Symbol::NT(15)], &[Symbol::T(30), Symbol::NT(22), Symbol::T(31)], &[Symbol::T(3)], &[Symbol::T(29)], &[Symbol::T(29)], &[Symbol::T(32), Symbol::NT(26)], &[Symbol::NT(1), Symbol::NT(17)], &[Symbol::Empty], &[Symbol::T(2), Symbol::T(26), Symbol::NT(18)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(9), Symbol::NT(19)], &[Symbol::Empty], &[Symbol::T(10), Symbol::NT(12), Symbol::NT(20)], &[Symbol::Empty], &[Symbol::NT(13), Symbol::NT(27)], &[Symbol::NT(16), Symbol::NT(28)], &[Symbol::T(0), Symbol::NT(8), Symbol::T(14)], &[Symbol::T(14)], &[Symbol::T(9), Symbol::NT(29)], &[Symbol::T(11)], &[Symbol::T(15), Symbol::NT(30)], &[Symbol::Empty], &[Symbol::T(4), Symbol::T(27)], &[Symbol::Empty], &[Symbol::T(8), Symbol::T(32)], &[Symbol::Empty], &[Symbol::NT(21)], &[Symbol::Empty], &[Symbol::NT(22)], &[Symbol::Empty], &[Symbol::T(11)], &[Symbol::Empty], &[Symbol::T(11)], &[Symbol::Empty]];
+static PARSING_TABLE: [AltId; 1054] = [63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 1, 1, 0, 1, 63, 63, 63, 63, 63, 63, 1, 63, 63, 63, 63, 63, 63, 1, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 2, 4, 63, 3, 63, 63, 63, 63, 63, 63, 4, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 64, 5, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 64, 63, 6, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 7, 64, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 8, 63, 64, 63, 63, 63, 63, 63, 63, 9, 63, 63, 63, 63, 63, 63, 64, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 10, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 11, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 12, 12, 12, 12, 12, 12, 12, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 13, 15, 14, 17, 16, 18, 19, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 20, 63, 63, 20, 20, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 20, 20, 20, 20, 20, 63, 63, 63, 64, 63, 63, 21, 63, 63, 21, 21, 63, 63, 63, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 21, 21, 21, 21, 21, 63, 63, 63, 64, 63, 63, 22, 63, 63, 22, 22, 63, 63, 64, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 22, 22, 22, 22, 22, 63, 63, 63, 64, 63, 63, 23, 63, 63, 23, 23, 63, 63, 64, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 23, 23, 23, 23, 23, 63, 63, 63, 64, 63, 63, 29, 63, 63, 24, 25, 63, 64, 64, 64, 63, 64, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 26, 27, 28, 29, 29, 63, 63, 63, 64, 63, 63, 31, 63, 63, 64, 64, 63, 64, 64, 64, 63, 64, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 64, 64, 32, 30, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 33, 63, 64, 34, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 35, 35, 63, 35, 63, 63, 63, 63, 63, 63, 35, 63, 63, 63, 63, 63, 63, 36, 63, 63, 37, 63, 63, 63, 63, 63, 63, 63, 63, 63, 38, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 39, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 40, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 42, 63, 63, 63, 63, 63, 63, 63, 63, 63, 41, 63, 63, 42, 42, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 64, 63, 63, 43, 63, 63, 43, 43, 63, 63, 64, 63, 63, 64, 64, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 43, 43, 43, 43, 43, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 44, 63, 64, 44, 63, 45, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 46, 63, 64, 64, 63, 64, 63, 63, 63, 63, 63, 63, 64, 63, 63, 63, 63, 63, 63, 64, 50, 63, 63, 50, 63, 63, 50, 50, 63, 47, 50, 48, 63, 50, 50, 49, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 50, 50, 50, 50, 50, 63, 63, 63, 52, 63, 63, 52, 51, 63, 52, 52, 63, 52, 52, 52, 63, 52, 52, 52, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 52, 52, 52, 52, 52, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 53, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 54, 63, 54, 54, 63, 56, 63, 63, 55, 63, 63, 55, 55, 63, 63, 56, 63, 63, 56, 56, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 55, 55, 55, 55, 55, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 57, 63, 58, 57, 63, 60, 63, 63, 60, 63, 63, 60, 60, 63, 63, 60, 59, 63, 60, 60, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 60, 60, 60, 60, 60, 63, 63, 63, 62, 63, 63, 62, 63, 63, 62, 62, 63, 63, 62, 61, 63, 62, 62, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 63, 62, 62, 62, 62, 62, 63, 63, 63];
 static OPCODES: [&[OpCode]; 63] = [&[OpCode::Exit(0), OpCode::NT(17), OpCode::NT(2)], &[OpCode::Exit(1), OpCode::NT(17)], &[OpCode::Exit(2), OpCode::NT(4)], &[OpCode::Exit(3), OpCode::NT(3)], &[OpCode::Exit(4), OpCode::NT(5)], &[OpCode::Exit(5), OpCode::T(14), OpCode::T(26), OpCode::T(18)], &[OpCode::Exit(6), OpCode::T(14), OpCode::T(26), OpCode::T(19)], &[OpCode::Exit(7), OpCode::T(12), OpCode::NT(18), OpCode::T(26), OpCode::T(5), OpCode::T(16)], &[OpCode::Exit(8), OpCode::T(14), OpCode::NT(10), OpCode::T(1), OpCode::NT(6)], &[OpCode::NT(23), OpCode::NT(10), OpCode::T(1), OpCode::NT(7)], &[OpCode::Exit(10), OpCode::T(26), OpCode::T(17)], &[OpCode::Exit(11), OpCode::T(26)], &[OpCode::Exit(12), OpCode::NT(19), OpCode::NT(9)], &[OpCode::Exit(13), OpCode::T(13), OpCode::T(26), OpCode::T(6), OpCode::T(19)], &[OpCode::Exit(14), OpCode::T(13), OpCode::T(26), OpCode::T(6), OpCode::T(21)], &[OpCode::Exit(15), OpCode::T(20)], &[OpCode::Exit(16), OpCode::T(23)], &[OpCode::Exit(17), OpCode::T(22)], &[OpCode::Exit(18), OpCode::T(13), OpCode::T(26), OpCode::T(6), OpCode::T(24)], &[OpCode::Exit(19), OpCode::T(13), OpCode::T(26), OpCode::T(6), OpCode::T(25)], &[OpCode::Exit(20), OpCode::NT(11)], &[OpCode::Exit(21), OpCode::NT(20), OpCode::NT(12)], &[OpCode::Exit(22), OpCode::NT(21)], &[OpCode::NT(24), OpCode::NT(14)], &[OpCode::Exit(24), OpCode::T(13), OpCode::NT(11), OpCode::T(6)], &[OpCode::Exit(25), OpCode::NT(14), OpCode::T(7)], &[OpCode::Exit(26), OpCode::T(26)], &[OpCode::NT(25), OpCode::T(27)], &[OpCode::Exit(28), OpCode::T(28)], &[OpCode::Exit(29), OpCode::NT(15)], &[OpCode::Exit(30), OpCode::T(31), OpCode::NT(22), OpCode::T(30)], &[OpCode::Exit(31), OpCode::T(3)], &[OpCode::Exit(32), OpCode::T(29)], &[OpCode::Exit(33), OpCode::T(29)], &[OpCode::NT(26), OpCode::T(32)], &[OpCode::Loop(17), OpCode::Exit(35), OpCode::NT(1)], &[OpCode::Exit(36)], &[OpCode::Loop(18), OpCode::Exit(37), OpCode::T(26), OpCode::T(2)], &[OpCode::Exit(38)], &[OpCode::Loop(19), OpCode::Exit(39), OpCode::NT(9), OpCode::T(2)], &[OpCode::Exit(40)], &[OpCode::Loop(20), OpCode::Exit(41), OpCode::NT(12), OpCode::T(10)], &[OpCode::Exit(42)], &[OpCode::NT(27), OpCode::NT(13)], &[OpCode::NT(28), OpCode::NT(16)], &[OpCode::Exit(45), OpCode::T(14), OpCode::NT(8), OpCode::T(0)], &[OpCode::Exit(46), OpCode::T(14)], &[OpCode::NT(29), OpCode::T(9)], &[OpCode::Exit(48), OpCode::T(11)], &[OpCode::NT(30), OpCode::T(15)], &[OpCode::Exit(50)], &[OpCode::Exit(51), OpCode::T(27), OpCode::T(4)], &[OpCode::Exit(52)], &[OpCode::Exit(53), OpCode::T(32), OpCode::T(8)], &[OpCode::Exit(54)], &[OpCode::Loop(21), OpCode::Exit(55)], &[OpCode::Exit(56)], &[OpCode::Loop(22), OpCode::Exit(57)], &[OpCode::Exit(58)], &[OpCode::Exit(59), OpCode::T(11)], &[OpCode::Exit(60)], &[OpCode::Exit(61), OpCode::T(11)], &[OpCode::Exit(62)]];
 static START_SYMBOL: VarId = 0;
 
@@ -25,8 +25,8 @@ pub fn build_parser() -> Parser<'static> {
     );
     Parser::new(
         PARSER_NUM_NT, PARSER_NUM_T + 1,
-        &FACTOR_VAR,
-        FACTORS.into_iter().map(|s| ProdFactor::new(s.to_vec())).collect(),
+        &ALT_VAR,
+        ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
         OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
         &PARSING_TABLE,
         symbol_table,
@@ -353,9 +353,9 @@ pub struct Wrapper<T> {
 }
 
 impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
-    fn switch(&mut self, call: Call, nt: VarId, factor_id: FactorId, t_data: Option<Vec<String>>) {
+    fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
         if self.verbose {
-            println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+            println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
         }
         if let Some(mut t_data) = t_data {
             self.stack_t.append(&mut t_data);
@@ -393,19 +393,19 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
                     28 => {}                                      // char_set_2
                     16 => self.listener.init_char_set_one(),      // char_set_one
                     26 => {}                                      // char_set_one_1
-                    _ => panic!("unexpected enter non-terminal id: {nt}")
+                    _ => panic!("unexpected enter nonterminal id: {nt}")
                 }
             }
             Call::Loop => {}
             Call::Exit => {
-                match factor_id {
+                match alt_id {
                     0 |                                         // file -> header file_1
-                    1 => self.exit_file(factor_id),             // file -> file_1
+                    1 => self.exit_file(alt_id),                // file -> file_1
                     35 => self.exit_file1(),                    // file_1 -> file_item file_1
                     36 => {}                                    // file_1 -> ε
                     2 |                                         // file_item -> option
                     3 |                                         // file_item -> declaration
-                    4 => self.exit_file_item(factor_id),        // file_item -> rule
+                    4 => self.exit_file_item(alt_id),           // file_item -> rule
                     5 => self.exit_header(),                    // header -> lexicon Id ;
                     6 => self.exit_declaration(),               // declaration -> mode Id ;
                     7 => self.exit_option(),                    // option -> channels { Id option_1 }
@@ -413,7 +413,7 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
                     38 => {}                                    // option_1 -> ε
                     8 |                                         // rule -> rule_fragment_name : match ;
                     45 |                                        // rule_1 -> -> actions ;
-                    46 => self.exit_rule(factor_id),            // rule_1 -> ;
+                    46 => self.exit_rule(alt_id),               // rule_1 -> ;
                  /* 9 */                                        // rule -> rule_terminal_name : match rule_1 (never called)
                     10 => self.exit_rule_fragment_name(),       // rule_fragment_name -> fragment Id
                     11 => self.exit_rule_terminal_name(),       // rule_terminal_name -> Id
@@ -426,7 +426,7 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
                     16 |                                        // action -> skip
                     17 |                                        // action -> more
                     18 |                                        // action -> type ( Id )
-                    19 => self.exit_action(factor_id),          // action -> channel ( Id )
+                    19 => self.exit_action(alt_id),             // action -> channel ( Id )
                     20 => self.exit_match(),                    // match -> alt_items
                     21 => self.exit_alt_items(),                // alt_items -> alt_item alt_items_1
                     41 => self.exit_alt_items1(),               // alt_items_1 -> | alt_item alt_items_1
@@ -440,7 +440,7 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
                     59 |                                        // repeat_item_2 -> ?
                     60 |                                        // repeat_item_2 -> ε
                     61 |                                        // repeat_item_3 -> ?
-                    62 => self.exit_repeat_item(factor_id),     // repeat_item_3 -> ε
+                    62 => self.exit_repeat_item(alt_id),        // repeat_item_3 -> ε
                  /* 23 */                                       // repeat_item -> item repeat_item_1 (never called)
                  /* 47 */                                       // repeat_item_1 -> + repeat_item_2 (never called)
                  /* 49 */                                       // repeat_item_1 -> * repeat_item_3 (never called)
@@ -450,19 +450,19 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
                     28 |                                        // item -> StrLit
                     29 |                                        // item -> char_set
                     51 |                                        // item_1 -> .. CharLit
-                    52 => self.exit_item(factor_id),            // item_1 -> ε
+                    52 => self.exit_item(alt_id),               // item_1 -> ε
                  /* 27 */                                       // item -> CharLit item_1 (never called)
                     30 |                                        // char_set -> [ char_set_1 ]
                     31 |                                        // char_set -> .
-                    32 => self.exit_char_set(factor_id),        // char_set -> FixedSet
+                    32 => self.exit_char_set(alt_id),           // char_set -> FixedSet
                     57 |                                        // char_set_2 -> char_set_1
                     58 => self.exit_char_set1(),                // char_set_2 -> ε
                  /* 44 */                                       // char_set_1 -> char_set_one char_set_2 (never called)
                     33 |                                        // char_set_one -> FixedSet
                     53 |                                        // char_set_one_1 -> - SetChar
-                    54 => self.exit_char_set_one(factor_id),    // char_set_one_1 -> ε
+                    54 => self.exit_char_set_one(alt_id),       // char_set_one_1 -> ε
                  /* 34 */                                       // char_set_one -> SetChar char_set_one_1 (never called)
-                    _ => panic!("unexpected exit factor id: {factor_id}")
+                    _ => panic!("unexpected exit alternative id: {alt_id}")
                 }
             }
             Call::End => {
@@ -511,8 +511,8 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.listener.exit(file);
     }
 
-    fn exit_file(&mut self, factor_id: FactorId) {
-        let ctx = match factor_id {
+    fn exit_file(&mut self, alt_id: AltId) {
+        let ctx = match alt_id {
             0 => {
                 let star = self.stack.pop().unwrap().get_file1();
                 let header = self.stack.pop().unwrap().get_header();
@@ -522,7 +522,7 @@ impl<T: LexiParserListener> Wrapper<T> {
                 let star = self.stack.pop().unwrap().get_file1();
                 CtxFile::File2 { star }
             }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_file")
+            _ => panic!("unexpected alt id {alt_id} in fn exit_file")
         };
         let val = self.listener.exit_file(ctx);
         self.stack.push(SynValue::File(val));
@@ -540,8 +540,8 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack.push(SynValue::File1(star_it));
     }
 
-    fn exit_file_item(&mut self, factor_id: FactorId) {
-        let ctx = match factor_id {
+    fn exit_file_item(&mut self, alt_id: AltId) {
+        let ctx = match alt_id {
             2 => {
                 let option = self.stack.pop().unwrap().get_option();
                 CtxFileItem::FileItem1 { option }
@@ -554,7 +554,7 @@ impl<T: LexiParserListener> Wrapper<T> {
                 let rule = self.stack.pop().unwrap().get_rule();
                 CtxFileItem::FileItem3 { rule }
             }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_file_item")
+            _ => panic!("unexpected alt id {alt_id} in fn exit_file_item")
         };
         let val = self.listener.exit_file_item(ctx);
         self.stack.push(SynValue::FileItem(val));
@@ -591,8 +591,8 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack.push(SynValue::Option1(star_it));
     }
 
-    fn exit_rule(&mut self, factor_id: FactorId) {
-        let ctx = match factor_id {
+    fn exit_rule(&mut self, alt_id: AltId) {
+        let ctx = match alt_id {
             8 => {
                 let match1 = self.stack.pop().unwrap().get_match();
                 let rule_fragment_name = self.stack.pop().unwrap().get_rule_fragment_name();
@@ -609,7 +609,7 @@ impl<T: LexiParserListener> Wrapper<T> {
                 let rule_terminal_name = self.stack.pop().unwrap().get_rule_terminal_name();
                 CtxRule::Rule3 { rule_terminal_name, match1 }
             }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_rule")
+            _ => panic!("unexpected alt id {alt_id} in fn exit_rule")
         };
         let val = self.listener.exit_rule(ctx);
         self.stack.push(SynValue::Rule(val));
@@ -646,8 +646,8 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack.push(SynValue::Actions1(star_it));
     }
 
-    fn exit_action(&mut self, factor_id: FactorId) {
-        let ctx = match factor_id {
+    fn exit_action(&mut self, alt_id: AltId) {
+        let ctx = match alt_id {
             13 => {
                 let id = self.stack_t.pop().unwrap();
                 CtxAction::Action1 { id }
@@ -673,7 +673,7 @@ impl<T: LexiParserListener> Wrapper<T> {
                 let id = self.stack_t.pop().unwrap();
                 CtxAction::Action7 { id }
             }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_action")
+            _ => panic!("unexpected alt id {alt_id} in fn exit_action")
         };
         let val = self.listener.exit_action(ctx);
         self.stack.push(SynValue::Action(val));
@@ -722,8 +722,8 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack.push(SynValue::AltItem1(plus_it));
     }
 
-    fn exit_repeat_item(&mut self, factor_id: FactorId) {
-        let ctx = match factor_id {
+    fn exit_repeat_item(&mut self, alt_id: AltId) {
+        let ctx = match alt_id {
             48 => {
                 let item = self.stack.pop().unwrap().get_item();
                 CtxRepeatItem::RepeatItem1 { item }
@@ -748,14 +748,14 @@ impl<T: LexiParserListener> Wrapper<T> {
                 let item = self.stack.pop().unwrap().get_item();
                 CtxRepeatItem::RepeatItem6 { item }
             }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_repeat_item")
+            _ => panic!("unexpected alt id {alt_id} in fn exit_repeat_item")
         };
         let val = self.listener.exit_repeat_item(ctx);
         self.stack.push(SynValue::RepeatItem(val));
     }
 
-    fn exit_item(&mut self, factor_id: FactorId) {
-        let ctx = match factor_id {
+    fn exit_item(&mut self, alt_id: AltId) {
+        let ctx = match alt_id {
             24 => {
                 let alt_items = self.stack.pop().unwrap().get_alt_items();
                 CtxItem::Item1 { alt_items }
@@ -785,14 +785,14 @@ impl<T: LexiParserListener> Wrapper<T> {
                 let charlit = self.stack_t.pop().unwrap();
                 CtxItem::Item7 { charlit }
             }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_item")
+            _ => panic!("unexpected alt id {alt_id} in fn exit_item")
         };
         let val = self.listener.exit_item(ctx);
         self.stack.push(SynValue::Item(val));
     }
 
-    fn exit_char_set(&mut self, factor_id: FactorId) {
-        let ctx = match factor_id {
+    fn exit_char_set(&mut self, alt_id: AltId) {
+        let ctx = match alt_id {
             30 => {
                 let plus = self.stack.pop().unwrap().get_char_set1();
                 CtxCharSet::CharSet1 { plus }
@@ -804,7 +804,7 @@ impl<T: LexiParserListener> Wrapper<T> {
                 let fixedset = self.stack_t.pop().unwrap();
                 CtxCharSet::CharSet3 { fixedset }
             }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_char_set")
+            _ => panic!("unexpected alt id {alt_id} in fn exit_char_set")
         };
         let val = self.listener.exit_char_set(ctx);
         self.stack.push(SynValue::CharSet(val));
@@ -822,8 +822,8 @@ impl<T: LexiParserListener> Wrapper<T> {
         self.stack.push(SynValue::CharSet1(plus_it));
     }
 
-    fn exit_char_set_one(&mut self, factor_id: FactorId) {
-        let ctx = match factor_id {
+    fn exit_char_set_one(&mut self, alt_id: AltId) {
+        let ctx = match alt_id {
             33 => {
                 let fixedset = self.stack_t.pop().unwrap();
                 CtxCharSetOne::CharSetOne1 { fixedset }
@@ -837,7 +837,7 @@ impl<T: LexiParserListener> Wrapper<T> {
                 let setchar = self.stack_t.pop().unwrap();
                 CtxCharSetOne::CharSetOne3 { setchar }
             }
-            _ => panic!("unexpected factor id {factor_id} in fn exit_char_set_one")
+            _ => panic!("unexpected alt id {alt_id} in fn exit_char_set_one")
         };
         let val = self.listener.exit_char_set_one(ctx);
         self.stack.push(SynValue::CharSetOne(val));

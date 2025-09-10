@@ -14,14 +14,14 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prule, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource, columns_to_str};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, alt, hashset, LL1, LR, sym, prule, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource, columns_to_str};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::grammar::origin::{FromPRS, FromRTS, Origin};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use crate::SymbolTable;
 
 pub type VarId = u16;
-pub type FactorId = VarId;
+pub type AltId = VarId;
 
 #[derive(Clone, Copy, Default, PartialEq, PartialOrd, Eq, Ord, Debug, Hash)]
 pub enum Symbol {
@@ -99,7 +99,7 @@ pub enum GrNode {
     Maybe,
     Plus,
     Star,
-    /// L-form attribute of a factor or a `+` / `*` repetition expression.
+    /// L-form attribute of an alternative or a `+` / `*` repetition expression.
     /// - `+` and `*` expressions are either folded or iterative (also called "low latency", since the listener is
     ///   called back immediately after parsing each item, whereas the folded form is only called once all the
     ///   items have been parsed and gathered).
@@ -110,7 +110,7 @@ pub enum GrNode {
     ///   - If the L-form is specified, the listener callback is called at each iteration, with a context giving the parsed
     ///     items of that iteration which have a value. The NT used in that loop is defined with the L-form (`LForm(VarId)`),
     ///     and its value serves as accumulator to fold all the successive items into a single value presented in the context
-    ///     of the factor that includes the `+` or `*` repetition. For example, `A -> a (<L=AIter> b)* c` uses `AIter`,
+    ///     of the alternative that includes the `+` or `*` repetition. For example, `A -> a (<L=AIter> b)* c` uses `AIter`,
     ///     and each time a `b` value is parsed, the listener callback receives a context variant
     ///     `enum CtxAIter { AIter1 { iter: SynAIter, b: String } }`. The callback must return the new `SynAIter` value.
     ///     Once all the iterations are parsed, `c` is parsed, and the listener callback receives the context for `A`:
@@ -127,8 +127,8 @@ pub enum GrNode {
     ///     doesn't accumulate values on the stack. In the example above, it's first called with `id = id1`, `id2`, `id3`,
     ///     and finally `stop = stop1`, together with the loop value `A`, which is updated each time by the callback.
     LForm(VarId),   // applied to NT
-    RAssoc,         // applied to factor, right-associative
-    PrecEq,         // applied to factor, same precedence as previous factor
+    RAssoc,         // applied to alternative, right-associative
+    PrecEq,         // applied to alternative, same precedence as previous alternative
     Instance,       // instance of * or + in reference origin trees
 }
 
@@ -413,7 +413,7 @@ fn grtree_cleanup(tree: &mut GrTree, top: Option<usize>, del_empty_term: bool) -
     Some((is_empty, had_empty_term))
 }
 
-/// Removes duplicate 'ε' symbols in `nodes` factors before adding them as children in a `&`.
+/// Removes duplicate 'ε' symbols in `nodes` alts before adding them as children in a `&`.
 ///
 /// ## Examples:
 /// * `ε ε` -> `ε`
@@ -531,7 +531,7 @@ impl Display for GrTreeFmt<'_> {
 
 // easier to use than an enum
 pub mod ruleflag {
-    /// Star or Plus repeat child factor.
+    /// Star or Plus repeat child alternative.
     /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
     pub const CHILD_REPEAT: u32 = 1;
     /// Right-recursive child NT.
@@ -551,11 +551,11 @@ pub mod ruleflag {
     pub const PARENT_L_FACTOR: u32 = 32;
     /// Left-factorized child NT.
     /// Set by `ProdRuleSet<T>::left_factorize()` in `flags`.
-    pub const CHILD_L_FACTOR: u32 = 64;
-    /// Low-latency non-terminal factor, used with `CHILD_REPEAT` or `R_RECURSION`.
+    pub const CHILD_L_FACT: u32 = 64;
+    /// Low-latency non-terminal alternative, used with `CHILD_REPEAT` or `R_RECURSION`.
     /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in `flags`.
     pub const L_FORM: u32 = 128;
-    /// Right-associative factor.
+    /// Right-associative alternative.
     /// Set by `ProdRuleSet<General>::build_from(rules: BuildFrom<RuleTreeSet<Normalized>>` in factors.
     pub const R_ASSOC: u32 = 256;
     /// Left-recursive parent NT.
@@ -564,20 +564,20 @@ pub mod ruleflag {
     /// Left-recursive, ambiguous parent NT.
     /// Set by `ProdRuleSet<T>::remove_left_recursion()` in `flags`.
     pub const PARENT_AMBIGUITY: u32 = 1024;
-    /// Star or Plus repeat parent factor.
+    /// Star or Plus repeat parent alternative.
     /// Set by `RuleTreeSet<General>::normalize_plus_or_star()` in `flags`.
     pub const PARENT_REPEAT: u32 = 2048;
     /// CHILD_REPEAT and PARENT_REPEAT is +, not * (used with both flags)
     pub const REPEAT_PLUS: u32 = 4096;
-    /// GREEDY factor: is expected to generate an ambiguity in the parsing table
+    /// GREEDY alternative: is expected to generate an ambiguity in the parsing table
     pub const GREEDY: u32 = 8192;
-    /// Precedence identical to previous factor (only valid for binary left-/right-associative)
+    /// Precedence identical to previous alternative (only valid for binary left-/right-associative)
     pub const PREC_EQ: u32 = 16384;
 
     pub const TRANSF_PARENT: u32 = /*R_RECURSION |*/ PARENT_L_FACTOR | PARENT_L_RECURSION | PARENT_AMBIGUITY | PARENT_REPEAT;
-    pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACTOR;
+    pub const TRANSF_CHILD: u32 = CHILD_REPEAT | CHILD_L_RECURSION | CHILD_AMBIGUITY | CHILD_L_FACT;
     pub const TRANSF_CHILD_AMB: u32 = CHILD_AMBIGUITY | R_RECURSION | L_FORM;
-    pub const FACTOR_INFO: u32 = L_FORM | R_ASSOC | GREEDY | PREC_EQ;
+    pub const ALTERNATIVE_INFO: u32 = L_FORM | R_ASSOC | GREEDY | PREC_EQ;
     pub const L_RECURSION: u32 = PARENT_L_RECURSION | CHILD_L_RECURSION;
 
     pub fn to_string(flags: u32) -> Vec<String> {
@@ -588,7 +588,7 @@ pub mod ruleflag {
             (CHILD_AMBIGUITY            , "child_amb"),
             (CHILD_INDEPENDENT_AMBIGUITY, "child_ind_amb"),
             (PARENT_L_FACTOR            , "parent_left_fact"),
-            (CHILD_L_FACTOR             , "child_left_fact"),
+            (CHILD_L_FACT, "child_left_fact"),
             (L_FORM                     , "L-form"),
             (R_ASSOC                    , "R-assoc"),
             (PARENT_L_RECURSION         , "parent_left_rec"),
@@ -601,7 +601,7 @@ pub mod ruleflag {
         NAMES.iter().filter_map(|(f, t)| if flags & f != 0 { Some(t.to_string()) } else { None } ).collect()
     }
 
-    pub fn factor_info_to_string(mut flags: u32) -> Vec<String> {
+    pub fn alt_info_to_string(mut flags: u32) -> Vec<String> {
         static NAMES: [(u32, &str); 4] = [(L_FORM, "L"), (R_ASSOC, "R"), (GREEDY, "G"), (PREC_EQ, "P")];
         let v: Vec<String> = NAMES.iter().filter_map(|(f, t)|
             if flags & f != 0 {
@@ -772,7 +772,7 @@ impl RuleTreeSet<General> {
     fn check_num_nt_coherency(&mut self) {
         if let Some(n) = self.symbol_table.as_ref().and_then(|table| Some(table.get_num_nt())) {
             if n != self.trees.len() {
-                self.log.add_error(format!("there are {} rules but the symbol table has {n} NT symbols: dropping the table", self.trees.len()));
+                self.log.add_error(format!("there are {} rules but the symbol table has {n} nonterminal symbols: dropping the table", self.trees.len()));
                 self.symbol_table = None;
             }
         }
@@ -782,7 +782,7 @@ impl RuleTreeSet<General> {
     /// `var -> &(leaf_1, leaf_2, ...leaf_n)`
     ///
     /// The product may have to be split if operators like `+` or `*` are used. In this
-    /// case, new non-terminals are created, with increasing IDs starting from
+    /// case, new nonterminals are created, with increasing IDs starting from
     /// `new_var`.
     fn normalize_var(&mut self, var: VarId) {
         const VERBOSE: bool = false;
@@ -1266,7 +1266,7 @@ impl RuleTreeSet<General> {
             self.set_tree(*new_var + 1, rtree);
             self.flags.resize(*new_var as usize + 2, 0);
             self.parent.resize(*new_var as usize + 2, None);
-            self.flags[*new_var as usize + 1] |= ruleflag::CHILD_L_FACTOR;
+            self.flags[*new_var as usize + 1] |= ruleflag::CHILD_L_FACT;
             self.parent[*new_var as usize + 1] = Some(*new_var);
             self.flags[*new_var as usize] |= ruleflag::PARENT_L_FACTOR;
         }
@@ -1405,7 +1405,7 @@ pub mod macros {
     }
 
     #[macro_export()]
-    macro_rules! prodflag {
+    macro_rules! altflag {
         (L) => { $crate::grammar::ruleflag::L_FORM };
         (R) => { $crate::grammar::ruleflag::R_ASSOC };
         (G) => { $crate::grammar::ruleflag::GREEDY };
@@ -1413,50 +1413,50 @@ pub mod macros {
         ($f:expr) => { $f };
     }
 
-    /// Generates a production rule factor. A factor is made up of symbols separated by a comma.
+    /// Generates a production rule alternative. An alternative is made up of symbols separated by a comma.
     /// Each symbol is either
     /// - a non-terminal: `nt` {integer}
     /// - a terminal: `t` {integer}
     /// - the empty symbol: `e`
     ///
-    /// Preceding a factor with `# {integer}` sets a flag value on that factor. The values are:
-    /// - 128: L-form (low-latency parsing of that factor)
-    /// - 256: R-assoc (right-associative - by default, ambiguous factors like 'E * E' are left-associative)
+    /// Preceding an alternative with `# {integer}` sets a flag value on that alternative. The values are:
+    /// - 128: L-form (low-latency parsing of that alternative)
+    /// - 256: R-assoc (right-associative - by default, ambiguous alternatives like 'E * E' are left-associative)
     ///
     /// # Example
     /// ```
     /// # use lexigram_lib::dfa::TokenId;
-    /// # use lexigram_lib::grammar::{ProdFactor, Symbol, VarId};
-    /// # use lexigram_lib::{prodf, sym};
-    /// assert_eq!(prodf!(nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
-    /// assert_eq!(prodf!(#128, nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
-    /// assert_eq!(prodf!(#L, nt 1, t 2, e), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
+    /// # use lexigram_lib::{alt, sym};
+    /// assert_eq!(alt!(nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]));
+    /// assert_eq!(alt!(#128, nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
+    /// assert_eq!(alt!(#L, nt 1, t 2, e), Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
     /// let x = 256;
     /// let o_id = 4;
-    /// assert_eq!(prodf!(#(x, o_id), nt 0, t 1, e), ProdFactor::new(vec![sym!(nt 0), sym!(t 1), sym!(e)]).with_flags(256).with_ambig_factor_id(4));
+    /// assert_eq!(alt!(#(x, o_id), nt 0, t 1, e), Alternative::new(vec![sym!(nt 0), sym!(t 1), sym!(e)]).with_flags(256).with_ambig_alt_id(4));
     /// ```
     #[macro_export()]
-    macro_rules! prodf {
-        () => { $crate::grammar::ProdFactor::new(std::vec![]) };
-        ($($a:ident $($b:expr)?,)+) => { prodf!($($a $($b)?),+) };
-        ($($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
-        (#$f:literal, $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $($a $($b)?),+) };
-        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
-        // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { prodf!(#$f, $(%($v, $id),)? $($a $($b)?),+) };
+    macro_rules! alt {
+        () => { $crate::grammar::Alternative::new(std::vec![]) };
+        ($($a:ident $($b:expr)?,)+) => { alt!($($a $($b)?),+) };
+        ($($a:ident $($b:expr)?),*) => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]) };
+        (#$f:literal, $($a:ident $($b:expr)?,)+) => { alt!(#$f, $($a $($b)?),+) };
+        (#$f:literal, $($a:ident $($b:expr)?),*) => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($f) };
+        // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!(#$f, $(%($v, $id),)? $($a $($b)?),+) };
         // (#$f:ident, $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-        //     => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f))$(.with_orig($v, $id))? };
-        ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { prodf!($(#$f,)? $(%($v, $id),)? $($a $($b)?),+) };
+        //     => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f))$(.with_orig($v, $id))? };
+        ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+) => { alt!($(#$f,)? $(%($v, $id),)? $($a $($b)?),+) };
         ($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::prodflag!($f)))?$(.with_origin($v, $id))? };
+            => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*])$(.with_flags($crate::altflag!($f)))?$(.with_origin($v, $id))? };
         // TODO: change "#" parts below
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?,)+)
-            => { prodf!(#($f, $o), $(%($v, $id),)? $($a $($b)?),+) };
+            => { alt!(#($f, $o), $(%($v, $id),)? $($a $($b)?),+) };
         (#($f:expr, $o:expr), $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_ambig_factor_id($o)$(.with_origin($v, $id))? };
+            => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_ambig_alt_id($o)$(.with_origin($v, $id))? };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?,)+)
-            => { prodf!(%($v, $id), $($a $($b)?),+) };
+            => { alt!(%($v, $id), $($a $($b)?),+) };
         (%($v:expr, $id:expr), $($a:ident $($b:expr)?),*)
-            => { $crate::grammar::ProdFactor::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::prodflag!($f)).with_origin($v, $id) };
+            => { $crate::grammar::Alternative::new(std::vec![$($crate::sym!($a $($b)?)),*]).with_flags($crate::altflag!($f)).with_origin($v, $id) };
     }
 
     #[macro_export()]
@@ -1466,35 +1466,35 @@ pub mod macros {
         ($($a:ident $($b:literal $(: $num:expr)?)?),*) => { std::vec![$($crate::sym!($a $($b $(: $num)?)?)),*] };
     }
 
-    /// Generates a production rule. It is made up of factors separated by a semicolon.
+    /// Generates a production rule. It is made up of alternatives separated by a semicolon.
     ///
     /// Example
     /// ```
     /// # use lexigram_lib::dfa::TokenId;
-    /// # use lexigram_lib::grammar::{ProdFactor, Symbol, VarId};
-    /// # use lexigram_lib::{prule, prodf, sym};
+    /// # use lexigram_lib::grammar::{Alternative, Symbol, VarId};
+    /// # use lexigram_lib::{prule, alt, sym};
     /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e),
-    ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-    ///                 ProdFactor::new(vec![sym!(nt  2)]),
-    ///                 ProdFactor::new(vec![sym!(e)])]);
+    ///            vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+    ///                 Alternative::new(vec![sym!(nt  2)]),
+    ///                 Alternative::new(vec![sym!(e)])]);
     /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
-    ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-    ///                 ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
-    ///                 ProdFactor::new(vec![sym!(e)])]);
+    ///            vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+    ///                 Alternative::new(vec![sym!(nt  2)]).with_flags(128),
+    ///                 Alternative::new(vec![sym!(e)])]);
     /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
-    ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
-    ///                 ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
-    ///                 ProdFactor::new(vec![sym!(e)])]);
+    ///            vec![Alternative::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
+    ///                 Alternative::new(vec![sym!(nt  2)]).with_flags(128),
+    ///                 Alternative::new(vec![sym!(e)])]);
     /// ```
     #[macro_export()]
     macro_rules! prule {
         () => { std::vec![] };
         ($($(#$f:literal,)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#$f,)? $($a $($b)?),+);+] };
-        ($($(#$f:literal,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $($a $($b)?),+]),*]};
+        ($($(#$f:literal,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::alt![$(#$f,)? $($a $($b)?),+]),*]};
         ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#$f,)? $(%($v, $id),)? $($a $($b)?),+);+] };
-        ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $(%($v, $id),)? $($a $($b)?),+]),*]};
+        ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::alt![$(#$f,)? $(%($v, $id),)? $($a $($b)?),+]),*]};
         // TODO: change "#" part below
         ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#($f, $o),)? $(%($v, $id),)? $($a $($b)?),+);+] };
-        ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#($f,$o),)? $(%($v, $id),)? $($a $($b)?),+]),*]};
+        ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::alt![$(#($f,$o),)? $(%($v, $id),)? $($a $($b)?),+]),*]};
     }
 }
