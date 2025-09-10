@@ -14,7 +14,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prod, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource, columns_to_str};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, prodf, hashset, LL1, LR, sym, prule, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource, columns_to_str};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::grammar::origin::{FromPRS, FromRTS, Origin};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
@@ -1472,29 +1472,29 @@ pub mod macros {
     /// ```
     /// # use lexigram_lib::dfa::TokenId;
     /// # use lexigram_lib::grammar::{ProdFactor, Symbol, VarId};
-    /// # use lexigram_lib::{prod, prodf, sym};
-    /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e),
+    /// # use lexigram_lib::{prule, prodf, sym};
+    /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e),
     ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
     ///                 ProdFactor::new(vec![sym!(nt  2)]),
     ///                 ProdFactor::new(vec![sym!(e)])]);
-    /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
+    /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
     ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
     ///                 ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
     ///                 ProdFactor::new(vec![sym!(e)])]);
-    /// assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
+    /// assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
     ///            vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
     ///                 ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
     ///                 ProdFactor::new(vec![sym!(e)])]);
     /// ```
     #[macro_export()]
-    macro_rules! prod {
+    macro_rules! prule {
         () => { std::vec![] };
-        ($($(#$f:literal,)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $($a $($b)?),+);+] };
+        ($($(#$f:literal,)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#$f,)? $($a $($b)?),+);+] };
         ($($(#$f:literal,)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $($a $($b)?),+]),*]};
-        ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#$f,)? $(%($v, $id),)? $($a $($b)?),+);+] };
+        ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#$f,)? $(%($v, $id),)? $($a $($b)?),+);+] };
         ($($(#$f:ident,)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#$f,)? $(%($v, $id),)? $($a $($b)?),+]),*]};
         // TODO: change "#" part below
-        ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prod![$($(#($f, $o),)? $(%($v, $id),)? $($a $($b)?),+);+] };
+        ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*;)+) => { prule![$($(#($f, $o),)? $(%($v, $id),)? $($a $($b)?),+);+] };
         ($($(#($f:expr, $o:expr),)? $(%($v:expr, $id:expr),)? $($a:ident $($b:expr)?),*);*) => { std::vec![$($crate::prodf![$(#($f,$o),)? $(%($v, $id),)? $($a $($b)?),+]),*]};
     }
 }

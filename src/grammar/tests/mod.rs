@@ -8,7 +8,7 @@ mod rts;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use super::*;
 use crate::dfa::TokenId;
-use crate::{btreemap, gnode, hashmap, hashset, LL1, prod, prodf, sym};
+use crate::{btreemap, gnode, hashmap, hashset, LL1, prule, prodf, sym};
 use crate::grammar::NTConversion::Removed;
 use crate::log::TryBuildFrom;
 
@@ -36,7 +36,7 @@ impl<T> RuleTreeSet<T> {
 
 impl<T> ProdRuleSet<T> {
     fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &ProdRule)> {
-        self.get_prods_iter().filter(|(_, rule)| **rule != prod!(e))
+        self.get_prules_iter().filter(|(_, rule)| **rule != prule!(e))
     }
 }
 
@@ -65,44 +65,44 @@ fn prod_macros() {
     assert_eq!(prodf!(#128, nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
     assert_eq!(prodf!(#L, nt 1, t 2, e,), ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(e)]).with_flags(128));
 
-    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e),
+    assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
                     ProdFactor::new(vec![sym!(nt  2)]),
                      ProdFactor::new(vec![sym!(e)])]);
-    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
+    assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #128, nt 2; e),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
                     ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
                     ProdFactor::new(vec![sym!(e)])]);
-    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
+    assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #L, nt 2; e),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
                     ProdFactor::new(vec![sym!(nt  2)]).with_flags(128),
                     ProdFactor::new(vec![sym!(e)])]);
     // with extra semicolon:
-    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; nt 2; e;),
+    assert_eq!(prule!(nt 1, t 2, nt 1, t 3; nt 2; e;),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
                     ProdFactor::new(vec![sym!(nt  2)]),
                      ProdFactor::new(vec![sym!(e)])]);
-    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #R, nt 2; e;),
+    assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #R, nt 2; e;),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
                     ProdFactor::new(vec![sym!(nt  2)]).with_flags(256),
                     ProdFactor::new(vec![sym!(e)])]);
-    assert_eq!(prod!(nt 1, t 2, nt 1, t 3; #256, nt 2; e;),
+    assert_eq!(prule!(nt 1, t 2, nt 1, t 3; #256, nt 2; e;),
                vec![ProdFactor::new(vec![sym!(nt 1), sym!(t 2), sym!(nt 1), sym!(t 3)]),
                     ProdFactor::new(vec![sym!(nt  2)]).with_flags(256),
                     ProdFactor::new(vec![sym!(e)])]);
-    assert_eq!(prod!(%(1, 2), nt 0),
+    assert_eq!(prule!(%(1, 2), nt 0),
                vec![ProdFactor::new(vec![Symbol::NT(0)]).with_origin(1, 2)]);
-    assert_eq!(prod!(nt 0; %(2, 3), t 0),
+    assert_eq!(prule!(nt 0; %(2, 3), t 0),
                vec![ProdFactor::new(vec![Symbol::NT(0)]),
                     ProdFactor::new(vec![Symbol::T(0)]).with_origin(2, 3)]);
-    assert_eq!(prod!(#L, %(3, 4), t 1),
+    assert_eq!(prule!(#L, %(3, 4), t 1),
                vec![ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_origin(3, 4)]);
-    assert_eq!(prod!(#(1, 2), %(3, 4), t 2),
+    assert_eq!(prule!(#(1, 2), %(3, 4), t 2),
                vec![ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_ambig_factor_id(2).with_origin(3, 4)]);
-    assert_eq!(prod!(nt 0; #L, %(3, 4), t 1),
+    assert_eq!(prule!(nt 0; #L, %(3, 4), t 1),
                vec![ProdFactor::new(vec![Symbol::NT(0)]),
                     ProdFactor::new(vec![Symbol::T(1)]).with_flags(ruleflag::L_FORM).with_origin(3, 4)]);
-    assert_eq!(prod!(nt 0; #(1, 2), %(3, 4), t 2),
+    assert_eq!(prule!(nt 0; #(1, 2), %(3, 4), t 2),
                vec![ProdFactor::new(vec![Symbol::NT(0)]),
                     ProdFactor::new(vec![Symbol::T(2)]).with_flags(1).with_ambig_factor_id(2).with_origin(3, 4)]);
 }
@@ -893,7 +893,7 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
 impl<T> ProdRuleSet<T> {
     fn new() -> Self {
         Self {
-            prods: Vec::new(),
+            prules: Vec::new(),
             origin: Origin::new(),
             num_nt: 0,
             num_t: 0,
@@ -939,14 +939,14 @@ pub fn print_factors<T: SymInfoTable>(factors: &Vec<(VarId, ProdFactor)>, symbol
 
 impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
     fn from(rules: &ProdRuleSet<T>) -> Self {
-        rules.get_prods_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
+        rules.get_prules_iter().map(|(var, p)| (var, p.clone())).collect::<BTreeMap<_, _>>()
 
     }
 }
 
 fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
     println!("            {}", result.iter().map(|(i, p)|
-        format!("{i} => prod!({}),", p.iter()
+        format!("{i} => prule!({}),", p.iter()
             .map(|f| format!("{}{}", if f.get_flags() != 0 { format!("#{}, ", f.get_flags()) } else { "".to_string() }, f.iter().map(|s| s.to_macro_item()).join(", ")))
             .join("; "))).join("\n            "))
 }
@@ -1003,7 +1003,7 @@ pub(crate) fn complete_symbol_table(symbol_table: &mut SymbolTable, num_t: usize
 pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     let mut rules = ProdRuleSet::new();
     let mut symbol_table = SymbolTable::new();
-    let prods = &mut rules.prods;
+    let prules = &mut rules.prules;
     let mut start = Some(0);
     let flags = HashMap::<VarId, u32>::new();
     let parents = HashMap::<VarId, VarId>::new();   // (child, parent)
@@ -1011,15 +1011,15 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
     match id {
         // misc tests ----------------------------------------------------------
         0 => {
-            prods.extend([
-                prod!(nt 0, t 1; nt 0, t 2; t 3; t 3, t 4), // A -> A b | A c | d | d e
-                prod!(nt 0, t 5; t 6; t 7),                 // B -> A f | g | h
+            prules.extend([
+                prule!(nt 0, t 1; nt 0, t 2; t 3; t 3, t 4), // A -> A b | A c | d | d e
+                prule!(nt 0, t 5; t 6; t 7),                 // B -> A f | g | h
             ]);
         }
         1 => {
-            prods.extend([
+            prules.extend([
                 // A -> d c | b b c d | d c e | b d e g | b b c | c b | b c g | b d e f
-                prod!(
+                prule!(
                     t 3, t 2;
                     t 1, t 1, t 2, t 3;
                     t 3, t 2, t 4;
@@ -1031,25 +1031,25 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 )
             ]);
         }
-        2 => { // tests empty prod
-            prods.extend([]);
+        2 => { // tests empty prule
+            prules.extend([]);
         }
         3 => { // tests continue / break consistency in left_factorize
-            prods.extend([
-                prod!(t 0),
-                prod!(t 2, t 0; t 2),
-                prod!(t 2; t 1),
-                prod!(t 3)]);
+            prules.extend([
+                prule!(t 0),
+                prule!(t 2, t 0; t 2),
+                prule!(t 2; t 1),
+                prule!(t 3)]);
         }
         4 => {
             // classical arithmetic grammar
             // T:  0:-, 1:+, 2:/, 3:*, 4:(, 5:), 6:NUM, 7:ID,
             // NT: 0:E, 1:T, 2:F
             def_arith_symbols(&mut symbol_table, true);
-            prods.extend([
-                prod!(nt 0, t 0, nt 1; nt 0, t 1, nt 1; nt 1),  // E -> E + T | E - T | T
-                prod!(nt 1, t 2, nt 2; nt 1, t 3, nt 2; nt 2),  // T -> T * F | T / F | F
-                prod!(t 4, nt 0, t 5; t 6; t 7),                // F -> ( E ) | NUM | ID
+            prules.extend([
+                prule!(nt 0, t 0, nt 1; nt 0, t 1, nt 1; nt 1),  // E -> E + T | E - T | T
+                prule!(nt 1, t 2, nt 2; nt 1, t 3, nt 2; nt 2),  // T -> T * F | T / F | F
+                prule!(t 4, nt 0, t 5; t 6; t 7),                // F -> ( E ) | NUM | ID
             ]);
         }
         5 => {
@@ -1060,10 +1060,10 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("SEMI".to_string(), Some(";".to_string()))
             ]);
             symbol_table.extend_nonterminals(["A".to_string(), "A1".to_string(), "A2".to_string()]);
-            prods.extend([
-                prod!(nt 1, nt 2, t 2, t 2), // A -> A1 A2 ; ;
-                prod!(t 0, nt 1; e),         // A1 -> - A1 | ε
-                prod!(t 1, nt 2; e),         // A2 -> + A2 | ε
+            prules.extend([
+                prule!(nt 1, nt 2, t 2, t 2), // A -> A1 A2 ; ;
+                prule!(t 0, nt 1; e),         // A1 -> - A1 | ε
+                prule!(t 1, nt 2; e),         // A2 -> + A2 | ε
             ]);
         }
         6 => {
@@ -1074,10 +1074,10 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("SEMI".to_string(), Some(";".to_string()))
             ]);
             symbol_table.extend_nonterminals(["A1".to_string(), "A".to_string(), "A2".to_string()]);
-            prods.extend([
-                prod!(t 0, nt 0; e),    // A1 -> - A1 | ε
-                prod!(nt 0, nt 2, t 2), // A -> A1 A2 ;     <-- start
-                prod!(t 1, nt 2; e),    // A2 -> + A2 | ε
+            prules.extend([
+                prule!(t 0, nt 0; e),    // A1 -> - A1 | ε
+                prule!(nt 0, nt 2, t 2), // A -> A1 A2 ;     <-- start
+                prule!(t 1, nt 2; e),    // A2 -> + A2 | ε
             ]);
             start = Some(1);
         }
@@ -1090,39 +1090,39 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("SEMI".to_string(), Some(";".to_string()))
             ]);
             symbol_table.extend_nonterminals(["A1".to_string(), "X".to_string(), "A".to_string(), "A2".to_string()]);
-            prods.extend([
-                prod!(t 1, nt 0; e),    // A1 -> - A1 | ε
-                prod!(t 0, nt 2),       // X -> > A         <-- start I
-                prod!(nt 0, nt 3, t 3), // A -> A1 A2 ;     <-- start II
-                prod!(t 2, nt 3; e),    // A2 -> + A2 | ε
+            prules.extend([
+                prule!(t 1, nt 0; e),    // A1 -> - A1 | ε
+                prule!(t 0, nt 2),       // X -> > A         <-- start I
+                prule!(nt 0, nt 3, t 3), // A -> A1 A2 ;     <-- start II
+                prule!(t 2, nt 3; e),    // A2 -> + A2 | ε
             ]);
             start = Some(1);
         }
         8 => {
             // ambiguous
-            prods.extend([
-                prod!(nt 0, t 0, nt 0; t 1),    // A -> A a A | b
+            prules.extend([
+                prule!(nt 0, t 0, nt 0; t 1),    // A -> A a A | b
             ]);
         }
         9 => {
             // simple rules
-            prods.extend([
-                prod!(t 0, nt 1, t 2),          // A -> a B c
-                prod!(t 1; t 3),                // B -> b | d
+            prules.extend([
+                prule!(t 0, nt 1, t 2),          // A -> a B c
+                prule!(t 1; t 3),                // B -> b | d
             ])
         }
         14 => {
             // A -> A A | a
-            prods.extend([
-                prod!(nt 0, nt 0; t 0)
+            prules.extend([
+                prule!(nt 0, nt 0; t 0)
             ]);
         }
         16 => {
             // A -> B A | b
             // B -> a
-            prods.extend([
-                prod!(nt 1, nt 0; t 1),
-                prod!(t 0)
+            prules.extend([
+                prule!(nt 1, nt 0; t 1),
+                prule!(t 0)
             ]);
         }
         17 => { // circular dependency (works as long as there's a non-terminal in the loop and an accepting alternative)
@@ -1134,22 +1134,22 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("(".to_string(), Some("(".to_string())),
                 (")".to_string(), Some(")".to_string())),
             ]);
-            prods.extend([
-                prod!(nt 1; t 0),
-                prod!(nt 2, t 2),
-                prod!(t 1, nt 0),
+            prules.extend([
+                prule!(nt 1; t 0),
+                prule!(nt 2, t 2),
+                prule!(t 1, nt 0),
             ]);
         }
         18 => {
             // A -> a
-            prods.extend([
-                prod!(t 0),
+            prules.extend([
+                prule!(t 0),
             ]);
         }
         19 => {
             // A -> a | ε
-            prods.extend([
-                prod!(t 0; e),
+            prules.extend([
+                prule!(t 0; e),
             ]);
         }
         20 => {
@@ -1167,9 +1167,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 /* 0 */ "STRUCT".to_string(),
                 /* 1 */ "LIST".to_string(),
             ]);
-            prods.extend([
-                prod!(t 0, t 5, t 1, nt 1),
-                prod!(t 5, t 3, t 5, t 4, nt 1; t 2),
+            prules.extend([
+                prule!(t 0, t 5, t 1, nt 1),
+                prule!(t 5, t 3, t 5, t 4, nt 1; t 2),
             ]);
         }
         24 => {
@@ -1177,35 +1177,35 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // =>
             // A -> a B d | e
             // B -> b c B | b c
-            prods.extend([
-                prod!(t 0, nt 1, t 3; t 4),
-                prod!(t 1, t 2, nt 1; t 1, t 2),
+            prules.extend([
+                prule!(t 0, nt 1, t 3; t 4),
+                prule!(t 1, t 2, nt 1; t 1, t 2),
             ]);
         }
         25 => {
             // A -> A a b c | A a b d | A a e | f
-            prods.extend([
-                prod!(nt 0, t 0, t 1, t 2; nt 0, t 0, t 1, t 3; nt 0, t 0, t 4; t 5)
+            prules.extend([
+                prule!(nt 0, t 0, t 1, t 2; nt 0, t 0, t 1, t 3; nt 0, t 0, t 4; t 5)
             ]);
         }
         27 => {
             // A -> A a | A b | c | d
-            prods.extend([
-                prod!(nt 0, t 0; nt 0, t 1; t 2; t 3),
+            prules.extend([
+                prule!(nt 0, t 0; nt 0, t 1; t 2; t 3),
             ]);
         }
         28 => {
             // A -> a | a b | a b c | a b d | e
-            prods.extend([
-                prod!(t 0; t 0, t 1; t 0, t 1, t 2; t 0, t 1, t 3; t 4),
+            prules.extend([
+                prule!(t 0; t 0, t 1; t 0, t 1, t 2; t 0, t 1, t 3; t 4),
             ]);
         }
         29 => { // L-form counterpart of #16
             // A -> <L> B A | b
             // B -> a
-            prods.extend([
-                prod!(nt 1, nt 0; t 1),
-                prod!(t 0)
+            prules.extend([
+                prule!(nt 1, nt 0; t 1),
+                prule!(t 0)
             ]);
             rules.set_flags(0, ruleflag::L_FORM);
         }
@@ -1224,18 +1224,18 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 /* 0 */ "STRUCT".to_string(),
                 /* 1 */ "LIST".to_string(),
             ]);
-            prods.extend([
-                prod!(t 0, t 5, t 1, nt 1),
-                prod!(t 5, t 3, t 5, t 4, nt 1; t 2),
+            prules.extend([
+                prule!(t 0, t 5, t 1, nt 1),
+                prule!(t 5, t 3, t 5, t 4, nt 1; t 2),
             ]);
             rules.set_flags(1, ruleflag::L_FORM);
         }
         31 => {
             // E -> F | E . id
             // F -> id
-            prods.extend([
-                prod!(nt 1; nt 0, t 0, t 1),
-                prod!(t 1),
+            prules.extend([
+                prule!(nt 1; nt 0, t 0, t 1),
+                prule!(t 1),
             ]);
             symbol_table.extend_nonterminals(["E".to_string(), "F".to_string()]);
             symbol_table.extend_terminals([
@@ -1246,9 +1246,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         32 => {
             // E -> F | E . id | E . id ( )
             // F -> id
-            prods.extend([
-                prod!(nt 1; nt 0, t 0, t 1; nt 0, t 0, t 1, t 2, t 3),
-                prod!(t 1),
+            prules.extend([
+                prule!(nt 1; nt 0, t 0, t 1; nt 0, t 0, t 1, t 2, t 3),
+                prule!(t 1),
             ]);
             symbol_table.extend_nonterminals(["E".to_string(), "F".to_string()]);
             symbol_table.extend_terminals([
@@ -1260,16 +1260,16 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         }
         33 => {
             // A -> A a | b c | b d
-            prods.extend([
-                prod!(nt 0, t 0; t 1, t 2; t 1, t 3),
+            prules.extend([
+                prule!(nt 0, t 0; t 1, t 2; t 1, t 3),
             ]);
         }
         34 => {
             // S -> id = VAL | exit | return VAL
             // VAL -> id | num
-            prods.extend([
-                prod!(t 0, t 2, nt 1; t 3; t 4, nt 1),
-                prod!(t 0; t 1),
+            prules.extend([
+                prule!(t 0, t 2, nt 1; t 3; t 4, nt 1),
+                prule!(t 0; t 1),
             ]);
             symbol_table.extend_nonterminals(["S".to_string(), "VAL".to_string()]);
             symbol_table.extend_terminals([
@@ -1282,16 +1282,16 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
         }
         35 => {
             // A -> a | a b b | a c c
-            prods.extend([
-                prod!(t 0; t 0, t 1, t 1; t 0, t 2, t 2),
+            prules.extend([
+                prule!(t 0; t 0, t 1, t 1; t 0, t 2, t 2),
             ]);
         }
         36 => {
             // E -> F | num | E . id
             // F -> id
-            prods.extend([
-                prod!(nt 1; t 2; nt 0, t 0, t 1),
-                prod!(t 1),
+            prules.extend([
+                prule!(nt 1; t 2; nt 0, t 0, t 1),
+                prule!(t 1),
             ]);
             symbol_table.extend_nonterminals(["E".to_string(), "F".to_string()]);
             symbol_table.extend_terminals([
@@ -1315,40 +1315,40 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 /* 0 */ "STRUCT".to_string(),
                 /* 1 */ "LIST".to_string(),
             ]);
-            prods.extend([
-                prod!(t 0, t 5, t 1, nt 1),
-                prod!(t 5, t 3, t 5, t 4, nt 1; t 5, t 4, nt 1 ; t 2),
+            prules.extend([
+                prule!(t 0, t 5, t 1, nt 1),
+                prule!(t 5, t 3, t 5, t 4, nt 1; t 5, t 4, nt 1 ; t 2),
             ]);
         }
         38 => {
             // A -> A a | A b | b c | b d
-            prods.extend([
-                prod!(nt 0, t 0; nt 0, t 1; t 1, t 2; t 1, t 3),
+            prules.extend([
+                prule!(nt 0, t 0; nt 0, t 1; t 1, t 2; t 1, t 3),
             ]);
         }
         39 => {
             // A -> A a b | A a c | b c | b d
-            prods.extend([
-                prod!(nt 0, t 0, t 1; nt 0, t 0, t 2; t 1, t 2; t 1, t 3),
+            prules.extend([
+                prule!(nt 0, t 0, t 1; nt 0, t 0, t 2; t 1, t 2; t 1, t 3),
             ]);
         }
         40 => {
             // A -> a A | b
-            prods.extend([
-                prod!(t 0, nt 0; t 1),
+            prules.extend([
+                prule!(t 0, nt 0; t 1),
             ]);
         }
         41 => {
             // A -> a A <L> | b (by explicitly setting the l-form flag)
-            prods.extend([
-                prod!(t 0, nt 0; t 1),
+            prules.extend([
+                prule!(t 0, nt 0; t 1),
             ]);
             rules.set_flags(0, ruleflag::L_FORM);
         }
         42 => {
             // A -> a A <L> | b (l-form set through the ProdFactor flags)
-            prods.extend([
-                prod!(#L, t 0, nt 0; t 1),
+            prules.extend([
+                prule!(#L, t 0, nt 0; t 1),
             ]);
         }
         43 => {
@@ -1372,11 +1372,11 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 "EXPR".to_string(),                         // 2
                 "FACTOR".to_string(),                       // 3
             ]);
-            prods.extend([
-                prod!(#L, nt 1, t 7, nt 0; e),
-                prod!(t 0, nt 2, t 1; t 2, nt 2, t 3),
-                prod!(nt 3, t 4, nt 3),
-                prod!(t 5; t 6; t 2, nt 2, t 3),
+            prules.extend([
+                prule!(#L, nt 1, t 7, nt 0; e),
+                prule!(t 0, nt 2, t 1; t 2, nt 2, t 3),
+                prule!(nt 3, t 4, nt 3),
+                prule!(t 5; t 6; t 2, nt 2, t 3),
             ]);
         }
 
@@ -1387,42 +1387,42 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
 
             // A -> B a A | B
             // B -> b
-            prods.extend([
-                prod!(nt 1, t 0, nt 0; nt 1),
-                prod!(t 1),
+            prules.extend([
+                prule!(nt 1, t 0, nt 0; nt 1),
+                prule!(t 1),
             ])
         }
         45 => {
             // A -> a A | B
             // B -> b
-            prods.extend([
-                prod!(t 0, nt 0; nt 1),
-                prod!(t 1),
+            prules.extend([
+                prule!(t 0, nt 0; nt 1),
+                prule!(t 1),
             ])
         }
         46 => {
             // A -> A B a | B
             // B -> b
-            prods.extend([
-                prod!(nt 0, nt 1, t 0; nt 1),
-                prod!(t 1),
+            prules.extend([
+                prule!(nt 0, nt 1, t 0; nt 1),
+                prule!(t 1),
             ])
         }
         47 => {
             // same as 44 with <L>
             // A -> B a A <L> | B
             // B -> b
-            prods.extend([
-                prod!(#L, nt 1, t 0, nt 0; nt 1),
-                prod!(t 1),
+            prules.extend([
+                prule!(#L, nt 1, t 0, nt 0; nt 1),
+                prule!(t 1),
             ])
         }
         48 => {
             // A -> a A <L> | B
             // B -> b
-            prods.extend([
-                prod!(#L, t 0, nt 0; nt 1),
-                prod!(t 1),
+            prules.extend([
+                prule!(#L, t 0, nt 0; nt 1),
+                prule!(t 1),
             ])
         }
 
@@ -1444,9 +1444,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             symbol_table.extend_nonterminals(["E".to_string()]);   // 0
             symbol_table.extend_nonterminals(["F".to_string()]);   // 1
-            prods.extend([
-                prod!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 4, nt 0; nt 1),
-                prod!(t 5, nt 0, t 6; t 7; t 8),
+            prules.extend([
+                prule!(nt 0, t 2, nt 0; nt 0, t 3, nt 0; nt 0, t 4, nt 0; nt 1),
+                prule!(t 5, nt 0, t 6; t 7; t 8),
             ]);
         }
         51 => {
@@ -1467,15 +1467,15 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             symbol_table.extend_nonterminals(["E".to_string()]);   // 0
             symbol_table.extend_nonterminals(["F".to_string()]);   // 1
-            prods.extend([
-                prod!(t 0, nt 0;
+            prules.extend([
+                prule!(t 0, nt 0;
                     nt 0, t 2, nt 0;
                     nt 0, t 9;
                     nt 0, t 3, nt 0;
                     t 1, nt 0;
                     nt 0, t 4, nt 0;
                     nt 1),
-                prod!(t 5, nt 0, t 6; t 7; t 8),
+                prule!(t 5, nt 0, t 6; t 7; t 8),
             ]);
         }
         52 => {
@@ -1492,9 +1492,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             ]);
             symbol_table.extend_nonterminals(["E".to_string()]);   // 0
             symbol_table.extend_nonterminals(["F".to_string()]);   // 1
-            prods.extend([
-                prod!(nt 0, t 0, nt 0; nt 0, t 1; nt 0, t 2; nt 0, t 3, nt 0; nt 1),
-                prod!(t 4; t 5),
+            prules.extend([
+                prule!(nt 0, t 0, nt 0; nt 0, t 1; nt 0, t 2; nt 0, t 3, nt 0; nt 1),
+                prule!(t 4; t 5),
             ]);
         }
         53 => {
@@ -1514,9 +1514,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 "E".to_string(),        // 0
                 "F".to_string(),        // 1
             ]);
-            prods.extend([
-                prod!(#R, nt 0, t 0, nt 0; #R, nt 0, t 1, nt 0; t 2, nt 0; nt 0, t 3, nt 0; nt 1),
-                prod!(t 4; t 5; t 6, nt 0, t 7),
+            prules.extend([
+                prule!(#R, nt 0, t 0, nt 0; #R, nt 0, t 1, nt 0; t 2, nt 0; nt 0, t 3, nt 0; nt 1),
+                prule!(t 4; t 5; t 6, nt 0, t 7),
             ]);
         }
         54 => {
@@ -1532,8 +1532,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(#R, nt 0, t 1, nt 0; nt 0, t 0; nt 0, t 2; #R, nt 0, t 3, nt 0; t 4; t 5)
+            prules.extend([
+                prule!(#R, nt 0, t 1, nt 0; nt 0, t 0; nt 0, t 2; #R, nt 0, t 3, nt 0; t 4; t 5)
             ]);
         }
         55 => {
@@ -1549,8 +1549,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(nt 0, t 1, nt 0; nt 0, t 2; t 0, nt 0; nt 0, t 3, nt 0; t 4; t 5)
+            prules.extend([
+                prule!(nt 0, t 1, nt 0; nt 0, t 2; t 0, nt 0; nt 0, t 3, nt 0; t 4; t 5)
             ]);
         }
         56 => {
@@ -1566,8 +1566,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(nt 0, t 1, nt 0; t 0, nt 0; nt 0, t 2; nt 0, t 3, nt 0; t 4; t 5)
+            prules.extend([
+                prule!(nt 0, t 1, nt 0; t 0, nt 0; nt 0, t 2; nt 0, t 3, nt 0; t 4; t 5)
             ]);
         }
         57 => {
@@ -1582,8 +1582,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 0, t 2, nt 0; t 3; t 4)
+            prules.extend([
+                prule!(nt 0, t 0, nt 0; nt 0, t 1, nt 0; nt 0, t 2, nt 0; t 3; t 4)
             ]);
         }
         58 => {
@@ -1596,8 +1596,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(nt 0, t 0; t 1, nt 0; t 2)
+            prules.extend([
+                prule!(nt 0, t 0; t 1, nt 0; t 2)
             ])
         }
         59 => {
@@ -1610,8 +1610,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(nt 0, t 0, nt 0; t 1, nt 0; t 2)
+            prules.extend([
+                prule!(nt 0, t 0, nt 0; t 1, nt 0; t 2)
             ])
         }
         60 => {
@@ -1624,8 +1624,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(nt 0, t 0; #L, t 1, nt 0; t 2)
+            prules.extend([
+                prule!(nt 0, t 0; #L, t 1, nt 0; t 2)
             ])
         }
         61 => {
@@ -1640,8 +1640,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(nt 0, t 0; t 1, nt 0; t 2; t 3)
+            prules.extend([
+                prule!(nt 0, t 0; t 1, nt 0; t 2; t 3)
             ])
         }
         62 => {
@@ -1653,8 +1653,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 ("ID".to_string(), None),                       // 3
             ]);
             symbol_table.extend_nonterminals(["E".to_string()]);   // 0
-            prods.extend([
-                prod!(nt 0, t 0, nt 0; t 1, nt 0; nt 0, t 2, nt 0; t 3),
+            prules.extend([
+                prule!(nt 0, t 0, nt 0; t 1, nt 0; nt 0, t 2, nt 0; t 3),
             ]);
         }
         63 => {
@@ -1672,8 +1672,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
                 // "E5".to_string(),       // 2
                 // "E6".to_string(),       // 3
             ]);
-            prods.extend([
-                prod!(#R, nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2, nt 0; nt 0, t 3, nt 0; t 4),
+            prules.extend([
+                prule!(#R, nt 0, t 0, nt 0; nt 0, t 1, nt 0; t 2, nt 0; nt 0, t 3, nt 0; t 4),
             ]);
         }
         64 => {
@@ -1686,8 +1686,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(t 1, nt 0; nt 0, t 0, nt 0; t 2)
+            prules.extend([
+                prule!(t 1, nt 0; nt 0, t 0, nt 0; t 2)
             ])
         }
         65 => {
@@ -1702,8 +1702,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(nt 0, t 1; nt 0, t 0, nt 0; nt 0, t 2; t 3, nt 0; t 4),
+            prules.extend([
+                prule!(nt 0, t 1; nt 0, t 0, nt 0; nt 0, t 2; t 3, nt 0; t 4),
             ])
         }
         66 => {
@@ -1720,8 +1720,8 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(nt 0, t 4, t 0, nt 0; nt 0, t 1; nt 0, t 4, t 2, nt 0; t 3, nt 0; t 5)
+            prules.extend([
+                prule!(nt 0, t 4, t 0, nt 0; nt 0, t 1; nt 0, t 4, t 2, nt 0; t 3, nt 0; t 5)
             ]);
         }
 
@@ -1736,28 +1736,28 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             symbol_table.extend_nonterminals([
                 "E".to_string(),        // 0
             ]);
-            prods.extend([
-                prod!(t 1, nt 0; nt 0, t 0; t 2)
+            prules.extend([
+                prule!(t 1, nt 0; nt 0, t 0; t 2)
             ])
         }
 
         // ambiguity? ----------------------------------------------------------
         100 => {
             // A -> A a A b | c (amb removed)
-            prods.extend([
-                prod!(nt 0, t 0, nt 0, t 1; t 2),
+            prules.extend([
+                prule!(nt 0, t 0, nt 0, t 1; t 2),
             ]);
         }
         101 => {
             // A -> a A A | b (no amb)
-            prods.extend([
-                prod!(t 0, nt 0, nt 0; t 1),
+            prules.extend([
+                prule!(t 0, nt 0, nt 0; t 1),
             ]);
         }
         102 => {
             // A -> A a A b A | c (amb removed)
-            prods.extend([
-                prod!(nt 0, t 0, nt 0, t 1, nt 0; t 2)
+            prules.extend([
+                prule!(nt 0, t 0, nt 0, t 1, nt 0; t 2)
             ]);
         }
         103 => {
@@ -1765,9 +1765,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // =>
             // A -> a B c | d
             // B -> A b A B | ε
-            prods.extend([
-                prod!(t 0, nt 1, t 2; t 3),
-                prod!(nt 0, t 1, nt 0, nt 1; e),
+            prules.extend([
+                prule!(t 0, nt 1, t 2; t 3),
+                prule!(nt 0, t 1, nt 0, nt 1; e),
             ]);
         }
         104 => {
@@ -1775,9 +1775,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // =>
             // A -> B c | a
             // B -> A b A B | ε
-            prods.extend([
-                prod!(nt 1, t 2; t 0),
-                prod!(nt 0, t 1, nt 0, nt 1; e),
+            prules.extend([
+                prule!(nt 1, t 2; t 0),
+                prule!(nt 0, t 1, nt 0, nt 1; e),
             ]);
         }
         105 => {
@@ -1785,9 +1785,9 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // =>
             // A -> a B | c
             // B -> A b A B | ε
-            prods.extend([
-                prod!(t 0, nt 1; t 2),
-                prod!(nt 0, t 1, nt 0, nt 1; e),
+            prules.extend([
+                prule!(t 0, nt 1; t 2),
+                prule!(nt 0, t 1, nt 0, nt 1; e),
             ]);
         }
         106 => {
@@ -1795,57 +1795,57 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
             // =>
             // A -> A1 | a
             // A1 -> A b A A1 | ε
-            prods.extend([
-                prod!(nt 1; t 0),
-                prod!(nt 0, t 1, nt 0, nt 1; e),
+            prules.extend([
+                prule!(nt 1; t 0),
+                prule!(nt 0, t 1, nt 0, nt 1; e),
             ]);
         }
 
         // warnings and errors -------------------------------------------------
         1000 => { // A -> A a  (error: missing non-recursive factor)
-            prods.extend([
-                prod!(nt 0, t 0)
+            prules.extend([
+                prule!(nt 0, t 0)
             ]);
         },
         1001 => { // A -> A a A A | b (error: cannot remove recursion)
-            prods.extend([
-                prod!(nt 0, t 0, nt 0, nt 0; t 1)
+            prules.extend([
+                prule!(nt 0, t 0, nt 0, nt 0; t 1)
             ]);
         },
         1002 => { // A -> A a A a A | b (warning: ambiguous)
-            prods.extend([
-                prod!(nt 0, t 0, nt 0, t 0, nt 0; t 1)
+            prules.extend([
+                prule!(nt 0, t 0, nt 0, t 0, nt 0; t 1)
             ]);
         },
         1003 => { // (error: no terminal in grammar)
-            prods.extend([
-                prod!(nt 1),
-                prod!(nt 2),
-                prod!(nt 0),
+            prules.extend([
+                prule!(nt 1),
+                prule!(nt 2),
+                prule!(nt 0),
             ]);
         },
         1004 => { // (error: no terminal used in table)
-            prods.extend([
-                prod!(nt 1),
-                prod!(nt 2, t 0),
-                prod!(nt 0),
+            prules.extend([
+                prule!(nt 1),
+                prule!(nt 2, t 0),
+                prule!(nt 0),
             ]);
         },
         1005 => { // (warnings: unused terminals, unused non-terminals)
             symbol_table.extend_terminals([("a".to_string(), None), ("b".to_string(), None)]);
             symbol_table.extend_nonterminals(["A".to_string(), "B".to_string()]);
-            prods.extend([
-                prod!(t 1),
-                prod!(t 1),
+            prules.extend([
+                prule!(t 1),
+                prule!(t 1),
             ]);
         },
         1006 => { // symbol_table.num_nt != rules.num_nt
             extend_nt = false;
             symbol_table.extend_terminals([("a".to_string(), None), ("b".to_string(), None)]);
             symbol_table.extend_nonterminals(["A".to_string()]);
-            prods.extend([
-                prod!(t 0, nt 1),
-                prod!(t 1),
+            prules.extend([
+                prule!(t 0, nt 1),
+                prule!(t 1),
             ])
         }
         _ => {}
@@ -2163,7 +2163,7 @@ fn rts_prs_flags() {
             ll1.print_logs();
         }
         let result_flags = ll1.flags.iter().index().filter_map(|(v, &f)| if f != 0 { Some((v, f)) } else { None }).collect::<BTreeMap<_, _>>();
-        let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.get_flags())).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
+        let result_fflags = ll1.prules.iter().flat_map(|p| p.iter().map(|f| f.get_flags())).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_parent = ll1.parent.iter().index().filter_map(|(v, &par)| if let Some(p) = par { Some((v, p)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_nt_conversion = ll1.nt_conversion.iter().map(|(v1, v2)| (*v1, *v2)).collect::<BTreeMap<_, _>>();
         if VERBOSE {

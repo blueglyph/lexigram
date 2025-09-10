@@ -6,7 +6,7 @@ use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::parsergen::{print_flags, ParserGen};
 use lexigram_lib::test_tools::replace_tagged_source;
 use lexigram_lib::grammar::{GrNode, GrTree, ProdRuleSet, ProdRuleSetTables, VarId};
-use lexigram_lib::{hashmap, prod};
+use lexigram_lib::{hashmap, prule};
 use lexigram_lib::grammar::origin::Origin;
 use super::{GRAMPARSER_FILENAME, GRAMPARSER_TAG};
 
@@ -47,20 +47,20 @@ fn gramparser_source(indent: usize, verbose: bool) -> Result<(BufLog, String), B
     let ll1_tables = ProdRuleSetTables::new(
         Some("GramParser"),
         vec![
-            prod!(%(0, 2), nt 1, nt 2),
-            prod!(%(1, 3), t 8, t 13, t 6),
-            prod!(%(2, 0), nt 3, nt 10),
-            prod!(nt 4, t 0, nt 5, nt 12),
-            prod!(%(4, 0), t 13),
-            prod!(%(5, 0), nt 6, nt 11),
-            prod!(%(6, 2), nt 9),
-            prod!(nt 8, nt 13),
-            prod!(%(8, 0), t 13; %(8, 1), t 10; %(8, 2), t 11; %(8, 3), t 12; %(8, 7), t 1, nt 5, t 5),
-            prod!(%(6, 1), nt 7, nt 9; e),
-            prod!(#(0, 0), %(2, 3), nt 3, nt 10; e),
-            prod!(#(0, 1), %(5, 4), t 2, nt 6, nt 11; e),
-            prod!(%(3, 10), t 6; %(3, 5), t 9, t 6),
-            prod!(%(7, 2), t 3; %(7, 8), t 4; %(7, 5), t 7; %(7, 10), e),
+            prule!(%(0, 2), nt 1, nt 2),
+            prule!(%(1, 3), t 8, t 13, t 6),
+            prule!(%(2, 0), nt 3, nt 10),
+            prule!(nt 4, t 0, nt 5, nt 12),
+            prule!(%(4, 0), t 13),
+            prule!(%(5, 0), nt 6, nt 11),
+            prule!(%(6, 2), nt 9),
+            prule!(nt 8, nt 13),
+            prule!(%(8, 0), t 13; %(8, 1), t 10; %(8, 2), t 11; %(8, 3), t 12; %(8, 7), t 1, nt 5, t 5),
+            prule!(%(6, 1), nt 7, nt 9; e),
+            prule!(#(0, 0), %(2, 3), nt 3, nt 10; e),
+            prule!(#(0, 1), %(5, 4), t 2, nt 6, nt 11; e),
+            prule!(%(3, 10), t 6; %(3, 5), t 9, t 6),
+            prule!(%(7, 2), t 3; %(7, 8), t 4; %(7, 5), t 7; %(7, 10), e),
         ],
         origin,
         vec![("Colon", Some(":")), ("Lparen", Some("(")), ("Or", Some("|")), ("Plus", Some("+")), ("Question", Some("?")), ("Rparen", Some(")")), ("Semicolon", Some(";")), ("Star", Some("*")), ("Grammar", Some("grammar")), ("SymEof", Some("EOF")), ("Lform", None), ("Rform", Some("<R>")), ("Pform", Some("<P>")), ("Id", None)],

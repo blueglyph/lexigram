@@ -9,9 +9,9 @@ fn prs_remove_recursion() {
             // A -> A b | A c | d | d e     A -> d A_1 | d e A_1
             // B -> A f | g | h             B -> A f | g | h
             //                              A_1 -> b A_1 | c A_1 | ε
-            0 => prod!(t 3, nt 2; t 3, t 4, nt 2),
-            1 => prod!(nt 0, t 5; t 6; t 7),
-            2 => prod!(t 1, nt 2; t 2, nt 2; e),
+            0 => prule!(t 3, nt 2; t 3, t 4, nt 2),
+            1 => prule!(nt 0, t 5; t 6; t 7),
+            2 => prule!(t 1, nt 2; t 2, nt 2; e),
         ]),
         (2, btreemap![]),
         (4, btreemap![
@@ -20,19 +20,19 @@ fn prs_remove_recursion() {
             // F -> ( E ) | N | I         F -> ( E ) | NUM | ID
             //                            E_1 -> + T E_1 | - T E_1 | ε
             //                            T_1 -> * F T_1 | / F T_1 | ε
-            0 => prod!(nt 1, nt 3),
-            1 => prod!(nt 2, nt 4),
-            2 => prod!(t 4, nt 0, t 5; t 6; t 7),
-            3 => prod!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
-            4 => prod!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
+            0 => prule!(nt 1, nt 3),
+            1 => prule!(nt 2, nt 4),
+            2 => prule!(t 4, nt 0, t 5; t 6; t 7),
+            3 => prule!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
+            4 => prule!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
         ]),
         (8, btreemap![
             // (0) A -> A_2 A_1
             // (1) A_1 -> a A_2 A_1 | ε
             // (2) A_2 -> b
-            0 => prod!(nt 2, nt 1),
-            1 => prod!(t 0, nt 2, nt 1; e),
-            2 => prod!(t 1),
+            0 => prule!(nt 2, nt 1),
+            1 => prule!(t 0, nt 2, nt 1; e),
+            2 => prule!(t 1),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -66,10 +66,10 @@ fn prs_left_factorize() {
             // B -> A f | g | h
             // A_1 -> e | ε
             // A_2 -> b | c
-            0 => prod!(t 3, nt 2; nt 0, nt 3),
-            1 => prod!(nt 0, t 5; t 6; t 7),
-            2 => prod!(t 4; e),
-            3 => prod!(t 1; t 2),
+            0 => prule!(t 3, nt 2; nt 0, nt 3),
+            1 => prule!(nt 0, t 5; t 6; t 7),
+            2 => prule!(t 4; e),
+            3 => prule!(t 1; t 2),
         ]),
         (1, btreemap![
             // A -> b A_1 | c b | d c A_2
@@ -77,11 +77,11 @@ fn prs_left_factorize() {
             // A_2 -> e | ε
             // A_3 -> d | ε
             // A_4 -> f | g
-            0 => prod!(t 1, nt 1; t 2, t 1; t 3, t 2, nt 2),
-            1 => prod!(t 1, t 2, nt 3; t 2, t 6; t 3, t 4, nt 4),
-            2 => prod!(t 4; e),
-            3 => prod!(t 3; #R, e),
-            4 => prod!(t 5; t 6),
+            0 => prule!(t 1, nt 1; t 2, t 1; t 3, t 2, nt 2),
+            1 => prule!(t 1, t 2, nt 3; t 2, t 6; t 3, t 4, nt 4),
+            2 => prule!(t 4; e),
+            3 => prule!(t 3; #R, e),
+            4 => prule!(t 5; t 6),
         ]),
         (2, btreemap![]),
         (3, btreemap![
@@ -90,11 +90,11 @@ fn prs_left_factorize() {
             // C -> c | b
             // D -> d
             // B_1 -> a | ε
-            0 => prod!(t 0),
-            1 => prod!(t 2, nt 4),
-            2 => prod!(t 2; t 1),
-            3 => prod!(t 3),
-            4 => prod!(t 0; e),
+            0 => prule!(t 0),
+            1 => prule!(t 2, nt 4),
+            2 => prule!(t 2; t 1),
+            3 => prule!(t 3),
+            4 => prule!(t 0; e),
         ]),
         (4, btreemap![
             // E -> E E_1 | T
@@ -102,11 +102,11 @@ fn prs_left_factorize() {
             // F -> ( E ) | NUM | ID
             // E_1 -> + T | - T
             // T_1 -> * F | / F
-            0 => prod!(nt 0, nt 3; nt 1),
-            1 => prod!(nt 1, nt 4; nt 2),
-            2 => prod!(t 4, nt 0, t 5; t 6; t 7),
-            3 => prod!(t 0, nt 1; t 1, nt 1),
-            4 => prod!(t 2, nt 2; t 3, nt 2),
+            0 => prule!(nt 0, nt 3; nt 1),
+            1 => prule!(nt 1, nt 4; nt 2),
+            2 => prule!(t 4, nt 0, t 5; t 6; t 7),
+            3 => prule!(t 0, nt 1; t 1, nt 1),
+            4 => prule!(t 2, nt 2; t 3, nt 2),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -140,10 +140,10 @@ fn prs_ll1_from() {
             // B -> A f | g | h
             // A_1 -> b A_1 | c A_1 | ε
             // A_2 -> e A_1 | A_1
-            0 => prod!(t 3, nt 3),
-            1 => prod!(nt 0, t 5; t 6; t 7),
-            2 => prod!(t 1, nt 2; t 2, nt 2; e),
-            3 => prod!(t 4, nt 2; nt 2),
+            0 => prule!(t 3, nt 3),
+            1 => prule!(nt 0, t 5; t 6; t 7),
+            2 => prule!(t 1, nt 2; t 2, nt 2; e),
+            3 => prule!(t 4, nt 2; nt 2),
         ]),
         (1, btreemap![
             // A -> b A_1 | c b | d c A_2
@@ -151,11 +151,11 @@ fn prs_ll1_from() {
             // A_2 -> e | ε
             // A_3 -> d | ε
             // A_4 -> f | g
-            0 => prod!(t 1, nt 1; t 2, t 1; t 3, t 2, nt 2),
-            1 => prod!(t 1, t 2, nt 3; t 2, t 6; t 3, t 4, nt 4),
-            2 => prod!(t 4; e),
-            3 => prod!(t 3; #256, e),
-            4 => prod!(t 5; t 6),
+            0 => prule!(t 1, nt 1; t 2, t 1; t 3, t 2, nt 2),
+            1 => prule!(t 1, t 2, nt 3; t 2, t 6; t 3, t 4, nt 4),
+            2 => prule!(t 4; e),
+            3 => prule!(t 3; #256, e),
+            4 => prule!(t 5; t 6),
         ]),
         (4, btreemap![
             // E -> T E_1
@@ -163,11 +163,11 @@ fn prs_ll1_from() {
             // F -> ( E ) | NUM | ID
             // E_1 -> + T E_1 | - T E_1 | ε
             // T_1 -> * F T_1 | / F T_1 | ε
-            0 => prod!(nt 1, nt 3),
-            1 => prod!(nt 2, nt 4),
-            2 => prod!(t 4, nt 0, t 5; t 6; t 7),
-            3 => prod!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
-            4 => prod!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
+            0 => prule!(nt 1, nt 3),
+            1 => prule!(nt 2, nt 4),
+            2 => prule!(t 4, nt 0, t 5; t 6; t 7),
+            3 => prule!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
+            4 => prule!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
         ]),
     ];
     const VERBOSE: bool = false;
@@ -201,7 +201,7 @@ fn prs_lr_from() {
     let mut test_id = 0;
     loop {
         let rules = build_prs(test_id, false);
-        if rules.prods.is_empty() {
+        if rules.prules.is_empty() {
             break;
         }
         let _lr = ProdRuleSet::<LR>::build_from(rules);

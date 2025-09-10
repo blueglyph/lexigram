@@ -362,69 +362,69 @@ fn orig_normalize() {
 #[test]
 fn rts_prodrule_from() {
     let tests: Vec<(u32, BTreeMap<VarId, ProdRule>, Vec<u32>, Vec<Option<VarId>>)> = vec![
-        (0, btreemap![0 => prod!(t 1; t 2; nt 3)], vec![0], vec![None]),
-        (1, btreemap![0 => prod!(nt 1, nt 2; t 3; t 4; nt 5, nt 6;t 7; t 8; nt 9, nt 10)], vec![0], vec![None]),
-        (2, btreemap![0 => prod!(
+        (0, btreemap![0 => prule!(t 1; t 2; nt 3)], vec![0], vec![None]),
+        (1, btreemap![0 => prule!(nt 1, nt 2; t 3; t 4; nt 5, nt 6;t 7; t 8; nt 9, nt 10)], vec![0], vec![None]),
+        (2, btreemap![0 => prule!(
             nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
             nt 1, nt 2, nt 3, nt 5, nt 6, nt 8;
             nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
             nt 1, nt 2, nt 4, nt 5, nt 6, nt 8;
         )], vec![0], vec![None]),
-        (3, btreemap![0 => prod!(
+        (3, btreemap![0 => prule!(
             nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
             nt 1, nt 2, nt 3, nt 5, nt 8;
             nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
             nt 1, nt 2, nt 4, nt 5, nt 8;
         )], vec![0], vec![None]),
-        (4, btreemap![0 => prod!(
+        (4, btreemap![0 => prule!(
             nt 0, nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
             nt 0, nt 1, nt 2, nt 3, nt 5, nt 8;
             nt 0, nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
             nt 0, nt 1, nt 2, nt 4, nt 5, nt 8;
         )], vec![0], vec![None]),
-        (5, btreemap![0 => prod!(nt 1; e)], vec![0], vec![None]),
-        (6, btreemap![0 => prod!(nt 1, nt 2; e)], vec![0], vec![None]),
-        (7, btreemap![0 => prod!(nt 1, nt 2; nt 3; e)], vec![0], vec![None]),
+        (5, btreemap![0 => prule!(nt 1; e)], vec![0], vec![None]),
+        (6, btreemap![0 => prule!(nt 1, nt 2; e)], vec![0], vec![None]),
+        (7, btreemap![0 => prule!(nt 1, nt 2; nt 3; e)], vec![0], vec![None]),
         (8, btreemap![
-            0 => prod!(t 1, nt 1),
-            1 =>  prod!(t 2, nt 1; t 2)
+            0 => prule!(t 1, nt 1),
+            1 =>  prule!(t 2, nt 1; t 2)
         ], vec![6144, 4097], vec![None, Some(0)]),
         (9, btreemap![
-            0 => prod!(t 1, nt 1),
-            1 =>  prod!(t 2, t 3, nt 1; t 2, t 3)
+            0 => prule!(t 1, nt 1),
+            1 =>  prule!(t 2, t 3, nt 1; t 2, t 3)
         ], vec![6144, 4097], vec![None, Some(0)]),
         (10, btreemap![
-            0 => prod!(t 1, nt 1),
-            1 =>  prod!(t 2, t 3, nt 1; t 2, t 3; t 4, nt 1; t 4)
+            0 => prule!(t 1, nt 1),
+            1 =>  prule!(t 2, t 3, nt 1; t 2, t 3; t 4, nt 1; t 4)
         ], vec![6144, 4097], vec![None, Some(0)]),
         (11, btreemap![
-            0 => prod!(t 1, nt 1),
-            1 =>  prod!(t 2, nt 1; e)
+            0 => prule!(t 1, nt 1),
+            1 =>  prule!(t 2, nt 1; e)
         ], vec![2048, 1], vec![None, Some(0)]),
         (12, btreemap![
-            0 => prod!(t 1, nt 1),
-            1 =>  prod!(t 2, t 3, nt 1; e)
+            0 => prule!(t 1, nt 1),
+            1 =>  prule!(t 2, t 3, nt 1; e)
         ], vec![2048, 1], vec![None, Some(0)]),
         (13, btreemap![
-            0 => prod!(t 1, nt 1),
-            1 =>  prod!(t 2, t 3, nt 1; t 4, nt 1; e)
+            0 => prule!(t 1, nt 1),
+            1 =>  prule!(t 2, t 3, nt 1; t 4, nt 1; e)
         ], vec![2048, 1], vec![None, Some(0)]),
         (14, btreemap![
-            0 => prod!(t 1, t 2; t 1, t 3; t 1; t 2; t 3; e)
+            0 => prule!(t 1, t 2; t 1, t 3; t 1; t 2; t 3; e)
         ], vec![0], vec![None]),
         (15, btreemap![
-            0 => prod!(nt 0, t 1, nt 0; #R, nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4)
+            0 => prule!(nt 0, t 1, nt 0; #R, nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4)
         ], vec![0], vec![None]),
         (17, btreemap![
-            0 => prod!(t 0, nt 2, t 3),
-            1 => prod!(t 1, nt 1; t 1),
-            2 => prod!(nt 1, t 2, nt 2; nt 1, t 2),
+            0 => prule!(t 0, nt 2, t 3),
+            1 => prule!(t 1, nt 1; t 1),
+            2 => prule!(nt 1, t 2, nt 2; nt 1, t 2),
         ], vec![6144, 4097, 6145], vec![None, Some(2), Some(0)]),
         (35, btreemap![
-            0 => prod!(t 0, nt 0; t 1),
+            0 => prule!(t 0, nt 0; t 1),
         ], vec![0], vec![None]), // R_RECURSION not set yet (set by ProdRuleSet<T>::remove_left_recursion())
         (36, btreemap![
-            0 => prod!(t 0, nt 0; t 1),
+            0 => prule!(t 0, nt 0; t 1),
         ], vec![128], vec![None]), // R_RECURSION not set yet (set by ProdRuleSet<T>::remove_left_recursion())
     ];
     const VERBOSE: bool = false;
