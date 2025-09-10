@@ -932,7 +932,7 @@ pub fn print_factors<T: SymInfoTable>(factors: &Vec<(VarId, ProdFactor)>, symbol
                  format!("            // - {id}: {} -> {}{}",
                          Symbol::NT(*v).to_str(symbol_table),
                          f.to_str(symbol_table),
-                         if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
+                         if f.get_flags() != 0 { format!("     {} ({})", ruleflag::to_string(f.get_flags()).join(" | "), f.get_flags()) } else { "".to_string() }
                  )
     ).join("\n"));
 }
@@ -947,7 +947,7 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
 fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
     println!("            {}", result.iter().map(|(i, p)|
         format!("{i} => prod!({}),", p.iter()
-            .map(|f| format!("{}{}", if f.flags != 0 { format!("#{}, ", f.flags) } else { "".to_string() }, f.iter().map(|s| s.to_macro_item()).join(", ")))
+            .map(|f| format!("{}{}", if f.get_flags() != 0 { format!("#{}, ", f.get_flags()) } else { "".to_string() }, f.iter().map(|s| s.to_macro_item()).join(", ")))
             .join("; "))).join("\n            "))
 }
 
@@ -2163,7 +2163,7 @@ fn rts_prs_flags() {
             ll1.print_logs();
         }
         let result_flags = ll1.flags.iter().index().filter_map(|(v, &f)| if f != 0 { Some((v, f)) } else { None }).collect::<BTreeMap<_, _>>();
-        let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.flags)).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
+        let result_fflags = ll1.prods.iter().flat_map(|p| p.iter().map(|f| f.get_flags())).enumerate().filter_map(|(i, f)| if f != 0 { Some((i, f)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_parent = ll1.parent.iter().index().filter_map(|(v, &par)| if let Some(p) = par { Some((v, p)) } else { None }).collect::<BTreeMap<_, _>>();
         let result_nt_conversion = ll1.nt_conversion.iter().map(|(v1, v2)| (*v1, *v2)).collect::<BTreeMap<_, _>>();
         if VERBOSE {

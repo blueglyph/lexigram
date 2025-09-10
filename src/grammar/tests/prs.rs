@@ -1566,9 +1566,9 @@ fn prs_calc_table() {
             print_factors(&factors, ll1.get_symbol_table());
             println!("{}",
                      factors.iter().enumerate().map(|(_id, (v, f))| {
-                         let flags = if f.flags != 0 {
-                             let mut vf = ruleflag::factor_info_to_string(f.flags);
-                             format!("#{}, ", if vf.len() == 1 { vf.pop().unwrap() } else { f.flags.to_string() })
+                         let flags = if f.get_flags() != 0 {
+                             let mut vf = ruleflag::factor_info_to_string(f.get_flags());
+                             format!("#{}, ", if vf.len() == 1 { vf.pop().unwrap() } else { f.get_flags().to_string() })
                          } else {
                              String::new()
                          };
