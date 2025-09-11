@@ -1226,15 +1226,22 @@ impl RuleTreeSet<General> {
         }
         if let Some(v) = lform_nt {
             // `new_var` replaces `v`
-            self.nt_conversion.insert(v, MovedTo(*new_var));
-            for mut node in qtree.iter_depth_simple_mut() {
-                if let GrNode::LForm(v2) = node.deref_mut() {
-                    if *v2 == v { *v2 = *new_var; }
+            if v == var {
+                self.log.add_error(
+                    format!("in {}, {}: <L> points to the same nonterminal. It must be a new one, created for the loop.",
+                            Symbol::NT(var).to_str(self.get_symbol_table()),
+                            grtree_to_str(orig_new, Some(orig_rep), None, self.get_symbol_table(), false)));
+            } else {
+                self.nt_conversion.insert(v, MovedTo(*new_var));
+                for mut node in qtree.iter_depth_simple_mut() {
+                    if let GrNode::LForm(v2) = node.deref_mut() {
+                        if *v2 == v { *v2 = *new_var; }
+                    }
                 }
-            }
-            for mut node in orig_new.iter_depth_simple_at_mut(orig_rep_child) {
-                if let GrNode::LForm(v2) = node.deref_mut() {
-                    if *v2 == v { *v2 = *new_var; }
+                for mut node in orig_new.iter_depth_simple_at_mut(orig_rep_child) {
+                    if let GrNode::LForm(v2) = node.deref_mut() {
+                        if *v2 == v { *v2 = *new_var; }
+                    }
                 }
             }
         }
