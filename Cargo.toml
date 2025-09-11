@@ -30,5 +30,11 @@ test = true
 name = "microcalc"
 test = true
 
+[[example]]
+name = "gen_rtsgen"
+
+[[example]]
+name = "rtsgen"
+
 [dev-dependencies]
 lexigram = { path = "lexigram" }
