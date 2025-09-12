@@ -3,12 +3,16 @@
 use crate::gram::gramparser::*;
 use crate::gram::gramparser::gramparser_types::*;
 use iter_index::IndexerIterator;
-use lexigram_lib::grammar::{GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
+use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, ProdRuleSet, RuleTreeSet, Symbol, VarId};
 use lexigram_lib::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};
 use lexigram_lib::{BuildErrorSource, CollectJoin, General, HasBuildErrorSource, SymbolTable};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt::{Debug, Formatter};
 use vectree::VecTree;
+
+enum PostCheck {
+    RepeatChildLform { node: usize, var: VarId }
+}
 
 pub struct GramListener {
     verbose: bool,
@@ -29,6 +33,7 @@ pub struct GramListener {
     /// OPTIMIZE: because of this 1-pass system that preserves the ID order of the grammar file,
     /// we use more space in the VarId range: |defined| + |reserved| instead of |defined|.
     nt_reserved: HashMap<String, VarId>,
+    post_check: Vec<PostCheck>,
     num_nt: usize,
 }
 
@@ -56,6 +61,7 @@ impl GramListener {
             symbol_table,
             symbols,
             nt_reserved: HashMap::new(),
+            post_check: Vec::new(),
             num_nt: 0,
         }
     }
@@ -116,6 +122,23 @@ impl GramListener {
             }
         }
     }
+
+    fn do_post_checks(&mut self) {
+        for check in &self.post_check {
+            match check {
+                PostCheck::RepeatChildLform { node, var } => {
+                    let tree = &self.rules[*var as usize];
+                    if tree.iter_depth_at(*node).any(|node| if let GrNode::LForm(v) = *node { v == *var } else { false }) {
+                        let symtab = Some(&self.symbol_table);
+                        self.log.add_error(
+                            format!("in {}, {}:  <L> points to the same nonterminal. It must be a new one, created for the loop.",
+                                    Symbol::NT(*var).to_str(symtab),
+                                    grtree_to_str(&tree, Some(*node), None, symtab, false)));
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl LogReader for GramListener {
@@ -139,7 +162,8 @@ impl From<GramListener> for ProdRuleSet<General> {
     ///
     /// If an error is encountered or was already encountered before, an empty shell object
     /// is built with the log detailing the error(s).
-    fn from(gram_listener: GramListener) -> ProdRuleSet<General> {
+    fn from(mut gram_listener: GramListener) -> ProdRuleSet<General> {
+        gram_listener.do_post_checks();
         let mut rts = RuleTreeSet::<General>::with_log(gram_listener.log);
         let no_error = rts.get_log().has_no_errors();
         if no_error {
@@ -324,12 +348,15 @@ impl GramParserListener for GramListener {
     fn exit_prod_factor(&mut self, ctx: CtxProdFactor) -> SynProdFactor {
         if self.verbose { println!("exit_prod_factor_rep({ctx:?})"); }
         let tree = self.curr.as_mut().expect("no current tree");
-        let id = match ctx {
-            CtxProdFactor::ProdFactor1 { prod_atom: SynProdAtom(factor_item) } => tree.addci(None, GrNode::Plus, factor_item),    // prodAtom +
-            CtxProdFactor::ProdFactor2 { prod_atom: SynProdAtom(factor_item) } => tree.addci(None, GrNode::Maybe, factor_item),   // prodAtom ?
-            CtxProdFactor::ProdFactor3 { prod_atom: SynProdAtom(factor_item) } => tree.addci(None, GrNode::Star, factor_item),    // prodAtom *
-            CtxProdFactor::ProdFactor4 { prod_atom: SynProdAtom(factor_item) } => factor_item,                                    // prodAtom
+        let (id, l_check) = match ctx {
+            CtxProdFactor::ProdFactor1 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Plus, factor_item), true),   // prodAtom +
+            CtxProdFactor::ProdFactor2 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Maybe, factor_item), false), // prodAtom ?
+            CtxProdFactor::ProdFactor3 { prod_atom: SynProdAtom(factor_item) } => (tree.addci(None, GrNode::Star, factor_item), true),   // prodAtom *
+            CtxProdFactor::ProdFactor4 { prod_atom: SynProdAtom(factor_item) } => (factor_item, false),                                  // prodAtom
         };
+        if l_check {
+            self.post_check.push(PostCheck::RepeatChildLform { node: id, var: self.curr_nt.unwrap() });
+        }
         SynProdFactor(id)
     }
 
