@@ -345,9 +345,9 @@ impl LexerGen {
         }
         source.push(format!("];"));
         source.push(format!("static UTF8_TO_GROUP: [(char, GroupId); {}] = [", self.utf8_to_group.len()));
-        for (c, g) in &self.utf8_to_group {
-            source.push(format!("    ('{}', {}),", escape_char(*c), g));
-        }
+        let mut hashmap_content = self.utf8_to_group.iter().map(|(c, g)| format!("    ('{}', {}),", escape_char(*c), g)).to_vec();
+        hashmap_content.sort(); // the sources must be identical from one run to the next
+        source.extend(hashmap_content);
         source.push(format!("];"));
         /*
         for (c, g) in lexergen.utf8_to_group.iter() {
