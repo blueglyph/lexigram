@@ -388,8 +388,7 @@ impl GramParserListener for GramListener {
                 }
             }
             CtxProdAtom::ProdAtom2 { lform } => {               // factor_item -> Lform
-                let bytes = lform.as_bytes();
-                let name_maybe = if bytes[2] == b'=' {
+                let name_maybe = if lform.len() > 3 {
                     let name = lform[3..lform.len() - 1].to_string();
                     if &name == self.curr_name.as_ref().unwrap() {
                         // that must be a right-recursive rule (to check later)
