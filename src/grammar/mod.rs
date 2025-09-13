@@ -762,7 +762,7 @@ impl RuleTreeSet<General> {
     pub fn normalize(&mut self) {
         self.log.add_note("original rules:");
         (0..self.trees.len() as VarId)
-            .for_each(|v| self.log.add_note(format!("- {} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), self.to_str(v, None, None))));
+            .for_each(|v| self.log.add_note(format!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), self.to_str(v, None, None))));
         self.log.add_note("normalizing rules...");
         self.check_num_nt_coherency();
         let vars = self.get_vars().to_vec();
