@@ -693,6 +693,10 @@ impl<T> RuleTreeSet<T> {
     pub fn to_str(&self, var: VarId, node: Option<usize>, emphasis: Option<usize>) -> String {
         grtree_to_str(&self.trees[var as usize], node, emphasis, self.get_symbol_table(), false)
     }
+
+    pub fn get_log_mut(&mut self) -> &mut BufLog {
+        &mut self.log
+    }
 }
 
 impl<T> LogReader for RuleTreeSet<T> {
