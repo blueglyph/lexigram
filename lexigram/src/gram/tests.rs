@@ -2,7 +2,17 @@
 
 #![cfg(test)]
 
-const TXT_LEXI1: &str = r#"
+use std::io::Cursor;
+use iter_index::IndexerIterator;
+use lexigram_lib::{CollectJoin, SymbolTable};
+use lexigram_lib::grammar::VarId;
+use lexigram_lib::io::CharReader;
+use lexigram_lib::lexergen::{LexerGen, LexerTables};
+use lexigram_lib::log::{BuildFrom, BuildInto, LogReader, LogStatus};
+use crate::Lexi;
+use crate::lexi::SymbolicDfa;
+
+static TXT_LEXI1: &str = r#"
     lexicon A;
     //
     fragment ID     : [a-zA-Z][a-zA-Z_0-9]*;
@@ -24,7 +34,7 @@ const TXT_LEXI1: &str = r#"
     Int             : NUM;
 "#;
 
-const TXT_GRAM1: &str = r#"
+static TXT_GRAM1: &str = r#"
     grammar A;
     /**---- comments ----**/
     prog:
@@ -42,7 +52,7 @@ const TXT_GRAM1: &str = r#"
         Id | Sub? Int | Lparen expr Rparen; // [?]
 "#;
 
-const TXT_GRAM2: &str = r#"
+static TXT_GRAM2: &str = r#"
     grammar B;
     tests: (test Semicolon)*;
     test: a | b | c;
@@ -51,20 +61,42 @@ const TXT_GRAM2: &str = r#"
     c: Let Id Equal Int <R>;                // [<R>] (not used yet in ParserGen)
 "#;
 
+fn make_lexer_tables(lexicon: &str) -> (LexerTables, SymbolTable) {
+    const VERBOSE: bool = false;
+
+    // parses the test lexicon
+    let lexicon_stream = CharReader::new(Cursor::new(lexicon));
+    let lexi = Lexi::new(lexicon_stream);
+    let symbolic_dfa: SymbolicDfa = lexi.build_into();
+    let SymbolicDfa { dfa, symbol_table } = symbolic_dfa;
+    let msg = dfa.get_log().get_messages_str();
+    assert!(dfa.get_log().has_no_errors(), "couldn't parse the lexicon:\n{msg}");
+    if VERBOSE && !msg.is_empty() {
+        println!("Lexi messages:\n{msg}");
+    }
+
+    // builds the lexer for the test lexicon
+    if VERBOSE {
+        println!("Lexer symbol table:\n- T: {}",
+                 symbol_table.get_terminals().index::<VarId>()
+                     .map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() }))
+                     .join(", "));
+    }
+    let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
+    (lexer_tables, symbol_table)
+}
+
 mod listener {
     use super::*;
-    use crate::{Lexi, Gram};
+    use crate::Gram;
     use lexigram_lib::log::{BufLog, BuildFrom, BuildInto, LogReader, LogStatus, Logger};
     use lexigram_lib::parser::{Call, ListenerWrapper};
     use lexigram_lib::grammar::{AltId, ProdRuleSet, VarId};
     use lexigram_lib::io::CharReader;
-    use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-    use lexigram_lib::lexergen::{LexerGen, LexerTables};
+    use lexigram_lib::lexer::TokenSpliterator;
     use lexigram_lib::parsergen::{print_flags, ParserGen, ParserTables};
     use lexigram_lib::{CollectJoin, LL1};
     use std::io::Cursor;
-    use iter_index::IndexerIterator;
-    use crate::lexi::SymbolicDfa;
 
     struct Stub {
         log: BufLog,
@@ -162,24 +194,8 @@ mod listener {
         const VERBOSE: bool = false;
         const VERBOSE_WRAPPER: bool = false;
 
-        // parses the test lexicon
-        let lexicon_stream = CharReader::new(Cursor::new(TXT_LEXI1));
-        let lexi = Lexi::new(lexicon_stream);
-        let symbolic_dfa: SymbolicDfa = lexi.build_into();
-        let SymbolicDfa { dfa, symbol_table } = symbolic_dfa;
-        let msg = dfa.get_log().get_messages_str();
-        assert!(dfa.get_log().has_no_errors(), "couldn't parse the lexicon:\n{msg}");
-        if VERBOSE && !msg.is_empty() {
-            println!("Lexi messages:\n{msg}");
-        }
-
-        // builds the lexer for the test lexicon
-        if VERBOSE {
-            println!("Lexer symbol table:\n- T: {}",
-                     symbol_table.get_terminals().index::<VarId>().map(|(v, (t, maybe))| format!("{v}:{t}{}", if let Some(s) = maybe { format!("='{s}'") } else { String::new() })).join(", "));
-        }
-        let lexer_tables = LexerTables::build_from(LexerGen::build_from(dfa));
-        let mut lexer: Lexer<Cursor<&str>> = lexer_tables.make_lexer();
+        let (lexer_tables, symbol_table) = make_lexer_tables(TXT_LEXI1);
+        let mut lexer = lexer_tables.make_lexer();
 
         for (test_id, (grammar, mut expected_grammar_errors, expected_warnings, inputs)) in tests.into_iter().enumerate() {
             if VERBOSE { println!("{:=<80}\ntest {test_id}", ""); }
@@ -241,6 +257,32 @@ mod listener {
                     assert_eq!(!lexer.has_error(), expected_lexer_success, "{msg}: lexer errors: {}", lexer.get_error());
                 }
             }
+        }
+    }
+
+    #[ignore]
+    #[test]
+    fn nt_order() {
+        const VERBOSE: bool = false;
+
+        let tests = vec![TXT_GRAM2];
+
+        let (_lexer_tables, symbol_table) = make_lexer_tables(TXT_LEXI1);
+        // let mut lexer: Lexer<'_, Cursor> = lexer_tables.make_lexer();
+
+        for (test_id, grammar) in tests.into_iter().enumerate() {
+            if VERBOSE { println!("{:=<80}\ntest {test_id}", ""); }
+            let _text = format!("test {test_id} failed");
+
+            // grammar parser
+            let grammar_stream = CharReader::new(Cursor::new(grammar));
+            let gram = Gram::new(symbol_table.clone(), grammar_stream);
+            let ll1: ProdRuleSet<LL1> = gram.build_into();
+            let msg = ll1.get_log().get_messages_str();
+            println!("{msg}");
+            println!("Nonterminals:\n{}", ll1.get_symbol_table().unwrap().get_nonterminals().enumerate().map(|(i, nt)| format!("- {i:2}: {nt}")).join("\n"));
+            let out = ll1.prs_alt_origins_str(true);
+            println!("{}", out.join("\n"));
         }
     }
 }
