@@ -1094,7 +1094,9 @@ impl RuleTreeSet<General> {
         const OPTIMIZE_SUB_OR: bool = false;
         self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.trees.len(), "number of nt in symbol table doesn't match num_nt"));
         let mut qtree = GrTree::new();
+        let qvar: VarId = *new_var;
         let mut rtree = GrTree::new();
+        let rvar: VarId = *new_var + 1;
         let mut use_rtree = false;
         let mut lform_nt = None;
         // See comments in `normalize_var` near the calls to this method for details about the operations below.
@@ -1106,12 +1108,12 @@ impl RuleTreeSet<General> {
                 let or = qtree.add_root(gnode!(|));
                 let cc = qtree.add(Some(or), gnode!(&));
                 let child = qtree.add(Some(cc), GrNode::Symbol(s.clone()));
-                qtree.add(Some(cc), gnode!(nt *new_var));
+                qtree.add(Some(cc), gnode!(nt qvar));
                 let child2 = qtree.add(Some(or), if is_plus { GrNode::Symbol(s.clone()) } else { gnode!(e) });
-                self.origin.add((*new_var, child), (var, orig_rep_child));     // useful?
-                self.origin.add((*new_var, cc), (var, orig_rep_child));
+                self.origin.add((qvar, child), (var, orig_rep_child));     // useful?
+                self.origin.add((qvar, cc), (var, orig_rep_child));
                 if is_plus {
-                    self.origin.add((*new_var, child2), (var, orig_rep_child));
+                    self.origin.add((qvar, child2), (var, orig_rep_child));
                 }
             }
             GrNode::Concat => {
@@ -1120,15 +1122,24 @@ impl RuleTreeSet<General> {
                 let or = qtree.add_root(gnode!(|));
                 let cc1 = qtree.add_from_tree_callback(Some(or), orig_new, Some(orig_rep_child), |to, from, n| {
                     if let &GrNode::LForm(v) = n {
-                        lform_nt = Some(v); // TODO: check that it's not already set (uniqueness)
+                        if matches!(lform_nt, Some(v2) if v != v2) {
+                            let symtab = self.get_symbol_table();
+                            self.log.add_error(
+                                format!("in {}, {}: conflicting <L={}> and <L={}>",
+                                        Symbol::NT(var).to_str(symtab),
+                                        grtree_to_str(orig_new, Some(orig_rep), None, symtab, false),
+                                        Symbol::NT(lform_nt.unwrap()).to_str(symtab), Symbol::NT(v).to_str(symtab)));
+                        } else {
+                            lform_nt = Some(v);
+                        }
                     }
-                    self.origin.add((*new_var, to), (var, from))
+                    self.origin.add((qvar, to), (var, from))
                 });
-                let loop_id = qtree.add(Some(cc1), gnode!(nt *new_var));
-                self.origin.add((*new_var, loop_id), (var, orig_rep));
+                let loop_id = qtree.add(Some(cc1), gnode!(nt qvar));
+                self.origin.add((qvar, loop_id), (var, orig_rep));
                 if is_plus {
                     let loop_id2 = qtree.add_from_tree(Some(or), &new, Some(rep_child));
-                    self.origin.add((*new_var, loop_id2), (var, orig_rep_child));
+                    self.origin.add((qvar, loop_id2), (var, orig_rep_child));
                 } else {
                     qtree.add(Some(or), gnode!(e));
                 }
@@ -1144,25 +1155,34 @@ impl RuleTreeSet<General> {
                     match orig_grchild {
                         GrNode::Symbol(s) => {
                             let cc = qtree.add(Some(or), gnode!(&));
-                            let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)])[0];
-                            self.origin.add((*new_var, cc), (var, *orig_id_grchild));
-                            self.origin.add((*new_var, child), (var, *orig_id_grchild));
+                            let child = qtree.add_iter(Some(cc), [GrNode::Symbol(s.clone()), gnode!(nt qvar)])[0];
+                            self.origin.add((qvar, cc), (var, *orig_id_grchild));
+                            self.origin.add((qvar, child), (var, *orig_id_grchild));
                             if is_plus {
                                 let plus_or = qtree.add(Some(or), GrNode::Symbol(s.clone()));
-                                self.origin.add((*new_var, plus_or), (var, *orig_id_grchild));
+                                self.origin.add((qvar, plus_or), (var, *orig_id_grchild));
                             }
                         }
                         GrNode::Concat => {
                             let cc = qtree.add_from_tree_callback(Some(or), orig_new, Some(*orig_id_grchild), |to, from, n| {
                                 if let &GrNode::LForm(v) = n {
-                                    lform_nt = Some(v); // TODO: check that it's not already set (uniqueness)
+                                    if matches!(lform_nt, Some(v2) if v != v2) {
+                                        let symtab = self.get_symbol_table();
+                                        self.log.add_error(
+                                            format!("in {}, {}: conflicting <L={}> and <L={}>",
+                                                    Symbol::NT(var).to_str(symtab),
+                                                    grtree_to_str(orig_new, Some(orig_rep), None, symtab, false),
+                                                    Symbol::NT(lform_nt.unwrap()).to_str(symtab), Symbol::NT(v).to_str(symtab)));
+                                    } else {
+                                        lform_nt = Some(v);
+                                    }
                                 }
-                                self.origin.add((*new_var, to), (var, from));
+                                self.origin.add((qvar, to), (var, from));
                             });
-                            qtree.add(Some(cc), gnode!(nt *new_var));
+                            qtree.add(Some(cc), gnode!(nt qvar));
                             if is_plus {
                                 qtree.add_from_tree_callback(Some(or), &orig_new, Some(*orig_id_grchild), |to, from, _| {
-                                    self.origin.add((*new_var, to), (var, from));
+                                    self.origin.add((qvar, to), (var, from));
                                 });
                             }
                         }
@@ -1197,23 +1217,32 @@ impl RuleTreeSet<General> {
                     match orig_grchild {
                         GrNode::Symbol(s) => {
                             if is_plus {
-                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt *new_var + 1)]);
+                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt rvar)]);
                                 use_rtree = true;
                             } else {
-                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt *new_var)]);
+                                qtree.addc_iter(Some(or), gnode!(&), [GrNode::Symbol(s.clone()), gnode!(nt qvar)]);
                             }
                         }
                         GrNode::Concat => {
                             let cc = qtree.add_from_tree_callback(Some(or), orig_new, Some(*orig_id_grchild), |to, from, n| {
                                 if let &GrNode::LForm(v) = n {
-                                    lform_nt = Some(v); // TODO: check that it's not already set (uniqueness)
+                                    if matches!(lform_nt, Some(v2) if v != v2) {
+                                        let symtab = self.get_symbol_table();
+                                        self.log.add_error(
+                                            format!("in {}, {}: conflicting <L={}> and <L={}>",
+                                                    Symbol::NT(var).to_str(symtab),
+                                                    grtree_to_str(orig_new, Some(orig_rep), None, symtab, false),
+                                                    Symbol::NT(lform_nt.unwrap()).to_str(symtab), Symbol::NT(v).to_str(symtab)));
+                                    } else {
+                                        lform_nt = Some(v);
+                                    }
                                 }
-                                self.origin.add((*new_var, to), (var, from));
+                                self.origin.add((qvar, to), (var, from));
                             });
                             if is_plus {
-                                qtree.add(Some(cc), gnode!(nt *new_var + 1));
+                                qtree.add(Some(cc), gnode!(nt rvar));
                             } else {
-                                qtree.add(Some(cc), gnode!(nt *new_var));
+                                qtree.add(Some(cc), gnode!(nt qvar));
                             }
                         }
                         x => panic!("unexpected node type under a | node: {x}"),
@@ -1221,7 +1250,7 @@ impl RuleTreeSet<General> {
                 }
                 if use_rtree {
                     let or1 = rtree.add_root(gnode!(|));
-                    rtree.add_iter(Some(or1), [gnode!(nt *new_var), gnode!(e)]);
+                    rtree.add_iter(Some(or1), [gnode!(nt qvar), gnode!(e)]);
                 } else if !is_plus {
                     qtree.add(Some(or), gnode!(e));
                 }
@@ -1236,15 +1265,15 @@ impl RuleTreeSet<General> {
                             Symbol::NT(var).to_str(self.get_symbol_table()),
                             grtree_to_str(orig_new, Some(orig_rep), None, self.get_symbol_table(), false)));
             } else {
-                self.nt_conversion.insert(v, MovedTo(*new_var));
+                self.nt_conversion.insert(v, MovedTo(qvar));
                 for mut node in qtree.iter_depth_simple_mut() {
                     if let GrNode::LForm(v2) = node.deref_mut() {
-                        if *v2 == v { *v2 = *new_var; }
+                        if *v2 == v { *v2 = qvar; }
                     }
                 }
                 for mut node in orig_new.iter_depth_simple_at_mut(orig_rep_child) {
                     if let GrNode::LForm(v2) = node.deref_mut() {
-                        if *v2 == v { *v2 = *new_var; }
+                        if *v2 == v { *v2 = qvar; }
                     }
                 }
             }
@@ -1255,39 +1284,39 @@ impl RuleTreeSet<General> {
                 if VERBOSE {
                     println!("L-FORM({v}) found, using name of NT({v}) = '{name}' for new NT({new_var})");
                 }
-                assert_eq!(st.add_nonterminal(name), *new_var);
+                assert_eq!(st.add_nonterminal(name), qvar);
             } else {
-                assert_eq!(st.add_child_nonterminal(var), *new_var);
+                assert_eq!(st.add_child_nonterminal(var), qvar);
             }
             if use_rtree {
-                assert_eq!(st.add_child_nonterminal(var), *new_var + 1);
+                assert_eq!(st.add_child_nonterminal(var), rvar);
             }
         });
-        let id = new.add(None, gnode!(nt *new_var));
-        assert!(*new_var as usize >= self.trees.len() || self.trees[*new_var as usize].is_empty(), "overwriting tree {new_var}");
+        let id = new.add(None, gnode!(nt qvar));
+        assert!(qvar as usize >= self.trees.len() || self.trees[qvar as usize].is_empty(), "overwriting tree {new_var}");
         if VERBOSE { println!("qtree: {}", qtree.to_str(None, self.get_symbol_table())); }
-        self.set_tree(*new_var, qtree);
-        self.flags.resize(*new_var as usize + 1, 0);
-        self.parent.resize(*new_var as usize + 1, None);
+        self.set_tree(qvar, qtree);
+        self.flags.resize(rvar as usize, 0);
+        self.parent.resize(rvar as usize, None);
         let plus_flag = if is_plus { ruleflag::REPEAT_PLUS } else { 0 };
-        self.flags[*new_var as usize] = ruleflag::CHILD_REPEAT | plus_flag;
+        self.flags[qvar as usize] = ruleflag::CHILD_REPEAT | plus_flag;
         self.flags[var as usize] |= ruleflag::PARENT_REPEAT | plus_flag;
-        self.parent[*new_var as usize] = Some(var);
+        self.parent[qvar as usize] = Some(var);
         if use_rtree {
-            self.set_tree(*new_var + 1, rtree);
-            self.flags.resize(*new_var as usize + 2, 0);
-            self.parent.resize(*new_var as usize + 2, None);
-            self.flags[*new_var as usize + 1] |= ruleflag::CHILD_L_FACT;
-            self.parent[*new_var as usize + 1] = Some(*new_var);
-            self.flags[*new_var as usize] |= ruleflag::PARENT_L_FACTOR;
+            self.set_tree(rvar, rtree);
+            self.flags.resize(rvar as usize + 1, 0);
+            self.parent.resize(rvar as usize + 1, None);
+            self.flags[rvar as usize] |= ruleflag::CHILD_L_FACT;
+            self.parent[rvar as usize] = Some(qvar);
+            self.flags[qvar as usize] |= ruleflag::PARENT_L_FACTOR;
         }
         if VERBOSE {
             println!("=> new sizes, flags = {}, parent = {}, trees = {} (new_var = {new_var})", self.flags.len(), self.parent.len(), self.trees.len());
             println!("=> {}: parent {}, child {}{}",
                      if is_plus { "+" } else { "*" },
                      Symbol::NT(var).to_str(self.get_symbol_table()),
-                     Symbol::NT(*new_var).to_str(self.get_symbol_table()),
-                     if use_rtree { format!(", child {}", Symbol::NT(*new_var + 1).to_str(self.get_symbol_table())) } else { String::new() }
+                     Symbol::NT(qvar).to_str(self.get_symbol_table()),
+                     if use_rtree { format!(", child {}", Symbol::NT(rvar).to_str(self.get_symbol_table())) } else { String::new() }
             );
         }
         // We rectify the parent/child relationship in case of cascaded + or *. Since we perform a
@@ -1298,21 +1327,21 @@ impl RuleTreeSet<General> {
         // We want A_1's parent to be A_2. We keep the wrong order in the parent chain: A_1 -> A_2 -> A,
         // which is unfortunate in some later tests but still easier than changing everything here.
         let mut rectify_maybe = None;
-        for node in self.get_tree(*new_var).unwrap().iter_depth_simple() {
+        for node in self.get_tree(qvar).unwrap().iter_depth_simple() {
             if let GrNode::Symbol(Symbol::NT(child)) = node.deref() {
-                if *child != *new_var && self.flags[*child as usize] & ruleflag::CHILD_REPEAT != 0 {
+                if *child != qvar && self.flags[*child as usize] & ruleflag::CHILD_REPEAT != 0 {
                     rectify_maybe = Some(*child);
                     break;
                 }
             }
         }
         if let Some(child) = rectify_maybe {
-            self.parent[child as usize] = Some(*new_var);
-            self.flags[*new_var as usize] |= ruleflag::PARENT_REPEAT;
+            self.parent[child as usize] = Some(qvar);
+            self.flags[qvar as usize] |= ruleflag::PARENT_REPEAT;
             if VERBOSE {
                 println!("=> rectify {}'s parent as {}",
                          Symbol::NT(child).to_str(self.get_symbol_table()),
-                         Symbol::NT(*new_var).to_str(self.get_symbol_table()));
+                         Symbol::NT(qvar).to_str(self.get_symbol_table()));
             }
         }
         *new_var = self.get_next_available_var();

@@ -815,6 +815,18 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
             table.extend_nonterminals(["A".to_string()]);
             rules.symbol_table = Some(table);
         }
+
+        // error detection in tree
+        500 => { // A -> (<L=B> a <L=C>)*
+            let star = tree.add_root(gnode!(*));
+            tree.addc_iter(Some(star), gnode!(&), [gnode!(L 1), gnode!(t 0), gnode!(L 2)]);
+        }
+        501 => { // A -> (<L=B> a | <L=C> b)*
+            let star = tree.add_root(gnode!(*));
+            let or = tree.add(Some(star), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(L 1), gnode!(t 0)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(L 2), gnode!(t 1)]);
+        }
         _ => {}
     }
     if rules.symbol_table.is_none() {
