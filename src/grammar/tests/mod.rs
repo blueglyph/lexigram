@@ -924,7 +924,7 @@ impl<T> ProdRuleSet<T> {
         let factors = self.get_alts().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
         print_factors(&factors, self.get_symbol_table());
         let nt_flags = self.flags.iter().index().filter_map(|(nt, &f)|
-            if f != 0 { Some(format!("  - {}: {} ({})", Symbol::NT(nt).to_str(self.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
+            if f != 0 { Some(format!("  - NT[{nt}] {}: {} ({})", Symbol::NT(nt).to_str(self.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
         ).join("\n");
         let parents = self.parent.iter().index().filter_map(|(c, &par)|
             par.map(|p| format!("  - {} -> {}", Symbol::NT(c).to_str(self.get_symbol_table()), Symbol::NT(p).to_str(self.get_symbol_table())))
@@ -2093,10 +2093,10 @@ fn rts_prs_flags() {
         //   - AIter1: child_+_or_* | L-form (129)
         // - parents:
         //   - AIter1 -> A
-        (T::RTS(37), 0, btreemap![0 => 2048, 2 => 129],
+        (T::RTS(37), 0, btreemap![0 => 2048, 1 => 129],
          btreemap![],
-         btreemap![2 => 0],
-         btreemap![1 => MovedTo(2), 2 => MovedTo(1)]),
+         btreemap![1 => 0],
+         btreemap![]),
         // - 0: A -> a AIter1 d
         // - 1: AIter2 -> b AIter2
         // - 2: AIter2 -> ε

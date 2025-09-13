@@ -765,10 +765,7 @@ impl RuleTreeSet<General> {
             .for_each(|v| self.log.add_note(format!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(self.get_symbol_table()), self.to_str(v, None, None))));
         self.log.add_note("normalizing rules...");
         self.check_num_nt_coherency();
-        let vars = self.get_vars().to_vec();
-        for var in vars {
-            self.normalize_var(var);
-        }
+        self.normalize_vars();
         self.flags.resize(self.trees.len(), 0);
         self.parent.resize(self.trees.len(), None);
     }
@@ -788,317 +785,343 @@ impl RuleTreeSet<General> {
     /// The product may have to be split if operators like `+` or `*` are used. In this
     /// case, new nonterminals are created, with increasing IDs starting from
     /// `new_var`.
-    fn normalize_var(&mut self, var: VarId) {
+    fn normalize_vars(&mut self) {
         const VERBOSE: bool = false;
         const VERBOSE_CC: bool = false;
-        if VERBOSE { println!("normalize_var({})", Symbol::NT(var).to_str(self.get_symbol_table())); }
-        let mut new_var = self.get_next_available_var();
-        let orig = take(&mut self.trees[var as usize]);
-        let mut new = GrTree::new();
-        let mut orig_new = GrTree::new();
-        let mut orig_rep_vars = HashMap::<VarId, usize>::new();
-        let mut stack = Vec::<usize>::new();    // indices in new
-        for sym in orig.iter_depth() {
-            let n = sym.num_children();
-            if VERBOSE { println!("- old {}:{}", sym.index, *sym); }
-            if n == 0 {
-                let new_id = new.add(None, orig.get(sym.index).clone());
-                stack.push(new_id);
-                if VERBOSE { print!("  leaf: "); }
-            } else {
-                match *sym {
-                    // we must rearrange the operations so that any item on the stack is only
-                    // one of those patterns:
-                    // - a leaf
-                    // - a &(leaves)
-                    // - a |(&(leaves) or leaves)
-                    GrNode::Concat | GrNode::Or => {
-                        let children = stack.split_off(stack.len() - n);
-                        let new_id = if children.iter().all(|&idx| !matches!(new.get(idx), GrNode::Concat|GrNode::Or)) {
-                            if VERBOSE { print!("  trivial {}: children={}\n  ", *sym, children.iter().map(|s| new.get(*s).to_str(self.get_symbol_table())).join(", ")); }
-                            // trivial case with only leaves as children (could be removed and treated as a general case)
-                            new.addci_iter(None, sym.clone(), children)
-                        } else {
-                            if *sym == GrNode::Or {
-                                if VERBOSE {
-                                    // println!("  or: children={}", children.iter().map(|&id| format!("{id}:{}", grtree_to_str(&new, Some(id), None, self.get_symbol_table()))).join(", "));
-                                    println!("  or: children={}", children.iter().map(|&id| format!("{}", new.to_str_index(Some(id), self.get_symbol_table()))).join(", "));
-                                }
-                                // if parent sym is p:|
-                                // - preserving the children's order:
-                                //   - attach '|' children's children directly under p (discarding the '|' children)
-                                //   - attach '&' children under p
-                                // - push p back to stack
-                                // ex: P: AB | (C|D) | E | (FG|HI)             -> P: AB | C | D | E | FG | HI
-                                //        |(&(A,B),|(C,D),E,|(&(F,G),&(H,I)))        |(&(A,B),C,D,E,&(F,G),&(H,I))
-                                let mut new_children = Vec::new();
-                                for id in children {
-                                    match new.get(id) {
-                                        GrNode::Symbol(_) | GrNode::Concat => {
-                                            if VERBOSE { println!("  - child {id} is {}", new.get(id)); }
-                                            new_children.push(id);
-                                        }
-                                        GrNode::Or => {
-                                            if VERBOSE { println!("  - child {id} is | with children {:?}", new.children(id)); }
-                                            new_children.extend(new.children(id));
-                                        }
-                                        x => panic!("unexpected node type under | node: {x}"),
+        let mut exclude_nt = HashSet::<VarId>::new();
+        for var in 0..self.get_num_nt() {
+            if exclude_nt.contains(&var) {
+                if VERBOSE { println!("NT[{var}] {} excluded", Symbol::NT(var).to_str(self.get_symbol_table())); }
+                continue
+            }
+            if VERBOSE { println!("normalize_var(NT[{var}] {})", Symbol::NT(var).to_str(self.get_symbol_table())); }
+            let mut new_var = self.get_next_available_var();
+            let orig = take(&mut self.trees[var as usize]);
+            let mut new = GrTree::new();
+            let mut orig_new = GrTree::new();
+            let mut orig_rep_vars = HashMap::<VarId, usize>::new();
+            let mut stack = Vec::<usize>::new();    // indices in new
+            for sym in orig.iter_depth() {
+                let n = sym.num_children();
+                if VERBOSE { println!("- old {}:{}", sym.index, *sym); }
+                if n == 0 {
+                    let new_id = new.add(None, orig.get(sym.index).clone());
+                    stack.push(new_id);
+                    if VERBOSE { print!("  leaf: "); }
+                } else {
+                    match *sym {
+                        // we must rearrange the operations so that any item on the stack is only
+                        // one of those patterns:
+                        // - a leaf
+                        // - a &(leaves)
+                        // - a |(&(leaves) or leaves)
+                        GrNode::Concat | GrNode::Or => {
+                            let children = stack.split_off(stack.len() - n);
+                            let new_id = if children.iter().all(|&idx| !matches!(new.get(idx), GrNode::Concat|GrNode::Or)) {
+                                if VERBOSE { print!("  trivial {}: children={}\n  ", *sym, children.iter().map(|s| new.get(*s).to_str(self.get_symbol_table())).join(", ")); }
+                                // trivial case with only leaves as children (could be removed and treated as a general case)
+                                new.addci_iter(None, sym.clone(), children)
+                            } else {
+                                if *sym == GrNode::Or {
+                                    if VERBOSE {
+                                        // println!("  or: children={}", children.iter().map(|&id| format!("{id}:{}", grtree_to_str(&new, Some(id), None, self.get_symbol_table()))).join(", "));
+                                        println!("  or: children={}", children.iter().map(|&id| format!("{}", new.to_str_index(Some(id), self.get_symbol_table()))).join(", "));
                                     }
-                                }
-                                new.addci_iter(None, gnode!(|), new_children)
-                            } else { // *sym == GrNode::Concat
-                                if VERBOSE_CC { println!("  &: children={children:?}"); }
-                                // if parent sym is p:&
-                                // - merge adjacent leaves and '&' children (optional)
-                                // - cartesian product of all '|' children's children and '&' children,
-                                //       duplicating nodes are required
-                                // - add r:'|' node to tree, attaching the new '&' nodes under it
-                                // - push r to stack
-                                // ex: P: AB & (C|D) & E & (FG|H)        -> P: ABCEFG | ABCEH | ABDEFG | ABDEH
-                                //        &(&(A,B),|(C,D),E,|(&(F,G),H))      |(&(A,B,C,E,F,G),&(A,B,C,E,H),&(A,B,D,E,F,G),&(A,B,D,E,H)
-
-                                // we store the dups in an array and reference them by index, because there will be multiple instances
-                                // pointing to the same Dup and we can't do that with mutable references (which must be unique):
-                                let mut dups = Vec::<Vec<Dup>>::new();
-                                let concats_children = children.into_iter()
-                                    // iterations: &(A,B) -> |(C,D) -> E -> |(&(F,G),H))
-                                    .flat_map(|id| {
-                                        if VERBOSE_CC { print!("      FL {}: ", new.get(id)); }
+                                    // if parent sym is p:|
+                                    // - preserving the children's order:
+                                    //   - attach '|' children's children directly under p (discarding the '|' children)
+                                    //   - attach '&' children under p
+                                    // - push p back to stack
+                                    // ex: P: AB | (C|D) | E | (FG|HI)             -> P: AB | C | D | E | FG | HI
+                                    //        |(&(A,B),|(C,D),E,|(&(F,G),&(H,I)))        |(&(A,B),C,D,E,&(F,G),&(H,I))
+                                    let mut new_children = Vec::new();
+                                    for id in children {
                                         match new.get(id) {
-                                            GrNode::Concat =>
-                                                new.children(id).iter().map(|idc| vec![vaddi(&mut dups, [Dup::new(*idc)])]).to_vec(),
-                                            GrNode::Or => {
-                                                let children = new.children(id).to_vec();
-                                                vec![children.into_iter().map(|idc| {
-                                                    if let GrNode::Concat = new.get(idc) {
-                                                        let idc_children = new.children(idc).iter().map(|i| Dup::new(*i)).to_vec();
-                                                        vaddi(&mut dups, idc_children)
-                                                    } else {
-                                                        vaddi(&mut dups, [Dup::new(idc)])
-                                                    }
-                                                }).to_vec()]
+                                            GrNode::Symbol(_) | GrNode::Concat => {
+                                                if VERBOSE { println!("  - child {id} is {}", new.get(id)); }
+                                                new_children.push(id);
                                             }
-                                            _ => vec![vec![vaddi(&mut dups, [Dup::new(id)])]],
+                                            GrNode::Or => {
+                                                if VERBOSE { println!("  - child {id} is | with children {:?}", new.children(id)); }
+                                                new_children.extend(new.children(id));
+                                            }
+                                            x => panic!("unexpected node type under | node: {x}"),
                                         }
-                                    })
-                                    // [d(A)] -> [d(B)] -> [d(C),d(D)] -> [d(E)] -> [d(&(d(F),d(G))),d(H)]
-                                    // .inspect(|x| println!("      >> {}", x.iter().map(|i| format!("_{i}")).join(", ")))
-                                    .cproduct()
-                                    // .inspect(|x| println!("      << {}", x.iter().map(|i| format!("_{i}")).join(", ")))
-                                    // [dup(A),dup(B),dup(C),dup(E),d(&)] -> [dup(A),dup(B),dup(C),dup(E),d(H)] ->
-                                    //       [dup(A),dup(B),dup(D),dup(E),d(&)] -> [dup(A),dup(B),dup(D),dup(E),d(H)]
-                                    .map(|dup_ids| {
-                                        let mut nodes = dup_ids.into_iter()
-                                            .flat_map(|dup_id| dups.get_mut(dup_id).unwrap().iter_mut()
-                                                .map(|dup| new.get_dup(dup)).to_vec()).to_vec();
-                                        remove_concat_dup_empty(&new, &mut nodes);
-                                        nodes
-                                    })
-                                    // .inspect(|x| println!("      :: {}", x.iter().map(|i| format!("{i}")).join(", ")))
-                                    .to_vec();
+                                    }
+                                    new.addci_iter(None, gnode!(|), new_children)
+                                } else { // *sym == GrNode::Concat
+                                    if VERBOSE_CC { println!("  &: children={children:?}"); }
+                                    // if parent sym is p:&
+                                    // - merge adjacent leaves and '&' children (optional)
+                                    // - cartesian product of all '|' children's children and '&' children,
+                                    //       duplicating nodes are required
+                                    // - add r:'|' node to tree, attaching the new '&' nodes under it
+                                    // - push r to stack
+                                    // ex: P: AB & (C|D) & E & (FG|H)        -> P: ABCEFG | ABCEH | ABDEFG | ABDEH
+                                    //        &(&(A,B),|(C,D),E,|(&(F,G),H))      |(&(A,B,C,E,F,G),&(A,B,C,E,H),&(A,B,D,E,F,G),&(A,B,D,E,H)
+
+                                    // we store the dups in an array and reference them by index, because there will be multiple instances
+                                    // pointing to the same Dup and we can't do that with mutable references (which must be unique):
+                                    let mut dups = Vec::<Vec<Dup>>::new();
+                                    let concats_children = children.into_iter()
+                                        // iterations: &(A,B) -> |(C,D) -> E -> |(&(F,G),H))
+                                        .flat_map(|id| {
+                                            if VERBOSE_CC { print!("      FL {}: ", new.get(id)); }
+                                            match new.get(id) {
+                                                GrNode::Concat =>
+                                                    new.children(id).iter().map(|idc| vec![vaddi(&mut dups, [Dup::new(*idc)])]).to_vec(),
+                                                GrNode::Or => {
+                                                    let children = new.children(id).to_vec();
+                                                    vec![children.into_iter().map(|idc| {
+                                                        if let GrNode::Concat = new.get(idc) {
+                                                            let idc_children = new.children(idc).iter().map(|i| Dup::new(*i)).to_vec();
+                                                            vaddi(&mut dups, idc_children)
+                                                        } else {
+                                                            vaddi(&mut dups, [Dup::new(idc)])
+                                                        }
+                                                    }).to_vec()]
+                                                }
+                                                _ => vec![vec![vaddi(&mut dups, [Dup::new(id)])]],
+                                            }
+                                        })
+                                        // [d(A)] -> [d(B)] -> [d(C),d(D)] -> [d(E)] -> [d(&(d(F),d(G))),d(H)]
+                                        // .inspect(|x| println!("      >> {}", x.iter().map(|i| format!("_{i}")).join(", ")))
+                                        .cproduct()
+                                        // .inspect(|x| println!("      << {}", x.iter().map(|i| format!("_{i}")).join(", ")))
+                                        // [dup(A),dup(B),dup(C),dup(E),d(&)] -> [dup(A),dup(B),dup(C),dup(E),d(H)] ->
+                                        //       [dup(A),dup(B),dup(D),dup(E),d(&)] -> [dup(A),dup(B),dup(D),dup(E),d(H)]
+                                        .map(|dup_ids| {
+                                            let mut nodes = dup_ids.into_iter()
+                                                .flat_map(|dup_id| dups.get_mut(dup_id).unwrap().iter_mut()
+                                                    .map(|dup| new.get_dup(dup)).to_vec()).to_vec();
+                                            remove_concat_dup_empty(&new, &mut nodes);
+                                            nodes
+                                        })
+                                        // .inspect(|x| println!("      :: {}", x.iter().map(|i| format!("{i}")).join(", ")))
+                                        .to_vec();
                                     // [A,B,C,E,F,G] -> [A',B',C',E',H] -> [A'',B'',D,E'',F',G'] -> [A''',B''',D',E''',H']
-                                let concats = concats_children.into_iter()
-                                    .map(|children_ids| new.addci_iter(None, gnode!(&), children_ids))
-                                    .to_vec();
+                                    let concats = concats_children.into_iter()
+                                        .map(|children_ids| new.addci_iter(None, gnode!(&), children_ids))
+                                        .to_vec();
                                     // Vec<node id of &-branch>
-                                new.addci_iter(None, gnode!(|), concats)
+                                    new.addci_iter(None, gnode!(|), concats)
+                                }
+                            };
+                            stack.push(new_id);
+                        }
+                        GrNode::Maybe => {
+                            if n != 1 {
+                                self.log.add_error(format!("normalize_var({}): ? should only have one child; found {n}: {}",
+                                                           Symbol::NT(var).to_str(self.get_symbol_table()),
+                                                           orig.to_str(Some(sym.index), self.get_symbol_table())));
+                            } else {
+                                // self              new
+                                // -------------------------------
+                                // ?(A)           -> |(A,ε)
+                                // ?(&(A,B))      -> |(&(A,B),ε)
+                                // ?(|(&(A,B),C)) -> |(&(A,B),C,ε)
+                                if VERBOSE { print!("  ?: "); }
+                                let maybe_child = stack.pop().unwrap();
+                                let proceed = match grtree_cleanup(&mut new, Some(maybe_child), true) {
+                                    None => {
+                                        self.log.add_error(format!(
+                                            "unexpected child of ?: {} (should be &, |, or symbol)",
+                                            grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table(), false)));
+                                        if VERBOSE { println!("ERROR: unexpected child of ?: {}", grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table(), false)); }
+                                        return;
+                                    }
+                                    // (is_empty, had_empty_term)
+                                    Some((true, _)) => {
+                                        // the child is `ε`
+                                        stack.push(maybe_child);
+                                        if VERBOSE { println!("child of ? simplified to ε"); }
+                                        false
+                                    }
+                                    _ => true,
+                                };
+                                if proceed {
+                                    let empty = new.add(None, gnode!(e));
+                                    let id = match new.get(maybe_child) {
+                                        GrNode::Or => {
+                                            new.add(Some(maybe_child), gnode!(e));
+                                            maybe_child
+                                        }
+                                        _ => new.addci_iter(None, gnode!(|), [maybe_child, empty])
+                                    };
+                                    stack.push(id);
+                                }
                             }
-                        };
-                        stack.push(new_id);
-                    }
-                    GrNode::Maybe => {
-                        if n != 1 {
-                            self.log.add_error(format!("normalize_var({}): ? should only have one child; found {n}: {}",
-                                                       Symbol::NT(var).to_str(self.get_symbol_table()),
-                                                       orig.to_str(Some(sym.index), self.get_symbol_table())));
-                        } else {
-                            // self              new
-                            // -------------------------------
-                            // ?(A)           -> |(A,ε)
-                            // ?(&(A,B))      -> |(&(A,B),ε)
-                            // ?(|(&(A,B),C)) -> |(&(A,B),C,ε)
-                            if VERBOSE { print!("  ?: "); }
-                            let maybe_child = stack.pop().unwrap();
-                            let proceed = match grtree_cleanup(&mut new, Some(maybe_child), true) {
+                        }
+                        GrNode::Plus | GrNode::Star => {
+                            // + can change to *, so we treat both of them at the same time
+                            //
+                            // P -> αβ+γ becomes P -> αQγ
+                            //                   Q -> βQ | β
+                            //
+                            //     self              new  new(Q=next_var_id)               simpler format
+                            //     ----------------------------------------------------------------------------------------
+                            //     +(A)           -> Q    |(&(A,Q), A')                    AQ|A
+                            //     +(&(A,B))      -> Q    |(&(A,B,Q),&(A',B'))             ABQ|AB
+                            //     +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
+                            //
+                            // P -> αβ*γ becomes P -> αQγ
+                            //                   Q -> βQ | ε
+                            //
+                            //     self              new  new(Q=next_var_id)     simpler format
+                            //     -----------------------------------------------------------------------
+                            //     *(A)           -> Q    |(&(A,Q), ε)           AQ|ε
+                            //     *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
+                            //     *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
+                            let mut is_plus = *sym == GrNode::Plus;
+                            let sym_char = if is_plus { '+' } else { '*' };
+                            if VERBOSE { print!("  {sym_char}: "); }
+                            if n != 1 {
+                                self.log.add_error(format!(
+                                    "normalize_var({}): {sym_char} should only have one child; found {n}: {}",
+                                    Symbol::NT(var).to_str(self.get_symbol_table()),
+                                    orig.to_str(Some(sym.index), self.get_symbol_table())));
+                                if VERBOSE { println!("ERROR: found {n} children instead of 1"); }
+                                return;
+                            }
+                            let rep_child = stack.pop().unwrap();
+                            if VERBOSE {}
+                            let proceed = match grtree_cleanup(&mut new, Some(rep_child), true) {
                                 None => {
                                     self.log.add_error(format!(
-                                        "unexpected child of ?: {} (should be &, |, or symbol)",
-                                        grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table(), false)));
-                                    if VERBOSE { println!("ERROR: unexpected child of ?: {}", grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table(), false)); }
+                                        "unexpected child of {sym_char}: {} (should be &, |, or symbol)",
+                                        grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)));
+                                    if VERBOSE { println!("ERROR: unexpected child {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)); }
                                     return;
                                 }
                                 // (is_empty, had_empty_term)
                                 Some((true, _)) => {
                                     // the child is `ε`
-                                    stack.push(maybe_child);
-                                    if VERBOSE { println!("child of ? simplified to ε"); }
+                                    stack.push(rep_child);
+                                    if VERBOSE { println!("child simplified to ε"); }
                                     false
-                                },
-                                _ => true,
+                                }
+                                Some((false, true)) => {
+                                    // the child had the form `α + ε` and is now `α`, so if the operator was +,
+                                    // it must become * since empty must remain a possibility (it doesn't change
+                                    // (anything if it was already *)
+                                    if is_plus {
+                                        is_plus = false;
+                                        // sym_char = '*';
+                                        if VERBOSE { print!(" becomes * (child lost ε term), "); }
+                                    }
+                                    true
+                                }
+                                Some((false, false)) => true, // nothing special, processing below
                             };
                             if proceed {
-                                let empty = new.add(None, gnode!(e));
-                                let id = match new.get(maybe_child) {
-                                    GrNode::Or => {
-                                        new.add(Some(maybe_child), gnode!(e));
-                                        maybe_child
-                                    }
-                                    _ => new.addci_iter(None, gnode!(|), [maybe_child, empty])
-                                };
+                                if VERBOSE { println!("=> {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)); }
+                                let orig_rep = orig_new.add(None, if is_plus { gnode!(+) } else { gnode!(*) });
+                                let orig_rep_child = orig_new.add_from_tree(Some(orig_rep), &new, Some(rep_child));
+                                let (id, qvar) = self.normalize_plus_or_star(
+                                    rep_child, orig_rep, orig_rep_child, &mut new, &mut orig_new, var, &mut new_var, is_plus, &mut exclude_nt);
                                 stack.push(id);
+                                orig_rep_vars.insert(qvar, orig_rep); // to replace later
                             }
                         }
-                    }
-                    GrNode::Plus | GrNode::Star => {
-                        // + can change to *, so we treat both of them at the same time
-                        //
-                        // P -> αβ+γ becomes P -> αQγ
-                        //                   Q -> βQ | β
-                        //
-                        //     self              new  new(Q=next_var_id)               simpler format
-                        //     ----------------------------------------------------------------------------------------
-                        //     +(A)           -> Q    |(&(A,Q), A')                    AQ|A
-                        //     +(&(A,B))      -> Q    |(&(A,B,Q),&(A',B'))             ABQ|AB
-                        //     +(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),&(A',B'),C')  (AB|C)Q | (AB|C) = ABQ|CQ | AB|C
-                        //
-                        // P -> αβ*γ becomes P -> αQγ
-                        //                   Q -> βQ | ε
-                        //
-                        //     self              new  new(Q=next_var_id)     simpler format
-                        //     -----------------------------------------------------------------------
-                        //     *(A)           -> Q    |(&(A,Q), ε)           AQ|ε
-                        //     *(&(A,B))      -> Q    |(&(A,B,Q),ε)          ABQ|ε
-                        //     *(|(&(A,B),C)) -> Q    |(&(A,B,Q),&(C,Q'),ε)  (AB|C)Q | ε = ABQ|CQ | ε
-                        let mut is_plus = *sym == GrNode::Plus;
-                        let sym_char = if is_plus { '+' } else { '*' };
-                        if VERBOSE { print!("  {sym_char}: "); }
-                        if n != 1 {
-                            self.log.add_error(format!(
-                                "normalize_var({}): {sym_char} should only have one child; found {n}: {}",
-                                Symbol::NT(var).to_str(self.get_symbol_table()),
-                                orig.to_str(Some(sym.index), self.get_symbol_table())));
-                            if VERBOSE { println!("ERROR: found {n} children instead of 1"); }
-                            return;
-                        }
-                        let rep_child = stack.pop().unwrap();
-                        if VERBOSE { }
-                        let proceed = match grtree_cleanup(&mut new, Some(rep_child), true) {
-                            None => {
-                                self.log.add_error(format!(
-                                    "unexpected child of {sym_char}: {} (should be &, |, or symbol)",
-                                    grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)));
-                                if VERBOSE { println!("ERROR: unexpected child {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)); }
-                                return;
-                            },
-                            // (is_empty, had_empty_term)
-                            Some((true, _)) => {
-                                // the child is `ε`
-                                stack.push(rep_child);
-                                if VERBOSE { println!("child simplified to ε"); }
-                                false
-                            },
-                            Some((false, true)) => {
-                                // the child had the form `α + ε` and is now `α`, so if the operator was +,
-                                // it must become * since empty must remain a possibility (it doesn't change
-                                // (anything if it was already *)
-                                if is_plus {
-                                    is_plus = false;
-                                    // sym_char = '*';
-                                    if VERBOSE { print!(" becomes * (child lost ε term), "); }
-                                }
-                                true
-                            }
-                            Some((false, false)) => true, // nothing special, processing below
-                        };
-                        if proceed {
-                            if VERBOSE { println!("=> {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)); }
-                            let orig_rep = orig_new.add(None, if is_plus { gnode!(+) } else { gnode!(*) });
-                            let orig_rep_child = orig_new.add_from_tree(Some(orig_rep), &new, Some(rep_child));
-                            orig_rep_vars.insert(new_var, orig_rep); // to replace later
-                            stack.push(self.normalize_plus_or_star(
-                                rep_child, orig_rep, orig_rep_child, &mut new, &mut orig_new, var, &mut new_var, is_plus));
-                        }
-                    }
-                    _ => panic!("Unexpected {}", sym.deref())
-                }
-            }
-            if VERBOSE {
-                println!("stack: {}", stack.iter()
-                    .map(|id| {
-                        let children = new.children(*id);
-                        format!("{id}:{}{}", new.get(*id), if children.is_empty() { "".to_string() } else { format!("({})", children.iter().join(",")) })
-                    }).join(", ")
-                );
-            }
-        }
-        if stack.len() != 1 {
-            self.log.add_error(format!("normalize_var({}): error while normalizing the rules, {} remaining nodes instead of 1",
-                                       Symbol::NT(var).to_str(self.get_symbol_table()), stack.len()));
-            return;
-        }
-        if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
-        let root = stack.pop().unwrap();
-        new.set_root(root);
-        match grtree_cleanup(&mut new, None, false) {
-            None => {
-                self.log.add_error(format!(
-                    "unexpected root of {} -> {} (should be &, |, or symbol)",
-                    Symbol::NT(var).to_str(self.get_symbol_table()),
-                    grtree_to_str(&new, None, None, self.get_symbol_table(), false)));
-                if VERBOSE { println!("ERROR: unexpected root {}", grtree_to_str(&new, None, None, self.get_symbol_table(), false)); }
-            }
-            // (is_empty, had_empty_term)
-            Some((true, _)) => {
-                self.log.add_warning(format!("{} is empty", Symbol::NT(var).to_str(self.get_symbol_table())));
-            }
-            _ => {}
-        }
-        let orig_root = orig_new.add_from_tree_callback(None, &new, None, |from, to, _| self.origin.add((var, to), (var, from)));
-        orig_new.set_root(orig_root);
-        while !orig_rep_vars.is_empty() {
-            // We must replace new nonterminals with their original (though normalized) +* content, but we can't
-            // update `orig_new` while we're iterating it, so we proceed in two steps:
-            // - iterate in `orig_new`, locate the new +* nonterminals and put the node indices in orig_rep_nodes
-            // - iterate orig_rep_nodes and modify nodes in orig_new
-            // Since each replacement can make new nonterminals visible (if they're embedded in one another),
-            // we must repeat those steps until all `orig_rep_vars` have been found and replaced.
-            let mut orig_rep_nodes = Vec::<(usize, usize)>::new();
-            let mut to_remove = Vec::<VarId>::new();
-            for node in orig_new.iter_depth() {
-                if let GrNode::Symbol(Symbol::NT(rep_var)) = node.deref() {
-                    if let Some(&orig_rep_id) = orig_rep_vars.get(&rep_var) {
-                        to_remove.push(*rep_var);
-                        orig_rep_nodes.push((node.index, orig_rep_id));
-                        self.origin.add((*rep_var, self.get_tree(*rep_var).unwrap().get_root().unwrap()), (var, orig_rep_id));
+                        _ => panic!("Unexpected {}", sym.deref())
                     }
                 }
+                if VERBOSE {
+                    println!("stack: {}", stack.iter()
+                        .map(|id| {
+                            let children = new.children(*id);
+                            format!("{id}:{}{}", new.get(*id), if children.is_empty() { "".to_string() } else { format!("({})", children.iter().join(",")) })
+                        }).join(", ")
+                    );
+                }
             }
-            for (orig_id, child_id) in orig_rep_nodes {
-                *orig_new.get_mut(orig_id) = gnode!(inst);
-                orig_new.attach_child(orig_id, child_id);
+            if stack.len() != 1 {
+                self.log.add_error(format!("normalize_var({}): error while normalizing the rules, {} remaining nodes instead of 1",
+                                           Symbol::NT(var).to_str(self.get_symbol_table()), stack.len()));
+                return;
             }
-            for var in to_remove {
-                orig_rep_vars.remove(&var);
+            if VERBOSE_CC { println!("Final stack id: {}", stack[0]); }
+            let root = stack.pop().unwrap();
+            new.set_root(root);
+            match grtree_cleanup(&mut new, None, false) {
+                None => {
+                    self.log.add_error(format!(
+                        "unexpected root of {} -> {} (should be &, |, or symbol)",
+                        Symbol::NT(var).to_str(self.get_symbol_table()),
+                        grtree_to_str(&new, None, None, self.get_symbol_table(), false)));
+                    if VERBOSE { println!("ERROR: unexpected root {}", grtree_to_str(&new, None, None, self.get_symbol_table(), false)); }
+                }
+                // (is_empty, had_empty_term)
+                Some((true, _)) => {
+                    self.log.add_warning(format!("{} is empty", Symbol::NT(var).to_str(self.get_symbol_table())));
+                }
+                _ => {}
             }
+            let orig_root = orig_new.add_from_tree_callback(None, &new, None, |from, to, _| self.origin.add((var, to), (var, from)));
+            orig_new.set_root(orig_root);
+            while !orig_rep_vars.is_empty() {
+                // We must replace new nonterminals with their original (though normalized) +* content, but we can't
+                // update `orig_new` while we're iterating it, so we proceed in two steps:
+                // - iterate in `orig_new`, locate the new +* nonterminals and put the node indices in orig_rep_nodes
+                // - iterate orig_rep_nodes and modify nodes in orig_new
+                // Since each replacement can make new nonterminals visible (if they're embedded in one another),
+                // we must repeat those steps until all `orig_rep_vars` have been found and replaced.
+                let mut orig_rep_nodes = Vec::<(usize, usize)>::new();
+                let mut to_remove = Vec::<VarId>::new();
+                for node in orig_new.iter_depth() {
+                    if let GrNode::Symbol(Symbol::NT(rep_var)) = node.deref() {
+                        if let Some(&orig_rep_id) = orig_rep_vars.get(&rep_var) {
+                            to_remove.push(*rep_var);
+                            orig_rep_nodes.push((node.index, orig_rep_id));
+                            self.origin.add((*rep_var, self.get_tree(*rep_var).unwrap().get_root().unwrap()), (var, orig_rep_id));
+                        }
+                    }
+                }
+                for (orig_id, child_id) in orig_rep_nodes {
+                    *orig_new.get_mut(orig_id) = gnode!(inst);
+                    orig_new.attach_child(orig_id, child_id);
+                }
+                for var in to_remove {
+                    orig_rep_vars.remove(&var);
+                }
+            }
+            self.origin.set_tree(var, orig_new);
+            self.set_tree(var, new);
         }
-        self.origin.set_tree(var, orig_new);
-        self.set_tree(var, new);
     }
 
     fn normalize_plus_or_star(
         &mut self, rep_child: usize, orig_rep: usize, orig_rep_child: usize,
-        new: &mut GrTree, orig_new: &mut GrTree, var: VarId, new_var: &mut VarId, is_plus: bool
-    ) -> usize
+        new: &mut GrTree, orig_new: &mut GrTree, var: VarId, new_var: &mut VarId, is_plus: bool,
+        exclude_nt: &mut HashSet<VarId>
+    ) -> (usize, VarId)
     {
         const VERBOSE: bool = false;
         const OPTIMIZE_SUB_OR: bool = false;
         self.symbol_table.as_ref().map(|st| assert_eq!(st.get_num_nt(), self.trees.len(), "number of nt in symbol table doesn't match num_nt"));
+        let (mut qvar, mut rvar) = (*new_var, *new_var + 1);
         let mut qtree = GrTree::new();
-        let qvar: VarId = *new_var;
         let mut rtree = GrTree::new();
-        let rvar: VarId = *new_var + 1;
         let mut use_rtree = false;
+
+        // finds possible occurences of <L=var>, detects conflicts, and updates qvar/rvar if necessary
         let mut lform_nt = None;
+        for node in orig_new.iter_depth_at(orig_rep_child) {
+            if let GrNode::LForm(v) = *node {
+                if matches!(lform_nt, Some(v2) if v != v2) {
+                    let symtab = self.get_symbol_table();
+                    self.log.add_error(
+                        format!("in {}, {}: conflicting <L={}> and <L={}>",
+                                Symbol::NT(var).to_str(symtab),
+                                grtree_to_str(orig_new, Some(orig_rep), None, symtab, false),
+                                Symbol::NT(lform_nt.unwrap()).to_str(symtab), Symbol::NT(v).to_str(symtab)));
+                } else {
+                    lform_nt = Some(v);
+                    (qvar, rvar) = (v, *new_var);
+                }
+            }
+        }
+
         // See comments in `normalize_var` near the calls to this method for details about the operations below.
         // We copy from the origin tree `orig_new` to trace the new node IDs to the original ones.
         match orig_new.get(orig_rep_child) {
@@ -1120,19 +1143,7 @@ impl RuleTreeSet<General> {
                 let id_grchildren = new.children(rep_child);
                 if VERBOSE { print!("({rep_child}:&({})) ", id_grchildren.iter().join(", ")); }
                 let or = qtree.add_root(gnode!(|));
-                let cc1 = qtree.add_from_tree_callback(Some(or), orig_new, Some(orig_rep_child), |to, from, n| {
-                    if let &GrNode::LForm(v) = n {
-                        if matches!(lform_nt, Some(v2) if v != v2) {
-                            let symtab = self.get_symbol_table();
-                            self.log.add_error(
-                                format!("in {}, {}: conflicting <L={}> and <L={}>",
-                                        Symbol::NT(var).to_str(symtab),
-                                        grtree_to_str(orig_new, Some(orig_rep), None, symtab, false),
-                                        Symbol::NT(lform_nt.unwrap()).to_str(symtab), Symbol::NT(v).to_str(symtab)));
-                        } else {
-                            lform_nt = Some(v);
-                        }
-                    }
+                let cc1 = qtree.add_from_tree_callback(Some(or), orig_new, Some(orig_rep_child), |to, from, _n| {
                     self.origin.add((qvar, to), (var, from))
                 });
                 let loop_id = qtree.add(Some(cc1), gnode!(nt qvar));
@@ -1164,19 +1175,7 @@ impl RuleTreeSet<General> {
                             }
                         }
                         GrNode::Concat => {
-                            let cc = qtree.add_from_tree_callback(Some(or), orig_new, Some(*orig_id_grchild), |to, from, n| {
-                                if let &GrNode::LForm(v) = n {
-                                    if matches!(lform_nt, Some(v2) if v != v2) {
-                                        let symtab = self.get_symbol_table();
-                                        self.log.add_error(
-                                            format!("in {}, {}: conflicting <L={}> and <L={}>",
-                                                    Symbol::NT(var).to_str(symtab),
-                                                    grtree_to_str(orig_new, Some(orig_rep), None, symtab, false),
-                                                    Symbol::NT(lform_nt.unwrap()).to_str(symtab), Symbol::NT(v).to_str(symtab)));
-                                    } else {
-                                        lform_nt = Some(v);
-                                    }
-                                }
+                            let cc = qtree.add_from_tree_callback(Some(or), orig_new, Some(*orig_id_grchild), |to, from, _n| {
                                 self.origin.add((qvar, to), (var, from));
                             });
                             qtree.add(Some(cc), gnode!(nt qvar));
@@ -1224,19 +1223,7 @@ impl RuleTreeSet<General> {
                             }
                         }
                         GrNode::Concat => {
-                            let cc = qtree.add_from_tree_callback(Some(or), orig_new, Some(*orig_id_grchild), |to, from, n| {
-                                if let &GrNode::LForm(v) = n {
-                                    if matches!(lform_nt, Some(v2) if v != v2) {
-                                        let symtab = self.get_symbol_table();
-                                        self.log.add_error(
-                                            format!("in {}, {}: conflicting <L={}> and <L={}>",
-                                                    Symbol::NT(var).to_str(symtab),
-                                                    grtree_to_str(orig_new, Some(orig_rep), None, symtab, false),
-                                                    Symbol::NT(lform_nt.unwrap()).to_str(symtab), Symbol::NT(v).to_str(symtab)));
-                                    } else {
-                                        lform_nt = Some(v);
-                                    }
-                                }
+                            let cc = qtree.add_from_tree_callback(Some(or), orig_new, Some(*orig_id_grchild), |to, from, _n| {
                                 self.origin.add((qvar, to), (var, from));
                             });
                             if is_plus {
@@ -1265,7 +1252,7 @@ impl RuleTreeSet<General> {
                             Symbol::NT(var).to_str(self.get_symbol_table()),
                             grtree_to_str(orig_new, Some(orig_rep), None, self.get_symbol_table(), false)));
             } else {
-                self.nt_conversion.insert(v, MovedTo(qvar));
+                // self.nt_conversion.insert(v, MovedTo(qvar));
                 for mut node in qtree.iter_depth_simple_mut() {
                     if let GrNode::LForm(v2) = node.deref_mut() {
                         if *v2 == v { *v2 = qvar; }
@@ -1279,12 +1266,12 @@ impl RuleTreeSet<General> {
             }
         }
         self.symbol_table.as_mut().map(|st| {
-            if let Some(v) = lform_nt {
-                let name = st.remove_nt_name(v);
-                if VERBOSE {
-                    println!("L-FORM({v}) found, using name of NT({v}) = '{name}' for new NT({new_var})");
-                }
-                assert_eq!(st.add_nonterminal(name), qvar);
+            if let Some(_v) = lform_nt {
+                // let name = st.remove_nt_name(v);
+                // if VERBOSE {
+                //     println!("L-FORM({v}) found, using name of NT({v}) = '{name}' for new NT({new_var})");
+                // }
+                // assert_eq!(st.add_nonterminal(name), qvar);
             } else {
                 assert_eq!(st.add_child_nonterminal(var), qvar);
             }
@@ -1294,8 +1281,9 @@ impl RuleTreeSet<General> {
         });
         let id = new.add(None, gnode!(nt qvar));
         assert!(qvar as usize >= self.trees.len() || self.trees[qvar as usize].is_empty(), "overwriting tree {new_var}");
-        if VERBOSE { println!("qtree: {}", qtree.to_str(None, self.get_symbol_table())); }
+        if VERBOSE { println!("qtree: NT[{qvar}] {} -> {}", Symbol::NT(qvar).to_str(self.get_symbol_table()), grtree_to_str(&qtree, None, None, self.get_symbol_table(), false) /*qtree.to_str(None, self.get_symbol_table())*/); }
         self.set_tree(qvar, qtree);
+        exclude_nt.insert(qvar);
         self.flags.resize(rvar as usize, 0);
         self.parent.resize(rvar as usize, None);
         let plus_flag = if is_plus { ruleflag::REPEAT_PLUS } else { 0 };
@@ -1303,7 +1291,9 @@ impl RuleTreeSet<General> {
         self.flags[var as usize] |= ruleflag::PARENT_REPEAT | plus_flag;
         self.parent[qvar as usize] = Some(var);
         if use_rtree {
+            if VERBOSE { println!("rtree: NT[{rvar}] {} -> {}", Symbol::NT(rvar).to_str(self.get_symbol_table()), grtree_to_str(&rtree, None, None, self.get_symbol_table(), false) /*qtree.to_str(None, self.get_symbol_table())*/); }
             self.set_tree(rvar, rtree);
+            exclude_nt.insert(var);
             self.flags.resize(rvar as usize + 1, 0);
             self.parent.resize(rvar as usize + 1, None);
             self.flags[rvar as usize] |= ruleflag::CHILD_L_FACT;
@@ -1345,7 +1335,7 @@ impl RuleTreeSet<General> {
             }
         }
         *new_var = self.get_next_available_var();
-        id
+        (id, qvar)
     }
 }
 

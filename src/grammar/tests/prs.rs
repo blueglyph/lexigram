@@ -386,8 +386,10 @@ fn prs_grammar_notes() {
                                "unused terminals"],         vec![]),
         (T::PRS(1006), 0, vec![],                           vec!["there are 2 rules but the symbol table has 1 nonterminal symbols: dropping the table"]),
         (T::RTS(101), 0,  vec![],                           vec!["there are 2 rules but the symbol table has 1 nonterminal symbols: dropping the table"]),
-        (T::RTS(500), 0, vec![],                            vec!["in A, (<L=AIter1> a <L=AIter2>)*: conflicting <L=AIter1> and <L=AIter2>"]),
-        (T::RTS(501), 0, vec![],                            vec!["in A, (<L=AIter1> a | <L=AIter2> b)*: conflicting <L=AIter1> and <L=AIter2>"]),
+        (T::RTS(500), 0, vec![],                            vec!["in A, (<L=AIter1> a <L=AIter2>)*: conflicting <L=AIter1> and <L=AIter2>",
+                                                                 "normalize_var(AIter2): error while normalizing the rules, 0 remaining nodes instead of 1"]),
+        (T::RTS(501), 0, vec![],                            vec!["in A, (<L=AIter1> a | <L=AIter2> b)*: conflicting <L=AIter1> and <L=AIter2>",
+                                                                 "normalize_var(AIter2): error while normalizing the rules, 0 remaining nodes instead of 1"]),
     ];
     const VERBOSE: bool = false;
     for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {

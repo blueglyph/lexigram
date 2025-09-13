@@ -134,7 +134,7 @@ fn rts_normalize() {
         //   A -> b (c d | e)*
         (13, btreemap![0 => r#"b A_1"#, 1 => r#"c d A_1 | e A_1 | ε"#]),
         //   A -> A (b <L=AIter1>)* c | d
-        (19, btreemap![0 => r#"A AIter1 c | d"#, 2 => r#"b <L=AIter1> AIter1 | ε"#]),
+        (19, btreemap![0 => r#"A AIter1 c | d"#, 1 => r#"b <L=AIter1> AIter1 | ε"#]),
         //   A -> A (b | c <R> | d) A | e
         (15, btreemap![0 => r#"A b A | A c <R> A | A d A | e"#]),
         //   E -> "-" E | E ("*" | "/" <P>) E | E ("+" | "-" <P>) E | ID
@@ -271,7 +271,7 @@ fn orig_normalize() {
         //   A -> (a B)+ c        //   B -> b
         (28, btreemap![0 => r#"(a B)+ c"#, 1 => r#"b"#]),
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected) in tests {
@@ -303,7 +303,7 @@ fn orig_normalize() {
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false))).join("\n"));
             println!("- normalized (detailed):\n{}",
                      rules.get_non_empty_nts()
-                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
+                         .map(|(v, t)| format!("  NT[{v}] {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
             println!("- original tree partially normalized:\n{}",
                      rules.origin.trees.iter().index::<VarId>()
                          .filter(|(_, t)| !is_grtree_empty_symbol(&t))
@@ -314,7 +314,7 @@ fn orig_normalize() {
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
             println!("- mapping normalized -> original:");
             let mut map = rules.origin.map.iter()
-                .filter(|((va, _), (_, _))| !is_grtree_empty_symbol(&rules.get_tree(*va).unwrap()))
+                .filter(|((va, _), (_, _))| !is_grtree_empty_symbol(&rules.get_tree(*va).expect(&format!("can't find tree {va}"))))
                 .map(|((va, ida), (vo, ido))| ((*va, *ida), (*vo, *ido)))
                 .collect::<Vec<_>>();
             map.sort();
