@@ -124,16 +124,18 @@ impl GramListener {
     }
 
     fn do_post_checks(&mut self) {
-        for check in &self.post_check {
-            match check {
-                PostCheck::RepeatChildLform { node, var } => {
-                    let tree = &self.rules[*var as usize];
-                    if tree.iter_depth_at(*node).any(|node| if let GrNode::LForm(v) = *node { v == *var } else { false }) {
-                        let symtab = Some(&self.symbol_table);
-                        self.log.add_error(
-                            format!("in {}, {}:  <L> points to the same nonterminal. It must be a new one, created for the loop.",
-                                    Symbol::NT(*var).to_str(symtab),
-                                    grtree_to_str(&tree, Some(*node), None, symtab, false)));
+        if self.log.has_no_errors() {
+            for check in &self.post_check {
+                match check {
+                    PostCheck::RepeatChildLform { node, var } => {
+                        let tree = &self.rules[*var as usize];
+                        if tree.iter_depth_at(*node).any(|node| if let GrNode::LForm(v) = *node { v == *var } else { false }) {
+                            let symtab = Some(&self.symbol_table);
+                            self.log.add_error(
+                                format!("in {}, {}:  <L> points to the same nonterminal. It must be a new one, created for the loop.",
+                                        Symbol::NT(*var).to_str(symtab),
+                                        grtree_to_str(&tree, Some(*node), None, symtab, false)));
+                        }
                     }
                 }
             }
