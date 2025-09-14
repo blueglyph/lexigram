@@ -636,10 +636,10 @@ mod wrapper_source {
             let is_valuable = valuables.contains(&t);
             if builder.symbol_table.is_token_data(t) != is_valuable {
                 if is_valuable {
-                    builder.symbol_table.set_t_name(t, None);
+                    builder.symbol_table.set_t_value(t, None);
                 } else {
                     let name = builder.symbol_table.get_t_str(t);
-                    builder.symbol_table.set_t_name(t, Some(name));
+                    builder.symbol_table.set_t_value(t, Some(name));
                 }
             }
         }

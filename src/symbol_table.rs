@@ -12,7 +12,7 @@ use crate::grammar::{Symbol, VarId};
 ///
 /// Terminals are defined in the lexicon and don't change. They have two parts to their name:
 /// - the identifier in the lexicon
-/// - the source string they represent (optional)
+/// - the value, which is the source string they represent (optional)
 ///
 /// For example:
 /// ```lexicon
@@ -80,11 +80,11 @@ impl SymbolTable {
 
     // -------------------------------------------------------------------------
 
-    pub fn add_terminal<T: Into<String>>(&mut self, name: T, name_maybe: Option<T>) -> TokenId {
+    pub fn add_terminal<T: Into<String>>(&mut self, name: T, value_maybe: Option<T>) -> TokenId {
         let token = self.t.len();
         assert!(token < TokenId::MAX as usize);
         let unique_name = self.fixer_t.get_unique_name(name.into());
-        self.t.push((unique_name, name_maybe.map(|n| n.into())));
+        self.t.push((unique_name, value_maybe.map(|n| n.into())));
         token as TokenId
     }
 
@@ -110,7 +110,7 @@ impl SymbolTable {
         }
     }
 
-    pub fn set_t_name(&mut self, token: TokenId, name_maybe: Option<String>) {
+    pub fn set_t_value(&mut self, token: TokenId, name_maybe: Option<String>) {
         self.t[token as usize].1 = name_maybe
     }
 
