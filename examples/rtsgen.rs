@@ -5,13 +5,14 @@
 
 use std::collections::HashMap;
 use std::io::Cursor;
+use iter_index::IndexerIterator;
 use vectree::VecTree;
-use lexigram_lib::{General, SymbolTable};
+use lexigram_lib::{CollectJoin, General, NameFixer, SymbolTable};
 use lexigram_lib::dfa::TokenId;
-use lexigram_lib::grammar::{GrNode, GrTree, RuleTreeSet, Symbol, VarId};
+use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, RuleTreeSet, Symbol, VarId};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
 use lexigram_lib::parser::Parser;
 use crate::listener_types::*;
 use crate::rtsgen_lexer::build_lexer;
@@ -21,19 +22,47 @@ const VERBOSE_WRAPPER: bool = false;
 
 static TXT1: &str = r#"
     a => |(&(A B b) C D &(E F) G H &(I J)); // RTS form
+    b => |(+(&("-" "=")) ?(|(C D)) E);
+"#;
+
+static TXT2: &str = r#"
+    a => |(&(A B b) C D &(E F) G H &(I J)); // RTS form
     b -> (A B)+ | (C | D)? | E;             // PRS form
 "#;
 
 fn main() {
     println!("{:=<80}\n{TXT1}\n{0:=<80}", "");
-    match RtsGen::parse_text(TXT1.to_string()) {
-        Ok(log) => println!("parsing successful\n{log}"),
+    match RtsGen::parse(TXT1.to_string()) {
+        Ok(rts) => {
+            println!("Rules:");
+            for (v, tree) in rts.get_trees_iter() {
+                println!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(rts.get_symbol_table()), grtree_to_str(tree, None, None, rts.get_symbol_table(), false));
+            }
+            println!("Symbol table:");
+            let symtab = rts.get_symbol_table().unwrap();
+            println!("- nonterminals:\n{}", symtab.get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).join("\n"));
+            println!("- terminals:\n{}",
+                     symtab.get_terminals().enumerate()
+                         .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v}") } else { String::new() })).join("\n"));
+            println!("Log:\n{}", rts.get_log())
+        },
         Err(log) => println!("errors during parsing:\n{log}"),
     }
 }
 
 // -------------------------------------------------------------------------
 // minimalist parser, top level
+
+static T_GUESS_NAMES: &[(&str, &str); 47] = &[
+    ("+", "Add"), ("-", "Sub"), ("*", "Mul"), ("/", "Div"), ("%", "Percent"), ("++", "Inc"), ("--", "Dec"),
+    ("<<", "Shl"), (">>", "Shr"), ("!", "Not"), ("^", "Exp"), ("~", "Tilde"),
+    ("&", "And"), ("|", "Or"), ("&&", "And2"), ("||", "Or2"),
+    ("=", "Eq"), ("==", "Eq2"), ("<", "Lt"), (">", "Gt"), ("<=", "LtEq"), (">=", "GtEq"), ("!=", "Neq"),
+    (":=", "ColonEq"), ("+=", "AddEq"), ("-=", "SubEq"), ("*=", "MulEq"), ("/=", "DivEq"),
+    ("(", "LPar"), (")", "RPar"), ("[", "LSBracket"), ("]", "RSBracker"), ("{", "LBracket"), ("}", "RBracket"),
+    ("\"", "DQuote"), ("'", "Quote"), ("$", "Dollar"), ("?", "Question"), ("\\", "Backslash"),
+    (":", "Colon"), (";", "SemiColon"), (".", "Dot"), (",", "Comma"), ("#", "Sharp"), ("@", "At"), ("´", "Tick"), ("`", "BTick"),
+];
 
 pub struct RtsGen<'l, 'p> {
     lexer: Lexer<'l, Cursor<String>>,
@@ -42,11 +71,6 @@ pub struct RtsGen<'l, 'p> {
 }
 
 impl RtsGen<'_, '_> {
-    pub fn parse_text(text: String) -> Result<BufLog, BufLog> {
-        let mut mcalc = RtsGen::new();
-        mcalc.parse(text)
-    }
-
     pub fn new() -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
@@ -54,21 +78,34 @@ impl RtsGen<'_, '_> {
         RtsGen { lexer, parser, wrapper }
     }
 
-    pub fn parse(&mut self, text: String) -> Result<BufLog, BufLog> {
+    pub fn parse(text: String) -> Result<RuleTreeSet<General>, BufLog> {
+        let mut rtsgen = Self::new();
         let stream = CharReader::new(Cursor::new(text));
-        self.lexer.attach_stream(stream);
-        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
+        rtsgen.lexer.attach_stream(stream);
+        let tokens = rtsgen.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
             panic!("unexpected channel {ch} while parsing a file, line {line} col {col}, \"{text}\"")
         );
-        if let Err(e) = self.parser.parse_stream(&mut self.wrapper, tokens) {
-            self.wrapper.get_mut_listener().get_mut_log().add_error(e.to_string());
+        if let Err(e) = rtsgen.parser.parse_stream(&mut rtsgen.wrapper, tokens) {
+            rtsgen.wrapper.get_mut_listener().get_mut_log().add_error(e.to_string());
         }
-        let log = std::mem::take(&mut self.wrapper.get_mut_listener().log);
-        if log.has_no_errors() {
-            Ok(log)
+        if rtsgen.wrapper.get_listener().log.has_no_errors() {
+            let listener = rtsgen.wrapper.listener();
+            Ok(Self::make_rts(listener))
         } else {
+            let log = std::mem::take(&mut rtsgen.wrapper.get_mut_listener().log);
             Err(log)
         }
+    }
+
+    fn make_rts(listener: RGListener) -> RuleTreeSet<General> {
+        let RGListener { log, rules, symbol_table, .. } = listener;
+        let symbol_table = symbol_table.unwrap();
+        let mut rts = RuleTreeSet::<General>::with_log(log);
+        rts.set_symbol_table(symbol_table);
+        for (var, rule) in rules.into_iter().index::<VarId>() {
+            rts.set_tree(var, rule);
+        }
+        rts
     }
 }
 
@@ -79,9 +116,8 @@ struct RGListener {
     nt: HashMap<String, VarId>,
     nt_def_order: Vec<VarId>,
     rules: Vec<GrTree>,
+    symbol_table: Option<SymbolTable>,
     t: HashMap<String, TokenId>,
-    /// order of definition in grammar file; `(bool, TokenId)` = (is it a variable terminal?, token #ID)
-    t_def_order: Vec<(bool, TokenId)>,
     /// terminal information; `(String, Option<String>)` = (token name, optional string if not variable)
     tokens: Vec<(String, Option<String>)>,
     curr: Option<GrTree>,
@@ -112,8 +148,8 @@ impl RGListener {
             nt: HashMap::new(),
             nt_def_order: Vec::new(),
             rules: Vec::new(),
+            symbol_table: None,
             t: HashMap::new(),
-            t_def_order: Vec::new(),
             tokens: Vec::new(),
             curr: None,
             curr_name: None,
@@ -147,6 +183,61 @@ impl RGListener {
         });
         (is_new, tok)
     }
+
+    /// Finalizes the rules and creates the symbol table.
+    fn finalize_ruleset(&mut self) {
+        let mut nt_name = vec![String::new(); self.nt.len()];
+        for (name, var) in &self.nt {
+            nt_name[self.nt_def_order[*var as usize] as usize] = name.clone();
+        }
+
+        // check undefined nonterminals
+        let undefined: Vec<String> = self.rules.iter().enumerate()
+            .filter_map(|(var, r)| if r.is_empty() { Some(format!("NT[{var}] {}", &nt_name[var])) } else { None })
+            .collect();
+        if !undefined.is_empty() {
+            self.log.add_error(format!("undefined nonterminals: {}", undefined.join(", ")));
+            return;
+        }
+
+        // build symbol table
+        let mut symtab = SymbolTable::new();
+        symtab.extend_nonterminals(nt_name);
+        let mut t_name = vec![(String::new(), None); self.tokens.len()];
+        let mut namefixer = NameFixer::new_empty();
+        for (tok, (name, _cst_maybe)) in self.tokens.iter().enumerate().filter(|(_, (name, _))| !name.is_empty()) {
+            namefixer.add(name.clone());
+            t_name[tok] = (name.clone(), None);
+        }
+
+        // put names to constant terminals
+        let guess_names: HashMap<String, String> = HashMap::from_iter(T_GUESS_NAMES.into_iter().map(|(a, b)| (a.to_string(), b.to_string())));
+        for (tok, (_, cst_maybe)) in self.tokens.iter().enumerate().filter(|(_, (name, _))| name.is_empty()) {
+            let guess = guess_names.get(cst_maybe.as_ref().unwrap())
+                .cloned()
+                .unwrap_or_else(|| format!("Token{tok}"));
+            let new_name = namefixer.get_unique_name(guess);
+            t_name[tok] = (new_name, cst_maybe.clone());
+        }
+        symtab.extend_terminals(t_name);
+        self.symbol_table = Some(symtab);
+
+        // reorder nonterminal IDs by order of definition rather than order of appearance
+        self.log.add_note(format!("NT def order: {}", self.nt_def_order.iter().join(", ")));
+        self.rules = self.nt_def_order.iter()
+            .map(|nt| std::mem::take(self.rules.get_mut(*nt as usize).unwrap()))
+            .collect();
+        let conv: HashMap<VarId, VarId> = self.nt_def_order.iter().copied().index::<VarId>().collect();
+        for rule in &mut self.rules {
+            for mut node in rule.iter_depth_simple_mut() {
+                match *node {
+                    GrNode::Symbol(Symbol::NT(ref mut old))
+                    | GrNode::LForm(ref mut old) => *old = *conv.get(old).unwrap(),
+                    _ => {}
+                }
+            }
+        }
+    }
 }
 
 impl RtsGenListener for RGListener {
@@ -154,11 +245,11 @@ impl RtsGenListener for RGListener {
         &mut self.log
     }
 
+    fn exit(&mut self, _ruleset: SynRuleset) {
+        self.finalize_ruleset();
+    }
+
     fn exit_ruleset(&mut self, _ctx: CtxRuleset) -> SynRuleset {
-        // TODO: put names to constant terminals
-        // TODO: reorder nonterminal IDs by order of definition rather than order of appearance
-        // TODO: set root
-        // TODO: build symbol table (not here?)
         SynRuleset()
     }
 
@@ -169,53 +260,60 @@ impl RtsGenListener for RGListener {
     }
 
     fn exit_rule(&mut self, ctx: CtxRule) -> SynRule {
-        let (name, _expr) = match ctx {
+        let (name, id) = match ctx {
             // rule -> Nonterminal "->" prs_expr ";"
-            CtxRule::Rule1 { nonterminal, prs_expr: SynPrsExpr() } => (nonterminal, ()),
+            CtxRule::Rule1 { nonterminal, prs_expr: SynPrsExpr(id_expr) }
             // rule -> Nonterminal "=>" rts_expr ";"
-            CtxRule::Rule2 { nonterminal, rts_expr: SynRtsExpr() } => (nonterminal, ()),
+            | CtxRule::Rule2 { nonterminal, rts_expr: SynRtsExpr(id_expr) } => (nonterminal, id_expr),
         };
         let var = self.get_or_create_nt(name);
         self.nt_def_order.push(var);
-        // TODO: expr
+        let mut tree = self.curr.take().unwrap();
+        tree.set_root(id);
+        self.rules[var as usize] = tree;
         SynRule()
     }
 
     fn exit_rts_expr(&mut self, ctx: CtxRtsExpr) -> SynRtsExpr {
-        match ctx {
+        let id = match ctx {
             // rts_expr -> "&" rts_children
-            CtxRtsExpr::RtsExpr1 { rts_children: SynRtsChildren() } => {}
+            CtxRtsExpr::RtsExpr1 { rts_children: SynRtsChildren(v) } =>
+                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Concat, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "|" rts_children
-            CtxRtsExpr::RtsExpr2 { rts_children: SynRtsChildren() } => {}
+            CtxRtsExpr::RtsExpr2 { rts_children: SynRtsChildren(v) } =>
+                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Or, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "+" rts_children
-            CtxRtsExpr::RtsExpr3 { rts_children: SynRtsChildren() } => {}
+            CtxRtsExpr::RtsExpr3 { rts_children: SynRtsChildren(v) } =>
+                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Plus, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "*" rts_children
-            CtxRtsExpr::RtsExpr4 { rts_children: SynRtsChildren() } => {}
+            CtxRtsExpr::RtsExpr4 { rts_children: SynRtsChildren(v) } =>
+                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Star, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "?" rts_children
-            CtxRtsExpr::RtsExpr5 { rts_children: SynRtsChildren() } => {}
+            CtxRtsExpr::RtsExpr5 { rts_children: SynRtsChildren(v) } =>
+                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Maybe, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> item
-            CtxRtsExpr::RtsExpr6 { item: SynItem(Some(v)) } => {}
-            _ => panic!("unexpected expression: {ctx:?}")
-        }
-        SynRtsExpr()
+            CtxRtsExpr::RtsExpr6 { item: SynItem(id_item) } =>
+                id_item,
+        };
+        SynRtsExpr(id)
     }
 
     fn exit_rts_children(&mut self, ctx: CtxRtsChildren) -> SynRtsChildren {
         // rts_children -> "(" rts_expr* ")"
         let CtxRtsChildren::RtsChildren { star: SynRtsChildren1(v) } = ctx;
-        SynRtsChildren()
+        SynRtsChildren(v)
     }
 
     fn exit_prs_expr(&mut self, _ctx: CtxPrsExpr) -> SynPrsExpr {
-        SynPrsExpr()
+        SynPrsExpr(todo!())
     }
 
     fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
-        let id_maybe = match ctx {
+        let id = match ctx {
             // item -> Nonterminal
             CtxItem::Item1 { nonterminal } => {
                 let var = self.get_or_create_nt(nonterminal);
-                Some(self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(var))))
+                self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(var)))
             }
             // item -> Terminal
             CtxItem::Item2 { terminal } => {
@@ -223,29 +321,37 @@ impl RtsGenListener for RGListener {
                 if let IsNew::Yes = is_new {
                     self.tokens.push((terminal, None));
                 }
-                Some(self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(tok))))
+                self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(tok)))
             }
             // item -> TerminalCst
             CtxItem::Item3 { terminalcst } => {
                 let (is_new, tok) = self.get_or_create_t(terminalcst.clone());
                 if let IsNew::Yes = is_new {
                     // the names will be set later, to give priority to variable terminal names in case of conflict
-                    self.tokens.push((String::new(), Some(terminalcst)));
+                    self.tokens.push((String::new(), Some((&terminalcst[1..terminalcst.len() - 1]).to_string())));
                 }
-                Some(self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(tok))))
+                self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(tok)))
             }
             // item -> Empty
-            CtxItem::Item4 { .. } => {
-                Some(self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::Empty)))
-            }
+            CtxItem::Item4 { .. } =>
+                self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::Empty)),
             // item -> LTag
-            CtxItem::Item5 { ltag } => todo!(),
+            CtxItem::Item5 { ltag } => {
+                // `ltag` contains "<L=name>" or "<L>"
+                let var = if ltag.len() > 3 {
+                    let name = &ltag[3..ltag.len()-1];
+                    self.get_or_create_nt(name.to_string())
+                } else {
+                    self.curr_nt.unwrap()
+                };
+                self.curr.as_mut().unwrap().add(None, GrNode::LForm(var))
+            }
             // item -> "<P>"
-            CtxItem::Item6 => todo!(),
+            CtxItem::Item6 => self.curr.as_mut().unwrap().add(None, GrNode::PrecEq),
             // item -> "<R>"
-            CtxItem::Item7 => todo!(),
+            CtxItem::Item7 => self.curr.as_mut().unwrap().add(None, GrNode::RAssoc),
         };
-        SynItem(id_maybe)
+        SynItem(id)
     }
 }
 
@@ -259,13 +365,13 @@ pub mod listener_types {
     /// User-defined type for `rule`
     #[derive(Debug, PartialEq)] pub struct SynRule();
     /// User-defined type for `rts_expr`
-    #[derive(Debug, PartialEq)] pub struct SynRtsExpr();
+    #[derive(Debug, PartialEq)] pub struct SynRtsExpr(pub usize);
     /// User-defined type for `rts_children`
-    #[derive(Debug, PartialEq)] pub struct SynRtsChildren();
+    #[derive(Debug, PartialEq)] pub struct SynRtsChildren(pub Vec<SynRtsExpr>);
     /// User-defined type for `prs_expr`
-    #[derive(Debug, PartialEq)] pub struct SynPrsExpr();
+    #[derive(Debug, PartialEq)] pub struct SynPrsExpr(pub usize);
     /// User-defined type for `item`
-    #[derive(Debug, PartialEq)] pub struct SynItem(pub Option<usize>);
+    #[derive(Debug, PartialEq)] pub struct SynItem(pub usize);
 }
 
 // -------------------------------------------------------------------------
