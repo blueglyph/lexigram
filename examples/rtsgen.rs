@@ -9,7 +9,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use lexigram_lib::{CollectJoin, General, NameFixer, SymbolTable};
 use lexigram_lib::dfa::TokenId;
-use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, RuleTreeSet, Symbol, VarId};
+use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, RuleTreeSet, Symbol, VarId};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
 use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
@@ -26,27 +26,38 @@ static TXT1: &str = r#"
 "#;
 
 static TXT2: &str = r#"
+    a -> A B b | C | D | E F | G | H | I J; // PRS form
+    b -> (A B)+ | (C | D)? | E;
+"#;
+
+static TXT3: &str = r#"
     a => |(&(A B b) C D &(E F) G H &(I J)); // RTS form
     b -> (A B)+ | (C | D)? | E;             // PRS form
 "#;
 
 fn main() {
-    println!("{:=<80}\n{TXT1}\n{0:=<80}", "");
-    match RtsGen::parse(TXT1.to_string()) {
-        Ok(rts) => {
-            println!("Rules:");
-            for (v, tree) in rts.get_trees_iter() {
-                println!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(rts.get_symbol_table()), grtree_to_str(tree, None, None, rts.get_symbol_table(), false));
+    for text in vec![TXT1, TXT2, TXT3] {
+        println!("{:=<80}\n{text}\n{0:=<80}", "");
+        match RtsGen::parse(text.to_string()) {
+            Ok(rts) => {
+                println!("Rules:");
+                for (v, tree) in rts.get_trees_iter() {
+                    println!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(rts.get_symbol_table()), grtree_to_str(tree, None, None, rts.get_symbol_table(), false));
+                }
+                println!("details:");
+                for (v, tree) in rts.get_trees_iter() {
+                    println!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(rts.get_symbol_table()), tree.to_str(None, rts.get_symbol_table()));
+                }
+                println!("Symbol table:");
+                let symtab = rts.get_symbol_table().unwrap();
+                println!("- nonterminals:\n{}", symtab.get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).join("\n"));
+                println!("- terminals:\n{}",
+                         symtab.get_terminals().enumerate()
+                             .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v}") } else { String::new() })).join("\n"));
+                println!("Log:\n{}", rts.get_log())
             }
-            println!("Symbol table:");
-            let symtab = rts.get_symbol_table().unwrap();
-            println!("- nonterminals:\n{}", symtab.get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).join("\n"));
-            println!("- terminals:\n{}",
-                     symtab.get_terminals().enumerate()
-                         .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v}") } else { String::new() })).join("\n"));
-            println!("Log:\n{}", rts.get_log())
-        },
-        Err(log) => println!("errors during parsing:\n{log}"),
+            Err(log) => println!("errors during parsing:\n{log}"),
+        }
     }
 }
 
@@ -275,22 +286,23 @@ impl RtsGenListener for RGListener {
     }
 
     fn exit_rts_expr(&mut self, ctx: CtxRtsExpr) -> SynRtsExpr {
+        let tree = self.curr.as_mut().unwrap();
         let id = match ctx {
             // rts_expr -> "&" rts_children
             CtxRtsExpr::RtsExpr1 { rts_children: SynRtsChildren(v) } =>
-                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Concat, v.into_iter().map(|SynRtsExpr(id)| id)),
+                tree.addci_iter(None, GrNode::Concat, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "|" rts_children
             CtxRtsExpr::RtsExpr2 { rts_children: SynRtsChildren(v) } =>
-                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Or, v.into_iter().map(|SynRtsExpr(id)| id)),
+                tree.addci_iter(None, GrNode::Or, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "+" rts_children
             CtxRtsExpr::RtsExpr3 { rts_children: SynRtsChildren(v) } =>
-                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Plus, v.into_iter().map(|SynRtsExpr(id)| id)),
+                tree.addci_iter(None, GrNode::Plus, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "*" rts_children
             CtxRtsExpr::RtsExpr4 { rts_children: SynRtsChildren(v) } =>
-                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Star, v.into_iter().map(|SynRtsExpr(id)| id)),
+                tree.addci_iter(None, GrNode::Star, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> "?" rts_children
             CtxRtsExpr::RtsExpr5 { rts_children: SynRtsChildren(v) } =>
-                self.curr.as_mut().unwrap().addci_iter(None, GrNode::Maybe, v.into_iter().map(|SynRtsExpr(id)| id)),
+                tree.addci_iter(None, GrNode::Maybe, v.into_iter().map(|SynRtsExpr(id)| id)),
             // rts_expr -> item
             CtxRtsExpr::RtsExpr6 { item: SynItem(id_item) } =>
                 id_item,
@@ -304,8 +316,40 @@ impl RtsGenListener for RGListener {
         SynRtsChildren(v)
     }
 
-    fn exit_prs_expr(&mut self, _ctx: CtxPrsExpr) -> SynPrsExpr {
-        SynPrsExpr(todo!())
+    fn exit_prs_expr(&mut self, ctx: CtxPrsExpr) -> SynPrsExpr {
+        let tree = self.curr.as_mut().unwrap();
+        let id = match ctx {
+            // prs_expr -> prs_expr "+"
+            CtxPrsExpr::PrsExpr1 { prs_expr: SynPrsExpr(id) } =>
+                tree.addci(None, GrNode::Plus, id),
+            // prs_expr -> prs_expr "*"
+            CtxPrsExpr::PrsExpr2 { prs_expr: SynPrsExpr(id) } =>
+                tree.addci(None, GrNode::Star, id),
+            // prs_expr -> prs_expr "?"
+            CtxPrsExpr::PrsExpr3 { prs_expr: SynPrsExpr(id) } =>
+                tree.addci(None, GrNode::Maybe, id),
+            // prs_expr -> prs_expr prs_expr
+            CtxPrsExpr::PrsExpr4 { prs_expr: [SynPrsExpr(mut left), SynPrsExpr(right)] } => {
+                if *tree.get(left) != GrNode::Concat {
+                    left = tree.addci(None, GrNode::Concat, left);
+                }
+                tree.attach_child(left, right);
+                left
+            }
+            // prs_expr -> prs_expr "|" prs_expr
+            CtxPrsExpr::PrsExpr5 { prs_expr: [SynPrsExpr(mut left), SynPrsExpr(right)] } => {
+                if *tree.get(left) != GrNode::Or {
+                    left = tree.addci(None, GrNode::Or, left);
+                }
+                tree.attach_child(left, right);
+                left
+            }
+            // prs_expr -> "(" prs_expr ")"
+            CtxPrsExpr::PrsExpr6 { prs_expr: SynPrsExpr(id) } => id,
+            // prs_expr -> item
+            CtxPrsExpr::PrsExpr7 { item: SynItem(id) } => id,
+        };
+        SynPrsExpr(id)
     }
 
     fn exit_item(&mut self, ctx: CtxItem) -> SynItem {
