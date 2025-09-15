@@ -549,11 +549,11 @@ pub mod rtsgen_parser {
     const PARSER_NUM_T: usize = 17;
     const PARSER_NUM_NT: usize = 16;
     static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("DArrow", Some("=>")), ("Concat", Some("&")), ("Or", Some("|")), ("Plus", Some("+")), ("Star", Some("*")), ("Question", Some("?")), ("Empty", None), ("LPar", Some("(")), ("RPar", Some(")")), ("Semicolon", Some(";")), ("LTag", None), ("PTag", Some("<P>")), ("RTag", Some("<R>")), ("TerminalCst", None), ("Terminal", None), ("Nonterminal", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["ruleset", "rule", "rts_expr", "rts_children", "prs_expr", "item", "rule_iter", "rts_children_1", "prs_expr_1", "prs_expr_2", "prs_expr_3", "prs_expr_4", "prs_expr_5", "prs_expr_6", "rule_1", "ruleset_1"];
-    static ALT_VAR: [VarId; 43] = [0, 1, 2, 2, 2, 2, 2, 2, 3, 4, 5, 5, 5, 5, 5, 5, 5, 6, 7, 7, 8, 8, 8, 8, 8, 8, 9, 10, 10, 10, 10, 10, 11, 12, 12, 12, 12, 13, 13, 14, 14, 15, 15];
-    static ALTERNATIVES: [&[Symbol]; 43] = [&[Symbol::NT(6)], &[Symbol::T(16), Symbol::NT(14)], &[Symbol::T(2), Symbol::NT(3)], &[Symbol::T(3), Symbol::NT(3)], &[Symbol::T(4), Symbol::NT(3)], &[Symbol::T(5), Symbol::NT(3)], &[Symbol::T(6), Symbol::NT(3)], &[Symbol::NT(5)], &[Symbol::T(8), Symbol::NT(7), Symbol::T(9)], &[Symbol::NT(13), Symbol::NT(8)], &[Symbol::T(16)], &[Symbol::T(15)], &[Symbol::T(14)], &[Symbol::T(7)], &[Symbol::T(11)], &[Symbol::T(12)], &[Symbol::T(13)], &[Symbol::NT(1), Symbol::NT(15)], &[Symbol::NT(2), Symbol::NT(7)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(8)], &[Symbol::T(5), Symbol::NT(8)], &[Symbol::T(6), Symbol::NT(8)], &[Symbol::NT(11), Symbol::NT(8)], &[Symbol::T(3), Symbol::NT(9), Symbol::NT(8)], &[Symbol::Empty], &[Symbol::NT(13), Symbol::NT(10)], &[Symbol::T(4), Symbol::NT(10)], &[Symbol::T(5), Symbol::NT(10)], &[Symbol::T(6), Symbol::NT(10)], &[Symbol::NT(11), Symbol::NT(10)], &[Symbol::Empty], &[Symbol::NT(13), Symbol::NT(12)], &[Symbol::T(4), Symbol::NT(12)], &[Symbol::T(5), Symbol::NT(12)], &[Symbol::T(6), Symbol::NT(12)], &[Symbol::Empty], &[Symbol::T(8), Symbol::NT(4), Symbol::T(9)], &[Symbol::NT(5)], &[Symbol::T(0), Symbol::NT(4), Symbol::T(10)], &[Symbol::T(1), Symbol::NT(2), Symbol::T(10)], &[Symbol::NT(6)], &[Symbol::Empty]];
-    static PARSING_TABLE: [AltId; 288] = [43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 0, 44, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 1, 44, 43, 43, 2, 3, 4, 5, 6, 7, 43, 44, 44, 7, 7, 7, 7, 7, 7, 43, 43, 43, 44, 44, 44, 44, 44, 44, 8, 44, 44, 44, 44, 44, 44, 44, 44, 43, 43, 43, 43, 43, 43, 43, 43, 9, 9, 44, 44, 9, 9, 9, 9, 9, 9, 43, 43, 43, 44, 44, 44, 44, 44, 13, 44, 44, 44, 14, 15, 16, 12, 11, 10, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 17, 44, 43, 43, 18, 18, 18, 18, 18, 18, 43, 19, 43, 18, 18, 18, 18, 18, 18, 43, 43, 43, 43, 24, 20, 21, 22, 23, 23, 25, 25, 23, 23, 23, 23, 23, 23, 43, 43, 43, 43, 44, 44, 44, 44, 26, 26, 44, 44, 26, 26, 26, 26, 26, 26, 43, 43, 43, 43, 31, 27, 28, 29, 30, 30, 31, 31, 30, 30, 30, 30, 30, 30, 43, 43, 43, 43, 44, 44, 44, 44, 32, 32, 44, 44, 32, 32, 32, 32, 32, 32, 43, 43, 43, 43, 36, 33, 34, 35, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 43, 43, 43, 43, 44, 44, 44, 44, 38, 37, 44, 44, 38, 38, 38, 38, 38, 38, 43, 39, 40, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 44, 44, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 41, 42];
-    static OPCODES: [&[OpCode]; 43] = [&[OpCode::Exit(0), OpCode::NT(6)], &[OpCode::NT(14), OpCode::T(16)], &[OpCode::Exit(2), OpCode::NT(3), OpCode::T(2)], &[OpCode::Exit(3), OpCode::NT(3), OpCode::T(3)], &[OpCode::Exit(4), OpCode::NT(3), OpCode::T(4)], &[OpCode::Exit(5), OpCode::NT(3), OpCode::T(5)], &[OpCode::Exit(6), OpCode::NT(3), OpCode::T(6)], &[OpCode::Exit(7), OpCode::NT(5)], &[OpCode::Exit(8), OpCode::T(9), OpCode::NT(7), OpCode::T(8)], &[OpCode::NT(8), OpCode::Exit(9), OpCode::NT(13)], &[OpCode::Exit(10), OpCode::T(16)], &[OpCode::Exit(11), OpCode::T(15)], &[OpCode::Exit(12), OpCode::T(14)], &[OpCode::Exit(13), OpCode::T(7)], &[OpCode::Exit(14), OpCode::T(11)], &[OpCode::Exit(15), OpCode::T(12)], &[OpCode::Exit(16), OpCode::T(13)], &[OpCode::NT(15), OpCode::NT(1)], &[OpCode::Loop(7), OpCode::Exit(18), OpCode::NT(2)], &[OpCode::Exit(19)], &[OpCode::Loop(8), OpCode::Exit(20), OpCode::T(4)], &[OpCode::Loop(8), OpCode::Exit(21), OpCode::T(5)], &[OpCode::Loop(8), OpCode::Exit(22), OpCode::T(6)], &[OpCode::Loop(8), OpCode::Exit(23), OpCode::NT(11)], &[OpCode::Loop(8), OpCode::Exit(24), OpCode::NT(9), OpCode::T(3)], &[OpCode::Exit(25)], &[OpCode::NT(10), OpCode::Exit(26), OpCode::NT(13)], &[OpCode::Loop(10), OpCode::Exit(27), OpCode::T(4)], &[OpCode::Loop(10), OpCode::Exit(28), OpCode::T(5)], &[OpCode::Loop(10), OpCode::Exit(29), OpCode::T(6)], &[OpCode::Loop(10), OpCode::Exit(30), OpCode::NT(11)], &[OpCode::Exit(31)], &[OpCode::NT(12), OpCode::Exit(32), OpCode::NT(13)], &[OpCode::Loop(12), OpCode::Exit(33), OpCode::T(4)], &[OpCode::Loop(12), OpCode::Exit(34), OpCode::T(5)], &[OpCode::Loop(12), OpCode::Exit(35), OpCode::T(6)], &[OpCode::Exit(36)], &[OpCode::Exit(37), OpCode::T(9), OpCode::NT(4), OpCode::T(8)], &[OpCode::Exit(38), OpCode::NT(5)], &[OpCode::Exit(39), OpCode::T(10), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(40), OpCode::T(10), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(6), OpCode::Exit(41)], &[OpCode::Exit(42)]];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["ruleset", "rule_iter", "rule", "rts_expr", "rts_children", "prs_expr", "item", "rts_children_1", "prs_expr_1", "prs_expr_2", "prs_expr_3", "prs_expr_4", "prs_expr_5", "prs_expr_6", "ruleset_1", "rule_1"];
+    static ALT_VAR: [VarId; 43] = [0, 1, 2, 3, 3, 3, 3, 3, 3, 4, 5, 6, 6, 6, 6, 6, 6, 6, 7, 7, 8, 8, 8, 8, 8, 8, 9, 10, 10, 10, 10, 10, 11, 12, 12, 12, 12, 13, 13, 14, 14, 15, 15];
+    static ALTERNATIVES: [&[Symbol]; 43] = [&[Symbol::NT(1)], &[Symbol::NT(2), Symbol::NT(14)], &[Symbol::T(16), Symbol::NT(15)], &[Symbol::T(2), Symbol::NT(4)], &[Symbol::T(3), Symbol::NT(4)], &[Symbol::T(4), Symbol::NT(4)], &[Symbol::T(5), Symbol::NT(4)], &[Symbol::T(6), Symbol::NT(4)], &[Symbol::NT(6)], &[Symbol::T(8), Symbol::NT(7), Symbol::T(9)], &[Symbol::NT(13), Symbol::NT(8)], &[Symbol::T(16)], &[Symbol::T(15)], &[Symbol::T(14)], &[Symbol::T(7)], &[Symbol::T(11)], &[Symbol::T(12)], &[Symbol::T(13)], &[Symbol::NT(3), Symbol::NT(7)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(8)], &[Symbol::T(5), Symbol::NT(8)], &[Symbol::T(6), Symbol::NT(8)], &[Symbol::NT(11), Symbol::NT(8)], &[Symbol::T(3), Symbol::NT(9), Symbol::NT(8)], &[Symbol::Empty], &[Symbol::NT(13), Symbol::NT(10)], &[Symbol::T(4), Symbol::NT(10)], &[Symbol::T(5), Symbol::NT(10)], &[Symbol::T(6), Symbol::NT(10)], &[Symbol::NT(11), Symbol::NT(10)], &[Symbol::Empty], &[Symbol::NT(13), Symbol::NT(12)], &[Symbol::T(4), Symbol::NT(12)], &[Symbol::T(5), Symbol::NT(12)], &[Symbol::T(6), Symbol::NT(12)], &[Symbol::Empty], &[Symbol::T(8), Symbol::NT(5), Symbol::T(9)], &[Symbol::NT(6)], &[Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(5), Symbol::T(10)], &[Symbol::T(1), Symbol::NT(3), Symbol::T(10)]];
+    static PARSING_TABLE: [AltId; 288] = [43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 0, 44, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 1, 44, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 2, 44, 43, 43, 3, 4, 5, 6, 7, 8, 43, 44, 44, 8, 8, 8, 8, 8, 8, 43, 43, 43, 44, 44, 44, 44, 44, 44, 9, 44, 44, 44, 44, 44, 44, 44, 44, 43, 43, 43, 43, 43, 43, 43, 43, 10, 10, 44, 44, 10, 10, 10, 10, 10, 10, 43, 43, 43, 44, 44, 44, 44, 44, 14, 44, 44, 44, 15, 16, 17, 13, 12, 11, 43, 43, 43, 18, 18, 18, 18, 18, 18, 43, 19, 43, 18, 18, 18, 18, 18, 18, 43, 43, 43, 43, 24, 20, 21, 22, 23, 23, 25, 25, 23, 23, 23, 23, 23, 23, 43, 43, 43, 43, 44, 44, 44, 44, 26, 26, 44, 44, 26, 26, 26, 26, 26, 26, 43, 43, 43, 43, 31, 27, 28, 29, 30, 30, 31, 31, 30, 30, 30, 30, 30, 30, 43, 43, 43, 43, 44, 44, 44, 44, 32, 32, 44, 44, 32, 32, 32, 32, 32, 32, 43, 43, 43, 43, 36, 33, 34, 35, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 43, 43, 43, 43, 44, 44, 44, 44, 38, 37, 44, 44, 38, 38, 38, 38, 38, 38, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 39, 40, 41, 42, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 43, 44, 44];
+    static OPCODES: [&[OpCode]; 43] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(14), OpCode::NT(2)], &[OpCode::NT(15), OpCode::T(16)], &[OpCode::Exit(3), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(4), OpCode::NT(4), OpCode::T(3)], &[OpCode::Exit(5), OpCode::NT(4), OpCode::T(4)], &[OpCode::Exit(6), OpCode::NT(4), OpCode::T(5)], &[OpCode::Exit(7), OpCode::NT(4), OpCode::T(6)], &[OpCode::Exit(8), OpCode::NT(6)], &[OpCode::Exit(9), OpCode::T(9), OpCode::NT(7), OpCode::T(8)], &[OpCode::NT(8), OpCode::Exit(10), OpCode::NT(13)], &[OpCode::Exit(11), OpCode::T(16)], &[OpCode::Exit(12), OpCode::T(15)], &[OpCode::Exit(13), OpCode::T(14)], &[OpCode::Exit(14), OpCode::T(7)], &[OpCode::Exit(15), OpCode::T(11)], &[OpCode::Exit(16), OpCode::T(12)], &[OpCode::Exit(17), OpCode::T(13)], &[OpCode::Loop(7), OpCode::Exit(18), OpCode::NT(3)], &[OpCode::Exit(19)], &[OpCode::Loop(8), OpCode::Exit(20), OpCode::T(4)], &[OpCode::Loop(8), OpCode::Exit(21), OpCode::T(5)], &[OpCode::Loop(8), OpCode::Exit(22), OpCode::T(6)], &[OpCode::Loop(8), OpCode::Exit(23), OpCode::NT(11)], &[OpCode::Loop(8), OpCode::Exit(24), OpCode::NT(9), OpCode::T(3)], &[OpCode::Exit(25)], &[OpCode::NT(10), OpCode::Exit(26), OpCode::NT(13)], &[OpCode::Loop(10), OpCode::Exit(27), OpCode::T(4)], &[OpCode::Loop(10), OpCode::Exit(28), OpCode::T(5)], &[OpCode::Loop(10), OpCode::Exit(29), OpCode::T(6)], &[OpCode::Loop(10), OpCode::Exit(30), OpCode::NT(11)], &[OpCode::Exit(31)], &[OpCode::NT(12), OpCode::Exit(32), OpCode::NT(13)], &[OpCode::Loop(12), OpCode::Exit(33), OpCode::T(4)], &[OpCode::Loop(12), OpCode::Exit(34), OpCode::T(5)], &[OpCode::Loop(12), OpCode::Exit(35), OpCode::T(6)], &[OpCode::Exit(36)], &[OpCode::Exit(37), OpCode::T(9), OpCode::NT(5), OpCode::T(8)], &[OpCode::Exit(38), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(39)], &[OpCode::Exit(40)], &[OpCode::Exit(41), OpCode::T(10), OpCode::NT(5), OpCode::T(0)], &[OpCode::Exit(42), OpCode::T(10), OpCode::NT(3), OpCode::T(1)]];
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
@@ -731,16 +731,16 @@ pub mod rtsgen_parser {
                 Call::Enter => {
                     match nt {
                         0 => self.listener.init_ruleset(),          // ruleset
-                        6 => self.listener.init_rule_iter(),        // rule_iter
-                        15 => {}                                    // ruleset_1
-                        1 => self.listener.init_rule(),             // rule
-                        14 => {}                                    // rule_1
-                        2 => self.listener.init_rts_expr(),         // rts_expr
-                        3 => self.listener.init_rts_children(),     // rts_children
+                        1 => self.listener.init_rule_iter(),        // rule_iter
+                        14 => {}                                    // ruleset_1
+                        2 => self.listener.init_rule(),             // rule
+                        15 => {}                                    // rule_1
+                        3 => self.listener.init_rts_expr(),         // rts_expr
+                        4 => self.listener.init_rts_children(),     // rts_children
                         7 => self.init_rts_children1(),             // rts_children_1
-                        4 => self.listener.init_prs_expr(),         // prs_expr
+                        5 => self.listener.init_prs_expr(),         // prs_expr
                         8 ..= 13 => {}                              // prs_expr_1, prs_expr_2, prs_expr_3, prs_expr_4, prs_expr_5, prs_expr_6
-                        5 => self.listener.init_item(),             // item
+                        6 => self.listener.init_item(),             // item
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
@@ -748,19 +748,19 @@ pub mod rtsgen_parser {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_ruleset(),                   // ruleset -> rule_iter
-                        41 |                                        // ruleset_1 -> rule_iter
-                        42 => self.exit_rule_iter(alt_id),          // ruleset_1 -> ε
-                     /* 17 */                                       // rule_iter -> <L> rule ruleset_1 (never called)
-                        39 |                                        // rule_1 -> -> prs_expr ;
-                        40 => self.exit_rule(alt_id),               // rule_1 -> => rts_expr ;
-                     /* 1 */                                        // rule -> Nonterminal rule_1 (never called)
-                        2 |                                         // rts_expr -> & rts_children
-                        3 |                                         // rts_expr -> | rts_children
-                        4 |                                         // rts_expr -> + rts_children
-                        5 |                                         // rts_expr -> * rts_children
-                        6 |                                         // rts_expr -> ? rts_children
-                        7 => self.exit_rts_expr(alt_id),            // rts_expr -> item
-                        8 => self.exit_rts_children(),              // rts_children -> ( rts_children_1 )
+                        39 |                                        // ruleset_1 -> rule_iter
+                        40 => self.exit_rule_iter(alt_id),          // ruleset_1 -> ε
+                     /* 1 */                                        // rule_iter -> <L> rule ruleset_1 (never called)
+                        41 |                                        // rule_1 -> -> prs_expr ;
+                        42 => self.exit_rule(alt_id),               // rule_1 -> => rts_expr ;
+                     /* 2 */                                        // rule -> Nonterminal rule_1 (never called)
+                        3 |                                         // rts_expr -> & rts_children
+                        4 |                                         // rts_expr -> | rts_children
+                        5 |                                         // rts_expr -> + rts_children
+                        6 |                                         // rts_expr -> * rts_children
+                        7 |                                         // rts_expr -> ? rts_children
+                        8 => self.exit_rts_expr(alt_id),            // rts_expr -> item
+                        9 => self.exit_rts_children(),              // rts_children -> ( rts_children_1 )
                         18 => self.exit_rts_children1(),            // rts_children_1 -> rts_expr rts_children_1
                         19 => {}                                    // rts_children_1 -> ε
                         20 |                                        // prs_expr_1 -> + prs_expr_1
@@ -777,19 +777,19 @@ pub mod rtsgen_parser {
                         30 => self.exit_prs_expr1(23),              // prs_expr_3 -> prs_expr_4 prs_expr_3 (duplicate of 23)
                         37 |                                        // prs_expr_6 -> ( prs_expr )
                         38 => self.exit_prs_expr6(alt_id),          // prs_expr_6 -> item
-                        9 => {}                                     // prs_expr -> prs_expr_6 prs_expr_1 (not used)
+                        10 => {}                                    // prs_expr -> prs_expr_6 prs_expr_1 (not used)
                         25 => {}                                    // prs_expr_1 -> ε (not used)
                         26 => {}                                    // prs_expr_2 -> prs_expr_6 prs_expr_3 (not used)
                         31 => {}                                    // prs_expr_3 -> ε (not used)
                         32 => {}                                    // prs_expr_4 -> prs_expr_6 prs_expr_5 (not used)
                         36 => {}                                    // prs_expr_5 -> ε (not used)
-                        10 |                                        // item -> Nonterminal
-                        11 |                                        // item -> Terminal
-                        12 |                                        // item -> TerminalCst
-                        13 |                                        // item -> Empty
-                        14 |                                        // item -> LTag
-                        15 |                                        // item -> <P>
-                        16 => self.exit_item(alt_id),               // item -> <R>
+                        11 |                                        // item -> Nonterminal
+                        12 |                                        // item -> Terminal
+                        13 |                                        // item -> TerminalCst
+                        14 |                                        // item -> Empty
+                        15 |                                        // item -> LTag
+                        16 |                                        // item -> <P>
+                        17 => self.exit_item(alt_id),               // item -> <R>
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -845,19 +845,19 @@ pub mod rtsgen_parser {
         }
 
         fn exit_rule_iter(&mut self, alt_id: AltId) {
-            let last_iteration = alt_id == 42;
+            let last_iteration = alt_id == 40;
             let rule = self.stack.pop().unwrap().get_rule();
             self.listener.exit_rule_iter(CtxRuleIter::RuleIter { rule, last_iteration });
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                39 => {
+                41 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     let nonterminal = self.stack_t.pop().unwrap();
                     CtxRule::Rule1 { nonterminal, prs_expr }
                 }
-                40 => {
+                42 => {
                     let rts_expr = self.stack.pop().unwrap().get_rts_expr();
                     let nonterminal = self.stack_t.pop().unwrap();
                     CtxRule::Rule2 { nonterminal, rts_expr }
@@ -870,27 +870,27 @@ pub mod rtsgen_parser {
 
         fn exit_rts_expr(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                2 => {
+                3 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr1 { rts_children }
                 }
-                3 => {
+                4 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr2 { rts_children }
                 }
-                4 => {
+                5 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr3 { rts_children }
                 }
-                5 => {
+                6 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr4 { rts_children }
                 }
-                6 => {
+                7 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr5 { rts_children }
                 }
-                7 => {
+                8 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRtsExpr::RtsExpr6 { item }
                 }
@@ -966,30 +966,30 @@ pub mod rtsgen_parser {
 
         fn exit_item(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                10 => {
+                11 => {
                     let nonterminal = self.stack_t.pop().unwrap();
                     CtxItem::Item1 { nonterminal }
                 }
-                11 => {
+                12 => {
                     let terminal = self.stack_t.pop().unwrap();
                     CtxItem::Item2 { terminal }
                 }
-                12 => {
+                13 => {
                     let terminalcst = self.stack_t.pop().unwrap();
                     CtxItem::Item3 { terminalcst }
                 }
-                13 => {
+                14 => {
                     let empty = self.stack_t.pop().unwrap();
                     CtxItem::Item4 { empty }
                 }
-                14 => {
+                15 => {
                     let ltag = self.stack_t.pop().unwrap();
                     CtxItem::Item5 { ltag }
                 }
-                15 => {
+                16 => {
                     CtxItem::Item6
                 }
-                16 => {
+                17 => {
                     CtxItem::Item7
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")

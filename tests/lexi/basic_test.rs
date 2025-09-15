@@ -217,7 +217,7 @@ mod tests {
                     _ => panic!()
                 };
                 if VERBOSE {
-                    let msg = wrapper.get_mut_listener().log.get_messages().map(|s| format!("- {s:?}")).join("\n");
+                    let msg = wrapper.get_listener_mut().log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                     if !msg.is_empty() {
                         println!("Messages:\n{msg}");
                     }

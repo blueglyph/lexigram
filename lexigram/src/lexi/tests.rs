@@ -625,7 +625,7 @@ mod lexicon {
             let stream = CharReader::new(Cursor::new(lexicon));
             let mut lexi = Lexi::new(stream);
             let _result = lexi.make();
-            let listener = lexi.wrapper.listener();
+            let listener = lexi.wrapper.give_listener();
             let text = format!("test {test_id} failed");
             let msg = listener.get_log().get_messages().map(|s| format!("\n- {s}")).join("");
             if VERBOSE {

@@ -467,11 +467,11 @@ pub(crate) mod lexiparser {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 

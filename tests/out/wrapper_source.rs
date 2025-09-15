@@ -327,11 +327,11 @@ pub(crate) mod rules_rts_21_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -487,11 +487,11 @@ pub(crate) mod rules_rts_21_2 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -647,11 +647,11 @@ pub(crate) mod rules_rts_22_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -824,11 +824,11 @@ pub(crate) mod rules_rts_22_2 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -988,11 +988,11 @@ pub(crate) mod rules_rts_22_3 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -1163,11 +1163,11 @@ pub(crate) mod rules_rts_22_4 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -1348,11 +1348,11 @@ pub(crate) mod rules_rts_48_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -1541,11 +1541,11 @@ pub(crate) mod rules_rts_32_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -1720,11 +1720,11 @@ pub(crate) mod rules_rts_25_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -1878,11 +1878,11 @@ pub(crate) mod rules_rts_23_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -2065,11 +2065,11 @@ pub(crate) mod rules_rts_27_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -2261,11 +2261,11 @@ pub(crate) mod rules_rts_28_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -2444,11 +2444,11 @@ pub(crate) mod rules_rts_24_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -2617,11 +2617,11 @@ pub(crate) mod rules_rts_24_2 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -2786,11 +2786,11 @@ pub(crate) mod rules_rts_24_3 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -2962,11 +2962,11 @@ pub(crate) mod rules_rts_24_4 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -3158,11 +3158,11 @@ pub(crate) mod rules_rts_29_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -3361,11 +3361,11 @@ pub(crate) mod rules_rts_29_2 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -3554,11 +3554,11 @@ pub(crate) mod rules_rts_29_3 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -3760,11 +3760,11 @@ pub(crate) mod rules_rts_39_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -3973,11 +3973,11 @@ pub(crate) mod rules_rts_40_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -4202,11 +4202,11 @@ pub(crate) mod rules_rts_30_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -4420,11 +4420,11 @@ pub(crate) mod rules_rts_30_2 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -4699,11 +4699,11 @@ pub(crate) mod rules_rts_34_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -6461,11 +6461,11 @@ pub(crate) mod rules_rts_38_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -6665,11 +6665,11 @@ pub(crate) mod rules_rts_38_2 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -6854,11 +6854,11 @@ pub(crate) mod rules_rts_38_3 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -8242,11 +8242,11 @@ pub(crate) mod rules_rts_26_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -8433,11 +8433,11 @@ pub(crate) mod rules_rts_16_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -8803,11 +8803,11 @@ pub(crate) mod rules_rts_33_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -9925,11 +9925,11 @@ pub(crate) mod rules_rts_41_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -10118,11 +10118,11 @@ pub(crate) mod rules_rts_42_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -10443,11 +10443,11 @@ pub(crate) mod rules_rts_43_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -10768,11 +10768,11 @@ pub(crate) mod rules_rts_44_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -11720,11 +11720,11 @@ pub(crate) mod rules_rts_100_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 

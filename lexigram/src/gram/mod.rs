@@ -29,7 +29,7 @@ impl<R: Read> Gram<'_, '_, R> {
     pub fn new(symbol_table: SymbolTable, grammar: CharReader<R>) -> Self {
         let listener = GramListener::new(symbol_table);
         let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
-        wrapper.get_mut_listener().set_verbose(Self::VERBOSE_LISTENER);
+        wrapper.get_listener_mut().set_verbose(Self::VERBOSE_LISTENER);
         let mut gramlexer = build_lexer();
         gramlexer.set_tab_width(4);
         gramlexer.attach_stream(grammar);
@@ -40,8 +40,8 @@ impl<R: Read> Gram<'_, '_, R> {
         }
     }
 
-    pub fn get_mut_listener(&mut self) -> &mut GramListener {
-        self.wrapper.get_mut_listener()
+    pub fn get_listener_mut(&mut self) -> &mut GramListener {
+        self.wrapper.get_listener_mut()
     }
 
     pub fn get_listener(&self) -> &GramListener {
@@ -53,7 +53,7 @@ impl<R: Read> Gram<'_, '_, R> {
             panic!("unexpected channel {ch} from Gram while parsing a grammar, line {line} col {col}, \"{text}\"")
         );
         if let Err(e) = self.gramparser.parse_stream(&mut self.wrapper, tokens) {
-            self.get_mut_listener().get_mut_log().add_error(e.to_string());
+            self.get_listener_mut().get_mut_log().add_error(e.to_string());
         }
         let log = self.get_listener().get_log();
         if !log.has_no_errors() {
@@ -72,7 +72,7 @@ impl<R: Read> LogReader for Gram<'_, '_, R> {
     }
 
     fn give_log(self) -> Self::Item {
-        let listener = self.wrapper.listener();
+        let listener = self.wrapper.give_listener();
         listener.give_log()
     }
 }
@@ -89,7 +89,7 @@ impl<R: Read> BuildFrom<Gram<'_, '_, R>> for ProdRuleSet<LL1> {
     /// is built with the log detailing the error(s).
     fn build_from(mut gram: Gram<R>) -> ProdRuleSet<LL1> {
         let _ = gram.make();
-        let listener = gram.wrapper.listener();
+        let listener = gram.wrapper.give_listener();
         let name = listener.get_name().to_string();
         let mut prs = ProdRuleSet::<General>::from(listener);
         prs.set_name(Some(name));

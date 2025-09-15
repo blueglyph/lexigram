@@ -25,6 +25,7 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
+#[allow(unused)]
 enum Action { Verify, Generate }
 
 fn main() {

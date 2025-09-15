@@ -37,7 +37,7 @@ impl<R: Read> Lexi<'_, '_, R> {
     pub fn new(lexicon: CharReader<R>) -> Self {
         let listener = LexiListener::new();
         let mut wrapper = Wrapper::new(listener, Self::VERBOSE_WRAPPER);
-        wrapper.get_mut_listener().set_verbose(Self::VERBOSE_LISTENER);
+        wrapper.get_listener_mut().set_verbose(Self::VERBOSE_LISTENER);
         let mut lexilexer = build_lexer();
         lexilexer.set_tab_width(4);
         lexilexer.attach_stream(lexicon);
@@ -49,8 +49,8 @@ impl<R: Read> Lexi<'_, '_, R> {
         }
     }
 
-    pub fn get_mut_listener(&mut self) -> &mut LexiListener {
-        self.wrapper.get_mut_listener()
+    pub fn get_listener_mut(&mut self) -> &mut LexiListener {
+        self.wrapper.get_listener_mut()
     }
 
     pub fn get_listener(&self) -> &LexiListener {
@@ -69,8 +69,8 @@ impl<R: Read> Lexi<'_, '_, R> {
                 }
             });
             if self.lexiparser.parse_stream(&mut self.wrapper, tokens).is_ok() {
-                for s in self.get_mut_listener().rules_to_vecstrings() {
-                    self.get_mut_listener().get_mut_log().add_note(s);
+                for s in self.get_listener_mut().rules_to_vecstrings() {
+                    self.get_listener_mut().get_mut_log().add_note(s);
                 }
             }
         }
@@ -85,7 +85,7 @@ impl<R: Read> LogReader for Lexi<'_, '_, R> {
     }
 
     fn give_log(self) -> Self::Item {
-        let listener = self.wrapper.listener();
+        let listener = self.wrapper.give_listener();
         listener.give_log()
     }
 }
@@ -97,7 +97,7 @@ impl<R: Read> HasBuildErrorSource for Lexi<'_, '_, R> {
 impl<R: Read> BuildFrom<Lexi<'_, '_, R>> for SymbolicDfa {
     fn build_from(mut lexi: Lexi<R>) -> Self {
         lexi.make();
-        let listener = lexi.wrapper.listener();
+        let listener = lexi.wrapper.give_listener();
         let symbol_table = listener.make_symbol_table();
         SymbolicDfa {
             dfa: listener.build_into(),

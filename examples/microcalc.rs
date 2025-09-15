@@ -57,9 +57,9 @@ impl MCalc<'_, '_> {
             panic!("unexpected channel {ch} while parsing a file, line {line} col {col}, \"{text}\"")
         );
         if let Err(e) = self.parser.parse_stream(&mut self.wrapper, tokens) {
-            self.wrapper.get_mut_listener().get_mut_log().add_error(e.to_string());
+            self.wrapper.get_listener_mut().get_mut_log().add_error(e.to_string());
         }
-        let log = std::mem::take(&mut self.wrapper.get_mut_listener().log);
+        let log = std::mem::take(&mut self.wrapper.get_listener_mut().log);
         if log.has_no_errors() {
             Ok(log)
         } else {
@@ -544,11 +544,11 @@ pub mod microcalc_parser {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 

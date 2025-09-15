@@ -351,7 +351,7 @@ mod listener {
             Self { listener, stack_t: Vec::new() }
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
     }
@@ -564,7 +564,7 @@ mod listener {
                         false
                     }
                 };
-                let listener = wrapper.listener();
+                let listener = wrapper.give_listener();
                 if VERBOSE {
                     let msg = listener.log.get_messages().map(|s| format!("- {s:?}")).join("\n");
                     if !msg.is_empty() {
