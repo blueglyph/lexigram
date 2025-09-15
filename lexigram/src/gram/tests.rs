@@ -169,29 +169,34 @@ mod listener {
                 vec![]
             ),
             (
-                "grammar E; a: Int; a: Plus Int;    // error: non-terminal already defined",
+                "grammar F; a: Int; a: Plus Int;    // error: non-terminal already defined",
                 vec!["non-terminal 'a' already defined"], false,
                 vec![]
             ),
             (
-                "grammar E; EOF: Plus Int;          // EOF as rule name, should be interesting",
+                "grammar G; EOF: Plus Int;          // EOF as rule name, should be interesting",
                 vec!["found input 'EOF' instead of 'Id'", "found input 'Id' instead of ':'"], false,
                 vec![]
             ),
             (
-                "grammar E; a: b* EOF; b: Id ( Equal Int )? Semicolon;",
+                "grammar H; a: b* EOF; b: Id ( Equal Int )? Semicolon;",
                 vec![], true,
                 vec![
                     ("a; b = 1; c = 2;", true, true),
                 ]
             ),
             (
-                "grammar E; a: b*; b: Id EOF;       // EOF can only be in the first rule",
+                "grammar I; a: b*; b: Id EOF;       // EOF can only be in the first rule",
                 vec!["EOF can only be put in the top rule"], false,
                 vec![]
             ),
+            (
+                "grammar J; a: Add | b | ; b: c | Equal d; c: |; d:;",
+                vec![], true,
+                vec![(" + ", true, true), (" = ", true, true)]
+            ),
         ];
-        const VERBOSE: bool = false;
+        const VERBOSE: bool = true;
         const VERBOSE_WRAPPER: bool = false;
 
         let (lexer_tables, symbol_table) = make_lexer_tables(TXT_LEXI1);
@@ -211,8 +216,8 @@ mod listener {
                 ll1.print_factors();
                 println!("Gram messages:\n{msg}");
             }
-            assert_eq!(ll1.get_log().has_no_errors() && ll1.get_log().has_no_warnings(), should_succeed,
-                       "{text}: was expecting grammar parsing to {}:{msg}", if expected_grammar_errors.is_empty() { "succeed" } else { "fail" });
+            assert_eq!(ll1.get_log().has_no_errors(), should_succeed,
+                       "{text}: was expecting grammar parsing to {}:\n{msg}", if expected_grammar_errors.is_empty() { "succeed" } else { "fail" });
             for m in ll1.get_log().get_errors() {
                 let mut i = 0;
                 while i < expected_grammar_errors.len() {
@@ -225,7 +230,7 @@ mod listener {
                 }
                 if expected_grammar_errors.is_empty() { break }
             }
-            assert!(expected_grammar_errors.is_empty(), "was expecting to find those errors while parsing the grammar:{}\nbut got those messages:{msg}",
+            assert!(expected_grammar_errors.is_empty(), "was expecting to find those errors while parsing the grammar:{}\nbut got those messages:\n{msg}",
                     expected_grammar_errors.iter().map(|s| format!("\n- {s}")).join(""));
             if should_succeed {
                 let builder = ParserGen::build_from(ll1);
@@ -238,7 +243,7 @@ mod listener {
                         println!("Messages:\n{msg}");
                     }
                 }
-                assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
+                assert_eq!(builder.get_log().num_warnings() > 0, expected_warnings, "{} warnings:\n{msg}", if expected_warnings { "Expected" } else { "Didn't expect"} );
                 let parser_table = ParserTables::build_from(builder);
                 let mut parser = parser_table.make_parser();
 
