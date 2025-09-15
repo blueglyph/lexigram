@@ -41,6 +41,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "rtsgen"
+version = "0.1.0"
+dependencies = [
+ "iter-index",
+ "lexigram",
+ "lexigram_lib",
+ "vectree",
+]
+
+[[package]]
 name = "vectree"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"

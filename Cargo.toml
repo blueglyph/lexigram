@@ -14,7 +14,7 @@ vectree = "0.2.3"
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(for_later, possible_alternative)'] }
 
 [workspace]
-members = [".", "lexigram", "build-stage1", "build-stage2"]
+members = [".", "lexigram", "build-stage1", "build-stage2", "rtsgen"]
 default-members = [".", "lexigram", "build-stage1", "build-stage2"]
 
 # Temporary:
@@ -29,12 +29,6 @@ test = true
 [[example]]
 name = "microcalc"
 test = true
-
-[[example]]
-name = "gen_rtsgen"
-
-[[example]]
-name = "rtsgen"
 
 [dev-dependencies]
 lexigram = { path = "lexigram" }

@@ -1,5 +1,7 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+#![cfg(test)]
+
 use std::fs::File;
 use std::io::BufReader;
 use lexigram::{Gram, Lexi};
@@ -12,9 +14,9 @@ use lexigram_lib::log::{BufLog, LogStatus, TryBuildFrom, TryBuildInto};
 use lexigram_lib::parsergen::ParserGen;
 use lexigram_lib::test_tools::{get_tagged_source, replace_tagged_source};
 
-static LEXICON_FILENAME: &str = "examples/rtsgen.l";
-static GRAMMAR_FILENAME: &str = "examples/rtsgen.g";
-static SOURCE_FILENAME: &str = "examples/rtsgen.rs";
+static LEXICON_FILENAME: &str = "src/rtsgen.l";
+static GRAMMAR_FILENAME: &str = "src/rtsgen.g";
+static SOURCE_FILENAME: &str = "src/rtsgen.rs";
 static LEXER_TAG: &str = "rtsgen_lexer";
 static PARSER_TAG: &str = "rtsgen_parser";
 const LEXER_INDENT: usize = 4;
@@ -22,15 +24,24 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
-#[allow(unused)]
-enum Action { Verify, Generate }
-
-fn main() {
+#[ignore]
+#[test]
+fn test_gen_source() {
     match gen_source(Action::Generate) {
         Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
         Err(build_error) => println!("{build_error}"),
     }
 }
+
+#[test]
+fn test_check_source() {
+    match gen_source(Action::Verify) {
+        Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
+        Err(build_error) => println!("{build_error}"),
+   }
+}
+
+enum Action { Verify, Generate }
 
 fn gen_source(action: Action) -> Result<BufLog, BuildError> {
     // 1. Lexer
@@ -84,23 +95,4 @@ fn gen_source(action: Action) -> Result<BufLog, BuildError> {
     }
 
     Ok(log)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[ignore]
-    #[test]
-    fn test_gen_source() {
-        main();
-    }
-
-    #[test]
-    fn test_check_source() {
-        match gen_source(Action::Verify) {
-            Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-            Err(build_error) => println!("{build_error}"),
-       }
-    }
 }

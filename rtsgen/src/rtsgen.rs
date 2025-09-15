@@ -9,61 +9,14 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use lexigram_lib::{CollectJoin, General, NameFixer, SymbolTable};
 use lexigram_lib::dfa::TokenId;
-use lexigram_lib::grammar::{grtree_to_str, GrNode, GrTree, GrTreeExt, RuleTreeSet, Symbol, VarId};
+use lexigram_lib::grammar::{GrNode, GrTree, RuleTreeSet, Symbol, VarId};
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, LogReader, LogStatus, Logger};
+use lexigram_lib::log::{BufLog, LogStatus, Logger};
 use lexigram_lib::parser::Parser;
-use crate::listener_types::*;
-use crate::rtsgen_lexer::build_lexer;
-use crate::rtsgen_parser::*;
-
-const VERBOSE_WRAPPER: bool = false;
-
-static TXT1: &str = r#"
-    a => |(&(A B b) C D &(E F) G H &(I J)); // RTS form
-    b => |(+(&("-" "=")) ?(|(C D)) E);
-"#;
-
-static TXT2: &str = r#"
-    a -> A B b | C | D | E F | G | H | I J; // PRS form
-    b -> (A B)+ | (C | D)? | E;
-"#;
-
-static TXT3: &str = r#"
-    a => |(&(A B b) C D &(E F) G H &(I J)); // RTS form
-    b -> (A B)+ | (C | D)? | E;             // PRS form
-"#;
-
-fn main() {
-    let mut parser = RtsGen::new();
-    for text in vec![TXT1, TXT2, TXT3] {
-        println!("{:=<80}\n{text}\n{0:=<80}", "");
-        match parser.parse(text.to_string()) {
-            Ok(rts) => {
-                println!("Rules:");
-                for (v, tree) in rts.get_trees_iter() {
-                    println!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(rts.get_symbol_table()), grtree_to_str(tree, None, None, rts.get_symbol_table(), false));
-                }
-                println!("details:");
-                for (v, tree) in rts.get_trees_iter() {
-                    println!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(rts.get_symbol_table()), tree.to_str(None, rts.get_symbol_table()));
-                }
-                println!("Symbol table:");
-                let symtab = rts.get_symbol_table().unwrap();
-                println!("- nonterminals:\n{}", symtab.get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).join("\n"));
-                println!("- terminals:\n{}",
-                         symtab.get_terminals().enumerate()
-                             .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v}") } else { String::new() })).join("\n"));
-                println!("Log:\n{}", rts.get_log())
-            }
-            Err(log) => println!("errors during parsing:\n{log}"),
-        }
-    }
-}
-
-// -------------------------------------------------------------------------
-// minimalist parser, top level
+use crate::rtsgen::listener_types::*;
+use crate::rtsgen::rtsgen_lexer::build_lexer;
+use crate::rtsgen::rtsgen_parser::*;
 
 static T_GUESS_NAMES: &[(&str, &str); 47] = &[
     ("+", "Add"), ("-", "Sub"), ("*", "Mul"), ("/", "Div"), ("%", "Percent"), ("++", "Inc"), ("--", "Dec"),
@@ -79,32 +32,39 @@ static T_GUESS_NAMES: &[(&str, &str); 47] = &[
 pub struct RtsGen<'l, 'p> {
     lexer: Lexer<'l, Cursor<String>>,
     parser: Parser<'p>,
-    wrapper: Option<Wrapper<RGListener>>,
+    guess_names: Option<HashMap<String, String>>,
 }
 
 impl RtsGen<'_, '_> {
     pub fn new() -> Self {
+        let guess_names = Some(HashMap::from_iter(T_GUESS_NAMES.into_iter().map(|(a, b)| (a.to_string(), b.to_string()))));
+        RtsGen::with_guess_names(guess_names)
+    }
+
+    pub fn with_guess_names(guess_names: Option<HashMap<String, String>>) -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
-        RtsGen { lexer, parser, wrapper: None }
+        RtsGen { lexer, parser, guess_names }
     }
 
     pub fn parse(&mut self, text: String) -> Result<RuleTreeSet<General>, BufLog> {
-        self.wrapper = Some(Wrapper::new(RGListener::new(), VERBOSE_WRAPPER));
+        const VERBOSE_WRAPPER: bool = false;
+
+        let mut wrapper = Wrapper::new(RGListener::new(self.guess_names.as_ref()), VERBOSE_WRAPPER);
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
         let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
             panic!("unexpected channel {ch} while parsing a file, line {line} col {col}, \"{text}\"")
         );
-        let _ = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens); // errors are written in the log, so we can dismiss the error here
-        let listener = self.wrapper.take().unwrap().give_listener();
+        let _ = self.parser.parse_stream(&mut wrapper, tokens); // errors are written in the log, so we can dismiss the error here
+        let listener = wrapper.give_listener();
         listener.make_rts()
     }
 }
 
 // listener implementation
 
-struct RGListener {
+struct RGListener<'a> {
     log: BufLog,
     nt: HashMap<String, VarId>,
     nt_def_order: Vec<VarId>,
@@ -116,6 +76,7 @@ struct RGListener {
     curr: Option<GrTree>,
     curr_name: Option<String>,
     curr_nt: Option<VarId>,
+    guess_names: Option<&'a HashMap<String, String>>,
 }
 
 enum IsNew { No, Yes }
@@ -134,8 +95,8 @@ impl ToVarId for usize {
     }
 }
 
-impl RGListener {
-    fn new() -> Self {
+impl<'a> RGListener<'a> {
+    fn new(guess_names: Option<&'a HashMap<String, String>>) -> Self {
         RGListener {
             log: BufLog::new(),
             nt: HashMap::new(),
@@ -147,6 +108,7 @@ impl RGListener {
             curr: None,
             curr_name: None,
             curr_nt: None,
+            guess_names,
         }
     }
 
@@ -218,10 +180,8 @@ impl RGListener {
         }
 
         // put names to constant terminals
-        let guess_names: HashMap<String, String> = HashMap::from_iter(T_GUESS_NAMES.into_iter().map(|(a, b)| (a.to_string(), b.to_string())));
         for (tok, (_, cst_maybe)) in self.tokens.iter().enumerate().filter(|(_, (name, _))| name.is_empty()) {
-            let guess = guess_names.get(cst_maybe.as_ref().unwrap())
-                .cloned()
+            let guess = self.guess_names.and_then(|g| g.get(cst_maybe.as_ref().unwrap()).cloned())
                 .unwrap_or_else(|| format!("Token{tok}"));
             let new_name = namefixer.get_unique_name(guess);
             t_name[tok] = (new_name, cst_maybe.clone());
@@ -247,7 +207,7 @@ impl RGListener {
     }
 }
 
-impl RtsGenListener for RGListener {
+impl RtsGenListener for RGListener<'_> {
     fn get_mut_log(&mut self) -> &mut impl Logger {
         &mut self.log
     }
@@ -1003,13 +963,3 @@ pub mod rtsgen_parser {
 }
 
 // -------------------------------------------------------------------------
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_rtsgen() {
-        main();
-    }
-}
