@@ -8,9 +8,9 @@ use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
 use lexigram_lib::lexergen::LexerGen;
 use lexigram_lib::{BuildError, LL1};
-use lexigram_lib::log::{BufLog, TryBuildFrom, TryBuildInto};
+use lexigram_lib::log::{BufLog, LogStatus, TryBuildFrom, TryBuildInto};
 use lexigram_lib::parsergen::ParserGen;
-use lexigram_lib::test_tools::replace_tagged_source;
+use lexigram_lib::test_tools::{get_tagged_source, replace_tagged_source};
 
 static LEXICON_FILENAME: &str = "examples/rtsgen.l";
 static GRAMMAR_FILENAME: &str = "examples/rtsgen.g";
@@ -22,14 +22,16 @@ const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
 
+enum Action { Verify, Generate }
+
 fn main() {
-    match gen_source() {
+    match gen_source(Action::Generate) {
         Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
         Err(build_error) => println!("{build_error}"),
     }
 }
 
-fn gen_source() -> Result<BufLog, BuildError> {
+fn gen_source(action: Action) -> Result<BufLog, BuildError> {
     // 1. Lexer
 
     let file = File::open(LEXICON_FILENAME)
@@ -66,15 +68,38 @@ fn gen_source() -> Result<BufLog, BuildError> {
     let (parser_log, parser_source) = builder.try_gen_source_code(PARSER_INDENT, true)?;
     log.extend(parser_log);
 
-    // - writes the source code between existing tags:
-    replace_tagged_source(SOURCE_FILENAME, PARSER_TAG, &parser_source)
-        .expect(&format!("parser source replacement failed; check that file {SOURCE_FILENAME} exists and has the tags {PARSER_TAG}"));
+    match action {
+        Action::Verify => {
+            assert!(log.has_no_errors(), "errors in the log:\n{log}");
+            let expected = get_tagged_source(SOURCE_FILENAME, PARSER_TAG);
+            assert!(expected.is_some(), "didn't find the expected sources for comparison");
+            assert_eq!(parser_source, expected.unwrap());
+        }
+        Action::Generate => {
+            // - writes the source code between existing tags:
+            replace_tagged_source(SOURCE_FILENAME, PARSER_TAG, &parser_source)
+                .expect(&format!("parser source replacement failed; check that file {SOURCE_FILENAME} exists and has the tags {PARSER_TAG}"));
+        }
+    }
 
     Ok(log)
 }
 
 #[cfg(test)]
-#[test]
-fn test_gen_source() {
-    main();
+mod tests {
+    use super::*;
+
+    #[ignore]
+    #[test]
+    fn test_gen_source() {
+        main();
+    }
+
+    #[test]
+    fn test_check_source() {
+        match gen_source(Action::Verify) {
+            Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
+            Err(build_error) => println!("{build_error}"),
+       }
+    }
 }

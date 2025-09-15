@@ -36,9 +36,10 @@ static TXT3: &str = r#"
 "#;
 
 fn main() {
+    let mut parser = RtsGen::new();
     for text in vec![TXT1, TXT2, TXT3] {
         println!("{:=<80}\n{text}\n{0:=<80}", "");
-        match RtsGen::parse(text.to_string()) {
+        match parser.parse(text.to_string()) {
             Ok(rts) => {
                 println!("Rules:");
                 for (v, tree) in rts.get_trees_iter() {
@@ -78,45 +79,26 @@ static T_GUESS_NAMES: &[(&str, &str); 47] = &[
 pub struct RtsGen<'l, 'p> {
     lexer: Lexer<'l, Cursor<String>>,
     parser: Parser<'p>,
-    wrapper: Wrapper<RGListener>,
+    wrapper: Option<Wrapper<RGListener>>,
 }
 
 impl RtsGen<'_, '_> {
     pub fn new() -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
-        let wrapper = Wrapper::new(RGListener::new(), VERBOSE_WRAPPER);
-        RtsGen { lexer, parser, wrapper }
+        RtsGen { lexer, parser, wrapper: None }
     }
 
-    pub fn parse(text: String) -> Result<RuleTreeSet<General>, BufLog> {
-        let mut rtsgen = Self::new();
+    pub fn parse(&mut self, text: String) -> Result<RuleTreeSet<General>, BufLog> {
+        self.wrapper = Some(Wrapper::new(RGListener::new(), VERBOSE_WRAPPER));
         let stream = CharReader::new(Cursor::new(text));
-        rtsgen.lexer.attach_stream(stream);
-        let tokens = rtsgen.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
+        self.lexer.attach_stream(stream);
+        let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
             panic!("unexpected channel {ch} while parsing a file, line {line} col {col}, \"{text}\"")
         );
-        if let Err(e) = rtsgen.parser.parse_stream(&mut rtsgen.wrapper, tokens) {
-            rtsgen.wrapper.get_mut_listener().get_mut_log().add_error(e.to_string());
-        }
-        if rtsgen.wrapper.get_listener().log.has_no_errors() {
-            let listener = rtsgen.wrapper.listener();
-            Ok(Self::make_rts(listener))
-        } else {
-            let log = std::mem::take(&mut rtsgen.wrapper.get_mut_listener().log);
-            Err(log)
-        }
-    }
-
-    fn make_rts(listener: RGListener) -> RuleTreeSet<General> {
-        let RGListener { log, rules, symbol_table, .. } = listener;
-        let symbol_table = symbol_table.unwrap();
-        let mut rts = RuleTreeSet::<General>::with_log(log);
-        rts.set_symbol_table(symbol_table);
-        for (var, rule) in rules.into_iter().index::<VarId>() {
-            rts.set_tree(var, rule);
-        }
-        rts
+        let _ = self.parser.parse_stream(self.wrapper.as_mut().unwrap(), tokens); // errors are written in the log, so we can dismiss the error here
+        let listener = self.wrapper.take().unwrap().give_listener();
+        listener.make_rts()
     }
 }
 
@@ -165,6 +147,20 @@ impl RGListener {
             curr: None,
             curr_name: None,
             curr_nt: None,
+        }
+    }
+
+    pub fn make_rts(self) -> Result<RuleTreeSet<General>, BufLog> {
+        let RGListener { log, rules, symbol_table, .. } = self;
+        if log.has_no_errors() {
+            let mut rts = RuleTreeSet::<General>::with_log(log);
+            rts.set_symbol_table(symbol_table.unwrap());
+            for (var, rule) in rules.into_iter().index::<VarId>() {
+                rts.set_tree(var, rule);
+            }
+            Ok(rts)
+        } else {
+            Err(log)
         }
     }
 
@@ -826,11 +822,11 @@ pub mod rtsgen_parser {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
