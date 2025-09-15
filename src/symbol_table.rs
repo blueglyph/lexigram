@@ -268,7 +268,7 @@ impl SymInfoTable for SymbolTable {
     fn get_name_quote(&self, symbol: &Symbol) -> String {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),
-            Symbol::T(token) => if self.is_symbol_t_fixed(symbol) { format!("\"{}\"", self.get_t_str(*token)) } else { self.get_t_str(*token) },
+            Symbol::T(token) => if self.is_symbol_t_fixed(symbol) { format!("{:?}", self.get_t_str(*token)) } else { self.get_t_str(*token) },
             Symbol::NT(var) => self.get_nt_name(*var),
         }
     }

@@ -55,7 +55,7 @@ impl Symbol {
     /// Converts the symbol to string, using the symbol table if available, and
     /// surrounding it with quotes if it's a string literal.
     pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        symbol_table.map(|t| t.get_name_quote(self)).unwrap_or(self.to_string())
+        symbol_table.map(|t| t.get_name_quote(self)).unwrap_or(format!("{:?}", self.to_string()))
     }
 
     /// Converts the symbol to string, using the symbol table if available.
@@ -498,7 +498,7 @@ impl<'a> GrTreeFmt<'a> {
             result.push(':');
         }
         let name = if let GrNode::Symbol(sym) = node {
-            sym.to_str(self.symbol_table)
+            sym.to_str_quote(self.symbol_table)
         } else {
             node.to_string()
         };
