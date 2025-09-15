@@ -5,8 +5,12 @@ ruleset:
 ;
 
 rule:
-    Nonterminal DArrow rts_expr Semicolon
-|   Nonterminal Arrow prs_expr Semicolon
+    rule_nt DArrow rts_expr Semicolon
+|   rule_nt Arrow prs_expr Semicolon
+;
+
+rule_nt:
+    Nonterminal
 ;
 
 rts_expr:
