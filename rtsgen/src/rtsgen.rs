@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::io::Cursor;
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use lexigram_lib::{CollectJoin, General, NameFixer, SymbolTable};
+use lexigram_lib::{General, NameFixer, SymbolTable};
 use lexigram_lib::dfa::TokenId;
 use lexigram_lib::grammar::{GrNode, GrTree, RuleTreeSet, Symbol, VarId};
 use lexigram_lib::io::CharReader;
@@ -156,8 +156,10 @@ impl<'a> RGListener<'a> {
     /// Finalizes the rules and creates the symbol table.
     fn finalize_ruleset(&mut self) {
         let mut nt_name = vec![String::new(); self.nt.len()];
+        let mut dest = vec![0; self.nt.len()];
+        self.nt_def_order.iter().enumerate().for_each(|(i, &nt)| dest[nt as usize] = i);
         for (name, var) in &self.nt {
-            nt_name[self.nt_def_order[*var as usize] as usize] = name.clone();
+            nt_name[dest[*var as usize]] = name.clone();
         }
 
         // check undefined nonterminals
@@ -190,16 +192,16 @@ impl<'a> RGListener<'a> {
         self.symbol_table = Some(symtab);
 
         // reorder nonterminal IDs by order of definition rather than order of appearance
-        self.log.add_note(format!("NT def order: {}", self.nt_def_order.iter().join(", ")));
         self.rules = self.nt_def_order.iter()
             .map(|nt| std::mem::take(self.rules.get_mut(*nt as usize).unwrap()))
             .collect();
-        let conv: HashMap<VarId, VarId> = self.nt_def_order.iter().copied().index::<VarId>().collect();
         for rule in &mut self.rules {
             for mut node in rule.iter_depth_simple_mut() {
                 match *node {
+                    // GrNode::Symbol(Symbol::NT(ref mut old))
+                    // | GrNode::LForm(ref mut old) => *old = *conv.get(old).unwrap(),
                     GrNode::Symbol(Symbol::NT(ref mut old))
-                    | GrNode::LForm(ref mut old) => *old = *conv.get(old).unwrap(),
+                    | GrNode::LForm(ref mut old) => *old = dest[*old as usize] as VarId,
                     _ => {}
                 }
             }
