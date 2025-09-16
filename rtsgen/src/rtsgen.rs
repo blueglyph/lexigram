@@ -165,11 +165,12 @@ impl<'a> RGListener<'a> {
         // self.log.add_note(format!("NT def order:  {}", self.nt_def_order.iter().join(", ")));
         // self.log.add_note(format!("reorder table: {}", dest.iter().join(", ")));
         // self.log.add_note(format!("nt: {}", self.nt.iter().map(|(name, var)| format!("{name:?}->NT({var})")).join(", ")));
-        let undefined = self.nt.iter()
+        let mut undefined = self.nt.iter()
             .filter_map(|(name, &var)| if self.rules[var as usize].is_empty() { Some(name.to_string()) } else { None })
             .to_vec();
         if !undefined.is_empty() {
-            self.log.add_error(format!("undefined nonterminals: {}", undefined.join(", ")));
+            undefined.sort(); // comes from hashmap
+            self.log.add_error(format!("undefined nonterminals: {}", undefined.into_iter().map(|s| format!("'{s}'")).join(", ")));
             return;
         }
 
@@ -246,8 +247,16 @@ impl RtsGenListener for RGListener<'_> {
     fn exit_rule_nt(&mut self, ctx: CtxRuleNt) -> SynRuleNt {
         let CtxRuleNt::RuleNt { nonterminal } = ctx;
         assert_eq!(self.curr_nt, None);
-        let var = self.get_or_create_nt(nonterminal.clone());
-        self.nt_def_order.push(var);
+        let var = if let Some(&var) = self.nt.get(&nonterminal) {
+            if self.nt_def_order.len() >= var as usize {
+                self.log.add_error(format!("nonterminal '{nonterminal}' is defined multiple times"));
+            }
+            var
+        } else {
+            let var = self.get_or_create_nt(nonterminal.clone());
+            self.nt_def_order.push(var);
+            var
+        };
         self.curr_nt = Some(var);
         self.curr_name = Some(nonterminal);
         SynRuleNt(var)

@@ -6,13 +6,12 @@
 // Simple parser based on microcalc lexicon and grammar
 
 use lexigram_lib::grammar::{grtree_to_str, GrTreeExt, Symbol};
-use lexigram_lib::log::LogReader;
+use lexigram_lib::log::{LogReader, LogStatus};
 use lexigram_lib::CollectJoin;
 use crate::RtsGen;
 
 #[test]
 fn simple() {
-    let mut parser = RtsGen::new();
     let tests = vec![
         (   // 0: simple RTS with & + ? * |
             vec![
@@ -92,7 +91,7 @@ fn simple() {
                 r#"y => "y";"#,
                 r#"z => "z";"#]
         ),
-        /*
+        /* template:
         (
             vec![r#""#],
             vec![r#""#]
@@ -101,6 +100,7 @@ fn simple() {
     ];
     const VERBOSE: bool = false;
     const VERBOSE_ANSWER: bool = false;
+    let mut parser = RtsGen::new();
     let mut errors = 0;
     for (test_id, (text_vec, expected)) in tests.into_iter().enumerate() {
         let text = text_vec.join("\n");
@@ -148,3 +148,75 @@ fn simple() {
     assert!(errors == 0, "{errors} error(s)");
 }
 
+#[test]
+fn catch_errors() {
+    let tests: Vec<(Vec<&str>, Vec<&str>)> = vec![
+        (   // 0: undefined nonterminals
+            vec![r#"x -> (<L=x1> y | (<L=x2> "+" z)+ )*;"#],
+            vec!["undefined nonterminals: 'y', 'z'"],
+        ),
+        (   // 1: string literals
+            vec![r#"esc -> "\w";"#],
+            vec!["lexical error: invalid character 'w'"],
+        ),
+        (   // 2: string literals
+            vec![r#"esc -> "\u{123456789abcdef}";"#],
+            vec!["'123456789abcdef' isn't a valid hexadecimal value"],
+        ),
+        (   // 4: nonterminal already defined
+            vec![r#"a -> "a"; a -> "b";"#],
+            vec!["nonterminal 'a' is defined multiple times"],
+        ),
+        /* template:
+        (   //
+            vec![],
+            vec![],
+        ),
+        */
+    ];
+    const VERBOSE: bool = false;
+    const VERBOSE_ANSWER: bool = false;
+    const TEST_UNEXPECTED: bool = false; // errors tend to generate others in cascade
+    let mut parser = RtsGen::new();
+    let mut errors = 0;
+    for (test_id, (text_vec, mut expected_errors)) in tests.into_iter().enumerate() {
+        let text = text_vec.join("\n");
+        if VERBOSE { println!("\n{:=<80}\n{text}\n{0:=<80}\ntest {test_id}:", "", ); }
+        let msg = format!("## ERROR ## test {test_id} failed");
+        let log = match parser.parse(text) {
+            Ok(rts) => rts.give_log(),
+            Err(log) => log,
+        };
+        if VERBOSE { println!("Log:\n{log}"); }
+        let mut result_errors = log.get_errors().map(|s| s.as_str()).to_vec();
+        if VERBOSE_ANSWER {
+            println!("Result:");
+            println!("            vec![\n{}", result_errors.iter().map(|s| format!("                {s:?},")).join("\n"));
+            println!("            ],");
+        }
+        if !TEST_UNEXPECTED && expected_errors.is_empty() {
+            println!("{msg}: there is no expected errors in this test");
+            errors += 1;
+        }
+        for i_res in 0..result_errors.len() {
+            for i_exp in 0..expected_errors.len() {
+                if result_errors[i_res].contains(&expected_errors[i_exp]) {
+                    result_errors.remove(i_res);
+                    expected_errors.remove(i_exp);
+                    break;
+                }
+            }
+        }
+        if !expected_errors.is_empty() || TEST_UNEXPECTED && !result_errors.is_empty() {
+            errors += 1;
+            println!("{msg}:");
+            if !expected_errors.is_empty() {
+                println!("- missing errors:\n{}", expected_errors.into_iter().map(|s| format!("  - {s}")).join("\n"));
+            }
+            if TEST_UNEXPECTED && !result_errors.is_empty() {
+                println!("- unexpected errors:\n{}", result_errors.into_iter().map(|s| format!("  - {s}")).join("\n"));
+            }
+        }
+    }
+    assert!(errors == 0, "{errors} error(s)");
+}
