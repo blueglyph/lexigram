@@ -14,7 +14,7 @@ use crate::RtsGen;
 fn simple() {
     let mut parser = RtsGen::new();
     let tests = vec![
-        (
+        (   // 0: simple RTS with & + ? * |
             vec![
                 r#"a => |(&(A B b) C D &(E F) G H &(I J)); // RTS form"#,
                 r#"b => |(+(&("-" "=")) *(".") ?(|(C D)) E);"#],
@@ -22,15 +22,15 @@ fn simple() {
                 r#"a => |(&(A, B, b), C, D, &(E, F), G, H, &(I, J));"#,
                 r#"b => |(+(&("-", "=")), *("."), ?(|(C, D)), E);"#]
         ),
-        (
+        (   // 1: simple PRS with & + ? * |
             vec![
                 r#"a -> A B b | C | D | E F | G | H | I J; // PRS form"#,
-                r#"b -> (A B)+ | (C | D)? | E;"#],
+                r#"b -> (A B)+ | (C | D)? | (E F)* | G;"#],
             vec![
                 r#"a => |(&(A, B, b), C, D, &(E, F), G, H, &(I, J));"#,
-                r#"b => |(+(&(A, B)), ?(|(C, D)), E);"#]
+                r#"b => |(+(&(A, B)), ?(|(C, D)), *(&(E, F)), G);"#]
         ),
-        (
+        (   // 2: mix RTS/PRS
             vec![
                 r#"a => |(&(A B b) C D &(E F) G H &(I J)); // RTS form"#,
                 r#"b -> (A B)* | (C | D)? | E;             // PRS form"#],
@@ -38,26 +38,26 @@ fn simple() {
                 r#"a => |(&(A, B, b), C, D, &(E, F), G, H, &(I, J));"#,
                 r#"b => |(*(&(A, B)), ?(|(C, D)), E);"#]
         ),
-        (
+        (   // 3: empty
             vec![r#"a -> "." | ε | € | {};"#],
             vec![r#"a => |(".", ε, ε, ε);"#]
         ),
-        (
+        (   // 4: <R> <P>
             vec![r#"a -> <R> a "^" a | a "*" a | <P> a "/" a | Id;"#],
             vec![r#"a => |(&(<R>, a, "^", a), &(a, "*", a), &(<P>, a, "/", a), Id);"#]
         ),
-        (
+        (   // 5: <L> in rrec
             vec![r#"a -> <L> "-" a | "+";"#],
             vec![r#"a => |(&(<L=a>, "-", a), "+");"#]
         ),
-        (
+        (   // 6: <L=nt> in +
             vec![
                 r#"line -> (<L=line_iter> "-")+;"#],
             vec![
                 r#"line => +(&(<L=line_iter>, "-"));"#,
                 r#"line_iter => ε;"#]
         ),
-        (
+        (   // 7: string literals
             vec![
                 r#"char -> esc | unicode;"#,
                 r#"esc -> "\n\r\t" | "\"\\";"#,
@@ -67,7 +67,7 @@ fn simple() {
                 r#"esc => |("\n\r\t", "\"\\");"#,
                 r#"unicode => "ε";"#]
         ),
-        (
+        (   // 8: reordering
             vec![
                 r#"a -> "a" d (<L=a_iter> c)+;"#,
                 r#"b -> "b";"#,
@@ -79,6 +79,18 @@ fn simple() {
                 r#"b => "b";"#,
                 r#"c => &("c", b);"#,
                 r#"d => &("d", b);"#]
+        ),
+        (   // 9: embedded + * with <L=nt>
+            vec![
+                r#"x -> (<L=x1> y | (<L=x2> "+" z)+ )*;"#,
+                r#"y -> "y";"#,
+                r#"z -> "z";"#],
+            vec![
+                r#"x => *(|(&(<L=x1>, y), +(&(<L=x2>, "+", z))));"#,
+                r#"x1 => ε;"#,
+                r#"x2 => ε;"#,
+                r#"y => "y";"#,
+                r#"z => "z";"#]
         ),
         /*
         (

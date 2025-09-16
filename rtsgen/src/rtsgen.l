@@ -7,8 +7,8 @@ fragment UnicodeEsc     : 'u{' HexDigit+ '}';
 fragment EscChar        : '\\' ([nrt"\\] | UnicodeEsc);
 fragment Char           : EscChar | ~[\n\r\t"\\];
 fragment StrLiteral     : '"' Char+ '"';
-fragment NonterminalId  : [a-z][a-z_]*;
-fragment TerminalId     : [A-Z][a-zA-Z_]*;
+fragment NonterminalId  : [a-z][a-z0-9_]*;
+fragment TerminalId     : [A-Z][a-zA-Z0-9_]*;
 
 SComment                : BlockComment              -> skip;
 SLineComment            : LineComment               -> skip;
