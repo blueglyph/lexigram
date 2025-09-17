@@ -5,9 +5,9 @@
 // =============================================================================================
 // Simple parser based on microcalc lexicon and grammar
 
-use lexigram_lib::grammar::{grtree_to_str, GrTreeExt, Symbol};
+use lexigram_lib::grammar::{grtree_to_str, GrTreeExt, RuleTreeSet, Symbol};
 use lexigram_lib::log::{LogReader, LogStatus};
-use lexigram_lib::CollectJoin;
+use lexigram_lib::{CollectJoin, General};
 use crate::RtsGen;
 
 #[test]
@@ -104,7 +104,7 @@ fn simple() {
     let mut errors = 0;
     for (test_id, (text_vec, expected)) in tests.into_iter().enumerate() {
         let text = text_vec.join("\n");
-        if VERBOSE { println!("\n{:=<80}\n{text}\n{0:=<80}\ntest {test_id}:", "", ); }
+        if VERBOSE { println!("\n{:=<80}\n{text}\n{0:-<80}\ntest {test_id}:", "", ); }
         let msg = format!("## ERROR ## test {test_id} failed");
         match parser.parse(text) {
             Ok(rts) => {
@@ -181,7 +181,7 @@ fn catch_errors() {
     let mut errors = 0;
     for (test_id, (text_vec, mut expected_errors)) in tests.into_iter().enumerate() {
         let text = text_vec.join("\n");
-        if VERBOSE { println!("\n{:=<80}\n{text}\n{0:=<80}\ntest {test_id}:", "", ); }
+        if VERBOSE { println!("\n{:=<80}\n{text}\n{0:-<80}\ntest {test_id}:", "", ); }
         let msg = format!("## ERROR ## test {test_id} failed");
         let log = match parser.parse(text) {
             Ok(rts) => rts.give_log(),
@@ -216,6 +216,67 @@ fn catch_errors() {
             if TEST_UNEXPECTED && !result_errors.is_empty() {
                 println!("- unexpected errors:\n{}", result_errors.into_iter().map(|s| format!("  - {s}")).join("\n"));
             }
+        }
+    }
+    assert!(errors == 0, "{errors} error(s)");
+}
+
+#[test]
+fn t_names() {
+    let tests = vec![
+        (
+            vec![r#"a -> "a" | "b" "+" "a" | "all_your_base" | "+++" | "ε";"#],
+            vec![
+                ("A", Some("a")),
+                ("B", Some("b")),
+                ("Add", Some("+")),
+                ("AllYourBase", Some("all_your_base")),
+                ("Token4", Some("+++")),
+                ("Token5", Some("ε")),
+            ],
+        ),
+        (
+            vec![r#"a -> "1" | "123x" | "_hidden" | X | "in words" | " " | "\n";"#],
+            vec![
+                ("Tok1", Some("1")),
+                ("Tok123x", Some("123x")),
+                ("TokHidden", Some("_hidden")),
+                ("X", None),
+                ("InWords", Some("in words")),
+                ("Space", Some(" ")),
+                ("EOL", Some("\n")),
+            ],
+        )
+    ];
+    const VERBOSE: bool = false;
+    const VERBOSE_ANSWER: bool = false;
+    let mut parser = RtsGen::new();
+    let mut errors = 0;
+    for (test_id, (text_vec, expected_t)) in tests.into_iter().enumerate() {
+        let text = text_vec.join("\n");
+        if VERBOSE { println!("\n{:=<80}\n{text}\n{0:-<80}\ntest {test_id}:", "", ); }
+        let msg = format!("## ERROR ## test {test_id} failed");
+        let rts = parser.parse(text)
+            .unwrap_or_else(|log| RuleTreeSet::<General>::with_log(log));
+        if rts.get_log().has_no_errors() {
+            if VERBOSE { println!("Log:\n{}", rts.get_log()); }
+            // let expected_t = expected_t.into_iter().map(|(n, v_maybe)| (n.to_string(), v_maybe.map(|v| v.to_string()))).to_vec();
+            let result_t = rts.get_symbol_table().unwrap()
+                .get_terminals()
+                .map(|(n, v_maybe)| (n.as_str(), v_maybe.as_ref().map(|s| s.as_str())))
+                .to_vec();
+            if result_t != expected_t {
+                errors += 1;
+                println!("{msg}: mismatch\n- result  : {result_t:?}\n- expected: {expected_t:?}");
+            }
+            if VERBOSE_ANSWER {
+                println!("Result:");
+                println!("            vec![\n{}", result_t.iter().map(|s| format!("                {s:?},")).join("\n"));
+                println!("            ],");
+            }
+        } else {
+            errors += 1;
+            println!("{msg}: parsing errors\n{}", rts.get_log());
         }
     }
     assert!(errors == 0, "{errors} error(s)");

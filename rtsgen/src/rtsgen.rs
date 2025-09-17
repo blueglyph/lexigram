@@ -7,7 +7,7 @@ use std::collections::HashMap;
 use std::io::Cursor;
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use lexigram_lib::{CollectJoin, General, NameFixer, SymbolTable};
+use lexigram_lib::{CollectJoin, General, NameFixer, NameTransformer, SymbolTable};
 use lexigram_lib::dfa::TokenId;
 use lexigram_lib::grammar::{GrNode, GrTree, RuleTreeSet, Symbol, VarId};
 use lexigram_lib::io::CharReader;
@@ -18,7 +18,7 @@ use crate::rtsgen::listener_types::*;
 use crate::rtsgen::rtsgen_lexer::build_lexer;
 use crate::rtsgen::rtsgen_parser::*;
 
-static T_GUESS_NAMES: &[(&str, &str); 47] = &[
+static T_NAME_DICTIONARY: &[(&str, &str)] = &[
     ("+", "Add"), ("-", "Sub"), ("*", "Mul"), ("/", "Div"), ("%", "Percent"), ("++", "Inc"), ("--", "Dec"),
     ("<<", "Shl"), (">>", "Shr"), ("!", "Not"), ("^", "Exp"), ("~", "Tilde"),
     ("&", "And"), ("|", "Or"), ("&&", "And2"), ("||", "Or2"),
@@ -27,30 +27,31 @@ static T_GUESS_NAMES: &[(&str, &str); 47] = &[
     ("(", "LPar"), (")", "RPar"), ("[", "LSBracket"), ("]", "RSBracker"), ("{", "LBracket"), ("}", "RBracket"),
     ("\"", "DQuote"), ("'", "Quote"), ("$", "Dollar"), ("?", "Question"), ("\\", "Backslash"),
     (":", "Colon"), (";", "SemiColon"), (".", "Dot"), (",", "Comma"), ("#", "Sharp"), ("@", "At"), ("´", "Tick"), ("`", "BTick"),
+    ("\n", "EOL"), ("\r\n", "WinEOL"), ("\r", "CR"), ("\t", "Tab"), (" ", "Space"), ("\\", "Backslash"), ("\0", "Null")
 ];
 
 pub struct RtsGen<'l, 'p> {
     lexer: Lexer<'l, Cursor<String>>,
     parser: Parser<'p>,
-    guess_names: Option<HashMap<String, String>>,
+    t_name_dictionary: Option<HashMap<String, String>>,
 }
 
 impl RtsGen<'_, '_> {
     pub fn new() -> Self {
-        let guess_names = Some(HashMap::from_iter(T_GUESS_NAMES.into_iter().map(|(a, b)| (a.to_string(), b.to_string()))));
-        RtsGen::with_guess_names(guess_names)
+        let t_name_dictionary = Some(HashMap::from_iter(T_NAME_DICTIONARY.into_iter().map(|(a, b)| (a.to_string(), b.to_string()))));
+        RtsGen::with_guess_names(t_name_dictionary)
     }
 
-    pub fn with_guess_names(guess_names: Option<HashMap<String, String>>) -> Self {
+    pub fn with_guess_names(t_name_dictionary: Option<HashMap<String, String>>) -> Self {
         let lexer = build_lexer();
         let parser = build_parser();
-        RtsGen { lexer, parser, guess_names }
+        RtsGen { lexer, parser, t_name_dictionary }
     }
 
     pub fn parse(&mut self, text: String) -> Result<RuleTreeSet<General>, BufLog> {
         const VERBOSE_WRAPPER: bool = false;
 
-        let mut wrapper = Wrapper::new(RGListener::new(self.guess_names.as_ref()), VERBOSE_WRAPPER);
+        let mut wrapper = Wrapper::new(RGListener::new(self.t_name_dictionary.as_ref()), VERBOSE_WRAPPER);
         let stream = CharReader::new(Cursor::new(text));
         self.lexer.attach_stream(stream);
         let tokens = self.lexer.tokens().split_channel0(|(_tok, ch, text, line, col)|
@@ -76,7 +77,7 @@ struct RGListener<'a> {
     curr: Option<GrTree>,
     curr_name: Option<String>,
     curr_nt: Option<VarId>,
-    guess_names: Option<&'a HashMap<String, String>>,
+    t_name_dictionary: Option<&'a HashMap<String, String>>,
 }
 
 enum IsNew { No, Yes }
@@ -96,7 +97,7 @@ impl ToVarId for usize {
 }
 
 impl<'a> RGListener<'a> {
-    fn new(guess_names: Option<&'a HashMap<String, String>>) -> Self {
+    fn new(t_name_dictionary: Option<&'a HashMap<String, String>>) -> Self {
         RGListener {
             log: BufLog::new(),
             nt: HashMap::new(),
@@ -108,7 +109,7 @@ impl<'a> RGListener<'a> {
             curr: None,
             curr_name: None,
             curr_nt: None,
-            guess_names,
+            t_name_dictionary,
         }
     }
 
@@ -153,6 +154,25 @@ impl<'a> RGListener<'a> {
         (is_new, tok)
     }
 
+    fn invent_t_name(&self, tok: TokenId, value: &str) -> String {
+        self.t_name_dictionary
+            .and_then(|g| g.get(value).cloned())
+            .unwrap_or_else(|| {
+                if value.chars().any(|c| c.is_ascii_alphanumeric()) &&
+                    value.chars().all(|c| c.is_ascii_alphanumeric() || c.is_whitespace() || c == '_')
+                {
+                    let name = value.chars().map(|c| if c.is_whitespace() { '_' } else { c }).collect::<String>();
+                    if !value.as_bytes()[0].is_ascii_alphabetic() {
+                        format!("Tok{}", name.to_camelcase())
+                    } else {
+                        name.to_camelcase()
+                    }
+                } else {
+                    format!("Token{tok}")
+                }
+            })
+    }
+
     /// Finalizes the rules and creates the symbol table.
     fn finalize_ruleset(&mut self) {
         let mut nt_name = vec![String::new(); self.nt.len()];
@@ -162,9 +182,7 @@ impl<'a> RGListener<'a> {
             nt_name[dest[*var as usize]] = name.clone();
         }
 
-        // self.log.add_note(format!("NT def order:  {}", self.nt_def_order.iter().join(", ")));
-        // self.log.add_note(format!("reorder table: {}", dest.iter().join(", ")));
-        // self.log.add_note(format!("nt: {}", self.nt.iter().map(|(name, var)| format!("{name:?}->NT({var})")).join(", ")));
+        // detects undefined nonterminals
         let mut undefined = self.nt.iter()
             .filter_map(|(name, &var)| if self.rules[var as usize].is_empty() { Some(name.to_string()) } else { None })
             .to_vec();
@@ -174,7 +192,7 @@ impl<'a> RGListener<'a> {
             return;
         }
 
-        // build symbol table
+        // builds symbol table
         let mut symtab = SymbolTable::new();
         symtab.extend_nonterminals(nt_name);
         let mut t_name = vec![(String::new(), None); self.tokens.len()];
@@ -184,17 +202,15 @@ impl<'a> RGListener<'a> {
             t_name[tok] = (name.clone(), None);
         }
 
-        // put names to constant terminals
+        // puts names to constant terminals
         for (tok, (_, cst_maybe)) in self.tokens.iter().enumerate().filter(|(_, (name, _))| name.is_empty()) {
-            let guess = self.guess_names.and_then(|g| g.get(cst_maybe.as_ref().unwrap()).cloned())
-                .unwrap_or_else(|| format!("Token{tok}"));
-            let new_name = namefixer.get_unique_name(guess);
+            let new_name = namefixer.get_unique_name(self.invent_t_name(tok as TokenId, cst_maybe.as_ref().unwrap()));
             t_name[tok] = (new_name, cst_maybe.clone());
         }
         symtab.extend_terminals(t_name);
         self.symbol_table = Some(symtab);
 
-        // reorder nonterminal IDs by order of definition rather than order of appearance
+        // reorders nonterminal IDs by order of definition rather than order of appearance
         self.rules = self.nt_def_order.iter()
             .map(|nt| std::mem::take(self.rules.get_mut(*nt as usize).unwrap()))
             .collect();
@@ -246,17 +262,19 @@ impl RtsGenListener for RGListener<'_> {
 
     fn exit_rule_nt(&mut self, ctx: CtxRuleNt) -> SynRuleNt {
         let CtxRuleNt::RuleNt { nonterminal } = ctx;
+        let mut error = false;
         assert_eq!(self.curr_nt, None);
         let var = if let Some(&var) = self.nt.get(&nonterminal) {
-            if self.nt_def_order.len() >= var as usize {
+            if !self.rules[var as usize].is_empty() {
+                error = true;
                 self.log.add_error(format!("nonterminal '{nonterminal}' is defined multiple times"));
             }
             var
         } else {
             let var = self.get_or_create_nt(nonterminal.clone());
-            self.nt_def_order.push(var);
             var
         };
+        if !error { self.nt_def_order.push(var); }
         self.curr_nt = Some(var);
         self.curr_name = Some(nonterminal);
         SynRuleNt(var)
