@@ -3,6 +3,8 @@
 // =============================================================================================
 // Simple parser based on microcalc lexicon and grammar
 
+#![cfg(feature = "rtsgen")]
+
 mod tests;
 
 use std::collections::HashMap;

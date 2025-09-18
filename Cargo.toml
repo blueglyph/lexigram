@@ -6,6 +6,10 @@ authors = []
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+default = ["rtsgen"]
+rtsgen = []     # text parser that generates an RTS and its symbol table, used in tests
+
 [dependencies]
 iter-index = "1.0.0"
 vectree = "0.2.3"
