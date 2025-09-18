@@ -25,7 +25,7 @@ pub struct FromRTS;
 /// and associates it with a node [`VarId`, usize] of the original [`RuleTreeSet`] rules
 /// after normalization (but keeping the * and + ops).
 ///
-/// The factors of the ProdRuleSet store their own [`VarId`, usize] links to the original
+/// The alternatives of the ProdRuleSet store their own [`VarId`, usize] links to the original
 /// nodes because it's easier than to track the data when they're moved around.
 pub struct FromPRS;
 

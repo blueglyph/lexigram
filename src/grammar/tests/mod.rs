@@ -921,8 +921,8 @@ impl<T> ProdRuleSet<T> {
     }
 
     pub(crate) fn print_prs_summary(&self) {
-        let factors = self.get_alts().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
-        print_factors(&factors, self.get_symbol_table());
+        let alts = self.get_alts().map(|(v, f)| (v, f.clone())).collect::<Vec<_>>();
+        print_alts(&alts, self.get_symbol_table());
         let nt_flags = self.flags.iter().index().filter_map(|(nt, &f)|
             if f != 0 { Some(format!("  - NT[{nt}] {}: {} ({})", Symbol::NT(nt).to_str(self.get_symbol_table()), ruleflag::to_string(f).join(" | "), f)) } else { None }
         ).join("\n");
@@ -938,9 +938,9 @@ impl<T> ProdRuleSet<T> {
     }
 }
 
-pub fn print_factors<T: SymInfoTable>(factors: &Vec<(VarId, Alternative)>, symbol_table: Option<&T>) {
-    println!("factors:\n{}",
-             factors.iter().enumerate().map(|(id, (v, f))|
+pub fn print_alts<T: SymInfoTable>(alts: &Vec<(VarId, Alternative)>, symbol_table: Option<&T>) {
+    println!("alternatives:\n{}",
+             alts.iter().enumerate().map(|(id, (v, f))|
                  format!("            // - {id}: {} -> {}{}",
                          Symbol::NT(*v).to_str(symbol_table),
                          f.to_str(symbol_table),
@@ -1960,21 +1960,21 @@ fn rts_prs() {
         ])
     ];
     const VERBOSE: bool = false;
-    for (ll_id, start, expected_factors) in tests {
+    for (ll_id, start, expected_alts) in tests {
         let mut ll1 = build_ll1_from_rts(ll_id);
         ll1.set_start(start);
         let first = ll1.calc_first();
         let follow = ll1.calc_follow(&first);
         let parsing_table = ll1.calc_table(&first, &follow, false);
-        let LLParsingTable { alts: factors, .. } = &parsing_table;
+        let LLParsingTable { alts, .. } = &parsing_table;
         if VERBOSE {
-            print_factors(&factors, ll1.get_symbol_table());
+            print_alts(&alts, ll1.get_symbol_table());
             println!("{}",
-                     factors.iter().enumerate().map(|(_id, (v, f))|
+                     alts.iter().enumerate().map(|(_id, (v, f))|
                          format!("            ({v}, alt!({})),", f.iter().map(|s| s.to_macro_item()).join(", "))
                      ).join("\n"));
         }
-        assert_eq!(*factors, expected_factors, "test {ll_id}/{start} failed");
+        assert_eq!(*alts, expected_alts, "test {ll_id}/{start} failed");
     }
 }
 

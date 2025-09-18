@@ -414,7 +414,7 @@ fn prs_grammar_notes() {
                 println!("=>");
                 ll1.print_rules(false, false);
                 if let Some(table) = &parsing_table {
-                    print_factors(&table.alts, ll1.get_symbol_table());
+                    print_alts(&table.alts, ll1.get_symbol_table());
                     println!("table:");
                     table.print(ll1.get_symbol_table(), 12);
                 }
@@ -1549,7 +1549,7 @@ fn prs_calc_table() {
         // ]),
     ];
     const VERBOSE: bool = false;
-    for (test_id, (rule_id, start, expected_warnings, expected_factors, expected_table)) in tests.into_iter().enumerate() {
+    for (test_id, (rule_id, start, expected_warnings, expected_alts, expected_table)) in tests.into_iter().enumerate() {
         let mut ll1 = rule_id.build_prs(test_id, start, false);
         if VERBOSE {
             println!("{:=<80}\ntest {test_id} with {rule_id:?}/{start}:", "");
@@ -1562,14 +1562,14 @@ fn prs_calc_table() {
             map_and_print_follow(&follow, ll1.get_symbol_table());
         }
         let parsing_table = ll1.calc_table(&first, &follow, true);
-        let LLParsingTable { num_nt, num_t, alts: factors, table, .. } = &parsing_table;
+        let LLParsingTable { num_nt, num_t, alts, table, .. } = &parsing_table;
         assert_eq!(num_nt * num_t, table.len(), "incorrect table size in test {test_id}/{rule_id:?}/{start}");
         if VERBOSE {
             println!("num_nt = {num_nt}, num_t = {num_t}");
             ll1.print_rules(false, false);
-            print_factors(&factors, ll1.get_symbol_table());
+            print_alts(&alts, ll1.get_symbol_table());
             println!("{}",
-                     factors.iter().enumerate().map(|(_id, (v, f))| {
+                     alts.iter().enumerate().map(|(_id, (v, f))| {
                          let flags = if f.get_flags() != 0 {
                              let mut vf = ruleflag::alt_info_to_string(f.get_flags());
                              format!("#{}, ", if vf.len() == 1 { vf.pop().unwrap() } else { f.get_flags().to_string() })
@@ -1597,7 +1597,7 @@ fn prs_calc_table() {
             }
             ll1.print_logs();
         }
-        assert_eq!(*factors, expected_factors, "test {test_id}/{rule_id:?}/{start} failed");
+        assert_eq!(*alts, expected_alts, "test {test_id}/{rule_id:?}/{start} failed");
         assert_eq!(*table, expected_table, "test {test_id}/{rule_id:?}/{start} failed");
         assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id}/{rule_id:?}/{start} failed on # errors");
         assert_eq!(ll1.log.num_warnings(), expected_warnings, "test {test_id}/{rule_id:?}/{start} failed, warnings: {}", ll1.log.get_warnings().join("\n"));

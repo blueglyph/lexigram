@@ -121,11 +121,11 @@ impl<'a> Parser<'a> {
             match (stack_sym, stream_sym) {
                 (OpCode::NT(var), _) | (OpCode::Loop(var), _) => {
                     let sr = if let Symbol::T(sr) = stream_sym { sr } else { end_var_id };
-                    let factor_id = self.table[var as usize * self.num_t + sr as usize];
-                    if factor_id >= error_skip_alt_id {
+                    let alt_id = self.table[var as usize * self.num_t + sr as usize];
+                    if alt_id >= error_skip_alt_id {
                         break false;
                     }
-                    stack.extend(self.opcodes[factor_id as usize].clone());
+                    stack.extend(self.opcodes[alt_id as usize].clone());
                     stack_sym = stack.pop().unwrap();
                 }
                 (OpCode::Exit(_), _) => {

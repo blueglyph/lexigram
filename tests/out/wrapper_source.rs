@@ -90,9 +90,9 @@ pub(crate) mod rules_prs_34_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -107,13 +107,13 @@ pub(crate) mod rules_prs_34_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 |                                         // S -> id = VAL
                         1 |                                         // S -> exit
-                        2 => self.exit_s(factor_id),                // S -> return VAL
+                        2 => self.exit_s(alt_id),                // S -> return VAL
                         3 |                                         // VAL -> id
-                        4 => self.exit_val(factor_id),              // VAL -> num
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        4 => self.exit_val(alt_id),              // VAL -> num
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -162,8 +162,8 @@ pub(crate) mod rules_prs_34_1 {
             self.listener.exit(s);
         }
 
-        fn exit_s(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_s(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 0 => {
                     let val = self.stack.pop().unwrap().get_val();
                     let id = self.stack_t.pop().unwrap();
@@ -176,14 +176,14 @@ pub(crate) mod rules_prs_34_1 {
                     let val = self.stack.pop().unwrap().get_val();
                     CtxS::S3 { val }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_s")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_s")
             };
             let val = self.listener.exit_s(ctx);
             self.stack.push(SynValue::S(val));
         }
 
-        fn exit_val(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_val(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 3 => {
                     let id = self.stack_t.pop().unwrap();
                     CtxVal::Val1 { id }
@@ -192,7 +192,7 @@ pub(crate) mod rules_prs_34_1 {
                     let num = self.stack_t.pop().unwrap();
                     CtxVal::Val2 { num }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_val")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_val")
             };
             let val = self.listener.exit_val(ctx);
             self.stack.push(SynValue::Val(val));
@@ -4884,9 +4884,9 @@ pub(crate) mod rules_prs_28_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -4901,15 +4901,15 @@ pub(crate) mod rules_prs_28_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         1 |                                         // A -> e
                         3 |                                         // A_1 -> ε
                         4 |                                         // A_2 -> c
                         5 |                                         // A_2 -> d
-                        6 => self.exit_a(factor_id),                // A_2 -> ε
+                        6 => self.exit_a(alt_id),                // A_2 -> ε
                      /* 0 */                                        // A -> a A_1 (never called)
                      /* 2 */                                        // A_1 -> b A_2 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -4958,8 +4958,8 @@ pub(crate) mod rules_prs_28_1 {
             self.listener.exit(a);
         }
 
-        fn exit_a(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_a(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let e = self.stack_t.pop().unwrap();
                     CtxA::A1 { e }
@@ -4985,7 +4985,7 @@ pub(crate) mod rules_prs_28_1 {
                     let a = self.stack_t.pop().unwrap();
                     CtxA::A5 { a, b }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -5077,9 +5077,9 @@ pub(crate) mod rules_prs_31_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -5095,12 +5095,12 @@ pub(crate) mod rules_prs_31_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.inter_e(),                        // E -> F E_1
                         2 => self.exit_e1(),                        // E_1 -> . id E_1
                         3 => self.exitloop_e1(),                    // E_1 -> ε
                         1 => self.exit_f(),                         // F -> id
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -5256,9 +5256,9 @@ pub(crate) mod rules_prs_31_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -5274,12 +5274,12 @@ pub(crate) mod rules_prs_31_2 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.inter_e(),                        // E -> F E_1
                         2 => self.exit_e1(),                        // E_1 -> . id E_1
                         3 => {}                                     // E_1 -> ε (not used)
                         1 => self.exit_f(),                         // F -> id
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -5428,9 +5428,9 @@ pub(crate) mod rules_prs_36_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -5446,13 +5446,13 @@ pub(crate) mod rules_prs_36_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 |                                         // E -> F E_1
-                        1 => self.inter_e(factor_id),               // E -> num E_1
+                        1 => self.inter_e(alt_id),               // E -> num E_1
                         3 => self.exit_e1(),                        // E_1 -> . id E_1
                         4 => self.exitloop_e1(),                    // E_1 -> ε
                         2 => self.exit_f(),                         // F -> id
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -5501,8 +5501,8 @@ pub(crate) mod rules_prs_36_1 {
             self.listener.exit(e);
         }
 
-        fn inter_e(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn inter_e(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 0 => {
                     let f = self.stack.pop().unwrap().get_f();
                     CtxE::E1 { f }
@@ -5511,7 +5511,7 @@ pub(crate) mod rules_prs_36_1 {
                     let num = self.stack_t.pop().unwrap();
                     CtxE::E2 { num }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn inter_e")
+                _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -5614,9 +5614,9 @@ pub(crate) mod rules_prs_33_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -5631,13 +5631,13 @@ pub(crate) mod rules_prs_33_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         3 |                                         // A_2 -> c A_1
-                        4 => self.inter_a(factor_id),               // A_2 -> d A_1
+                        4 => self.inter_a(alt_id),               // A_2 -> d A_1
                         1 => self.exit_a1(),                        // A_1 -> a A_1
                         2 => self.exitloop_a1(),                    // A_1 -> ε
                      /* 0 */                                        // A -> b A_2 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -5686,8 +5686,8 @@ pub(crate) mod rules_prs_33_1 {
             self.listener.exit(a);
         }
 
-        fn inter_a(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn inter_a(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 3 => {
                     let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
@@ -5698,7 +5698,7 @@ pub(crate) mod rules_prs_33_1 {
                     let b = self.stack_t.pop().unwrap();
                     CtxA::A3 { b, d }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn inter_a")
+                _ => panic!("unexpected alt id {alt_id} in fn inter_a")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -5798,9 +5798,9 @@ pub(crate) mod rules_prs_38_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -5815,14 +5815,14 @@ pub(crate) mod rules_prs_38_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         4 |                                         // A_2 -> c A_1
-                        5 => self.inter_a(factor_id),               // A_2 -> d A_1
+                        5 => self.inter_a(alt_id),               // A_2 -> d A_1
                         1 |                                         // A_1 -> a A_1
-                        2 => self.exit_a1(factor_id),               // A_1 -> b A_1
+                        2 => self.exit_a1(alt_id),               // A_1 -> b A_1
                         3 => self.exitloop_a1(),                    // A_1 -> ε
                      /* 0 */                                        // A -> b A_2 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -5871,8 +5871,8 @@ pub(crate) mod rules_prs_38_1 {
             self.listener.exit(a);
         }
 
-        fn inter_a(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn inter_a(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 4 => {
                     let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
@@ -5883,14 +5883,14 @@ pub(crate) mod rules_prs_38_1 {
                     let b = self.stack_t.pop().unwrap();
                     CtxA::A4 { b, d }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn inter_a")
+                _ => panic!("unexpected alt id {alt_id} in fn inter_a")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a1(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_a1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
@@ -5901,7 +5901,7 @@ pub(crate) mod rules_prs_38_1 {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A2 { a, b }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -5997,9 +5997,9 @@ pub(crate) mod rules_prs_39_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -6014,15 +6014,15 @@ pub(crate) mod rules_prs_39_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         3 |                                         // A_2 -> c A_1
-                        4 => self.inter_a(factor_id),               // A_2 -> d A_1
+                        4 => self.inter_a(alt_id),               // A_2 -> d A_1
                         5 |                                         // A_3 -> b A_1
-                        6 => self.exit_a1(factor_id),               // A_3 -> c A_1
+                        6 => self.exit_a1(alt_id),               // A_3 -> c A_1
                         2 => self.exitloop_a1(),                    // A_1 -> ε
                      /* 0 */                                        // A -> b A_2 (never called)
                      /* 1 */                                        // A_1 -> a A_3 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -6071,8 +6071,8 @@ pub(crate) mod rules_prs_39_1 {
             self.listener.exit(a);
         }
 
-        fn inter_a(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn inter_a(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 3 => {
                     let c = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
@@ -6083,14 +6083,14 @@ pub(crate) mod rules_prs_39_1 {
                     let b = self.stack_t.pop().unwrap();
                     CtxA::A2 { b, d }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn inter_a")
+                _ => panic!("unexpected alt id {alt_id} in fn inter_a")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a1(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_a1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 5 => {
                     let b = self.stack_t.pop().unwrap();
                     let a1 = self.stack_t.pop().unwrap();
@@ -6103,7 +6103,7 @@ pub(crate) mod rules_prs_39_1 {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A4 { a, a1, c }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a1")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -6206,9 +6206,9 @@ pub(crate) mod rules_prs_32_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -6224,14 +6224,14 @@ pub(crate) mod rules_prs_32_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.inter_e(),                        // E -> F E_1
                         4 |                                         // E_2 -> ( ) E_1
-                        5 => self.exit_e1(factor_id),               // E_2 -> E_1
+                        5 => self.exit_e1(alt_id),               // E_2 -> E_1
                         3 => self.exitloop_e1(),                    // E_1 -> ε
                      /* 2 */                                        // E_1 -> . id E_2 (never called)
                         1 => self.exit_f(),                         // F -> id
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -6286,8 +6286,8 @@ pub(crate) mod rules_prs_32_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e1(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_e1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 4 => {
                     let id = self.stack_t.pop().unwrap();
                     let e = self.stack.pop().unwrap().get_e();
@@ -6298,7 +6298,7 @@ pub(crate) mod rules_prs_32_1 {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E3 { e, id }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -6972,9 +6972,9 @@ pub(crate) mod rules_prs_20_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -6989,11 +6989,11 @@ pub(crate) mod rules_prs_20_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> id : id ; LIST
-                        2 => self.exit_list(factor_id),             // LIST -> }
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        2 => self.exit_list(alt_id),             // LIST -> }
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -7049,8 +7049,8 @@ pub(crate) mod rules_prs_20_1 {
             self.stack.push(SynValue::Struct(val));
         }
 
-        fn exit_list(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_list(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let list = self.stack.pop().unwrap().get_list();
                     let id_2 = self.stack_t.pop().unwrap();
@@ -7060,7 +7060,7 @@ pub(crate) mod rules_prs_20_1 {
                 2 => {
                     CtxList::List2
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_list")
             };
             let val = self.listener.exit_list(ctx);
             self.stack.push(SynValue::List(val));
@@ -7144,9 +7144,9 @@ pub(crate) mod rules_prs_20_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -7161,11 +7161,11 @@ pub(crate) mod rules_prs_20_2 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> id : id ; LIST
-                        2 => self.exit_list(factor_id),             // LIST -> }
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        2 => self.exit_list(alt_id),             // LIST -> }
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -7220,8 +7220,8 @@ pub(crate) mod rules_prs_20_2 {
             self.stack.push(SynValue::Struct(val));
         }
 
-        fn exit_list(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_list(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let id_2 = self.stack_t.pop().unwrap();
                     let id_1 = self.stack_t.pop().unwrap();
@@ -7230,7 +7230,7 @@ pub(crate) mod rules_prs_20_2 {
                 2 => {
                     CtxList::List2
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_list")
             };
             self.listener.exit_list(ctx);
         }
@@ -7323,9 +7323,9 @@ pub(crate) mod rules_prs_37_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -7341,13 +7341,13 @@ pub(crate) mod rules_prs_37_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> }
                         3 |                                         // LIST_1 -> : id ; LIST
-                        4 => self.exit_list(factor_id),             // LIST_1 -> ; LIST
+                        4 => self.exit_list(alt_id),             // LIST_1 -> ; LIST
                      /* 2 */                                        // LIST -> id LIST_1 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -7403,8 +7403,8 @@ pub(crate) mod rules_prs_37_1 {
             self.stack.push(SynValue::Struct(val));
         }
 
-        fn exit_list(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_list(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     CtxList::List1
                 }
@@ -7419,7 +7419,7 @@ pub(crate) mod rules_prs_37_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxList::List3 { id, list }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_list")
             };
             let val = self.listener.exit_list(ctx);
             self.stack.push(SynValue::List(val));
@@ -7490,9 +7490,9 @@ pub(crate) mod rules_prs_44_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -7508,12 +7508,12 @@ pub(crate) mod rules_prs_44_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         2 |                                         // A_1 -> a A
-                        3 => self.exit_a(factor_id),                // A_1 -> ε
+                        3 => self.exit_a(alt_id),                // A_1 -> ε
                      /* 0 */                                        // A -> B A_1 (never called)
                         1 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -7562,8 +7562,8 @@ pub(crate) mod rules_prs_44_1 {
             self.listener.exit(a);
         }
 
-        fn exit_a(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_a(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 2 => {
                     let a1 = self.stack.pop().unwrap().get_a();
                     let a = self.stack_t.pop().unwrap();
@@ -7574,7 +7574,7 @@ pub(crate) mod rules_prs_44_1 {
                     let b = self.stack.pop().unwrap().get_b();
                     CtxA::A2 { b }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -7651,9 +7651,9 @@ pub(crate) mod rules_prs_48_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -7668,11 +7668,11 @@ pub(crate) mod rules_prs_48_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 |                                         // A -> <L> a A
-                        1 => self.exit_a(factor_id),                // A -> <L> B
+                        1 => self.exit_a(alt_id),                // A -> <L> B
                         2 => self.exit_b(),                         // B -> b
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -7726,8 +7726,8 @@ pub(crate) mod rules_prs_48_1 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_a(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_a(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 0 => {
                     let a1 = self.stack_t.pop().unwrap();
                     let a = self.stack.pop().unwrap().get_a();
@@ -7738,7 +7738,7 @@ pub(crate) mod rules_prs_48_1 {
                     let a = self.stack.pop().unwrap().get_a();
                     CtxA::A2 { a, b }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -7834,9 +7834,9 @@ pub(crate) mod rules_prs_30_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -7851,11 +7851,11 @@ pub(crate) mod rules_prs_30_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> <L> id : id ; LIST
-                        2 => self.exit_list(factor_id),             // LIST -> <L> }
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        2 => self.exit_list(alt_id),             // LIST -> <L> }
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -7916,8 +7916,8 @@ pub(crate) mod rules_prs_30_1 {
             self.stack.push(SynValue::List(val));
         }
 
-        fn exit_list(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_list(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let id_2 = self.stack_t.pop().unwrap();
                     let id_1 = self.stack_t.pop().unwrap();
@@ -7928,7 +7928,7 @@ pub(crate) mod rules_prs_30_1 {
                     let list = self.stack.pop().unwrap().get_list();
                     CtxList::List2 { list }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_list")
             };
             let val = self.listener.exit_list(ctx);
             self.stack.push(SynValue::List(val));
@@ -8012,9 +8012,9 @@ pub(crate) mod rules_prs_30_2 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -8029,11 +8029,11 @@ pub(crate) mod rules_prs_30_2 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 => self.exit_struct(),                    // STRUCT -> struct id { LIST
                         1 |                                         // LIST -> <L> id : id ; LIST
-                        2 => self.exit_list(factor_id),             // LIST -> <L> }
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        2 => self.exit_list(alt_id),             // LIST -> <L> }
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -8088,8 +8088,8 @@ pub(crate) mod rules_prs_30_2 {
             self.stack.push(SynValue::Struct(val));
         }
 
-        fn exit_list(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_list(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let id_2 = self.stack_t.pop().unwrap();
                     let id_1 = self.stack_t.pop().unwrap();
@@ -8098,7 +8098,7 @@ pub(crate) mod rules_prs_30_2 {
                 2 => {
                     CtxList::List2
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_list")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_list")
             };
             self.listener.exit_list(ctx);
         }
@@ -8556,9 +8556,9 @@ pub(crate) mod rules_prs_35_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -8573,12 +8573,12 @@ pub(crate) mod rules_prs_35_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         1 |                                         // A_1 -> b b
                         2 |                                         // A_1 -> c c
-                        3 => self.exit_a(factor_id),                // A_1 -> ε
+                        3 => self.exit_a(alt_id),                // A_1 -> ε
                      /* 0 */                                        // A -> a A_1 (never called)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -8627,8 +8627,8 @@ pub(crate) mod rules_prs_35_1 {
             self.listener.exit(a);
         }
 
-        fn exit_a(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_a(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let b_2 = self.stack_t.pop().unwrap();
                     let b_1 = self.stack_t.pop().unwrap();
@@ -8645,7 +8645,7 @@ pub(crate) mod rules_prs_35_1 {
                     let a = self.stack_t.pop().unwrap();
                     CtxA::A3 { a }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_a")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_a")
             };
             let val = self.listener.exit_a(ctx);
             self.stack.push(SynValue::A(val));
@@ -8952,9 +8952,9 @@ pub(crate) mod rules_prs_58_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -8969,12 +8969,12 @@ pub(crate) mod rules_prs_58_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 |                                         // E -> - E
-                        1 => self.inter_e(factor_id),               // E -> 0 E_1
+                        1 => self.inter_e(alt_id),               // E -> 0 E_1
                         2 => self.exit_e1(),                        // E_1 -> + E_1
                         3 => self.exitloop_e1(),                    // E_1 -> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -9023,8 +9023,8 @@ pub(crate) mod rules_prs_58_1 {
             self.listener.exit(e);
         }
 
-        fn inter_e(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn inter_e(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E1 { e }
@@ -9032,7 +9032,7 @@ pub(crate) mod rules_prs_58_1 {
                 1 => {
                     CtxE::E2
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn inter_e")
+                _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -9220,9 +9220,9 @@ pub(crate) mod rules_prs_60_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -9237,12 +9237,12 @@ pub(crate) mod rules_prs_60_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         0 |                                         // E -> <L> - E
-                        1 => self.inter_e(factor_id),               // E -> <L> 0 E_1
+                        1 => self.inter_e(alt_id),               // E -> <L> 0 E_1
                         2 => self.exit_e1(),                        // E_1 -> + E_1
                         3 => self.exitloop_e1(),                    // E_1 -> ε
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -9296,8 +9296,8 @@ pub(crate) mod rules_prs_60_1 {
             self.stack.push(SynValue::E(val));
         }
 
-        fn inter_e(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn inter_e(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 0 => {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E1 { e }
@@ -9306,7 +9306,7 @@ pub(crate) mod rules_prs_60_1 {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E2 { e }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn inter_e")
+                _ => panic!("unexpected alt id {alt_id} in fn inter_e")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -9500,9 +9500,9 @@ pub(crate) mod rules_prs_55_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -9517,20 +9517,20 @@ pub(crate) mod rules_prs_55_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         1 |                                         // E_1 -> * E_4 E_1
                         2 |                                         // E_1 -> -- E_1
-                        3 => self.exit_e1(factor_id),               // E_1 -> + E_2 E_1
+                        3 => self.exit_e1(alt_id),               // E_1 -> + E_2 E_1
                         6 => self.exit_e1(1),                       // E_3 -> * E_4 E_3 (duplicate of 1)
                         7 => self.exit_e1(2),                       // E_3 -> -- E_3 (duplicate of 2)
                         9 |                                         // E_4 -> ! E_2
                         10 |                                        // E_4 -> ID
-                        11 => self.exit_e4(factor_id),              // E_4 -> NUM
+                        11 => self.exit_e4(alt_id),              // E_4 -> NUM
                         0 => {}                                     // E -> E_4 E_1 (not used)
                         4 => {}                                     // E_1 -> ε (not used)
                         5 => {}                                     // E_2 -> E_4 E_3 (not used)
                         8 => {}                                     // E_3 -> ε (not used)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -9579,8 +9579,8 @@ pub(crate) mod rules_prs_55_1 {
             self.listener.exit(e);
         }
 
-        fn exit_e1(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_e1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
@@ -9595,14 +9595,14 @@ pub(crate) mod rules_prs_55_1 {
                     let e_1 = self.stack.pop().unwrap().get_e();
                     CtxE::E3 { e: [e_1, e_2] }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e4(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_e4(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 9 => {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E4 { e }
@@ -9615,7 +9615,7 @@ pub(crate) mod rules_prs_55_1 {
                     let num = self.stack_t.pop().unwrap();
                     CtxE::E6 { num }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e4")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -9683,9 +9683,9 @@ pub(crate) mod rules_prs_66_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -9700,20 +9700,20 @@ pub(crate) mod rules_prs_66_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         10 |                                        // E_5 -> * E_4 E_1
                         1 |                                         // E_1 -> -- E_1
-                        11 => self.exit_e1(factor_id),              // E_5 -> + E_2 E_1
+                        11 => self.exit_e1(alt_id),              // E_5 -> + E_2 E_1
                         5 => self.exit_e1(10),                      // E_3 -> . * E_4 E_3 (duplicate of 10)
                         6 => self.exit_e1(1),                       // E_3 -> -- E_3 (duplicate of 1)
                         8 |                                         // E_4 -> ! E
-                        9 => self.exit_e4(factor_id),               // E_4 -> ID
+                        9 => self.exit_e4(alt_id),               // E_4 -> ID
                         0 => {}                                     // E -> E_4 E_1 (not used)
                      /* 2 */                                        // E_1 -> . E_5 (never called)
                         3 => {}                                     // E_1 -> ε (not used)
                         4 => {}                                     // E_2 -> E_4 E_3 (not used)
                         7 => {}                                     // E_3 -> ε (not used)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -9762,8 +9762,8 @@ pub(crate) mod rules_prs_66_1 {
             self.listener.exit(e);
         }
 
-        fn exit_e1(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_e1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 10 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
@@ -9778,14 +9778,14 @@ pub(crate) mod rules_prs_66_1 {
                     let e_1 = self.stack.pop().unwrap().get_e();
                     CtxE::E5 { e: [e_1, e_2] }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e4(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_e4(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 8 => {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E2 { e }
@@ -9794,7 +9794,7 @@ pub(crate) mod rules_prs_66_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxE::E3 { id }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e4")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e4")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
@@ -11028,9 +11028,9 @@ pub(crate) mod rules_prs_63_1 {
     }
 
     impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, factor={factor_id}, t_data={t_data:?}");
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
             }
             if let Some(mut t_data) = t_data {
                 self.stack_t.append(&mut t_data);
@@ -11045,22 +11045,22 @@ pub(crate) mod rules_prs_63_1 {
                 }
                 Call::Loop => {}
                 Call::Exit => {
-                    match factor_id {
+                    match alt_id {
                         1 |                                         // E_1 -> <R> ^ E_4 E_1
                         2 |                                         // E_1 -> * E_4 E_1
-                        3 => self.exit_e1(factor_id),               // E_1 -> + E_2 E_1
+                        3 => self.exit_e1(alt_id),               // E_1 -> + E_2 E_1
                         6 |                                         // E_3 -> <R> ^ E_4 E_3 (duplicate of 1)
                         10 => self.exit_e1(1),                      // E_5 -> <R> ^ E_4 E_5 (duplicate of 1)
                         7 => self.exit_e1(2),                       // E_3 -> * E_4 E_3 (duplicate of 2)
                         12 |                                        // E_6 -> - E_2
-                        13 => self.exit_e6(factor_id),              // E_6 -> ID
+                        13 => self.exit_e6(alt_id),              // E_6 -> ID
                         0 => {}                                     // E -> E_6 E_1 (not used)
                         4 => {}                                     // E_1 -> ε (not used)
                         5 => {}                                     // E_2 -> E_6 E_3 (not used)
                         8 => {}                                     // E_3 -> ε (not used)
                         9 => {}                                     // E_4 -> E_6 E_5 (not used)
                         11 => {}                                    // E_5 -> ε (not used)
-                        _ => panic!("unexpected exit factor id: {factor_id}")
+                        _ => panic!("unexpected exit alt id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -11109,8 +11109,8 @@ pub(crate) mod rules_prs_63_1 {
             self.listener.exit(e);
         }
 
-        fn exit_e1(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_e1(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 1 => {
                     let e_2 = self.stack.pop().unwrap().get_e();
                     let e_1 = self.stack.pop().unwrap().get_e();
@@ -11126,14 +11126,14 @@ pub(crate) mod rules_prs_63_1 {
                     let e_1 = self.stack.pop().unwrap().get_e();
                     CtxE::E3 { e: [e_1, e_2] }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e1")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e1")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));
         }
 
-        fn exit_e6(&mut self, factor_id: AltId) {
-            let ctx = match factor_id {
+        fn exit_e6(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
                 12 => {
                     let e = self.stack.pop().unwrap().get_e();
                     CtxE::E4 { e }
@@ -11142,7 +11142,7 @@ pub(crate) mod rules_prs_63_1 {
                     let id = self.stack_t.pop().unwrap();
                     CtxE::E5 { id }
                 }
-                _ => panic!("unexpected factor id {factor_id} in fn exit_e6")
+                _ => panic!("unexpected alt id {alt_id} in fn exit_e6")
             };
             let val = self.listener.exit_e(ctx);
             self.stack.push(SynValue::E(val));

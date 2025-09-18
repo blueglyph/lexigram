@@ -14,7 +14,7 @@ mod gen_integration {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub(crate) enum T { RTS(u32), PRS(u32) }
 
-    fn get_source(rules_id: T, indent: usize, is_t_data: bool, include_factors: bool, name: String) -> String {
+    fn get_source(rules_id: T, indent: usize, is_t_data: bool, include_alts: bool, name: String) -> String {
         let rules = match rules_id {
             RTS(rts_id) => {
                 let rts = build_rts(rts_id);
@@ -34,13 +34,13 @@ mod gen_integration {
         assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let ll1 = ProdRuleSet::<LL1>::build_from(rules);
         let mut builder = ParserGen::build_from_rules(ll1, name);
-        builder.set_include_alts(include_factors);
+        builder.set_include_alts(include_alts);
         builder.gen_source_code(indent, false)
     }
 
     fn get_test_data<'a>(id: u32) -> Option<(T, usize, bool, bool, &'a str, &'a str)> {
         match id {
-            //         rules   indent  t_data factors  tag name                                      listener name
+            //         rules   indent  t_data alts     tag name                                      listener name
              1 => Some((PRS( 4), 4,    false, true,    "write_source_code_for_integration_listener1",  "Expr")),
              2 => Some((PRS(51), 4,    false, true,    "write_source_code_for_integration_listener2",  "Expr")),
              3 => Some((PRS(20), 4,    false, true,    "write_source_code_for_integration_listener3",  "Struct")),
@@ -71,8 +71,8 @@ mod gen_integration {
 
     fn do_test(id: u32, action: Action, verbose: bool) -> Result<(), SourceTestError> {
         const FILENAME: &str = "tests/integration/parser_examples.rs";
-        if let Some((rule_id, indent, is_t_data, include_factors, tag, name)) = get_test_data(id) {
-            let source = get_source(rule_id, indent, is_t_data, include_factors, name.to_string());
+        if let Some((rule_id, indent, is_t_data, include_alts, tag, name)) = get_test_data(id) {
+            let source = get_source(rule_id, indent, is_t_data, include_alts, name.to_string());
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
                 println!("{s}// [{tag}]\n{source}{s}// [{tag}]");
@@ -230,13 +230,13 @@ use crate::grammar::{Symbol, VarId};
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::{ParserGen, ParserTables};
 
-    fn get_factors_str(parser: &Parser) -> Vec<String> {
+    fn get_alts_str(parser: &Parser) -> Vec<String> {
         let pv = parser.get_alt_var();
         let pf = parser.get_alts();
         pv.iter().enumerate().map(|(id, v)|
             format!("{id:2}: {} -> {}",
                     Symbol::NT(*v).to_str(parser.get_symbol_table()),
-                    if let Some(f) = pf.get(id) { f.iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ") } else { "(alternative)".to_string() }
+                    if let Some(a) = pf.get(id) { a.iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ") } else { "(alternative)".to_string() }
             )
         ).collect()
     }
@@ -253,10 +253,10 @@ use crate::grammar::{Symbol, VarId};
     }
 
     fn print_opcodes(parser: &Parser) {
-        let factors = get_factors_str(&parser);
-        if !factors.is_empty() {
+        let alts = get_alts_str(&parser);
+        if !alts.is_empty() {
             let indent = 16;
-            let opcodes = factors.into_iter().zip(parser.get_opcodes()).map(|(s, ops)|
+            let opcodes = alts.into_iter().zip(parser.get_opcodes()).map(|(s, ops)|
                 vec![
                     format!("strip![{}],", ops.iter().map(|o| opcode_to_macro(o)).join(", ")),
                     format!("// {s}"),
@@ -545,7 +545,7 @@ use crate::grammar::{Symbol, VarId};
             let parser_tables = ParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
             let parser = parser_tables.make_parser();
             if VERBOSE {
-                println!("Final factors and opcodes:");
+                println!("Final alts and opcodes:");
                 print_opcodes(&parser);
             }
             let err_msg = format!("test {test_id} {rule_id:?}/{start_nt} failed");
@@ -572,7 +572,7 @@ mod parser_source {
     use crate::parsergen::{ParserGen, ParserTables};
 
     #[test]
-    fn factors() {
+    fn alternatives() {
         for include_alts in [false, true] {
             let rules = build_prs(9, true);
             assert_eq!(rules.get_log().num_errors(), 0, "building PRS(9) failed:\n- {}", rules.get_log().get_errors().join("\n- "));
@@ -580,8 +580,8 @@ mod parser_source {
             let mut builder = ParserGen::build_from_rules(ll1, "simple".to_string());
             builder.set_include_alts(include_alts);
             let src = builder.gen_source_code(0, false);
-            let factors_present = src.contains("static ALTERNATIVES");
-            assert_eq!(factors_present, include_alts, "unexpected source code: include_alts = {include_alts}, code = \n{src}");
+            let alt_present = src.contains("static ALTERNATIVES");
+            assert_eq!(alt_present, include_alts, "unexpected source code: include_alts = {include_alts}, code = \n{src}");
             let pt = ParserTables::build_from(builder);
             let parser = pt.make_parser();
             let alts = parser.get_alts();
@@ -2141,7 +2141,7 @@ mod wrapper_source {
         let mut num_errors = 0;
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<T, u32>::new();
-        for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_factors)) in tests.into_iter().enumerate() {
+        for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
 // if !matches!(rule_id, RTS(48)) { continue }
 // if !matches!(rule_id, RTS(33) | PRS(63)) { continue }
 if !matches!(rule_id, RTS(_)) { continue }
@@ -2172,7 +2172,7 @@ if !matches!(rule_id, RTS(_)) { continue }
                          ).join(", "));
             }
             let result_items = builder.item_ops.iter().map(|(f, v)| (f.clone(), v.clone())).collect::<BTreeMap<AltId, Vec<Symbol>>>();
-            let result_factors = (0..builder.parsing_table.num_nt).filter_map(|v|
+            let result_alts = (0..builder.parsing_table.num_nt).filter_map(|v|
                 if builder.parsing_table.parent[v].is_none() { Some((v as VarId, builder.gather_alts(v as VarId))) } else { None }
             ).collect::<BTreeMap<_, _>>();
             let test_name = format!("wrapper source for rule {rule_id:?} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
@@ -2201,14 +2201,14 @@ if !matches!(rule_id, RTS(_)) { continue }
                     Default => "Default".to_string()
                 };
                 println!("            ], {has_value_str}, btreemap![{}]),",
-                    if result_factors.is_empty() { "".to_string() } else { result_factors.iter().map(|(v, factors)| format!("{v} => vec![{}]", factors.iter().join(", "))).join(", ") }
+                    if result_alts.is_empty() { "".to_string() } else { result_alts.iter().map(|(v, a)| format!("{v} => vec![{}]", a.iter().join(", "))).join(", ") }
                 );
-                let nbr_factors = builder.parsing_table.alts.len();
-                let original = (0..nbr_factors)
+                let nbr_alts = builder.parsing_table.alts.len();
+                let original = (0..nbr_alts)
                     .filter_map(|i| builder.get_original_alt_str(i as AltId, builder.get_symbol_table()).and_then(|s| Some(format!("- {i:3}: {s}"))))
                     .join("\n");
                 if !original.is_empty() {
-                    println!("Original factors:\n{original}");
+                    println!("Original alts:\n{original}");
                 }
                 println!("*/");
             }
@@ -2244,7 +2244,7 @@ if !matches!(rule_id, RTS(_)) { continue }
             let expected_src = if test_source && !cfg!(miri) { get_tagged_source(WRAPPER_FILENAME, &test_name) } else { None };
             let err_msg = format!("test {test_id} {rule_id:?} #{rule_iter} failed ");
             if TESTS_ALL {
-                if result_items != expected_items || result_factors != expected_factors || result_nt_type != nt_type {
+                if result_items != expected_items || result_alts != expected_alts || result_nt_type != nt_type {
                     num_errors += 1;
                     println!("## ERROR: {err_msg}");
                 }
@@ -2262,7 +2262,7 @@ if !matches!(rule_id, RTS(_)) { continue }
                 }
             } else {
                 assert_eq!(result_items, expected_items, "{err_msg}");
-                assert_eq!(result_factors, expected_factors, "{err_msg}");
+                assert_eq!(result_alts, expected_alts, "{err_msg}");
                 assert_eq!(result_nt_type, nt_type, "{err_msg}");
                 if !cfg!(miri) && TEST_SOURCE {
                     assert!(!builder_has_errors, "{} errors reported by source builder", builder.log.num_errors());

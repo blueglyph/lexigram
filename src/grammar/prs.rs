@@ -937,7 +937,7 @@ impl<T> ProdRuleSet<T> {
         }
     }
 
-    /// Factorizes all the left symbols that are common to several factors by rejecting the non-common part
+    /// Factorizes all the left symbols that are common to several alts by rejecting the non-common part
     /// to a new non-terminal. Updates the symbol table if provided.
     ///
     /// After the factorization, every child has an NT index greater than its parent, even if the
@@ -945,10 +945,10 @@ impl<T> ProdRuleSet<T> {
     ///
     /// Algorithm:
     /// - for each NT
-    ///     - sort factors
+    ///     - sort alts
     ///     - repeat as long as there are common starting symbols:
-    ///         - take first group of >1 factors starting with the same symbol `α[0]`
-    ///         - extract the number of starting symbols common to all factors of the group (1 or more): `α`
+    ///         - take first group of >1 alts starting with the same symbol `α[0]`
+    ///         - extract the number of starting symbols common to all alts of the group (1 or more): `α`
     ///         - create a new NT with the group, where `α` has been removed at the beginning
     pub fn left_factorize(&mut self) {
         fn similarity(a: &Alternative, b: &Alternative) -> usize {
@@ -968,13 +968,13 @@ impl<T> ProdRuleSet<T> {
             if prule.len() < 2 {
                 continue
             }
-            let mut factors = prule.clone();
+            let mut alts = prule.clone();
             let mut extra = Vec::<ProdRule>::new();
             let mut changed = false;
-            factors.sort();
-            if VERBOSE { println!("{var}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), factors.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")); }
-            while factors.len() > 1 {
-                let simi = factors.windows(2).enumerate()
+            alts.sort();
+            if VERBOSE { println!("{var}: {} -> {}", Symbol::NT(var).to_str(self.get_symbol_table()), alts.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | ")); }
+            while alts.len() > 1 {
+                let simi = alts.windows(2).enumerate()
                     .map(|(j, x)| (j, similarity(&x[0], &x[1])))
                     .skip_while(|(_, s)| *s == 0)
                     .take_while(|(_, s)| *s != 0)
@@ -987,8 +987,8 @@ impl<T> ProdRuleSet<T> {
                 let min = simi.iter().map(|(_, s)| *s).min().unwrap();
                 let start = simi[0].0;
                 let stop = start + simi.len();
-                let mut factorized = Alternative::new(factors[start].v.iter().take(min).cloned().to_vec());
-                let mut child = factors.drain(start..=stop).to_vec();
+                let mut factorized = Alternative::new(alts[start].v.iter().take(min).cloned().to_vec());
+                let mut child = alts.drain(start..=stop).to_vec();
                 if VERBOSE { println!("child:\n{}", child.iter().enumerate().map(|(i, c)| format!("- [{i}] = {}  org = {:?}", c.to_str(self.get_symbol_table()), c.origin)).join("\n")); }
                 if child.iter().all(|f| f.is_greedy()) {
                     factorized.flags |= ruleflag::GREEDY;
@@ -1013,11 +1013,11 @@ impl<T> ProdRuleSet<T> {
                 self.set_parent(var_prime, var);
                 let symbol_prime = Symbol::NT(var_prime);
                 factorized.v.push(symbol_prime);
-                factors.insert(start, factorized);
+                alts.insert(start, factorized);
                 if VERBOSE {
                     println!(" - similarity: {} => {}", simi.iter().map(|(j, s)| format!("{j}:{s}")).join(", "), min);
-                    println!("   factorize: {}", child.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | "));
-                    println!("   left:      {}", factors.iter().map(|f| f.to_str(self.get_symbol_table())).join(" | "));
+                    println!("   factorize: {}", child.iter().map(|a| a.to_str(self.get_symbol_table())).join(" | "));
+                    println!("   left:      {}", alts.iter().map(|a| a.to_str(self.get_symbol_table())).join(" | "));
                 }
                 extra.push(child);
             }
@@ -1027,8 +1027,8 @@ impl<T> ProdRuleSet<T> {
                     Symbol::NT(var).to_str(self.get_symbol_table()), prule_to_str(prule, self.get_symbol_table())));
                 self.log.add_note(format!(
                     "  => {} -> {}",
-                    Symbol::NT(var).to_str(self.get_symbol_table()), prule_to_str(&factors, self.get_symbol_table())));
-                *prule = factors;
+                    Symbol::NT(var).to_str(self.get_symbol_table()), prule_to_str(&alts, self.get_symbol_table())));
+                *prule = alts;
                 let offset = prules.len() as VarId;
                 for (v, p) in extra.iter().index_start(offset) {
                     self.log.add_note(format!(
@@ -1046,16 +1046,16 @@ impl<T> ProdRuleSet<T> {
         todo!()
     }
 
-    /// Moves the flags of the mask from the factors to the NT flags
-    fn transfer_factor_flags(&mut self) {
+    /// Moves the flags of the mask from the alternatives to the NT flags
+    fn transfer_alt_flags(&mut self) {
         // add other flags here if necessary:
         const FLAG_MASK: u32 = ruleflag::L_FORM;
 
         for (v, prule) in self.prules.iter_mut().enumerate() {
-            let flags = prule.iter().fold(0, |acc, f| acc | f.flags) & FLAG_MASK;
+            let flags = prule.iter().fold(0, |acc, alt| acc | alt.flags) & FLAG_MASK;
             self.flags[v] |= flags;
-            for f in prule.iter_mut() {
-                f.flags &= !FLAG_MASK;
+            for alt in prule.iter_mut() {
+                alt.flags &= !FLAG_MASK;
             }
         }
     }
@@ -1157,7 +1157,7 @@ impl ProdRuleSet<LL1> {
     /// Returns:
     /// - `num_nt` = number of nonterminals
     /// - `num_t` = number of terminals (including the end symbol)
-    /// - `alts`, the production factors: (VarId, Alternative) where the first value is the non-terminal index and the second one of its factors
+    /// - `alts`, the production alternatives: (VarId, Alternative) where the first value is the non-terminal index and the second one of its alts
     /// - the table of `num_nt * num_t` values, where `table[nt_index * num_nt + t_index]` gives the index of the production alternative for
     /// the non-terminal index `nt_index` and the terminal index `t_index`. A value >= `alts.len()` stands for a syntax error.
     pub(super) fn calc_table(&mut self, first: &HashMap<Symbol, HashSet<Symbol>>, follow: &HashMap<Symbol, HashSet<Symbol>>, error_recovery: bool) -> LLParsingTable {
@@ -1485,7 +1485,7 @@ impl BuildFrom<RuleTreeSet<Normalized>> for ProdRuleSet<General> {
                     }
                 }
                 // the children NTs that represent a part of the original NT are stored in ProdRuleSet::origin
-                // rather than in the factors themselves
+                // rather than in the alts themselves
                 if prules.parent[var as usize].is_some() {
                     if let Some(&(v, index)) = rules.origin.map.get(&(var, root)) {
                         prules.origin.add(var, (v, index));
@@ -1520,7 +1520,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LL1> {
         if rules.log.has_no_errors() {
             rules.remove_recursion();
             rules.left_factorize();
-            rules.transfer_factor_flags();
+            rules.transfer_alt_flags();
             rules.check_flags();
         }
         ProdRuleSet::<LL1> {
@@ -1544,7 +1544,7 @@ impl BuildFrom<ProdRuleSet<General>> for ProdRuleSet<LR> {
     fn build_from(mut rules: ProdRuleSet<General>) -> Self {
         if rules.log.has_no_errors() {
             rules.remove_ambiguity();
-            rules.transfer_factor_flags();
+            rules.transfer_alt_flags();
             rules.check_flags();
         }
         ProdRuleSet::<LR> {
@@ -1580,13 +1580,13 @@ impl<T> ProdRuleSet<T> {
                      .join(&format!("\n{prefix}")));
     }
 
-    pub fn print_factors(&self) {
-        println!("Factors:\n{}",
-                 self.get_alts().enumerate().map(|(id, (v, f))|
+    pub fn print_alts(&self) {
+        println!("Alternatives:\n{}",
+                 self.get_alts().enumerate().map(|(id, (v, a))|
                      format!("    // - {id}: {} -> {}{}",
                              Symbol::NT(v).to_str(self.get_symbol_table()),
-                             f.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
-                             if f.flags != 0 { format!("     {} ({})", ruleflag::to_string(f.flags).join(" | "), f.flags) } else { "".to_string() }
+                             a.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "),
+                             if a.flags != 0 { format!("     {} ({})", ruleflag::to_string(a.flags).join(" | "), a.flags) } else { "".to_string() }
                      )
         ).join("\n"));
     }
@@ -1594,8 +1594,8 @@ impl<T> ProdRuleSet<T> {
 
 impl LLParsingTable {
     pub fn print(&self, symbol_table: Option<&SymbolTable>, indent: usize) {
-        let LLParsingTable { num_nt, num_t, alts: factors, table, .. } = self;
-        let error_skip = factors.len() as AltId;
+        let LLParsingTable { num_nt, num_t, alts, table, .. } = self;
+        let error_skip = alts.len() as AltId;
         let error_pop = error_skip + 1;
         let str_nt = (0..*num_nt).map(|i| Symbol::NT(i as VarId).to_str(symbol_table)).to_vec();
         let max_nt_len = str_nt.iter().map(|s| s.len()).max().unwrap();

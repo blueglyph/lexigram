@@ -118,9 +118,9 @@ mod listener {
     }
 
     impl ListenerWrapper for Stub {
-        fn switch(&mut self, call: Call, nt: VarId, factor_id: AltId, t_data: Option<Vec<String>>) {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
             if self.verbose {
-                println!(":: {call:?} nt={nt} factor_id={factor_id}{}",
+                println!(":: {call:?} nt={nt} alt_id={alt_id}{}",
                          if let Some(t) = t_data { format!(" - {}", t.iter().join(",")) } else { String::new() });
             }
         }
@@ -213,7 +213,7 @@ mod listener {
             let msg = ll1.get_log().get_messages_str();
             let should_succeed = expected_grammar_errors.is_empty();
             if VERBOSE {
-                ll1.print_factors();
+                ll1.print_alts();
                 println!("Gram messages:\n{msg}");
             }
             assert_eq!(ll1.get_log().has_no_errors(), should_succeed,

@@ -320,7 +320,7 @@ impl GramParserListener for GramListener {
                     tree.attach_child(prod.0, prod_term.0);
                     prod.0
                 } else {
-                    // creates an | with the previous and current factors as children
+                    // creates an | with the previous and current alternatives as children
                     tree.addci_iter(None, GrNode::Or, [prod.0, prod_term.0])
                 }
             }
