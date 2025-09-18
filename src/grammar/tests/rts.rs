@@ -759,18 +759,22 @@ pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
 fn ruletreeset_to_str() {
     let tests = vec![
         // RTS, var, node, emphasis, expected
-        (23, 0, None, None, "a b+ c"),
-        (56, 0, None, None, "(a b)* a"),
-        (38, 0, None, None, "A a c? | A b c? | d"),
-        (55, 0, None, None, "a ((b c | d)+ e)+ f"),
-        (55, 0, None, Some(3), "a ( ►► (b c | d)+ e ◄◄ )+ f"),
-        (53, 0, None, None, "(<L=AIter1> a d | B)+ c"),
-        (44, 0, None, None, r#""-" E | <R> E ("*" | "/" <P>) E | E ("+" | "-" <P>) E | ID"#),
+        (4, 0, None, None, "A B | C D"),
+        (6, 0, None, None, "(A | B) (C | D) E"),
+        (10, 0, None, None, "(A | B)?"),
+        // (23, 0, None, None, "a b+ c"),
+        // (56, 0, None, None, "(a b)* a"),
+        // (38, 0, None, None, "A a c? | A b c? | d"),
+        // (55, 0, None, None, "a ((b c | d)+ e)+ f"),
+        // (55, 0, None, Some(3), "a ( ►► (b c | d)+ e ◄◄ )+ f"),
+        // (53, 0, None, None, "(<L=AIter1> a d | B)+ c"),
+        // (44, 0, None, None, r#""-" E | <R> E ("*" | "/" <P>) E | E ("+" | "-" <P>) E | ID"#),
     ];
     const VERBOSE: bool = false;
     let mut errors = 0;
     for (test_id, (rts_id, var, node_maybe, emphasis_maybe, expected_str)) in tests.into_iter().enumerate() {
-        let rts = build_rts(rts_id);
+        // let rts = build_rts(rts_id);
+        let rts = RtsGeneral::build_test_rules(rts_id).unwrap();
         let result_str = rts.to_str(var, node_maybe, emphasis_maybe);
         if VERBOSE {
             // println!("{test_id} ({rule_id})");

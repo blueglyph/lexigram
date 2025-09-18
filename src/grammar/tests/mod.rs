@@ -11,6 +11,8 @@ use crate::dfa::TokenId;
 use crate::{alt, btreemap, gnode, hashmap, hashset, prule, sym, LL1};
 use crate::grammar::NTConversion::Removed;
 use crate::log::TryBuildFrom;
+use crate::rtsgen::RtsGen;
+use crate::log::BuildInto;
 
 // ---------------------------------------------------------------------------------------------
 
@@ -18,6 +20,130 @@ fn is_grtree_empty_symbol(rule: &GrTree) -> bool {
     rule.get_root()
         .and_then(|root| Some(*rule.get(root) == GrNode::Symbol(Symbol::Empty)))
         .unwrap_or(false)
+}
+
+// ---------------------------------------------------------------------------------------------
+
+pub struct RtsGeneral {}
+pub struct RtsNormalized {}
+pub struct PrsGeneral {}
+pub struct PrsLL1 {}
+
+trait BuildTest {
+    type Item;
+    fn build_test_rules(id: u32) -> Option<Self::Item>;
+}
+
+impl BuildTest for RtsGeneral {
+    type Item = RuleTreeSet<General>;
+
+    fn build_test_rules(id: u32) -> Option<Self::Item> {
+        let specs = match id {
+            // 0xx = basic, &, |, distribution, ?
+            // -----------------------------------------------------------------------------
+            0 => vec![r#"a -> A;"#],
+            1 => vec![r#"a -> A B;"#],
+            2 => vec![r#"a -> A | B;"#],
+            3 => vec![r#"a -> A B | C;"#],
+            4 => vec![r#"a -> (A B) | (C D);"#],
+            5 => vec![r#"a -> (A | B) (C | D);"#],
+            6 => vec![r#"a -> (A | B) ((C | D) E);"#],
+            7 => vec![r#"a -> A?;"#],
+            8 => vec![r#"a -> A? B;"#],
+            9 => vec![r#"a -> (A B)?;"#],
+            10 => vec![r#"a -> (A | B)?;"#],
+            11 => vec![r#"a -> A b;"#,
+                       r#"b -> B;"#],
+            12 => vec![r#"a -> A;"#,
+                       r#"b -> B;"#],   // b should be dropped
+
+            // 1xx = +* repetitions: multilevel, and multilevel +* with |
+            // -----------------------------------------------------------------------------
+            100 => vec![r#"a -> A*;"#],
+            101 => vec![r#"a -> A+;"#],
+            102 => vec![r#"a -> A B* C;"#],
+            103 => vec![r#"a -> A B+ C;"#],
+            104 => vec![r#"a -> (A B)*;"#],
+            105 => vec![r#"a -> (A B)+;"#],
+            106 => vec![r#"a -> (A (B ",")* ";")*;"#],
+            107 => vec![r#"a -> (A (B ",")+ ";")+;"#],
+            // TODO (not yet fully supported in parsergen)
+            150 => vec![r#"a -> (A | B)*;"#],
+            151 => vec![r#"a -> (A | B)+;"#],
+
+            // 2xx = +* repetitions: with <L>
+            // -----------------------------------------------------------------------------
+            200 => vec![r#"a -> (<L=i> A)*;"#],
+            201 => vec![r#"a -> (<L=i> A)+;"#],
+            202 => vec![r#"a -> (<L=i> A B)*;"#],
+            203 => vec![r#"a -> (<L=i> A B)+;"#],
+            204 => vec![r#"a -> (<L=i> A (B ",")* ";")*;"#],
+            205 => vec![r#"a -> (<L=i> A (B ",")+ ";")+;"#],
+            206 => vec![r#"a -> (A (<L=j> B ",")* ";")*;"#],
+            207 => vec![r#"a -> (A (<L=j> B ",")+ ";")+;"#],
+            208 => vec![r#"a -> (<L=i> A (<L=j> B ",")* ";")*;"#],
+            209 => vec![r#"a -> (<L=i> A (<L=j> B ",")+ ";")+;"#],
+            // TODO (not yet fully supported in parsergen)
+            250 => vec![r#"a -> (<L=i> A | B)*;"#],
+            251 => vec![r#"a -> (<L=i> A | B)+;"#],
+
+            // 3xx = rrec: simple
+            // -----------------------------------------------------------------------------
+            300 => vec![r#"a -> "?" a | "!";"#],
+
+            // 4xx = lrec: <L>
+            // -----------------------------------------------------------------------------
+            400 => vec![r#"a -> <L> "?" a | "!";"#],
+
+            // 5xx = lrec: simple
+            // -----------------------------------------------------------------------------
+            500 => vec![r#"a -> a "!" | "?";"#],
+
+            // 6xx = lrec: amb
+            // -----------------------------------------------------------------------------
+            600 => vec![r#"e -> e '+' e | Num;"#],
+
+            // 7xx = lfact
+            // -----------------------------------------------------------------------------
+            700 => vec![r#"a -> A B | A C;"#],
+            701 => vec![r#"a -> A B C | B B C | B C | B B A;"#],
+
+            // 8xx = mix
+            // -----------------------------------------------------------------------------
+
+            // 1yxx = errors
+            // -----------------------------------------------------------------------------
+
+            // -----------------------------------------------------------------------------
+            _ => return None
+        };
+        let text = specs.join("\n");
+        RtsGen::new().parse(text).ok()
+    }
+}
+
+impl BuildTest for RtsNormalized {
+    type Item = RuleTreeSet<Normalized>;
+
+    fn build_test_rules(id: u32) -> Option<Self::Item> {
+        RtsGeneral::build_test_rules(id).and_then(|rts| Some(rts.build_into()))
+    }
+}
+
+impl BuildTest for PrsGeneral {
+    type Item = ProdRuleSet<General>;
+
+    fn build_test_rules(id: u32) -> Option<Self::Item> {
+        RtsNormalized::build_test_rules(id).and_then(|rts| Some(rts.build_into()))
+    }
+}
+
+impl BuildTest for PrsLL1 {
+    type Item = ProdRuleSet<LL1>;
+
+    fn build_test_rules(id: u32) -> Option<Self::Item> {
+        PrsGeneral::build_test_rules(id).and_then(|rts| Some(rts.build_into()))
+    }
 }
 
 // ---------------------------------------------------------------------------------------------
