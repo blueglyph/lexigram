@@ -3,17 +3,19 @@
 // =============================================================================================
 // Simple parser based on microcalc lexicon and grammar
 
+mod tests;
+
 use std::collections::HashMap;
 use std::io::Cursor;
 use iter_index::IndexerIterator;
 use vectree::VecTree;
-use lexigram_lib::{CollectJoin, General, NameFixer, NameTransformer, SymbolTable};
-use lexigram_lib::dfa::TokenId;
-use lexigram_lib::grammar::{GrNode, GrTree, RuleTreeSet, Symbol, VarId};
-use lexigram_lib::io::CharReader;
-use lexigram_lib::lexer::{Lexer, TokenSpliterator};
-use lexigram_lib::log::{BufLog, LogStatus, Logger};
-use lexigram_lib::parser::Parser;
+use crate::{CollectJoin, General, NameFixer, NameTransformer, SymbolTable};
+use crate::dfa::TokenId;
+use crate::grammar::{GrNode, GrTree, RuleTreeSet, Symbol, VarId};
+use crate::io::CharReader;
+use crate::lexer::{Lexer, TokenSpliterator};
+use crate::log::{BufLog, LogStatus, Logger};
+use crate::parser::Parser;
 use crate::rtsgen::listener_types::*;
 use crate::rtsgen::rtsgen_lexer::build_lexer;
 use crate::rtsgen::rtsgen_parser::*;
@@ -443,7 +445,7 @@ fn decode_str(strlit: &str) -> Result<String, String> {
 // (initially copied/uncommented from the generated parser code)
 
 pub mod listener_types {
-    use lexigram_lib::grammar::VarId;
+    use crate::grammar::VarId;
 
     /// User-defined type for `ruleset`
     #[derive(Debug, PartialEq)] pub struct SynRuleset();
@@ -465,6 +467,7 @@ pub mod listener_types {
 
 pub mod rtsgen_lexer {
     // Generated code, don't modify manually anything between the tags below
+    use crate as lexigram_lib;
 
     // [rtsgen_lexer]
 
@@ -587,6 +590,7 @@ pub mod rtsgen_lexer {
 
 pub mod rtsgen_parser {
     // Generated code, don't modify manually anything between the tags below
+    use crate as lexigram_lib;
 
     // [rtsgen_parser]
 

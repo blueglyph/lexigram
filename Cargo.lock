@@ -3,6 +3,13 @@
 version = 4
 
 [[package]]
+name = "build-rtsgen"
+version = "0.1.0"
+dependencies = [
+ "lexigram",
+]
+
+[[package]]
 name = "build-stage1"
 version = "0.5.4"
 dependencies = [
@@ -37,16 +44,6 @@ version = "0.5.4"
 dependencies = [
  "iter-index",
  "lexigram",
- "vectree",
-]
-
-[[package]]
-name = "rtsgen"
-version = "0.1.0"
-dependencies = [
- "iter-index",
- "lexigram",
- "lexigram_lib",
  "vectree",
 ]
 

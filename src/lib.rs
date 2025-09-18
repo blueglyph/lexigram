@@ -25,6 +25,7 @@ mod name_fixer;
 pub use name_fixer::{NameFixer, NameTransformer};
 mod symbol_table;
 mod fixed_sym_table;
+pub mod rtsgen;
 
 pub use symbol_table::SymbolTable;
 pub use fixed_sym_table::{FixedSymTable, SymInfoTable};

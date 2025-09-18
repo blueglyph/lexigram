@@ -4,7 +4,7 @@
 
 use std::fs::File;
 use std::io::BufReader;
-use lexigram::{Gram, Lexi};
+use lexigram::{lexigram_lib, Lexi, Gram};
 use lexigram::lexi::SymbolicDfa;
 use lexigram_lib::grammar::ProdRuleSet;
 use lexigram_lib::io::CharReader;
@@ -16,30 +16,13 @@ use lexigram_lib::test_tools::{get_tagged_source, replace_tagged_source};
 
 static LEXICON_FILENAME: &str = "src/rtsgen.l";
 static GRAMMAR_FILENAME: &str = "src/rtsgen.g";
-static SOURCE_FILENAME: &str = "src/rtsgen.rs";
+static SOURCE_FILENAME: &str = "../src/rtsgen/mod.rs";
 static LEXER_TAG: &str = "rtsgen_lexer";
 static PARSER_TAG: &str = "rtsgen_parser";
 const LEXER_INDENT: usize = 4;
 const PARSER_INDENT: usize = 4;
 
 // -------------------------------------------------------------------------
-
-#[ignore]
-#[test]
-fn test_gen_source() {
-    match gen_source(Action::Generate) {
-        Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-        Err(build_error) => println!("{build_error}"),
-    }
-}
-
-#[test]
-fn test_check_source() {
-    match gen_source(Action::Verify) {
-        Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
-        Err(build_error) => println!("{build_error}"),
-   }
-}
 
 enum Action { Verify, Generate }
 
@@ -95,4 +78,25 @@ fn gen_source(action: Action) -> Result<BufLog, BuildError> {
     }
 
     Ok(log)
+}
+
+mod tests {
+    use super::*;
+
+    #[ignore]
+    #[test]
+    fn test_gen_source() {
+        match gen_source(Action::Generate) {
+            Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
+            Err(build_error) => println!("{build_error}"),
+        }
+    }
+
+    #[test]
+    fn test_check_source() {
+        match gen_source(Action::Verify) {
+            Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
+            Err(build_error) => println!("{build_error}"),
+       }
+    }
 }

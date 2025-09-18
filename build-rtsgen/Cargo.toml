@@ -1,0 +1,9 @@
+[package]
+name = "build-rtsgen"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+lexigram = { path = "../lexigram", package = "lexigram" }
+#iter-index = "1.0.0"
+#vectree = "0.2.3"

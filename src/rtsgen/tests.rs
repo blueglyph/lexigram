@@ -5,10 +5,10 @@
 // =============================================================================================
 // Simple parser based on microcalc lexicon and grammar
 
-use lexigram_lib::grammar::{grtree_to_str, GrTreeExt, RuleTreeSet, Symbol};
-use lexigram_lib::log::{LogReader, LogStatus};
-use lexigram_lib::{CollectJoin, General};
-use crate::RtsGen;
+use crate::grammar::{grtree_to_str, GrTreeExt, RuleTreeSet, Symbol};
+use crate::log::{LogReader, LogStatus};
+use crate::{CollectJoin, General};
+use crate::rtsgen::RtsGen;
 
 #[test]
 fn simple() {
