@@ -4,8 +4,10 @@
 
 mod gen_integration {
     use crate::grammar::ProdRuleSet;
-    use crate::grammar::tests::{build_prs, build_rts, complete_symbol_table};
-    use crate::{CollectJoin, LL1, SymbolTable};
+    use crate::grammar::tests::prs::complete_symbol_table;
+    use crate::{CollectJoin, SymbolTable, LL1};
+    use crate::grammar::tests::prs::build_prs;
+    use crate::grammar::tests::rts::build_rts;
     use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
@@ -225,8 +227,8 @@ mod gen_integration {
 mod opcodes {
     use crate::log::BuildFrom;
 use crate::grammar::{Symbol, VarId};
-    use crate::grammar::tests::T;
-    use crate::{CollectJoin, strip, columns_to_str};
+    use crate::grammar::tests::prs::T;
+    use crate::{columns_to_str, strip, CollectJoin};
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::{ParserGen, ParserTables};
 
@@ -566,7 +568,7 @@ use crate::grammar::{Symbol, VarId};
 
 mod parser_source {
     use crate::grammar::ProdRuleSet;
-    use crate::grammar::tests::build_prs;
+    use crate::grammar::tests::prs::build_prs;
     use crate::{CollectJoin, LL1};
     use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::{ParserGen, ParserTables};
@@ -594,13 +596,13 @@ mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use iter_index::IndexerIterator;
     use crate::grammar::{alt_to_rule_str, ruleflag, AltId, Symbol, VarId};
-    use crate::grammar::tests::T;
-    use crate::{btreemap, CollectJoin, symbols, columns_to_str, hashset, indent_source, SymInfoTable};
-    use crate::grammar::tests::T::{PRS, RTS};
+    use crate::grammar::tests::prs::T;
+    use crate::{btreemap, columns_to_str, hashset, indent_source, symbols, CollectJoin, SymInfoTable};
+    use crate::grammar::tests::prs::T::{PRS, RTS};
     use crate::parsergen::{print_flags, print_items, ParserGen};
     use crate::dfa::TokenId;
     use crate::log::{LogReader, LogStatus};
-    use crate::parsergen::tests::wrapper_source::HasValue::{Set, All, Default};
+    use crate::parsergen::tests::wrapper_source::HasValue::{All, Default, Set};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
     #[derive(Clone)]

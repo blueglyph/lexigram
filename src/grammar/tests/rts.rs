@@ -1,13 +1,764 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
+use crate::grammar::tests::prs::print_expected_code;
 use super::*;
+
+// ---------------------------------------------------------------------------------------------
+// RuleTreeSet
+
+fn check_rts_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> {
+    let mut msg = String::new();
+    for (var, tree) in rules.get_trees_iter() {
+        let mut indices = HashSet::<usize>::new();
+        let mut n = 0;
+        for node in tree.iter_depth_simple() {
+            n += 1;
+            if indices.contains(&node.index) {
+                msg.push_str(&format!("duplicate index {} for var {var} in tree {:#}\n", node.index, tree.to_str(None, None)));
+            }
+            indices.insert(node.index);
+        }
+        if verbose { println!("  {var} uses {}/{} nodes", n, tree.len()); }
+    }
+    if msg.is_empty() {
+        None
+    } else {
+        Some(msg)
+    }
+}
+
+pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
+    let mut rules = RuleTreeSet::new();
+    let tree = rules.get_tree_mut(0);
+    let mut extend_nt = true;
+
+    match id {
+        0 => { // A -> |(b, c, D)
+            let top = tree.addc_iter(None, gnode!(|), [gnode!(t 1), gnode!(t 2), gnode!(nt 3)]);
+            tree.set_root(top);
+        }
+        1 => { // A -> |(&(B, C), d, e, &(F, G), h, i, &(J, K))
+            let top = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(t 3), gnode!(t 4)]);
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
+            let or = tree.addc_iter(Some(top), gnode!(|), [gnode!(t 7), gnode!(t 8)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 9), gnode!(nt 10)]);
+        }
+        2 => { // A -> |(&(B, C, D, F, G, H), &(B, C, D, F, G, I), &(B, C, E, F, G, H), &(B, C, E, F, G, I))
+            let top = tree.add_root(gnode!(&));
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 5), gnode!(nt 6)]);
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 7), gnode!(nt 8)]);
+        }
+        3 => { // A -> |(&(B, C, D, F, G, H), &(B, C, D, F, I), &(B, C, E, F, G, H), &(B, C, E, F, I))
+            let top = tree.add_root(gnode!(&));
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
+            tree.add(Some(top), gnode!(nt 5));
+            let or = tree.add(Some(top), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
+            tree.add(Some(or), gnode!(nt 8));
+        }
+        4 => { // A -> |(&(A, B, C, D, F, G, H), &(A, B, C, D, F, I), &(A, B, C, E, F, G, H), &(A, B, C, E, F, I))
+            let top = tree.add_root(gnode!(&));
+            let cc = tree.add(Some(top), gnode!(&));
+            tree.addc_iter(Some(cc), gnode!(&), [gnode!(nt 0), gnode!(nt 1)]);
+            tree.add(Some(cc), gnode!(nt 2));
+            tree.addc_iter(Some(top), gnode!(|), [gnode!(nt 3), gnode!(nt 4)]);
+            tree.add(Some(top), gnode!(nt 5));
+            let or = tree.add(Some(top), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 6), gnode!(nt 7)]);
+            tree.add(Some(or), gnode!(nt 8));
+        }
+        5 => { // A -> B?
+            let top = tree.add_root(gnode!(?));
+            tree.add(Some(top), gnode!(nt 1));
+        }
+        6 => { // A -> (B C)?
+            let top = tree.add_root(gnode!(?));
+            tree.addc_iter(Some(top), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+        }
+        7 => { // |(&(B, C), D, ε)
+            let top = tree.add_root(gnode!(?));
+            let or = tree.add(Some(top), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 1), gnode!(nt 2)]);
+            tree.add(Some(or), gnode!(nt 3));
+        }
+        8 => { // A -> c b+
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 1));
+            tree.addc(Some(cc), gnode!(+), gnode!(t 2));
+        }
+        9 => { // A -> var (id ,)+
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 1));
+            let p = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(p), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["A".to_string()]);
+            table.extend_terminals([
+                ("-".to_string(), None), // not used
+                ("var".to_string(), Some("var".to_string())),
+                ("id".to_string(), None),
+                (",".to_string(), Some(",".to_string())),
+            ]);
+            rules.symbol_table = Some(table);
+        }
+        10 => { // A -> b (c d|e)+
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 1));
+            let p = tree.add(Some(cc), gnode!(+));
+            let or = tree.add(Some(p), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
+            tree.add(Some(or), gnode!(t 4));
+        }
+        11 => { // A -> b c*
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 1));
+            tree.addc(Some(cc), gnode!(*), gnode!(t 2));
+        }
+        12 => { // A -> b (c d)*
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 1));
+            let p = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(p), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
+        }
+        13 => { // A -> b (c d|e)*
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 1));
+            let p = tree.add(Some(cc), gnode!(*));
+            let or = tree.add(Some(p), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
+            tree.add(Some(or), gnode!(t 4));
+        }
+        14 => { // A -> b? (c|d)?
+            let cc = tree.add_root(gnode!(&));
+            tree.addc(Some(cc), gnode!(?), gnode!(t 1));
+            let m = tree.add(Some(cc), gnode!(?));
+            tree.addc_iter(Some(m), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
+        }
+        15 => { // A -> A (b|c <R>|d) A|e
+            let or = tree.add_root(gnode!(|));
+            let cc = tree.add(Some(or), gnode!(&));
+            tree.add(Some(cc), gnode!(nt 0));
+            let or2 = tree.add(Some(cc), gnode!(|));
+            tree.add(Some(or2), gnode!(t 1));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 2), gnode!(R)]);
+            tree.addc(Some(or2), gnode!(&), gnode!(t 3));
+            tree.add(Some(cc), gnode!(nt 0));
+            tree.add(Some(or), gnode!(t 4));
+        }
+        16 => { // A -> A (c)+ b | a
+            let or = tree.add_root(gnode!(|));
+            let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
+            tree.addc(Some(cc1), gnode!(+), gnode!(t 2));
+            tree.add(Some(cc1), gnode!(t 1));
+            tree.add(Some(or), gnode!(t 0));
+        }
+        17 => { // A -> a ( (b)+ c)+ d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            tree.addc(Some(cc2), gnode!(+), gnode!(t 1));
+            tree.add(Some(cc2), gnode!(t 2));
+            tree.add(Some(cc), gnode!(t 3));
+        }
+        18 => { // A -> a | b | c
+            let or = tree.add_root(gnode!(|));
+            tree.add(Some(or), gnode!(t 0));
+            tree.addc(Some(or), gnode!(&), gnode!(t 1));
+            tree.add(Some(or), gnode!(t 2));
+        }
+        19 => { // A -> A (b <L=B>)* c | d
+            let or = tree.add_root(gnode!(|));
+            let cc = tree.add(Some(or), gnode!(&));
+            tree.add(Some(cc), gnode!(nt 0));
+            let s1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(s1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
+            tree.add(Some(cc), gnode!(t 2));
+            tree.add(Some(or), gnode!(t 3));
+        }
+        20 => { // A -> A (b)* c | d
+            let or = tree.add_root(gnode!(|));
+            let cc = tree.add(Some(or), gnode!(&));
+            tree.add(Some(cc), gnode!(nt 0));
+            tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            tree.add(Some(or), gnode!(t 3));
+        }
+        21 => { // A -> a (b)* c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
+        22 => { // A -> a (b <L=B>)* c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
+            tree.add(Some(cc), gnode!(t 2));
+            let _b_tree = rules.get_tree_mut(1);
+            // symbol table defined below
+        }
+        23 => { // A -> a (b)+ c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(+), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
+        24 => { // A -> a (b <L=B>)+ c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
+        25 => { // A -> a (#)* c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
+        26 => { // A (c)* b | a (see also RTS(16))
+            let or = tree.add_root(gnode!(|));
+            let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
+            tree.addc(Some(cc1), gnode!(*), gnode!(t 2));
+            tree.add(Some(cc1), gnode!(t 1));
+            tree.add(Some(or), gnode!(t 0));
+        }
+        27 => { // A -> a (B)+ c ; B -> b
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(+), gnode!(nt 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        28 => { // A -> (a B)+ c ; B -> b
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 0), gnode!(nt 1)]);
+            // let cc2 = tree.add(Some(p1), gnode!(&));
+            // tree.add_iter(Some(cc2), [gnode!(t 0), gnode!(nt 1)]);
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        29 => { // A -> a ( (B b)* c)* d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            let p2 = tree.add(Some(cc2), gnode!(*));
+            tree.addc_iter(Some(p2), gnode!(&), [gnode!(nt 1), gnode!(t 1)]);
+            tree.add(Some(cc2), gnode!(t 2));
+            tree.add(Some(cc), gnode!(t 3));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        30 => { // A -> a ( (B b)+ c)+ d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            let p2 = tree.add(Some(cc2), gnode!(+));
+            tree.addc_iter(Some(p2), gnode!(&), [gnode!(nt 1), gnode!(t 1)]);
+            tree.add(Some(cc2), gnode!(t 2));
+            tree.add(Some(cc), gnode!(t 3));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        32 => { // A -> a (a | c) (b <L=B>)* c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc_iter(Some(cc), gnode!(|), [gnode!(t 0), gnode!(t 2)]);
+            let p1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
+            tree.add(Some(cc), gnode!(t 2));
+            // symbol table defined below
+        }
+        33 => { // A -> (B c)* b | a; B -> b
+            let or = tree.add_root(gnode!(|));
+            let cc1 = tree.add(Some(or), gnode!(&));
+            let p2 = tree.add(Some(cc1), gnode!(*));
+            tree.addc_iter(Some(p2), gnode!(&), [gnode!(nt 1), gnode!(t 2)]);
+            tree.add(Some(cc1), gnode!(t 1));
+            tree.add(Some(or), gnode!(t 0));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        34 => { // A -> a ( (b)+ (b)+ )+ c ( (b)+ (b)+ )+ d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            tree.addc(Some(cc2), gnode!(+), gnode!(t 1));
+            tree.addc(Some(cc2), gnode!(+), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            tree.addc(Some(cc2), gnode!(+), gnode!(t 1));
+            tree.addc(Some(cc2), gnode!(+), gnode!(t 1));
+            tree.add(Some(cc), gnode!(t 3));
+        }
+        35 => { // A -> a A | b
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 0), gnode!(nt 0)]);
+            tree.add(Some(or), gnode!(t 1));
+        }
+        36 => { // A -> a A <L=A> | b
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 0), gnode!(nt 0), gnode!(L 0)]);
+            tree.add(Some(or), gnode!(t 1));
+        }
+        37 => { // A -> a (b <L=B>)* C; C -> c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let s1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(s1), gnode!(&), [gnode!(t 1), gnode!(L 1)]);
+            tree.add(Some(cc), gnode!(nt 2));
+            let _b_tree = rules.get_tree_mut(1);
+            let c_tree = rules.get_tree_mut(2);
+            c_tree.add_root(gnode!(t 2));
+        }
+        38 => {
+            // A -> A a c? | A b c? | d
+            let or = tree.add_root(gnode!(|));
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 0), gnode!(t 0)]);
+            tree.addc(Some(cc1), gnode!(?), gnode!(t 2));
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 0), gnode!(t 1)]);
+            tree.addc(Some(cc1), gnode!(?), gnode!(t 2));
+            tree.add(Some(or), gnode!(t 3));
+        }
+        39 => { // A -> a (<L=AIter1> (<L=AIter2> b)* c)* d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            tree.add(Some(cc2), gnode!(L 2));
+            let p2 = tree.add(Some(cc2), gnode!(*));
+            tree.addc_iter(Some(p2), gnode!(&), [gnode!(L 1), gnode!(t 1)]);
+            tree.add(Some(cc2), gnode!(t 2));
+            tree.add(Some(cc), gnode!(t 3));
+            let _b_tree = rules.get_tree_mut(1);
+            let _c_tree = rules.get_tree_mut(2);
+        }
+        40 => { // A -> a ( (<L=AIter1> b)* c)* d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            let p2 = tree.add(Some(cc2), gnode!(*));
+            tree.addc_iter(Some(p2), gnode!(&), [gnode!(L 1), gnode!(t 1)]);
+            tree.add(Some(cc2), gnode!(t 2));
+            tree.add(Some(cc), gnode!(t 3));
+            let _b_tree = rules.get_tree_mut(1);
+        }
+        41 => { // A -> A x A | A * [(NUM)+] | - A | ID
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 0), gnode!(t 0), gnode!(nt 0)]);
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 0), gnode!(t 1), gnode!(t 3)]);
+            tree.addc(Some(cc1), gnode!(+), gnode!(t 5));
+            tree.add(Some(cc1), gnode!(t 4));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(nt 0)]);
+            tree.add(Some(or), gnode!(t 6));
+
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["A".to_string()]);
+            table.extend_terminals([
+                ("CROSS".to_string(), Some("x".to_string())),   // 0
+                ("MUL".to_string(), Some("*".to_string())),     // 1
+                ("NEG".to_string(), Some("-".to_string())),     // 2
+                ("LB".to_string(), Some("[".to_string())),      // 3
+                ("RB".to_string(), Some("]".to_string())),      // 4
+                ("NUM".to_string(), None),                      // 5
+                ("ID".to_string(), None),                       // 6
+            ]);
+            rules.symbol_table = Some(table);
+        }
+        42 => { // E -> - E | E (* | / <P>) E | E (+ | - <P>) E | ID
+            let or = tree.add_root(gnode!(|));
+            // - E
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 3), gnode!(nt 0)]);
+            // E (* | / <P>) E
+            let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 0));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 1), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // E (+ | - <P>) E
+            let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 2));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // ID
+            tree.add(Some(or), gnode!(t 4));
+
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["E".to_string()]);
+            table.extend_terminals([
+                ("MUL".to_string(), Some("*".to_string())),   // 0
+                ("DIV".to_string(), Some("/".to_string())),   // 1
+                ("ADD".to_string(), Some("+".to_string())),   // 2
+                ("SUB".to_string(), Some("-".to_string())),   // 3
+                ("ID".to_string(), None),                     // 4
+            ]);
+            rules.symbol_table = Some(table);
+        }
+        43 => { // E -> - E | <R> E (* | / <P>) E | <R> E (+ | - <P>) E | ID
+            let or = tree.add_root(gnode!(|));
+            // - E
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 3), gnode!(nt 0)]);
+            // <R> E (* | / <P>) E
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(nt 0)]);
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 0));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 1), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // <R> E (+ | - <P>) E
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(nt 0)]);
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 2));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // ID
+            tree.add(Some(or), gnode!(t 4));
+
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["E".to_string()]);
+            table.extend_terminals([
+                ("MUL".to_string(), Some("*".to_string())),   // 0
+                ("DIV".to_string(), Some("/".to_string())),   // 1
+                ("ADD".to_string(), Some("+".to_string())),   // 2
+                ("SUB".to_string(), Some("-".to_string())),   // 3
+                ("ID".to_string(), None),                     // 4
+            ]);
+            rules.symbol_table = Some(table);
+        }
+        44 => { // E -> - E | <R> E (* | / <P>) E | E (+ | - <P>) E | ID
+            let or = tree.add_root(gnode!(|));
+            // - E
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 3), gnode!(nt 0)]);
+            // <R> E (* | / <P>) E
+            let cc1 = tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(nt 0)]);
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 0));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 1), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // E (+ | - <P>) E
+            let cc1 = tree.addc(Some(or), gnode!(&), gnode!(nt 0));
+            let or2 = tree.addc(Some(cc1), gnode!(|), gnode!(t 2));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 3), gnode!(P)]);
+            tree.add(Some(cc1), gnode!(nt 0));
+            // ID
+            tree.add(Some(or), gnode!(t 4));
+
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["E".to_string()]);
+            table.extend_terminals([
+                ("MUL".to_string(), Some("*".to_string())),   // 0
+                ("DIV".to_string(), Some("/".to_string())),   // 1
+                ("ADD".to_string(), Some("+".to_string())),   // 2
+                ("SUB".to_string(), Some("-".to_string())),   // 3
+                ("ID".to_string(), None),                     // 4
+            ]);
+            rules.symbol_table = Some(table);
+        }
+        45 => { // A -> a b | (c | d) | e
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 0), gnode!(t 1)]);
+            tree.addc_iter(Some(or), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
+            tree.add(Some(or), gnode!(t 4));
+        }
+        46 => { // A -> (a | b) (c | d)
+            let cc = tree.add_root(gnode!(&));
+            tree.addc_iter(Some(cc), gnode!(|), [gnode!(t 0), gnode!(t 1)]);
+            tree.addc_iter(Some(cc), gnode!(|), [gnode!(t 2), gnode!(t 3)]);
+        }
+        47 => { // A -> (a | b) (c d | e)*
+            let cc = tree.add_root(gnode!(&));
+            tree.addc_iter(Some(cc), gnode!(|), [gnode!(t 0), gnode!(t 1)]);
+            let s1 = tree.add(Some(cc), gnode!(*));
+            let o2 = tree.add(Some(s1), gnode!(|));
+            tree.addc_iter(Some(o2), gnode!(&), [gnode!(t 2), gnode!(t 3)]);
+            tree.add(Some(o2), gnode!(t 4));
+        }
+        48 => { // A -> a (b <L=C>)* B; B -> c
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(L 2)]);
+            tree.add(Some(cc), gnode!(nt 1));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 2));
+            // symbol table defined below
+            let _c_tree = rules.get_tree_mut(2);
+        }
+        50 => { // A -> (a d | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            let or2 = tree.add(Some(p1), gnode!(|));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 0), gnode!(t 3)]);
+            tree.add(Some(or2), gnode!(nt 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        51 => { // A -> (<L=2> a d | B)* c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(*));
+            let o2 = tree.add(Some(p1), gnode!(|));
+            tree.addc_iter(Some(o2), gnode!(&), [gnode!(L 2), gnode!(t 0), gnode!(t 3)]);
+            tree.add(Some(o2), gnode!(nt 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+            let _b_tree = rules.get_tree_mut(2);
+        }
+        52 => { // A -> (a d | B)+ c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let or2 = tree.add(Some(p1), gnode!(|));
+            tree.addc_iter(Some(or2), gnode!(&), [gnode!(t 0), gnode!(t 3)]);
+            tree.add(Some(or2), gnode!(nt 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+        }
+        53 => { // A -> (<L=2> a d | B)+ c ; B -> b  (NOT SUPPORTED! Users have to split that manually if they need a value for a|B)
+            let cc = tree.add_root(gnode!(&));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let o2 = tree.add(Some(p1), gnode!(|));
+            tree.addc_iter(Some(o2), gnode!(&), [gnode!(L 2), gnode!(t 0), gnode!(t 3)]);
+            tree.add(Some(o2), gnode!(nt 1));
+            tree.add(Some(cc), gnode!(t 2));
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+            let _b_tree = rules.get_tree_mut(2);
+        }
+
+        54 => { // A -> a (b c)+ d
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            tree.addc_iter(Some(p1), gnode!(&), [gnode!(t 1), gnode!(t 2)]);
+            tree.add(Some(cc), gnode!(t 3));
+        }
+        55 => { // A -> a ( (b c | d)+ e)+ f
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let p1 = tree.add(Some(cc), gnode!(+));
+            let cc2 = tree.add(Some(p1), gnode!(&));
+            let p2 = tree.add(Some(cc2), gnode!(+));
+            let or3 = tree.add(Some(p2), gnode!(|));
+            tree.addc_iter(Some(or3), gnode!(&), [gnode!(t 1), gnode!(t 2)]);
+            tree.add(Some(or3), gnode!(t 3));
+            tree.add(Some(cc2), gnode!(t 4));
+            tree.add(Some(cc), gnode!(t 5));
+        }
+        56 => { // A -> (a b)* a
+            let cc = tree.add_root(gnode!(&));
+            let star1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(star1), gnode!(&), [gnode!(t 0), gnode!(t 1)]);
+            tree.add(Some(cc), gnode!(t 0));
+        }
+        57 => { // A -> a (b a)*
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            let star1 = tree.add(Some(cc), gnode!(*));
+            tree.addc_iter(Some(star1), gnode!(&), [gnode!(t 1), gnode!(t 0)]);
+        }
+        58 => { // A -> A a | b
+            let cc = tree.add_root(gnode!(&));
+            let or = tree.add(Some(cc), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(nt 0), gnode!(t 0)]);
+            tree.add(Some(or), gnode!(t 1));
+        }
+        59 => { // A -> a? b* c?
+            let cc = tree.add_root(gnode!(&));
+            tree.addc(Some(cc), gnode!(?), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(*), gnode!(t 1));
+            tree.addc(Some(cc), gnode!(?), gnode!(t 2));
+        }
+        60 => { // A -> a? (b? | c?)*
+            let cc = tree.add_root(gnode!(&));
+            tree.addc(Some(cc), gnode!(?), gnode!(t 0));
+            let star = tree.add(Some(cc), gnode!(*));
+            let or1 = tree.add(Some(star), gnode!(|));
+            tree.addc(Some(or1), gnode!(?), gnode!(t 1));
+            let cc2 = tree.add(Some(or1), gnode!(&));
+            tree.addc(Some(cc2), gnode!(?), gnode!(t 2));
+        }
+        61 => { // A -> a ε?
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(?), gnode!(e));
+        }
+        62 => { // A -> (a | ε)?
+            let cc = tree.add_root(gnode!(&));
+            let maybe1 = tree.add(Some(cc), gnode!(?));
+            tree.addc_iter(Some(maybe1), gnode!(|), [gnode!(t 0), gnode!(e)]);
+        }
+        63 => { // A -> a ε*
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(*), gnode!(e));
+        }
+        64 => { // A -> a ε+
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(+), gnode!(e));
+        }
+        65 => { // A -> a b ε c ε
+            let cc = tree.add_root(gnode!(&));
+            tree.add_iter(Some(cc), [gnode!(t 0), gnode!(t 1), gnode!(e), gnode!(t 2), gnode!(e)]);
+        }
+        66 => { // A -> a b | c ε | ε | d | <P> ε | <R> <P>
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 0), gnode!(t 1)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(t 2), gnode!(e)]);
+            tree.add_iter(Some(or), [gnode!(e), gnode!(t 3), gnode!(e)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(P), gnode!(e)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(P)]);
+        }
+        67 => { // A -> <P> ε | <R> <P>
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(P), gnode!(e)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(R), gnode!(P)]);
+        }
+        68 => { // A -> <P> ε
+            let cc = tree.add_root(gnode!(&));
+            tree.add_iter(Some(cc), [gnode!(P), gnode!(e)]);
+        }
+        69 => { // A -> |(<P> ε)
+            let or = tree.add_root(gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(P), gnode!(e)]);
+        }
+        70 => { // A -> &(ε)
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(e));
+        }
+        71 => { // A -> |(&(ε))
+            let or = tree.add_root(gnode!(|));
+            tree.addc(Some(or), gnode!(&), gnode!(e));
+        }
+        72 => { // A -> a | ε
+            let or = tree.add_root(gnode!(|));
+            tree.add_iter(Some(or), [gnode!(t 0), gnode!(e)]);
+        }
+        73 => { // A -> a b?
+            let cc = tree.add_root(gnode!(&));
+            tree.add(Some(cc), gnode!(t 0));
+            tree.addc(Some(cc), gnode!(?), gnode!(t 1));
+        }
+        100 => {
+            // lexiparser
+            rules = crate::lexi::tests::build_rts();
+        }
+        101 => {
+            extend_nt = false;
+            let cc = tree.add_root(gnode!(&));
+            tree.add_iter(Some(cc), [gnode!(t 0), gnode!(nt 1)]);
+            let b_tree = rules.get_tree_mut(1);
+            b_tree.add_root(gnode!(t 1));
+            let mut table = SymbolTable::new();
+            table.extend_nonterminals(["A".to_string()]);
+            rules.symbol_table = Some(table);
+        }
+
+        // error detection in tree
+        500 => { // A -> (<L=B> a <L=C>)*
+            let star = tree.add_root(gnode!(*));
+            tree.addc_iter(Some(star), gnode!(&), [gnode!(L 1), gnode!(t 0), gnode!(L 2)]);
+        }
+        501 => { // A -> (<L=B> a | <L=C> b)*
+            let star = tree.add_root(gnode!(*));
+            let or = tree.add(Some(star), gnode!(|));
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(L 1), gnode!(t 0)]);
+            tree.addc_iter(Some(or), gnode!(&), [gnode!(L 2), gnode!(t 1)]);
+        }
+        _ => {}
+    }
+    if rules.symbol_table.is_none() {
+        const VERBOSE: bool = false;
+        let mut table = SymbolTable::new();
+        let mut lforms = btreemap![];
+        let mut num_nt: VarId = 0;
+        let mut num_t = 0;
+        let mut num_iter = 0;
+        for (v, t) in rules.get_trees_iter() {
+            assert!(v < 26);
+            if v >= num_nt { num_nt = v + 1 }
+            let mut iter = 1;
+            for n in t.iter_depth_simple() {
+                match n.deref() {
+                    GrNode::Symbol(Symbol::NT(nt)) => {
+                        if *nt >= num_nt { num_nt = *nt + 1 }
+                    }
+                    GrNode::Symbol(Symbol::T(t)) => {
+                        if *t >= num_t { num_t = *t + 1 }
+                    }
+                    GrNode::LForm(nt) if *nt != v => {
+                        lforms.insert(*nt, format!("{}Iter{iter}", char::from(v as u8 + 65)));
+                        num_iter += 1;
+                        iter += 1;
+                    }
+                    _ => {}
+                }
+            }
+        }
+        assert!(extend_nt || lforms.is_empty(), "cannot disable extend_nt when there are lforms");
+        if extend_nt {
+            let table_num_nt = table.get_num_nt() as VarId;
+            if VERBOSE && table_num_nt < num_nt {
+                println!("adding {table_num_nt}..{num_nt} NTs to the symbol table");
+            }
+            table.extend_nonterminals((table_num_nt..num_nt).map(|v| char::from(v as u8 + 65).to_string()));
+            if VERBOSE && rules.get_num_nt() < num_nt {
+                println!("adding {num_nt}..{} rules to the RuleTreeSet", rules.get_num_nt());
+            }
+            for v in rules.get_num_nt()..num_nt {   // adds missing NT to avoid error messages in RTS or PRS methods
+                let tree = rules.get_tree_mut(v);
+                tree.add_root(gnode!(e));
+            }
+            if VERBOSE {
+                println!("rules have become:\n{}", rts_to_str(&rules));
+            }
+        }
+        for (nt, name) in lforms {
+            if nt >= num_nt {
+                table.extend_nonterminals((num_nt..=nt).map(|v| if v < nt { "???".to_string() } else { name.clone() }));
+                num_nt = nt + 1;
+                rules.set_tree(nt, GrTree::new());
+            } else {
+                table.set_nt_name(nt, name);
+            }
+        }
+        if 21 <= id && id <= 25 || id == 27 || id == 32 {
+            table.extend_terminals([
+                ("a".to_string(), None),
+                if id != 25 { ("b".to_string(), None) } else { ("#".to_string(), Some("#".to_string())) },
+                ("c".to_string(), None),
+            ]);
+        } else {
+            table.extend_terminals((0..num_t).map(|v| (char::from(v as u8 + 97).to_string(), None)));
+        }
+        if VERBOSE { println!("RTS({id}): num_nt = {num_nt}, num_t = {num_t}, num_iter = {num_iter}, table = {:?}", table); }
+        rules.symbol_table = Some(table);
+    }
+    rules
+}
+
+// ---------------------------------------------------------------------------------------------
 
 #[test]
 fn ruletreeset_to_str() {
     let tests = vec![
         // RTS, var, node, emphasis, expected
-        (18, 0, None, None, "a | b | c"),
-        (56, 0, Some(2), None, "a b"),
         (23, 0, None, None, "a b+ c"),
         (56, 0, None, None, "(a b)* a"),
         (38, 0, None, None, "A a c? | A b c? | d"),
@@ -451,5 +1202,19 @@ fn rts_prodrule_from() {
         assert_eq!(result, expected, "test {test_id} failed");
         assert_eq!(rules.flags[..num_vars], expected_flags, "test {test_id} failed (flags)");
         assert_eq!(rules.parent[..num_vars], expected_parent, "test {test_id} failed (parent)");
+    }
+}
+
+#[allow(dead_code)]
+fn rts_to_str<T>(rules: &RuleTreeSet<T>) -> String {
+    rules.get_trees_iter()
+        .map(|(id, t)| format!("- {id} => {:#} (depth {})",
+                               t.to_str(None, rules.get_symbol_table()), t.depth().unwrap_or(0)))
+        .join("\n")
+}
+
+impl<T> RuleTreeSet<T> {
+    fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &GrTree)> {
+        self.get_trees_iter().filter(|(_, rule)| !is_grtree_empty_symbol(&rule))
     }
 }
