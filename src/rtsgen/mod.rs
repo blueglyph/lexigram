@@ -74,6 +74,7 @@ struct RGListener<'a> {
     nt: HashMap<String, VarId>,
     nt_def_order: Vec<VarId>,
     rules: Vec<GrTree>,
+    reserved_nt: Vec<VarId>,
     symbol_table: Option<SymbolTable>,
     t: HashMap<String, TokenId>,
     /// terminal information; `(String, Option<String>)` = (token name, optional string if not variable)
@@ -107,6 +108,7 @@ impl<'a> RGListener<'a> {
             nt: HashMap::new(),
             nt_def_order: Vec::new(),
             rules: Vec::new(),
+            reserved_nt: Vec::new(),
             symbol_table: None,
             t: HashMap::new(),
             tokens: Vec::new(),
@@ -213,6 +215,11 @@ impl<'a> RGListener<'a> {
         }
         symtab.extend_terminals(t_name);
         self.symbol_table = Some(symtab);
+
+        // remove reserved nonterminals
+        for v in &self.reserved_nt {
+            self.rules[*v as usize].clear();
+        }
 
         // reorders nonterminal IDs by order of definition rather than order of appearance
         self.rules = self.nt_def_order.iter()
@@ -394,6 +401,7 @@ impl RtsGenListener for RGListener<'_> {
                     let var = self.get_or_create_nt(name.to_string());
                     self.nt_def_order.push(var);
                     self.rules[var as usize].add_root(GrNode::Symbol(Symbol::Empty));
+                    self.reserved_nt.push(var);
                     var
                 } else {
                     self.curr_nt.unwrap()

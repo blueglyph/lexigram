@@ -54,7 +54,7 @@ fn simple() {
                 r#"line -> (<L=line_iter> "-")+;"#],
             vec![
                 r#"line => +(&(<L=line_iter>, "-"));"#,
-                r#"line_iter => ε;"#]
+                r#"line_iter => <empty>;"#]
         ),
         (   // 7: string literals
             vec![
@@ -74,7 +74,7 @@ fn simple() {
                 r#"d -> "d" b;"#],
             vec![
                 r#"a => &("a", d, +(&(<L=a_iter>, c)));"#,
-                r#"a_iter => ε;"#,
+                r#"a_iter => <empty>;"#,
                 r#"b => "b";"#,
                 r#"c => &("c", b);"#,
                 r#"d => &("d", b);"#]
@@ -86,8 +86,8 @@ fn simple() {
                 r#"z -> "z";"#],
             vec![
                 r#"x => *(|(&(<L=x1>, y), +(&(<L=x2>, "+", z))));"#,
-                r#"x1 => ε;"#,
-                r#"x2 => ε;"#,
+                r#"x1 => <empty>;"#,
+                r#"x2 => <empty>;"#,
                 r#"y => "y";"#,
                 r#"z => "z";"#]
         ),
@@ -121,7 +121,8 @@ fn simple() {
                                  .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v:?}") } else { String::new() })).join("\n"));
                     println!("Log:\n{}", rts.get_log());
                 }
-                let result_rts = rts.get_trees_iter()
+                let result_rts = (0..rts.get_num_nt())
+                    .map(|v| (v, rts.get_tree(v).unwrap()))
                     .map(|(v, tree)| format!("{} => {};", Symbol::NT(v).to_str(rts.get_symbol_table()), tree.to_str(None, rts.get_symbol_table())))
                     .to_vec();
                 let expected_rts = expected.into_iter().map(|s| s.to_string()).to_vec();
