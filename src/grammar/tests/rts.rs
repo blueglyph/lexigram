@@ -762,18 +762,15 @@ fn ruletreeset_to_str() {
         (4, 0, None, None, "A B | C D"),
         (6, 0, None, None, "(A | B) (C | D) E"),
         (10, 0, None, None, "(A | B)?"),
-        // (23, 0, None, None, "a b+ c"),
-        // (56, 0, None, None, "(a b)* a"),
-        // (38, 0, None, None, "A a c? | A b c? | d"),
-        // (55, 0, None, None, "a ((b c | d)+ e)+ f"),
-        // (55, 0, None, Some(3), "a ( ►► (b c | d)+ e ◄◄ )+ f"),
-        // (53, 0, None, None, "(<L=AIter1> a d | B)+ c"),
-        // (44, 0, None, None, r#""-" E | <R> E ("*" | "/" <P>) E | E ("+" | "-" <P>) E | ID"#),
+        (200, 0, None, None, "(<L=i> A)*"),
+        (200, 0, None, Some(2), "( ►► <L=i> A ◄◄ )*"),
+        (200, 0, Some(2), None, "<L=i> A"),
+        (207, 0, None, None, r#"(A (<L=j> B ",")+ ";")+"#),
+        (600, 0, None, None, r#"e "+" e | Num"#),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     let mut errors = 0;
     for (test_id, (rts_id, var, node_maybe, emphasis_maybe, expected_str)) in tests.into_iter().enumerate() {
-        // let rts = build_rts(rts_id);
         let rts = RtsGeneral::build_test_rules(rts_id).unwrap();
         let result_str = rts.to_str(var, node_maybe, emphasis_maybe);
         if VERBOSE {
