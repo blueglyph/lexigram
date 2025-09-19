@@ -166,6 +166,11 @@ pub fn prule_to_str(prule: &ProdRule, symbol_table: Option<&SymbolTable>) -> Str
     prule.iter().map(|alt| alt.to_str(symbol_table)).join(" | ")
 }
 
+pub fn prule_to_rule_str(nt: VarId, prule: &ProdRule, symbol_table: Option<&SymbolTable>) -> String {
+    format!("{} -> {}", Symbol::NT(nt).to_str(symbol_table), prule.iter().map(|alt| alt.to_str(symbol_table)).join(" | "))
+
+}
+
 pub fn prule_to_macro(prule: &ProdRule) -> String {
     format!("prule!({})", prule.iter().map(|alt| alt.to_macro_item()).join("; "))
 }

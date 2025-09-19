@@ -1,6 +1,5 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use crate::grammar::tests::prs::print_expected_code;
 use super::*;
 
 // ---------------------------------------------------------------------------------------------
@@ -851,7 +850,7 @@ fn cleanup_tree() {
             if VERBOSE { println!("## error:\n- result   = {result:?}\n- expected = {expected:?}"); }
         }
     }
-    assert_eq!(errors, 0);
+    assert!(errors == 0, "{errors} error(s)");
 }
 
 // cargo +nightly miri test --package lexigram --lib grammar::tests::ruletree_normalize -- --exact
@@ -1070,105 +1069,110 @@ fn rts_normalize() {
             }
         };
     }
-    assert_eq!(errors, 0);
+    assert!(errors == 0, "{errors} error(s)");
 }
 
 #[test]
 fn rts_prodrule_from() {
-    let tests: Vec<(u32, BTreeMap<VarId, ProdRule>, Vec<u32>, Vec<Option<VarId>>)> = vec![
-        (0, btreemap![0 => prule!(t 1; t 2; nt 3)], vec![0], vec![None]),
-        (1, btreemap![0 => prule!(nt 1, nt 2; t 3; t 4; nt 5, nt 6;t 7; t 8; nt 9, nt 10)], vec![0], vec![None]),
-        (2, btreemap![0 => prule!(
-            nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
-            nt 1, nt 2, nt 3, nt 5, nt 6, nt 8;
-            nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
-            nt 1, nt 2, nt 4, nt 5, nt 6, nt 8;
-        )], vec![0], vec![None]),
-        (3, btreemap![0 => prule!(
-            nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
-            nt 1, nt 2, nt 3, nt 5, nt 8;
-            nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
-            nt 1, nt 2, nt 4, nt 5, nt 8;
-        )], vec![0], vec![None]),
-        (4, btreemap![0 => prule!(
-            nt 0, nt 1, nt 2, nt 3, nt 5, nt 6, nt 7;
-            nt 0, nt 1, nt 2, nt 3, nt 5, nt 8;
-            nt 0, nt 1, nt 2, nt 4, nt 5, nt 6, nt 7;
-            nt 0, nt 1, nt 2, nt 4, nt 5, nt 8;
-        )], vec![0], vec![None]),
-        (5, btreemap![0 => prule!(nt 1; e)], vec![0], vec![None]),
-        (6, btreemap![0 => prule!(nt 1, nt 2; e)], vec![0], vec![None]),
-        (7, btreemap![0 => prule!(nt 1, nt 2; nt 3; e)], vec![0], vec![None]),
-        (8, btreemap![
-            0 => prule!(t 1, nt 1),
-            1 =>  prule!(t 2, nt 1; t 2)
-        ], vec![6144, 4097], vec![None, Some(0)]),
-        (9, btreemap![
-            0 => prule!(t 1, nt 1),
-            1 =>  prule!(t 2, t 3, nt 1; t 2, t 3)
-        ], vec![6144, 4097], vec![None, Some(0)]),
-        (10, btreemap![
-            0 => prule!(t 1, nt 1),
-            1 =>  prule!(t 2, t 3, nt 1; t 2, t 3; t 4, nt 1; t 4)
-        ], vec![6144, 4097], vec![None, Some(0)]),
-        (11, btreemap![
-            0 => prule!(t 1, nt 1),
-            1 =>  prule!(t 2, nt 1; e)
-        ], vec![2048, 1], vec![None, Some(0)]),
-        (12, btreemap![
-            0 => prule!(t 1, nt 1),
-            1 =>  prule!(t 2, t 3, nt 1; e)
-        ], vec![2048, 1], vec![None, Some(0)]),
-        (13, btreemap![
-            0 => prule!(t 1, nt 1),
-            1 =>  prule!(t 2, t 3, nt 1; t 4, nt 1; e)
-        ], vec![2048, 1], vec![None, Some(0)]),
-        (14, btreemap![
-            0 => prule!(t 1, t 2; t 1, t 3; t 1; t 2; t 3; e)
+    let tests: Vec<(u32, Vec<&str>, Vec<u32>, Vec<Option<VarId>>)> = vec![
+        //  rules                                               flags
+        // --------------------------------------------------------------------------------
+        (1, vec![
+            r#"a -> A B"#,                                      //
         ], vec![0], vec![None]),
-        (15, btreemap![
-            0 => prule!(nt 0, t 1, nt 0; #R, nt 0, t 2, nt 0; nt 0, t 3, nt 0; t 4)
+        (4, vec![
+            r#"a -> A B | C D"#,                                //
         ], vec![0], vec![None]),
-        (17, btreemap![
-            0 => prule!(t 0, nt 2, t 3),
-            1 => prule!(t 1, nt 1; t 1),
-            2 => prule!(nt 1, t 2, nt 2; nt 1, t 2),
-        ], vec![6144, 4097, 6145], vec![None, Some(2), Some(0)]),
-        (35, btreemap![
-            0 => prule!(t 0, nt 0; t 1),
-        ], vec![0], vec![None]), // R_RECURSION not set yet (set by ProdRuleSet<T>::remove_left_recursion())
-        (36, btreemap![
-            0 => prule!(t 0, nt 0; t 1),
-        ], vec![128], vec![None]), // R_RECURSION not set yet (set by ProdRuleSet<T>::remove_left_recursion())
+        (8, vec![
+            r#"a -> A B | B"#,                                  //
+        ], vec![0], vec![None]),
+        (11, vec![
+            r#"a -> A b"#,                                      //
+            r#"b -> B"#,                                        //
+        ], vec![0, 0], vec![None, None]),
+        (100, vec![
+            r#"a -> a_1"#,                                      // parent_+_or_*
+            r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
+        ], vec![2048, 1], vec![None, Some(0)]),
+        (101, vec![
+            r#"a -> a_1"#,                                      // parent_+_or_* | plus
+            r#"a_1 -> A a_1 | A"#,                              // child_+_or_* | plus
+        ], vec![6144, 4097], vec![None, Some(0)]),
+        (105, vec![
+            r#"a -> a_1"#,                                      // parent_+_or_* | plus
+            r#"a_1 -> A B a_1 | A B"#,                          // child_+_or_* | plus
+        ], vec![6144, 4097], vec![None, Some(0)]),
+        (106, vec![
+            r#"a -> a_2"#,                                      // parent_+_or_*
+            r#"a_1 -> B "," a_1 | ε"#,                          // child_+_or_*
+            r#"a_2 -> A a_1 ";" a_2 | ε"#,                      // child_+_or_* | parent_+_or_*
+        ], vec![2048, 1, 2049], vec![None, Some(2), Some(0)]),
+        (150, vec![
+            r#"a -> a_1"#,                                      // parent_+_or_*
+            r#"a_1 -> A a_1 | B a_1 | ε"#,                      // child_+_or_*
+        ], vec![2048, 1], vec![None, Some(0)]),
+        (208, vec![
+            r#"a -> i"#,                                        // parent_+_or_*
+            r#"i -> A j ";" i | ε"#,                            // child_+_or_* | L-form | parent_+_or_*
+            r#"j -> B "," j | ε"#,                              // child_+_or_* | L-form
+        ], vec![2048, 2177, 129], vec![None, Some(0), Some(1)]),
+        /* template:
+        (1, vec![
+        ], vec![], vec![]),
+        */
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
+    const VERBOSE_ANSWER_ONLY: bool = false;
+    let mut errors = 0;
     for (test_id, expected, expected_flags, expected_parent) in tests {
-        let trees = build_rts(test_id);
-        if VERBOSE {
-            println!("\ntest {test_id}:");
+        let rts = TestRules(test_id).to_rts_general().unwrap();
+        if VERBOSE && !VERBOSE_ANSWER_ONLY {
+            let symtab = rts.get_symbol_table();
+            println!("{:=<80}\ntest {test_id}:", "");
+            println!(
+                "Original rules:\n{}",
+                rts.get_non_empty_nts()
+                    .map(|(v, t)| format!("- [{v:3}] {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, symtab, false)))
+                    .join("\n"));
         }
-        let mut rules = ProdRuleSet::build_from(trees);
-        assert!(rules.log.has_no_errors(), "test {test_id} failed to create production rules:\n{}", rules.log.get_messages_str());
-        rules.simplify();
-        let result = rules.get_non_empty_nts().map(|(id, p)| (id, p.clone())).collect::<BTreeMap<_, _>>();
+        let mut prs = ProdRuleSet::build_from(rts);
+        assert!(prs.log.has_no_errors(), "test {test_id} failed to create production rules:\n{}", prs.log.get_messages_str());
+        prs.simplify();
+        let symtab = prs.get_symbol_table();
+        let result = prs.get_prules_iter().map(|(id, p)| prule_to_rule_str(id, &p, symtab)).to_vec();
         let num_vars = result.len();
-        if VERBOSE {
-            println!("=>");
-            rules.print_rules(true, true);
-            print_expected_code(&result);
-            println!("  Flags: {}", rules.flags.iter().take(num_vars).index::<VarId>().map(|(nt, flag)| format!("\n  - {}: {}",
-                Symbol::NT(nt).to_str(rules.get_symbol_table()), ruleflag::to_string(*flag).join(" "))).join(""));
-            if !rules.log.is_empty() {
-                println!("  Messages:{}", rules.log.get_messages().map(|m| format!("\n  - {m:?}")).join(""));
+        if VERBOSE || VERBOSE_ANSWER_ONLY {
+            let flags = (0..num_vars).into_iter().map(|nt| prs.flags[nt]).join(", ");
+            let parents = (0..num_vars).into_iter().map(|nt| format!("{:?}", prs.parent[nt])).join(", ");
+            let comment_flags = (0..num_vars).into_iter().map(|nt| format!(" // {}", ruleflag::to_string(prs.flags[nt]).join(" | "))).to_vec();
+            let lines = result.iter().zip(comment_flags).map(|(s1, s2)| vec![format!("r#\"{s1}\"#,"), s2]).to_vec();
+            let cols = columns_to_str(lines, Some(vec![51, 0]));
+            if !VERBOSE_ANSWER_ONLY { println!("Code:"); }
+            println!("        ({test_id}, vec![");
+            println!("{}", cols.into_iter().map(|s| format!("            {s}")).join("\n"));
+            println!("        ], vec![{flags}], vec![{parents}]),");
+            if !VERBOSE_ANSWER_ONLY && !prs.log.is_empty() {
+                println!("Messages:\n{}", prs.log);
             }
         }
-        assert_eq!(result, expected, "test {test_id} failed");
-        assert_eq!(rules.flags[..num_vars], expected_flags, "test {test_id} failed (flags)");
-        assert_eq!(rules.parent[..num_vars], expected_parent, "test {test_id} failed (parent)");
+        // let fail1 = result != expected;
+        let fail1 = result != expected.into_iter().map(|s| s.to_string()).to_vec();
+        let fail2 = prs.flags[..num_vars] != expected_flags;
+        let fail3 = prs.parent[..num_vars] != expected_parent;
+        if  fail1 || fail2 || fail3 {
+            errors += 1;
+            if !VERBOSE_ANSWER_ONLY {
+                let msg = format!("## ERROR ## test {test_id}: ");
+                if fail1 { println!("{msg}rules don't match"); }
+                if fail2 { println!("{msg}flags don't match"); }
+                if fail3 { println!("{msg}parents don't match"); }
+            }
+        }
     }
+    assert!(errors == 0, "{errors} error(s)");
 }
 
-#[allow(dead_code)]
+#[allow(unused)]
 fn rts_to_str<T>(rules: &RuleTreeSet<T>) -> String {
     rules.get_trees_iter()
         .map(|(id, t)| format!("- {id} => {:#} (depth {})",
@@ -1176,6 +1180,7 @@ fn rts_to_str<T>(rules: &RuleTreeSet<T>) -> String {
         .join("\n")
 }
 
+#[allow(unused)]
 impl<T> RuleTreeSet<T> {
     fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &GrTree)> {
         self.get_trees_iter().filter(|(_, rule)| !is_grtree_empty_symbol(&rule))
