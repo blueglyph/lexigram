@@ -453,7 +453,7 @@ pub(crate) mod rules_rts_21_2 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
-                        1 |                                         // A_1 -> b A_1
+                        1 |                                         // A_1 -> "b" A_1
                         2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -790,7 +790,7 @@ pub(crate) mod rules_rts_22_2 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
+                        1 => self.exit_aiter1(),                    // AIter1 -> <L> "b" AIter1
                         2 => {}                                     // AIter1 -> <L> ε (not used)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -954,7 +954,7 @@ pub(crate) mod rules_rts_22_3 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
+                        1 => self.exit_aiter1(),                    // AIter1 -> <L> "b" AIter1
                         2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -1129,7 +1129,7 @@ pub(crate) mod rules_rts_22_4 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
+                        1 => self.exit_aiter1(),                    // AIter1 -> <L> "b" AIter1
                         2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -1686,7 +1686,7 @@ pub(crate) mod rules_rts_25_1 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // A -> a A_1 c
-                        1 |                                         // A_1 -> # A_1
+                        1 |                                         // A_1 -> "#" A_1
                         2 => {}                                     // A_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -2584,7 +2584,7 @@ pub(crate) mod rules_rts_24_2 {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         2 |                                         // A_1 -> AIter1
                         3 => self.exit_aiter1(alt_id),              // A_1 -> ε
-                     /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
+                     /* 1 */                                        // AIter1 -> <L> "b" A_1 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -2753,7 +2753,7 @@ pub(crate) mod rules_rts_24_3 {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         2 |                                         // A_1 -> AIter1
                         3 => self.exit_aiter1(alt_id),              // A_1 -> ε
-                     /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
+                     /* 1 */                                        // AIter1 -> <L> "b" A_1 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -2929,7 +2929,7 @@ pub(crate) mod rules_rts_24_4 {
                         0 => self.exit_a(),                         // A -> a AIter1 c
                         2 |                                         // A_1 -> AIter1
                         3 => self.exit_aiter1(alt_id),              // A_1 -> ε
-                     /* 1 */                                        // AIter1 -> <L> b A_1 (never called)
+                     /* 1 */                                        // AIter1 -> <L> "b" A_1 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -3324,11 +3324,11 @@ pub(crate) mod rules_rts_29_2 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_a(),                         // A -> a A_2 d
-                        2 |                                         // A_1 -> B b A_1
+                        2 |                                         // A_1 -> B "b" A_1
                         3 => {}                                     // A_1 -> ε
                         4 => self.exit_a2(),                        // A_2 -> A_1 c A_2
                         5 => {}                                     // A_2 -> ε
-                        1 => self.exit_b(),                         // B -> b
+                        1 => self.exit_b(),                         // B -> "b"
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -6626,13 +6626,13 @@ pub(crate) mod rules_rts_38_2 {
                 Call::Exit => {
                     match alt_id {
                         0 => self.inter_a(),                        // A -> d A_1
-                        4 |                                         // A_2 -> c A_1
+                        4 |                                         // A_2 -> "c" A_1
                         5 |                                         // A_2 -> A_1
-                        6 |                                         // A_3 -> c A_1
+                        6 |                                         // A_3 -> "c" A_1
                         7 => self.exit_a1(alt_id),                  // A_3 -> A_1
                         3 => self.exitloop_a1(),                    // A_1 -> ε
-                     /* 1 */                                        // A_1 -> a A_2 (never called)
-                     /* 2 */                                        // A_1 -> b A_3 (never called)
+                     /* 1 */                                        // A_1 -> "a" A_2 (never called)
+                     /* 2 */                                        // A_1 -> "b" A_3 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -6814,13 +6814,13 @@ pub(crate) mod rules_rts_38_3 {
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.inter_a(),                        // A -> d A_1
-                        4 |                                         // A_2 -> c A_1
+                        0 => self.inter_a(),                        // A -> "d" A_1
+                        4 |                                         // A_2 -> "c" A_1
                         5 |                                         // A_2 -> A_1
-                        6 |                                         // A_3 -> c A_1
+                        6 |                                         // A_3 -> "c" A_1
                         7 => self.exit_a1(alt_id),                  // A_3 -> A_1
-                     /* 1 */                                        // A_1 -> a A_2 (never called)
-                     /* 2 */                                        // A_1 -> b A_3 (never called)
+                     /* 1 */                                        // A_1 -> "a" A_2 (never called)
+                     /* 2 */                                        // A_1 -> "b" A_3 (never called)
                         3 => {}                                     // A_1 -> ε (not used)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
@@ -9886,9 +9886,9 @@ pub(crate) mod rules_rts_41_1 {
                     match alt_id {
                         7 |                                         // A_4 -> A_1
                         8 => self.exit_a1(),                        // A_4 -> ε
-                        2 |                                         // A_2 -> x A_3 A_2
-                        3 => self.exit_a2(alt_id),                  // A_2 -> * [ A_1 ] A_2
-                        5 |                                         // A_3 -> - A
+                        2 |                                         // A_2 -> "x" A_3 A_2
+                        3 => self.exit_a2(alt_id),                  // A_2 -> "*" "[" A_1 "]" A_2
+                        5 |                                         // A_3 -> "-" A
                         6 => self.exit_a3(alt_id),                  // A_3 -> ID
                         0 => {}                                     // A -> A_3 A_2 (not used)
                      /* 1 */                                        // A_1 -> NUM A_4 (never called)
@@ -10074,13 +10074,13 @@ pub(crate) mod rules_rts_42_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        1 |                                         // E_1 -> * E_4 E_1
-                        2 |                                         // E_1 -> / E_4 E_1
-                        3 |                                         // E_1 -> + E_2 E_1
-                        4 => self.exit_e1(alt_id),                  // E_1 -> - E_2 E_1
-                        7 => self.exit_e1(1),                       // E_3 -> * E_4 E_3 (duplicate of 1)
-                        8 => self.exit_e1(2),                       // E_3 -> / E_4 E_3 (duplicate of 2)
-                        10 |                                        // E_4 -> - E_4
+                        1 |                                         // E_1 -> "*" E_4 E_1
+                        2 |                                         // E_1 -> "/" E_4 E_1
+                        3 |                                         // E_1 -> "+" E_2 E_1
+                        4 => self.exit_e1(alt_id),                  // E_1 -> "-" E_2 E_1
+                        7 => self.exit_e1(1),                       // E_3 -> "*" E_4 E_3 (duplicate of 1)
+                        8 => self.exit_e1(2),                       // E_3 -> "/" E_4 E_3 (duplicate of 2)
+                        10 |                                        // E_4 -> "-" E_4
                         11 => self.exit_e4(alt_id),                 // E_4 -> ID
                         0 => {}                                     // E -> E_4 E_1 (not used)
                         5 => {}                                     // E_1 -> ε (not used)
@@ -10399,13 +10399,13 @@ pub(crate) mod rules_rts_43_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        1 |                                         // E_1 -> <R> * E_2 E_1
-                        2 |                                         // E_1 -> <R> / E_2 E_1
-                        3 |                                         // E_1 -> <R> + E E_1
-                        4 => self.exit_e1(alt_id),                  // E_1 -> <R> - E E_1
-                        7 => self.exit_e1(1),                       // E_3 -> <R> * E_2 E_3 (duplicate of 1)
-                        8 => self.exit_e1(2),                       // E_3 -> <R> / E_2 E_3 (duplicate of 2)
-                        10 |                                        // E_4 -> - E_4
+                        1 |                                         // E_1 -> <R> "*" E_2 E_1
+                        2 |                                         // E_1 -> <R> "/" E_2 E_1
+                        3 |                                         // E_1 -> <R> "+" E E_1
+                        4 => self.exit_e1(alt_id),                  // E_1 -> <R> "-" E E_1
+                        7 => self.exit_e1(1),                       // E_3 -> <R> "*" E_2 E_3 (duplicate of 1)
+                        8 => self.exit_e1(2),                       // E_3 -> <R> "/" E_2 E_3 (duplicate of 2)
+                        10 |                                        // E_4 -> "-" E_4
                         11 => self.exit_e4(alt_id),                 // E_4 -> ID
                         0 => {}                                     // E -> E_4 E_1 (not used)
                         5 => {}                                     // E_1 -> ε (not used)
@@ -10724,13 +10724,13 @@ pub(crate) mod rules_rts_44_1 {
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        1 |                                         // E_1 -> <R> * E_2 E_1
-                        2 |                                         // E_1 -> <R> / E_2 E_1
-                        3 |                                         // E_1 -> + E_2 E_1
-                        4 => self.exit_e1(alt_id),                  // E_1 -> - E_2 E_1
-                        7 => self.exit_e1(1),                       // E_3 -> <R> * E_2 E_3 (duplicate of 1)
-                        8 => self.exit_e1(2),                       // E_3 -> <R> / E_2 E_3 (duplicate of 2)
-                        10 |                                        // E_4 -> - E_4
+                        1 |                                         // E_1 -> <R> "*" E_2 E_1
+                        2 |                                         // E_1 -> <R> "/" E_2 E_1
+                        3 |                                         // E_1 -> "+" E_2 E_1
+                        4 => self.exit_e1(alt_id),                  // E_1 -> "-" E_2 E_1
+                        7 => self.exit_e1(1),                       // E_3 -> <R> "*" E_2 E_3 (duplicate of 1)
+                        8 => self.exit_e1(2),                       // E_3 -> <R> "/" E_2 E_3 (duplicate of 2)
+                        10 |                                        // E_4 -> "-" E_4
                         11 => self.exit_e4(alt_id),                 // E_4 -> ID
                         0 => {}                                     // E -> E_4 E_1 (not used)
                         5 => {}                                     // E_1 -> ε (not used)
@@ -11634,58 +11634,58 @@ pub(crate) mod rules_rts_100_1 {
                         2 |                                         // file_item -> option
                         3 |                                         // file_item -> declaration
                         4 => self.exit_file_item(alt_id),           // file_item -> rule
-                        5 => self.exit_header(),                    // header -> lexicon Id ;
-                        6 => self.exit_declaration(),               // declaration -> mode Id ;
-                        7 => self.exit_option(),                    // option -> channels { Id option_1 }
-                        35 => self.exit_option1(),                  // option_1 -> , Id option_1
+                        5 => self.exit_header(),                    // header -> "lexicon" Id ";"
+                        6 => self.exit_declaration(),               // declaration -> "mode" Id ";"
+                        7 => self.exit_option(),                    // option -> "channels" "{" Id option_1 "}"
+                        35 => self.exit_option1(),                  // option_1 -> "," Id option_1
                         36 => {}                                    // option_1 -> ε
-                        8 |                                         // rule -> fragment Id : match ;
-                        43 |                                        // rule_1 -> -> actions ;
-                        44 => self.exit_rule(alt_id),               // rule_1 -> ;
-                     /* 9 */                                        // rule -> Id : match rule_1 (never called)
+                        8 |                                         // rule -> "fragment" Id ":" match ";"
+                        43 |                                        // rule_1 -> "->" actions ";"
+                        44 => self.exit_rule(alt_id),               // rule_1 -> ";"
+                     /* 9 */                                        // rule -> Id ":" match rule_1 (never called)
                         10 => self.exit_actions(),                  // actions -> action actions_1
-                        37 => self.exit_actions1(),                 // actions_1 -> , action actions_1
+                        37 => self.exit_actions1(),                 // actions_1 -> "," action actions_1
                         38 => {}                                    // actions_1 -> ε
-                        11 |                                        // action -> mode ( Id )
-                        12 |                                        // action -> push ( Id )
-                        13 |                                        // action -> pop
-                        14 |                                        // action -> skip
-                        15 |                                        // action -> more
-                        16 |                                        // action -> type ( Id )
-                        17 => self.exit_action(alt_id),             // action -> channel ( Id )
+                        11 |                                        // action -> "mode" "(" Id ")"
+                        12 |                                        // action -> "push" "(" Id ")"
+                        13 |                                        // action -> "pop"
+                        14 |                                        // action -> "skip"
+                        15 |                                        // action -> "more"
+                        16 |                                        // action -> "type" "(" Id ")"
+                        17 => self.exit_action(alt_id),             // action -> "channel" "(" Id ")"
                         18 => self.exit_match(),                    // match -> alt_items
                         19 => self.exit_alt_items(),                // alt_items -> alt_item alt_items_1
-                        39 => self.exit_alt_items1(),               // alt_items_1 -> | alt_item alt_items_1
+                        39 => self.exit_alt_items1(),               // alt_items_1 -> "|" alt_item alt_items_1
                         40 => {}                                    // alt_items_1 -> ε
                         20 => self.exit_alt_item(),                 // alt_item -> alt_item_1
                         53 |                                        // alt_item_2 -> alt_item_1
                         54 => self.exit_alt_item1(),                // alt_item_2 -> ε
                      /* 41 */                                       // alt_item_1 -> repeat_item alt_item_2 (never called)
-                        46 |                                        // repeat_item_1 -> ?
+                        46 |                                        // repeat_item_1 -> "?"
                         48 |                                        // repeat_item_1 -> ε
-                        57 |                                        // repeat_item_2 -> ?
+                        57 |                                        // repeat_item_2 -> "?"
                         58 |                                        // repeat_item_2 -> ε
-                        59 |                                        // repeat_item_3 -> ?
+                        59 |                                        // repeat_item_3 -> "?"
                         60 => self.exit_repeat_item(alt_id),        // repeat_item_3 -> ε
                      /* 21 */                                       // repeat_item -> item repeat_item_1 (never called)
-                     /* 45 */                                       // repeat_item_1 -> + repeat_item_2 (never called)
-                     /* 47 */                                       // repeat_item_1 -> * repeat_item_3 (never called)
-                        22 |                                        // item -> ( alt_items )
-                        23 |                                        // item -> ~ item
+                     /* 45 */                                       // repeat_item_1 -> "+" repeat_item_2 (never called)
+                     /* 47 */                                       // repeat_item_1 -> "*" repeat_item_3 (never called)
+                        22 |                                        // item -> "(" alt_items ")"
+                        23 |                                        // item -> "~" item
                         24 |                                        // item -> Id
                         26 |                                        // item -> StrLit
                         27 |                                        // item -> char_set
-                        49 |                                        // item_1 -> .. CharLit
+                        49 |                                        // item_1 -> ".." CharLit
                         50 => self.exit_item(alt_id),               // item_1 -> ε
                      /* 25 */                                       // item -> CharLit item_1 (never called)
-                        28 |                                        // char_set -> [ char_set_1 ]
-                        29 |                                        // char_set -> .
+                        28 |                                        // char_set -> "[" char_set_1 "]"
+                        29 |                                        // char_set -> "."
                         30 => self.exit_char_set(alt_id),           // char_set -> FixedSet
                         55 |                                        // char_set_2 -> char_set_1
                         56 => self.exit_char_set1(),                // char_set_2 -> ε
                      /* 42 */                                       // char_set_1 -> char_set_one char_set_2 (never called)
                         31 |                                        // char_set_one -> FixedSet
-                        51 |                                        // char_set_one_1 -> - SetChar
+                        51 |                                        // char_set_one_1 -> "-" SetChar
                         52 => self.exit_char_set_one(alt_id),       // char_set_one_1 -> ε
                      /* 32 */                                       // char_set_one -> SetChar char_set_one_1 (never called)
                         _ => panic!("unexpected exit alternative id: {alt_id}")

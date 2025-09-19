@@ -481,27 +481,27 @@ pub mod microcalc_parser {
                         29 |                                        // program_2 -> program_1
                         30 => self.exit_program1(),                 // program_2 -> ε
                      /* 10 */                                       // program_1 -> function program_2 (never called)
-                        1 => self.exit_function(),                  // function -> def Id ( fun_params ) { function_1 }
+                        1 => self.exit_function(),                  // function -> "def" Id "(" fun_params ")" "{" function_1 "}"
                         31 |                                        // function_2 -> function_1
                         32 => self.exit_function1(),                // function_2 -> ε
                      /* 11 */                                       // function_1 -> instruction function_2 (never called)
                         2 |                                         // fun_params -> Id fun_params_1
                         3 => self.exit_fun_params(alt_id),          // fun_params -> ε
-                        12 => self.exit_fun_params1(),              // fun_params_1 -> , Id fun_params_1
+                        12 => self.exit_fun_params1(),              // fun_params_1 -> "," Id fun_params_1
                         13 => {}                                    // fun_params_1 -> ε
-                        4 |                                         // instruction -> let Id = expr ;
-                        5 |                                         // instruction -> return expr ;
-                        6 => self.exit_instruction(alt_id),         // instruction -> print expr ;
-                        16 |                                        // expr_1 -> * expr_4 expr_1
-                        17 |                                        // expr_1 -> / expr_4 expr_1
-                        18 |                                        // expr_1 -> + expr_2 expr_1
-                        19 => self.exit_expr1(alt_id),              // expr_1 -> - expr_2 expr_1
-                        22 => self.exit_expr1(16),                  // expr_3 -> * expr_4 expr_3 (duplicate of 16)
-                        23 => self.exit_expr1(17),                  // expr_3 -> / expr_4 expr_3 (duplicate of 17)
-                        25 |                                        // expr_4 -> ( expr )
-                        26 |                                        // expr_4 -> - expr_4
+                        4 |                                         // instruction -> "let" Id "=" expr ";"
+                        5 |                                         // instruction -> "return" expr ";"
+                        6 => self.exit_instruction(alt_id),         // instruction -> "print" expr ";"
+                        16 |                                        // expr_1 -> "*" expr_4 expr_1
+                        17 |                                        // expr_1 -> "/" expr_4 expr_1
+                        18 |                                        // expr_1 -> "+" expr_2 expr_1
+                        19 => self.exit_expr1(alt_id),              // expr_1 -> "-" expr_2 expr_1
+                        22 => self.exit_expr1(16),                  // expr_3 -> "*" expr_4 expr_3 (duplicate of 16)
+                        23 => self.exit_expr1(17),                  // expr_3 -> "/" expr_4 expr_3 (duplicate of 17)
+                        25 |                                        // expr_4 -> "(" expr ")"
+                        26 |                                        // expr_4 -> "-" expr_4
                         28 |                                        // expr_4 -> Num
-                        33 |                                        // expr_5 -> ( fun_args )
+                        33 |                                        // expr_5 -> "(" fun_args ")"
                         34 => self.exit_expr4(alt_id),              // expr_5 -> ε
                         7 => {}                                     // expr -> expr_4 expr_1 (not used)
                         20 => {}                                    // expr_1 -> ε (not used)
@@ -510,7 +510,7 @@ pub mod microcalc_parser {
                      /* 27 */                                       // expr_4 -> Id expr_5 (never called)
                         8 |                                         // fun_args -> expr fun_args_1
                         9 => self.exit_fun_args(alt_id),            // fun_args -> ε
-                        14 => self.exit_fun_args1(),                // fun_args_1 -> , expr fun_args_1
+                        14 => self.exit_fun_args1(),                // fun_args_1 -> "," expr fun_args_1
                         15 => {}                                    // fun_args_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }

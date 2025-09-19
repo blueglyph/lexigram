@@ -226,30 +226,30 @@ impl<T: GramParserListener> ListenerWrapper for Wrapper<T> {
             Call::Exit => {
                 match alt_id {
                     0 => self.exit_file(),                      // file -> header rules
-                    1 => self.exit_header(),                    // header -> grammar Id ;
+                    1 => self.exit_header(),                    // header -> "grammar" Id ";"
                     2 => self.inter_rules(),                    // rules -> rule rules_1
                     15 => self.exit_rules1(),                   // rules_1 -> rule rules_1
                     16 => self.exitloop_rules1(),               // rules_1 -> ε
-                    19 |                                        // rule_1 -> ;
-                    20 => self.exit_rule(alt_id),               // rule_1 -> EOF ;
-                 /* 3 */                                        // rule -> rule_name : prod rule_1 (never called)
+                    19 |                                        // rule_1 -> ";"
+                    20 => self.exit_rule(alt_id),               // rule_1 -> "EOF" ";"
+                 /* 3 */                                        // rule -> rule_name ":" prod rule_1 (never called)
                     4 => self.exit_rule_name(),                 // rule_name -> Id
                     5 => self.inter_prod(),                     // prod -> prod_term prod_1
-                    17 => self.exit_prod1(),                    // prod_1 -> | prod_term prod_1
+                    17 => self.exit_prod1(),                    // prod_1 -> "|" prod_term prod_1
                     18 => self.exitloop_prod1(),                // prod_1 -> ε
                     6 => self.exit_prod_term(),                 // prod_term -> prod_term_1
                     13 => self.exit_prod_term1(),               // prod_term_1 -> prod_factor prod_term_1
                     14 => {}                                    // prod_term_1 -> ε
-                    21 |                                        // prod_factor_1 -> +
-                    22 |                                        // prod_factor_1 -> ?
-                    23 |                                        // prod_factor_1 -> *
+                    21 |                                        // prod_factor_1 -> "+"
+                    22 |                                        // prod_factor_1 -> "?"
+                    23 |                                        // prod_factor_1 -> "*"
                     24 => self.exit_prod_factor(alt_id),        // prod_factor_1 -> ε
                  /* 7 */                                        // prod_factor -> prod_atom prod_factor_1 (never called)
                     8 |                                         // prod_atom -> Id
                     9 |                                         // prod_atom -> Lform
-                    10 |                                        // prod_atom -> <R>
-                    11 |                                        // prod_atom -> <P>
-                    12 => self.exit_prod_atom(alt_id),          // prod_atom -> ( prod )
+                    10 |                                        // prod_atom -> "<R>"
+                    11 |                                        // prod_atom -> "<P>"
+                    12 => self.exit_prod_atom(alt_id),          // prod_atom -> "(" prod ")"
                     _ => panic!("unexpected exit alternative id: {alt_id}")
                 }
             }

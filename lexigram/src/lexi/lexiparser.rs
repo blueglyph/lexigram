@@ -406,60 +406,60 @@ impl<T: LexiParserListener> ListenerWrapper for Wrapper<T> {
                     2 |                                         // file_item -> option
                     3 |                                         // file_item -> declaration
                     4 => self.exit_file_item(alt_id),           // file_item -> rule
-                    5 => self.exit_header(),                    // header -> lexicon Id ;
-                    6 => self.exit_declaration(),               // declaration -> mode Id ;
-                    7 => self.exit_option(),                    // option -> channels { Id option_1 }
-                    37 => self.exit_option1(),                  // option_1 -> , Id option_1
+                    5 => self.exit_header(),                    // header -> "lexicon" Id ";"
+                    6 => self.exit_declaration(),               // declaration -> "mode" Id ";"
+                    7 => self.exit_option(),                    // option -> "channels" "{" Id option_1 "}"
+                    37 => self.exit_option1(),                  // option_1 -> "," Id option_1
                     38 => {}                                    // option_1 -> ε
-                    8 |                                         // rule -> rule_fragment_name : match ;
-                    45 |                                        // rule_1 -> -> actions ;
-                    46 => self.exit_rule(alt_id),               // rule_1 -> ;
-                 /* 9 */                                        // rule -> rule_terminal_name : match rule_1 (never called)
-                    10 => self.exit_rule_fragment_name(),       // rule_fragment_name -> fragment Id
+                    8 |                                         // rule -> rule_fragment_name ":" match ";"
+                    45 |                                        // rule_1 -> "->" actions ";"
+                    46 => self.exit_rule(alt_id),               // rule_1 -> ";"
+                 /* 9 */                                        // rule -> rule_terminal_name ":" match rule_1 (never called)
+                    10 => self.exit_rule_fragment_name(),       // rule_fragment_name -> "fragment" Id
                     11 => self.exit_rule_terminal_name(),       // rule_terminal_name -> Id
                     12 => self.exit_actions(),                  // actions -> action actions_1
-                    39 => self.exit_actions1(),                 // actions_1 -> , action actions_1
+                    39 => self.exit_actions1(),                 // actions_1 -> "," action actions_1
                     40 => {}                                    // actions_1 -> ε
-                    13 |                                        // action -> mode ( Id )
-                    14 |                                        // action -> push ( Id )
-                    15 |                                        // action -> pop
-                    16 |                                        // action -> skip
-                    17 |                                        // action -> more
-                    18 |                                        // action -> type ( Id )
-                    19 => self.exit_action(alt_id),             // action -> channel ( Id )
+                    13 |                                        // action -> "mode" "(" Id ")"
+                    14 |                                        // action -> "push" "(" Id ")"
+                    15 |                                        // action -> "pop"
+                    16 |                                        // action -> "skip"
+                    17 |                                        // action -> "more"
+                    18 |                                        // action -> "type" "(" Id ")"
+                    19 => self.exit_action(alt_id),             // action -> "channel" "(" Id ")"
                     20 => self.exit_match(),                    // match -> alt_items
                     21 => self.exit_alt_items(),                // alt_items -> alt_item alt_items_1
-                    41 => self.exit_alt_items1(),               // alt_items_1 -> | alt_item alt_items_1
+                    41 => self.exit_alt_items1(),               // alt_items_1 -> "|" alt_item alt_items_1
                     42 => {}                                    // alt_items_1 -> ε
                     22 => self.exit_alt_item(),                 // alt_item -> alt_item_1
                     55 |                                        // alt_item_2 -> alt_item_1
                     56 => self.exit_alt_item1(),                // alt_item_2 -> ε
                  /* 43 */                                       // alt_item_1 -> repeat_item alt_item_2 (never called)
-                    48 |                                        // repeat_item_1 -> ?
+                    48 |                                        // repeat_item_1 -> "?"
                     50 |                                        // repeat_item_1 -> ε
-                    59 |                                        // repeat_item_2 -> ?
+                    59 |                                        // repeat_item_2 -> "?"
                     60 |                                        // repeat_item_2 -> ε
-                    61 |                                        // repeat_item_3 -> ?
+                    61 |                                        // repeat_item_3 -> "?"
                     62 => self.exit_repeat_item(alt_id),        // repeat_item_3 -> ε
                  /* 23 */                                       // repeat_item -> item repeat_item_1 (never called)
-                 /* 47 */                                       // repeat_item_1 -> + repeat_item_2 (never called)
-                 /* 49 */                                       // repeat_item_1 -> * repeat_item_3 (never called)
-                    24 |                                        // item -> ( alt_items )
-                    25 |                                        // item -> ~ item
+                 /* 47 */                                       // repeat_item_1 -> "+" repeat_item_2 (never called)
+                 /* 49 */                                       // repeat_item_1 -> "*" repeat_item_3 (never called)
+                    24 |                                        // item -> "(" alt_items ")"
+                    25 |                                        // item -> "~" item
                     26 |                                        // item -> Id
                     28 |                                        // item -> StrLit
                     29 |                                        // item -> char_set
-                    51 |                                        // item_1 -> .. CharLit
+                    51 |                                        // item_1 -> ".." CharLit
                     52 => self.exit_item(alt_id),               // item_1 -> ε
                  /* 27 */                                       // item -> CharLit item_1 (never called)
-                    30 |                                        // char_set -> [ char_set_1 ]
-                    31 |                                        // char_set -> .
+                    30 |                                        // char_set -> "[" char_set_1 "]"
+                    31 |                                        // char_set -> "."
                     32 => self.exit_char_set(alt_id),           // char_set -> FixedSet
                     57 |                                        // char_set_2 -> char_set_1
                     58 => self.exit_char_set1(),                // char_set_2 -> ε
                  /* 44 */                                       // char_set_1 -> char_set_one char_set_2 (never called)
                     33 |                                        // char_set_one -> FixedSet
-                    53 |                                        // char_set_one_1 -> - SetChar
+                    53 |                                        // char_set_one_1 -> "-" SetChar
                     54 => self.exit_char_set_one(alt_id),       // char_set_one_1 -> ε
                  /* 34 */                                       // char_set_one -> SetChar char_set_one_1 (never called)
                     _ => panic!("unexpected exit alternative id: {alt_id}")

@@ -7,7 +7,7 @@ pub fn alt_to_str<T: SymInfoTable>(f: &Vec<Symbol>, symbol_table: Option<&T>) ->
     if f.is_empty() {
         "<empty>".to_string()
     } else {
-        f.iter().map(|s| s.to_str(symbol_table)).join(" ")
+        f.iter().map(|s| s.to_str_quote(symbol_table)).join(" ")
     }
 }
 

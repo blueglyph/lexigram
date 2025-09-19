@@ -825,32 +825,32 @@ pub mod rtsgen_parser {
                         40 |                                        // ruleset_1 -> rule_iter
                         41 => self.exit_rule_iter(alt_id),          // ruleset_1 -> ε
                      /* 1 */                                        // rule_iter -> <L> rule ruleset_1 (never called)
-                        42 |                                        // rule_1 -> -> prs_expr ;
-                        43 => self.exit_rule(alt_id),               // rule_1 -> => rts_expr ;
+                        42 |                                        // rule_1 -> "->" prs_expr ";"
+                        43 => self.exit_rule(alt_id),               // rule_1 -> "=>" rts_expr ";"
                      /* 2 */                                        // rule -> rule_nt rule_1 (never called)
                         3 => self.exit_rule_nt(),                   // rule_nt -> Nonterminal
-                        4 |                                         // rts_expr -> & rts_children
-                        5 |                                         // rts_expr -> | rts_children
-                        6 |                                         // rts_expr -> + rts_children
-                        7 |                                         // rts_expr -> * rts_children
-                        8 |                                         // rts_expr -> ? rts_children
+                        4 |                                         // rts_expr -> "&" rts_children
+                        5 |                                         // rts_expr -> "|" rts_children
+                        6 |                                         // rts_expr -> "+" rts_children
+                        7 |                                         // rts_expr -> "*" rts_children
+                        8 |                                         // rts_expr -> "?" rts_children
                         9 => self.exit_rts_expr(alt_id),            // rts_expr -> item
-                        10 => self.exit_rts_children(),             // rts_children -> ( rts_children_1 )
+                        10 => self.exit_rts_children(),             // rts_children -> "(" rts_children_1 ")"
                         19 => self.exit_rts_children1(),            // rts_children_1 -> rts_expr rts_children_1
                         20 => {}                                    // rts_children_1 -> ε
-                        21 |                                        // prs_expr_1 -> + prs_expr_1
-                        22 |                                        // prs_expr_1 -> * prs_expr_1
-                        23 |                                        // prs_expr_1 -> ? prs_expr_1
+                        21 |                                        // prs_expr_1 -> "+" prs_expr_1
+                        22 |                                        // prs_expr_1 -> "*" prs_expr_1
+                        23 |                                        // prs_expr_1 -> "?" prs_expr_1
                         24 |                                        // prs_expr_1 -> prs_expr_4 prs_expr_1
-                        25 => self.exit_prs_expr1(alt_id),          // prs_expr_1 -> | prs_expr_2 prs_expr_1
-                        28 |                                        // prs_expr_3 -> + prs_expr_3 (duplicate of 21)
-                        34 => self.exit_prs_expr1(21),              // prs_expr_5 -> + prs_expr_5 (duplicate of 21)
-                        29 |                                        // prs_expr_3 -> * prs_expr_3 (duplicate of 22)
-                        35 => self.exit_prs_expr1(22),              // prs_expr_5 -> * prs_expr_5 (duplicate of 22)
-                        30 |                                        // prs_expr_3 -> ? prs_expr_3 (duplicate of 23)
-                        36 => self.exit_prs_expr1(23),              // prs_expr_5 -> ? prs_expr_5 (duplicate of 23)
+                        25 => self.exit_prs_expr1(alt_id),          // prs_expr_1 -> "|" prs_expr_2 prs_expr_1
+                        28 |                                        // prs_expr_3 -> "+" prs_expr_3 (duplicate of 21)
+                        34 => self.exit_prs_expr1(21),              // prs_expr_5 -> "+" prs_expr_5 (duplicate of 21)
+                        29 |                                        // prs_expr_3 -> "*" prs_expr_3 (duplicate of 22)
+                        35 => self.exit_prs_expr1(22),              // prs_expr_5 -> "*" prs_expr_5 (duplicate of 22)
+                        30 |                                        // prs_expr_3 -> "?" prs_expr_3 (duplicate of 23)
+                        36 => self.exit_prs_expr1(23),              // prs_expr_5 -> "?" prs_expr_5 (duplicate of 23)
                         31 => self.exit_prs_expr1(24),              // prs_expr_3 -> prs_expr_4 prs_expr_3 (duplicate of 24)
-                        38 |                                        // prs_expr_6 -> ( prs_expr )
+                        38 |                                        // prs_expr_6 -> "(" prs_expr ")"
                         39 => self.exit_prs_expr6(alt_id),          // prs_expr_6 -> item
                         11 => {}                                    // prs_expr -> prs_expr_6 prs_expr_1 (not used)
                         26 => {}                                    // prs_expr_1 -> ε (not used)
@@ -863,8 +863,8 @@ pub mod rtsgen_parser {
                         14 |                                        // item -> TerminalCst
                         15 |                                        // item -> Empty
                         16 |                                        // item -> LTag
-                        17 |                                        // item -> <P>
-                        18 => self.exit_item(alt_id),               // item -> <R>
+                        17 |                                        // item -> "<P>"
+                        18 => self.exit_item(alt_id),               // item -> "<R>"
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
