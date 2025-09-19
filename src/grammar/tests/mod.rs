@@ -118,7 +118,10 @@ impl BuildTest for RtsGeneral {
             _ => return None
         };
         let text = specs.join("\n");
-        RtsGen::new().parse(text).ok()
+        match RtsGen::new().parse(text.clone()) {
+            Ok(rts) => Some(rts),
+            Err(log) => panic!("Error while parsing those rules:\n{:-<80}\n{text}\n{:-<80}\nLog:\n{log}\n{:-<80}", "", "", ""),
+        }
     }
 }
 
