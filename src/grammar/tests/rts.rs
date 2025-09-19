@@ -26,6 +26,20 @@ fn check_rts_sanity<T>(rules: &RuleTreeSet<T>, verbose: bool) -> Option<String> 
     }
 }
 
+#[allow(unused)]
+fn rts_to_str<T>(rules: &RuleTreeSet<T>) -> String {
+    rules.get_trees_iter()
+        .map(|(id, t)| format!("- {id} => {:#} (depth {})",
+                               t.to_str(None, rules.get_symbol_table()), t.depth().unwrap_or(0)))
+        .join("\n")
+}
+
+impl<T> RuleTreeSet<T> {
+    pub fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &GrTree)> {
+        self.get_trees_iter().filter(|(_, rule)| !is_grtree_empty_symbol(&rule))
+    }
+}
+
 pub(crate) fn build_rts(id: u32) -> RuleTreeSet<General> {
     let mut rules = RuleTreeSet::new();
     let tree = rules.get_tree_mut(0);
@@ -1070,119 +1084,4 @@ fn rts_normalize() {
         };
     }
     assert!(errors == 0, "{errors} error(s)");
-}
-
-#[test]
-fn rts_prodrule_from() {
-    let tests: Vec<(u32, Vec<&str>, Vec<u32>, Vec<Option<VarId>>)> = vec![
-        //  rules                                               flags
-        // --------------------------------------------------------------------------------
-        (1, vec![
-            r#"a -> A B"#,                                      //
-        ], vec![0], vec![None]),
-        (4, vec![
-            r#"a -> A B | C D"#,                                //
-        ], vec![0], vec![None]),
-        (8, vec![
-            r#"a -> A B | B"#,                                  //
-        ], vec![0], vec![None]),
-        (11, vec![
-            r#"a -> A b"#,                                      //
-            r#"b -> B"#,                                        //
-        ], vec![0, 0], vec![None, None]),
-        (100, vec![
-            r#"a -> a_1"#,                                      // parent_+_or_*
-            r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
-        ], vec![2048, 1], vec![None, Some(0)]),
-        (101, vec![
-            r#"a -> a_1"#,                                      // parent_+_or_* | plus
-            r#"a_1 -> A a_1 | A"#,                              // child_+_or_* | plus
-        ], vec![6144, 4097], vec![None, Some(0)]),
-        (105, vec![
-            r#"a -> a_1"#,                                      // parent_+_or_* | plus
-            r#"a_1 -> A B a_1 | A B"#,                          // child_+_or_* | plus
-        ], vec![6144, 4097], vec![None, Some(0)]),
-        (106, vec![
-            r#"a -> a_2"#,                                      // parent_+_or_*
-            r#"a_1 -> B "," a_1 | ε"#,                          // child_+_or_*
-            r#"a_2 -> A a_1 ";" a_2 | ε"#,                      // child_+_or_* | parent_+_or_*
-        ], vec![2048, 1, 2049], vec![None, Some(2), Some(0)]),
-        (150, vec![
-            r#"a -> a_1"#,                                      // parent_+_or_*
-            r#"a_1 -> A a_1 | B a_1 | ε"#,                      // child_+_or_*
-        ], vec![2048, 1], vec![None, Some(0)]),
-        (208, vec![
-            r#"a -> i"#,                                        // parent_+_or_*
-            r#"i -> A j ";" i | ε"#,                            // child_+_or_* | L-form | parent_+_or_*
-            r#"j -> B "," j | ε"#,                              // child_+_or_* | L-form
-        ], vec![2048, 2177, 129], vec![None, Some(0), Some(1)]),
-        /* template:
-        (1, vec![
-        ], vec![], vec![]),
-        */
-    ];
-    const VERBOSE: bool = true;
-    const VERBOSE_ANSWER_ONLY: bool = false;
-    let mut errors = 0;
-    for (test_id, expected, expected_flags, expected_parent) in tests {
-        let rts = TestRules(test_id).to_rts_general().unwrap();
-        if VERBOSE && !VERBOSE_ANSWER_ONLY {
-            let symtab = rts.get_symbol_table();
-            println!("{:=<80}\ntest {test_id}:", "");
-            println!(
-                "Original rules:\n{}",
-                rts.get_non_empty_nts()
-                    .map(|(v, t)| format!("- [{v:3}] {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, symtab, false)))
-                    .join("\n"));
-        }
-        let mut prs = ProdRuleSet::build_from(rts);
-        assert!(prs.log.has_no_errors(), "test {test_id} failed to create production rules:\n{}", prs.log.get_messages_str());
-        prs.simplify();
-        let symtab = prs.get_symbol_table();
-        let result = prs.get_prules_iter().map(|(id, p)| prule_to_rule_str(id, &p, symtab)).to_vec();
-        let num_vars = result.len();
-        if VERBOSE || VERBOSE_ANSWER_ONLY {
-            let flags = (0..num_vars).into_iter().map(|nt| prs.flags[nt]).join(", ");
-            let parents = (0..num_vars).into_iter().map(|nt| format!("{:?}", prs.parent[nt])).join(", ");
-            let comment_flags = (0..num_vars).into_iter().map(|nt| format!(" // {}", ruleflag::to_string(prs.flags[nt]).join(" | "))).to_vec();
-            let lines = result.iter().zip(comment_flags).map(|(s1, s2)| vec![format!("r#\"{s1}\"#,"), s2]).to_vec();
-            let cols = columns_to_str(lines, Some(vec![51, 0]));
-            if !VERBOSE_ANSWER_ONLY { println!("Code:"); }
-            println!("        ({test_id}, vec![");
-            println!("{}", cols.into_iter().map(|s| format!("            {s}")).join("\n"));
-            println!("        ], vec![{flags}], vec![{parents}]),");
-            if !VERBOSE_ANSWER_ONLY && !prs.log.is_empty() {
-                println!("Messages:\n{}", prs.log);
-            }
-        }
-        // let fail1 = result != expected;
-        let fail1 = result != expected.into_iter().map(|s| s.to_string()).to_vec();
-        let fail2 = prs.flags[..num_vars] != expected_flags;
-        let fail3 = prs.parent[..num_vars] != expected_parent;
-        if  fail1 || fail2 || fail3 {
-            errors += 1;
-            if !VERBOSE_ANSWER_ONLY {
-                let msg = format!("## ERROR ## test {test_id}: ");
-                if fail1 { println!("{msg}rules don't match"); }
-                if fail2 { println!("{msg}flags don't match"); }
-                if fail3 { println!("{msg}parents don't match"); }
-            }
-        }
-    }
-    assert!(errors == 0, "{errors} error(s)");
-}
-
-#[allow(unused)]
-fn rts_to_str<T>(rules: &RuleTreeSet<T>) -> String {
-    rules.get_trees_iter()
-        .map(|(id, t)| format!("- {id} => {:#} (depth {})",
-                               t.to_str(None, rules.get_symbol_table()), t.depth().unwrap_or(0)))
-        .join("\n")
-}
-
-#[allow(unused)]
-impl<T> RuleTreeSet<T> {
-    fn get_non_empty_nts(&self) -> impl Iterator<Item=(VarId, &GrTree)> {
-        self.get_trees_iter().filter(|(_, rule)| !is_grtree_empty_symbol(&rule))
-    }
 }
