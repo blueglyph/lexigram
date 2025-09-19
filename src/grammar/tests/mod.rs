@@ -24,21 +24,13 @@ fn is_grtree_empty_symbol(rule: &GrTree) -> bool {
 
 // ---------------------------------------------------------------------------------------------
 
-pub struct RtsGeneral {}
-pub struct RtsNormalized {}
-pub struct PrsGeneral {}
-pub struct PrsLL1 {}
+#[derive(Clone, Copy, Debug)]
+pub struct TestRules(u32);
 
-trait BuildTest {
-    type Item;
-    fn build_test_rules(id: u32) -> Option<Self::Item>;
-}
-
-impl BuildTest for RtsGeneral {
-    type Item = RuleTreeSet<General>;
-
-    fn build_test_rules(id: u32) -> Option<Self::Item> {
-        let specs = match id {
+#[allow(unused)]
+impl TestRules {
+    pub fn to_rts_general(self) -> Option<RuleTreeSet<General>> {
+        let specs = match self.0 {
             // 0xx = basic, &, |, distribution, ?
             // -----------------------------------------------------------------------------
             0 => vec![r#"a -> A;"#],
@@ -56,6 +48,15 @@ impl BuildTest for RtsGeneral {
                        r#"b -> B;"#],
             12 => vec![r#"a -> A;"#,
                        r#"b -> B;"#],   // b should be dropped
+            // empty
+            30 => vec![r#"a -> A B ε C ε;"#],
+            31 => vec![r#"a -> A B | C ε | ε | D | ε | <P> ε | <R> <P>;"#],
+            32 => vec![r#"a -> <P> ε | <R> <P>;"#],
+            33 => vec![r#"a -> <P> ε;"#],
+            34 => vec![r#"a -> <P> ε;"#],
+            35 => vec![r#"a -> ε;"#],
+            36 => vec![r#"a -> ε;"#],
+            37 => vec![r#"a -> A | ε;"#],
 
             // 1xx = +* repetitions: multilevel, and multilevel +* with |
             // -----------------------------------------------------------------------------
@@ -163,29 +164,17 @@ impl BuildTest for RtsGeneral {
             Err(log) => panic!("Error while parsing those rules:\n{:-<80}\n{text}\n{:-<80}\nLog:\n{log}\n{:-<80}", "", "", ""),
         }
     }
-}
 
-impl BuildTest for RtsNormalized {
-    type Item = RuleTreeSet<Normalized>;
-
-    fn build_test_rules(id: u32) -> Option<Self::Item> {
-        RtsGeneral::build_test_rules(id).and_then(|rts| Some(rts.build_into()))
+    pub fn to_rts_normalized(self) -> Option<RuleTreeSet<Normalized>> {
+        self.to_rts_general().map(|rts| rts.build_into())
     }
-}
 
-impl BuildTest for PrsGeneral {
-    type Item = ProdRuleSet<General>;
-
-    fn build_test_rules(id: u32) -> Option<Self::Item> {
-        RtsNormalized::build_test_rules(id).and_then(|rts| Some(rts.build_into()))
+    pub fn to_prs_general(self) -> Option<ProdRuleSet<General>> {
+        self.to_rts_normalized().map(|rts| rts.build_into())
     }
-}
 
-impl BuildTest for PrsLL1 {
-    type Item = ProdRuleSet<LL1>;
-
-    fn build_test_rules(id: u32) -> Option<Self::Item> {
-        PrsGeneral::build_test_rules(id).and_then(|rts| Some(rts.build_into()))
+    pub fn to_prs_ll1(self) -> Option<ProdRuleSet<LL1>> {
+        self.to_prs_general().map(|prs| prs.build_into())
     }
 }
 
