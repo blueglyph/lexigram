@@ -979,9 +979,69 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
 
 // ---------------------------------------------------------------------------------------------
 
+fn test_prs_transforms<F>(
+    tests: Vec<(u32, Vec<&str>, Vec<u32>, Vec<Option<VarId>>)>,
+    mut f: F,
+    verbose: bool, show_answer_only: bool, comment_original_rules: bool)
+where
+    F: FnMut(ProdRuleSet<General>) -> ProdRuleSet<General>
+{
+    let mut errors = 0;
+    for (test_id, expected, expected_flags, expected_parent) in tests {
+        let rts = TestRules(test_id).to_rts_general().unwrap();
+        let symtab = rts.get_symbol_table();
+        let original_rules = rts.get_non_empty_nts()
+                .map(|(v, t)| format!("            // {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, symtab, false)))
+                .join("\n");
+        if verbose && !show_answer_only {
+            println!("{:=<80}\ntest {test_id}:", "");
+            if !comment_original_rules {
+                println!("Original rules:\n{original_rules}");
+            }
+        }
+        let prs = ProdRuleSet::build_from(rts);
+        assert!(prs.log.has_no_errors(), "test {test_id} failed to create production rules:\n{}", prs.log.get_messages_str());
+        let prs = f(prs);
+        let symtab = prs.get_symbol_table();
+        let result = prs.get_prules_iter().map(|(id, p)| prule_to_rule_str(id, &p, symtab)).to_vec();
+        let num_vars = result.len();
+        if verbose || show_answer_only {
+            let flags = (0..num_vars).into_iter().map(|nt| prs.flags[nt]).join(", ");
+            let parents = (0..num_vars).into_iter().map(|nt| format!("{:?}", prs.parent[nt])).join(", ");
+            let comment_flags = (0..num_vars).into_iter().map(|nt| format!(" // {}", ruleflag::to_string(prs.flags[nt]).join(" | "))).to_vec();
+            let lines = result.iter().zip(comment_flags).map(|(s1, s2)| vec![format!("r#\"{s1}\"#,"), s2]).to_vec();
+            let cols = columns_to_str(lines, Some(vec![51, 0]));
+            if !show_answer_only { println!("Code:"); }
+            println!("        ({test_id}, vec![");
+            if comment_original_rules {
+                println!("{original_rules}");
+            }
+            println!("{}", cols.into_iter().map(|s| format!("            {s}")).join("\n"));
+            println!("        ], vec![{flags}], vec![{parents}]),");
+            if !show_answer_only && !prs.log.is_empty() {
+                println!("Messages:\n{}", prs.log);
+            }
+        }
+        // let fail1 = result != expected;
+        let fail1 = result != expected.into_iter().map(|s| s.to_string()).to_vec();
+        let fail2 = prs.flags[..num_vars] != expected_flags;
+        let fail3 = prs.parent[..num_vars] != expected_parent;
+        if  fail1 || fail2 || fail3 {
+            errors += 1;
+            if !show_answer_only {
+                let msg = format!("## ERROR ## test {test_id}: ");
+                if fail1 { println!("{msg}rules don't match"); }
+                if fail2 { println!("{msg}flags don't match"); }
+                if fail3 { println!("{msg}parents don't match"); }
+            }
+        }
+    }
+    assert!(errors == 0, "{errors} error(s)");
+}
+
 #[test]
 fn rts_prodrule_from() {
-    let tests: Vec<(u32, Vec<&str>, Vec<u32>, Vec<Option<VarId>>)> = vec![
+    let tests = vec![
         //  rules                                               flags
         // --------------------------------------------------------------------------------
         (1, vec![
@@ -1029,110 +1089,63 @@ fn rts_prodrule_from() {
         */
     ];
     const VERBOSE: bool = true;
-    const VERBOSE_ANSWER_ONLY: bool = false;
-    let mut errors = 0;
-    for (test_id, expected, expected_flags, expected_parent) in tests {
-        let rts = TestRules(test_id).to_rts_general().unwrap();
-        if VERBOSE && !VERBOSE_ANSWER_ONLY {
-            let symtab = rts.get_symbol_table();
-            println!("{:=<80}\ntest {test_id}:", "");
-            println!(
-                "Original rules:\n{}",
-                rts.get_non_empty_nts()
-                    .map(|(v, t)| format!("- [{v:3}] {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, symtab, false)))
-                    .join("\n"));
-        }
-        let mut prs = ProdRuleSet::build_from(rts);
-        assert!(prs.log.has_no_errors(), "test {test_id} failed to create production rules:\n{}", prs.log.get_messages_str());
-        prs.simplify();
-        let symtab = prs.get_symbol_table();
-        let result = prs.get_prules_iter().map(|(id, p)| prule_to_rule_str(id, &p, symtab)).to_vec();
-        let num_vars = result.len();
-        if VERBOSE || VERBOSE_ANSWER_ONLY {
-            let flags = (0..num_vars).into_iter().map(|nt| prs.flags[nt]).join(", ");
-            let parents = (0..num_vars).into_iter().map(|nt| format!("{:?}", prs.parent[nt])).join(", ");
-            let comment_flags = (0..num_vars).into_iter().map(|nt| format!(" // {}", ruleflag::to_string(prs.flags[nt]).join(" | "))).to_vec();
-            let lines = result.iter().zip(comment_flags).map(|(s1, s2)| vec![format!("r#\"{s1}\"#,"), s2]).to_vec();
-            let cols = columns_to_str(lines, Some(vec![51, 0]));
-            if !VERBOSE_ANSWER_ONLY { println!("Code:"); }
-            println!("        ({test_id}, vec![");
-            println!("{}", cols.into_iter().map(|s| format!("            {s}")).join("\n"));
-            println!("        ], vec![{flags}], vec![{parents}]),");
-            if !VERBOSE_ANSWER_ONLY && !prs.log.is_empty() {
-                println!("Messages:\n{}", prs.log);
-            }
-        }
-        // let fail1 = result != expected;
-        let fail1 = result != expected.into_iter().map(|s| s.to_string()).to_vec();
-        let fail2 = prs.flags[..num_vars] != expected_flags;
-        let fail3 = prs.parent[..num_vars] != expected_parent;
-        if  fail1 || fail2 || fail3 {
-            errors += 1;
-            if !VERBOSE_ANSWER_ONLY {
-                let msg = format!("## ERROR ## test {test_id}: ");
-                if fail1 { println!("{msg}rules don't match"); }
-                if fail2 { println!("{msg}flags don't match"); }
-                if fail3 { println!("{msg}parents don't match"); }
-            }
-        }
-    }
-    assert!(errors == 0, "{errors} error(s)");
+    const SHOW_ANSWER_ONLY: bool = false;
+
+    test_prs_transforms(
+        tests,
+        |mut prs| {
+            prs.simplify();
+            prs
+        },
+        VERBOSE, SHOW_ANSWER_ONLY, false);
 }
 
 #[test]
 fn prs_remove_recursion() {
-    let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
-        (0, btreemap![
-            // A -> A b | A c | d | d e     A -> d A_1 | d e A_1
-            // B -> A f | g | h             B -> A f | g | h
-            //                              A_1 -> b A_1 | c A_1 | ε
-            0 => prule!(t 3, nt 2; t 3, t 4, nt 2),
-            1 => prule!(nt 0, t 5; t 6; t 7),
-            2 => prule!(t 1, nt 2; t 2, nt 2; e),
-        ]),
-        (2, btreemap![]),
-        (4, btreemap![
-            // E -> E - T | E + T | T     E -> T E_1
-            // T -> T / F | T * F | F     T -> F T_1
-            // F -> ( E ) | N | I         F -> ( E ) | NUM | ID
-            //                            E_1 -> + T E_1 | - T E_1 | ε
-            //                            T_1 -> * F T_1 | / F T_1 | ε
-            0 => prule!(nt 1, nt 3),
-            1 => prule!(nt 2, nt 4),
-            2 => prule!(t 4, nt 0, t 5; t 6; t 7),
-            3 => prule!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
-            4 => prule!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
-        ]),
-        (8, btreemap![
-            // (0) A -> A_2 A_1
-            // (1) A_1 -> a A_2 A_1 | ε
-            // (2) A_2 -> b
-            0 => prule!(nt 2, nt 1),
-            1 => prule!(t 0, nt 2, nt 1; e),
-            2 => prule!(t 1),
-        ]),
+    let tests = vec![
+        (500, vec![
+            // a -> a "!" | "?"
+            r#"a -> "?" a_1"#,                                  // parent_left_rec
+            r#"a_1 -> "!" a_1 | ε"#,                            // child_left_rec
+        ], vec![512, 4], vec![None, Some(0)]),
+        (600, vec![
+            // e -> e "+" e | Num
+            r#"e -> e_2 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> "+" e_2 e_1 | ε"#,                        // child_left_rec
+            r#"e_2 -> Num"#,                                    //
+        ], vec![1536, 4, 0], vec![None, Some(0), Some(0)]),
+        (601, vec![
+            // e -> e "*" e | e "+" e | Num
+            r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | ε"#,          // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
+            r#"e_4 -> Num"#,                                    //
+        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (602, vec![
+            // e -> e "^" e <R> | e "*" e | Num
+            r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> <R> "^" e_2 e_1 | "*" e_2 e_1 | ε"#,      // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
+            r#"e_3 -> <R,G> "^" e_2 e_3 | ε"#,                  // child_left_rec
+            r#"e_4 -> Num"#,                                    //
+        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        /* template:
+        (1, vec![
+        ], vec![], vec![]),
+        */
     ];
-    const VERBOSE: bool = false;
-    for (test_id, expected) in tests {
-        let mut rules = build_prs(test_id, false);
-        if VERBOSE {
-            println!("{:=<80}\ntest {test_id}:", "");
-            rules.print_rules(false, false);
-        }
-        rules.remove_recursion();
-        let result = <BTreeMap<_, _>>::from(&rules);
-        if VERBOSE {
-            println!("=>");
-            rules.print_rules(true, false);
-            print_expected_code(&result);
-        }
-        assert_eq!(result, expected, "test {test_id} failed");
-        assert_eq!(rules.log.get_errors().join("\n"), "", "test {test_id} failed");
-        assert_eq!(rules.log.get_warnings().join("\n"), "", "test {test_id} failed");
-        rules.remove_recursion();
-        let result = <BTreeMap<_, _>>::from(&rules);
-        assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
-    }
+    const VERBOSE: bool = true;
+    const SHOW_ANSWER_ONLY: bool = false;
+
+    test_prs_transforms(
+        tests,
+        |mut prs| {
+            prs.remove_recursion();
+            prs
+        },
+        VERBOSE, SHOW_ANSWER_ONLY, true);
+    todo!("add more tests")
 }
 
 #[test]
