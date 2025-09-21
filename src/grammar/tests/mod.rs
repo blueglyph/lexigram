@@ -103,16 +103,46 @@ impl TestRules {
             // 6xx = lrec: amb
             // -----------------------------------------------------------------------------
             600 => vec![r#"e -> e "+" e | Num;"#],
-            601 => vec![r#"e -> e "*" e | e "+" e | Num;"#],
-            602 => vec![r#"e -> e "^" e <R> | e "*" e | Num;"#],
+            // ----- swapping independent terms shouldn't have an impact:
+            601 => vec![r#"e -> e "*" e | e "+" e | Num | Id;"#],
+            602 => vec![r#"e -> Num | e "*" e | Id | e "+" e;"#],
+            // ----- prefix op:
+            603 => vec![r#"e -> e "*" e | e "+" e |   "!" e | Num;"#],
+            604 => vec![r#"e -> e "*" e |   "!" e | e "+" e | Num;"#],
+            605 => vec![r#"e ->   "!" e | e "*" e | e "+" e | Num;"#],
+            // ----- right-associative op:
+            606 => vec![r#"e ->     e "*" e |     e "+" e | <R> e "!" e | Num;"#],
+            607 => vec![r#"e ->     e "*" e | <R> e "!" e |     e "+" e | Num;"#],
+            608 => vec![r#"e -> <R> e "!" e |     e "*" e |     e "+" e | Num;"#],
+            // ----- postfix op:
+            609 => vec![r#"e -> e "*" e | e "+" e | e "!"   | Num;"#],
+            610 => vec![r#"e -> e "*" e | e "!"   | e "+" e | Num;"#],
+            611 => vec![r#"e -> e "!"   | e "*" e | e "+" e | Num;"#],
+            // ----- same priority:
+            612 => vec![r#"e -> e "!" e |     e "*" e |     e "+" e | Num;"#],
+            613 => vec![r#"e -> e "*" e |     e "+" e | <P> e "!" e | Num;"#],
+            614 => vec![r#"e -> e "*" e | <P> e "!" e |     e "+" e | Num;"#],
+            // ----- postfix & prefix ops:
+            630 => vec![r#"e ->     e "+" |     "-" e | Num;"#],
+            631 => vec![r#"e ->     e "+" | <R> "-" e | Num;"#],
+            632 => vec![r#"e -> <R> e "+" |     "-" e | Num;"#],
 
-            // E -> E '^' E | E '*' E | E '+' E | F;
-            // F -> ( E ) | NUM | ID
+            // Existing tests in wrapper_source.rs:
+            //
+            // PRS(58)  // E -> E + | - E | 0
+            // PRS(60)  // E -> E + | <L> - E | 0
+            // RTS(42)  // E -> - E | E (* | / <P>) E | E (+ | - <P>) E | ID
+            // RTS(43)  // E -> - E | <R> E (* | / <P>) E | <R> E (+ | - <P>) E | ID
+            // RTS(44)  // E -> - E | <R> E (* | / <P>) E | E (+ | - <P>) E | ID
+            // PRS(63)  // E -> <R> E ^ E | E * E | - E | E + E | ID;
 
             // 7xx = lfact
             // -----------------------------------------------------------------------------
-            700 => vec![r#"a -> A B | A C;"#],
-            701 => vec![r#"a -> A B C | B B C | B C | B B A;"#],
+            700 => vec![r#"a -> A | A B;"#],
+            701 => vec![r#"a -> A | A B | C;"#],
+            702 => vec![r#"a -> A B | A C;"#],
+            703 => vec![r#"a -> B | A B | A C;"#],
+            704 => vec![r#"a -> A B C | B B C | B C | B B A;"#],
 
             // 8xx = combinations
             // -----------------------------------------------------------------------------

@@ -979,12 +979,12 @@ pub(crate) fn build_prs(id: u32, is_t_data: bool) -> ProdRuleSet<General> {
 
 // ---------------------------------------------------------------------------------------------
 
-fn test_prs_transforms<F>(
+fn test_prs_transforms<F, T>(
     tests: Vec<(u32, Vec<&str>, Vec<u32>, Vec<Option<VarId>>)>,
     mut f: F,
     verbose: bool, show_answer_only: bool, comment_original_rules: bool)
 where
-    F: FnMut(ProdRuleSet<General>) -> ProdRuleSet<General>
+    F: FnMut(ProdRuleSet<General>) -> ProdRuleSet<T>
 {
     let mut errors = 0;
     for (test_id, expected, expected_flags, expected_parent) in tests {
@@ -1114,22 +1114,146 @@ fn prs_remove_recursion() {
             r#"e_1 -> "+" e_2 e_1 | ε"#,                        // child_left_rec
             r#"e_2 -> Num"#,                                    //
         ], vec![1536, 4, 0], vec![None, Some(0), Some(0)]),
+        // ----- swapping independent terms shouldn't have an impact
         (601, vec![
-            // e -> e "*" e | e "+" e | Num
+            // e -> e "*" e | e "+" e | Num | Id
             r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
             r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | ε"#,          // child_left_rec
             r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
             r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
-            r#"e_4 -> Num"#,                                    //
+            r#"e_4 -> Num | Id"#,                               //
         ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
         (602, vec![
-            // e -> e "^" e <R> | e "*" e | Num
+            // e -> Num | e "*" e | Id | e "+" e
             r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
-            r#"e_1 -> <R> "^" e_2 e_1 | "*" e_2 e_1 | ε"#,      // child_left_rec
+            r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | ε"#,          // child_left_rec
             r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
-            r#"e_3 -> <R,G> "^" e_2 e_3 | ε"#,                  // child_left_rec
-            r#"e_4 -> Num"#,                                    //
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
+            r#"e_4 -> Num | Id"#,                               //
         ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        // ----- prefix op; check differences in e_4:
+        (603, vec![
+            // e -> e "*" e | e "+" e | "!" e | Num
+            r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> <G> "*" e_4 e_1 | <G> "+" e_2 e_1 | ε"#,  // child_left_rec       // TODO: check if <G> necessary on * +
+            r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
+            r#"e_4 -> "!" e | Num"#,                            // right_rec
+        ], vec![1536, 4, 512, 4, 2], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (604, vec![
+            // e -> e "*" e | "!" e | e "+" e | Num
+            r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | ε"#,          // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
+            r#"e_4 -> "!" e_2 | Num"#,                          // right_rec
+        ], vec![1536, 4, 512, 4, 2], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (605, vec![
+            // e -> "!" e | e "*" e | e "+" e | Num
+            r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | ε"#,          // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
+            r#"e_4 -> "!" e_4 | Num"#,                          // right_rec
+        ], vec![1536, 4, 512, 4, 2], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        // ----- right-associative op
+        (606, vec![
+            // e -> e "*" e | e "+" e | <R> e "!" e | Num
+            r#"e -> e_4 e_1"#,                                                    // parent_left_rec | parent_amb
+            r#"e_1 -> <G> "*" e_4 e_1 | <G> "+" e_2 e_1 | <R,G> "!" e e_1 | ε"#,  // child_left_rec     // TODO: check if <G> necessary on * + !
+            r#"e_2 -> e_4 e_3"#,                                                  // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                                      // child_left_rec
+            r#"e_4 -> Num"#,                                                      //
+        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (607, vec![
+            // e -> e "*" e | <R> e "!" e | e "+" e | Num
+            r#"e -> e_4 e_1"#,                                            // parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | <R> "!" e_2 e_1 | "+" e_2 e_1 | ε"#,  // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                          // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | <R,G> "!" e_2 e_3 | ε"#,          // child_left_rec
+            r#"e_4 -> Num"#,                                              //
+        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (608, vec![
+            // e -> <R> e "!" e | e "*" e | e "+" e | Num
+            r#"e -> e_6 e_1"#,                                            // parent_left_rec | parent_amb
+            r#"e_1 -> <R> "!" e_4 e_1 | "*" e_4 e_1 | "+" e_2 e_1 | ε"#,  // child_left_rec
+            r#"e_2 -> e_6 e_3"#,                                          // parent_left_rec
+            r#"e_3 -> <R,G> "!" e_4 e_3 | <G> "*" e_4 e_3 | ε"#,          // child_left_rec
+            r#"e_4 -> e_6 e_5"#,                                          // parent_left_rec
+            r#"e_5 -> <R,G> "!" e_4 e_5 | ε"#,                            // child_left_rec
+            r#"e_6 -> Num"#,                                              //
+        ], vec![1536, 4, 512, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0), Some(4), Some(0)]),
+        // ----- postfix op
+        (609, vec![
+            // e -> e "*" e | e "+" e | e "!" | Num
+            r#"e -> e_4 e_1"#,                                    // parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | "!" e_1 | ε"#,  // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                  // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                      // child_left_rec
+            r#"e_4 -> Num"#,                                      //
+        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (610, vec![
+            // e -> e "*" e | e "!" | e "+" e | Num
+            r#"e -> e_4 e_1"#,                                    // parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | "!" e_1 | "+" e_2 e_1 | ε"#,  // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                  // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | <G> "!" e_3 | ε"#,        // child_left_rec
+            r#"e_4 -> Num"#,                                      //
+        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (611, vec![
+            // e -> e "!" | e "*" e | e "+" e | Num
+            r#"e -> e_6 e_1"#,                                    // parent_left_rec | parent_amb
+            r#"e_1 -> "!" e_1 | "*" e_4 e_1 | "+" e_2 e_1 | ε"#,  // child_left_rec
+            r#"e_2 -> e_6 e_3"#,                                  // parent_left_rec
+            r#"e_3 -> <G> "!" e_3 | <G> "*" e_4 e_3 | ε"#,        // child_left_rec
+            r#"e_4 -> e_6 e_5"#,                                  // parent_left_rec
+            r#"e_5 -> <G> "!" e_5 | ε"#,                          // child_left_rec
+            r#"e_6 -> Num"#,                                      //
+        ], vec![1536, 4, 512, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0), Some(4), Some(0)]),
+        // ----- same priority
+        (612, vec![
+            // e -> e "!" e | e "*" e | e "+" e | Num
+            r#"e -> e_6 e_1"#,                                        // parent_left_rec | parent_amb
+            r#"e_1 -> "!" e_6 e_1 | "*" e_4 e_1 | "+" e_2 e_1 | ε"#,  // child_left_rec
+            r#"e_2 -> e_6 e_3"#,                                      // parent_left_rec
+            r#"e_3 -> <G> "!" e_6 e_3 | <G> "*" e_4 e_3 | ε"#,        // child_left_rec
+            r#"e_4 -> e_6 e_5"#,                                      // parent_left_rec
+            r#"e_5 -> <G> "!" e_6 e_5 | ε"#,                          // child_left_rec
+            r#"e_6 -> Num"#,                                          //
+        ], vec![1536, 4, 512, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0), Some(4), Some(0)]),
+        (613, vec![
+            // e -> e "*" e | e "+" e | <P> e "!" e | Num
+            r#"e -> e_4 e_1"#,                                        // parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | "!" e_2 e_1 | ε"#,  // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                      // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                          // child_left_rec
+            r#"e_4 -> Num"#,                                          //
+        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (614, vec![
+            // e -> e "*" e | <P> e "!" e | e "+" e | Num
+            r#"e -> e_4 e_1"#,                                        // parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | "!" e_4 e_1 | "+" e_2 e_1 | ε"#,  // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                      // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | <G> "!" e_4 e_3 | ε"#,        // child_left_rec
+            r#"e_4 -> Num"#,                                          //
+        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        // ----- postfix & prefix ops:
+        (630, vec![
+            // e -> e "+" | "-" e | Num
+            r#"e -> "-" e | Num e_1"#,                          // right_rec | parent_left_rec
+            r#"e_1 -> "+" e_1 | ε"#,                            // child_left_rec
+        ], vec![514, 4], vec![None, Some(0)]),
+        (631, vec![
+            // e -> e "+" | <R> "-" e | Num
+            r#"e -> <R> "-" e | Num e_1"#,                      // right_rec | parent_left_rec
+            r#"e_1 -> "+" e_1 | ε"#,                            // child_left_rec
+        ], vec![514, 4], vec![None, Some(0)]),
+        (632, vec![
+            // e -> <R> e "+" | "-" e | Num
+            r#"e -> "-" e | Num e_1"#,                          // right_rec | parent_left_rec
+            r#"e_1 -> <R> "+" e_1 | ε"#,                        // child_left_rec
+        ], vec![514, 4], vec![None, Some(0)]),
+
         /* template:
         (1, vec![
         ], vec![], vec![]),
@@ -1145,142 +1269,76 @@ fn prs_remove_recursion() {
             prs
         },
         VERBOSE, SHOW_ANSWER_ONLY, true);
-    todo!("add more tests")
 }
 
 #[test]
 fn prs_left_factorize() {
-    let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
-        (0, btreemap![
-            // A -> d A_1 | A A_2
-            // B -> A f | g | h
-            // A_1 -> e | ε
-            // A_2 -> b | c
-            0 => prule!(t 3, nt 2; nt 0, nt 3),
-            1 => prule!(nt 0, t 5; t 6; t 7),
-            2 => prule!(t 4; e),
-            3 => prule!(t 1; t 2),
-        ]),
-        (1, btreemap![
-            // A -> b A_1 | c b | d c A_2
-            // A_1 -> b c A_3 | c g | d e A_4
-            // A_2 -> e | ε
-            // A_3 -> d | ε
-            // A_4 -> f | g
-            0 => prule!(t 1, nt 1; t 2, t 1; t 3, t 2, nt 2),
-            1 => prule!(t 1, t 2, nt 3; t 2, t 6; t 3, t 4, nt 4),
-            2 => prule!(t 4; e),
-            3 => prule!(t 3; #R, e),
-            4 => prule!(t 5; t 6),
-        ]),
-        (2, btreemap![]),
-        (3, btreemap![
-            // A -> a
-            // B -> c B_1
-            // C -> c | b
-            // D -> d
-            // B_1 -> a | ε
-            0 => prule!(t 0),
-            1 => prule!(t 2, nt 4),
-            2 => prule!(t 2; t 1),
-            3 => prule!(t 3),
-            4 => prule!(t 0; e),
-        ]),
-        (4, btreemap![
-            // E -> E E_1 | T
-            // T -> T T_1 | F
-            // F -> ( E ) | NUM | ID
-            // E_1 -> + T | - T
-            // T_1 -> * F | / F
-            0 => prule!(nt 0, nt 3; nt 1),
-            1 => prule!(nt 1, nt 4; nt 2),
-            2 => prule!(t 4, nt 0, t 5; t 6; t 7),
-            3 => prule!(t 0, nt 1; t 1, nt 1),
-            4 => prule!(t 2, nt 2; t 3, nt 2),
-        ]),
+    let tests = vec![
+        (700, vec![
+            // a -> A | A B
+            r#"a -> A a_1"#,                                    // parent_left_fact
+            r#"a_1 -> B | ε"#,                                  // child_left_fact
+        ], vec![32, 64], vec![None, Some(0)]),
+        (701, vec![
+            // a -> A | A B | C
+            r#"a -> A a_1 | C"#,                                // parent_left_fact
+            r#"a_1 -> B | ε"#,                                  // child_left_fact
+        ], vec![32, 64], vec![None, Some(0)]),
+        (702, vec![
+            // a -> A B | A C
+            r#"a -> A a_1"#,                                    // parent_left_fact
+            r#"a_1 -> B | C"#,                                  // child_left_fact
+        ], vec![32, 64], vec![None, Some(0)]),
+        (703, vec![
+            // a -> B | A B | A C
+            r#"a -> B | A a_1"#,                                // parent_left_fact
+            r#"a_1 -> B | C"#,                                  // child_left_fact
+        ], vec![32, 64], vec![None, Some(0)]),
+        (704, vec![
+            // a -> A B C | B B C | B C | B B A
+            r#"a -> A B C | B a_1"#,                            // parent_left_fact
+            r#"a_1 -> B a_2 | C"#,                              // parent_left_fact | child_left_fact
+            r#"a_2 -> A | C"#,                                  // child_left_fact
+        ], vec![32, 96, 64], vec![None, Some(0), Some(1)]),
+        /* template:
+        (1, vec![
+        ], vec![], vec![]),
+        */
     ];
-    const VERBOSE: bool = false;
-    for (test_id, expected) in tests {
-        let mut rules = build_prs(test_id, false);
-        if VERBOSE {
-            println!("test {test_id}:");
-            rules.print_rules(false, false);
-        }
-        rules.left_factorize();
-        let result = BTreeMap::<_, _>::from(&rules);
-        if VERBOSE {
-            println!("=>");
-            rules.print_rules(true, false);
-            print_expected_code(&result);
-        }
-        assert_eq!(result, expected, "test {test_id} failed");
-        assert_eq!(rules.log.get_errors().join("\n"), "", "test {test_id} failed");
-        assert_eq!(rules.log.get_warnings().join("\n"), "", "test {test_id} failed");
-        rules.left_factorize();
-        let result = BTreeMap::<_, _>::from(&rules);
-        assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
-    }
+    const VERBOSE: bool = true;
+    const SHOW_ANSWER_ONLY: bool = false;
+
+    test_prs_transforms(
+        tests,
+        |mut prs| {
+            prs.left_factorize();
+            prs
+        },
+        VERBOSE, SHOW_ANSWER_ONLY, true);
 }
 
 #[test]
 fn prs_ll1_from() {
-    let tests: Vec<(u32, BTreeMap<VarId, ProdRule>)> = vec![
-        (0, btreemap![
-            // A -> d A_2
-            // B -> A f | g | h
-            // A_1 -> b A_1 | c A_1 | ε
-            // A_2 -> e A_1 | A_1
-            0 => prule!(t 3, nt 3),
-            1 => prule!(nt 0, t 5; t 6; t 7),
-            2 => prule!(t 1, nt 2; t 2, nt 2; e),
-            3 => prule!(t 4, nt 2; nt 2),
-        ]),
-        (1, btreemap![
-            // A -> b A_1 | c b | d c A_2
-            // A_1 -> b c A_3 | c g | d e A_4
-            // A_2 -> e | ε
-            // A_3 -> d | ε
-            // A_4 -> f | g
-            0 => prule!(t 1, nt 1; t 2, t 1; t 3, t 2, nt 2),
-            1 => prule!(t 1, t 2, nt 3; t 2, t 6; t 3, t 4, nt 4),
-            2 => prule!(t 4; e),
-            3 => prule!(t 3; #256, e),
-            4 => prule!(t 5; t 6),
-        ]),
-        (4, btreemap![
-            // E -> T E_1
-            // T -> F T_1
-            // F -> ( E ) | NUM | ID
-            // E_1 -> + T E_1 | - T E_1 | ε
-            // T_1 -> * F T_1 | / F T_1 | ε
-            0 => prule!(nt 1, nt 3),
-            1 => prule!(nt 2, nt 4),
-            2 => prule!(t 4, nt 0, t 5; t 6; t 7),
-            3 => prule!(t 0, nt 1, nt 3; t 1, nt 1, nt 3; e),
-            4 => prule!(t 2, nt 2, nt 4; t 3, nt 2, nt 4; e),
-        ]),
+    let tests = vec![
+        (601, vec![
+            // e -> e "*" e | e "+" e | Num
+            r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | ε"#,          // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
+            r#"e_4 -> Num"#,                                    //
+        ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
     ];
-    const VERBOSE: bool = false;
-    for (test_id, expected) in tests {
-        let rules_lr = build_prs(test_id, false);
-        if VERBOSE {
-            println!("test {test_id}:");
-            rules_lr.print_rules(false, false);
-        }
-        let ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
-        let result = BTreeMap::<_, _>::from(&ll1);
-        if VERBOSE {
-            println!("=>");
-            ll1.print_rules(true, false);
-            print_expected_code(&result);
-        }
-        assert_eq!(result, expected, "test {test_id} failed");
-        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id} failed");
-        assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id} failed");
-        let rules_ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
-        let result = BTreeMap::<_, _>::from(&rules_ll1);
-        assert_eq!(result, expected, "test {test_id} failed on 2nd operation");
-   }
+    const VERBOSE: bool = true;
+    const SHOW_ANSWER_ONLY: bool = false;
+
+    test_prs_transforms(
+        tests,
+        |prs| {
+            ProdRuleSet::<LL1>::build_from(prs)
+        },
+        VERBOSE, SHOW_ANSWER_ONLY, true);
+    todo!("add more tests")
 }
 
 #[test]
