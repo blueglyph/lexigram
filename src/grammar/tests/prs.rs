@@ -1089,7 +1089,7 @@ fn rts_prodrule_from() {
         ], vec![], vec![]),
         */
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
 
     test_prs_transforms(
@@ -1260,7 +1260,7 @@ fn prs_remove_recursion() {
         ], vec![], vec![]),
         */
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
 
     test_prs_transforms(
@@ -1306,7 +1306,7 @@ fn prs_left_factorize() {
         ], vec![], vec![]),
         */
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
 
     test_prs_transforms(
@@ -1559,7 +1559,7 @@ fn prs_ll1_from() {
         ], vec![], vec![]),
         */
     ];
-    const VERBOSE: bool = true;
+    const VERBOSE: bool = false;
     const SHOW_ANSWER_ONLY: bool = false;
 
     test_prs_transforms(
@@ -1586,229 +1586,173 @@ fn prs_lr_from() {
     }
 }
 
-#[test]
-fn prs_calc_first() {
-    let tests: Vec<(u32, VarId, HashMap<Symbol, HashSet<Symbol>>)> = vec![
-        (4, 0, hashmap![
-            // E -> E + T | E - T | T
-            // T -> T * F | T / F | F
-            // F -> ( E ) | NUM | ID
-            // ->
-            // E -> T E_1
-            // T -> F T_1
-            // F -> ( E ) | NUM | ID
-            // E_1 -> + T E_1 | - T E_1 | ε
-            // T_1 -> * F T_1 | / F T_1 | ε
-            //
-            // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
-            // NT: 0:E, 1:T, 2:F, 3:E_1, 4:T_1
-            sym!(e) => hashset![sym!(e)],
-            sym!(t 0) => hashset![sym!(t 0)],
-            sym!(t 1) => hashset![sym!(t 1)],
-            sym!(t 2) => hashset![sym!(t 2)],
-            sym!(t 3) => hashset![sym!(t 3)],
-            sym!(t 4) => hashset![sym!(t 4)],
-            sym!(t 5) => hashset![sym!(t 5)],
-            sym!(t 6) => hashset![sym!(t 6)],
-            sym!(t 7) => hashset![sym!(t 7)],
-            sym!(nt 0) => hashset![sym!(t 4), sym!(t 6), sym!(t 7)],
-            sym!(nt 1) => hashset![sym!(t 4), sym!(t 6), sym!(t 7)],
-            sym!(nt 2) => hashset![sym!(t 4), sym!(t 6), sym!(t 7)],
-            sym!(nt 3) => hashset![sym!(t 0), sym!(t 1), sym!(e)],
-            sym!(nt 4) => hashset![sym!(t 2), sym!(t 3), sym!(e)],
-        ]),
-        (5, 0, hashmap![
-            sym!(e) => hashset![sym!(e)],
-            sym!(t 0) => hashset![sym!(t 0)],
-            sym!(t 1) => hashset![sym!(t 1)],
-            sym!(t 2) => hashset![sym!(t 2)],
-            sym!(nt 0) => hashset![sym!(t 0), sym!(t 1), sym!(t 2)],
-            sym!(nt 1) => hashset![sym!(t 0), sym!(e)],
-            sym!(nt 2) => hashset![sym!(t 1), sym!(e)]
-        ]),
-        (43, 0, hashmap![
-            sym!(t 0) => hashset![sym!(t 0)],
-            sym!(t 1) => hashset![sym!(t 1)],
-            sym!(t 2) => hashset![sym!(t 2)],
-            sym!(t 3) => hashset![sym!(t 3)],
-            sym!(t 4) => hashset![sym!(t 4)],
-            sym!(t 5) => hashset![sym!(t 5)],
-            sym!(t 6) => hashset![sym!(t 6)],
-            sym!(t 7) => hashset![sym!(t 7)],
-            sym!(nt 0) => hashset![sym!(t 0), sym!(t 2), sym!(e)],
-            sym!(nt 1) => hashset![sym!(t 0), sym!(t 2)],
-            sym!(nt 2) => hashset![sym!(t 2), sym!(t 5), sym!(t 6)],
-            sym!(nt 3) => hashset![sym!(t 2), sym!(t 5), sym!(t 6)],
-            sym!(e) => hashset![sym!(e)],
-        ]),
-        (51, 0, hashmap![
-            sym!(t 0) => hashset![sym!(t 0)],
-            sym!(t 1) => hashset![sym!(t 1)],
-            sym!(t 2) => hashset![sym!(t 2)],
-            sym!(t 3) => hashset![sym!(t 3)],
-            sym!(t 4) => hashset![sym!(t 4)],
-            sym!(t 5) => hashset![sym!(t 5)],
-            sym!(t 6) => hashset![sym!(t 6)],
-            sym!(t 7) => hashset![sym!(t 7)],
-            sym!(t 8) => hashset![sym!(t 8)],
-            sym!(t 9) => hashset![sym!(t 9)],
-            sym!(nt 0) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(t 7), sym!(t 8)],
-            sym!(nt 1) => hashset![sym!(t 5), sym!(t 7), sym!(t 8)],
-            sym!(nt 2) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 9), sym!(e)],
-            sym!(nt 3) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(t 7), sym!(t 8)],
-            sym!(nt 4) => hashset![sym!(t 2), sym!(t 3), sym!(t 9), sym!(e)],
-            sym!(nt 5) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(t 7), sym!(t 8)],
-            sym!(nt 6) => hashset![sym!(t 2), sym!(t 9), sym!(e)],
-            sym!(nt 7) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(t 7), sym!(t 8)],
-            sym!(e) => hashset![sym!(e)],
-        ]),
-    ];
-    const VERBOSE: bool = false;
+fn test_first_or_follow<F>(tests: Vec<(u32, VarId, HashMap<&str, &str>)>, mut f: F, verbose: bool, show_answer_only: bool, show_rules: bool)
+where
+    F: FnMut(&mut ProdRuleSet<LL1>) -> HashMap<Symbol, HashSet<Symbol>>
+{
+    let mut errors = 0;
     for (test_id, start, expected) in tests {
-        let rules_lr = build_prs(test_id, false);
-        if VERBOSE {
-            println!("test {test_id}:");
+        if verbose && !show_answer_only {
+            println!("{:=<80}\ntest {test_id}:", "");
         }
-        let mut ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
+        let mut ll1 = TestRules(test_id).to_prs_ll1().unwrap();
         ll1.set_start(start);
-        let first = ll1.calc_first();
-        if VERBOSE {
-            ll1.print_rules(false, false);
-            let b = map_and_print_first(&first, ll1.get_symbol_table());
-            for (sym, set) in &b {
-                println!("            sym!({}) => hashset![{}],", sym.to_macro_item(),
-                         set.iter().map(|s| format!("sym!({})", s.to_macro_item())).join(", "));
+        let set_to_test = f(&mut ll1);
+        let symtab = ll1.get_symbol_table();
+        let result = set_to_test.iter()
+            .map(|(s, hs)| {
+                let mut values = hs.into_iter().to_vec();
+                values.sort();
+                (s.to_str_name(symtab), values.into_iter().map(|s2| s2.to_str_name(symtab)).join(", "))
+            })
+            .collect::<HashMap<_, _>>();
+        if verbose || show_answer_only {
+            println!("        ({test_id}, {start}, hashmap![");
+            if !show_answer_only || show_rules {
+                ll1.print_rules(true, false);
+            }
+            let mut syms = set_to_test.keys().to_vec();
+            syms.sort();
+            for s in syms {
+                let str = s.to_str_name(symtab);
+                println!("            \"{str}\" => \"{}\",", result.get(&str).unwrap());
+            }
+            println!("        ]),");
+        }
+        let fail1 = result != expected.into_iter().map(|(s1, s2)| (s1.to_string(), s2.to_string())).collect();
+        let fail2 = !ll1.log.has_no_errors();
+        let fail3 = !ll1.log.has_no_warnings();
+        if fail1 || fail2 || fail3 {
+            errors += 1;
+            if !show_answer_only {
+                print!("## ERROR ## test {test_id} failed");
+                if fail1 { print!(", wrong result"); }
+                if fail2 { print!(", errors in log"); }
+                if fail3 { print!(", warnings in log"); }
+                println!();
+                if fail2 || fail3 {
+                    println!("Log:\n{}", ll1.log);
+                }
             }
         }
-        assert_eq!(first, expected, "test {test_id} failed");
-        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id} failed");
-        assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id} failed");
-   }
+    }
+    assert!(errors == 0, "{errors} error(s)");
+}
+
+#[test]
+fn prs_calc_first() {
+    let tests: Vec<(u32, VarId, HashMap<&str, &str>)> = vec![
+        (0, 0, hashmap![
+            "A" => "A",
+            "a" => "A",
+        ]),
+        (1, 0, hashmap![
+            "A" => "A",
+            "B" => "B",
+            "a" => "A",
+        ]),
+        (2, 0, hashmap![
+            "A" => "A",
+            "B" => "B",
+            "a" => "A, B",
+        ]),
+        (500, 0, hashmap![
+            "Not" => "Not",
+            "Question" => "Question",
+            "a" => "Question",
+            "a_1" => "Not, ε",
+            "ε" => "ε",
+        ]),
+        (501, 0, hashmap![
+            "B" => "B",
+            "C" => "C",
+            "A" => "A",
+            "a" => "A",
+            "a_1" => "B, C, ε",
+            "ε" => "ε",
+        ]),
+        (600, 0, hashmap![
+            "Add" => "Add",
+            "Num" => "Num",
+            "e" => "Num",
+            "e_1" => "Add, ε",
+            "e_2" => "Num",
+            "ε" => "ε",
+        ]),
+        (603, 0, hashmap![
+            "Mul" => "Mul",
+            "Add" => "Add",
+            "Not" => "Not",
+            "Num" => "Num",
+            "e" => "Not, Num",
+            "e_1" => "Mul, Add, ε",
+            "e_2" => "Not, Num",
+            "e_3" => "Mul, ε",
+            "e_4" => "Not, Num",
+            "ε" => "ε",
+        ]),
+        (850, 0, hashmap![
+            "A" => "A",
+            "B" => "B",
+            "C" => "C",
+            "D" => "D",
+            "a" => "A, D",
+            "a_1" => "B, C",
+        ]),
+        /* template:
+        (, 0, hashmap![]),
+        */
+    ];
+    const VERBOSE: bool = false;
+    const SHOW_ANSWER_ONLY: bool = false;
+    const SHOW_RULES: bool = false;
+    test_first_or_follow(tests, |ll1| ll1.calc_first(), VERBOSE, SHOW_ANSWER_ONLY, SHOW_RULES);
 }
 
 #[test]
 fn prs_calc_follow() {
-    let tests: Vec<(u32, VarId, HashMap<Symbol, HashSet<Symbol>>)> = vec![
-        (4, 0, hashmap![
-            // E -> T E_1
-            // T -> F T_1
-            // F -> ( E ) | NUM | ID
-            // E_1 -> + T E_1 | - T E_1 | ε
-            // T_1 -> * F T_1 | / F T_1 | ε
-            //
-            // T:  0:+, 1:-, 2:*, 3:/, 4:(, 5:), 6:NUM, 7:ID,
-            // NT: 0:E, 1:T, 2:F, 3:E_1, 4:T_1
-            sym!(nt 0) => hashset![sym!(t 5), sym!(end)],
-            sym!(nt 1) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(end)],
-            sym!(nt 2) => hashset![sym!(t 0), sym!(t 1), sym!(t 2), sym!(t 3), sym!(t 5), sym!(end)],
-            sym!(nt 3) => hashset![sym!(t 5), sym!(end)],
-            sym!(nt 4) => hashset![sym!(t 0), sym!(t 1), sym!(t 5), sym!(end)],
+    let tests: Vec<(u32, VarId, HashMap<&str, &str>)> = vec![
+        (0, 0, hashmap![
+            "a" => "$",
         ]),
-        (5, 0, hashmap![
-            sym!(nt 0) => hashset![sym!(end)],
-            sym!(nt 1) => hashset![sym!(t 1), sym!(t 2)],
-            sym!(nt 2) => hashset![sym!(t 2)],
+        (100, 0, hashmap![
+            "a" => "$",
+            "a_1" => "$",
         ]),
-        (43, 0, hashmap![
-            sym!(nt 0) => hashset![sym!(end)],
-            sym!(nt 1) => hashset![sym!(t 7)],
-            sym!(nt 2) => hashset![sym!(t 1), sym!(t 3)],
-            sym!(nt 3) => hashset![sym!(t 1), sym!(t 3), sym!(t 4)],
+        (300, 0, hashmap![
+            "a" => "$",
         ]),
-        (51, 0, hashmap![
-            sym!(nt 0) => hashset![sym!(t 6), sym!(end)],
-            sym!(nt 1) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
-            sym!(nt 2) => hashset![sym!(t 6), sym!(end)],
-            sym!(nt 3) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
-            sym!(nt 4) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
-            sym!(nt 5) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
-            sym!(nt 6) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
-            sym!(nt 7) => hashset![sym!(t 2), sym!(t 3), sym!(t 4), sym!(t 6), sym!(t 9), sym!(end)],
+        (500, 0, hashmap![
+            "a" => "$",
+            "a_1" => "$",
         ]),
+        (600, 0, hashmap![
+            "e" => "$",
+            "e_1" => "$",
+            "e_2" => "Add, $",
+        ]),
+        (603, 0, hashmap![
+            "e" => "Mul, Add, $",
+            "e_1" => "Mul, Add, $",
+            "e_2" => "Mul, Add, $",
+            "e_3" => "Mul, Add, $",
+            "e_4" => "Mul, Add, $",
+        ]),
+        (850, 0, hashmap![
+            "a" => "$",
+            "a_1" => "$",
+        ]),
+        /* template:
+        (, 0, hashmap![]),
+        */
     ];
     const VERBOSE: bool = false;
-    for (test_id, start, expected) in tests {
-        let rules_lr = build_prs(test_id, false);
-        if VERBOSE {
-            println!("test {test_id}:");
-        }
-        let mut ll1 = ProdRuleSet::<LL1>::build_from(rules_lr.clone());
-        ll1.set_start(start);
+    const SHOW_ANSWER_ONLY: bool = false;
+    const SHOW_RULES: bool = false;
+    test_first_or_follow(tests, |ll1| {
         let first = ll1.calc_first();
-        let follow = ll1.calc_follow(&first);
-        if VERBOSE {
-            ll1.print_rules(false, false);
-            let b = map_and_print_follow(&follow, ll1.get_symbol_table());
-            for (sym, set) in &b {
-                println!("            sym!({}) => hashset![{}],", sym.to_macro_item(),
-                         set.iter().map(|s| format!("sym!({})", s.to_macro_item())).join(", "));
-            }
-        }
-        assert_eq!(follow, expected, "test {test_id} failed");
-        assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id} failed");
-        assert_eq!(ll1.log.get_warnings().join("\n"), "", "test {test_id} failed");
-   }
-}
-
-#[test]
-fn prs_grammar_notes() {
-    let tests: Vec<(T, VarId, Vec<&str>, Vec<&str>)> = vec![
-        //        warnings                                  errors
-        //        -------------------------------------     -------------------------------------
-        (T::PRS(1000), 0, vec![],                           vec!["recursive rules must have at least one independent alternative"]),
-        (T::PRS(1002), 0, vec!["ambiguity for NT"],         vec![]),
-        (T::PRS(1003), 0, vec![],                           vec!["no terminal in grammar"]),
-        (T::PRS(1004), 0, vec![],                           vec!["no terminal used in the table"]),
-        (T::PRS(1005), 0, vec!["unused nonterminals",
-                               "unused terminals"],         vec![]),
-        (T::PRS(1006), 0, vec![],                           vec!["there are 2 rules but the symbol table has 1 nonterminal symbols: dropping the table"]),
-        (T::RTS(101), 0,  vec![],                           vec!["there are 2 rules but the symbol table has 1 nonterminal symbols: dropping the table"]),
-        (T::RTS(500), 0, vec![],                            vec!["in A, (<L=AIter1> a <L=AIter2>)*: conflicting <L=AIter1> and <L=AIter2>",
-                                                                 "normalize_var(AIter2): error while normalizing the rules, 0 remaining nodes instead of 1"]),
-        (T::RTS(501), 0, vec![],                            vec!["in A, (<L=AIter1> a | <L=AIter2> b)*: conflicting <L=AIter1> and <L=AIter2>",
-                                                                 "normalize_var(AIter2): error while normalizing the rules, 0 remaining nodes instead of 1"]),
-    ];
-    const VERBOSE: bool = false;
-    for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
-        if VERBOSE {
-            println!("{:=<80}\ntest {test_id} with {ll_id:?}/{start}:", "");
-        }
-        let mut ll1 = ll_id.try_build_prs(start, false);
-        if VERBOSE {
-            ll1.print_rules(false, false);
-            ll1.print_logs();
-        }
-        let mut parsing_table = None;
-        if ll1.log.num_errors() == 0 {
-            let first = ll1.calc_first();
-            if ll1.log.num_errors() == 0 {
-                let follow = ll1.calc_follow(&first);
-                if ll1.log.num_errors() == 0 {
-                    parsing_table = Some(ll1.calc_table(&first, &follow, false));
-                }
-            }
-            if VERBOSE {
-                println!("=>");
-                ll1.print_rules(false, false);
-                if let Some(table) = &parsing_table {
-                    print_alts(&table.alts, ll1.get_symbol_table());
-                    println!("table:");
-                    table.print(ll1.get_symbol_table(), 12);
-                }
-                ll1.print_logs();
-            }
-        }
-        assert_eq!(ll1.log.num_errors(), expected_errors.len(), "test {test_id}/{ll_id:?}/{start} failed on # errors");
-        assert_eq!(ll1.log.num_warnings(), expected_warnings.len(), "test {test_id}/{ll_id:?}/{start} failed on # warnings");
-        let err_discr = ll1.log.get_errors().zip(expected_errors).filter_map(|(e, ee)|
-            if !e.contains(ee) { Some(format!("- \"{e}\" doesn't contain \"{ee}\"")) } else { None }
-        ).to_vec();
-        assert!(err_discr.is_empty(), "test {test_id}/{ll_id:?}/{start} has discrepancies in the expected error messages:\n{}", err_discr.join("\n"));
-        let warn_discr = ll1.log.get_warnings().zip(expected_warnings).filter_map(|(w, ew)|
-            if !w.contains(ew) { Some(format!("- \"{w}\" doesn't contain \"{ew}\"")) } else { None }
-        ).to_vec();
-        assert!(warn_discr.is_empty(), "test {test_id}/{ll_id:?}/{start} has discrepancies in the expected warning messages:\n{}", warn_discr.join("\n"));
-   }
+        ll1.calc_follow(&first)
+    }, VERBOSE, SHOW_ANSWER_ONLY, SHOW_RULES);
 }
 
 #[test]
@@ -2978,6 +2922,67 @@ fn prs_calc_table() {
         assert_eq!(*table, expected_table, "test {test_id}/{rule_id:?}/{start} failed");
         assert_eq!(ll1.log.get_errors().join("\n"), "", "test {test_id}/{rule_id:?}/{start} failed on # errors");
         assert_eq!(ll1.log.num_warnings(), expected_warnings, "test {test_id}/{rule_id:?}/{start} failed, warnings: {}", ll1.log.get_warnings().join("\n"));
+   }
+}
+
+#[test]
+fn prs_grammar_notes() {
+    let tests: Vec<(T, VarId, Vec<&str>, Vec<&str>)> = vec![
+        //        warnings                                  errors
+        //        -------------------------------------     -------------------------------------
+        (T::PRS(1000), 0, vec![],                           vec!["recursive rules must have at least one independent alternative"]),
+        (T::PRS(1002), 0, vec!["ambiguity for NT"],         vec![]),
+        (T::PRS(1003), 0, vec![],                           vec!["no terminal in grammar"]),
+        (T::PRS(1004), 0, vec![],                           vec!["no terminal used in the table"]),
+        (T::PRS(1005), 0, vec!["unused nonterminals",
+                               "unused terminals"],         vec![]),
+        (T::PRS(1006), 0, vec![],                           vec!["there are 2 rules but the symbol table has 1 nonterminal symbols: dropping the table"]),
+        (T::RTS(101), 0,  vec![],                           vec!["there are 2 rules but the symbol table has 1 nonterminal symbols: dropping the table"]),
+        (T::RTS(500), 0, vec![],                            vec!["in A, (<L=AIter1> a <L=AIter2>)*: conflicting <L=AIter1> and <L=AIter2>",
+                                                                 "normalize_var(AIter2): error while normalizing the rules, 0 remaining nodes instead of 1"]),
+        (T::RTS(501), 0, vec![],                            vec!["in A, (<L=AIter1> a | <L=AIter2> b)*: conflicting <L=AIter1> and <L=AIter2>",
+                                                                 "normalize_var(AIter2): error while normalizing the rules, 0 remaining nodes instead of 1"]),
+    ];
+    const VERBOSE: bool = false;
+    for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
+        if VERBOSE {
+            println!("{:=<80}\ntest {test_id} with {ll_id:?}/{start}:", "");
+        }
+        let mut ll1 = ll_id.try_build_prs(start, false);
+        if VERBOSE {
+            ll1.print_rules(false, false);
+            ll1.print_logs();
+        }
+        let mut parsing_table = None;
+        if ll1.log.num_errors() == 0 {
+            let first = ll1.calc_first();
+            if ll1.log.num_errors() == 0 {
+                let follow = ll1.calc_follow(&first);
+                if ll1.log.num_errors() == 0 {
+                    parsing_table = Some(ll1.calc_table(&first, &follow, false));
+                }
+            }
+            if VERBOSE {
+                println!("=>");
+                ll1.print_rules(false, false);
+                if let Some(table) = &parsing_table {
+                    print_alts(&table.alts, ll1.get_symbol_table());
+                    println!("table:");
+                    table.print(ll1.get_symbol_table(), 12);
+                }
+                ll1.print_logs();
+            }
+        }
+        assert_eq!(ll1.log.num_errors(), expected_errors.len(), "test {test_id}/{ll_id:?}/{start} failed on # errors");
+        assert_eq!(ll1.log.num_warnings(), expected_warnings.len(), "test {test_id}/{ll_id:?}/{start} failed on # warnings");
+        let err_discr = ll1.log.get_errors().zip(expected_errors).filter_map(|(e, ee)|
+            if !e.contains(ee) { Some(format!("- \"{e}\" doesn't contain \"{ee}\"")) } else { None }
+        ).to_vec();
+        assert!(err_discr.is_empty(), "test {test_id}/{ll_id:?}/{start} has discrepancies in the expected error messages:\n{}", err_discr.join("\n"));
+        let warn_discr = ll1.log.get_warnings().zip(expected_warnings).filter_map(|(w, ew)|
+            if !w.contains(ew) { Some(format!("- \"{w}\" doesn't contain \"{ew}\"")) } else { None }
+        ).to_vec();
+        assert!(warn_discr.is_empty(), "test {test_id}/{ll_id:?}/{start} has discrepancies in the expected warning messages:\n{}", warn_discr.join("\n"));
    }
 }
 

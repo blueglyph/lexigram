@@ -8,7 +8,7 @@ pub mod rts;
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 use super::*;
 use crate::dfa::TokenId;
-use crate::{alt, btreemap, gnode, hashmap, hashset, prule, sym, LL1};
+use crate::{alt, btreemap, gnode, hashmap, prule, sym, LL1};
 use crate::grammar::NTConversion::Removed;
 use crate::log::TryBuildFrom;
 use crate::rtsgen::RtsGen;
@@ -99,6 +99,7 @@ impl TestRules {
             // 5xx = lrec: simple
             // -----------------------------------------------------------------------------
             500 => vec![r#"a -> a "!" | "?";"#],
+            501 => vec![r#"a -> a "b" | a "c" | "a";"#],
 
             // 6xx = lrec: amb
             // -----------------------------------------------------------------------------
