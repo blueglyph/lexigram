@@ -126,6 +126,9 @@ impl TestRules {
             630 => vec![r#"e ->     e "+" |     "-" e | Num;"#],
             631 => vec![r#"e ->     e "+" | <R> "-" e | Num;"#],
             632 => vec![r#"e -> <R> e "+" |     "-" e | Num;"#],
+            // ----- <L> rrec
+            633 => vec![r#"e -> e "*" e | <L> "!" e | e "+" e | Num;"#],
+            634 => vec![r#"e -> e "+" | <L> "-" e | Num;"#],
 
             // Existing tests in wrapper_source.rs:
             //
@@ -147,45 +150,46 @@ impl TestRules {
             // 8xx = combinations
             // -----------------------------------------------------------------------------
             // 0xx and 1xx (or 2xx) normalization
-            800 => vec![r#"a -> (A?)*"#],
-            801 => vec![r#"a -> (A?)+"#],
-            802 => vec![r#"a -> (A*)?"#],
-            803 => vec![r#"a -> (A+)?"#],
+            800 => vec![r#"a -> (A?)*;"#],
+            801 => vec![r#"a -> (A?)+;"#],
+            802 => vec![r#"a -> (A*)?;"#],  // TODO: check if ambiguous in parsing table
+            803 => vec![r#"a -> (A+)?;"#],
 
             // 1xx/2xx and 3xx/4xx rrec
-            810 => vec![r#"a -> A* a"#],
-            811 => vec![r#"a -> A+ a"#],
+            810 => vec![r#"a -> A* a;"#],
+            811 => vec![r#"a -> A+ a;"#],
 
-            812 => vec![r#"a -> (A a)*"#],
-            813 => vec![r#"a -> (A a)+"#],
+            812 => vec![r#"a -> (A a)*;"#],  // TODO: check if ambiguous in parsing table
+            813 => vec![r#"a -> (A a)+;"#],
 
             // 1xx/2xx and 5xx lrec
-            820 => vec![r#"a -> a A* | B"#],
-            821 => vec![r#"a -> a A+ | B"#],
+            820 => vec![r#"a -> a A* | B;"#],   // TODO: check if ambiguous in parsing table
+            821 => vec![r#"a -> a A+ | B;"#],
 
-            822 => vec![r#"a -> (a A)* | B"#],
-            823 => vec![r#"a -> (a A)+ | B"#],
+            822 => vec![r#"a -> (a A)* | B;"#], // TODO: check if ambiguous in parsing table
+            823 => vec![r#"a -> (a A)+ | B;"#],
 
-            // 1xx/2xx and 6xx amb
-            830 => vec![r#"a -> (a A)* a | B"#],
-            831 => vec![r#"a -> (a A)+ a | B"#],
+            // 1xx/2xx and 6xx amb              // TODO: check if ambiguous in parsing table (remove those tests?/detect?)
+            830 => vec![r#"a -> (a A)* a | B;"#],
+            831 => vec![r#"a -> (a A)+ a | B;"#],
 
-            832 => vec![r#"a -> a (A a)* | B"#],
-            833 => vec![r#"a -> a (A a)+ | B"#],
+            832 => vec![r#"a -> a (A a)* | B;"#],
+            833 => vec![r#"a -> a (A a)+ | B;"#],
 
-            834 => vec![r#"a -> (a A a)* | B;  // "#],
+            834 => vec![r#"a -> (a A a)* | B;"#],
             // 1xx/2xx and 7xx lfact
-            840 => vec![r#"a -> (A B | A C)*"#],
-            841 => vec![r#"a -> (A B | A C)+"#],
+            840 => vec![r#"a -> (A B | A C)*;"#],
+            841 => vec![r#"a -> (A B | A C)+;"#],
 
-            842 => vec![r#"a -> A* B* | A* C*"#],
-            843 => vec![r#"a -> A+ B+ | A+ C+"#],
+            842 => vec![r#"a -> A* B* | A* C*;"#],  // TODO: is it possible to factorize this?
+            843 => vec![r#"a -> A+ B+ | A+ C+;"#],
 
             // 3xx/4xx and 7xx
-            850 => vec![r#"a -> A B a | A C a | D"#],
+            850 => vec![r#"a -> A B a | A C a | D;"#],
+            851 => vec![r#"a -> A (B | C) a <L> | D;"#],
 
             // 5xx and 7xx
-            860 => vec![r#"a -> a A B | a A C | D"#],
+            860 => vec![r#"a -> a A B | a A C | D;"#],
 
             // 1yxx = errors
             // -----------------------------------------------------------------------------

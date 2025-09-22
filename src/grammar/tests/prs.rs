@@ -66,6 +66,7 @@ pub fn print_alts<T: SymInfoTable>(alts: &Vec<(VarId, Alternative)>, symbol_tabl
     ).join("\n"));
 }
 
+#[allow(unused)]
 pub fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
     println!("            {}", result.iter().map(|(i, p)|
         format!("{i} => prule!({}),", p.iter()
@@ -1320,14 +1321,243 @@ fn prs_left_factorize() {
 #[test]
 fn prs_ll1_from() {
     let tests = vec![
+        (0, vec![
+            // a -> A
+            r#"a -> A"#,                                        //
+        ], vec![0], vec![None]),
+        (100, vec![
+            // a -> A*
+            r#"a -> a_1"#,                                      // parent_+_or_*
+            r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
+        ], vec![2048, 1], vec![None, Some(0)]),
+        (101, vec![
+            // a -> A+
+            r#"a -> a_1"#,                                      // parent_+_or_* | plus
+            r#"a_1 -> A a_2"#,                                  // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> a_1 | ε"#,                                // child_left_fact
+        ], vec![6144, 4129, 64], vec![None, Some(0), Some(1)]),
+        (106, vec![
+            // a -> (A (B ",")* ";")*
+            r#"a -> a_2"#,                                      // parent_+_or_*
+            r#"a_1 -> B "," a_1 | ε"#,                          // child_+_or_*
+            r#"a_2 -> A a_1 ";" a_2 | ε"#,                      // child_+_or_* | parent_+_or_*
+        ], vec![2048, 1, 2049], vec![None, Some(2), Some(0)]),
+        (107, vec![
+            // a -> (A (B ",")+ ";")+
+            r#"a -> a_2"#,                                      // parent_+_or_* | plus
+            r#"a_1 -> B "," a_3"#,                              // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> A a_1 ";" a_4"#,                          // child_+_or_* | parent_left_fact | parent_+_or_* | plus
+            r#"a_3 -> a_1 | ε"#,                                // child_left_fact
+            r#"a_4 -> a_2 | ε"#,                                // child_left_fact
+        ], vec![6144, 4129, 6177, 64, 64], vec![None, Some(2), Some(0), Some(1), Some(2)]),
+        (200, vec![
+            // a -> (<L=i> A)*
+            r#"a -> i"#,                                        // parent_+_or_*
+            r#"i -> A i | ε"#,                                  // child_+_or_* | L-form
+        ], vec![2048, 129], vec![None, Some(0)]),
+        (201, vec![
+            // a -> (<L=i> A)+
+            r#"a -> i"#,                                        // parent_+_or_* | plus
+            r#"i -> A a_1"#,                                    // child_+_or_* | parent_left_fact | L-form | plus
+            r#"a_1 -> i | ε"#,                                  // child_left_fact
+        ], vec![6144, 4257, 64], vec![None, Some(0), Some(1)]),
+        (208, vec![
+            // a -> (<L=i> A (<L=j> B ",")* ";")*
+            r#"a -> i"#,                                        // parent_+_or_*
+            r#"i -> A j ";" i | ε"#,                            // child_+_or_* | L-form | parent_+_or_*
+            r#"j -> B "," j | ε"#,                              // child_+_or_* | L-form
+        ], vec![2048, 2177, 129], vec![None, Some(0), Some(1)]),
+        (209, vec![
+            // a -> (<L=i> A (<L=j> B ",")+ ";")+
+            r#"a -> i"#,                                        // parent_+_or_* | plus
+            r#"i -> A j ";" a_1"#,                              // child_+_or_* | parent_left_fact | L-form | parent_+_or_* | plus
+            r#"j -> B "," a_2"#,                                // child_+_or_* | parent_left_fact | L-form | plus
+            r#"a_1 -> i | ε"#,                                  // child_left_fact
+            r#"a_2 -> j | ε"#,                                  // child_left_fact
+        ], vec![6144, 6305, 4257, 64, 64], vec![None, Some(0), Some(1), Some(1), Some(2)]),
+        (300, vec![
+            // a -> "?" a | "!"
+            r#"a -> "?" a | "!""#,                              // right_rec
+        ], vec![2], vec![None]),
+        (500, vec![
+            // a -> a "!" | "?"
+            r#"a -> "?" a_1"#,                                  // parent_left_rec
+            r#"a_1 -> "!" a_1 | ε"#,                            // child_left_rec
+        ], vec![512, 4], vec![None, Some(0)]),
         (601, vec![
-            // e -> e "*" e | e "+" e | Num
+            // e -> e "*" e | e "+" e | Num | Id
             r#"e -> e_4 e_1"#,                                  // parent_left_rec | parent_amb
             r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | ε"#,          // child_left_rec
             r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
             r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
-            r#"e_4 -> Num"#,                                    //
+            r#"e_4 -> Num | Id"#,                               //
         ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (633, vec![
+            // e -> e "*" e | <L=e> "!" e | e "+" e | Num
+            r#"e -> e_4 e_1"#,                                  // L-form | parent_left_rec | parent_amb
+            r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | ε"#,          // child_left_rec
+            r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
+            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
+            r#"e_4 -> "!" e_2 | Num"#,                          // right_rec
+        ], vec![1664, 4, 512, 4, 2], vec![None, Some(0), Some(0), Some(2), Some(0)]),
+        (634, vec![
+            // e -> e "+" | <L=e> "-" e | Num
+            r#"e -> "-" e | Num e_1"#,                          // right_rec | L-form | parent_left_rec
+            r#"e_1 -> "+" e_1 | ε"#,                            // child_left_rec
+        ], vec![642, 4], vec![None, Some(0)]),
+        (800, vec![
+            // a -> A?*
+            r#"a -> a_1"#,                                      // parent_+_or_*
+            r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
+        ], vec![2048, 1], vec![None, Some(0)]),
+        (801, vec![
+            // a -> A?+
+            r#"a -> a_1"#,                                      // parent_+_or_*
+            r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
+        ], vec![2048, 1], vec![None, Some(0)]),
+        (802, vec![
+            // a -> A*?
+            r#"a -> a_1 | ε"#,                                  // parent_+_or_*
+            r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
+        ], vec![2048, 1], vec![None, Some(0)]),
+        (803, vec![
+            // a -> A+?
+            r#"a -> a_1 | ε"#,                                  // parent_+_or_* | plus
+            r#"a_1 -> A a_2"#,                                  // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> a_1 | ε"#,                                // child_left_fact
+        ], vec![6144, 4129, 64], vec![None, Some(0), Some(1)]),
+        (810, vec![
+            // a -> A* a
+            r#"a -> a_1 a"#,                                    // right_rec | parent_+_or_*
+            r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
+        ], vec![2050, 1], vec![None, Some(0)]),
+        (811, vec![
+            // a -> A+ a
+            r#"a -> a_1 a"#,                                    // right_rec | parent_+_or_* | plus
+            r#"a_1 -> A a_2"#,                                  // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> a_1 | ε"#,                                // child_left_fact
+        ], vec![6146, 4129, 64], vec![None, Some(0), Some(1)]),
+        (812, vec![
+            // a -> (A a)*
+            r#"a -> a_1"#,                                      // parent_+_or_*
+            r#"a_1 -> A a a_1 | ε"#,                            // child_+_or_*
+        ], vec![2048, 1], vec![None, Some(0)]),
+        (813, vec![
+            // a -> (A a)+
+            r#"a -> a_1"#,                                      // parent_+_or_* | plus
+            r#"a_1 -> A a a_2"#,                                // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> a_1 | ε"#,                                // child_left_fact
+        ], vec![6144, 4129, 64], vec![None, Some(0), Some(1)]),
+        (820, vec![
+            // a -> a A* | B
+            r#"a -> B a_2"#,                                    // parent_left_rec | parent_+_or_*
+            r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
+            r#"a_2 -> a_1 a_2 | ε"#,                            // child_left_rec
+        ], vec![2560, 1, 4], vec![None, Some(0), Some(0)]),
+        (821, vec![
+            // a -> a A+ | B
+            r#"a -> B a_2"#,                                    // parent_left_rec | parent_+_or_* | plus
+            r#"a_1 -> A a_3"#,                                  // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> a_1 a_2 | ε"#,                            // child_left_rec
+            r#"a_3 -> a_1 | ε"#,                                // child_left_fact
+        ], vec![6656, 4129, 4, 64], vec![None, Some(0), Some(0), Some(1)]),
+        (822, vec![
+            // a -> (a A)* | B
+            r#"a -> a_1 | B"#,                                  // parent_+_or_*
+            r#"a_1 -> a A a_1 | ε"#,                            // child_+_or_*
+        ], vec![2048, 1], vec![None, Some(0)]),
+        (823, vec![
+            // a -> (a A)+ | B
+            r#"a -> a_1 | B"#,                                  // parent_+_or_* | plus
+            r#"a_1 -> a A a_2"#,                                // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> a_1 | ε"#,                                // child_left_fact
+        ], vec![6144, 4129, 64], vec![None, Some(0), Some(1)]),
+        (830, vec![
+            // a -> (a A)* a | B
+            r#"a -> a_1 a | B"#,                                // right_rec | parent_+_or_*
+            r#"a_1 -> a A a_1 | ε"#,                            // child_+_or_*
+        ], vec![2050, 1], vec![None, Some(0)]),
+        (831, vec![
+            // a -> (a A)+ a | B
+            r#"a -> a_1 a | B"#,                                // right_rec | parent_+_or_* | plus
+            r#"a_1 -> a A a_2"#,                                // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> a_1 | ε"#,                                // child_left_fact
+        ], vec![6146, 4129, 64], vec![None, Some(0), Some(1)]),
+        (832, vec![
+            // a -> a (A a)* | B
+            r#"a -> B a_2"#,                                    // parent_left_rec | parent_+_or_*
+            r#"a_1 -> A a a_1 | ε"#,                            // child_+_or_*
+            r#"a_2 -> a_1 a_2 | ε"#,                            // child_left_rec
+        ], vec![2560, 1, 4], vec![None, Some(0), Some(0)]),
+        (833, vec![
+            // a -> a (A a)+ | B
+            r#"a -> B a_2"#,                                    // parent_left_rec | parent_+_or_* | plus
+            r#"a_1 -> A a a_3"#,                                // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> a_1 a_2 | ε"#,                            // child_left_rec
+            r#"a_3 -> a_1 | ε"#,                                // child_left_fact
+        ], vec![6656, 4129, 4, 64], vec![None, Some(0), Some(0), Some(1)]),
+        (834, vec![
+            // a -> (a A a)* | B
+            r#"a -> a_1 | B"#,                                  // parent_+_or_*
+            r#"a_1 -> a A a a_1 | ε"#,                          // child_+_or_*
+        ], vec![2048, 1], vec![None, Some(0)]),
+        (840, vec![
+            // a -> (A B | A C)*
+            r#"a -> a_1"#,                                      // parent_+_or_*
+            r#"a_1 -> A a_2 | ε"#,                              // child_+_or_* | parent_left_fact
+            r#"a_2 -> B a_1 | C a_1"#,                          // child_left_fact
+        ], vec![2048, 33, 64], vec![None, Some(0), Some(1)]),
+        (841, vec![
+            // a -> (A B | A C)+
+            r#"a -> a_1"#,                                      // parent_+_or_* | plus
+            r#"a_1 -> A a_2"#,                                  // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> B a_3 | C a_4"#,                          // parent_left_fact | child_left_fact
+            r#"a_3 -> a_1 | ε"#,                                // child_left_fact
+            r#"a_4 -> a_1 | ε"#,                                // child_left_fact
+        ], vec![6144, 4129, 96, 64, 64], vec![None, Some(0), Some(1), Some(2), Some(2)]),
+
+        // 842 and 843 are not left-factorized because the common items (A) are hidden below the *+
+        (842, vec![
+            // a -> A* B* | A* C*
+            r#"a -> a_1 a_2 | a_3 a_4"#,                        // parent_+_or_*
+            r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
+            r#"a_2 -> B a_2 | ε"#,                              // child_+_or_*
+            r#"a_3 -> A a_3 | ε"#,                              // child_+_or_*
+            r#"a_4 -> C a_4 | ε"#,                              // child_+_or_*
+        ], vec![2048, 1, 1, 1, 1], vec![None, Some(0), Some(0), Some(0), Some(0)]),
+        (843, vec![
+            // a -> A+ B+ | A+ C+
+            r#"a -> a_1 a_2 | a_3 a_4"#,                        // parent_+_or_* | plus
+            r#"a_1 -> A a_5"#,                                  // child_+_or_* | parent_left_fact | plus
+            r#"a_2 -> B a_6"#,                                  // child_+_or_* | parent_left_fact | plus
+            r#"a_3 -> A a_7"#,                                  // child_+_or_* | parent_left_fact | plus
+            r#"a_4 -> C a_8"#,                                  // child_+_or_* | parent_left_fact | plus
+            r#"a_5 -> a_1 | ε"#,                                // child_left_fact
+            r#"a_6 -> a_2 | ε"#,                                // child_left_fact
+            r#"a_7 -> a_3 | ε"#,                                // child_left_fact
+            r#"a_8 -> a_4 | ε"#,                                // child_left_fact
+        ], vec![6144, 4129, 4129, 4129, 4129, 64, 64, 64, 64], vec![None, Some(0), Some(0), Some(0), Some(0), Some(1), Some(2), Some(3), Some(4)]),
+
+        (850, vec![
+            // a -> A B a | A C a | D
+            r#"a -> A a_1 | D"#,                                // right_rec | parent_left_fact
+            r#"a_1 -> B a | C a"#,                              // child_left_fact
+        ], vec![34, 64], vec![None, Some(0)]),
+        (851, vec![
+            // a -> A (B | C) a <L=a> | D
+            r#"a -> A a_1 | D"#,                                // right_rec | parent_left_fact | L-form
+            r#"a_1 -> B a | C a"#,                              // child_left_fact
+        ], vec![162, 64], vec![None, Some(0)]),
+        (860, vec![
+            // a -> a A B | a A C | D
+            r#"a -> D a_1"#,                                    // parent_left_rec
+            r#"a_1 -> A a_2 | ε"#,                              // child_left_rec | parent_left_fact
+            r#"a_2 -> B a_1 | C a_1"#,                          // child_left_fact
+        ], vec![512, 36, 64], vec![None, Some(0), Some(1)]),
+        /* template:
+        (1, vec![
+        ], vec![], vec![]),
+        */
     ];
     const VERBOSE: bool = true;
     const SHOW_ANSWER_ONLY: bool = false;
@@ -1338,7 +1568,6 @@ fn prs_ll1_from() {
             ProdRuleSet::<LL1>::build_from(prs)
         },
         VERBOSE, SHOW_ANSWER_ONLY, true);
-    todo!("add more tests")
 }
 
 #[test]
