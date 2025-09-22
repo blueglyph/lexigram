@@ -56,7 +56,7 @@ impl<T> From<&ProdRuleSet<T>> for BTreeMap<VarId, ProdRule> {
 }
 
 pub fn print_alts<T: SymInfoTable>(alts: &Vec<(VarId, Alternative)>, symbol_table: Option<&T>) {
-    println!("alternatives:\n{}",
+    println!("{}",
              alts.iter().enumerate().map(|(id, (v, f))|
                  format!("            // - {id}: {} -> {}{}",
                          Symbol::NT(*v).to_str(symbol_table),
@@ -1757,6 +1757,153 @@ fn prs_calc_follow() {
 
 #[test]
 fn prs_calc_table() {
+    let tests = vec![
+        (0, 0, vec![
+            //   |  A   $
+            // --+---------
+            // a |  0   p
+              0,   2,
+        ]),
+        (100, 0, vec![
+            // - 0: a -> a_1
+            // - 1: a_1 -> A a_1
+            // - 2: a_1 -> ε
+            //
+            //     |  A   $
+            // ----+---------
+            // a   |  0   0
+            // a_1 |  1   2
+              0,   0,
+              1,   2,
+        ]),
+        (300, 0, vec![
+            // - 0: a -> "?" a
+            // - 1: a -> "!"
+            //
+            //   |  ?   !   $
+            // --+-------------
+            // a |  0   1   p
+              0,   1,   3,
+        ]),
+        (500, 0, vec![
+            // - 0: a -> "?" a_1
+            // - 1: a_1 -> "!" a_1
+            // - 2: a_1 -> ε
+            //
+            //     |  !   ?   $
+            // ----+-------------
+            // a   |  .   0   p
+            // a_1 |  1   .   2
+              3,   0,   4,
+              1,   3,   2,
+        ]),
+        (600, 0, vec![
+            // - 0: e -> e_2 e_1
+            // - 1: e_1 -> "+" e_2 e_1
+            // - 2: e_1 -> ε
+            // - 3: e_2 -> Num
+            //
+            //     |  +  Num  $
+            // ----+-------------
+            // e   |  .   0   p
+            // e_1 |  1   .   2
+            // e_2 |  p   3   p
+              4,   0,   5,
+              1,   4,   2,
+              5,   3,   5,
+        ]),
+        (603, 0, vec![
+            // - 0: e -> e_4 e_1
+            // - 1: e_1 -> "*" e_4 e_1
+            // - 2: e_1 -> "+" e_2 e_1
+            // - 3: e_1 -> ε
+            // - 4: e_2 -> e_4 e_3
+            // - 5: e_3 -> "*" e_4 e_3
+            // - 6: e_3 -> ε
+            // - 7: e_4 -> "!" e
+            // - 8: e_4 -> Num
+            //
+            //     |  *   +   !  Num  $
+            // ----+---------------------
+            // e   |  p   p   0   0   p
+            // e_1 |  1   2   .   .   3
+            // e_2 |  p   p   4   4   p
+            // e_3 |  5   6   .   .   6
+            // e_4 |  p   p   7   8   p
+             10,  10,   0,   0,  10,
+              1,   2,   9,   9,   3,
+             10,  10,   4,   4,  10,
+              5,   6,   9,   9,   6,
+             10,  10,   7,   8,  10,
+        ]),
+        (850, 0, vec![
+            // - 0: a -> A a_1
+            // - 1: a -> D
+            // - 2: a_1 -> B a
+            // - 3: a_1 -> C a
+            //
+            //     |  A   B   C   D   $
+            // ----+---------------------
+            // a   |  0   .   .   1   p
+            // a_1 |  .   2   3   .   p
+              0,   4,   4,   1,   5,
+              4,   2,   3,   4,   5,
+        ]),
+        /* template:
+        (, 0, true, vec![]),
+        */
+    ];
+    const VERBOSE: bool = true;
+    const SHOW_ANSWER_ONLY: bool = true;
+    const SHOW_RULES: bool = true;
+    let mut errors = 0;
+    for (test_id, start, expected) in tests {
+        if VERBOSE && !SHOW_ANSWER_ONLY {
+            println!("{:=<80}\ntest {test_id}:", "");
+        }
+        let msg = format!("## ERROR ## test {test_id}, start={start}");
+        let mut ll1 = TestRules(test_id).to_prs_ll1().unwrap();
+        ll1.set_start(start);
+        let parsing_table = ll1.make_parsing_table(true);
+        let LLParsingTable { num_nt, num_t, alts, table, .. } = &parsing_table;
+        if num_nt * num_t != table.len() {
+            if VERBOSE { println!("{msg}: incorrect table size"); }
+        }
+        if VERBOSE || SHOW_ANSWER_ONLY {
+            println!("        ({test_id}, {start}, vec![");
+            if !SHOW_ANSWER_ONLY || SHOW_RULES {
+                print_alts(&alts, ll1.get_symbol_table());
+                println!("            //");
+            }
+            parsing_table.print(ll1.get_symbol_table(), 12);
+            for i in 0..*num_nt {
+                println!("            {},", (0..*num_t).map(|j| format!("{:3}", table[i * num_t + j])).join(", "));
+            }
+            println!("        ]),");
+        }
+        let fail1 = table != &expected;
+        let fail2 = !ll1.log.has_no_errors();
+        let fail3 = !ll1.log.has_no_warnings();
+        if fail1 || fail2 || fail3 {
+            errors += 1;
+            if !SHOW_ANSWER_ONLY {
+                print!("## ERROR ## test {test_id} failed");
+                if fail1 { print!(", wrong result"); }
+                if fail2 { print!(", errors in log"); }
+                if fail3 { print!(", warnings in log"); }
+                println!();
+                if fail2 || fail3 {
+                    println!("Log:\n{}", ll1.log);
+                }
+            }
+        }
+    }
+    assert!(errors == 0, "{errors} error(s)");
+}
+
+#[cfg(any())]
+#[test]
+fn prs_calc_table_old() {
     let tests: Vec<(T, VarId, usize, Vec<(VarId, Alternative)>, Vec<AltId>)> = vec![
         (T::PRS(4), 0, 0, vec![
             // E -> E + T | E - T | T
