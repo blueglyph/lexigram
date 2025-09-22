@@ -49,13 +49,17 @@ impl Symbol {
     }
 
     pub fn to_str<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
-        symbol_table.map(|t| t.get_name(self)).unwrap_or(self.to_string())
+        symbol_table.map(|t| t.get_str(self)).unwrap_or(self.to_string())
     }
 
     /// Converts the symbol to string, using the symbol table if available, and
     /// surrounding it with quotes if it's a string literal.
     pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
         symbol_table.map(|t| t.get_name_quote(self)).unwrap_or(format!("{}", self.to_string()))
+    }
+
+    pub fn to_str_name<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        symbol_table.map(|t| t.get_name(self)).unwrap_or(format!("{}", self.to_string()))
     }
 
     /// Converts the symbol to string, using the symbol table if available.
@@ -152,8 +156,8 @@ impl Display for GrNode {
 impl GrNode {
     pub fn to_str(&self, symbol_table: Option<&SymbolTable>) -> String {
         match self {
-            GrNode::Symbol(s) => symbol_table.map(|t| t.get_name(s)).unwrap_or(s.to_string()),
-            GrNode::LForm(v) => format!("<L={}>", symbol_table.map(|t| t.get_name(&Symbol::NT(*v))).unwrap_or(v.to_string())),
+            GrNode::Symbol(s) => symbol_table.map(|t| t.get_str(s)).unwrap_or(s.to_string()),
+            GrNode::LForm(v) => format!("<L={}>", symbol_table.map(|t| t.get_str(&Symbol::NT(*v))).unwrap_or(v.to_string())),
             _ => self.to_string()
         }
     }

@@ -101,7 +101,13 @@ pub trait SymInfoTable {
 
     fn get_nt_name(&self, var: VarId) -> String;
 
+    /// Gets the symbol's name: the nonterminal identifier, the terminal identifier,
+    /// or "ε", "$", ...
     fn get_name(&self, symbol: &Symbol) -> String;
+
+    /// Gets the symbol's representation string: the nonterminal identifier, the
+    /// terminal string value (if it exists), or "ε", "$", ...
+    fn get_str(&self, symbol: &Symbol) -> String;
 
     fn get_name_quote(&self, symbol: &Symbol) -> String;
 }
@@ -144,6 +150,14 @@ impl SymInfoTable for FixedSymTable {
     }
 
     fn get_name(&self, symbol: &Symbol) -> String {
+        match symbol {
+            Symbol::Empty | Symbol::End => symbol.to_string(),
+            Symbol::T(token) => self.get_t_name(*token),
+            Symbol::NT(var) => self.get_nt_name(*var),
+        }
+    }
+
+    fn get_str(&self, symbol: &Symbol) -> String {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),
             Symbol::T(token) => self.get_t_str(*token),

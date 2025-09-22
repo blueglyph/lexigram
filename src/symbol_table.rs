@@ -260,6 +260,14 @@ impl SymInfoTable for SymbolTable {
     fn get_name(&self, symbol: &Symbol) -> String {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),
+            Symbol::T(token) => self.get_t_name(*token),
+            Symbol::NT(var) => self.get_nt_name(*var),
+        }
+    }
+
+    fn get_str(&self, symbol: &Symbol) -> String {
+        match symbol {
+            Symbol::Empty | Symbol::End => symbol.to_string(),
             Symbol::T(token) => self.get_t_str(*token),
             Symbol::NT(var) => self.get_nt_name(*var),
         }
@@ -289,16 +297,16 @@ mod tests {
         let mut st = SymbolTable::new();
         st.extend_nonterminals(["A".to_string(), "NOT_USED".to_string(), "E".to_string()]);
         assert_eq!(st.add_child_nonterminal(0), 3);
-        assert_eq!(st.get_name(&Symbol::NT(3)), "A_1");
+        assert_eq!(st.get_str(&Symbol::NT(3)), "A_1");
         assert_eq!(st.add_child_nonterminal(0), 4);
-        assert_eq!(st.get_name(&Symbol::NT(4)), "A_2");
+        assert_eq!(st.get_str(&Symbol::NT(4)), "A_2");
         assert_eq!(st.add_child_nonterminal(2), 5);
-        assert_eq!(st.get_name(&Symbol::NT(5)), "E_1");
+        assert_eq!(st.get_str(&Symbol::NT(5)), "E_1");
         assert_eq!(st.add_child_nonterminal(1), 6);
         st.remove_nonterminal(1);
-        assert_eq!(st.get_name(&Symbol::NT(2)), "A_1");
-        assert_eq!(st.get_name(&Symbol::NT(3)), "A_2");
-        assert_eq!(st.get_name(&Symbol::NT(4)), "E_1");
+        assert_eq!(st.get_str(&Symbol::NT(2)), "A_1");
+        assert_eq!(st.get_str(&Symbol::NT(3)), "A_2");
+        assert_eq!(st.get_str(&Symbol::NT(4)), "E_1");
         #[cfg(any())]
         assert_eq!(st.find_nonterminal("A_1"), Some(2));
         assert!(st.nt.contains(&"A_2".to_string()));
