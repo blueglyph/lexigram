@@ -210,6 +210,10 @@ pub struct LLParsingTable {
 }
 
 impl LLParsingTable {
+    pub fn new() -> Self {
+        LLParsingTable { num_nt: 0, num_t: 0, alts: vec![], table: vec![], flags: vec![], parent: vec![] }
+    }
+
     pub fn get_top_parent(&self, nt: VarId) -> VarId {
         let mut var = nt;
         while let Some(parent) = self.parent[var as usize] {
@@ -525,6 +529,9 @@ impl<T> ProdRuleSet<T> {
         const VERBOSE: bool = false;
         assert!(self.start.is_some(), "start NT symbol not defined");
         assert!(!self.prules.is_empty(), "no rules");
+        if !self.log.has_no_errors() {
+            return HashMap::new();
+        }
         let mut symbols = HashSet::<Symbol>::new();
         let mut stack = vec![Symbol::NT(self.start.unwrap())];
         while let Some(sym) = stack.pop() {
@@ -608,6 +615,9 @@ impl<T> ProdRuleSet<T> {
     pub fn calc_follow(&self, first: &HashMap<Symbol, HashSet<Symbol>>) -> HashMap<Symbol, HashSet<Symbol>> {
         const VERBOSE: bool = false;
         assert!(self.start.is_some(), "start NT symbol not defined");
+        if !self.log.has_no_errors() {
+            return HashMap::new();
+        }
         let mut follow = first.iter()
             .filter_map(|(s, _)| if matches!(s, Symbol::NT(_)) { Some((*s, HashSet::<Symbol>::new())) } else { None })
             .collect::<HashMap<_, _>>();
@@ -1173,6 +1183,9 @@ impl ProdRuleSet<LL1> {
         }
         const VERBOSE: bool = false;
         const DISABLE_FILTER: bool = false;
+        if !self.log.has_no_errors() {
+            return LLParsingTable::new();
+        }
         let mut alts = self.prules.iter().index().filter(|(v, _)| DISABLE_FILTER || first.contains_key(&Symbol::NT(*v)))
             .flat_map(|(v, x)| x.iter().map(move |a| (v, a.clone()))).to_vec();
         let error_skip = alts.len() as AltId;   // table entry for syntactic error; recovery by skipping input symbol
