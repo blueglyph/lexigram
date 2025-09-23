@@ -11,8 +11,8 @@ use crate::dfa::TokenId;
 use crate::{alt, btreemap, gnode, hashmap, prule, sym, LL1};
 use crate::grammar::NTConversion::Removed;
 use crate::log::TryBuildFrom;
-use crate::rtsgen::RtsGen;
 use crate::log::BuildInto;
+use crate::rtsgen::RtsGen;
 
 // ---------------------------------------------------------------------------------------------
 
@@ -186,12 +186,15 @@ impl TestRules {
             842 => vec![r#"a -> A* B* | A* C*;"#],  // TODO: is it possible to factorize this?
             843 => vec![r#"a -> A+ B+ | A+ C+;"#],  // TODO: is it possible to factorize this?
 
+            // 3xx and 6xx
+            850 => vec![r#"a -> a A a a | B;"#],
+
             // 3xx/4xx and 7xx
-            850 => vec![r#"a -> A B a | A C a | D;"#],
-            851 => vec![r#"a -> A (B | C) a <L> | D;"#],
+            860 => vec![r#"a -> A B a | A C a | D;"#],
+            861 => vec![r#"a -> A (B | C) a <L> | D;"#],
 
             // 5xx and 7xx
-            860 => vec![r#"a -> a A B | a A C | D;"#],
+            870 => vec![r#"a -> a A B | a A C | D;"#],
 
             // 9xx = general examples
             // -----------------------------------------------------------------------------
@@ -208,14 +211,35 @@ impl TestRules {
 
             // 1yxx = errors
             // -----------------------------------------------------------------------------
+            1000 => vec![r#"a -> a A;"#],
+            1001 => vec![r#"a -> b; b -> c; c -> a;"#],
+            1002 => vec![r#"a -> b; b -> c A; c -> a;"#],
+            1003 => vec![r#"token B; a -> A; b -> A;"#],
+            1004 => vec![r#"a -> A; b -> B;"#],             // b is removed manually from symbol table
+            1005 => vec![r#"a -> (<L=x> A <L=y>)*;"#],
+            1006 => vec![r#"a -> (<L=x> A | <L=y> B)*;"#],
 
             // -----------------------------------------------------------------------------
             _ => return None
         };
         let text = specs.join("\n");
         match RtsGen::new().parse(text.clone()) {
-            Ok(rts) => Some(rts),
+            Ok(mut rts) => {
+                self.manual_transform(&mut rts);
+                Some(rts)
+            },
             Err(log) => panic!("Error while parsing those rules:\n{:-<80}\n{text}\n{:-<80}\nLog:\n{log}\n{:-<80}", "", "", ""),
+        }
+    }
+
+    fn manual_transform(&self, rts: &mut RuleTreeSet<General>) {
+        match self.0 {
+            // manual transformations:
+            1004 => {
+                // removing one NT from the symbol table to create a mismatch:
+                rts.symbol_table.as_mut().unwrap().remove_nonterminal(1);
+            }
+            _ => {}
         }
     }
 
