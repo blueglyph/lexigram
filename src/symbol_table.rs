@@ -253,7 +253,7 @@ impl SymInfoTable for SymbolTable {
     }
 
     fn get_nt_name(&self, var: VarId) -> String {
-        if var as usize >= self.nt.len() { return format!("??NT({var})") }
+        if var as usize >= self.nt.len() { return format!("NT({var}?)") }
         self.nt[var as usize].clone()
     }
 
