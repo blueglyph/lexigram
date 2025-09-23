@@ -91,6 +91,10 @@ fn simple() {
                 r#"y => "y";"#,
                 r#"z => "z";"#]
         ),
+        (   // 10: NTx and Tx
+            vec![r#"a -> NT(1) T(1) | A;"#],
+            vec![r#"a => |(&(NT(1?), T(1?)), A);"#]
+        ),
         /* template:
         (
             vec![r#""#],

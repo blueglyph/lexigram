@@ -38,8 +38,10 @@ prs_expr:
 
 item:
     Nonterminal
+|   NTx
 |   Terminal
 |   TerminalCst
+|   Tx
 |   Empty
 |   LTag
 |   PTag

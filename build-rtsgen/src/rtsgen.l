@@ -9,6 +9,7 @@ fragment Char           : EscChar | ~[\n\r\t"\\];
 fragment StrLiteral     : '"' Char+ '"';
 fragment NonterminalId  : [a-z][a-z0-9_]*;
 fragment TerminalId     : [A-Z][a-zA-Z0-9_]*;
+fragment Num            : [1-9][0-9]*;
 
 SComment                : BlockComment              -> skip;
 SLineComment            : LineComment               -> skip;
@@ -36,3 +37,5 @@ RTag                    : '<R>';
 TerminalCst             : StrLiteral;
 Terminal                : TerminalId;
 Nonterminal             : NonterminalId;
+Tx                      : 'T(' Num ')';
+NTx                     : 'NT(' Num ')';

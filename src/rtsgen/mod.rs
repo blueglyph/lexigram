@@ -9,6 +9,7 @@ mod tests;
 
 use std::collections::HashMap;
 use std::io::Cursor;
+use std::str::FromStr;
 use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::{CollectJoin, General, NameFixer, NameTransformer, SymbolTable};
@@ -125,6 +126,7 @@ impl<'a> RGListener<'a> {
         if log.has_no_errors() {
             let mut rts = RuleTreeSet::<General>::with_log(log);
             rts.set_symbol_table(symbol_table.unwrap());
+            rts.set_start(0);
             for (var, rule) in rules.into_iter().index::<VarId>() {
                 rts.set_tree(var, rule);
             }
@@ -232,7 +234,7 @@ impl<'a> RGListener<'a> {
                     // GrNode::Symbol(Symbol::NT(ref mut old))
                     // | GrNode::LForm(ref mut old) => *old = *conv.get(old).unwrap(),
                     GrNode::Symbol(Symbol::NT(ref mut old))
-                    | GrNode::LForm(ref mut old) => *old = dest[*old as usize] as VarId,
+                    | GrNode::LForm(ref mut old) => *old = *dest.get(*old as usize).unwrap_or(&(*old as usize)) as VarId,
                     _ => {}
                 }
             }
@@ -366,8 +368,19 @@ impl RtsGenListener for RGListener<'_> {
                 let var = self.get_or_create_nt(nonterminal);
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(var)))
             }
+            // item -> NTx (NT symbol without any check or creation process)
+            CtxItem::Item2 { ntx } => {
+                let x = match VarId::from_str(&ntx[3..ntx.len() - 1]) {
+                    Ok(x) => x,
+                    Err(e) => {
+                        self.log.add_error(format!("in {}, integer literal {ntx} can't be parsed: {e}", self.curr_name.as_ref().unwrap()));
+                        VarId::MAX
+                    }
+                };
+                self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::NT(x)))
+            }
             // item -> Terminal
-            CtxItem::Item2 { terminal } => {
+            CtxItem::Item3 { terminal } => {
                 let (is_new, tok) = self.get_or_create_t(terminal.clone());
                 if let IsNew::Yes = is_new {
                     self.tokens.push((terminal, None));
@@ -375,7 +388,7 @@ impl RtsGenListener for RGListener<'_> {
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(tok)))
             }
             // item -> TerminalCst
-            CtxItem::Item3 { terminalcst } => {
+            CtxItem::Item4 { terminalcst } => {
                 let (is_new, tok) = self.get_or_create_t(terminalcst.clone());
                 if let IsNew::Yes = is_new {
                     // the names will be set later, to give priority to variable terminal names in case of conflict
@@ -391,11 +404,22 @@ impl RtsGenListener for RGListener<'_> {
                 }
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(tok)))
             }
+            // item -> Tx (T symbol without any check or creation process)
+            CtxItem::Item5 { tx } => {
+                let x = match VarId::from_str(&tx[2..tx.len() - 1]) {
+                    Ok(x) => x,
+                    Err(e) => {
+                        self.log.add_error(format!("in {}, integer literal {tx} can't be parsed: {e}", self.curr_name.as_ref().unwrap()));
+                        VarId::MAX
+                    }
+                };
+                self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::T(x)))
+            }
             // item -> Empty
-            CtxItem::Item4 { .. } =>
+            CtxItem::Item6 { .. } =>
                 self.curr.as_mut().unwrap().add(None, GrNode::Symbol(Symbol::Empty)),
             // item -> LTag
-            CtxItem::Item5 { ltag } => {
+            CtxItem::Item7 { ltag } => {
                 // `ltag` contains "<L=name>" or "<L>"
                 let var = if ltag.len() > 3 {
                     let name = &ltag[3..ltag.len()-1];
@@ -410,9 +434,9 @@ impl RtsGenListener for RGListener<'_> {
                 self.curr.as_mut().unwrap().add(None, GrNode::LForm(var))
             }
             // item -> "<P>"
-            CtxItem::Item6 => self.curr.as_mut().unwrap().add(None, GrNode::PrecEq),
+            CtxItem::Item8 => self.curr.as_mut().unwrap().add(None, GrNode::PrecEq),
             // item -> "<R>"
-            CtxItem::Item7 => self.curr.as_mut().unwrap().add(None, GrNode::RAssoc),
+            CtxItem::Item9 => self.curr.as_mut().unwrap().add(None, GrNode::RAssoc),
         };
         SynItem(id)
     }
@@ -489,31 +513,31 @@ pub mod rtsgen_lexer {
     use lexigram_lib::lexergen::GroupId;
     use lexigram_lib::segments::{Seg, SegMap};
 
-    const NBR_GROUPS: u32 = 33;
+    const NBR_GROUPS: u32 = 36;
     const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 19;
-    const NBR_STATES: StateId = 39;
+    const FIRST_END_STATE: StateId = 23;
+    const NBR_STATES: StateId = 48;
     static ASCII_TO_GROUP: [GroupId; 128] = [
-         26,  26,  26,  26,  26,  26,  26,  26,  26,  18,  32,  26,  26,  32,  26,  26,   // 0-15
-         26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,  26,   // 16-31
-          0,  26,   1,  26,  26,  26,   2,  26,   3,   4,   5,   6,  26,   7,  26,   8,   // 32-47
-         25,  25,  25,  25,  25,  25,  25,  25,  25,  25,  26,   9,  10,  11,  19,  12,   // 48-63
-         26,  24,  24,  24,  24,  24,  24,  29,  29,  29,  29,  29,  13,  29,  29,  29,   // 64-79
-         22,  29,  23,  29,  29,  29,  29,  29,  29,  29,  29,  26,  20,  26,  26,  30,   // 80-95
-         26,  28,  28,  28,  28,  28,  28,  31,  31,  31,  31,  31,  31,  31,  14,  31,   // 96-111
-         31,  31,  14,  31,  14,  27,  31,  31,  31,  31,  31,  15,  16,  21,  26,  26,   // 112-127
+         28,  28,  28,  28,  28,  28,  28,  28,  28,  20,  35,  28,  28,  35,  28,  28,   // 0-15
+         28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,   // 16-31
+          0,  28,   1,  28,  28,  28,   2,  28,   3,   4,   5,   6,  28,   7,  28,   8,   // 32-47
+         34,  27,  27,  27,  27,  27,  27,  27,  27,  27,  28,   9,  10,  11,  21,  12,   // 48-63
+         28,  26,  26,  26,  26,  26,  26,  31,  31,  31,  31,  31,  13,  31,  14,  31,   // 64-79
+         24,  31,  25,  31,  15,  31,  31,  31,  31,  31,  31,  28,  22,  28,  28,  32,   // 80-95
+         28,  30,  30,  30,  30,  30,  30,  33,  33,  33,  33,  33,  33,  33,  16,  33,   // 96-111
+         33,  33,  16,  33,  16,  29,  33,  33,  33,  33,  33,  17,  18,  23,  28,  28,   // 112-127
     ];
     static UTF8_TO_GROUP: [(char, GroupId); 2] = [
-        ('ε', 17),
-        ('€', 17),
+        ('ε', 19),
+        ('€', 19),
     ];
     static SEG_TO_GROUP: [(Seg, GroupId); 4] = [
-        (Seg(128, 948), 26),
-        (Seg(950, 8363), 26),
-        (Seg(8365, 55295), 26),
-        (Seg(57344, 1114111), 26),
+        (Seg(128, 948), 28),
+        (Seg(950, 8363), 28),
+        (Seg(8365, 55295), 28),
+        (Seg(57344, 1114111), 28),
     ];
-    static TERMINAL_TABLE: [Terminal;20] = [
+    static TERMINAL_TABLE: [Terminal;25] = [
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
@@ -522,6 +546,8 @@ pub mod rtsgen_lexer {
         Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
@@ -534,48 +560,60 @@ pub mod rtsgen_lexer {
         Terminal { action: ActionOption::Token(12), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(13), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(14), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(17), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(18), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 1288] = [
-         19,   1,  20,  21,  22,  23,  24,   2,   3,  25,   4,   5,  26,  27,  28,   6,  29,  30,  19,  39,  39,  39,  27,  27,  27,  39,  39,  28,  28,  27,  39,  28,  19, // state 0
-         14,  39,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  39,  14,  15,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  39, // state 1
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  33,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 2
-         39,  39,  39,  39,  39,   7,  39,  39,  31,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 3
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,   9,  39,  39,  39,  39,  39,  39,  39,  39,  10,  11,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 4
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  34,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 5
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  30,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 6
-          7,   7,   7,   7,   7,   8,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7, // state 7
-          7,   7,   7,   7,   7,   8,   7,   7,  32,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7, // state 8
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  12,  39,  39,  39,  39,  39,  39,  39,  35,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 9
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  36,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 10
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  37,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 11
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  13,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  13,  13,  39,  39,  13,  39, // state 12
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  13,  39,  39,  39,  39,  35,  39,  39,  39,  39,  39,  13,  39,  13,  13,  39,  13,  13,  39, // state 13
-         14,  38,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  39,  14,  15,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  39, // state 14
-         39,  14,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  14,  39,  39,  39,  39,  39,  14,  39,  39,  39,  39,  39,  39,  16,  39,  39,  39,  39,  39, // state 15
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  17,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 16
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  18,  18,  39,  39,  18,  39,  39,  39,  39, // state 17
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  14,  39,  39,  18,  18,  39,  39,  18,  39,  39,  39,  39, // state 18
-         19,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  19,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  19, // state 19 <skip>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 20 <end:2>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 21 <end:8>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 22 <end:9>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 23 <end:5>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 24 <end:4>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 25 <end:10>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 26 <end:6>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  27,  27,  39,  39,  39,  39,  39,  39,  39,  27,  27,  27,  27,  39,  27,  27,  27,  27,  27,  39, // state 27 <end:15>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  28,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  28,  39,  28,  28,  39,  28,  28,  39, // state 28 <end:16>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 29 <end:3>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 30 <end:7>
-         31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  31,  39, // state 31 <skip>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 32 <skip>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 33 <end:0>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 34 <end:1>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 35 <end:11>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 36 <end:12>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 37 <end:13>
-         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39, // state 38 <end:14>
-         39 // error group in [nbr_state * nbr_group + nbr_group]
+    static STATE_TABLE: [StateId; 1729] = [
+         23,   1,  24,  25,  26,  27,  28,   2,   3,  29,   4,   5,  30,  31,  32,  33,  34,   6,  35,  36,  23,  48,  48,  48,  31,  31,  31,  48,  48,  34,  34,  31,  48,  34,  48,  23, // state 0
+         14,  48,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  48,  14,  15,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  48, // state 1
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  39,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 2
+         48,  48,  48,  48,  48,   7,  48,  48,  37,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 3
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,   9,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  10,  11,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 4
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  40,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 5
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  36,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 6
+          7,   7,   7,   7,   7,   8,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7, // state 7
+          7,   7,   7,   7,   7,   8,   7,   7,  38,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7, // state 8
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  12,  48,  48,  48,  48,  48,  48,  48,  48,  48,  41,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 9
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  42,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 10
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  43,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 11
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  13,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  13,  13,  48,  48,  13,  48,  48, // state 12
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  13,  48,  48,  48,  48,  41,  48,  48,  48,  48,  48,  13,  48,  13,  13,  48,  13,  13,  13,  48, // state 13
+         14,  44,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  48,  14,  15,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  48, // state 14
+         48,  14,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  14,  48,  48,  48,  48,  48,  14,  48,  48,  48,  48,  48,  48,  16,  48,  48,  48,  48,  48,  48, // state 15
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  17,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 16
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  18,  18,  48,  48,  18,  48,  48,  48,  18,  48, // state 17
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  14,  48,  48,  18,  18,  48,  48,  18,  48,  48,  48,  18,  48, // state 18
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  20,  48,  48,  48,  48,  48,  48,  48,  48, // state 19
+         48,  48,  48,  48,  46,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  20,  48,  48,  48,  48,  48,  48,  20,  48, // state 20
+         48,  48,  48,  48,  47,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  21,  48,  48,  48,  48,  48,  48,  21,  48, // state 21
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  21,  48,  48,  48,  48,  48,  48,  48,  48, // state 22
+         23,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  23,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  23, // state 23 <skip>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 24 <end:2>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 25 <end:8>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 26 <end:9>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 27 <end:5>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 28 <end:4>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 29 <end:10>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 30 <end:6>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  31,  31,  31,  31,  31,  31,  48, // state 31 <end:15>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  31,  31,  45,  31,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  31,  31,  31,  31,  31,  31,  48, // state 32 <end:15>
+         48,  48,  48,  19,  48,  48,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  31,  31,  31,  31,  31,  31,  48, // state 33 <end:15>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  34,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  34,  48,  34,  34,  48,  34,  34,  34,  48, // state 34 <end:16>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 35 <end:3>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 36 <end:7>
+         37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  48, // state 37 <skip>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 38 <skip>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 39 <end:0>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 40 <end:1>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 41 <end:11>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 42 <end:12>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 43 <end:13>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 44 <end:14>
+         48,  48,  48,  22,  48,  48,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  31,  31,  31,  31,  31,  31,  48, // state 45 <end:15>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 46 <end:17>
+         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 47 <end:18>
+         48 // error group in [nbr_state * nbr_group + nbr_group]
     ];
 
     pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
@@ -608,14 +646,14 @@ pub mod rtsgen_parser {
     use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
-    const PARSER_NUM_T: usize = 17;
+    const PARSER_NUM_T: usize = 19;
     const PARSER_NUM_NT: usize = 17;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("DArrow", Some("=>")), ("Concat", Some("&")), ("Or", Some("|")), ("Plus", Some("+")), ("Star", Some("*")), ("Question", Some("?")), ("Empty", None), ("LPar", Some("(")), ("RPar", Some(")")), ("Semicolon", Some(";")), ("LTag", None), ("PTag", Some("<P>")), ("RTag", Some("<R>")), ("TerminalCst", None), ("Terminal", None), ("Nonterminal", None)];
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("DArrow", Some("=>")), ("Concat", Some("&")), ("Or", Some("|")), ("Plus", Some("+")), ("Star", Some("*")), ("Question", Some("?")), ("Empty", None), ("LPar", Some("(")), ("RPar", Some(")")), ("Semicolon", Some(";")), ("LTag", None), ("PTag", Some("<P>")), ("RTag", Some("<R>")), ("TerminalCst", None), ("Terminal", None), ("Nonterminal", None), ("Tx", None), ("NTx", None)];
     static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["ruleset", "rule_iter", "rule", "rule_nt", "rts_expr", "rts_children", "prs_expr", "item", "rts_children_1", "prs_expr_1", "prs_expr_2", "prs_expr_3", "prs_expr_4", "prs_expr_5", "prs_expr_6", "ruleset_1", "rule_1"];
-    static ALT_VAR: [VarId; 44] = [0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 8, 8, 9, 9, 9, 9, 9, 9, 10, 11, 11, 11, 11, 11, 12, 13, 13, 13, 13, 14, 14, 15, 15, 16, 16];
-    static ALTERNATIVES: [&[Symbol]; 44] = [&[Symbol::NT(1)], &[Symbol::NT(2), Symbol::NT(15)], &[Symbol::NT(3), Symbol::NT(16)], &[Symbol::T(16)], &[Symbol::T(2), Symbol::NT(5)], &[Symbol::T(3), Symbol::NT(5)], &[Symbol::T(4), Symbol::NT(5)], &[Symbol::T(5), Symbol::NT(5)], &[Symbol::T(6), Symbol::NT(5)], &[Symbol::NT(7)], &[Symbol::T(8), Symbol::NT(8), Symbol::T(9)], &[Symbol::NT(14), Symbol::NT(9)], &[Symbol::T(16)], &[Symbol::T(15)], &[Symbol::T(14)], &[Symbol::T(7)], &[Symbol::T(11)], &[Symbol::T(12)], &[Symbol::T(13)], &[Symbol::NT(4), Symbol::NT(8)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(9)], &[Symbol::T(5), Symbol::NT(9)], &[Symbol::T(6), Symbol::NT(9)], &[Symbol::NT(12), Symbol::NT(9)], &[Symbol::T(3), Symbol::NT(10), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(14), Symbol::NT(11)], &[Symbol::T(4), Symbol::NT(11)], &[Symbol::T(5), Symbol::NT(11)], &[Symbol::T(6), Symbol::NT(11)], &[Symbol::NT(12), Symbol::NT(11)], &[Symbol::Empty], &[Symbol::NT(14), Symbol::NT(13)], &[Symbol::T(4), Symbol::NT(13)], &[Symbol::T(5), Symbol::NT(13)], &[Symbol::T(6), Symbol::NT(13)], &[Symbol::Empty], &[Symbol::T(8), Symbol::NT(6), Symbol::T(9)], &[Symbol::NT(7)], &[Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(6), Symbol::T(10)], &[Symbol::T(1), Symbol::NT(4), Symbol::T(10)]];
-    static PARSING_TABLE: [AltId; 306] = [44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 0, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 1, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 2, 45, 45, 45, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 3, 44, 44, 44, 4, 5, 6, 7, 8, 9, 44, 45, 45, 9, 9, 9, 9, 9, 9, 44, 44, 44, 45, 45, 45, 45, 45, 45, 10, 45, 45, 45, 45, 45, 45, 45, 45, 44, 44, 44, 44, 44, 44, 44, 44, 11, 11, 45, 45, 11, 11, 11, 11, 11, 11, 44, 44, 44, 45, 45, 45, 45, 45, 15, 45, 45, 45, 16, 17, 18, 14, 13, 12, 44, 44, 44, 19, 19, 19, 19, 19, 19, 44, 20, 44, 19, 19, 19, 19, 19, 19, 44, 44, 44, 44, 25, 21, 22, 23, 24, 24, 26, 26, 24, 24, 24, 24, 24, 24, 44, 44, 44, 44, 45, 45, 45, 45, 27, 27, 45, 45, 27, 27, 27, 27, 27, 27, 44, 44, 44, 44, 32, 28, 29, 30, 31, 31, 32, 32, 31, 31, 31, 31, 31, 31, 44, 44, 44, 44, 45, 45, 45, 45, 33, 33, 45, 45, 33, 33, 33, 33, 33, 33, 44, 44, 44, 44, 37, 34, 35, 36, 37, 37, 37, 37, 37, 37, 37, 37, 37, 37, 44, 44, 44, 44, 45, 45, 45, 45, 39, 38, 45, 45, 39, 39, 39, 39, 39, 39, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 40, 41, 42, 43, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 44, 45, 45];
-    static OPCODES: [&[OpCode]; 44] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(15), OpCode::NT(2)], &[OpCode::NT(16), OpCode::NT(3)], &[OpCode::Exit(3), OpCode::T(16)], &[OpCode::Exit(4), OpCode::NT(5), OpCode::T(2)], &[OpCode::Exit(5), OpCode::NT(5), OpCode::T(3)], &[OpCode::Exit(6), OpCode::NT(5), OpCode::T(4)], &[OpCode::Exit(7), OpCode::NT(5), OpCode::T(5)], &[OpCode::Exit(8), OpCode::NT(5), OpCode::T(6)], &[OpCode::Exit(9), OpCode::NT(7)], &[OpCode::Exit(10), OpCode::T(9), OpCode::NT(8), OpCode::T(8)], &[OpCode::NT(9), OpCode::Exit(11), OpCode::NT(14)], &[OpCode::Exit(12), OpCode::T(16)], &[OpCode::Exit(13), OpCode::T(15)], &[OpCode::Exit(14), OpCode::T(14)], &[OpCode::Exit(15), OpCode::T(7)], &[OpCode::Exit(16), OpCode::T(11)], &[OpCode::Exit(17), OpCode::T(12)], &[OpCode::Exit(18), OpCode::T(13)], &[OpCode::Loop(8), OpCode::Exit(19), OpCode::NT(4)], &[OpCode::Exit(20)], &[OpCode::Loop(9), OpCode::Exit(21), OpCode::T(4)], &[OpCode::Loop(9), OpCode::Exit(22), OpCode::T(5)], &[OpCode::Loop(9), OpCode::Exit(23), OpCode::T(6)], &[OpCode::Loop(9), OpCode::Exit(24), OpCode::NT(12)], &[OpCode::Loop(9), OpCode::Exit(25), OpCode::NT(10), OpCode::T(3)], &[OpCode::Exit(26)], &[OpCode::NT(11), OpCode::Exit(27), OpCode::NT(14)], &[OpCode::Loop(11), OpCode::Exit(28), OpCode::T(4)], &[OpCode::Loop(11), OpCode::Exit(29), OpCode::T(5)], &[OpCode::Loop(11), OpCode::Exit(30), OpCode::T(6)], &[OpCode::Loop(11), OpCode::Exit(31), OpCode::NT(12)], &[OpCode::Exit(32)], &[OpCode::NT(13), OpCode::Exit(33), OpCode::NT(14)], &[OpCode::Loop(13), OpCode::Exit(34), OpCode::T(4)], &[OpCode::Loop(13), OpCode::Exit(35), OpCode::T(5)], &[OpCode::Loop(13), OpCode::Exit(36), OpCode::T(6)], &[OpCode::Exit(37)], &[OpCode::Exit(38), OpCode::T(9), OpCode::NT(6), OpCode::T(8)], &[OpCode::Exit(39), OpCode::NT(7)], &[OpCode::Loop(1), OpCode::Exit(40)], &[OpCode::Exit(41)], &[OpCode::Exit(42), OpCode::T(10), OpCode::NT(6), OpCode::T(0)], &[OpCode::Exit(43), OpCode::T(10), OpCode::NT(4), OpCode::T(1)]];
+    static ALT_VAR: [VarId; 46] = [0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 9, 9, 9, 9, 9, 9, 10, 11, 11, 11, 11, 11, 12, 13, 13, 13, 13, 14, 14, 15, 15, 16, 16];
+    static ALTERNATIVES: [&[Symbol]; 46] = [&[Symbol::NT(1)], &[Symbol::NT(2), Symbol::NT(15)], &[Symbol::NT(3), Symbol::NT(16)], &[Symbol::T(16)], &[Symbol::T(2), Symbol::NT(5)], &[Symbol::T(3), Symbol::NT(5)], &[Symbol::T(4), Symbol::NT(5)], &[Symbol::T(5), Symbol::NT(5)], &[Symbol::T(6), Symbol::NT(5)], &[Symbol::NT(7)], &[Symbol::T(8), Symbol::NT(8), Symbol::T(9)], &[Symbol::NT(14), Symbol::NT(9)], &[Symbol::T(16)], &[Symbol::T(18)], &[Symbol::T(15)], &[Symbol::T(14)], &[Symbol::T(17)], &[Symbol::T(7)], &[Symbol::T(11)], &[Symbol::T(12)], &[Symbol::T(13)], &[Symbol::NT(4), Symbol::NT(8)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(9)], &[Symbol::T(5), Symbol::NT(9)], &[Symbol::T(6), Symbol::NT(9)], &[Symbol::NT(12), Symbol::NT(9)], &[Symbol::T(3), Symbol::NT(10), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(14), Symbol::NT(11)], &[Symbol::T(4), Symbol::NT(11)], &[Symbol::T(5), Symbol::NT(11)], &[Symbol::T(6), Symbol::NT(11)], &[Symbol::NT(12), Symbol::NT(11)], &[Symbol::Empty], &[Symbol::NT(14), Symbol::NT(13)], &[Symbol::T(4), Symbol::NT(13)], &[Symbol::T(5), Symbol::NT(13)], &[Symbol::T(6), Symbol::NT(13)], &[Symbol::Empty], &[Symbol::T(8), Symbol::NT(6), Symbol::T(9)], &[Symbol::NT(7)], &[Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(6), Symbol::T(10)], &[Symbol::T(1), Symbol::NT(4), Symbol::T(10)]];
+    static PARSING_TABLE: [AltId; 340] = [46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 0, 46, 46, 47, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 1, 46, 46, 47, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 2, 46, 46, 47, 47, 47, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 3, 46, 46, 46, 46, 46, 4, 5, 6, 7, 8, 9, 46, 47, 47, 9, 9, 9, 9, 9, 9, 9, 9, 46, 46, 46, 47, 47, 47, 47, 47, 47, 10, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 46, 46, 46, 46, 46, 46, 46, 46, 11, 11, 47, 47, 11, 11, 11, 11, 11, 11, 11, 11, 46, 46, 46, 47, 47, 47, 47, 47, 17, 47, 47, 47, 18, 19, 20, 15, 14, 12, 16, 13, 46, 46, 46, 21, 21, 21, 21, 21, 21, 46, 22, 46, 21, 21, 21, 21, 21, 21, 21, 21, 46, 46, 46, 46, 27, 23, 24, 25, 26, 26, 28, 28, 26, 26, 26, 26, 26, 26, 26, 26, 46, 46, 46, 46, 47, 47, 47, 47, 29, 29, 47, 47, 29, 29, 29, 29, 29, 29, 29, 29, 46, 46, 46, 46, 34, 30, 31, 32, 33, 33, 34, 34, 33, 33, 33, 33, 33, 33, 33, 33, 46, 46, 46, 46, 47, 47, 47, 47, 35, 35, 47, 47, 35, 35, 35, 35, 35, 35, 35, 35, 46, 46, 46, 46, 39, 36, 37, 38, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 46, 46, 46, 46, 47, 47, 47, 47, 41, 40, 47, 47, 41, 41, 41, 41, 41, 41, 41, 41, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 42, 46, 46, 43, 44, 45, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 47, 46, 46, 47];
+    static OPCODES: [&[OpCode]; 46] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(15), OpCode::NT(2)], &[OpCode::NT(16), OpCode::NT(3)], &[OpCode::Exit(3), OpCode::T(16)], &[OpCode::Exit(4), OpCode::NT(5), OpCode::T(2)], &[OpCode::Exit(5), OpCode::NT(5), OpCode::T(3)], &[OpCode::Exit(6), OpCode::NT(5), OpCode::T(4)], &[OpCode::Exit(7), OpCode::NT(5), OpCode::T(5)], &[OpCode::Exit(8), OpCode::NT(5), OpCode::T(6)], &[OpCode::Exit(9), OpCode::NT(7)], &[OpCode::Exit(10), OpCode::T(9), OpCode::NT(8), OpCode::T(8)], &[OpCode::NT(9), OpCode::Exit(11), OpCode::NT(14)], &[OpCode::Exit(12), OpCode::T(16)], &[OpCode::Exit(13), OpCode::T(18)], &[OpCode::Exit(14), OpCode::T(15)], &[OpCode::Exit(15), OpCode::T(14)], &[OpCode::Exit(16), OpCode::T(17)], &[OpCode::Exit(17), OpCode::T(7)], &[OpCode::Exit(18), OpCode::T(11)], &[OpCode::Exit(19), OpCode::T(12)], &[OpCode::Exit(20), OpCode::T(13)], &[OpCode::Loop(8), OpCode::Exit(21), OpCode::NT(4)], &[OpCode::Exit(22)], &[OpCode::Loop(9), OpCode::Exit(23), OpCode::T(4)], &[OpCode::Loop(9), OpCode::Exit(24), OpCode::T(5)], &[OpCode::Loop(9), OpCode::Exit(25), OpCode::T(6)], &[OpCode::Loop(9), OpCode::Exit(26), OpCode::NT(12)], &[OpCode::Loop(9), OpCode::Exit(27), OpCode::NT(10), OpCode::T(3)], &[OpCode::Exit(28)], &[OpCode::NT(11), OpCode::Exit(29), OpCode::NT(14)], &[OpCode::Loop(11), OpCode::Exit(30), OpCode::T(4)], &[OpCode::Loop(11), OpCode::Exit(31), OpCode::T(5)], &[OpCode::Loop(11), OpCode::Exit(32), OpCode::T(6)], &[OpCode::Loop(11), OpCode::Exit(33), OpCode::NT(12)], &[OpCode::Exit(34)], &[OpCode::NT(13), OpCode::Exit(35), OpCode::NT(14)], &[OpCode::Loop(13), OpCode::Exit(36), OpCode::T(4)], &[OpCode::Loop(13), OpCode::Exit(37), OpCode::T(5)], &[OpCode::Loop(13), OpCode::Exit(38), OpCode::T(6)], &[OpCode::Exit(39)], &[OpCode::Exit(40), OpCode::T(9), OpCode::NT(6), OpCode::T(8)], &[OpCode::Exit(41), OpCode::NT(7)], &[OpCode::Loop(1), OpCode::Exit(42)], &[OpCode::Exit(43)], &[OpCode::Exit(44), OpCode::T(10), OpCode::NT(6), OpCode::T(0)], &[OpCode::Exit(45), OpCode::T(10), OpCode::NT(4), OpCode::T(1)]];
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
@@ -697,18 +735,22 @@ pub mod rtsgen_parser {
     pub enum CtxItem {
         /// `item -> Nonterminal`
         Item1 { nonterminal: String },
+        /// `item -> NTx`
+        Item2 { ntx: String },
         /// `item -> Terminal`
-        Item2 { terminal: String },
+        Item3 { terminal: String },
         /// `item -> TerminalCst`
-        Item3 { terminalcst: String },
+        Item4 { terminalcst: String },
+        /// `item -> Tx`
+        Item5 { tx: String },
         /// `item -> Empty`
-        Item4 { empty: String },
+        Item6 { empty: String },
         /// `item -> LTag`
-        Item5 { ltag: String },
+        Item7 { ltag: String },
         /// `item -> "<P>"`
-        Item6,
+        Item8,
         /// `item -> "<R>"`
-        Item7,
+        Item9,
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -823,11 +865,11 @@ pub mod rtsgen_parser {
                 Call::Exit => {
                     match alt_id {
                         0 => self.exit_ruleset(),                   // ruleset -> rule_iter
-                        40 |                                        // ruleset_1 -> rule_iter
-                        41 => self.exit_rule_iter(alt_id),          // ruleset_1 -> ε
+                        42 |                                        // ruleset_1 -> rule_iter
+                        43 => self.exit_rule_iter(alt_id),          // ruleset_1 -> ε
                      /* 1 */                                        // rule_iter -> <L> rule ruleset_1 (never called)
-                        42 |                                        // rule_1 -> "->" prs_expr ";"
-                        43 => self.exit_rule(alt_id),               // rule_1 -> "=>" rts_expr ";"
+                        44 |                                        // rule_1 -> "->" prs_expr ";"
+                        45 => self.exit_rule(alt_id),               // rule_1 -> "=>" rts_expr ";"
                      /* 2 */                                        // rule -> rule_nt rule_1 (never called)
                         3 => self.exit_rule_nt(),                   // rule_nt -> Nonterminal
                         4 |                                         // rts_expr -> "&" rts_children
@@ -837,35 +879,37 @@ pub mod rtsgen_parser {
                         8 |                                         // rts_expr -> "?" rts_children
                         9 => self.exit_rts_expr(alt_id),            // rts_expr -> item
                         10 => self.exit_rts_children(),             // rts_children -> "(" rts_children_1 ")"
-                        19 => self.exit_rts_children1(),            // rts_children_1 -> rts_expr rts_children_1
-                        20 => {}                                    // rts_children_1 -> ε
-                        21 |                                        // prs_expr_1 -> "+" prs_expr_1
-                        22 |                                        // prs_expr_1 -> "*" prs_expr_1
-                        23 |                                        // prs_expr_1 -> "?" prs_expr_1
-                        24 |                                        // prs_expr_1 -> prs_expr_4 prs_expr_1
-                        25 => self.exit_prs_expr1(alt_id),          // prs_expr_1 -> "|" prs_expr_2 prs_expr_1
-                        28 |                                        // prs_expr_3 -> "+" prs_expr_3 (duplicate of 21)
-                        34 => self.exit_prs_expr1(21),              // prs_expr_5 -> "+" prs_expr_5 (duplicate of 21)
-                        29 |                                        // prs_expr_3 -> "*" prs_expr_3 (duplicate of 22)
-                        35 => self.exit_prs_expr1(22),              // prs_expr_5 -> "*" prs_expr_5 (duplicate of 22)
-                        30 |                                        // prs_expr_3 -> "?" prs_expr_3 (duplicate of 23)
-                        36 => self.exit_prs_expr1(23),              // prs_expr_5 -> "?" prs_expr_5 (duplicate of 23)
-                        31 => self.exit_prs_expr1(24),              // prs_expr_3 -> prs_expr_4 prs_expr_3 (duplicate of 24)
-                        38 |                                        // prs_expr_6 -> "(" prs_expr ")"
-                        39 => self.exit_prs_expr6(alt_id),          // prs_expr_6 -> item
+                        21 => self.exit_rts_children1(),            // rts_children_1 -> rts_expr rts_children_1
+                        22 => {}                                    // rts_children_1 -> ε
+                        23 |                                        // prs_expr_1 -> "+" prs_expr_1
+                        24 |                                        // prs_expr_1 -> "*" prs_expr_1
+                        25 |                                        // prs_expr_1 -> "?" prs_expr_1
+                        26 |                                        // prs_expr_1 -> prs_expr_4 prs_expr_1
+                        27 => self.exit_prs_expr1(alt_id),          // prs_expr_1 -> "|" prs_expr_2 prs_expr_1
+                        30 |                                        // prs_expr_3 -> "+" prs_expr_3 (duplicate of 23)
+                        36 => self.exit_prs_expr1(23),              // prs_expr_5 -> "+" prs_expr_5 (duplicate of 23)
+                        31 |                                        // prs_expr_3 -> "*" prs_expr_3 (duplicate of 24)
+                        37 => self.exit_prs_expr1(24),              // prs_expr_5 -> "*" prs_expr_5 (duplicate of 24)
+                        32 |                                        // prs_expr_3 -> "?" prs_expr_3 (duplicate of 25)
+                        38 => self.exit_prs_expr1(25),              // prs_expr_5 -> "?" prs_expr_5 (duplicate of 25)
+                        33 => self.exit_prs_expr1(26),              // prs_expr_3 -> prs_expr_4 prs_expr_3 (duplicate of 26)
+                        40 |                                        // prs_expr_6 -> "(" prs_expr ")"
+                        41 => self.exit_prs_expr6(alt_id),          // prs_expr_6 -> item
                         11 => {}                                    // prs_expr -> prs_expr_6 prs_expr_1 (not used)
-                        26 => {}                                    // prs_expr_1 -> ε (not used)
-                        27 => {}                                    // prs_expr_2 -> prs_expr_6 prs_expr_3 (not used)
-                        32 => {}                                    // prs_expr_3 -> ε (not used)
-                        33 => {}                                    // prs_expr_4 -> prs_expr_6 prs_expr_5 (not used)
-                        37 => {}                                    // prs_expr_5 -> ε (not used)
+                        28 => {}                                    // prs_expr_1 -> ε (not used)
+                        29 => {}                                    // prs_expr_2 -> prs_expr_6 prs_expr_3 (not used)
+                        34 => {}                                    // prs_expr_3 -> ε (not used)
+                        35 => {}                                    // prs_expr_4 -> prs_expr_6 prs_expr_5 (not used)
+                        39 => {}                                    // prs_expr_5 -> ε (not used)
                         12 |                                        // item -> Nonterminal
-                        13 |                                        // item -> Terminal
-                        14 |                                        // item -> TerminalCst
-                        15 |                                        // item -> Empty
-                        16 |                                        // item -> LTag
-                        17 |                                        // item -> "<P>"
-                        18 => self.exit_item(alt_id),               // item -> "<R>"
+                        13 |                                        // item -> NTx
+                        14 |                                        // item -> Terminal
+                        15 |                                        // item -> TerminalCst
+                        16 |                                        // item -> Tx
+                        17 |                                        // item -> Empty
+                        18 |                                        // item -> LTag
+                        19 |                                        // item -> "<P>"
+                        20 => self.exit_item(alt_id),               // item -> "<R>"
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -921,19 +965,19 @@ pub mod rtsgen_parser {
         }
 
         fn exit_rule_iter(&mut self, alt_id: AltId) {
-            let last_iteration = alt_id == 41;
+            let last_iteration = alt_id == 43;
             let rule = self.stack.pop().unwrap().get_rule();
             self.listener.exit_rule_iter(CtxRuleIter::RuleIter { rule, last_iteration });
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                42 => {
+                44 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
                     CtxRule::Rule1 { rule_nt, prs_expr }
                 }
-                43 => {
+                45 => {
                     let rts_expr = self.stack.pop().unwrap().get_rts_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
                     CtxRule::Rule2 { rule_nt, rts_expr }
@@ -1002,24 +1046,24 @@ pub mod rtsgen_parser {
 
         fn exit_prs_expr1(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                21 => {
+                23 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr1 { prs_expr }
                 }
-                22 => {
+                24 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr2 { prs_expr }
                 }
-                23 => {
+                25 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr3 { prs_expr }
                 }
-                24 => {
+                26 => {
                     let prs_expr_2 = self.stack.pop().unwrap().get_prs_expr();
                     let prs_expr_1 = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr4 { prs_expr: [prs_expr_1, prs_expr_2] }
                 }
-                25 => {
+                27 => {
                     let prs_expr_2 = self.stack.pop().unwrap().get_prs_expr();
                     let prs_expr_1 = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr5 { prs_expr: [prs_expr_1, prs_expr_2] }
@@ -1032,11 +1076,11 @@ pub mod rtsgen_parser {
 
         fn exit_prs_expr6(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                38 => {
+                40 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr6 { prs_expr }
                 }
-                39 => {
+                41 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxPrsExpr::PrsExpr7 { item }
                 }
@@ -1053,26 +1097,34 @@ pub mod rtsgen_parser {
                     CtxItem::Item1 { nonterminal }
                 }
                 13 => {
-                    let terminal = self.stack_t.pop().unwrap();
-                    CtxItem::Item2 { terminal }
+                    let ntx = self.stack_t.pop().unwrap();
+                    CtxItem::Item2 { ntx }
                 }
                 14 => {
-                    let terminalcst = self.stack_t.pop().unwrap();
-                    CtxItem::Item3 { terminalcst }
+                    let terminal = self.stack_t.pop().unwrap();
+                    CtxItem::Item3 { terminal }
                 }
                 15 => {
-                    let empty = self.stack_t.pop().unwrap();
-                    CtxItem::Item4 { empty }
+                    let terminalcst = self.stack_t.pop().unwrap();
+                    CtxItem::Item4 { terminalcst }
                 }
                 16 => {
-                    let ltag = self.stack_t.pop().unwrap();
-                    CtxItem::Item5 { ltag }
+                    let tx = self.stack_t.pop().unwrap();
+                    CtxItem::Item5 { tx }
                 }
                 17 => {
-                    CtxItem::Item6
+                    let empty = self.stack_t.pop().unwrap();
+                    CtxItem::Item6 { empty }
                 }
                 18 => {
-                    CtxItem::Item7
+                    let ltag = self.stack_t.pop().unwrap();
+                    CtxItem::Item7 { ltag }
+                }
+                19 => {
+                    CtxItem::Item8
+                }
+                20 => {
+                    CtxItem::Item9
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")
             };
