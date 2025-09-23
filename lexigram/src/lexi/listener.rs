@@ -213,17 +213,19 @@ impl LexiListener {
 
     pub fn make_symbol_table(&self) -> SymbolTable {
         let mut table = SymbolTable::new();
-        let num_ret = self.terminal_ret.iter().filter(|&ret| *ret).count();
-        let mut symbols = vec![(String::new(), None); num_ret];
-        for (s, rt) in &self.rules {
-            if let RuleType::Terminal(id) = rt {
-                if self.terminal_ret[*id as usize] {
-                    let final_token_id = *self.terminal_remap.get(id).unwrap_or(id);
-                    symbols[final_token_id as usize] = (s.clone(), self.terminal_literals[*id as usize].clone())
-                }
-            };
+        if self.log.has_no_errors() {
+            let num_ret = self.terminal_ret.iter().filter(|&ret| *ret).count();
+            let mut symbols = vec![(String::new(), None); num_ret];
+            for (s, rt) in &self.rules {
+                if let RuleType::Terminal(id) = rt {
+                    if self.terminal_ret[*id as usize] {
+                        let final_token_id = *self.terminal_remap.get(id).unwrap_or(id);
+                        symbols[final_token_id as usize] = (s.clone(), self.terminal_literals[*id as usize].clone())
+                    }
+                };
+            }
+            table.extend_terminals(symbols);
         }
-        table.extend_terminals(symbols);
         table
     }
 
