@@ -5,7 +5,7 @@
 pub mod prs;
 pub mod rts;
 
-use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::collections::{BTreeMap, HashSet};
 use super::*;
 use crate::dfa::TokenId;
 use crate::{alt, btreemap, gnode, hashmap, prule, sym, LL1};
@@ -153,37 +153,38 @@ impl TestRules {
             // 0xx and 1xx (or 2xx) normalization
             800 => vec![r#"a -> (A?)*;"#],
             801 => vec![r#"a -> (A?)+;"#],
-            802 => vec![r#"a -> (A*)?;"#],  // TODO: check if ambiguous in parsing table
+            802 => vec![r#"a -> (A*)?;"#],  // ambiguous!
             803 => vec![r#"a -> (A+)?;"#],
 
             // 1xx/2xx and 3xx/4xx rrec
             810 => vec![r#"a -> A* a;"#],
             811 => vec![r#"a -> A+ a;"#],
 
-            812 => vec![r#"a -> (A a)*;"#],  // TODO: check if ambiguous in parsing table
+            812 => vec![r#"a -> (A a)*;"#],  // ambiguous!
             813 => vec![r#"a -> (A a)+;"#],
 
             // 1xx/2xx and 5xx lrec
-            820 => vec![r#"a -> a A* | B;"#],   // TODO: check if ambiguous in parsing table
-            821 => vec![r#"a -> a A+ | B;"#],
+            820 => vec![r#"a -> a A* | B;"#],   // ambiguous!
+            821 => vec![r#"a -> a A+ | B;"#],   // ambiguous!
 
-            822 => vec![r#"a -> (a A)* | B;"#], // TODO: check if ambiguous in parsing table
+            822 => vec![r#"a -> (a A)* | B;"#], // ambiguous!
             823 => vec![r#"a -> (a A)+ | B;"#],
 
-            // 1xx/2xx and 6xx amb              // TODO: check if ambiguous in parsing table (remove those tests?/detect?)
-            830 => vec![r#"a -> (a A)* a | B;"#],
-            831 => vec![r#"a -> (a A)+ a | B;"#],
+            // 1xx/2xx and 6xx amb
+            830 => vec![r#"a -> (a A)* a | B;"#],   // ambiguous!
+            831 => vec![r#"a -> (a A)+ a | B;"#],   // ambiguous!
 
-            832 => vec![r#"a -> a (A a)* | B;"#],
-            833 => vec![r#"a -> a (A a)+ | B;"#],
+            832 => vec![r#"a -> a (A a)* | B;"#],   // ambiguous!
+            833 => vec![r#"a -> a (A a)+ | B;"#],   // ambiguous!
 
-            834 => vec![r#"a -> (a A a)* | B;"#],
+            834 => vec![r#"a -> (a A a)* | B;"#],   // ambiguous!
+
             // 1xx/2xx and 7xx lfact
             840 => vec![r#"a -> (A B | A C)*;"#],
             841 => vec![r#"a -> (A B | A C)+;"#],
 
             842 => vec![r#"a -> A* B* | A* C*;"#],  // TODO: is it possible to factorize this?
-            843 => vec![r#"a -> A+ B+ | A+ C+;"#],
+            843 => vec![r#"a -> A+ B+ | A+ C+;"#],  // TODO: is it possible to factorize this?
 
             // 3xx/4xx and 7xx
             850 => vec![r#"a -> A B a | A C a | D;"#],
@@ -191,6 +192,19 @@ impl TestRules {
 
             // 5xx and 7xx
             860 => vec![r#"a -> a A B | a A C | D;"#],
+
+            // 9xx = general examples
+            // -----------------------------------------------------------------------------
+            // rtsgen (somewhat simplified)
+            900 => vec![
+                r#"ruleset -> (<L=rule_iter> rule)+;"#,
+                r#"rule -> rule_nt "=>" rts_expr ";" | rule_nt "->" prs_expr ";";"#,
+                r#"rule_nt -> NT;"#,
+                r#"rts_expr -> "&" rts_children | "|" rts_children | "+" rts_children | "*" rts_children | "?" rts_children | item;"#,
+                r#"rts_children -> "(" rts_expr* ")";"#,
+                r#"prs_expr -> prs_expr "+" | prs_expr "*" | prs_expr "?" | prs_expr prs_expr | prs_expr "|" prs_expr | "(" prs_expr ")" | item;"#,
+                r#"item -> NT | T | "ε" | "<L>" | "<P>" | "<R>";"#,
+            ],
 
             // 1yxx = errors
             // -----------------------------------------------------------------------------

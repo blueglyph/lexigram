@@ -31,7 +31,8 @@ static T_NAME_DICTIONARY: &[(&str, &str)] = &[
     ("(", "LPar"), (")", "RPar"), ("[", "LSBracket"), ("]", "RSBracker"), ("{", "LBracket"), ("}", "RBracket"),
     ("\"", "DQuote"), ("'", "Quote"), ("$", "Dollar"), ("?", "Question"), ("\\", "Backslash"),
     (":", "Colon"), (";", "SemiColon"), (".", "Dot"), (",", "Comma"), ("#", "Sharp"), ("@", "At"), ("´", "Tick"), ("`", "BTick"),
-    ("\n", "EOL"), ("\r\n", "WinEOL"), ("\r", "CR"), ("\t", "Tab"), (" ", "Space"), ("\\", "Backslash"), ("\0", "Null")
+    ("\n", "EOL"), ("\r\n", "WinEOL"), ("\r", "CR"), ("\t", "Tab"), (" ", "Space"), ("\\", "Backslash"), ("\0", "Null"),
+    ("->", "Arrow"), ("=>", "DArrow"),
 ];
 
 pub struct RtsGen<'l, 'p> {

@@ -74,24 +74,6 @@ pub fn print_expected_code(result: &BTreeMap<VarId, ProdRule>) {
             .join("; "))).join("\n            "))
 }
 
-fn map_and_print_first<'a>(first: &'a HashMap<Symbol, HashSet<Symbol>>, symbol_table: Option<&'a SymbolTable>) -> BTreeMap<&'a Symbol, BTreeSet<&'a Symbol>> {
-    println!("first: ");
-    let b = first.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
-    for (sym, set) in &b {
-        println!("// {} => {}", sym.to_str(symbol_table), set.iter().map(|s| s.to_str(symbol_table)).join(" "));
-    }
-    b
-}
-
-fn map_and_print_follow<'a>(follow: &'a HashMap<Symbol, HashSet<Symbol>>, symbol_table: Option<&'a SymbolTable>) -> BTreeMap<&'a Symbol, BTreeSet<&'a Symbol>> {
-    println!("follow:");
-    let b = follow.iter().map(|(s, hs)| (s, hs.iter().collect::<BTreeSet<_>>())).collect::<BTreeMap<_, _>>();
-    for (sym, set) in &b {
-        println!("// {} => {}", sym.to_str(symbol_table), set.iter().map(|s| s.to_str(symbol_table)).join(" "));
-    }
-    b
-}
-
 fn def_arith_symbols(symbol_table: &mut SymbolTable, has_term: bool) {
     symbol_table.extend_terminals([
         ("SUB".to_string(), Some("-".to_string())),
@@ -1758,13 +1740,13 @@ fn prs_calc_follow() {
 #[test]
 fn prs_calc_table() {
     let tests = vec![
-        (0, 0, vec![
+        (0, 0, false, vec![
             //   |  A   $
             // --+---------
             // a |  0   p
               0,   2,
         ]),
-        (100, 0, vec![
+        (100, 0, false, vec![
             // - 0: a -> a_1
             // - 1: a_1 -> A a_1
             // - 2: a_1 -> ε
@@ -1776,7 +1758,7 @@ fn prs_calc_table() {
               0,   0,
               1,   2,
         ]),
-        (300, 0, vec![
+        (300, 0, false, vec![
             // - 0: a -> "?" a
             // - 1: a -> "!"
             //
@@ -1785,7 +1767,7 @@ fn prs_calc_table() {
             // a |  0   1   p
               0,   1,   3,
         ]),
-        (500, 0, vec![
+        (500, 0, false, vec![
             // - 0: a -> "?" a_1
             // - 1: a_1 -> "!" a_1
             // - 2: a_1 -> ε
@@ -1797,7 +1779,7 @@ fn prs_calc_table() {
               3,   0,   4,
               1,   3,   2,
         ]),
-        (600, 0, vec![
+        (600, 0, false, vec![
             // - 0: e -> e_2 e_1
             // - 1: e_1 -> "+" e_2 e_1
             // - 2: e_1 -> ε
@@ -1812,7 +1794,7 @@ fn prs_calc_table() {
               1,   4,   2,
               5,   3,   5,
         ]),
-        (603, 0, vec![
+        (603, 0, false, vec![
             // - 0: e -> e_4 e_1
             // - 1: e_1 -> "*" e_4 e_1
             // - 2: e_1 -> "+" e_2 e_1
@@ -1836,7 +1818,7 @@ fn prs_calc_table() {
               5,   6,   9,   9,   6,
              10,  10,   7,   8,  10,
         ]),
-        (850, 0, vec![
+        (850, 0, false, vec![
             // - 0: a -> A a_1
             // - 1: a -> D
             // - 2: a_1 -> B a
@@ -1849,15 +1831,108 @@ fn prs_calc_table() {
               0,   4,   4,   1,   5,
               4,   2,   3,   4,   5,
         ]),
+        (900, 0, false, vec![
+            // - 0: ruleset -> rule_iter
+            // - 1: rule_iter -> rule ruleset_1
+            // - 2: rule -> rule_nt rule_1
+            // - 3: rule_nt -> NT
+            // - 4: rts_expr -> "&" rts_children
+            // - 5: rts_expr -> "|" rts_children
+            // - 6: rts_expr -> "+" rts_children
+            // - 7: rts_expr -> "*" rts_children
+            // - 8: rts_expr -> "?" rts_children
+            // - 9: rts_expr -> item
+            // - 10: rts_children -> "(" rts_children_1 ")"
+            // - 11: prs_expr -> prs_expr_6 prs_expr_1
+            // - 12: item -> NT
+            // - 13: item -> T
+            // - 14: item -> "ε"
+            // - 15: item -> "<L>"
+            // - 16: item -> "<P>"
+            // - 17: item -> "<R>"
+            // - 18: rts_children_1 -> rts_expr rts_children_1
+            // - 19: rts_children_1 -> ε
+            // - 20: prs_expr_1 -> "+" prs_expr_1
+            // - 21: prs_expr_1 -> "*" prs_expr_1
+            // - 22: prs_expr_1 -> "?" prs_expr_1
+            // - 23: prs_expr_1 -> prs_expr_4 prs_expr_1
+            // - 24: prs_expr_1 -> "|" prs_expr_2 prs_expr_1
+            // - 25: prs_expr_1 -> ε
+            // - 26: prs_expr_2 -> prs_expr_6 prs_expr_3
+            // - 27: prs_expr_3 -> "+" prs_expr_3
+            // - 28: prs_expr_3 -> "*" prs_expr_3
+            // - 29: prs_expr_3 -> "?" prs_expr_3
+            // - 30: prs_expr_3 -> prs_expr_4 prs_expr_3
+            // - 31: prs_expr_3 -> ε
+            // - 32: prs_expr_4 -> prs_expr_6 prs_expr_5
+            // - 33: prs_expr_5 -> "+" prs_expr_5
+            // - 34: prs_expr_5 -> "*" prs_expr_5
+            // - 35: prs_expr_5 -> "?" prs_expr_5
+            // - 36: prs_expr_5 -> ε
+            // - 37: prs_expr_6 -> "(" prs_expr ")"
+            // - 38: prs_expr_6 -> item
+            // - 39: ruleset_1 -> rule_iter
+            // - 40: ruleset_1 -> ε
+            // - 41: rule_1 -> "=>" rts_expr ";"
+            // - 42: rule_1 -> "->" prs_expr ";"
+            //
+            //                | =>   ;  ->  NT   &   |   +   *   ?   (   )   T   ε  <L> <P> <R>  $
+            // ---------------+---------------------------------------------------------------------
+            // ruleset        |  .   .   .   0   .   .   .   .   .   .   .   .   .   .   .   .   p
+            // rule_iter      |  .   .   .   1   .   .   .   .   .   .   .   .   .   .   .   .   p
+            // rule           |  .   .   .   2   .   .   .   .   .   .   .   .   .   .   .   .   p
+            // rule_nt        |  p   .   p   3   .   .   .   .   .   .   .   .   .   .   .   .   .
+            // rts_expr       |  .   p   .   9   4   5   6   7   8   .   p   9   9   9   9   9   .
+            // rts_children   |  .   p   .   p   p   p   p   p   p  10   p   p   p   p   p   p   .
+            // prs_expr       |  .   p   .  11   .   .   .   .   .  11   p  11  11  11  11  11   .
+            // item           |  .   p   .  12   p   p   p   p   p   p   p  13  14  15  16  17   .
+            // rts_children_1 |  .   .   .  18  18  18  18  18  18   .  19  18  18  18  18  18   .
+            // prs_expr_1     |  .  25   .  23   .  24  20  21  22  23  25  23  23  23  23  23   .
+            // prs_expr_2     |  .   p   .  26   .   p   p   p   p  26   p  26  26  26  26  26   .
+            // prs_expr_3     |  .  31   .  30   .  31  27  28  29  30  31  30  30  30  30  30   .
+            // prs_expr_4     |  .   p   .  32   .   p   p   p   p  32   p  32  32  32  32  32   .
+            // prs_expr_5     |  .  36   .  36   .  36  33  34  35  36  36  36  36  36  36  36   .
+            // prs_expr_6     |  .   p   .  38   .   p   p   p   p  37   p  38  38  38  38  38   .
+            // ruleset_1      |  .   .   .  39   .   .   .   .   .   .   .   .   .   .   .   .  40
+            // rule_1         | 41   .  42   p   .   .   .   .   .   .   .   .   .   .   .   .   p
+             43,  43,  43,   0,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  44,
+             43,  43,  43,   1,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  44,
+             43,  43,  43,   2,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  44,
+             44,  43,  44,   3,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,
+             43,  44,  43,   9,   4,   5,   6,   7,   8,  43,  44,   9,   9,   9,   9,   9,  43,
+             43,  44,  43,  44,  44,  44,  44,  44,  44,  10,  44,  44,  44,  44,  44,  44,  43,
+             43,  44,  43,  11,  43,  43,  43,  43,  43,  11,  44,  11,  11,  11,  11,  11,  43,
+             43,  44,  43,  12,  44,  44,  44,  44,  44,  44,  44,  13,  14,  15,  16,  17,  43,
+             43,  43,  43,  18,  18,  18,  18,  18,  18,  43,  19,  18,  18,  18,  18,  18,  43,
+             43,  25,  43,  23,  43,  24,  20,  21,  22,  23,  25,  23,  23,  23,  23,  23,  43,
+             43,  44,  43,  26,  43,  44,  44,  44,  44,  26,  44,  26,  26,  26,  26,  26,  43,
+             43,  31,  43,  30,  43,  31,  27,  28,  29,  30,  31,  30,  30,  30,  30,  30,  43,
+             43,  44,  43,  32,  43,  44,  44,  44,  44,  32,  44,  32,  32,  32,  32,  32,  43,
+             43,  36,  43,  36,  43,  36,  33,  34,  35,  36,  36,  36,  36,  36,  36,  36,  43,
+             43,  44,  43,  38,  43,  44,  44,  44,  44,  37,  44,  38,  38,  38,  38,  38,  43,
+             43,  43,  43,  39,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  40,
+             41,  43,  42,  44,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  43,  44,
+        ]),
+        (812, 0, true, vec![]), // ambiguous grammars
+        (813, 0, true, vec![]),
+        (820, 0, true, vec![]),
+        (821, 0, true, vec![]),
+        (822, 0, true, vec![]),
+        (823, 0, true, vec![]),
+        (830, 0, true, vec![]),
+        (831, 0, true, vec![]),
+        (832, 0, true, vec![]),
+        (833, 0, true, vec![]),
+        (834, 0, true, vec![]),
         /* template:
-        (, 0, true, vec![]),
+        (, 0, vec![]),
         */
     ];
-    const VERBOSE: bool = true;
-    const SHOW_ANSWER_ONLY: bool = true;
+    const VERBOSE: bool = false;
+    const SHOW_ANSWER_ONLY: bool = false;
     const SHOW_RULES: bool = true;
     let mut errors = 0;
-    for (test_id, start, expected) in tests {
+    for (test_id, start, expected_is_ambiguous, expected) in tests {
         if VERBOSE && !SHOW_ANSWER_ONLY {
             println!("{:=<80}\ntest {test_id}:", "");
         }
@@ -1866,28 +1941,35 @@ fn prs_calc_table() {
         ll1.set_start(start);
         let parsing_table = ll1.make_parsing_table(true);
         let LLParsingTable { num_nt, num_t, alts, table, .. } = &parsing_table;
+        let result_is_ambiguous = !ll1.log.has_no_warnings();
         if num_nt * num_t != table.len() {
             if VERBOSE { println!("{msg}: incorrect table size"); }
         }
         if VERBOSE || SHOW_ANSWER_ONLY {
-            println!("        ({test_id}, {start}, vec![");
-            if !SHOW_ANSWER_ONLY || SHOW_RULES {
-                print_alts(&alts, ll1.get_symbol_table());
-                println!("            //");
+            if SHOW_ANSWER_ONLY && result_is_ambiguous {
+                println!("        ({test_id}, {start}, true, vec![]),");
+            } else {
+                println!("        ({test_id}, {start}, {result_is_ambiguous}, vec![");
+                if !SHOW_ANSWER_ONLY || SHOW_RULES {
+                    print_alts(&alts, ll1.get_symbol_table());
+                    println!("            //");
+                }
+                parsing_table.print(ll1.get_symbol_table(), 12);
+                for i in 0..*num_nt {
+                    println!("            {},", (0..*num_t).map(|j| format!("{:3}", table[i * num_t + j])).join(", "));
+                }
+                println!("        ]),");
             }
-            parsing_table.print(ll1.get_symbol_table(), 12);
-            for i in 0..*num_nt {
-                println!("            {},", (0..*num_t).map(|j| format!("{:3}", table[i * num_t + j])).join(", "));
-            }
-            println!("        ]),");
         }
-        let fail1 = table != &expected;
+        let fail0 = result_is_ambiguous != expected_is_ambiguous;
+        let fail1 = !result_is_ambiguous && table != &expected;
         let fail2 = !ll1.log.has_no_errors();
-        let fail3 = !ll1.log.has_no_warnings();
-        if fail1 || fail2 || fail3 {
+        let fail3 = !result_is_ambiguous && !ll1.log.has_no_warnings();
+        if fail0 || fail1 || fail2 || fail3 {
             errors += 1;
             if !SHOW_ANSWER_ONLY {
                 print!("## ERROR ## test {test_id} failed");
+                if fail0 { print!(", {} ambiguous", if result_is_ambiguous { "is" } else { "isn't" }); }
                 if fail1 { print!(", wrong result"); }
                 if fail2 { print!(", errors in log"); }
                 if fail3 { print!(", warnings in log"); }

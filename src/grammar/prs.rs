@@ -316,6 +316,7 @@ impl<T> ProdRuleSet<T> {
         self.parent[child] = Some(parent);
     }
 
+    #[allow(unused)]
     #[cfg(test)] // we keep it here because we might use it later in logs
     pub(super) fn get_parent(&self, child: VarId) -> Option<VarId> {
         let child = child as usize;
