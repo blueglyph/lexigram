@@ -87,7 +87,11 @@ mod tests {
     #[test]
     fn test_gen_source() {
         match gen_source(Action::Generate) {
-            Ok(log) => println!("Code successfully generated in {SOURCE_FILENAME}\n{log}"),
+            Ok(log) => {
+                println!("Code successfully generated in {SOURCE_FILENAME}");
+                println!("\n{} warning(s), {} note(s):\n", log.num_warnings(), log.num_notes());
+                println!("{log}")
+            },
             Err(build_error) => println!("{build_error}"),
         }
     }

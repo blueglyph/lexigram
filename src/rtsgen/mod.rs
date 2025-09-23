@@ -87,6 +87,7 @@ struct RGListener<'a> {
     t_name_dictionary: Option<&'a HashMap<String, String>>,
 }
 
+#[derive(Clone, Copy, PartialEq)]
 enum IsNew { No, Yes }
 
 trait ToVarId {
@@ -206,9 +207,9 @@ impl<'a> RGListener<'a> {
         symtab.extend_nonterminals(nt_name);
         let mut t_name = vec![(String::new(), None); self.tokens.len()];
         let mut namefixer = NameFixer::new_empty();
-        for (tok, (name, _cst_maybe)) in self.tokens.iter().enumerate().filter(|(_, (name, _))| !name.is_empty()) {
+        for (tok, (name, value_maybe)) in self.tokens.iter().enumerate().filter(|(_, (name, _))| !name.is_empty()) {
             namefixer.add(name.clone());
-            t_name[tok] = (name.clone(), None);
+            t_name[tok] = (name.clone(), value_maybe.clone());
         }
 
         // puts names to constant terminals
@@ -231,8 +232,6 @@ impl<'a> RGListener<'a> {
         for rule in &mut self.rules {
             for mut node in rule.iter_depth_simple_mut() {
                 match *node {
-                    // GrNode::Symbol(Symbol::NT(ref mut old))
-                    // | GrNode::LForm(ref mut old) => *old = *conv.get(old).unwrap(),
                     GrNode::Symbol(Symbol::NT(ref mut old))
                     | GrNode::LForm(ref mut old) => *old = *dest.get(*old as usize).unwrap_or(&(*old as usize)) as VarId,
                     _ => {}
@@ -247,8 +246,40 @@ impl RtsGenListener for RGListener<'_> {
         &mut self.log
     }
 
-    fn exit(&mut self, _ruleset: SynRuleset) {
+    fn exit(&mut self, _ruleset: SynFile) {
         self.finalize_ruleset();
+    }
+
+    fn exit_file(&mut self, _ctx: CtxFile) -> SynFile {
+        SynFile()
+    }
+
+    fn exit_decls(&mut self, _ctx: CtxDecls) -> SynDecls {
+        SynDecls()
+    }
+
+    fn exit_decl(&mut self, _ctx: CtxDecl) -> SynDecl {
+        SynDecl()
+    }
+
+    fn exit_decl_terminal(&mut self, ctx: CtxDeclTerminal) -> SynDeclTerminal {
+        let (terminal, value_maybe) = match ctx {
+            // decl_terminal -> Terminal "=" TerminalCst
+            CtxDeclTerminal::DeclTerminal1 { terminal, terminalcst } => {
+                (terminal, Some(terminalcst[1..terminalcst.len() - 1].to_string()))
+            }
+            // decl_terminal -> Terminal
+            CtxDeclTerminal::DeclTerminal2 { terminal } => {
+                (terminal, None)
+            }
+        };
+        let (is_new, _tok) = self.get_or_create_t(terminal.clone());
+        if is_new == IsNew::Yes {
+            self.tokens.push((terminal, value_maybe));
+        } else {
+            self.log.add_error(format!("in token declarations: token '{terminal}' has already been declared"));
+        }
+        SynDeclTerminal()
     }
 
     fn exit_ruleset(&mut self, _ctx: CtxRuleset) -> SynRuleset {
@@ -482,6 +513,14 @@ fn decode_str(strlit: &str) -> Result<String, String> {
 pub mod listener_types {
     use crate::grammar::VarId;
 
+    /// User-defined type for `file`
+    #[derive(Debug, PartialEq)] pub struct SynFile();
+    /// User-defined type for `decls`
+    #[derive(Debug, PartialEq)] pub struct SynDecls();
+    /// User-defined type for `decl`
+    #[derive(Debug, PartialEq)] pub struct SynDecl();
+    /// User-defined type for `decl_terminal`
+    #[derive(Debug, PartialEq)] pub struct SynDeclTerminal();
     /// User-defined type for `ruleset`
     #[derive(Debug, PartialEq)] pub struct SynRuleset();
     /// User-defined type for `rule`
@@ -513,107 +552,120 @@ pub mod rtsgen_lexer {
     use lexigram_lib::lexergen::GroupId;
     use lexigram_lib::segments::{Seg, SegMap};
 
-    const NBR_GROUPS: u32 = 36;
+    const NBR_GROUPS: u32 = 42;
     const INITIAL_STATE: StateId = 0;
-    const FIRST_END_STATE: StateId = 23;
-    const NBR_STATES: StateId = 48;
+    const FIRST_END_STATE: StateId = 22;
+    const NBR_STATES: StateId = 54;
     static ASCII_TO_GROUP: [GroupId; 128] = [
-         28,  28,  28,  28,  28,  28,  28,  28,  28,  20,  35,  28,  28,  35,  28,  28,   // 0-15
-         28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,  28,   // 16-31
-          0,  28,   1,  28,  28,  28,   2,  28,   3,   4,   5,   6,  28,   7,  28,   8,   // 32-47
-         34,  27,  27,  27,  27,  27,  27,  27,  27,  27,  28,   9,  10,  11,  21,  12,   // 48-63
-         28,  26,  26,  26,  26,  26,  26,  31,  31,  31,  31,  31,  13,  31,  14,  31,   // 64-79
-         24,  31,  25,  31,  15,  31,  31,  31,  31,  31,  31,  28,  22,  28,  28,  32,   // 80-95
-         28,  30,  30,  30,  30,  30,  30,  33,  33,  33,  33,  33,  33,  33,  16,  33,   // 96-111
-         33,  33,  16,  33,  16,  29,  33,  33,  33,  33,  33,  17,  18,  23,  28,  28,   // 112-127
+         30,  30,  30,  30,  30,  30,  30,  30,  30,  22,  38,  30,  30,  38,  30,  30,   // 0-15
+         30,  30,  30,  30,  30,  30,  30,  30,  30,  30,  30,  30,  30,  30,  30,  30,   // 16-31
+          0,  30,   1,  30,  30,  30,   2,  30,   3,   4,   5,   6,   7,   8,  30,   9,   // 32-47
+         36,  29,  29,  29,  29,  29,  29,  29,  29,  29,  30,  10,  11,  12,  23,  13,   // 48-63
+         30,  28,  28,  28,  28,  28,  28,  33,  33,  33,  33,  33,  14,  33,  15,  33,   // 64-79
+         26,  33,  27,  33,  16,  33,  33,  33,  33,  33,  33,  30,  24,  30,  30,  34,   // 80-95
+         30,  32,  32,  32,  32,  40,  32,  35,  35,  35,  35,  39,  35,  35,  41,  37,   // 96-111
+         35,  35,  17,  35,  18,  31,  35,  35,  35,  35,  35,  19,  20,  25,  30,  30,   // 112-127
     ];
     static UTF8_TO_GROUP: [(char, GroupId); 2] = [
-        ('ε', 19),
-        ('€', 19),
+        ('ε', 21),
+        ('€', 21),
     ];
     static SEG_TO_GROUP: [(Seg, GroupId); 4] = [
-        (Seg(128, 948), 28),
-        (Seg(950, 8363), 28),
-        (Seg(8365, 55295), 28),
-        (Seg(57344, 1114111), 28),
+        (Seg(128, 948), 30),
+        (Seg(950, 8363), 30),
+        (Seg(8365, 55295), 30),
+        (Seg(57344, 1114111), 30),
     ];
-    static TERMINAL_TABLE: [Terminal;25] = [
+    static TERMINAL_TABLE: [Terminal;32] = [
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(2), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(9), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(11), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(5), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(4), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(10), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(9), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(12), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(8), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(6), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(18), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(18), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(18), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(19), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(19), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(3), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(7), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Skip, channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(0), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(1), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(11), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
-        Terminal { action: ActionOption::Token(12), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(13), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(14), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(15), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(19), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(19), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(19), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(16), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(17), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
         Terminal { action: ActionOption::Token(18), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(20), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
+        Terminal { action: ActionOption::Token(21), channel: 0, mode: ModeOption::None, mode_state: None, pop: false },
     ];
-    static STATE_TABLE: [StateId; 1729] = [
-         23,   1,  24,  25,  26,  27,  28,   2,   3,  29,   4,   5,  30,  31,  32,  33,  34,   6,  35,  36,  23,  48,  48,  48,  31,  31,  31,  48,  48,  34,  34,  31,  48,  34,  48,  23, // state 0
-         14,  48,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  48,  14,  15,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  48, // state 1
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  39,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 2
-         48,  48,  48,  48,  48,   7,  48,  48,  37,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 3
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,   9,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  10,  11,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 4
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  40,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 5
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  36,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 6
-          7,   7,   7,   7,   7,   8,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7, // state 7
-          7,   7,   7,   7,   7,   8,   7,   7,  38,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7,   7, // state 8
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  12,  48,  48,  48,  48,  48,  48,  48,  48,  48,  41,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 9
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  42,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 10
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  43,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 11
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  13,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  13,  13,  48,  48,  13,  48,  48, // state 12
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  13,  48,  48,  48,  48,  41,  48,  48,  48,  48,  48,  13,  48,  13,  13,  48,  13,  13,  13,  48, // state 13
-         14,  44,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  48,  14,  15,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  14,  48, // state 14
-         48,  14,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  14,  48,  48,  48,  48,  48,  14,  48,  48,  48,  48,  48,  48,  16,  48,  48,  48,  48,  48,  48, // state 15
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  17,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 16
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  18,  18,  48,  48,  18,  48,  48,  48,  18,  48, // state 17
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  14,  48,  48,  18,  18,  48,  48,  18,  48,  48,  48,  18,  48, // state 18
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  20,  48,  48,  48,  48,  48,  48,  48,  48, // state 19
-         48,  48,  48,  48,  46,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  20,  48,  48,  48,  48,  48,  48,  20,  48, // state 20
-         48,  48,  48,  48,  47,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  21,  48,  48,  48,  48,  48,  48,  21,  48, // state 21
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  21,  48,  48,  48,  48,  48,  48,  48,  48, // state 22
-         23,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  23,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  23, // state 23 <skip>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 24 <end:2>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 25 <end:8>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 26 <end:9>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 27 <end:5>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 28 <end:4>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 29 <end:10>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 30 <end:6>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  31,  31,  31,  31,  31,  31,  48, // state 31 <end:15>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  31,  31,  45,  31,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  31,  31,  31,  31,  31,  31,  48, // state 32 <end:15>
-         48,  48,  48,  19,  48,  48,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  31,  31,  31,  31,  31,  31,  48, // state 33 <end:15>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  34,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  34,  48,  34,  34,  48,  34,  34,  34,  48, // state 34 <end:16>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 35 <end:3>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 36 <end:7>
-         37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  37,  48, // state 37 <skip>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 38 <skip>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 39 <end:0>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 40 <end:1>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 41 <end:11>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 42 <end:12>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 43 <end:13>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 44 <end:14>
-         48,  48,  48,  22,  48,  48,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  48,  48,  48,  48,  48,  48,  31,  31,  31,  31,  48,  31,  31,  31,  31,  31,  31,  48, // state 45 <end:15>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 46 <end:17>
-         48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48,  48, // state 47 <end:18>
-         48 // error group in [nbr_state * nbr_group + nbr_group]
+    static STATE_TABLE: [StateId; 2269] = [
+         22,   1,  23,  24,  25,  26,  27,  28,   2,   3,  29,   4,  30,  31,  32,  33,  34,  35,  36,   5,  37,  38,  22,  54,  54,  54,  32,  32,  32,  54,  54,  35,  35,  32,  54,  35,  54,  35,  22,  35,  35,  35, // state 0
+         13,  54,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  54,  13,  14,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  54,  13,  13,  13, // state 1
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  41,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 2
+         54,  54,  54,  54,  54,   6,  54,  54,  54,  39,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 3
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,   8,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,   9,  10,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 4
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  38,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 5
+          6,   6,   6,   6,   6,   7,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6, // state 6
+          6,   6,   6,   6,   6,   7,   6,   6,   6,  40,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6,   6, // state 7
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  11,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  43,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 8
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  44,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 9
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  45,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 10
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  12,  12,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  12,  12,  54,  54,  12,  54,  12,  54,  12,  12,  12, // state 11
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  12,  12,  54,  54,  54,  54,  43,  54,  54,  54,  54,  54,  12,  54,  12,  12,  54,  12,  12,  12,  12,  54,  12,  12,  12, // state 12
+         13,  50,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  54,  13,  14,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  13,  54,  13,  13,  13, // state 13
+         54,  13,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  13,  13,  54,  54,  54,  54,  54,  13,  54,  54,  54,  54,  54,  54,  15,  54,  54,  54,  54,  54,  54,  54,  54,  54,  13, // state 14
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  16,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 15
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  17,  17,  54,  54,  17,  54,  54,  54,  17,  54,  54,  54,  17,  54, // state 16
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  13,  54,  54,  17,  17,  54,  54,  17,  54,  54,  54,  17,  54,  54,  54,  17,  54, // state 17
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  19,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 18
+         54,  54,  54,  54,  52,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  19,  54,  54,  54,  54,  54,  54,  19,  54,  54,  54,  54,  54, // state 19
+         54,  54,  54,  54,  53,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  20,  54,  54,  54,  54,  54,  54,  20,  54,  54,  54,  54,  54, // state 20
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  20,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 21
+         22,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  22,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  22,  54,  54,  54, // state 22 <skip>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 23 <end:2>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 24 <end:10>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 25 <end:11>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 26 <end:5>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 27 <end:4>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 28 <end:9>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 29 <end:12>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  42,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 30 <end:8>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 31 <end:6>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  32,  32,  32,  32,  32,  54,  54,  54,  54,  54,  54,  54,  32,  32,  32,  32,  54,  32,  32,  32,  32,  32,  32,  32,  54,  32,  32,  32, // state 32 <end:18>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  32,  32,  51,  32,  32,  54,  54,  54,  54,  54,  54,  54,  32,  32,  32,  32,  54,  32,  32,  32,  32,  32,  32,  32,  54,  32,  32,  32, // state 33 <end:18>
+         54,  54,  54,  18,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  32,  32,  32,  32,  32,  54,  54,  54,  54,  54,  54,  54,  32,  32,  32,  32,  54,  32,  32,  32,  32,  32,  32,  32,  54,  32,  32,  32, // state 34 <end:18>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  35,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  54,  35,  35,  54,  35,  35,  35,  35,  54,  35,  35,  35, // state 35 <end:19>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  35,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  54,  35,  35,  54,  35,  35,  35,  46,  54,  35,  35,  35, // state 36 <end:19>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 37 <end:3>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 38 <end:7>
+         39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  39,  54,  39,  39,  39, // state 39 <skip>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 40 <skip>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 41 <end:0>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 42 <end:1>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 43 <end:13>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 44 <end:14>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 45 <end:15>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  35,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  54,  35,  35,  54,  35,  35,  35,  35,  54,  47,  35,  35, // state 46 <end:19>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  35,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  54,  35,  35,  54,  35,  35,  35,  35,  54,  35,  48,  35, // state 47 <end:19>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  35,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  54,  35,  35,  54,  35,  35,  35,  35,  54,  35,  35,  49, // state 48 <end:19>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  35,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  35,  54,  35,  35,  54,  35,  35,  35,  35,  54,  35,  35,  35, // state 49 <end:16>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 50 <end:17>
+         54,  54,  54,  21,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  32,  32,  32,  32,  32,  54,  54,  54,  54,  54,  54,  54,  32,  32,  32,  32,  54,  32,  32,  32,  32,  32,  32,  32,  54,  32,  32,  32, // state 51 <end:18>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 52 <end:20>
+         54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54,  54, // state 53 <end:21>
+         54 // error group in [nbr_state * nbr_group + nbr_group]
     ];
 
     pub fn build_lexer<R: Read>() -> Lexer<'static, R> {
@@ -646,14 +698,14 @@ pub mod rtsgen_parser {
     use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
     use super::listener_types::*;
 
-    const PARSER_NUM_T: usize = 19;
-    const PARSER_NUM_NT: usize = 17;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("DArrow", Some("=>")), ("Concat", Some("&")), ("Or", Some("|")), ("Plus", Some("+")), ("Star", Some("*")), ("Question", Some("?")), ("Empty", None), ("LPar", Some("(")), ("RPar", Some(")")), ("Semicolon", Some(";")), ("LTag", None), ("PTag", Some("<P>")), ("RTag", Some("<R>")), ("TerminalCst", None), ("Terminal", None), ("Nonterminal", None), ("Tx", None), ("NTx", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["ruleset", "rule_iter", "rule", "rule_nt", "rts_expr", "rts_children", "prs_expr", "item", "rts_children_1", "prs_expr_1", "prs_expr_2", "prs_expr_3", "prs_expr_4", "prs_expr_5", "prs_expr_6", "ruleset_1", "rule_1"];
-    static ALT_VAR: [VarId; 46] = [0, 1, 2, 3, 4, 4, 4, 4, 4, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 8, 8, 9, 9, 9, 9, 9, 9, 10, 11, 11, 11, 11, 11, 12, 13, 13, 13, 13, 14, 14, 15, 15, 16, 16];
-    static ALTERNATIVES: [&[Symbol]; 46] = [&[Symbol::NT(1)], &[Symbol::NT(2), Symbol::NT(15)], &[Symbol::NT(3), Symbol::NT(16)], &[Symbol::T(16)], &[Symbol::T(2), Symbol::NT(5)], &[Symbol::T(3), Symbol::NT(5)], &[Symbol::T(4), Symbol::NT(5)], &[Symbol::T(5), Symbol::NT(5)], &[Symbol::T(6), Symbol::NT(5)], &[Symbol::NT(7)], &[Symbol::T(8), Symbol::NT(8), Symbol::T(9)], &[Symbol::NT(14), Symbol::NT(9)], &[Symbol::T(16)], &[Symbol::T(18)], &[Symbol::T(15)], &[Symbol::T(14)], &[Symbol::T(17)], &[Symbol::T(7)], &[Symbol::T(11)], &[Symbol::T(12)], &[Symbol::T(13)], &[Symbol::NT(4), Symbol::NT(8)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(9)], &[Symbol::T(5), Symbol::NT(9)], &[Symbol::T(6), Symbol::NT(9)], &[Symbol::NT(12), Symbol::NT(9)], &[Symbol::T(3), Symbol::NT(10), Symbol::NT(9)], &[Symbol::Empty], &[Symbol::NT(14), Symbol::NT(11)], &[Symbol::T(4), Symbol::NT(11)], &[Symbol::T(5), Symbol::NT(11)], &[Symbol::T(6), Symbol::NT(11)], &[Symbol::NT(12), Symbol::NT(11)], &[Symbol::Empty], &[Symbol::NT(14), Symbol::NT(13)], &[Symbol::T(4), Symbol::NT(13)], &[Symbol::T(5), Symbol::NT(13)], &[Symbol::T(6), Symbol::NT(13)], &[Symbol::Empty], &[Symbol::T(8), Symbol::NT(6), Symbol::T(9)], &[Symbol::NT(7)], &[Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(6), Symbol::T(10)], &[Symbol::T(1), Symbol::NT(4), Symbol::T(10)]];
-    static PARSING_TABLE: [AltId; 340] = [46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 0, 46, 46, 47, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 1, 46, 46, 47, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 2, 46, 46, 47, 47, 47, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 3, 46, 46, 46, 46, 46, 4, 5, 6, 7, 8, 9, 46, 47, 47, 9, 9, 9, 9, 9, 9, 9, 9, 46, 46, 46, 47, 47, 47, 47, 47, 47, 10, 47, 47, 47, 47, 47, 47, 47, 47, 47, 47, 46, 46, 46, 46, 46, 46, 46, 46, 11, 11, 47, 47, 11, 11, 11, 11, 11, 11, 11, 11, 46, 46, 46, 47, 47, 47, 47, 47, 17, 47, 47, 47, 18, 19, 20, 15, 14, 12, 16, 13, 46, 46, 46, 21, 21, 21, 21, 21, 21, 46, 22, 46, 21, 21, 21, 21, 21, 21, 21, 21, 46, 46, 46, 46, 27, 23, 24, 25, 26, 26, 28, 28, 26, 26, 26, 26, 26, 26, 26, 26, 46, 46, 46, 46, 47, 47, 47, 47, 29, 29, 47, 47, 29, 29, 29, 29, 29, 29, 29, 29, 46, 46, 46, 46, 34, 30, 31, 32, 33, 33, 34, 34, 33, 33, 33, 33, 33, 33, 33, 33, 46, 46, 46, 46, 47, 47, 47, 47, 35, 35, 47, 47, 35, 35, 35, 35, 35, 35, 35, 35, 46, 46, 46, 46, 39, 36, 37, 38, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 39, 46, 46, 46, 46, 47, 47, 47, 47, 41, 40, 47, 47, 41, 41, 41, 41, 41, 41, 41, 41, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 42, 46, 46, 43, 44, 45, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 46, 47, 46, 46, 47];
-    static OPCODES: [&[OpCode]; 46] = [&[OpCode::Exit(0), OpCode::NT(1)], &[OpCode::NT(15), OpCode::NT(2)], &[OpCode::NT(16), OpCode::NT(3)], &[OpCode::Exit(3), OpCode::T(16)], &[OpCode::Exit(4), OpCode::NT(5), OpCode::T(2)], &[OpCode::Exit(5), OpCode::NT(5), OpCode::T(3)], &[OpCode::Exit(6), OpCode::NT(5), OpCode::T(4)], &[OpCode::Exit(7), OpCode::NT(5), OpCode::T(5)], &[OpCode::Exit(8), OpCode::NT(5), OpCode::T(6)], &[OpCode::Exit(9), OpCode::NT(7)], &[OpCode::Exit(10), OpCode::T(9), OpCode::NT(8), OpCode::T(8)], &[OpCode::NT(9), OpCode::Exit(11), OpCode::NT(14)], &[OpCode::Exit(12), OpCode::T(16)], &[OpCode::Exit(13), OpCode::T(18)], &[OpCode::Exit(14), OpCode::T(15)], &[OpCode::Exit(15), OpCode::T(14)], &[OpCode::Exit(16), OpCode::T(17)], &[OpCode::Exit(17), OpCode::T(7)], &[OpCode::Exit(18), OpCode::T(11)], &[OpCode::Exit(19), OpCode::T(12)], &[OpCode::Exit(20), OpCode::T(13)], &[OpCode::Loop(8), OpCode::Exit(21), OpCode::NT(4)], &[OpCode::Exit(22)], &[OpCode::Loop(9), OpCode::Exit(23), OpCode::T(4)], &[OpCode::Loop(9), OpCode::Exit(24), OpCode::T(5)], &[OpCode::Loop(9), OpCode::Exit(25), OpCode::T(6)], &[OpCode::Loop(9), OpCode::Exit(26), OpCode::NT(12)], &[OpCode::Loop(9), OpCode::Exit(27), OpCode::NT(10), OpCode::T(3)], &[OpCode::Exit(28)], &[OpCode::NT(11), OpCode::Exit(29), OpCode::NT(14)], &[OpCode::Loop(11), OpCode::Exit(30), OpCode::T(4)], &[OpCode::Loop(11), OpCode::Exit(31), OpCode::T(5)], &[OpCode::Loop(11), OpCode::Exit(32), OpCode::T(6)], &[OpCode::Loop(11), OpCode::Exit(33), OpCode::NT(12)], &[OpCode::Exit(34)], &[OpCode::NT(13), OpCode::Exit(35), OpCode::NT(14)], &[OpCode::Loop(13), OpCode::Exit(36), OpCode::T(4)], &[OpCode::Loop(13), OpCode::Exit(37), OpCode::T(5)], &[OpCode::Loop(13), OpCode::Exit(38), OpCode::T(6)], &[OpCode::Exit(39)], &[OpCode::Exit(40), OpCode::T(9), OpCode::NT(6), OpCode::T(8)], &[OpCode::Exit(41), OpCode::NT(7)], &[OpCode::Loop(1), OpCode::Exit(42)], &[OpCode::Exit(43)], &[OpCode::Exit(44), OpCode::T(10), OpCode::NT(6), OpCode::T(0)], &[OpCode::Exit(45), OpCode::T(10), OpCode::NT(4), OpCode::T(1)]];
+    const PARSER_NUM_T: usize = 22;
+    const PARSER_NUM_NT: usize = 24;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("DArrow", Some("=>")), ("Concat", Some("&")), ("Or", Some("|")), ("Plus", Some("+")), ("Star", Some("*")), ("Question", Some("?")), ("Empty", None), ("Equal", Some("=")), ("Comma", Some(",")), ("LPar", Some("(")), ("RPar", Some(")")), ("Semicolon", Some(";")), ("LTag", None), ("PTag", Some("<P>")), ("RTag", Some("<R>")), ("Token", Some("token")), ("TerminalCst", None), ("Terminal", None), ("Nonterminal", None), ("Tx", None), ("NTx", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "decls", "decl_iter", "decl", "decl_terminal", "ruleset", "rule_iter", "rule", "rule_nt", "rts_expr", "rts_children", "prs_expr", "item", "decl_1", "rts_children_1", "prs_expr_1", "prs_expr_2", "prs_expr_3", "prs_expr_4", "prs_expr_5", "prs_expr_6", "decl_terminal_1", "ruleset_1", "rule_1"];
+    static ALT_VAR: [VarId; 56] = [0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9, 9, 9, 10, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15, 15, 15, 16, 17, 17, 17, 17, 17, 18, 19, 19, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23];
+    static ALTERNATIVES: [&[Symbol]; 56] = [&[Symbol::NT(1), Symbol::NT(5)], &[Symbol::NT(2)], &[Symbol::NT(3), Symbol::NT(2)], &[Symbol::Empty], &[Symbol::T(16), Symbol::NT(4), Symbol::NT(13), Symbol::T(12)], &[Symbol::T(18), Symbol::NT(21)], &[Symbol::NT(6)], &[Symbol::NT(7), Symbol::NT(22)], &[Symbol::NT(8), Symbol::NT(23)], &[Symbol::T(19)], &[Symbol::T(2), Symbol::NT(10)], &[Symbol::T(3), Symbol::NT(10)], &[Symbol::T(4), Symbol::NT(10)], &[Symbol::T(5), Symbol::NT(10)], &[Symbol::T(6), Symbol::NT(10)], &[Symbol::NT(12)], &[Symbol::T(10), Symbol::NT(14), Symbol::T(11)], &[Symbol::NT(20), Symbol::NT(15)], &[Symbol::T(19)], &[Symbol::T(21)], &[Symbol::T(18)], &[Symbol::T(17)], &[Symbol::T(20)], &[Symbol::T(7)], &[Symbol::T(13)], &[Symbol::T(14)], &[Symbol::T(15)], &[Symbol::T(9), Symbol::NT(4), Symbol::NT(13)], &[Symbol::Empty], &[Symbol::NT(9), Symbol::NT(14)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(15)], &[Symbol::T(5), Symbol::NT(15)], &[Symbol::T(6), Symbol::NT(15)], &[Symbol::NT(18), Symbol::NT(15)], &[Symbol::T(3), Symbol::NT(16), Symbol::NT(15)], &[Symbol::Empty], &[Symbol::NT(20), Symbol::NT(17)], &[Symbol::T(4), Symbol::NT(17)], &[Symbol::T(5), Symbol::NT(17)], &[Symbol::T(6), Symbol::NT(17)], &[Symbol::NT(18), Symbol::NT(17)], &[Symbol::Empty], &[Symbol::NT(20), Symbol::NT(19)], &[Symbol::T(4), Symbol::NT(19)], &[Symbol::T(5), Symbol::NT(19)], &[Symbol::T(6), Symbol::NT(19)], &[Symbol::Empty], &[Symbol::T(10), Symbol::NT(11), Symbol::T(11)], &[Symbol::NT(12)], &[Symbol::T(8), Symbol::T(17)], &[Symbol::Empty], &[Symbol::NT(6)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(11), Symbol::T(12)], &[Symbol::T(1), Symbol::NT(9), Symbol::T(12)]];
+    static PARSING_TABLE: [AltId; 552] = [56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 0, 56, 56, 0, 56, 56, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 1, 56, 56, 1, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 2, 56, 56, 3, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 4, 56, 56, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 57, 56, 56, 57, 56, 56, 56, 56, 56, 5, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 6, 56, 56, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 7, 56, 56, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 8, 56, 56, 57, 57, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 9, 56, 56, 56, 56, 56, 10, 11, 12, 13, 14, 15, 56, 56, 56, 57, 57, 15, 15, 15, 56, 15, 15, 15, 15, 15, 56, 56, 56, 57, 57, 57, 57, 57, 57, 56, 56, 16, 57, 57, 57, 57, 57, 56, 57, 57, 57, 57, 57, 56, 56, 56, 56, 56, 56, 56, 56, 17, 56, 56, 17, 57, 57, 17, 17, 17, 56, 17, 17, 17, 17, 17, 56, 56, 56, 57, 57, 57, 57, 57, 23, 56, 56, 57, 57, 57, 24, 25, 26, 56, 21, 20, 18, 22, 19, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 27, 56, 56, 28, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 29, 29, 29, 29, 29, 29, 56, 56, 56, 30, 56, 29, 29, 29, 56, 29, 29, 29, 29, 29, 56, 56, 56, 56, 35, 31, 32, 33, 34, 56, 56, 34, 36, 36, 34, 34, 34, 56, 34, 34, 34, 34, 34, 56, 56, 56, 56, 57, 57, 57, 57, 37, 56, 56, 37, 57, 57, 37, 37, 37, 56, 37, 37, 37, 37, 37, 56, 56, 56, 56, 42, 38, 39, 40, 41, 56, 56, 41, 42, 42, 41, 41, 41, 56, 41, 41, 41, 41, 41, 56, 56, 56, 56, 57, 57, 57, 57, 43, 56, 56, 43, 57, 57, 43, 43, 43, 56, 43, 43, 43, 43, 43, 56, 56, 56, 56, 47, 44, 45, 46, 47, 56, 56, 47, 47, 47, 47, 47, 47, 56, 47, 47, 47, 47, 47, 56, 56, 56, 56, 57, 57, 57, 57, 49, 56, 56, 48, 57, 57, 49, 49, 49, 56, 49, 49, 49, 49, 49, 56, 56, 56, 56, 56, 56, 56, 56, 56, 50, 51, 56, 56, 51, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 52, 56, 56, 53, 54, 55, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 57, 56, 56, 57];
+    static OPCODES: [&[OpCode]; 56] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(12), OpCode::NT(13), OpCode::NT(4), OpCode::T(16)], &[OpCode::NT(21), OpCode::T(18)], &[OpCode::Exit(6), OpCode::NT(6)], &[OpCode::NT(22), OpCode::NT(7)], &[OpCode::NT(23), OpCode::NT(8)], &[OpCode::Exit(9), OpCode::T(19)], &[OpCode::Exit(10), OpCode::NT(10), OpCode::T(2)], &[OpCode::Exit(11), OpCode::NT(10), OpCode::T(3)], &[OpCode::Exit(12), OpCode::NT(10), OpCode::T(4)], &[OpCode::Exit(13), OpCode::NT(10), OpCode::T(5)], &[OpCode::Exit(14), OpCode::NT(10), OpCode::T(6)], &[OpCode::Exit(15), OpCode::NT(12)], &[OpCode::Exit(16), OpCode::T(11), OpCode::NT(14), OpCode::T(10)], &[OpCode::NT(15), OpCode::Exit(17), OpCode::NT(20)], &[OpCode::Exit(18), OpCode::T(19)], &[OpCode::Exit(19), OpCode::T(21)], &[OpCode::Exit(20), OpCode::T(18)], &[OpCode::Exit(21), OpCode::T(17)], &[OpCode::Exit(22), OpCode::T(20)], &[OpCode::Exit(23), OpCode::T(7)], &[OpCode::Exit(24), OpCode::T(13)], &[OpCode::Exit(25), OpCode::T(14)], &[OpCode::Exit(26), OpCode::T(15)], &[OpCode::Loop(13), OpCode::Exit(27), OpCode::NT(4), OpCode::T(9)], &[OpCode::Exit(28)], &[OpCode::Loop(14), OpCode::Exit(29), OpCode::NT(9)], &[OpCode::Exit(30)], &[OpCode::Loop(15), OpCode::Exit(31), OpCode::T(4)], &[OpCode::Loop(15), OpCode::Exit(32), OpCode::T(5)], &[OpCode::Loop(15), OpCode::Exit(33), OpCode::T(6)], &[OpCode::Loop(15), OpCode::Exit(34), OpCode::NT(18)], &[OpCode::Loop(15), OpCode::Exit(35), OpCode::NT(16), OpCode::T(3)], &[OpCode::Exit(36)], &[OpCode::NT(17), OpCode::Exit(37), OpCode::NT(20)], &[OpCode::Loop(17), OpCode::Exit(38), OpCode::T(4)], &[OpCode::Loop(17), OpCode::Exit(39), OpCode::T(5)], &[OpCode::Loop(17), OpCode::Exit(40), OpCode::T(6)], &[OpCode::Loop(17), OpCode::Exit(41), OpCode::NT(18)], &[OpCode::Exit(42)], &[OpCode::NT(19), OpCode::Exit(43), OpCode::NT(20)], &[OpCode::Loop(19), OpCode::Exit(44), OpCode::T(4)], &[OpCode::Loop(19), OpCode::Exit(45), OpCode::T(5)], &[OpCode::Loop(19), OpCode::Exit(46), OpCode::T(6)], &[OpCode::Exit(47)], &[OpCode::Exit(48), OpCode::T(11), OpCode::NT(11), OpCode::T(10)], &[OpCode::Exit(49), OpCode::NT(12)], &[OpCode::Exit(50), OpCode::T(17), OpCode::T(8)], &[OpCode::Exit(51)], &[OpCode::Loop(6), OpCode::Exit(52)], &[OpCode::Exit(53)], &[OpCode::Exit(54), OpCode::T(12), OpCode::NT(11), OpCode::T(0)], &[OpCode::Exit(55), OpCode::T(12), OpCode::NT(9), OpCode::T(1)]];
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
@@ -672,6 +724,33 @@ pub mod rtsgen_parser {
         )
     }
 
+    #[derive(Debug)]
+    pub enum CtxFile {
+        /// `file -> decls ruleset`
+        File { decls: SynDecls, ruleset: SynRuleset },
+    }
+    #[derive(Debug)]
+    pub enum CtxDecls {
+        /// `decls -> (<L> decl)*`
+        Decls,
+    }
+    #[derive(Debug)]
+    pub enum CtxDeclIter {
+        /// `<L> decl` iteration in `decls -> ( ►► <L> decl ◄◄ )*`
+        DeclIter { decl: SynDecl },
+    }
+    #[derive(Debug)]
+    pub enum CtxDecl {
+        /// `decl -> "token" decl_terminal ("," decl_terminal)* ";"`
+        Decl { decl_terminal: SynDeclTerminal, star: SynDecl1 },
+    }
+    #[derive(Debug)]
+    pub enum CtxDeclTerminal {
+        /// `decl_terminal -> Terminal "=" TerminalCst`
+        DeclTerminal1 { terminal: String, terminalcst: String },
+        /// `decl_terminal -> Terminal`
+        DeclTerminal2 { terminal: String },
+    }
     #[derive(Debug)]
     pub enum CtxRuleset {
         /// `ruleset -> (<L> rule)+`
@@ -755,6 +834,14 @@ pub mod rtsgen_parser {
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
+    // /// User-defined type for `file`
+    // #[derive(Debug, PartialEq)] pub struct SynFile();
+    // /// User-defined type for `decls`
+    // #[derive(Debug, PartialEq)] pub struct SynDecls();
+    // /// User-defined type for `decl`
+    // #[derive(Debug, PartialEq)] pub struct SynDecl();
+    // /// User-defined type for `decl_terminal`
+    // #[derive(Debug, PartialEq)] pub struct SynDeclTerminal();
     // /// User-defined type for `ruleset`
     // #[derive(Debug, PartialEq)] pub struct SynRuleset();
     // /// User-defined type for `rule`
@@ -769,14 +856,29 @@ pub mod rtsgen_parser {
     // #[derive(Debug, PartialEq)] pub struct SynPrsExpr();
     // /// User-defined type for `item`
     // #[derive(Debug, PartialEq)] pub struct SynItem();
+    /// Computed `("," decl_terminal)*` array in `decl -> "token" decl_terminal  ►► ("," decl_terminal)* ◄◄  ";"`
+    #[derive(Debug, PartialEq)]
+    pub struct SynDecl1(pub Vec<SynDeclTerminal>);
     /// Computed `rts_expr*` array in `rts_children -> "("  ►► rts_expr* ◄◄  ")"`
     #[derive(Debug, PartialEq)]
     pub struct SynRtsChildren1(pub Vec<SynRtsExpr>);
 
     #[derive(Debug)]
-    enum SynValue { Ruleset(SynRuleset), Rule(SynRule), RuleNt(SynRuleNt), RtsExpr(SynRtsExpr), RtsChildren(SynRtsChildren), PrsExpr(SynPrsExpr), Item(SynItem), RtsChildren1(SynRtsChildren1) }
+    enum SynValue { File(SynFile), Decls(SynDecls), Decl(SynDecl), DeclTerminal(SynDeclTerminal), Ruleset(SynRuleset), Rule(SynRule), RuleNt(SynRuleNt), RtsExpr(SynRtsExpr), RtsChildren(SynRtsChildren), PrsExpr(SynPrsExpr), Item(SynItem), Decl1(SynDecl1), RtsChildren1(SynRtsChildren1) }
 
     impl SynValue {
+        fn get_file(self) -> SynFile {
+            if let SynValue::File(val) = self { val } else { panic!() }
+        }
+        fn get_decls(self) -> SynDecls {
+            if let SynValue::Decls(val) = self { val } else { panic!() }
+        }
+        fn get_decl(self) -> SynDecl {
+            if let SynValue::Decl(val) = self { val } else { panic!() }
+        }
+        fn get_decl_terminal(self) -> SynDeclTerminal {
+            if let SynValue::DeclTerminal(val) = self { val } else { panic!() }
+        }
         fn get_ruleset(self) -> SynRuleset {
             if let SynValue::Ruleset(val) = self { val } else { panic!() }
         }
@@ -798,6 +900,9 @@ pub mod rtsgen_parser {
         fn get_item(self) -> SynItem {
             if let SynValue::Item(val) = self { val } else { panic!() }
         }
+        fn get_decl1(self) -> SynDecl1 {
+            if let SynValue::Decl1(val) = self { val } else { panic!() }
+        }
         fn get_rts_children1(self) -> SynRtsChildren1 {
             if let SynValue::RtsChildren1(val) = self { val } else { panic!() }
         }
@@ -808,7 +913,17 @@ pub mod rtsgen_parser {
         /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
         fn check_abort_request(&self) -> bool { false }
         fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self, _ruleset: SynRuleset) {}
+        fn exit(&mut self, _file: SynFile) {}
+        fn init_file(&mut self) {}
+        fn exit_file(&mut self, _ctx: CtxFile) -> SynFile;
+        fn init_decls(&mut self) {}
+        fn exit_decls(&mut self, _ctx: CtxDecls) -> SynDecls;
+        fn init_decl_iter(&mut self) {}
+        fn exit_decl_iter(&mut self, _ctx: CtxDeclIter) {}
+        fn init_decl(&mut self) {}
+        fn exit_decl(&mut self, _ctx: CtxDecl) -> SynDecl;
+        fn init_decl_terminal(&mut self) {}
+        fn exit_decl_terminal(&mut self, _ctx: CtxDeclTerminal) -> SynDeclTerminal;
         fn init_ruleset(&mut self) {}
         fn exit_ruleset(&mut self, _ctx: CtxRuleset) -> SynRuleset;
         fn init_rule_iter(&mut self) {}
@@ -846,70 +961,87 @@ pub mod rtsgen_parser {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_ruleset(),          // ruleset
-                        1 => self.listener.init_rule_iter(),        // rule_iter
-                        15 => {}                                    // ruleset_1
-                        2 => self.listener.init_rule(),             // rule
-                        16 => {}                                    // rule_1
-                        3 => self.listener.init_rule_nt(),          // rule_nt
-                        4 => self.listener.init_rts_expr(),         // rts_expr
-                        5 => self.listener.init_rts_children(),     // rts_children
-                        8 => self.init_rts_children1(),             // rts_children_1
-                        6 => self.listener.init_prs_expr(),         // prs_expr
-                        9 ..= 14 => {}                              // prs_expr_1, prs_expr_2, prs_expr_3, prs_expr_4, prs_expr_5, prs_expr_6
-                        7 => self.listener.init_item(),             // item
+                        0 => self.listener.init_file(),             // file
+                        1 => self.listener.init_decls(),            // decls
+                        2 => self.listener.init_decl_iter(),        // decl_iter
+                        3 => self.listener.init_decl(),             // decl
+                        13 => self.init_decl1(),                    // decl_1
+                        4 => self.listener.init_decl_terminal(),    // decl_terminal
+                        21 => {}                                    // decl_terminal_1
+                        5 => self.listener.init_ruleset(),          // ruleset
+                        6 => self.listener.init_rule_iter(),        // rule_iter
+                        22 => {}                                    // ruleset_1
+                        7 => self.listener.init_rule(),             // rule
+                        23 => {}                                    // rule_1
+                        8 => self.listener.init_rule_nt(),          // rule_nt
+                        9 => self.listener.init_rts_expr(),         // rts_expr
+                        10 => self.listener.init_rts_children(),    // rts_children
+                        14 => self.init_rts_children1(),            // rts_children_1
+                        11 => self.listener.init_prs_expr(),        // prs_expr
+                        15 ..= 20 => {}                             // prs_expr_1, prs_expr_2, prs_expr_3, prs_expr_4, prs_expr_5, prs_expr_6
+                        12 => self.listener.init_item(),            // item
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_ruleset(),                   // ruleset -> rule_iter
-                        42 |                                        // ruleset_1 -> rule_iter
-                        43 => self.exit_rule_iter(alt_id),          // ruleset_1 -> ε
-                     /* 1 */                                        // rule_iter -> <L> rule ruleset_1 (never called)
-                        44 |                                        // rule_1 -> "->" prs_expr ";"
-                        45 => self.exit_rule(alt_id),               // rule_1 -> "=>" rts_expr ";"
-                     /* 2 */                                        // rule -> rule_nt rule_1 (never called)
-                        3 => self.exit_rule_nt(),                   // rule_nt -> Nonterminal
-                        4 |                                         // rts_expr -> "&" rts_children
-                        5 |                                         // rts_expr -> "|" rts_children
-                        6 |                                         // rts_expr -> "+" rts_children
-                        7 |                                         // rts_expr -> "*" rts_children
-                        8 |                                         // rts_expr -> "?" rts_children
-                        9 => self.exit_rts_expr(alt_id),            // rts_expr -> item
-                        10 => self.exit_rts_children(),             // rts_children -> "(" rts_children_1 ")"
-                        21 => self.exit_rts_children1(),            // rts_children_1 -> rts_expr rts_children_1
-                        22 => {}                                    // rts_children_1 -> ε
-                        23 |                                        // prs_expr_1 -> "+" prs_expr_1
-                        24 |                                        // prs_expr_1 -> "*" prs_expr_1
-                        25 |                                        // prs_expr_1 -> "?" prs_expr_1
-                        26 |                                        // prs_expr_1 -> prs_expr_4 prs_expr_1
-                        27 => self.exit_prs_expr1(alt_id),          // prs_expr_1 -> "|" prs_expr_2 prs_expr_1
-                        30 |                                        // prs_expr_3 -> "+" prs_expr_3 (duplicate of 23)
-                        36 => self.exit_prs_expr1(23),              // prs_expr_5 -> "+" prs_expr_5 (duplicate of 23)
-                        31 |                                        // prs_expr_3 -> "*" prs_expr_3 (duplicate of 24)
-                        37 => self.exit_prs_expr1(24),              // prs_expr_5 -> "*" prs_expr_5 (duplicate of 24)
-                        32 |                                        // prs_expr_3 -> "?" prs_expr_3 (duplicate of 25)
-                        38 => self.exit_prs_expr1(25),              // prs_expr_5 -> "?" prs_expr_5 (duplicate of 25)
-                        33 => self.exit_prs_expr1(26),              // prs_expr_3 -> prs_expr_4 prs_expr_3 (duplicate of 26)
-                        40 |                                        // prs_expr_6 -> "(" prs_expr ")"
-                        41 => self.exit_prs_expr6(alt_id),          // prs_expr_6 -> item
-                        11 => {}                                    // prs_expr -> prs_expr_6 prs_expr_1 (not used)
-                        28 => {}                                    // prs_expr_1 -> ε (not used)
-                        29 => {}                                    // prs_expr_2 -> prs_expr_6 prs_expr_3 (not used)
-                        34 => {}                                    // prs_expr_3 -> ε (not used)
-                        35 => {}                                    // prs_expr_4 -> prs_expr_6 prs_expr_5 (not used)
-                        39 => {}                                    // prs_expr_5 -> ε (not used)
-                        12 |                                        // item -> Nonterminal
-                        13 |                                        // item -> NTx
-                        14 |                                        // item -> Terminal
-                        15 |                                        // item -> TerminalCst
-                        16 |                                        // item -> Tx
-                        17 |                                        // item -> Empty
-                        18 |                                        // item -> LTag
-                        19 |                                        // item -> "<P>"
-                        20 => self.exit_item(alt_id),               // item -> "<R>"
+                        0 => self.exit_file(),                      // file -> decls ruleset
+                        1 => self.exit_decls(),                     // decls -> decl_iter
+                        2 => self.exit_decl_iter(),                 // decl_iter -> <L> decl decl_iter
+                        3 => {}                                     // decl_iter -> <L> ε (not used)
+                        4 => self.exit_decl(),                      // decl -> "token" decl_terminal decl_1 ";"
+                        27 => self.exit_decl1(),                    // decl_1 -> "," decl_terminal decl_1
+                        28 => {}                                    // decl_1 -> ε
+                        50 |                                        // decl_terminal_1 -> "=" TerminalCst
+                        51 => self.exit_decl_terminal(alt_id),      // decl_terminal_1 -> ε
+                     /* 5 */                                        // decl_terminal -> Terminal decl_terminal_1 (never called)
+                        6 => self.exit_ruleset(),                   // ruleset -> rule_iter
+                        52 |                                        // ruleset_1 -> rule_iter
+                        53 => self.exit_rule_iter(alt_id),          // ruleset_1 -> ε
+                     /* 7 */                                        // rule_iter -> <L> rule ruleset_1 (never called)
+                        54 |                                        // rule_1 -> "->" prs_expr ";"
+                        55 => self.exit_rule(alt_id),               // rule_1 -> "=>" rts_expr ";"
+                     /* 8 */                                        // rule -> rule_nt rule_1 (never called)
+                        9 => self.exit_rule_nt(),                   // rule_nt -> Nonterminal
+                        10 |                                        // rts_expr -> "&" rts_children
+                        11 |                                        // rts_expr -> "|" rts_children
+                        12 |                                        // rts_expr -> "+" rts_children
+                        13 |                                        // rts_expr -> "*" rts_children
+                        14 |                                        // rts_expr -> "?" rts_children
+                        15 => self.exit_rts_expr(alt_id),           // rts_expr -> item
+                        16 => self.exit_rts_children(),             // rts_children -> "(" rts_children_1 ")"
+                        29 => self.exit_rts_children1(),            // rts_children_1 -> rts_expr rts_children_1
+                        30 => {}                                    // rts_children_1 -> ε
+                        31 |                                        // prs_expr_1 -> "+" prs_expr_1
+                        32 |                                        // prs_expr_1 -> "*" prs_expr_1
+                        33 |                                        // prs_expr_1 -> "?" prs_expr_1
+                        34 |                                        // prs_expr_1 -> prs_expr_4 prs_expr_1
+                        35 => self.exit_prs_expr1(alt_id),          // prs_expr_1 -> "|" prs_expr_2 prs_expr_1
+                        38 |                                        // prs_expr_3 -> "+" prs_expr_3 (duplicate of 31)
+                        44 => self.exit_prs_expr1(31),              // prs_expr_5 -> "+" prs_expr_5 (duplicate of 31)
+                        39 |                                        // prs_expr_3 -> "*" prs_expr_3 (duplicate of 32)
+                        45 => self.exit_prs_expr1(32),              // prs_expr_5 -> "*" prs_expr_5 (duplicate of 32)
+                        40 |                                        // prs_expr_3 -> "?" prs_expr_3 (duplicate of 33)
+                        46 => self.exit_prs_expr1(33),              // prs_expr_5 -> "?" prs_expr_5 (duplicate of 33)
+                        41 => self.exit_prs_expr1(34),              // prs_expr_3 -> prs_expr_4 prs_expr_3 (duplicate of 34)
+                        48 |                                        // prs_expr_6 -> "(" prs_expr ")"
+                        49 => self.exit_prs_expr6(alt_id),          // prs_expr_6 -> item
+                        17 => {}                                    // prs_expr -> prs_expr_6 prs_expr_1 (not used)
+                        36 => {}                                    // prs_expr_1 -> ε (not used)
+                        37 => {}                                    // prs_expr_2 -> prs_expr_6 prs_expr_3 (not used)
+                        42 => {}                                    // prs_expr_3 -> ε (not used)
+                        43 => {}                                    // prs_expr_4 -> prs_expr_6 prs_expr_5 (not used)
+                        47 => {}                                    // prs_expr_5 -> ε (not used)
+                        18 |                                        // item -> Nonterminal
+                        19 |                                        // item -> NTx
+                        20 |                                        // item -> Terminal
+                        21 |                                        // item -> TerminalCst
+                        22 |                                        // item -> Tx
+                        23 |                                        // item -> Empty
+                        24 |                                        // item -> LTag
+                        25 |                                        // item -> "<P>"
+                        26 => self.exit_item(alt_id),               // item -> "<R>"
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -955,8 +1087,61 @@ pub mod rtsgen_parser {
         }
 
         fn exit(&mut self) {
+            let file = self.stack.pop().unwrap().get_file();
+            self.listener.exit(file);
+        }
+
+        fn exit_file(&mut self) {
             let ruleset = self.stack.pop().unwrap().get_ruleset();
-            self.listener.exit(ruleset);
+            let decls = self.stack.pop().unwrap().get_decls();
+            let val = self.listener.exit_file(CtxFile::File { decls, ruleset });
+            self.stack.push(SynValue::File(val));
+        }
+
+        fn exit_decls(&mut self) {
+            let val = self.listener.exit_decls(CtxDecls::Decls);
+            self.stack.push(SynValue::Decls(val));
+        }
+
+        fn exit_decl_iter(&mut self) {
+            let decl = self.stack.pop().unwrap().get_decl();
+            self.listener.exit_decl_iter(CtxDeclIter::DeclIter { decl });
+        }
+
+        fn exit_decl(&mut self) {
+            let star = self.stack.pop().unwrap().get_decl1();
+            let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
+            let val = self.listener.exit_decl(CtxDecl::Decl { decl_terminal, star });
+            self.stack.push(SynValue::Decl(val));
+        }
+
+        fn init_decl1(&mut self) {
+            let val = SynDecl1(Vec::new());
+            self.stack.push(SynValue::Decl1(val));
+        }
+
+        fn exit_decl1(&mut self) {
+            let decl_terminal = self.stack.pop().unwrap().get_decl_terminal();
+            let mut star_it = self.stack.pop().unwrap().get_decl1();
+            star_it.0.push(decl_terminal);
+            self.stack.push(SynValue::Decl1(star_it));
+        }
+
+        fn exit_decl_terminal(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
+                50 => {
+                    let terminalcst = self.stack_t.pop().unwrap();
+                    let terminal = self.stack_t.pop().unwrap();
+                    CtxDeclTerminal::DeclTerminal1 { terminal, terminalcst }
+                }
+                51 => {
+                    let terminal = self.stack_t.pop().unwrap();
+                    CtxDeclTerminal::DeclTerminal2 { terminal }
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_decl_terminal")
+            };
+            let val = self.listener.exit_decl_terminal(ctx);
+            self.stack.push(SynValue::DeclTerminal(val));
         }
 
         fn exit_ruleset(&mut self) {
@@ -965,19 +1150,19 @@ pub mod rtsgen_parser {
         }
 
         fn exit_rule_iter(&mut self, alt_id: AltId) {
-            let last_iteration = alt_id == 43;
+            let last_iteration = alt_id == 53;
             let rule = self.stack.pop().unwrap().get_rule();
             self.listener.exit_rule_iter(CtxRuleIter::RuleIter { rule, last_iteration });
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                44 => {
+                54 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
                     CtxRule::Rule1 { rule_nt, prs_expr }
                 }
-                45 => {
+                55 => {
                     let rts_expr = self.stack.pop().unwrap().get_rts_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
                     CtxRule::Rule2 { rule_nt, rts_expr }
@@ -996,27 +1181,27 @@ pub mod rtsgen_parser {
 
         fn exit_rts_expr(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                4 => {
+                10 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr1 { rts_children }
                 }
-                5 => {
+                11 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr2 { rts_children }
                 }
-                6 => {
+                12 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr3 { rts_children }
                 }
-                7 => {
+                13 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr4 { rts_children }
                 }
-                8 => {
+                14 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr5 { rts_children }
                 }
-                9 => {
+                15 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRtsExpr::RtsExpr6 { item }
                 }
@@ -1046,24 +1231,24 @@ pub mod rtsgen_parser {
 
         fn exit_prs_expr1(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                23 => {
+                31 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr1 { prs_expr }
                 }
-                24 => {
+                32 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr2 { prs_expr }
                 }
-                25 => {
+                33 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr3 { prs_expr }
                 }
-                26 => {
+                34 => {
                     let prs_expr_2 = self.stack.pop().unwrap().get_prs_expr();
                     let prs_expr_1 = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr4 { prs_expr: [prs_expr_1, prs_expr_2] }
                 }
-                27 => {
+                35 => {
                     let prs_expr_2 = self.stack.pop().unwrap().get_prs_expr();
                     let prs_expr_1 = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr5 { prs_expr: [prs_expr_1, prs_expr_2] }
@@ -1076,11 +1261,11 @@ pub mod rtsgen_parser {
 
         fn exit_prs_expr6(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                40 => {
+                48 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr6 { prs_expr }
                 }
-                41 => {
+                49 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxPrsExpr::PrsExpr7 { item }
                 }
@@ -1092,38 +1277,38 @@ pub mod rtsgen_parser {
 
         fn exit_item(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                12 => {
+                18 => {
                     let nonterminal = self.stack_t.pop().unwrap();
                     CtxItem::Item1 { nonterminal }
                 }
-                13 => {
+                19 => {
                     let ntx = self.stack_t.pop().unwrap();
                     CtxItem::Item2 { ntx }
                 }
-                14 => {
+                20 => {
                     let terminal = self.stack_t.pop().unwrap();
                     CtxItem::Item3 { terminal }
                 }
-                15 => {
+                21 => {
                     let terminalcst = self.stack_t.pop().unwrap();
                     CtxItem::Item4 { terminalcst }
                 }
-                16 => {
+                22 => {
                     let tx = self.stack_t.pop().unwrap();
                     CtxItem::Item5 { tx }
                 }
-                17 => {
+                23 => {
                     let empty = self.stack_t.pop().unwrap();
                     CtxItem::Item6 { empty }
                 }
-                18 => {
+                24 => {
                     let ltag = self.stack_t.pop().unwrap();
                     CtxItem::Item7 { ltag }
                 }
-                19 => {
+                25 => {
                     CtxItem::Item8
                 }
-                20 => {
+                26 => {
                     CtxItem::Item9
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")

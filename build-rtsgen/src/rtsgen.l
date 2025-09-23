@@ -26,6 +26,8 @@ Question                : '?';
 
 Empty                   : 'ε' | '€' | '{}';
 
+Equal                   : '=';
+Comma                   : ',';
 LPar                    : '(';
 RPar                    : ')';
 Semicolon               : ';';
@@ -33,6 +35,8 @@ Semicolon               : ';';
 LTag                    : '<L' ('=' NonterminalId)? '>';
 PTag                    : '<P>';
 RTag                    : '<R>';
+
+Token                   : 'token';
 
 TerminalCst             : StrLiteral;
 Terminal                : TerminalId;

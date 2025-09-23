@@ -1,5 +1,22 @@
 grammar RtsGen;
 
+file:
+    decls
+    ruleset
+;
+
+decls:
+    (<L=decl_iter> decl)*
+;
+
+decl:
+    Token decl_terminal (Comma decl_terminal)* Semicolon
+;
+
+decl_terminal:
+    Terminal (Equal TerminalCst)?
+;
+
 ruleset:
     (<L=rule_iter> rule)+
 ;

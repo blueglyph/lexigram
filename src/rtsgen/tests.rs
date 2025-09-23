@@ -95,6 +95,11 @@ fn simple() {
             vec![r#"a -> NT(1) T(1) | A;"#],
             vec![r#"a => |(&(NT(1?), T(1?)), A);"#]
         ),
+        (
+            vec![r#"token A, B = "B", C, D;"#,
+                 r#"a -> A | B | C;"#],
+            vec![r#"a => |(A, "B", C);"#]
+        ),
         /* template:
         (
             vec![r#""#],
@@ -172,6 +177,17 @@ fn catch_errors() {
             vec![r#"a -> "a"; a -> "b";"#],
             vec!["nonterminal 'a' is defined multiple times"],
         ),
+        (   // 5: bad integer
+            vec![r#"a -> T(1000000) | NT(2000000);"#],
+            vec!["T(1000000) can't be parsed: number too large",
+                 "NT(2000000) can't be parsed: number too large"],
+        ),
+        (   // 6: re-declaration of token
+            vec![r#"token A, B = "B", C, D;"#,
+                 r#"token C = "C";"#,
+                 r#"a -> A | B | C;"#],
+            vec!["in token declarations: token 'C' has already been declared"]
+        ),
         /* template:
         (   //
             vec![],
@@ -203,14 +219,16 @@ fn catch_errors() {
             println!("{msg}: there is no expected errors in this test");
             errors += 1;
         }
-        for i_res in 0..result_errors.len() {
+        let mut i_res = 0;
+        'outer: while i_res < result_errors.len() {
             for i_exp in 0..expected_errors.len() {
                 if result_errors[i_res].contains(&expected_errors[i_exp]) {
                     result_errors.remove(i_res);
                     expected_errors.remove(i_exp);
-                    break;
+                    continue 'outer;
                 }
             }
+            i_res += 1;
         }
         if !expected_errors.is_empty() || TEST_UNEXPECTED && !result_errors.is_empty() {
             errors += 1;
@@ -251,7 +269,16 @@ fn t_names() {
                 ("Space", Some(" ")),
                 ("EOL", Some("\n")),
             ],
-        )
+        ),
+        (
+            vec![r#"token A, B = "B1"; a -> A | B | C | "D";"#],
+            vec![
+                ("A", None),
+                ("B", Some("B1")),
+                ("C", None),
+                ("D", Some("D")),
+            ],
+        ),
     ];
     const VERBOSE: bool = false;
     const VERBOSE_ANSWER: bool = false;
