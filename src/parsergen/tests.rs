@@ -6,8 +6,8 @@ mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::prs::complete_symbol_table;
     use crate::{CollectJoin, SymbolTable, LL1};
-    use crate::grammar::tests::prs::build_prs;
-    use crate::grammar::tests::rts::build_rts;
+    use crate::grammar::tests::old_build_rts_prs::build_prs;
+    use crate::grammar::tests::old_build_rts_prs::build_rts;
     use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
@@ -227,7 +227,7 @@ mod gen_integration {
 mod opcodes {
     use crate::log::BuildFrom;
 use crate::grammar::{Symbol, VarId};
-    use crate::grammar::tests::prs::T;
+    use crate::grammar::tests::old_build_rts_prs::T;
     use crate::{columns_to_str, strip, CollectJoin};
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::{ParserGen, ParserTables};
@@ -568,7 +568,7 @@ use crate::grammar::{Symbol, VarId};
 
 mod parser_source {
     use crate::grammar::ProdRuleSet;
-    use crate::grammar::tests::prs::build_prs;
+    use crate::grammar::tests::old_build_rts_prs::build_prs;
     use crate::{CollectJoin, LL1};
     use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::{ParserGen, ParserTables};
@@ -596,9 +596,9 @@ mod wrapper_source {
     use std::collections::{BTreeMap, HashMap, HashSet};
     use iter_index::IndexerIterator;
     use crate::grammar::{alt_to_rule_str, ruleflag, AltId, Symbol, VarId};
-    use crate::grammar::tests::prs::T;
+    use crate::grammar::tests::old_build_rts_prs::T;
     use crate::{btreemap, columns_to_str, hashset, indent_source, symbols, CollectJoin, SymInfoTable};
-    use crate::grammar::tests::prs::T::{PRS, RTS};
+    use crate::grammar::tests::old_build_rts_prs::T::{PRS, RTS};
     use crate::parsergen::{print_flags, print_items, ParserGen};
     use crate::dfa::TokenId;
     use crate::log::{LogReader, LogStatus};
@@ -2145,7 +2145,7 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, test_source, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
 // if !matches!(rule_id, RTS(48)) { continue }
-// if !matches!(rule_id, RTS(33) | PRS(63)) { continue }
+if !matches!(rule_id, RTS(33)) { continue }
 if !matches!(rule_id, RTS(_)) { continue }
 
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);

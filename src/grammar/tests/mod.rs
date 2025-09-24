@@ -4,12 +4,12 @@
 
 pub mod prs;
 pub mod rts;
+pub mod old_build_rts_prs;
 
 use std::collections::{BTreeMap, HashSet};
 use super::*;
 use crate::dfa::TokenId;
 use crate::{alt, btreemap, gnode, hashmap, prule, sym, LL1};
-use crate::grammar::NTConversion::Removed;
 use crate::log::TryBuildFrom;
 use crate::log::BuildInto;
 use crate::rtsgen::RtsGen;

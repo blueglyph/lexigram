@@ -7,8 +7,8 @@ use iter_index::IndexerIterator;
 use crate::{CollectJoin, LL1};
 use crate::dfa::TokenId;
 use crate::grammar::{Alternative, ProdRuleSet, Symbol, VarId};
-use crate::grammar::tests::prs::T;
-use crate::grammar::tests::prs::build_prs;
+use crate::grammar::tests::old_build_rts_prs::T;
+use crate::grammar::tests::old_build_rts_prs::build_prs;
 use crate::lexer::CaretCol;
 use crate::log::{BufLog, BuildFrom, LogStatus, Logger};
 use crate::parser::{ListenerWrapper, OpCode, Parser};
@@ -303,7 +303,7 @@ fn parser_parse_stream_id() {
 }
 
 mod listener {
-    use crate::grammar::tests::prs::build_prs;
+    use crate::grammar::tests::old_build_rts_prs::build_prs;
     use crate::grammar::{AltId, VarId};
     use crate::lexer::CaretCol;
     use crate::log::{BufLog, LogStatus};
