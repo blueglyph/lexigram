@@ -699,13 +699,13 @@ pub mod rtsgen_parser {
     use super::listener_types::*;
 
     const PARSER_NUM_T: usize = 22;
-    const PARSER_NUM_NT: usize = 24;
+    const PARSER_NUM_NT: usize = 23;
     static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Arrow", Some("->")), ("DArrow", Some("=>")), ("Concat", Some("&")), ("Or", Some("|")), ("Plus", Some("+")), ("Star", Some("*")), ("Question", Some("?")), ("Empty", None), ("Equal", Some("=")), ("Comma", Some(",")), ("LPar", Some("(")), ("RPar", Some(")")), ("Semicolon", Some(";")), ("LTag", None), ("PTag", Some("<P>")), ("RTag", Some("<R>")), ("Token", Some("token")), ("TerminalCst", None), ("Terminal", None), ("Nonterminal", None), ("Tx", None), ("NTx", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "decls", "decl_iter", "decl", "decl_terminal", "ruleset", "rule_iter", "rule", "rule_nt", "rts_expr", "rts_children", "prs_expr", "item", "decl_1", "rts_children_1", "prs_expr_1", "prs_expr_2", "prs_expr_3", "prs_expr_4", "prs_expr_5", "prs_expr_6", "decl_terminal_1", "ruleset_1", "rule_1"];
-    static ALT_VAR: [VarId; 56] = [0, 1, 2, 2, 3, 4, 5, 6, 7, 8, 9, 9, 9, 9, 9, 9, 10, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15, 15, 15, 16, 17, 17, 17, 17, 17, 18, 19, 19, 19, 19, 20, 20, 21, 21, 22, 22, 23, 23];
-    static ALTERNATIVES: [&[Symbol]; 56] = [&[Symbol::NT(1), Symbol::NT(5)], &[Symbol::NT(2)], &[Symbol::NT(3), Symbol::NT(2)], &[Symbol::Empty], &[Symbol::T(16), Symbol::NT(4), Symbol::NT(13), Symbol::T(12)], &[Symbol::T(18), Symbol::NT(21)], &[Symbol::NT(6)], &[Symbol::NT(7), Symbol::NT(22)], &[Symbol::NT(8), Symbol::NT(23)], &[Symbol::T(19)], &[Symbol::T(2), Symbol::NT(10)], &[Symbol::T(3), Symbol::NT(10)], &[Symbol::T(4), Symbol::NT(10)], &[Symbol::T(5), Symbol::NT(10)], &[Symbol::T(6), Symbol::NT(10)], &[Symbol::NT(12)], &[Symbol::T(10), Symbol::NT(14), Symbol::T(11)], &[Symbol::NT(20), Symbol::NT(15)], &[Symbol::T(19)], &[Symbol::T(21)], &[Symbol::T(18)], &[Symbol::T(17)], &[Symbol::T(20)], &[Symbol::T(7)], &[Symbol::T(13)], &[Symbol::T(14)], &[Symbol::T(15)], &[Symbol::T(9), Symbol::NT(4), Symbol::NT(13)], &[Symbol::Empty], &[Symbol::NT(9), Symbol::NT(14)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(15)], &[Symbol::T(5), Symbol::NT(15)], &[Symbol::T(6), Symbol::NT(15)], &[Symbol::NT(18), Symbol::NT(15)], &[Symbol::T(3), Symbol::NT(16), Symbol::NT(15)], &[Symbol::Empty], &[Symbol::NT(20), Symbol::NT(17)], &[Symbol::T(4), Symbol::NT(17)], &[Symbol::T(5), Symbol::NT(17)], &[Symbol::T(6), Symbol::NT(17)], &[Symbol::NT(18), Symbol::NT(17)], &[Symbol::Empty], &[Symbol::NT(20), Symbol::NT(19)], &[Symbol::T(4), Symbol::NT(19)], &[Symbol::T(5), Symbol::NT(19)], &[Symbol::T(6), Symbol::NT(19)], &[Symbol::Empty], &[Symbol::T(10), Symbol::NT(11), Symbol::T(11)], &[Symbol::NT(12)], &[Symbol::T(8), Symbol::T(17)], &[Symbol::Empty], &[Symbol::NT(6)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(11), Symbol::T(12)], &[Symbol::T(1), Symbol::NT(9), Symbol::T(12)]];
-    static PARSING_TABLE: [AltId; 552] = [56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 0, 56, 56, 0, 56, 56, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 1, 56, 56, 1, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 2, 56, 56, 3, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 4, 56, 56, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 57, 56, 56, 57, 56, 56, 56, 56, 56, 5, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 6, 56, 56, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 7, 56, 56, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 8, 56, 56, 57, 57, 57, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 9, 56, 56, 56, 56, 56, 10, 11, 12, 13, 14, 15, 56, 56, 56, 57, 57, 15, 15, 15, 56, 15, 15, 15, 15, 15, 56, 56, 56, 57, 57, 57, 57, 57, 57, 56, 56, 16, 57, 57, 57, 57, 57, 56, 57, 57, 57, 57, 57, 56, 56, 56, 56, 56, 56, 56, 56, 17, 56, 56, 17, 57, 57, 17, 17, 17, 56, 17, 17, 17, 17, 17, 56, 56, 56, 57, 57, 57, 57, 57, 23, 56, 56, 57, 57, 57, 24, 25, 26, 56, 21, 20, 18, 22, 19, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 27, 56, 56, 28, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 29, 29, 29, 29, 29, 29, 56, 56, 56, 30, 56, 29, 29, 29, 56, 29, 29, 29, 29, 29, 56, 56, 56, 56, 35, 31, 32, 33, 34, 56, 56, 34, 36, 36, 34, 34, 34, 56, 34, 34, 34, 34, 34, 56, 56, 56, 56, 57, 57, 57, 57, 37, 56, 56, 37, 57, 57, 37, 37, 37, 56, 37, 37, 37, 37, 37, 56, 56, 56, 56, 42, 38, 39, 40, 41, 56, 56, 41, 42, 42, 41, 41, 41, 56, 41, 41, 41, 41, 41, 56, 56, 56, 56, 57, 57, 57, 57, 43, 56, 56, 43, 57, 57, 43, 43, 43, 56, 43, 43, 43, 43, 43, 56, 56, 56, 56, 47, 44, 45, 46, 47, 56, 56, 47, 47, 47, 47, 47, 47, 56, 47, 47, 47, 47, 47, 56, 56, 56, 56, 57, 57, 57, 57, 49, 56, 56, 48, 57, 57, 49, 49, 49, 56, 49, 49, 49, 49, 49, 56, 56, 56, 56, 56, 56, 56, 56, 56, 50, 51, 56, 56, 51, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 52, 56, 56, 53, 54, 55, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 56, 57, 56, 56, 57];
-    static OPCODES: [&[OpCode]; 56] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(12), OpCode::NT(13), OpCode::NT(4), OpCode::T(16)], &[OpCode::NT(21), OpCode::T(18)], &[OpCode::Exit(6), OpCode::NT(6)], &[OpCode::NT(22), OpCode::NT(7)], &[OpCode::NT(23), OpCode::NT(8)], &[OpCode::Exit(9), OpCode::T(19)], &[OpCode::Exit(10), OpCode::NT(10), OpCode::T(2)], &[OpCode::Exit(11), OpCode::NT(10), OpCode::T(3)], &[OpCode::Exit(12), OpCode::NT(10), OpCode::T(4)], &[OpCode::Exit(13), OpCode::NT(10), OpCode::T(5)], &[OpCode::Exit(14), OpCode::NT(10), OpCode::T(6)], &[OpCode::Exit(15), OpCode::NT(12)], &[OpCode::Exit(16), OpCode::T(11), OpCode::NT(14), OpCode::T(10)], &[OpCode::NT(15), OpCode::Exit(17), OpCode::NT(20)], &[OpCode::Exit(18), OpCode::T(19)], &[OpCode::Exit(19), OpCode::T(21)], &[OpCode::Exit(20), OpCode::T(18)], &[OpCode::Exit(21), OpCode::T(17)], &[OpCode::Exit(22), OpCode::T(20)], &[OpCode::Exit(23), OpCode::T(7)], &[OpCode::Exit(24), OpCode::T(13)], &[OpCode::Exit(25), OpCode::T(14)], &[OpCode::Exit(26), OpCode::T(15)], &[OpCode::Loop(13), OpCode::Exit(27), OpCode::NT(4), OpCode::T(9)], &[OpCode::Exit(28)], &[OpCode::Loop(14), OpCode::Exit(29), OpCode::NT(9)], &[OpCode::Exit(30)], &[OpCode::Loop(15), OpCode::Exit(31), OpCode::T(4)], &[OpCode::Loop(15), OpCode::Exit(32), OpCode::T(5)], &[OpCode::Loop(15), OpCode::Exit(33), OpCode::T(6)], &[OpCode::Loop(15), OpCode::Exit(34), OpCode::NT(18)], &[OpCode::Loop(15), OpCode::Exit(35), OpCode::NT(16), OpCode::T(3)], &[OpCode::Exit(36)], &[OpCode::NT(17), OpCode::Exit(37), OpCode::NT(20)], &[OpCode::Loop(17), OpCode::Exit(38), OpCode::T(4)], &[OpCode::Loop(17), OpCode::Exit(39), OpCode::T(5)], &[OpCode::Loop(17), OpCode::Exit(40), OpCode::T(6)], &[OpCode::Loop(17), OpCode::Exit(41), OpCode::NT(18)], &[OpCode::Exit(42)], &[OpCode::NT(19), OpCode::Exit(43), OpCode::NT(20)], &[OpCode::Loop(19), OpCode::Exit(44), OpCode::T(4)], &[OpCode::Loop(19), OpCode::Exit(45), OpCode::T(5)], &[OpCode::Loop(19), OpCode::Exit(46), OpCode::T(6)], &[OpCode::Exit(47)], &[OpCode::Exit(48), OpCode::T(11), OpCode::NT(11), OpCode::T(10)], &[OpCode::Exit(49), OpCode::NT(12)], &[OpCode::Exit(50), OpCode::T(17), OpCode::T(8)], &[OpCode::Exit(51)], &[OpCode::Loop(6), OpCode::Exit(52)], &[OpCode::Exit(53)], &[OpCode::Exit(54), OpCode::T(12), OpCode::NT(11), OpCode::T(0)], &[OpCode::Exit(55), OpCode::T(12), OpCode::NT(9), OpCode::T(1)]];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["file", "decls", "decl_iter", "decl", "decl_terminal", "ruleset", "rule_iter", "rule", "rule_nt", "rts_expr", "rts_children", "prs_expr", "item", "decl_1", "rts_children_1", "prs_expr_1", "prs_expr_2", "prs_expr_3", "prs_expr_4", "prs_expr_5", "prs_expr_6", "decl_terminal_1", "rule_1"];
+    static ALT_VAR: [VarId; 55] = [0, 1, 2, 2, 3, 4, 5, 6, 6, 7, 8, 9, 9, 9, 9, 9, 9, 10, 11, 12, 12, 12, 12, 12, 12, 12, 12, 12, 13, 13, 14, 14, 15, 15, 15, 15, 15, 15, 16, 17, 17, 17, 17, 17, 18, 19, 19, 19, 19, 20, 20, 21, 21, 22, 22];
+    static ALTERNATIVES: [&[Symbol]; 55] = [&[Symbol::NT(1), Symbol::NT(5)], &[Symbol::NT(2)], &[Symbol::NT(3), Symbol::NT(2)], &[Symbol::Empty], &[Symbol::T(16), Symbol::NT(4), Symbol::NT(13), Symbol::T(12)], &[Symbol::T(18), Symbol::NT(21)], &[Symbol::NT(6)], &[Symbol::NT(7), Symbol::NT(6)], &[Symbol::Empty], &[Symbol::NT(8), Symbol::NT(22)], &[Symbol::T(19)], &[Symbol::T(2), Symbol::NT(10)], &[Symbol::T(3), Symbol::NT(10)], &[Symbol::T(4), Symbol::NT(10)], &[Symbol::T(5), Symbol::NT(10)], &[Symbol::T(6), Symbol::NT(10)], &[Symbol::NT(12)], &[Symbol::T(10), Symbol::NT(14), Symbol::T(11)], &[Symbol::NT(20), Symbol::NT(15)], &[Symbol::T(19)], &[Symbol::T(21)], &[Symbol::T(18)], &[Symbol::T(17)], &[Symbol::T(20)], &[Symbol::T(7)], &[Symbol::T(13)], &[Symbol::T(14)], &[Symbol::T(15)], &[Symbol::T(9), Symbol::NT(4), Symbol::NT(13)], &[Symbol::Empty], &[Symbol::NT(9), Symbol::NT(14)], &[Symbol::Empty], &[Symbol::T(4), Symbol::NT(15)], &[Symbol::T(5), Symbol::NT(15)], &[Symbol::T(6), Symbol::NT(15)], &[Symbol::NT(18), Symbol::NT(15)], &[Symbol::T(3), Symbol::NT(16), Symbol::NT(15)], &[Symbol::Empty], &[Symbol::NT(20), Symbol::NT(17)], &[Symbol::T(4), Symbol::NT(17)], &[Symbol::T(5), Symbol::NT(17)], &[Symbol::T(6), Symbol::NT(17)], &[Symbol::NT(18), Symbol::NT(17)], &[Symbol::Empty], &[Symbol::NT(20), Symbol::NT(19)], &[Symbol::T(4), Symbol::NT(19)], &[Symbol::T(5), Symbol::NT(19)], &[Symbol::T(6), Symbol::NT(19)], &[Symbol::Empty], &[Symbol::T(10), Symbol::NT(11), Symbol::T(11)], &[Symbol::NT(12)], &[Symbol::T(8), Symbol::T(17)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(11), Symbol::T(12)], &[Symbol::T(1), Symbol::NT(9), Symbol::T(12)]];
+    static PARSING_TABLE: [AltId; 529] = [55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 0, 55, 55, 0, 55, 55, 0, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 1, 55, 55, 1, 55, 55, 1, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 2, 55, 55, 3, 55, 55, 3, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 4, 55, 55, 56, 55, 55, 56, 55, 55, 55, 55, 55, 55, 55, 55, 55, 56, 55, 55, 56, 55, 55, 55, 55, 55, 5, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 6, 55, 55, 6, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 7, 55, 55, 8, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 9, 55, 55, 56, 56, 56, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 10, 55, 55, 55, 55, 55, 11, 12, 13, 14, 15, 16, 55, 55, 55, 56, 56, 16, 16, 16, 55, 16, 16, 16, 16, 16, 55, 55, 55, 56, 56, 56, 56, 56, 56, 55, 55, 17, 56, 56, 56, 56, 56, 55, 56, 56, 56, 56, 56, 55, 55, 55, 55, 55, 55, 55, 55, 18, 55, 55, 18, 56, 56, 18, 18, 18, 55, 18, 18, 18, 18, 18, 55, 55, 55, 56, 56, 56, 56, 56, 24, 55, 55, 56, 56, 56, 25, 26, 27, 55, 22, 21, 19, 23, 20, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 28, 55, 55, 29, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 30, 30, 30, 30, 30, 30, 55, 55, 55, 31, 55, 30, 30, 30, 55, 30, 30, 30, 30, 30, 55, 55, 55, 55, 36, 32, 33, 34, 35, 55, 55, 35, 37, 37, 35, 35, 35, 55, 35, 35, 35, 35, 35, 55, 55, 55, 55, 56, 56, 56, 56, 38, 55, 55, 38, 56, 56, 38, 38, 38, 55, 38, 38, 38, 38, 38, 55, 55, 55, 55, 43, 39, 40, 41, 42, 55, 55, 42, 43, 43, 42, 42, 42, 55, 42, 42, 42, 42, 42, 55, 55, 55, 55, 56, 56, 56, 56, 44, 55, 55, 44, 56, 56, 44, 44, 44, 55, 44, 44, 44, 44, 44, 55, 55, 55, 55, 48, 45, 46, 47, 48, 55, 55, 48, 48, 48, 48, 48, 48, 55, 48, 48, 48, 48, 48, 55, 55, 55, 55, 56, 56, 56, 56, 50, 55, 55, 49, 56, 56, 50, 50, 50, 55, 50, 50, 50, 50, 50, 55, 55, 55, 55, 55, 55, 55, 55, 55, 51, 52, 55, 55, 52, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 53, 54, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 55, 56, 55, 55, 56];
+    static OPCODES: [&[OpCode]; 55] = [&[OpCode::Exit(0), OpCode::NT(5), OpCode::NT(1)], &[OpCode::Exit(1), OpCode::NT(2)], &[OpCode::Loop(2), OpCode::Exit(2), OpCode::NT(3)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::T(12), OpCode::NT(13), OpCode::NT(4), OpCode::T(16)], &[OpCode::NT(21), OpCode::T(18)], &[OpCode::Exit(6), OpCode::NT(6)], &[OpCode::Loop(6), OpCode::Exit(7), OpCode::NT(7)], &[OpCode::Exit(8)], &[OpCode::NT(22), OpCode::NT(8)], &[OpCode::Exit(10), OpCode::T(19)], &[OpCode::Exit(11), OpCode::NT(10), OpCode::T(2)], &[OpCode::Exit(12), OpCode::NT(10), OpCode::T(3)], &[OpCode::Exit(13), OpCode::NT(10), OpCode::T(4)], &[OpCode::Exit(14), OpCode::NT(10), OpCode::T(5)], &[OpCode::Exit(15), OpCode::NT(10), OpCode::T(6)], &[OpCode::Exit(16), OpCode::NT(12)], &[OpCode::Exit(17), OpCode::T(11), OpCode::NT(14), OpCode::T(10)], &[OpCode::NT(15), OpCode::Exit(18), OpCode::NT(20)], &[OpCode::Exit(19), OpCode::T(19)], &[OpCode::Exit(20), OpCode::T(21)], &[OpCode::Exit(21), OpCode::T(18)], &[OpCode::Exit(22), OpCode::T(17)], &[OpCode::Exit(23), OpCode::T(20)], &[OpCode::Exit(24), OpCode::T(7)], &[OpCode::Exit(25), OpCode::T(13)], &[OpCode::Exit(26), OpCode::T(14)], &[OpCode::Exit(27), OpCode::T(15)], &[OpCode::Loop(13), OpCode::Exit(28), OpCode::NT(4), OpCode::T(9)], &[OpCode::Exit(29)], &[OpCode::Loop(14), OpCode::Exit(30), OpCode::NT(9)], &[OpCode::Exit(31)], &[OpCode::Loop(15), OpCode::Exit(32), OpCode::T(4)], &[OpCode::Loop(15), OpCode::Exit(33), OpCode::T(5)], &[OpCode::Loop(15), OpCode::Exit(34), OpCode::T(6)], &[OpCode::Loop(15), OpCode::Exit(35), OpCode::NT(18)], &[OpCode::Loop(15), OpCode::Exit(36), OpCode::NT(16), OpCode::T(3)], &[OpCode::Exit(37)], &[OpCode::NT(17), OpCode::Exit(38), OpCode::NT(20)], &[OpCode::Loop(17), OpCode::Exit(39), OpCode::T(4)], &[OpCode::Loop(17), OpCode::Exit(40), OpCode::T(5)], &[OpCode::Loop(17), OpCode::Exit(41), OpCode::T(6)], &[OpCode::Loop(17), OpCode::Exit(42), OpCode::NT(18)], &[OpCode::Exit(43)], &[OpCode::NT(19), OpCode::Exit(44), OpCode::NT(20)], &[OpCode::Loop(19), OpCode::Exit(45), OpCode::T(4)], &[OpCode::Loop(19), OpCode::Exit(46), OpCode::T(5)], &[OpCode::Loop(19), OpCode::Exit(47), OpCode::T(6)], &[OpCode::Exit(48)], &[OpCode::Exit(49), OpCode::T(11), OpCode::NT(11), OpCode::T(10)], &[OpCode::Exit(50), OpCode::NT(12)], &[OpCode::Exit(51), OpCode::T(17), OpCode::T(8)], &[OpCode::Exit(52)], &[OpCode::Exit(53), OpCode::T(12), OpCode::NT(11), OpCode::T(0)], &[OpCode::Exit(54), OpCode::T(12), OpCode::NT(9), OpCode::T(1)]];
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
@@ -753,13 +753,13 @@ pub mod rtsgen_parser {
     }
     #[derive(Debug)]
     pub enum CtxRuleset {
-        /// `ruleset -> (<L> rule)+`
+        /// `ruleset -> (<L> rule)*`
         Ruleset,
     }
     #[derive(Debug)]
     pub enum CtxRuleIter {
-        /// `ruleset -> <L> rule`
-        RuleIter { rule: SynRule, last_iteration: bool },
+        /// `<L> rule` iteration in `ruleset -> ( ►► <L> rule ◄◄ )*`
+        RuleIter { rule: SynRule },
     }
     #[derive(Debug)]
     pub enum CtxRule {
@@ -970,9 +970,8 @@ pub mod rtsgen_parser {
                         21 => {}                                    // decl_terminal_1
                         5 => self.listener.init_ruleset(),          // ruleset
                         6 => self.listener.init_rule_iter(),        // rule_iter
-                        22 => {}                                    // ruleset_1
                         7 => self.listener.init_rule(),             // rule
-                        23 => {}                                    // rule_1
+                        22 => {}                                    // rule_1
                         8 => self.listener.init_rule_nt(),          // rule_nt
                         9 => self.listener.init_rts_expr(),         // rts_expr
                         10 => self.listener.init_rts_children(),    // rts_children
@@ -991,57 +990,56 @@ pub mod rtsgen_parser {
                         2 => self.exit_decl_iter(),                 // decl_iter -> <L> decl decl_iter
                         3 => {}                                     // decl_iter -> <L> ε (not used)
                         4 => self.exit_decl(),                      // decl -> "token" decl_terminal decl_1 ";"
-                        27 => self.exit_decl1(),                    // decl_1 -> "," decl_terminal decl_1
-                        28 => {}                                    // decl_1 -> ε
-                        50 |                                        // decl_terminal_1 -> "=" TerminalCst
-                        51 => self.exit_decl_terminal(alt_id),      // decl_terminal_1 -> ε
+                        28 => self.exit_decl1(),                    // decl_1 -> "," decl_terminal decl_1
+                        29 => {}                                    // decl_1 -> ε
+                        51 |                                        // decl_terminal_1 -> "=" TerminalCst
+                        52 => self.exit_decl_terminal(alt_id),      // decl_terminal_1 -> ε
                      /* 5 */                                        // decl_terminal -> Terminal decl_terminal_1 (never called)
                         6 => self.exit_ruleset(),                   // ruleset -> rule_iter
-                        52 |                                        // ruleset_1 -> rule_iter
-                        53 => self.exit_rule_iter(alt_id),          // ruleset_1 -> ε
-                     /* 7 */                                        // rule_iter -> <L> rule ruleset_1 (never called)
-                        54 |                                        // rule_1 -> "->" prs_expr ";"
-                        55 => self.exit_rule(alt_id),               // rule_1 -> "=>" rts_expr ";"
-                     /* 8 */                                        // rule -> rule_nt rule_1 (never called)
-                        9 => self.exit_rule_nt(),                   // rule_nt -> Nonterminal
-                        10 |                                        // rts_expr -> "&" rts_children
-                        11 |                                        // rts_expr -> "|" rts_children
-                        12 |                                        // rts_expr -> "+" rts_children
-                        13 |                                        // rts_expr -> "*" rts_children
-                        14 |                                        // rts_expr -> "?" rts_children
-                        15 => self.exit_rts_expr(alt_id),           // rts_expr -> item
-                        16 => self.exit_rts_children(),             // rts_children -> "(" rts_children_1 ")"
-                        29 => self.exit_rts_children1(),            // rts_children_1 -> rts_expr rts_children_1
-                        30 => {}                                    // rts_children_1 -> ε
-                        31 |                                        // prs_expr_1 -> "+" prs_expr_1
-                        32 |                                        // prs_expr_1 -> "*" prs_expr_1
-                        33 |                                        // prs_expr_1 -> "?" prs_expr_1
-                        34 |                                        // prs_expr_1 -> prs_expr_4 prs_expr_1
-                        35 => self.exit_prs_expr1(alt_id),          // prs_expr_1 -> "|" prs_expr_2 prs_expr_1
-                        38 |                                        // prs_expr_3 -> "+" prs_expr_3 (duplicate of 31)
-                        44 => self.exit_prs_expr1(31),              // prs_expr_5 -> "+" prs_expr_5 (duplicate of 31)
-                        39 |                                        // prs_expr_3 -> "*" prs_expr_3 (duplicate of 32)
-                        45 => self.exit_prs_expr1(32),              // prs_expr_5 -> "*" prs_expr_5 (duplicate of 32)
-                        40 |                                        // prs_expr_3 -> "?" prs_expr_3 (duplicate of 33)
-                        46 => self.exit_prs_expr1(33),              // prs_expr_5 -> "?" prs_expr_5 (duplicate of 33)
-                        41 => self.exit_prs_expr1(34),              // prs_expr_3 -> prs_expr_4 prs_expr_3 (duplicate of 34)
-                        48 |                                        // prs_expr_6 -> "(" prs_expr ")"
-                        49 => self.exit_prs_expr6(alt_id),          // prs_expr_6 -> item
-                        17 => {}                                    // prs_expr -> prs_expr_6 prs_expr_1 (not used)
-                        36 => {}                                    // prs_expr_1 -> ε (not used)
-                        37 => {}                                    // prs_expr_2 -> prs_expr_6 prs_expr_3 (not used)
-                        42 => {}                                    // prs_expr_3 -> ε (not used)
-                        43 => {}                                    // prs_expr_4 -> prs_expr_6 prs_expr_5 (not used)
-                        47 => {}                                    // prs_expr_5 -> ε (not used)
-                        18 |                                        // item -> Nonterminal
-                        19 |                                        // item -> NTx
-                        20 |                                        // item -> Terminal
-                        21 |                                        // item -> TerminalCst
-                        22 |                                        // item -> Tx
-                        23 |                                        // item -> Empty
-                        24 |                                        // item -> LTag
-                        25 |                                        // item -> "<P>"
-                        26 => self.exit_item(alt_id),               // item -> "<R>"
+                        7 => self.exit_rule_iter(),                 // rule_iter -> <L> rule rule_iter
+                        8 => {}                                     // rule_iter -> <L> ε (not used)
+                        53 |                                        // rule_1 -> "->" prs_expr ";"
+                        54 => self.exit_rule(alt_id),               // rule_1 -> "=>" rts_expr ";"
+                     /* 9 */                                        // rule -> rule_nt rule_1 (never called)
+                        10 => self.exit_rule_nt(),                  // rule_nt -> Nonterminal
+                        11 |                                        // rts_expr -> "&" rts_children
+                        12 |                                        // rts_expr -> "|" rts_children
+                        13 |                                        // rts_expr -> "+" rts_children
+                        14 |                                        // rts_expr -> "*" rts_children
+                        15 |                                        // rts_expr -> "?" rts_children
+                        16 => self.exit_rts_expr(alt_id),           // rts_expr -> item
+                        17 => self.exit_rts_children(),             // rts_children -> "(" rts_children_1 ")"
+                        30 => self.exit_rts_children1(),            // rts_children_1 -> rts_expr rts_children_1
+                        31 => {}                                    // rts_children_1 -> ε
+                        32 |                                        // prs_expr_1 -> "+" prs_expr_1
+                        33 |                                        // prs_expr_1 -> "*" prs_expr_1
+                        34 |                                        // prs_expr_1 -> "?" prs_expr_1
+                        35 |                                        // prs_expr_1 -> prs_expr_4 prs_expr_1
+                        36 => self.exit_prs_expr1(alt_id),          // prs_expr_1 -> "|" prs_expr_2 prs_expr_1
+                        39 |                                        // prs_expr_3 -> "+" prs_expr_3 (duplicate of 32)
+                        45 => self.exit_prs_expr1(32),              // prs_expr_5 -> "+" prs_expr_5 (duplicate of 32)
+                        40 |                                        // prs_expr_3 -> "*" prs_expr_3 (duplicate of 33)
+                        46 => self.exit_prs_expr1(33),              // prs_expr_5 -> "*" prs_expr_5 (duplicate of 33)
+                        41 |                                        // prs_expr_3 -> "?" prs_expr_3 (duplicate of 34)
+                        47 => self.exit_prs_expr1(34),              // prs_expr_5 -> "?" prs_expr_5 (duplicate of 34)
+                        42 => self.exit_prs_expr1(35),              // prs_expr_3 -> prs_expr_4 prs_expr_3 (duplicate of 35)
+                        49 |                                        // prs_expr_6 -> "(" prs_expr ")"
+                        50 => self.exit_prs_expr6(alt_id),          // prs_expr_6 -> item
+                        18 => {}                                    // prs_expr -> prs_expr_6 prs_expr_1 (not used)
+                        37 => {}                                    // prs_expr_1 -> ε (not used)
+                        38 => {}                                    // prs_expr_2 -> prs_expr_6 prs_expr_3 (not used)
+                        43 => {}                                    // prs_expr_3 -> ε (not used)
+                        44 => {}                                    // prs_expr_4 -> prs_expr_6 prs_expr_5 (not used)
+                        48 => {}                                    // prs_expr_5 -> ε (not used)
+                        19 |                                        // item -> Nonterminal
+                        20 |                                        // item -> NTx
+                        21 |                                        // item -> Terminal
+                        22 |                                        // item -> TerminalCst
+                        23 |                                        // item -> Tx
+                        24 |                                        // item -> Empty
+                        25 |                                        // item -> LTag
+                        26 |                                        // item -> "<P>"
+                        27 => self.exit_item(alt_id),               // item -> "<R>"
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -1129,12 +1127,12 @@ pub mod rtsgen_parser {
 
         fn exit_decl_terminal(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                50 => {
+                51 => {
                     let terminalcst = self.stack_t.pop().unwrap();
                     let terminal = self.stack_t.pop().unwrap();
                     CtxDeclTerminal::DeclTerminal1 { terminal, terminalcst }
                 }
-                51 => {
+                52 => {
                     let terminal = self.stack_t.pop().unwrap();
                     CtxDeclTerminal::DeclTerminal2 { terminal }
                 }
@@ -1149,20 +1147,19 @@ pub mod rtsgen_parser {
             self.stack.push(SynValue::Ruleset(val));
         }
 
-        fn exit_rule_iter(&mut self, alt_id: AltId) {
-            let last_iteration = alt_id == 53;
+        fn exit_rule_iter(&mut self) {
             let rule = self.stack.pop().unwrap().get_rule();
-            self.listener.exit_rule_iter(CtxRuleIter::RuleIter { rule, last_iteration });
+            self.listener.exit_rule_iter(CtxRuleIter::RuleIter { rule });
         }
 
         fn exit_rule(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                54 => {
+                53 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
                     CtxRule::Rule1 { rule_nt, prs_expr }
                 }
-                55 => {
+                54 => {
                     let rts_expr = self.stack.pop().unwrap().get_rts_expr();
                     let rule_nt = self.stack.pop().unwrap().get_rule_nt();
                     CtxRule::Rule2 { rule_nt, rts_expr }
@@ -1181,27 +1178,27 @@ pub mod rtsgen_parser {
 
         fn exit_rts_expr(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                10 => {
+                11 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr1 { rts_children }
                 }
-                11 => {
+                12 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr2 { rts_children }
                 }
-                12 => {
+                13 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr3 { rts_children }
                 }
-                13 => {
+                14 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr4 { rts_children }
                 }
-                14 => {
+                15 => {
                     let rts_children = self.stack.pop().unwrap().get_rts_children();
                     CtxRtsExpr::RtsExpr5 { rts_children }
                 }
-                15 => {
+                16 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxRtsExpr::RtsExpr6 { item }
                 }
@@ -1231,24 +1228,24 @@ pub mod rtsgen_parser {
 
         fn exit_prs_expr1(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                31 => {
+                32 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr1 { prs_expr }
                 }
-                32 => {
+                33 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr2 { prs_expr }
                 }
-                33 => {
+                34 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr3 { prs_expr }
                 }
-                34 => {
+                35 => {
                     let prs_expr_2 = self.stack.pop().unwrap().get_prs_expr();
                     let prs_expr_1 = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr4 { prs_expr: [prs_expr_1, prs_expr_2] }
                 }
-                35 => {
+                36 => {
                     let prs_expr_2 = self.stack.pop().unwrap().get_prs_expr();
                     let prs_expr_1 = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr5 { prs_expr: [prs_expr_1, prs_expr_2] }
@@ -1261,11 +1258,11 @@ pub mod rtsgen_parser {
 
         fn exit_prs_expr6(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                48 => {
+                49 => {
                     let prs_expr = self.stack.pop().unwrap().get_prs_expr();
                     CtxPrsExpr::PrsExpr6 { prs_expr }
                 }
-                49 => {
+                50 => {
                     let item = self.stack.pop().unwrap().get_item();
                     CtxPrsExpr::PrsExpr7 { item }
                 }
@@ -1277,38 +1274,38 @@ pub mod rtsgen_parser {
 
         fn exit_item(&mut self, alt_id: AltId) {
             let ctx = match alt_id {
-                18 => {
+                19 => {
                     let nonterminal = self.stack_t.pop().unwrap();
                     CtxItem::Item1 { nonterminal }
                 }
-                19 => {
+                20 => {
                     let ntx = self.stack_t.pop().unwrap();
                     CtxItem::Item2 { ntx }
                 }
-                20 => {
+                21 => {
                     let terminal = self.stack_t.pop().unwrap();
                     CtxItem::Item3 { terminal }
                 }
-                21 => {
+                22 => {
                     let terminalcst = self.stack_t.pop().unwrap();
                     CtxItem::Item4 { terminalcst }
                 }
-                22 => {
+                23 => {
                     let tx = self.stack_t.pop().unwrap();
                     CtxItem::Item5 { tx }
                 }
-                23 => {
+                24 => {
                     let empty = self.stack_t.pop().unwrap();
                     CtxItem::Item6 { empty }
                 }
-                24 => {
+                25 => {
                     let ltag = self.stack_t.pop().unwrap();
                     CtxItem::Item7 { ltag }
                 }
-                25 => {
+                26 => {
                     CtxItem::Item8
                 }
-                26 => {
+                27 => {
                     CtxItem::Item9
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_item")

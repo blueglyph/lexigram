@@ -18,7 +18,7 @@ decl_terminal:
 ;
 
 ruleset:
-    (<L=rule_iter> rule)+
+    (<L=rule_iter> rule)*
 ;
 
 rule:
