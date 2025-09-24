@@ -2,7 +2,15 @@
 
 ## General
 
-- [ ] clean-up of the unit & integration tests
+- [ ] remove dev-dependency to lexigram
+  - move examples in that crate?
+- [ ] review coherency in Symbol::to_str*, associated traits, OpCode::*.to_str*, ...
+  - [ ] unify the names
+  - [ ] add unit tests
+- [x] clean-up of the unit & integration tests
+  - [x] ~~split test files~~  
+  - [x] ~~create rtsgen and TestRules type to create GrTree/RTS/PRS~~
+  - [ ] update all tests (or almost) that rely on build_rts and build_prs
 - [x] ~~more coherency in functions/methods that create source code (names, location)~~
   - Name conventions:
     - build:  creates object by consuming self (or non-method that creates object)
