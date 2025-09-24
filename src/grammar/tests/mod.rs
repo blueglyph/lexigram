@@ -218,6 +218,8 @@ impl TestRules {
             1004 => vec![r#"a -> A; b -> B;"#],             // b is removed manually from symbol table
             1005 => vec![r#"a -> (<L=x> A <L=y>)*;"#],
             1006 => vec![r#"a -> (<L=x> A | <L=y> B)*;"#],
+            1007 => vec![r#"a -> <L> b; b -> b <L> | A;"#],
+            1008 => vec![r#""#],                            // start is set to None
 
             // -----------------------------------------------------------------------------
             _ => return None
@@ -238,6 +240,9 @@ impl TestRules {
             1004 => {
                 // removing one NT from the symbol table to create a mismatch:
                 rts.symbol_table.as_mut().unwrap().remove_nonterminal(1);
+            }
+            1008 => {
+                rts.start = None;
             }
             _ => {}
         }

@@ -527,8 +527,12 @@ impl<T> ProdRuleSet<T> {
 
     pub fn calc_first(&mut self) -> HashMap<Symbol, HashSet<Symbol>> {
         const VERBOSE: bool = false;
-        assert!(self.start.is_some(), "start NT symbol not defined");
-        assert!(!self.prules.is_empty(), "no rules");
+        if self.start.is_none() {
+            self.log.add_error("calc_first: start NT symbol not defined");
+        }
+        if self.num_nt == 0 {
+            self.log.add_error("calc_first: no nonterminal in grammar".to_string());
+        }
         if !self.log.has_no_errors() {
             return HashMap::new();
         }
@@ -549,7 +553,7 @@ impl<T> ProdRuleSet<T> {
                 .map(|v| Symbol::NT(v))
                 .to_vec();
             if !nt_removed.is_empty() {
-                self.log.add_warning(format!("- calc_first: unused nonterminals: {}",
+                self.log.add_warning(format!("calc_first: unused nonterminals: {}",
                                              nt_removed.into_iter().map(|s| format!("{:?} = {}", s, s.to_str(self.get_symbol_table()))).join(", ")));
             }
             self.cleanup_symbols(&mut symbols);
@@ -561,7 +565,7 @@ impl<T> ProdRuleSet<T> {
                 if !symbols.contains(&s) { Some(format!("T({t_id}) = {}", s.to_str(self.get_symbol_table()))) } else { None }
             }).to_vec();
         if unused_t.len() > 0 {
-            self.log.add_warning(format!("- calc_first: unused terminals: {}", unused_t.join(", ")))
+            self.log.add_warning(format!("calc_first: unused terminals: {}", unused_t.join(", ")))
         }
 
         let mut first = symbols.into_iter().map(|sym| {
@@ -603,11 +607,8 @@ impl<T> ProdRuleSet<T> {
             }
             if VERBOSE && change { println!("---------------------------- again"); }
         }
-        if self.num_nt == 0 {
-            self.log.add_error("- calc_first: no non-terminal in grammar".to_string());
-        }
         if self.num_t == 0 {
-            self.log.add_error("- calc_first: no terminal in grammar".to_string());
+            self.log.add_error("calc_first: no terminal in grammar".to_string());
         }
         first
     }

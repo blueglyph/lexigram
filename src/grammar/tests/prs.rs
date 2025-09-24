@@ -1990,44 +1990,56 @@ fn prs_calc_table() {
 
 #[test]
 fn prs_grammar_notes() {
-    let tests: Vec<(u32, VarId, Vec<&str>, Vec<&str>)> = vec![
+    let tests: Vec<(u32, Vec<&str>, Vec<&str>)> = vec![
         (
-            1000, 0,
+            1000,
             vec![],
             vec!["recursive rules must have at least one independent alternative"],
         ),
         (
-            1001, 0,
+            1001,
             vec![],
             vec!["no terminal in grammar"],
         ),
         (
-            1002, 0,
+            1002,
             vec![],
             vec!["no terminal used in the table"],
         ),
         (
-            1003, 0,
+            1003,
             vec!["unused nonterminals: NT(1) = b",
                  "unused terminals: T(0) = B"],
             vec![],
         ),
         (
-            1004, 0,
+            1004,
             vec![],
             vec!["there are 2 rules but the symbol table has 1 nonterminal symbols: dropping the table"],
         ),
         (
-            1005, 0,
+            1005,
             vec![],
             vec!["in a, (<L=x> A <L=y>)*: conflicting <L=x> and <L=y>",
                  "normalize_var(y): error while normalizing the rules, 0 remaining nodes instead of 1"],
         ),
         (
-            1006, 0,
+            1006,
             vec![],
             vec!["in a, (<L=x> A | <L=y> B)*: conflicting <L=x> and <L=y>",
                  "normalize_var(y): error while normalizing the rules, 0 remaining nodes instead of 1"],
+        ),
+        (
+            1007,
+            vec![],
+            vec!["a has an illegal flag L-Form (only used with +, *, or right recursion)",
+                 "b has an illegal flag L-Form"],
+        ),
+        (
+            1008,
+            vec![],
+            vec!["start NT symbol not defined",
+                 "no nonterminal in grammar"],
         ),
         /* template:
         (
@@ -2038,45 +2050,39 @@ fn prs_grammar_notes() {
         */
     ];
     const VERBOSE: bool = false;
-    for (test_id, (ll_id, start, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
+    for (test_id, (ll_id, expected_warnings, expected_errors)) in tests.into_iter().enumerate() {
         if VERBOSE {
-            println!("{:=<80}\ntest {test_id} with {ll_id:?}/{start}:", "");
+            println!("{:=<80}\ntest {test_id} with {ll_id:?}:", "");
         }
         let mut ll1 = TestRules(ll_id).to_prs_ll1().unwrap();
         if VERBOSE {
             ll1.print_rules(false, false);
-            ll1.print_logs();
         }
-        let mut parsing_table = None;
         if ll1.log.num_errors() == 0 {
             let first = ll1.calc_first();
             if ll1.log.num_errors() == 0 {
                 let follow = ll1.calc_follow(&first);
                 if ll1.log.num_errors() == 0 {
-                    parsing_table = Some(ll1.calc_table(&first, &follow, false));
+                    _ = Some(ll1.calc_table(&first, &follow, false));
                 }
             }
             if VERBOSE {
                 println!("=>");
                 ll1.print_rules(false, false);
-                if let Some(table) = &parsing_table {
-                    print_alts(&table.alts, ll1.get_symbol_table());
-                    println!("table:");
-                    table.print(ll1.get_symbol_table(), 12);
-                }
-                ll1.print_logs();
+                println!("Log:\n{}", ll1.log);
             }
         }
-        assert_eq!(ll1.log.num_errors(), expected_errors.len(), "test {test_id}/{ll_id:?}/{start} failed on # errors");
-        assert_eq!(ll1.log.num_warnings(), expected_warnings.len(), "test {test_id}/{ll_id:?}/{start} failed on # warnings");
+        let msg = format!("test {test_id}/{ll_id:?}: ");
+        assert_eq!(ll1.log.num_errors(), expected_errors.len(), "{msg}failed on # errors");
+        assert_eq!(ll1.log.num_warnings(), expected_warnings.len(), "{msg}failed on # warnings");
         let err_discr = ll1.log.get_errors().zip(expected_errors).filter_map(|(e, ee)|
             if !e.contains(ee) { Some(format!("- \"{e}\" doesn't contain \"{ee}\"")) } else { None }
         ).to_vec();
-        assert!(err_discr.is_empty(), "test {test_id}/{ll_id:?}/{start} has discrepancies in the expected error messages:\n{}", err_discr.join("\n"));
+        assert!(err_discr.is_empty(), "{msg}has discrepancies in the expected error messages:\n{}", err_discr.join("\n"));
         let warn_discr = ll1.log.get_warnings().zip(expected_warnings).filter_map(|(w, ew)|
             if !w.contains(ew) { Some(format!("- \"{w}\" doesn't contain \"{ew}\"")) } else { None }
         ).to_vec();
-        assert!(warn_discr.is_empty(), "test {test_id}/{ll_id:?}/{start} has discrepancies in the expected warning messages:\n{}", warn_discr.join("\n"));
+        assert!(warn_discr.is_empty(), "{msg}has discrepancies in the expected warning messages:\n{}", warn_discr.join("\n"));
    }
 }
 
