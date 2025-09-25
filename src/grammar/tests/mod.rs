@@ -89,6 +89,8 @@ impl TestRules {
             208 => vec![r#"a -> (<L=i> A (<L=j> B ",")* ";")*;"#],
             209 => vec![r#"a -> (<L=i> A (<L=j> B ",")+ ";")+;"#],
             210 => vec![r#"a -> A (<L=i> "B")* C;"#],
+            211 => vec![r#"a -> A (A | C) (B <L=i>)* C;"#],
+
             // TODO (not yet fully supported in parsergen)
             250 => vec![r#"a -> (<L=i> A | B)*;"#],
             251 => vec![r#"a -> (<L=i> A | B)+;"#],
