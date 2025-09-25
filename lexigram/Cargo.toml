@@ -8,3 +8,11 @@ edition = "2024"
 lexigram_lib = { path = "..", package = "lexigram_lib" }
 iter-index = "1.0.0"
 vectree = "0.2.3"
+
+[[example]]
+name = "gen_microcalc"
+test = true
+
+[[example]]
+name = "microcalc"
+test = true

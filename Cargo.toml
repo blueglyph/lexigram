@@ -25,14 +25,3 @@ default-members = [".", "lexigram", "build-stage1", "build-stage2", "build-rtsge
 
 [profile.dev]
 #debug = false
-
-[[example]]
-name = "gen_microcalc"
-test = true
-
-[[example]]
-name = "microcalc"
-test = true
-
-[dev-dependencies]
-lexigram = { path = "lexigram" }

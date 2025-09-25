@@ -2,8 +2,7 @@
 
 ## General
 
-- [ ] remove dev-dependency to lexigram
-  - move examples in that crate?
+- [x] ~~remove dev-dependency to lexigram~~
 - [x] ~~review coherency in Symbol::to_str*, associated traits, OpCode::*.to_str*, ...~~
   - [x] ~~add unit tests~~
   - [x] ~~unify the names~~

@@ -43,7 +43,6 @@ name = "lexigram_lib"
 version = "0.5.4"
 dependencies = [
  "iter-index",
- "lexigram",
  "vectree",
 ]
 
