@@ -444,14 +444,14 @@ fn prs_ll1_from() {
             r#"a_4 -> a_2 | ε"#,                                // child_left_fact
         ], vec![6144, 4129, 6177, 64, 64], vec![None, Some(2), Some(0), Some(1), Some(2)]),
         (200, vec![
-            // a -> (<L=i> A)*
-            r#"a -> i"#,                                        // parent_+_or_*
-            r#"i -> A i | ε"#,                                  // child_+_or_* | L-form
+            // a -> A (<L=i> B)* C
+            r#"a -> A i C"#,                                    // parent_+_or_*
+            r#"i -> B i | ε"#,                                  // child_+_or_* | L-form
         ], vec![2048, 129], vec![None, Some(0)]),
         (201, vec![
-            // a -> (<L=i> A)+
-            r#"a -> i"#,                                        // parent_+_or_* | plus
-            r#"i -> A a_1"#,                                    // child_+_or_* | parent_left_fact | L-form | plus
+            // a -> A (<L=i> B)+ C
+            r#"a -> A i C"#,                                    // parent_+_or_* | plus
+            r#"i -> B a_1"#,                                    // child_+_or_* | parent_left_fact | L-form | plus
             r#"a_1 -> i | ε"#,                                  // child_left_fact
         ], vec![6144, 4257, 64], vec![None, Some(0), Some(1)]),
         (208, vec![

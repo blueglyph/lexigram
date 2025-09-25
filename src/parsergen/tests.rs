@@ -657,81 +657,77 @@ mod wrapper_source {
                 0 => symbols![t 0, t 1],                //  0: a -> A B | ◄0 B! A! | A B
             ], Default, btreemap![0 => vec![0]]),
             // --------------------------------------------------------------------------- NT/T simple mix
-            // S -> id = VAL | exit | return VAL
-            // VAL -> id | num
-            // NT flags:
-            //  - (nothing)
-            // parents:
-            //  - (nothing)
+            // s -> Id "=" val | "exit" | "return" val
+            // val -> Id | Num
             (PRS(34), 13, true, 0, btreemap![
                 0 => "SynS".to_string(),
                 1 => "SynVal".to_string(),
             ], btreemap![
-                0 => symbols![t 0, nt 1],               //  0: S -> id = VAL   | ◄0 ►VAL = id!  | id VAL
-                1 => symbols![],                        //  1: S -> exit       | ◄1 exit        |
-                2 => symbols![nt 1],                    //  2: S -> return VAL | ◄2 ►VAL return | VAL
-                3 => symbols![t 0],                     //  3: VAL -> id       | ◄3 id!         | id
-                4 => symbols![t 4],                     //  4: VAL -> num      | ◄4 num!        | num
-            ], Set(symbols![nt 0, nt 1, t 0, t 1]), btreemap![0 => vec![0, 1, 2], 1 => vec![3, 4]]),
+                0 => symbols![t 0, nt 1],               //  0: s -> Id "=" val   | ◄0 ►val "=" Id!  | Id val
+                1 => symbols![],                        //  1: s -> "exit"       | ◄1 "exit"        |
+                2 => symbols![nt 1],                    //  2: s -> "return" val | ◄2 ►val "return" | val
+                3 => symbols![t 0],                     //  3: val -> Id         | ◄3 Id!           | Id
+                4 => symbols![t 4],                     //  4: val -> Num        | ◄4 Num!          | Num
+            ], Default, btreemap![0 => vec![0, 1, 2], 1 => vec![3, 4]]),
             // --------------------------------------------------------------------------- norm* R/L
-            // A -> a (b)* c
+            // a -> A B* C
             // NT flags:
-            //  - A: parent_+_or_* (2048)
-            //  - A_1: child_+_or_* (1)
+            //  - a: parent_+_or_* (2048)
+            //  - a_1: child_+_or_* (1)
             // parents:
-            //  - A_1 -> A
-            (RTS(21), 999, true, 0, btreemap![
+            //  - a_1 -> a
+            (RTS(21), 102, true, 0, btreemap![
                 0 => "SynA".to_string(),
                 1 => "SynA1".to_string(),
             ], btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a A_1 c
-                1 => symbols![nt 1, t 1],               //  1: A_1 -> b A_1 | ●A_1 ◄1 b!    | A_1 b
-                2 => symbols![nt 1],                    //  2: A_1 -> ε     | ◄2            | A_1
-            ], All, btreemap![0 => vec![0]]),
-            (RTS(21), 999, true, 0, btreemap![
-                0 => "SynA".to_string(),
-            ], btreemap![
-                0 => symbols![t 0, t 2],                //  0: A -> a A_1 c | ◄0 c! ►A_1 a! | a c
-                1 => symbols![],                        //  1: A_1 -> b A_1 | ●A_1 ◄1 b     |
-                2 => symbols![],                        //  2: A_1 -> ε     | ◄2            |
+                0 => symbols![t 0, nt 1, t 2],          //  0: a -> A a_1 C | ◄0 C! ►a_1 A! | A a_1 C
+                1 => symbols![nt 1, t 1],               //  1: a_1 -> B a_1 | ●a_1 ◄1 B!    | a_1 B
+                2 => symbols![nt 1],                    //  2: a_1 -> ε     | ◄2            | a_1
             ], Default, btreemap![0 => vec![0]]),
 
-            // A -> a (b <L=AIter1>)* c
+            // a -> A "B"* C
             // NT flags:
-            //  - A: parent_+_or_* (2048)
-            //  - AIter1: child_+_or_* | L-form (129)
+            //  - a: parent_+_or_* (2048)
+            //  - a_1: child_+_or_* (1)
             // parents:
-            //  - AIter1 -> A
-            (RTS(22), 999, true, 0, btreemap![
-                0 => "SynA".to_string(),
-                1 => "SynAIter".to_string(),
-            ], btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
-                1 => symbols![nt 1, t 1],               //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b!    | AIter1 b
-                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
-            ], All, btreemap![0 => vec![0]]),
-            (RTS(22), 999, true, 0, btreemap![
+            //  - a_1 -> a
+            (RTS(21), 108, true, 0, btreemap![
                 0 => "SynA".to_string(),
             ], btreemap![
-                0 => symbols![t 0, t 2],                //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a c
-                1 => symbols![],                        //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     |
-                2 => symbols![],                        //  2: AIter1 -> ε        | ◄2               |
-            ], Set(symbols![nt 0, t 0, t 2]), btreemap![0 => vec![0]]),
-            (RTS(22), 999, true, 0, btreemap![
+                0 => symbols![t 0, t 2],                //  0: a -> A a_1 C   | ◄0 C! ►a_1 A! | A C
+                1 => symbols![],                        //  1: a_1 -> "B" a_1 | ●a_1 ◄1 "B"   |
+                2 => symbols![],                        //  2: a_1 -> ε       | ◄2            |
+            ], Default, btreemap![0 => vec![0]]),
+
+            // a -> A (<L=i> B)* C
+            // NT flags:
+            //  - a: parent_+_or_* (2048)
+            //  - i: child_+_or_* | L-form (129)
+            // parents:
+            //  - i -> a
+            (RTS(22), 200, true, 0, btreemap![
                 0 => "SynA".to_string(),
-                1 => "SynAIter".to_string(),
+                1 => "SynI".to_string(),
             ], btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
-                1 => symbols![nt 1],                    //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     | AIter1
-                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
-            ], Set(symbols![nt 0, nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
-            (RTS(22), 999, true, 0, btreemap![
-                1 => "SynAIter".to_string(),
+                0 => symbols![t 0, nt 1, t 2],          //  0: a -> A i C | ◄0 C! ►i A! | A i C
+                1 => symbols![nt 1, t 1],               //  1: i -> B i   | ●i ◄1 B!    | i B
+                2 => symbols![nt 1],                    //  2: i -> ε     | ◄2          | i
+            ], Default, btreemap![0 => vec![0]]),
+            (RTS(22), 200, true, 0, btreemap![
+                0 => "SynA".to_string(),
             ], btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
-                1 => symbols![nt 1],                    //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     | AIter1
-                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
-            ], Set(symbols![nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
+                0 => symbols![t 0, t 2],                //  0: a -> A i C | ◄0 C! ►i A! | A C
+                1 => symbols![t 1],                     //  1: i -> B i   | ●i ◄1 B!    | B
+                2 => symbols![],                        //  2: i -> ε     | ◄2          |
+            ], Set(symbols![nt 0]), btreemap![0 => vec![0]]),
+            // a -> A (<L=i> "B")* C
+            (RTS(22), 210, true, 0, btreemap![
+                0 => "SynA".to_string(),
+            ], btreemap![
+                0 => symbols![t 0, t 2],                //  0: a -> A i C | ◄0 C! ►i A! | A C
+                1 => symbols![],                        //  1: i -> "B" i | ●i ◄1 "B"   |
+                2 => symbols![],                        //  2: i -> ε     | ◄2          |
+            ], Set(symbols![nt 0]), btreemap![0 => vec![0]]),
 
             // A -> a (b <L=C>)* B
             // B -> c
@@ -2120,16 +2116,18 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = false;
+        const REPLACE_SOURCE: bool = true;
 
         // CAUTION! Empty the first btreemap if the NTs have changed
 
         let mut num_errors = 0;
         let mut num_src_errors = 0;
-        let mut rule_id_iter = HashMap::<T, u32>::new();
+        let mut rule_id_iter = HashMap::<u32, u32>::new();
+        let mut old_rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, tr_id, test_source, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
 // if !matches!(rule_id, RTS(_)) { continue }
-            let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
+            let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
+            let old_rule_iter = old_rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             // let ll1 = rule_id.build_prs(test_id, start_nt, true);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();
             if ll1_maybe.is_none() { continue }
@@ -2153,10 +2151,7 @@ mod wrapper_source {
                     })
                 .join("\n");
             let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
-            builder.symbol_table.dump("builder's symbol table (1):");
-
             set_has_value(&mut builder, has_value.clone());
-
             if VERBOSE {
                 println!("before, NT with value: {}",
                          (0..builder.parsing_table.num_nt).into_iter().filter_map(|v|
@@ -2175,9 +2170,11 @@ mod wrapper_source {
                 if builder.parsing_table.parent[v].is_none() { Some((v as VarId, builder.gather_alts(v as VarId))) } else { None }
             ).collect::<BTreeMap<_, _>>();
             let test_name = format!("wrapper source for rule {tr_id} #{rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
-            let rule_name = match rule_id {
-                RTS(n) => format!("rts_{n}_{rule_iter}"),
-                PRS(n) => format!("prs_{n}_{rule_iter}"),
+            let old_test_name = format!("wrapper source for rule {rule_id:?} #{old_rule_iter}, start {}", Symbol::NT(start_nt).to_str(builder.get_symbol_table()));
+            let rule_name = format!("ruletest_{tr_id}_{rule_iter}");
+            let old_rule_name = match rule_id {
+                RTS(n) => format!("rts_{n}_{old_rule_iter}"),
+                PRS(n) => format!("prs_{n}_{old_rule_iter}"),
             };
             if !type_gen_exclusion.contains(rule_name.as_str()) {
                 builder.add_lib(&format!("super::super::wrapper_code::code_{rule_name}::*"));
@@ -2241,7 +2238,21 @@ mod wrapper_source {
                 println!("    // {0:-<60}\n    // [{test_name}]\n\n{result_src}\n    // [{test_name}]\n    // {:-<60}", "");
                 println!("}}\n");
             }
-            let expected_src = if test_source && !cfg!(miri) { get_tagged_source(WRAPPER_FILENAME, &test_name) } else { None };
+            if VERBOSE {
+                println!("tag:     [{test_name}]");
+                println!("old tag: [{old_test_name}]");
+                println!("code:     code_{rule_name}");
+                println!("old code: code_{old_rule_name}");
+            }
+            let expected_src = if test_source && !cfg!(miri) {
+                let src = get_tagged_source(WRAPPER_FILENAME, &test_name);
+                if (TEST_SOURCE || REPLACE_SOURCE) && src.is_none() {
+                    println!("## couldn't find the source code");
+                }
+                src
+            } else {
+                None
+            };
             let err_msg = format!("test {test_id} {rule_id:?} #{rule_iter} failed ");
             if TESTS_ALL {
                 if result_items != expected_items || result_alts != expected_alts || result_nt_type != nt_type {

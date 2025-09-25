@@ -31,7 +31,7 @@ pub(crate) mod rules_prs_34_1 {
     // [wrapper source for rule 13 #1, start s]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_prs_34_1::*;
+    use super::super::wrapper_code::code_ruletest_13_1::*;
 
     #[derive(Debug)]
     pub enum CtxS {
@@ -224,22 +224,22 @@ after,  NT with value: A, A_1
 */
 pub(crate) mod rules_rts_21_1 {
     // ------------------------------------------------------------
-    // [wrapper source for rule RTS(21) #1, start A]
+    // [wrapper source for rule 102 #1, start a]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_rts_21_1::*;
+    use super::super::wrapper_code::code_ruletest_102_1::*;
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a b* c`
+        /// `a -> A B* C`
         A { a: String, star: SynA1, c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `A`
+    // /// User-defined type for `a`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    /// Computed `b*` array in `A -> a  ►► b* ◄◄  c`
+    /// Computed `B*` array in `a -> A  ►► B* ◄◄  C`
     #[derive(Debug, PartialEq)]
     pub struct SynA1(pub Vec<String>);
 
@@ -284,17 +284,17 @@ pub(crate) mod rules_rts_21_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 => self.init_a1(),                        // A_1
+                        0 => self.listener.init_a(),                // a
+                        1 => self.init_a1(),                        // a_1
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // A -> a A_1 c
-                        1 => self.exit_a1(),                        // A_1 -> b A_1
-                        2 => {}                                     // A_1 -> ε
+                        0 => self.exit_a(),                         // a -> A a_1 C
+                        1 => self.exit_a1(),                        // a_1 -> B a_1
+                        2 => {}                                     // a_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -365,7 +365,7 @@ pub(crate) mod rules_rts_21_1 {
         }
     }
 
-    // [wrapper source for rule RTS(21) #1, start A]
+    // [wrapper source for rule 102 #1, start a]
     // ------------------------------------------------------------
 }
 
@@ -389,20 +389,20 @@ after,  NT with value: A
 */
 pub(crate) mod rules_rts_21_2 {
     // ------------------------------------------------------------
-    // [wrapper source for rule RTS(21) #2, start A]
+    // [wrapper source for rule 108 #1, start a]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_rts_21_2::*;
+    use super::super::wrapper_code::code_ruletest_108_1::*;
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a "b"* c`
+        /// `a -> A "B"* C`
         A { a: String, c: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `A`
+    // /// User-defined type for `a`
     // #[derive(Debug, PartialEq)] pub struct SynA();
 
     #[derive(Debug)]
@@ -444,17 +444,17 @@ pub(crate) mod rules_rts_21_2 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 => {}                                     // A_1
+                        0 => self.listener.init_a(),                // a
+                        1 => {}                                     // a_1
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // A -> a A_1 c
-                        1 |                                         // A_1 -> "b" A_1
-                        2 => {}                                     // A_1 -> ε
+                        0 => self.exit_a(),                         // a -> A a_1 C
+                        1 |                                         // a_1 -> "B" a_1
+                        2 => {}                                     // a_1 -> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -512,7 +512,7 @@ pub(crate) mod rules_rts_21_2 {
         }
     }
 
-    // [wrapper source for rule RTS(21) #2, start A]
+    // [wrapper source for rule 108 #1, start a]
     // ------------------------------------------------------------
 }
 
@@ -537,38 +537,38 @@ after,  NT with value: A, AIter1
 */
 pub(crate) mod rules_rts_22_1 {
     // ------------------------------------------------------------
-    // [wrapper source for rule RTS(22) #1, start A]
+    // [wrapper source for rule 200 #1, start a]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_rts_22_1::*;
+    use super::super::wrapper_code::code_ruletest_200_1::*;
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a (b <L>)* c`
-        A { a: String, star: SynAIter, c: String },
+        /// `a -> A (<L> B)* C`
+        A { a: String, star: SynI, c: String },
     }
     #[derive(Debug)]
-    pub enum CtxAiter1 {
-        /// `b <L>` iteration in `A -> a ( ►► b <L> ◄◄ )* c`
-        Aiter1 { star_it: SynAIter, b: String },
+    pub enum CtxI {
+        /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )* C`
+        I { star_it: SynI, b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `A`
+    // /// User-defined type for `a`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `b <L>` iteration in `A -> a ( ►► b <L> ◄◄ )* c`
-    // #[derive(Debug, PartialEq)] pub struct SynAIter();
+    // /// User-defined type for `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )* C`
+    // #[derive(Debug, PartialEq)] pub struct SynI();
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), Aiter1(SynAIter) }
+    enum SynValue { A(SynA), I(SynI) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
             if let SynValue::A(val) = self { val } else { panic!() }
         }
-        fn get_aiter1(self) -> SynAIter {
-            if let SynValue::Aiter1(val) = self { val } else { panic!() }
+        fn get_i(self) -> SynI {
+            if let SynValue::I(val) = self { val } else { panic!() }
         }
     }
 
@@ -580,9 +580,9 @@ pub(crate) mod rules_rts_22_1 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_aiter1(&mut self) -> SynAIter;
-        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
-        fn exitloop_aiter1(&mut self, _star_it: &mut SynAIter) {}
+        fn init_i(&mut self) -> SynI;
+        fn exit_i(&mut self, _ctx: CtxI) -> SynI;
+        fn exitloop_i(&mut self, _star_it: &mut SynI) {}
     }
 
     pub struct Wrapper<T> {
@@ -604,17 +604,17 @@ pub(crate) mod rules_rts_22_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 => self.init_aiter1(),                    // AIter1
+                        0 => self.listener.init_a(),                // a
+                        1 => self.init_i(),                         // i
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 => self.exit_aiter1(),                    // AIter1 -> <L> b AIter1
-                        2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
+                        0 => self.exit_a(),                         // a -> A i C
+                        1 => self.exit_i(),                         // i -> <L> B i
+                        2 => self.exitloop_i(),                     // i -> <L> ε
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -666,31 +666,31 @@ pub(crate) mod rules_rts_22_1 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_aiter1();
+            let star = self.stack.pop().unwrap().get_i();
             let a = self.stack_t.pop().unwrap();
             let val = self.listener.exit_a(CtxA::A { a, star, c });
             self.stack.push(SynValue::A(val));
         }
 
-        fn init_aiter1(&mut self) {
-            let val = self.listener.init_aiter1();
-            self.stack.push(SynValue::Aiter1(val));
+        fn init_i(&mut self) {
+            let val = self.listener.init_i();
+            self.stack.push(SynValue::I(val));
         }
 
-        fn exit_aiter1(&mut self) {
+        fn exit_i(&mut self) {
             let b = self.stack_t.pop().unwrap();
-            let star_it = self.stack.pop().unwrap().get_aiter1();
-            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { star_it, b });
-            self.stack.push(SynValue::Aiter1(val));
+            let star_it = self.stack.pop().unwrap().get_i();
+            let val = self.listener.exit_i(CtxI::I { star_it, b });
+            self.stack.push(SynValue::I(val));
         }
 
-        fn exitloop_aiter1(&mut self) {
-            let SynValue::Aiter1(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_aiter1(star_it);
+        fn exitloop_i(&mut self) {
+            let SynValue::I(star_it) = self.stack.last_mut().unwrap() else { panic!() };
+            self.listener.exitloop_i(star_it);
         }
     }
 
-    // [wrapper source for rule RTS(22) #1, start A]
+    // [wrapper source for rule 200 #1, start a]
     // ------------------------------------------------------------
 
     #[test]
@@ -719,25 +719,25 @@ after,  NT with value: A
 */
 pub(crate) mod rules_rts_22_2 {
     // ------------------------------------------------------------
-    // [wrapper source for rule RTS(22) #2, start A]
+    // [wrapper source for rule 200 #2, start a]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_rts_22_2::*;
+    use super::super::wrapper_code::code_ruletest_200_2::*;
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a ("b" <L>)* c`
+        /// `a -> A (<L> B)* C`
         A { a: String, c: String },
     }
     #[derive(Debug)]
-    pub enum CtxAiter1 {
-        /// `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
-        Aiter1,
+    pub enum CtxI {
+        /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )* C`
+        I { b: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `A`
+    // /// User-defined type for `a`
     // #[derive(Debug, PartialEq)] pub struct SynA();
 
     #[derive(Debug)]
@@ -758,8 +758,8 @@ pub(crate) mod rules_rts_22_2 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_aiter1(&mut self) {}
-        fn exit_aiter1(&mut self, _ctx: CtxAiter1) {}
+        fn init_i(&mut self) {}
+        fn exit_i(&mut self, _ctx: CtxI) {}
     }
 
     pub struct Wrapper<T> {
@@ -781,17 +781,17 @@ pub(crate) mod rules_rts_22_2 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 => self.listener.init_aiter1(),           // AIter1
+                        0 => self.listener.init_a(),                // a
+                        1 => self.listener.init_i(),                // i
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 => self.exit_aiter1(),                    // AIter1 -> <L> "b" AIter1
-                        2 => {}                                     // AIter1 -> <L> ε (not used)
+                        0 => self.exit_a(),                         // a -> A i C
+                        1 => self.exit_i(),                         // i -> <L> B i
+                        2 => {}                                     // i -> <L> ε (not used)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -848,68 +848,46 @@ pub(crate) mod rules_rts_22_2 {
             self.stack.push(SynValue::A(val));
         }
 
-        fn exit_aiter1(&mut self) {
-            self.listener.exit_aiter1(CtxAiter1::Aiter1);
+        fn exit_i(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            self.listener.exit_i(CtxI::I { b });
         }
     }
 
-    // [wrapper source for rule RTS(22) #2, start A]
+    // [wrapper source for rule 200 #2, start a]
     // ------------------------------------------------------------
 }
 
-// ================================================================================
-// Test 5: rules RTS(22) #3, start 0:
-/*
-before, NT with value: A, AIter1
-after,  NT with value: A, AIter1
-            // NT flags:
-            //  - A: parent_+_or_* (2048)
-            //  - AIter1: child_+_or_* | L-form (129)
-            // parents:
-            //  - AIter1 -> A
-            (RTS(22), 0, btreemap![
-                0 => "SynA".to_string(),
-                1 => "SynAIter".to_string(),
-            ], btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
-                1 => symbols![nt 1],                    //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     | AIter1
-                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
-            ], Set(symbols![nt 0, nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
-*/
-pub(crate) mod rules_rts_22_3 {
+pub(crate) mod rules_ruletest_210_1 {
     // ------------------------------------------------------------
-    // [wrapper source for rule RTS(22) #3, start A]
+    // [wrapper source for rule 210 #1, start a]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_rts_22_3::*;
+    use super::super::wrapper_code::code_ruletest_210_1::*;
 
     #[derive(Debug)]
     pub enum CtxA {
-        /// `A -> a ("b" <L>)* c`
-        A { a: String, star: SynAIter, c: String },
+        /// `a -> A (<L> "B")* C`
+        A { a: String, c: String },
     }
     #[derive(Debug)]
-    pub enum CtxAiter1 {
-        /// `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
-        Aiter1 { star_it: SynAIter },
+    pub enum CtxI {
+        /// `<L> "B"` iteration in `a -> A ( ►► <L> "B" ◄◄ )* C`
+        I,
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `A`
+    // /// User-defined type for `a`
     // #[derive(Debug, PartialEq)] pub struct SynA();
-    // /// User-defined type for `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
-    // #[derive(Debug, PartialEq)] pub struct SynAIter();
 
     #[derive(Debug)]
-    enum SynValue { A(SynA), Aiter1(SynAIter) }
+    enum SynValue { A(SynA) }
 
     impl SynValue {
         fn get_a(self) -> SynA {
-            if let SynValue::A(val) = self { val } else { panic!() }
-        }
-        fn get_aiter1(self) -> SynAIter {
-            if let SynValue::Aiter1(val) = self { val } else { panic!() }
+            let SynValue::A(val) = self;
+            val
         }
     }
 
@@ -921,9 +899,8 @@ pub(crate) mod rules_rts_22_3 {
         fn exit(&mut self, _a: SynA) {}
         fn init_a(&mut self) {}
         fn exit_a(&mut self, _ctx: CtxA) -> SynA;
-        fn init_aiter1(&mut self) -> SynAIter;
-        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
-        fn exitloop_aiter1(&mut self, _star_it: &mut SynAIter) {}
+        fn init_i(&mut self) {}
+        fn exit_i(&mut self, _ctx: CtxI) {}
     }
 
     pub struct Wrapper<T> {
@@ -945,17 +922,17 @@ pub(crate) mod rules_rts_22_3 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 => self.init_aiter1(),                    // AIter1
+                        0 => self.listener.init_a(),                // a
+                        1 => self.listener.init_i(),                // i
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 => self.exit_aiter1(),                    // AIter1 -> <L> "b" AIter1
-                        2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
+                        0 => self.exit_a(),                         // a -> A i C
+                        1 => self.exit_i(),                         // i -> <L> "B" i
+                        2 => {}                                     // i -> <L> ε (not used)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -1007,199 +984,17 @@ pub(crate) mod rules_rts_22_3 {
 
         fn exit_a(&mut self) {
             let c = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_aiter1();
             let a = self.stack_t.pop().unwrap();
-            let val = self.listener.exit_a(CtxA::A { a, star, c });
+            let val = self.listener.exit_a(CtxA::A { a, c });
             self.stack.push(SynValue::A(val));
         }
 
-        fn init_aiter1(&mut self) {
-            let val = self.listener.init_aiter1();
-            self.stack.push(SynValue::Aiter1(val));
-        }
-
-        fn exit_aiter1(&mut self) {
-            let star_it = self.stack.pop().unwrap().get_aiter1();
-            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { star_it });
-            self.stack.push(SynValue::Aiter1(val));
-        }
-
-        fn exitloop_aiter1(&mut self) {
-            let SynValue::Aiter1(star_it) = self.stack.last_mut().unwrap() else { panic!() };
-            self.listener.exitloop_aiter1(star_it);
+        fn exit_i(&mut self) {
+            self.listener.exit_i(CtxI::I);
         }
     }
 
-    // [wrapper source for rule RTS(22) #3, start A]
-    // ------------------------------------------------------------
-}
-
-// ================================================================================
-// Test 6: rules RTS(22) #4, start 0:
-/*
-before, NT with value: AIter1
-after,  NT with value: AIter1
-            // NT flags:
-            //  - A: parent_+_or_* (2048)
-            //  - AIter1: child_+_or_* | L-form (129)
-            // parents:
-            //  - AIter1 -> A
-            (RTS(22), 0, btreemap![
-                1 => "SynAIter".to_string(),
-            ], btreemap![
-                0 => symbols![t 0, nt 1, t 2],          //  0: A -> a AIter1 c    | ◄0 c! ►AIter1 a! | a AIter1 c
-                1 => symbols![nt 1],                    //  1: AIter1 -> b AIter1 | ●AIter1 ◄1 b     | AIter1
-                2 => symbols![nt 1],                    //  2: AIter1 -> ε        | ◄2               | AIter1
-            ], Set(symbols![nt 1, t 0, t 2]), btreemap![0 => vec![0]]),
-*/
-pub(crate) mod rules_rts_22_4 {
-    // ------------------------------------------------------------
-    // [wrapper source for rule RTS(22) #4, start A]
-
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_rts_22_4::*;
-
-    #[derive(Debug)]
-    pub enum CtxA {
-        /// `A -> a ("b" <L>)* c`
-        A { a: String, star: SynAIter, c: String },
-    }
-    #[derive(Debug)]
-    pub enum CtxAiter1 {
-        /// `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
-        Aiter1 { star_it: SynAIter },
-    }
-
-    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
-
-    // /// User-defined type for `"b" <L>` iteration in `A -> a ( ►► "b" <L> ◄◄ )* c`
-    // #[derive(Debug, PartialEq)] pub struct SynAIter();
-    /// Top non-terminal A (has no value)
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-
-    #[derive(Debug)]
-    enum SynValue { Aiter1(SynAIter) }
-
-    impl SynValue {
-        fn get_aiter1(self) -> SynAIter {
-            let SynValue::Aiter1(val) = self;
-            val
-        }
-    }
-
-    pub trait TestListener {
-        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
-        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
-        fn check_abort_request(&self) -> bool { false }
-        fn get_mut_log(&mut self) -> &mut impl Logger;
-        fn exit(&mut self) {}
-        fn init_a(&mut self) {}
-        fn exit_a(&mut self, _ctx: CtxA) {}
-        fn init_aiter1(&mut self) -> SynAIter;
-        fn exit_aiter1(&mut self, _ctx: CtxAiter1) -> SynAIter;
-        fn exitloop_aiter1(&mut self, _star_it: &mut SynAIter) {}
-    }
-
-    pub struct Wrapper<T> {
-        verbose: bool,
-        listener: T,
-        stack: Vec<SynValue>,
-        max_stack: usize,
-        stack_t: Vec<String>,
-    }
-
-    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
-        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
-            if self.verbose {
-                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
-            }
-            if let Some(mut t_data) = t_data {
-                self.stack_t.append(&mut t_data);
-            }
-            match call {
-                Call::Enter => {
-                    match nt {
-                        0 => self.listener.init_a(),                // A
-                        1 => self.init_aiter1(),                    // AIter1
-                        _ => panic!("unexpected enter nonterminal id: {nt}")
-                    }
-                }
-                Call::Loop => {}
-                Call::Exit => {
-                    match alt_id {
-                        0 => self.exit_a(),                         // A -> a AIter1 c
-                        1 => self.exit_aiter1(),                    // AIter1 -> <L> "b" AIter1
-                        2 => self.exitloop_aiter1(),                // AIter1 -> <L> ε
-                        _ => panic!("unexpected exit alternative id: {alt_id}")
-                    }
-                }
-                Call::End => {
-                    self.listener.exit();
-                }
-            }
-            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
-            if self.verbose {
-                println!("> stack_t:   {}", self.stack_t.join(", "));
-                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
-            }
-        }
-
-        fn check_abort_request(&self) -> bool {
-            self.listener.check_abort_request()
-        }
-
-        fn get_mut_log(&mut self) -> &mut impl Logger {
-            self.listener.get_mut_log()
-        }
-    }
-
-    impl<T: TestListener> Wrapper<T> {
-        pub fn new(listener: T, verbose: bool) -> Self {
-            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
-        }
-
-        pub fn get_listener(&self) -> &T {
-            &self.listener
-        }
-
-        pub fn get_listener_mut(&mut self) -> &mut T {
-            &mut self.listener
-        }
-
-        pub fn give_listener(self) -> T {
-            self.listener
-        }
-
-        pub fn set_verbose(&mut self, verbose: bool) {
-            self.verbose = verbose;
-        }
-
-        fn exit_a(&mut self) {
-            let c = self.stack_t.pop().unwrap();
-            let star = self.stack.pop().unwrap().get_aiter1();
-            let a = self.stack_t.pop().unwrap();
-            self.listener.exit_a(CtxA::A { a, star, c });
-        }
-
-        fn init_aiter1(&mut self) {
-            let val = self.listener.init_aiter1();
-            self.stack.push(SynValue::Aiter1(val));
-        }
-
-        fn exit_aiter1(&mut self) {
-            let star_it = self.stack.pop().unwrap().get_aiter1();
-            let val = self.listener.exit_aiter1(CtxAiter1::Aiter1 { star_it });
-            self.stack.push(SynValue::Aiter1(val));
-        }
-
-        fn exitloop_aiter1(&mut self) {
-            let SynValue::Aiter1(star_it) = self.stack.last_mut().unwrap();
-            self.listener.exitloop_aiter1(star_it);
-        }
-    }
-
-    // [wrapper source for rule RTS(22) #4, start A]
+    // [wrapper source for rule 210 #1, start a]
     // ------------------------------------------------------------
 }
 

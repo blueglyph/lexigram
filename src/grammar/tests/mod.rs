@@ -71,14 +71,15 @@ impl TestRules {
             105 => vec![r#"a -> (A B)+;"#],
             106 => vec![r#"a -> (A (B ",")* ";")*;"#],
             107 => vec![r#"a -> (A (B ",")+ ";")+;"#],
+            108 => vec![r#"a -> A "B"* C;"#],
             // TODO (not yet fully supported in parsergen)
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
 
             // 2xx = +* repetitions: with <L>
             // -----------------------------------------------------------------------------
-            200 => vec![r#"a -> (<L=i> A)*;"#],
-            201 => vec![r#"a -> (<L=i> A)+;"#],
+            200 => vec![r#"a -> A (<L=i> B)* C;"#],
+            201 => vec![r#"a -> A (<L=i> B)+ C;"#],
             202 => vec![r#"a -> (<L=i> A B)*;"#],
             203 => vec![r#"a -> (<L=i> A B)+;"#],
             204 => vec![r#"a -> (<L=i> A (B ",")* ";")*;"#],
@@ -87,6 +88,7 @@ impl TestRules {
             207 => vec![r#"a -> (A (<L=j> B ",")+ ";")+;"#],
             208 => vec![r#"a -> (<L=i> A (<L=j> B ",")* ";")*;"#],
             209 => vec![r#"a -> (<L=i> A (<L=j> B ",")+ ";")+;"#],
+            210 => vec![r#"a -> A (<L=i> "B")* C;"#],
             // TODO (not yet fully supported in parsergen)
             250 => vec![r#"a -> (<L=i> A | B)*;"#],
             251 => vec![r#"a -> (<L=i> A | B)+;"#],

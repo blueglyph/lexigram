@@ -44,9 +44,9 @@ fn ruletreeset_to_str() {
         (31, 0, None, None, r#"A B | C ε | ε | D | ε | <P> ε | <R> <P>"#),
         (32, 0, None, None, r#"<P> ε | <R> <P>"#),
         (35, 0, None, None, r#"ε"#),
-        (200, 0, None, None, "(<L=i> A)*"),
-        (200, 0, None, Some(2), "( ►► <L=i> A ◄◄ )*"),
-        (200, 0, Some(2), None, "<L=i> A"),
+        (200, 0, None, None, "A (<L=i> B)* C"),
+        (200, 0, None, Some(3), "A ( ►► <L=i> B ◄◄ )* C"),
+        (200, 0, Some(3), None, "<L=i> B"),
         (207, 0, None, None, r#"(A (<L=j> B ",")+ ";")+"#),
         (600, 0, None, None, r#"e "+" e | Num"#),
     ];
@@ -227,12 +227,12 @@ fn rts_normalize() {
         (151, //   a -> (A | B)+
          btreemap![0 => r#"a -> a_1"#, 1 => r#"a_1 -> A a_1 | A | B a_1 | B"#],
          btreemap![0 => r#"a -> (A | B)+"#]),
-        (200, //   a -> (<L=i> A)*
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L=i> A i | ε"#],
-         btreemap![0 => r#"a -> (<L=i> A)*"#]),
-        (201, //   a -> (<L=i> A)+
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L=i> A i | <L=i> A"#],
-         btreemap![0 => r#"a -> (<L=i> A)+"#]),
+        (200, //   a -> A (<L=i> B)* C
+         btreemap![0 => r#"a -> A i C"#, 1 => r#"i -> <L=i> B i | ε"#],
+         btreemap![0 => r#"a -> A (<L=i> B)* C"#]),
+        (201, //   a -> A (<L=i> B)+ C
+         btreemap![0 => r#"a -> A i C"#, 1 => r#"i -> <L=i> B i | <L=i> B"#],
+         btreemap![0 => r#"a -> A (<L=i> B)+ C"#]),
         (202, //   a -> (<L=i> A B)*
          btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L=i> A B i | ε"#],
          btreemap![0 => r#"a -> (<L=i> A B)*"#]),

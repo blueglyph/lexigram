@@ -1963,7 +1963,7 @@ pub fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool) {
                 }
                 cols.extend([
                     format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
-                    format!("| {}", ops.into_iter().map(|s| s.to_str(tbl)).join(" ")),
+                    format!("| {}", ops.into_iter().map(|s| s.to_str_quote(tbl)).join(" ")),
                     format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
                 ]);
                 Some(cols)
