@@ -104,14 +104,6 @@ impl SymbolTable {
         self.t.len()
     }
 
-    pub fn get_t_name(&self, token: TokenId) -> String {
-        if token as usize >= self.t.len() {
-            format!("??T({token})")
-        } else {
-            self.t[token as usize].0.clone()
-        }
-    }
-
     pub fn set_t_value(&mut self, token: TokenId, name_maybe: Option<String>) {
         self.t[token as usize].1 = name_maybe
     }
@@ -238,12 +230,12 @@ impl SymbolTable {
 
 impl SymInfoTable for SymbolTable {
     fn is_token_data(&self, token: TokenId) -> bool {
-        self.t[token as usize].1.is_none()
+        self.t.get(token as usize).map(|t| t.1.is_none()).unwrap_or(false)
     }
 
     fn is_symbol_t_data(&self, symbol: &Symbol) -> bool {
         if let Symbol::T(token) = symbol {
-            self.t[*token as usize].1.is_none()
+            self.t.get(*token as usize).map(|t| t.1.is_none()).unwrap_or(false)
         } else {
             false
         }
@@ -252,7 +244,7 @@ impl SymInfoTable for SymbolTable {
     fn is_symbol_t_fixed(&self, symbol: &Symbol) -> bool {
         if let Symbol::T(token) = symbol {
             if (*token as usize) < self.t.len() {
-                self.t[*token as usize].1.is_some()
+                self.t.get(*token as usize).map(|t| t.1.is_some()).unwrap_or(false)
             } else {
                 false
             }
@@ -269,6 +261,14 @@ impl SymInfoTable for SymbolTable {
             }
             TokenId::MAX => "<bad character>".to_string(),
             _ => format!("T({token}?)")
+        }
+    }
+
+    fn get_t_name(&self, token: TokenId) -> String {
+        if token as usize >= self.t.len() {
+            format!("T({token}?)")
+        } else {
+            self.t[token as usize].0.clone()
         }
     }
 

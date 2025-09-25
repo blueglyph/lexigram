@@ -62,7 +62,7 @@ impl OpCode {
         if let Some(t) = symbol_table {
             match self {
                 OpCode::Empty => "ε".to_string(),
-                OpCode::T(v) => format!("{}{}", Symbol::T(*v).to_str_quote(symbol_table) /*t.get_t_str(*v)*/, if t.is_token_data(*v) { "!" } else { "" }),
+                OpCode::T(v) => format!("{}{}", t.get_t_str(*v), if t.is_token_data(*v) { "!" } else { "" }),
                 OpCode::NT(v) => format!("►{}", t.get_nt_name(*v)),
                 OpCode::Loop(v) => format!("●{}", t.get_nt_name(*v)),
                 OpCode::Exit(f) => format!("◄{f}"),
@@ -73,11 +73,24 @@ impl OpCode {
         }
     }
 
+    pub fn to_str_quote<T: SymInfoTable>(&self, symbol_table: Option<&T>) -> String {
+        if let Some(t) = symbol_table {
+            match self {
+                OpCode::T(v) => format!("{}{}", Symbol::T(*v).to_str_quote(symbol_table), if t.is_token_data(*v) { "!" } else { "" }),
+                _ => self.to_str(symbol_table)
+            }
+        } else {
+            self.to_string()
+        }
+    }
+
     pub fn to_str_ext(&self, symbol_table: Option<&SymbolTable>, ext: &String) -> String {
         let mut result = self.to_str(symbol_table);
-        if let Some(_) = symbol_table {
-            if let OpCode::T(_) = self {
-                result.push_str(&format!("({ext})"));
+        if let Some(t) = symbol_table {
+            if let OpCode::T(tok) = self {
+                if t.is_symbol_t_data(&Symbol::T(*tok)) {
+                    result.push_str(&format!("({ext})"));
+                }
             }
         }
         result

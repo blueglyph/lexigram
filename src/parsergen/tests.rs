@@ -223,7 +223,7 @@ mod gen_integration {
     }
 }
 
-mod opcodes {
+pub mod opcodes {
     use crate::log::BuildFrom;
     use crate::grammar::{Symbol, VarId};
     use crate::grammar::tests::old_build_rts_prs::T;
@@ -242,24 +242,13 @@ mod opcodes {
         ).collect()
     }
 
-    pub(crate) fn opcode_to_macro(s: &OpCode) -> String {
-        match s {
-            OpCode::Empty => "e".to_string(),
-            OpCode::T(t) => format!("t {t}"),
-            OpCode::NT(v) => format!("nt {v}"),
-            OpCode::Loop(v) => format!("loop {v}"),
-            OpCode::Exit(v) => format!("exit {v}"),
-            OpCode::End => "end".to_string(),
-        }
-    }
-
     fn print_opcodes(parser: &Parser) {
         let alts = get_alts_str(&parser);
         if !alts.is_empty() {
             let indent = 16;
             let opcodes = alts.into_iter().zip(parser.get_opcodes()).map(|(s, ops)|
                 vec![
-                    format!("strip![{}],", ops.iter().map(|o| opcode_to_macro(o)).join(", ")),
+                    format!("strip![{}],", ops.iter().map(|o| o.to_macro_item()).join(", ")),
                     format!("// {s}"),
                     format!("- {}", ops.into_iter().map(|s| s.to_str(parser.get_symbol_table())).join(" ")),
                 ]

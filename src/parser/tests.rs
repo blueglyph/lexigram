@@ -29,6 +29,19 @@ impl<'a> Parser<'a> {
     }
 }
 
+impl OpCode {
+    pub fn to_macro_item(&self) -> String {
+        match self {
+            OpCode::Empty => "e".to_string(),
+            OpCode::T(t) => format!("t {t}"),
+            OpCode::NT(v) => format!("nt {v}"),
+            OpCode::Loop(v) => format!("loop {v}"),
+            OpCode::Exit(v) => format!("exit {v}"),
+            OpCode::End => "end".to_string(),
+        }
+    }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Macros
 
@@ -258,7 +271,7 @@ fn parser_parse_stream_id() {
             ("( 1 + 2 ) * ( 3 + - abs i * - 5 + 6 ) ^ 2", None)
         ]),
     ];
-    const VERBOSE: bool = false;
+    const VERBOSE: bool = true;
     for (test_id, (ll_id, start, id_id, num_id, sequences)) in tests.into_iter().enumerate() {
         if VERBOSE { println!("{:=<80}\ntest {test_id} with parser {ll_id:?}/{start}", ""); }
         let ll1 = ll_id.build_prs(test_id, start, false);

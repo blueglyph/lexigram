@@ -26,6 +26,7 @@ pub use name_fixer::{NameFixer, NameTransformer};
 mod symbol_table;
 mod fixed_sym_table;
 pub mod rtsgen;
+mod tests;
 
 pub use symbol_table::SymbolTable;
 pub use fixed_sym_table::{FixedSymTable, SymInfoTable};
@@ -158,15 +159,15 @@ pub(crate) fn vaddi<I, T>(v: &mut Vec<Vec<T>>, iter_item: I) -> usize
 /// The final width of each column is the 1 + maximum number of characters - not bytes - of the strings
 /// representing that column in all the lines (the +1 makes sure columns are separated by at least one
 /// space). The last column is left as-is; no spaces are added to adjust its width.
-pub fn columns_to_str(lines: Vec<Vec<String>>, min_widths: Option<Vec<usize>>) -> Vec<String> {
-    let min_widths = min_widths.unwrap_or(vec![0; lines.get(0).map(|v| v.len()).unwrap_or(0)]);
+pub fn columns_to_str(cols: Vec<Vec<String>>, min_widths: Option<Vec<usize>>) -> Vec<String> {
+    let min_widths = min_widths.unwrap_or(vec![0; cols.get(0).map(|v| v.len()).unwrap_or(0)]);
     let ncol = min_widths.len();
-    let mut width = lines.iter().fold(min_widths, |acc, s| {
+    let mut width = cols.iter().fold(min_widths, |acc, s| {
         assert_eq!(s.len(), ncol, "number of columns is not consistently {ncol}");
         acc.into_iter().zip(s).map(|(a, s)| a.max(s.charlen() + 1)).collect()
     });
     if let Some(x) = width.last_mut() { *x = 0 };
-    lines.into_iter().map(|v| v.into_iter().zip(&width).map(|(mut s, w)| {
+    cols.into_iter().map(|v| v.into_iter().zip(&width).map(|(mut s, w)| {
         for _ in 0..w.saturating_sub(s.charlen()) { s.push(' ') }
         s
     }).collect::<String>()).collect()

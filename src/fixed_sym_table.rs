@@ -58,14 +58,6 @@ impl FixedSymTable {
         self.t.len()
     }
 
-    pub fn get_t_name(&self, token: TokenId) -> String {
-        if token as usize >= self.t.len() {
-            format!("??T({token})")
-        } else {
-            self.t[token as usize].0.clone()
-        }
-    }
-
     // -------------------------------------------------------------------------
 
     pub fn get_nonterminals(&self) -> impl Iterator<Item = &String> {
@@ -112,9 +104,9 @@ pub trait SymInfoTable {
 
     fn is_symbol_t_fixed(&self, symbol: &Symbol) -> bool;
 
-    // fn get_t_name(&self, token: TokenId) -> String;
-
     fn get_t_str(&self, token: TokenId) -> String;
+
+    fn get_t_name(&self, token: TokenId) -> String;
 
     fn get_nt_name(&self, var: VarId) -> String;
 
@@ -136,7 +128,7 @@ impl SymInfoTable for FixedSymTable {
 
     fn is_symbol_t_data(&self, symbol: &Symbol) -> bool {
         if let Symbol::T(token) = symbol {
-            self.t[*token as usize].1.is_none()
+            self.t.get(*token as usize).map(|t| t.1.is_none()).unwrap_or(false)
         } else {
             false
         }
@@ -144,7 +136,7 @@ impl SymInfoTable for FixedSymTable {
 
     fn is_symbol_t_fixed(&self, symbol: &Symbol) -> bool {
         if let Symbol::T(token) = symbol {
-            self.t[*token as usize].1.is_some()
+            self.t.get(*token as usize).map(|t| t.1.is_some()).unwrap_or(false)
         } else {
             false
         }
@@ -158,6 +150,14 @@ impl SymInfoTable for FixedSymTable {
             }
             TokenId::MAX => "<bad character>".to_string(),
             _ => format!("T({token}?)")
+        }
+    }
+
+    fn get_t_name(&self, token: TokenId) -> String {
+        if token as usize >= self.t.len() {
+            format!("T({token}?)")
+        } else {
+            self.t[token as usize].0.clone()
         }
     }
 
@@ -185,7 +185,7 @@ impl SymInfoTable for FixedSymTable {
     fn get_name_quote(&self, symbol: &Symbol) -> String {
         match symbol {
             Symbol::Empty | Symbol::End => symbol.to_string(),
-            Symbol::T(token) => if self.is_symbol_t_fixed(symbol) { format!("\"{}\"", self.get_t_str(*token)) } else { self.get_t_str(*token) },
+            Symbol::T(token) => if self.is_symbol_t_fixed(symbol) { format!("{:?}", self.get_t_str(*token)) } else { self.get_t_str(*token) },
             Symbol::NT(var) => self.get_nt_name(*var),
         }
     }

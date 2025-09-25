@@ -7,7 +7,7 @@ use crate::grammar::{Alternative, Symbol, VarId, AltId};
 use crate::lexer::{CaretCol, CaretLine};
 use crate::log::Logger;
 
-mod tests;
+pub(crate) mod tests;
 
 // ---------------------------------------------------------------------------------------------
 

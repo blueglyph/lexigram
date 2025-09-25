@@ -332,31 +332,6 @@ fn prod_macros() {
 }
 
 #[test]
-fn symbol_to_str() {
-    let mut symtable = SymbolTable::new();
-    symtable.extend_terminals([
-        ("Arrow".to_string(), Some("->".to_string())),
-        ("Colon".to_string(), Some(":".to_string())),
-        ("Id".to_string(), None),
-    ]);
-    symtable.extend_nonterminals((0_u8..26).map(|i| format!("{}", char::from(i + 65))));
-    let tests = vec![
-        (sym!(t 0), vec!["->", ":0"]),
-        (sym!(t 1), vec![":", ":1"]),
-        (sym!(t 2), vec!["Id", ":2"]),
-        (sym!(nt 0), vec!["A", "0"]),
-        (sym!(e), vec!["ε", "ε"]),
-    ];
-    for (symbol, expected) in tests {
-        assert_eq!(symbol.to_str(Some(&symtable)), expected[0], "test on {symbol} has failed");
-        assert_eq!(symbol.to_str::<SymbolTable>(None), expected[1], "test on {symbol} has failed");
-        let node = GrNode::Symbol(symbol);
-        assert_eq!(node.to_str(Some(&symtable)), expected[0], "test on {symbol} has failed");
-        assert_eq!(node.to_str(None), expected[1], "test on {symbol} has failed");
-    }
-}
-
-#[test]
 fn dup() {
     let mut rules = RuleTreeSet::<General>::new();
     let tree = rules.get_tree_mut(0);
