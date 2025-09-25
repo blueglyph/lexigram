@@ -13,6 +13,7 @@ use crate::{alt, btreemap, gnode, hashmap, prule, sym, LL1};
 use crate::log::TryBuildFrom;
 use crate::log::BuildInto;
 use crate::rtsgen::RtsGen;
+use crate::columns_to_str;
 
 // ---------------------------------------------------------------------------------------------
 
@@ -25,7 +26,7 @@ fn is_grtree_empty_symbol(rule: &GrTree) -> bool {
 // ---------------------------------------------------------------------------------------------
 
 #[derive(Clone, Copy, Debug)]
-pub struct TestRules(u32);
+pub struct TestRules(pub u32);
 
 #[allow(unused)]
 impl TestRules {
@@ -48,6 +49,8 @@ impl TestRules {
                        r#"b -> B;"#],
             12 => vec![r#"a -> A;"#,
                        r#"b -> B;"#],   // b should be dropped
+            13 => vec![r#"s -> Id "=" val | "exit" | "return" val;"#,
+                       r#"val -> Id | Num;"#],
             // empty
             30 => vec![r#"a -> A B ε C ε;"#],
             31 => vec![r#"a -> A B | C ε | ε | D | ε | <P> ε | <R> <P>;"#],

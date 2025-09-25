@@ -62,7 +62,7 @@ impl OpCode {
         if let Some(t) = symbol_table {
             match self {
                 OpCode::Empty => "ε".to_string(),
-                OpCode::T(v) => format!("{}{}", t.get_t_str(*v), if t.is_token_data(*v) { "!" } else { "" }),
+                OpCode::T(v) => format!("{}{}", Symbol::T(*v).to_str_quote(symbol_table) /*t.get_t_str(*v)*/, if t.is_token_data(*v) { "!" } else { "" }),
                 OpCode::NT(v) => format!("►{}", t.get_nt_name(*v)),
                 OpCode::Loop(v) => format!("●{}", t.get_nt_name(*v)),
                 OpCode::Exit(f) => format!("◄{f}"),
@@ -1949,7 +1949,7 @@ pub fn print_items(builder: &ParserGen, indent: usize, show_symbols: bool) {
                     cols.push(format!("{a_id} => symbols![{}],", it.iter().map(|s| s.to_macro_item()).join(", ")));
                 }
                 cols.extend([
-                    format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str(tbl)).join(" ")),
+                    format!("// {a_id:2}: {} -> {}", Symbol::NT(*v).to_str(tbl), alt.iter().map(|s| s.to_str_quote(tbl)).join(" ")),
                     format!("| {}", ops.into_iter().map(|s| s.to_str(tbl)).join(" ")),
                     format!("| {}", it.iter().map(|s| s.to_str(tbl)).join(" ")),
                 ]);
@@ -1973,6 +1973,10 @@ pub fn print_flags(builder: &ParserGen, indent: usize) {
     let parents = builder.get_parsing_table().parent.iter().index().filter_map(|(c, &par)|
         if let Some(p) = par { Some(format!("{prefix}  - {} -> {}", Symbol::NT(c).to_str(tbl), Symbol::NT(p).to_str(tbl))) } else { None }
     ).join("\n");
-    println!("{prefix} NT flags:\n{}", if nt_flags.is_empty() { format!("{prefix}  - (nothing)") } else { nt_flags });
-    println!("{prefix} parents:\n{}", if parents.is_empty() { format!("{prefix}  - (nothing)") } else { parents });
+    if !nt_flags.is_empty() {
+        println!("{prefix} NT flags:\n{nt_flags}");
+    }
+    if !parents.is_empty() {
+        println!("{prefix} parents:\n{parents}");
+    }
 }

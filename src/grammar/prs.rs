@@ -21,10 +21,10 @@ pub fn alt_to_rule_str<T: SymInfoTable>(nt: VarId, f: &Vec<Symbol>, symbol_table
 /// created with [`Alternative::new`].
 #[derive(Clone, Eq, PartialOrd, Ord, Debug)]
 pub struct Alternative {
-    v: Vec<Symbol>,
+    pub(crate) v: Vec<Symbol>,
     flags: u32,          // only for GREEDY, L_FORM and R_ASSOC
     ambig_alt_id: Option<AltId>,
-    origin: Option<(VarId, usize)>,
+    pub(crate) origin: Option<(VarId, usize)>,
 }
 
 impl Alternative {

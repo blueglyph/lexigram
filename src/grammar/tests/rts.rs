@@ -263,7 +263,7 @@ fn rts_normalize() {
         (251, //   a -> (<L=i> A | B)+
          btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L=i> A i | <L=i> A | B i | B"#],
          btreemap![0 => r#"a -> (<L=i> A | B)+"#]),
-    ];
+     ];
     const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
     const SHOW_RESULTS_ONLY: bool = false;

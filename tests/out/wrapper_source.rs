@@ -28,33 +28,33 @@ after,  NT with value: S, VAL
 */
 pub(crate) mod rules_prs_34_1 {
     // ------------------------------------------------------------
-    // [wrapper source for rule PRS(34) #1, start S]
+    // [wrapper source for rule 13 #1, start s]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
     use super::super::wrapper_code::code_prs_34_1::*;
 
     #[derive(Debug)]
     pub enum CtxS {
-        /// `S -> id = VAL`
+        /// `s -> Id "=" val`
         S1 { id: String, val: SynVal },
-        /// `S -> exit`
+        /// `s -> "exit"`
         S2,
-        /// `S -> return VAL`
+        /// `s -> "return" val`
         S3 { val: SynVal },
     }
     #[derive(Debug)]
     pub enum CtxVal {
-        /// `VAL -> id`
+        /// `val -> Id`
         Val1 { id: String },
-        /// `VAL -> num`
+        /// `val -> Num`
         Val2 { num: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `S`
+    // /// User-defined type for `s`
     // #[derive(Debug, PartialEq)] pub struct SynS();
-    // /// User-defined type for `VAL`
+    // /// User-defined type for `val`
     // #[derive(Debug, PartialEq)] pub struct SynVal();
 
     #[derive(Debug)]
@@ -100,20 +100,20 @@ pub(crate) mod rules_prs_34_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_s(),                // S
-                        1 => self.listener.init_val(),              // VAL
-                        _ => panic!("unexpected enter non-terminal id: {nt}")
+                        0 => self.listener.init_s(),                // s
+                        1 => self.listener.init_val(),              // val
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        0 |                                         // S -> id = VAL
-                        1 |                                         // S -> exit
-                        2 => self.exit_s(alt_id),                // S -> return VAL
-                        3 |                                         // VAL -> id
-                        4 => self.exit_val(alt_id),              // VAL -> num
-                        _ => panic!("unexpected exit alt id: {alt_id}")
+                        0 |                                         // s -> Id "=" val
+                        1 |                                         // s -> "exit"
+                        2 => self.exit_s(alt_id),                   // s -> "return" val
+                        3 |                                         // val -> Id
+                        4 => self.exit_val(alt_id),                 // val -> Num
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
                 Call::End => {
@@ -145,11 +145,11 @@ pub(crate) mod rules_prs_34_1 {
             &self.listener
         }
 
-        pub fn get_mut_listener(&mut self) -> &mut T {
+        pub fn get_listener_mut(&mut self) -> &mut T {
             &mut self.listener
         }
 
-        pub fn listener(self) -> T {
+        pub fn give_listener(self) -> T {
             self.listener
         }
 
@@ -199,7 +199,7 @@ pub(crate) mod rules_prs_34_1 {
         }
     }
 
-    // [wrapper source for rule PRS(34) #1, start S]
+    // [wrapper source for rule 13 #1, start s]
     // ------------------------------------------------------------
 }
 
