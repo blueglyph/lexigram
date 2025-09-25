@@ -123,11 +123,7 @@ fn simple() {
                     for (v, tree) in rts.get_trees_iter() {
                         println!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(tree, None, None, symtab, false));
                     }
-                    println!("Symbol table:");
-                    println!("- nonterminals:\n{}", symtab.unwrap().get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).join("\n"));
-                    println!("- terminals:\n{}",
-                             symtab.unwrap().get_terminals().enumerate()
-                                 .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v:?}") } else { String::new() })).join("\n"));
+                    symtab.unwrap().dump("Symbol table:");
                     println!("Log:\n{}", rts.get_log());
                 }
                 let result_rts = (0..rts.get_num_nt())

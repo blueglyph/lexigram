@@ -2,6 +2,8 @@
 
 use crate::dfa::TokenId;
 use crate::grammar::{Symbol, VarId};
+#[cfg(test)]
+use crate::CollectJoin;
 
 /// Stores the names of the terminal and nonterminal symbols used by a parser.
 ///
@@ -76,6 +78,21 @@ impl FixedSymTable {
 
     // -------------------------------------------------------------------------
 
+    #[cfg(test)]
+    pub fn dump(&self, title: &str) {
+        if !title.is_empty() {
+            println!("{title}");
+        }
+        println!(
+            "- nonterminals:\n{}",
+            self.get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).join("\n"));
+        println!(
+            "- terminals:\n{}",
+            self.get_terminals().enumerate()
+                .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v:?}") } else { String::new() }))
+                .join("\n"));
+
+    }
 }
 
 pub trait SymInfoTable {

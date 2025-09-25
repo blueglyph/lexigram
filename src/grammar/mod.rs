@@ -1,6 +1,6 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-pub(crate) mod tests;
+pub mod tests;
 pub mod origin;
 mod prs;
 pub use prs::*;
@@ -14,7 +14,7 @@ use iter_index::IndexerIterator;
 use vectree::VecTree;
 use crate::cproduct::CProduct;
 use crate::dfa::TokenId;
-use crate::{CollectJoin, General, Normalized, gnode, vaddi, alt, hashset, LL1, LR, sym, prule, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource, columns_to_str};
+use crate::{CollectJoin, General, Normalized, gnode, vaddi, alt, hashset, LL1, LR, sym, prule, SymInfoTable, indent_source, BuildErrorSource, HasBuildErrorSource};
 use crate::grammar::NTConversion::{MovedTo, Removed};
 use crate::grammar::origin::{FromPRS, FromRTS, Origin};
 use crate::log::{BufLog, BuildFrom, LogReader, LogStatus, Logger};

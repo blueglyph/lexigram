@@ -6,8 +6,7 @@ mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::prs::complete_symbol_table;
     use crate::{CollectJoin, SymbolTable, LL1};
-    use crate::grammar::tests::old_build_rts_prs::build_prs;
-    use crate::grammar::tests::old_build_rts_prs::build_rts;
+    use crate::grammar::tests::old_build_rts_prs::{build_prs, build_rts};
     use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
@@ -226,7 +225,7 @@ mod gen_integration {
 
 mod opcodes {
     use crate::log::BuildFrom;
-use crate::grammar::{Symbol, VarId};
+    use crate::grammar::{Symbol, VarId};
     use crate::grammar::tests::old_build_rts_prs::T;
     use crate::{columns_to_str, strip, CollectJoin};
     use crate::parser::{OpCode, Parser};

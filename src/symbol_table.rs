@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use crate::{NameFixer, FixedSymTable, SymInfoTable, indent_source};
 use crate::dfa::TokenId;
 use crate::grammar::{Symbol, VarId};
+#[cfg(test)]
+use crate::CollectJoin;
 
 // NOTE: nonterminal-to-ID functionality currently disabled by #[cfg(any())]
 
@@ -213,6 +215,24 @@ impl SymbolTable {
             source.push("];".to_string());
         }
         indent_source(vec![source], indent)
+    }
+
+    // -------------------------------------------------------------------------
+
+    #[cfg(test)]
+    pub fn dump(&self, title: &str) {
+        if !title.is_empty() {
+            println!("{title}");
+        }
+        println!(
+            "- nonterminals:\n{}",
+            self.get_nonterminals().enumerate().map(|(v, s)| format!("  - NT[{v}]: {s}")).join("\n"));
+        println!(
+            "- terminals:\n{}",
+            self.get_terminals().enumerate()
+                .map(|(t, (n, v_maybe))| format!("  - T[{t}]: {n}{}", if let Some(v) = v_maybe { format!(" = {v:?}") } else { String::new() }))
+                .join("\n"));
+
     }
 }
 
