@@ -47,7 +47,7 @@ fn ruletreeset_to_str() {
         (200, 0, None, None, "A (<L=i> B)* C"),
         (200, 0, None, Some(3), "A ( ►► <L=i> B ◄◄ )* C"),
         (200, 0, Some(3), None, "<L=i> B"),
-        (207, 0, None, None, r#"(A (<L=j> B ",")+ ";")+"#),
+        (207, 0, None, None, r#"(A (<L=j> B ",")+ ";")+ C"#),
         (600, 0, None, None, r#"e "+" e | Num"#),
     ];
     const VERBOSE: bool = false;
@@ -170,7 +170,7 @@ fn rts_normalize() {
         (10, //   a -> (A | B)?
          btreemap![0 => r#"a -> A | B | ε"#],
          btreemap![0 => r#"a -> A | B | ε"#]),
-        (11, //   a -> A b        (11, //   b -> B
+        (11, //   a -> A b;   b -> B
          btreemap![0 => r#"a -> A b"#, 1 => r#"b -> B"#],
          btreemap![0 => r#"a -> A b"#, 1 => r#"b -> B"#]),
         (30, //   a -> A B ε C ε
@@ -215,12 +215,12 @@ fn rts_normalize() {
         (105, //   a -> (A B)+
          btreemap![0 => r#"a -> a_1"#, 1 => r#"a_1 -> A B a_1 | A B"#],
          btreemap![0 => r#"a -> (A B)+"#]),
-        (106, //   a -> (A (B ",")* ";")*
-         btreemap![0 => r#"a -> a_2"#, 1 => r#"a_1 -> B "," a_1 | ε"#, 2 => r#"a_2 -> A a_1 ";" a_2 | ε"#],
-         btreemap![0 => r#"a -> (A (B ",")* ";")*"#]),
-        (107, //   a -> (A (B ",")+ ";")+
-         btreemap![0 => r#"a -> a_2"#, 1 => r#"a_1 -> B "," a_1 | B ",""#, 2 => r#"a_2 -> A a_1 ";" a_2 | A a_1 ";""#],
-         btreemap![0 => r#"a -> (A (B ",")+ ";")+"#]),
+        (106, //   a -> (A (b ",")* ";")* C;   b -> B
+         btreemap![0 => r#"a -> a_2 C"#, 1 => r#"b -> B"#, 2 => r#"a_1 -> b "," a_1 | ε"#, 3 => r#"a_2 -> A a_1 ";" a_2 | ε"#],
+         btreemap![0 => r#"a -> (A (b ",")* ";")* C"#, 1 => r#"b -> B"#]),
+        (107, //   a -> (A (b ",")+ ";")+ C;   b -> B
+         btreemap![0 => r#"a -> a_2 C"#, 1 => r#"b -> B"#, 2 => r#"a_1 -> b "," a_1 | b ",""#, 3 => r#"a_2 -> A a_1 ";" a_2 | A a_1 ";""#],
+         btreemap![0 => r#"a -> (A (b ",")+ ";")+ C"#, 1 => r#"b -> B"#]),
         (150, //   a -> (A | B)*
          btreemap![0 => r#"a -> a_1"#, 1 => r#"a_1 -> A a_1 | B a_1 | ε"#],
          btreemap![0 => r#"a -> (A | B)*"#]),
@@ -245,18 +245,18 @@ fn rts_normalize() {
         (205, //   a -> (<L=i> A (B ",")+ ";")+
          btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L=i> A a_1 ";" i | <L=i> A a_1 ";""#, 2 => r#"a_1 -> B "," a_1 | B ",""#],
          btreemap![0 => r#"a -> (<L=i> A (B ",")+ ";")+"#]),
-        (206, //   a -> (A (<L=j> B ",")* ";")*
-         btreemap![0 => r#"a -> a_1"#, 1 => r#"j -> <L=j> B "," j | ε"#, 2 => r#"a_1 -> A j ";" a_1 | ε"#],
-         btreemap![0 => r#"a -> (A (<L=j> B ",")* ";")*"#]),
-        (207, //   a -> (A (<L=j> B ",")+ ";")+
-         btreemap![0 => r#"a -> a_1"#, 1 => r#"j -> <L=j> B "," j | <L=j> B ",""#, 2 => r#"a_1 -> A j ";" a_1 | A j ";""#],
-         btreemap![0 => r#"a -> (A (<L=j> B ",")+ ";")+"#]),
-        (208, //   a -> (<L=i> A (<L=j> B ",")* ";")*
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L=i> A j ";" i | ε"#, 2 => r#"j -> <L=j> B "," j | ε"#],
-         btreemap![0 => r#"a -> (<L=i> A (<L=j> B ",")* ";")*"#]),
-        (209, //   a -> (<L=i> A (<L=j> B ",")+ ";")+
-         btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L=i> A j ";" i | <L=i> A j ";""#, 2 => r#"j -> <L=j> B "," j | <L=j> B ",""#],
-         btreemap![0 => r#"a -> (<L=i> A (<L=j> B ",")+ ";")+"#]),
+        (206, //   a -> (A (<L=j> B ",")* ";")* C
+         btreemap![0 => r#"a -> a_1 C"#, 1 => r#"j -> <L=j> B "," j | ε"#, 2 => r#"a_1 -> A j ";" a_1 | ε"#],
+         btreemap![0 => r#"a -> (A (<L=j> B ",")* ";")* C"#]),
+        (207, //   a -> (A (<L=j> B ",")+ ";")+ C
+         btreemap![0 => r#"a -> a_1 C"#, 1 => r#"j -> <L=j> B "," j | <L=j> B ",""#, 2 => r#"a_1 -> A j ";" a_1 | A j ";""#],
+         btreemap![0 => r#"a -> (A (<L=j> B ",")+ ";")+ C"#]),
+        (208, //   a -> (<L=i> A (<L=j> b ",")* ";")* C;   b -> B
+         btreemap![0 => r#"a -> i C"#, 1 => r#"i -> <L=i> A j ";" i | ε"#, 2 => r#"j -> <L=j> b "," j | ε"#, 3 => r#"b -> B"#],
+         btreemap![0 => r#"a -> (<L=i> A (<L=j> b ",")* ";")* C"#, 1 => r#"i -> <empty>"#, 2 => r#"j -> <empty>"#, 3 => r#"b -> B"#]),
+        (209, //   a -> (<L=i> A (<L=j> b ",")+ ";")+ C;   b -> B
+         btreemap![0 => r#"a -> i C"#, 1 => r#"i -> <L=i> A j ";" i | <L=i> A j ";""#, 2 => r#"j -> <L=j> b "," j | <L=j> b ",""#, 3 => r#"b -> B"#],
+         btreemap![0 => r#"a -> (<L=i> A (<L=j> b ",")+ ";")+ C"#, 1 => r#"i -> <empty>"#, 2 => r#"j -> <empty>"#, 3 => r#"b -> B"#]),
         (250, //   a -> (<L=i> A | B)*
          btreemap![0 => r#"a -> i"#, 1 => r#"i -> <L=i> A i | B i | ε"#],
          btreemap![0 => r#"a -> (<L=i> A | B)*"#]),
@@ -266,7 +266,7 @@ fn rts_normalize() {
      ];
     const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
-    const SHOW_RESULTS_ONLY: bool = false;
+    const SHOW_RESULTS_ONLY: bool = true;
     let mut errors = 0;
     for (test_id, expected, expected_orig) in tests {
         let mut rules = TestRules(test_id).to_rts_general().unwrap();
@@ -275,7 +275,7 @@ fn rts_normalize() {
             .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false)))
             .to_vec();
         if SHOW_RESULTS_ONLY {
-            println!("{}", originals.iter().map(|s| format!("        ({test_id}, // {s}")).join(""));
+            println!("        ({test_id}, // {}", originals.iter().join("; "));
         }
         if VERBOSE {
             println!("{:=<80}\ntest {test_id}:", "");
