@@ -455,6 +455,8 @@ impl ParserGen {
         }
     }
 
+    const FIX_RREC_LFACT_LFORM: bool = true;
+
     fn make_opcodes(&mut self) {
         const VERBOSE: bool = false;
         for (alt_id, (var_id, alt)) in self.parsing_table.alts.iter().index() {
@@ -524,6 +526,18 @@ impl ParserGen {
             }
             if flags & ruleflag::CHILD_L_FACT != 0 {
                 if opcode.len() >= 2 {
+
+
+                    if Self::FIX_RREC_LFACT_LFORM {
+                        if self.nt_has_all_flags(parent.unwrap(), ruleflag::R_RECURSION | ruleflag::L_FORM) {
+                            if opcode[1] == OpCode::NT(parent.unwrap()) {
+                                opcode.swap(0, 1);
+                                opcode[0] = OpCode::Loop(parent.unwrap());
+                            }
+                        }
+                    }
+
+
                     let fact_top = self.parsing_table.get_top_parent(*var_id);
                     if VERBOSE {
                         println!("  - check for initial exit swap: opcode = [{}], daddy = {}",
@@ -695,7 +709,14 @@ impl ParserGen {
                     // Loop NTs which carry values are kept on the stack, too
                     let parent_is_rrec_lfact = !is_ambig && self.nt_has_all_flags(g[0], ruleflag::R_RECURSION | ruleflag::PARENT_L_FACTOR);
                     if parent_is_rrec_lfact {
-                        if self.nt_has_all_flags(*var_id, ruleflag::CHILD_L_FACT | ruleflag::L_FORM) {
+                        if self.nt_has_all_flags(*var_id, ruleflag::CHILD_L_FACT | ruleflag::L_FORM) // FIXME: <=== was this a mistake? See assert below
+
+
+                             || Self::FIX_RREC_LFACT_LFORM && flags & ruleflag::CHILD_L_FACT != 0 && self.nt_has_all_flags(g[0], ruleflag::L_FORM)
+                        {
+                            assert!(!self.nt_has_all_flags(*var_id, ruleflag::CHILD_L_FACT | ruleflag::L_FORM), "this was useful after all");
+
+
                             if VERBOSE { print!(" child_rrec_lform_lfact"); }
                             items.get_mut(&alt_id).unwrap().insert(0, Symbol::NT(g[0]));
                         }

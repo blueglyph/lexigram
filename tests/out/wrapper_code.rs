@@ -102,6 +102,7 @@ pub(crate) mod code_208_3 {
     #[derive(Debug, PartialEq)] pub struct SynA();
 }
 
+#[allow(unused)]
 pub(crate) mod code_208_4 {
 }
 
@@ -117,6 +118,7 @@ pub(crate) mod code_301_1 {
     #[derive(Debug, PartialEq)] pub struct SynExpr();
 }
 
+#[allow(unused)]
 pub(crate) mod code_301_2 {
 }
 
@@ -125,7 +127,13 @@ pub(crate) mod code_401_1 {
     #[derive(Debug, PartialEq)] pub struct SynExpr();
 }
 
+#[allow(unused)]
 pub(crate) mod code_401_2 {
+}
+
+pub(crate) mod code_402_1 {
+    /// User-defined type for `expr`
+    #[derive(Debug, PartialEq)] pub struct SynExpr(pub Vec<String>);
 }
 
 pub(crate) mod code_502_1 {

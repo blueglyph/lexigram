@@ -7,6 +7,7 @@ mod gen_integration {
     use crate::grammar::tests::prs::complete_symbol_table;
     use crate::{CollectJoin, SymbolTable, LL1};
     use crate::grammar::tests::old_build_rts_prs::{build_prs, build_rts};
+    use crate::grammar::tests::TestRules;
     use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::ParserGen;
     use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
@@ -18,15 +19,20 @@ mod gen_integration {
     fn get_source(rules_id: T, indent: usize, is_t_data: bool, include_alts: bool, name: String) -> String {
         let rules = match rules_id {
             RTS(rts_id) => {
-                let rts = build_rts(rts_id);
-                let mut rules = ProdRuleSet::build_from(rts);
-                rules.set_start(0);
-                if rules.get_symbol_table().is_none() {
-                    let mut symbol_table = SymbolTable::new();
-                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), is_t_data);
-                    rules.set_symbol_table(symbol_table);
+                if rts_id >= 10000 {
+                    let id = rts_id - 10000;
+                    TestRules(id).to_prs_general().expect(&format!("invalid test rule ID #{id}"))
+                } else {
+                    let rts = build_rts(rts_id);
+                    let mut rules = ProdRuleSet::build_from(rts);
+                    rules.set_start(0);
+                    if rules.get_symbol_table().is_none() {
+                        let mut symbol_table = SymbolTable::new();
+                        complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), is_t_data);
+                        rules.set_symbol_table(symbol_table);
+                    }
+                    rules
                 }
-                rules
             }
             PRS(prs_id) => {
                 build_prs(prs_id, is_t_data)
@@ -61,6 +67,7 @@ mod gen_integration {
             17 => Some((RTS(42), 4,    false, true,    "write_source_code_for_integration_listener17", "Expr")),
             18 => Some((RTS(43), 4,    false, true,    "write_source_code_for_integration_listener18", "Expr")),
             19 => Some((RTS(44), 4,    false, true,    "write_source_code_for_integration_listener19", "Expr")),
+            20 => Some((RTS(10402), 4, false, true,    "write_source_code_for_integration_listener20", "Expr")),
             _ => None
         }
     }
@@ -220,6 +227,12 @@ mod gen_integration {
     #[test]
     fn write_source_code_for_integration_listener16() {
         do_test(16, Action::WriteSource, true).expect("couldn't write source #16");
+    }
+
+    #[ignore]
+    #[test]
+    fn write_source_code_for_integration_listener20() {
+        do_test(20, Action::WriteSource, true).expect("couldn't write source #20");
     }
 }
 
@@ -987,18 +1000,17 @@ mod wrapper_source {
             //     self.stack.push(SynValue::Expr(val));
             // }
 
-            // FIXME: alt 1 should be a loop (●expr ◄1 ►expr "^"), not a return (◄1 ►expr "^")
             // expr -> <L=expr> Num "^" expr | Num
             // NT flags:
             //  - expr: right_rec | parent_left_fact | L-form (162)
             //  - expr_1: child_left_fact (64)
             // parents:
             //  - expr_1 -> expr
-            (PRS(47), 402, false, 0, btreemap![
+            (PRS(47), 402, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![],                        //  0: expr -> Num expr_1 | ►expr_1 Num! |
-                1 => symbols![t 0, nt 0],               //  1: expr_1 -> "^" expr | ◄1 ►expr "^" | Num expr
-                2 => symbols![t 0],                     //  2: expr_1 -> ε        | ◄2           | Num
+                1 => symbols![nt 0, t 0],               //  1: expr_1 -> "^" expr | ●expr ◄1 "^" | expr Num
+                2 => symbols![nt 0, t 0],               //  2: expr_1 -> ε        | ◄2           | expr Num
             ], Default, btreemap![0 => vec![1, 2]]),
 
             // --------------------------------------------------------------------------- left_rec [left_fact]
@@ -1783,7 +1795,7 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         let mut old_rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, tr_id, test_source, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-// if !matches!(rule_id, RTS(_)) { continue }
+// if !matches!(tr_id, 402 | 401) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let old_rule_iter = old_rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             // let ll1 = rule_id.build_prs(test_id, start_nt, true);

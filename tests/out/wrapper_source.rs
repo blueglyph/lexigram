@@ -2633,6 +2633,7 @@ pub(crate) mod rules_208_3 {
 // ================================================================================
 
 pub(crate) mod rules_208_4 {
+    #![allow(unused_imports)]
     // ------------------------------------------------------------
     // [wrapper source for rule 208 #4, start a]
 
@@ -3117,6 +3118,7 @@ pub(crate) mod rules_301_1 {
 // ================================================================================
 
 pub(crate) mod rules_301_2 {
+    #![allow(unused_imports)]
     // ------------------------------------------------------------
     // [wrapper source for rule 301 #2, start expr]
 
@@ -3391,6 +3393,7 @@ pub(crate) mod rules_401_1 {
 // ================================================================================
 
 pub(crate) mod rules_401_2 {
+    #![allow(unused_imports)]
     // ------------------------------------------------------------
     // [wrapper source for rule 401 #2, start expr]
 
@@ -3513,6 +3516,272 @@ pub(crate) mod rules_401_2 {
     }
 
     // [wrapper source for rule 401 #2, start expr]
+}
+
+// ================================================================================
+
+pub(crate) mod rules_402_1 {
+    // ------------------------------------------------------------
+    // [wrapper source for rule 402 #1, start expr]
+
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_402_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxExpr {
+        /// `expr -> <L> Num "^" expr`
+        Expr1 { expr: SynExpr, num: String },
+        /// `expr -> Num`
+        Expr2 { expr: SynExpr, num: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `expr`
+    // #[derive(Debug, PartialEq)] pub struct SynExpr();
+
+    #[derive(Debug)]
+    enum SynValue { Expr(SynExpr) }
+
+    impl SynValue {
+        fn get_expr(self) -> SynExpr {
+            let SynValue::Expr(val) = self;
+            val
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _expr: SynExpr) {}
+        fn init_expr(&mut self) -> SynExpr;
+        fn exit_expr(&mut self, _ctx: CtxExpr) -> SynExpr;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.init_expr(),                      // expr
+                        1 => {}                                     // expr_1
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        1 |                                         // expr_1 -> "^" expr
+                        2 => self.exit_expr(alt_id),                // expr_1 -> ε
+                     /* 0 */                                        // expr -> <L> Num expr_1 (never called)
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let expr = self.stack.pop().unwrap().get_expr();
+            self.listener.exit(expr);
+        }
+
+        fn init_expr(&mut self) {
+            let val = self.listener.init_expr();
+            self.stack.push(SynValue::Expr(val));
+        }
+
+        fn exit_expr(&mut self, alt_id: AltId) {
+            let ctx = match alt_id {
+                1 => {
+                    let num = self.stack_t.pop().unwrap();
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    CtxExpr::Expr1 { expr, num }
+                }
+                2 => {
+                    let num = self.stack_t.pop().unwrap();
+                    let expr = self.stack.pop().unwrap().get_expr();
+                    CtxExpr::Expr2 { expr, num }
+                }
+                _ => panic!("unexpected alt id {alt_id} in fn exit_expr")
+            };
+            let val = self.listener.exit_expr(ctx);
+            self.stack.push(SynValue::Expr(val));
+        }
+    }
+
+    // [wrapper source for rule 402 #1, start expr]
+    // ------------------------------------------------------------
+
+    #[cfg(test)]
+    mod test {
+        use std::collections::HashMap;
+        use iter_index::IndexerIterator;
+        use lexigram_lib::dfa::TokenId;
+        use lexigram_lib::grammar::Symbol;
+        use lexigram_lib::lexer::CaretCol;
+        use lexigram_lib::log::BufLog;
+        use crate::integration::parser_examples::listener20::build_parser;
+        use super::*;
+
+        struct ExprListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl ExprListener {
+            fn new() -> Self {
+                ExprListener {
+                    log: BufLog::new(),
+                    result: None,
+                }
+            }
+        }
+
+        impl TestListener for ExprListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, expr: SynExpr) {
+                let SynExpr(mut result) = expr;
+                while result.len() > 1 {
+                    let r = result.pop().unwrap();
+                    let l = result.pop().unwrap();
+                    result.push(if result.len() > 0 { format!("({l} ^ {r})") } else { format!("{l} ^ {r}") });
+                }
+                self.result = result.pop();
+            }
+
+            fn init_expr(&mut self) -> SynExpr {
+                self.result = None;
+                SynExpr(vec![])
+            }
+
+            fn exit_expr(&mut self, ctx: CtxExpr) -> SynExpr {
+                let (mut e, num) = match ctx {
+                    // expr -> <L> Num "^" expr
+                    CtxExpr::Expr1 { expr: SynExpr(e), num } => (e, num),
+                    // expr -> Num
+                    CtxExpr::Expr2 { expr: SynExpr(e), num } => (e, num),
+                };
+                e.push(num);
+                SynExpr(e)
+            }
+        }
+
+        #[test]
+        fn test() {
+            let sequences = vec![
+                // expr -> <L=expr> Num "^" expr | Num
+                ("1", Some("1")),
+                ("1 ^ 2", Some("1 ^ 2")),
+                ("1 ^ 2 ^ 3", Some("1 ^ (2 ^ 3)")),
+                ("1 ^ 2 ^ 3 ^ 4", Some("1 ^ (2 ^ (3 ^ 4))")),
+                ("", None),
+                ("^ 1", None),
+                ("1 ^", None),
+                ("1 ^ ^", None),
+            ];
+            const VERBOSE: bool = false;
+            const VERBOSE_LISTENER: bool = false;
+            let num_id = 0;
+
+            let mut parser = build_parser();
+            let table = parser.get_symbol_table().unwrap();
+            let symbols = (0..table.get_num_t() as TokenId)
+                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
+                .collect::<HashMap<_, _>>();
+            println!("symbols = {symbols:?}");
+            for (input, expected_result) in sequences {
+                if VERBOSE { println!("{:-<60}\nnew input '{input}'", ""); }
+                let stream = input.split_ascii_whitespace().index_start::<CaretCol>(1).map(|(i, w)| {
+                    if let Some(s) = symbols.get(w) {
+                        (*s, w.to_string(), 1, i)
+                    } else {
+                        if w.chars().next().unwrap().is_ascii_digit() {
+                            (num_id, w.to_string(), 1, i)
+                        } else {
+                            panic!("'{w}' input not recognized")
+                        }
+                    }
+                });
+                let listener = ExprListener::new();
+                let mut wrapper = Wrapper::new(listener, VERBOSE_LISTENER);
+                let result = match parser.parse_stream(&mut wrapper, stream) {
+                    Ok(_) => {
+                        if VERBOSE { println!("parsing completed successfully: {:?}", wrapper.listener.result); }
+                        wrapper.listener.result.take()
+                    }
+                    Err(e) => {
+                        if VERBOSE { println!("parsing failed: {e}"); }
+                        None
+                    }
+                };
+                if VERBOSE {
+                    let msg = wrapper.listener.log.to_string();
+                    if !msg.is_empty() {
+                        println!("Messages:\n{msg}");
+                    }
+                }
+                let expected_result = expected_result.map(|s| s.to_string());
+                assert_eq!(result, expected_result, "test failed for input: {input}");
+            }
+        }
+    }
 }
 
 // ================================================================================
