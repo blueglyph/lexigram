@@ -126,31 +126,32 @@ impl TestRules {
             // -----------------------------------------------------------------------------
             600 => vec![r#"e -> e "+" e | Num;"#],
             // ----- swapping independent terms shouldn't have an impact:
-            601 => vec![r#"e -> e "*" e | e "+" e | Num | Id;"#],
-            602 => vec![r#"e -> Num | e "*" e | Id | e "+" e;"#],
+            // [TOKENS0] inserts predfined tokens: token Mul = "*", Add = "+", Op = "!", Num, Id;
+            601 => vec![r#"[TOKENS0] e -> e "*" e | e "+" e | Num | Id;"#],
+            602 => vec![r#"[TOKENS0] e -> Num | e "*" e | Id | e "+" e;"#],
             // ----- prefix op:
-            603 => vec![r#"e -> e "*" e | e "+" e |   "!" e | Num;"#],
-            604 => vec![r#"e -> e "*" e |   "!" e | e "+" e | Num;"#],
-            605 => vec![r#"e ->   "!" e | e "*" e | e "+" e | Num;"#],
+            603 => vec![r#"[TOKENS0] e -> e "*" e | e "+" e |   "!" e | Num;"#],
+            604 => vec![r#"[TOKENS0] e -> e "*" e |   "!" e | e "+" e | Num;"#],
+            605 => vec![r#"[TOKENS0] e ->   "!" e | e "*" e | e "+" e | Num;"#],
             // ----- right-associative op:
-            606 => vec![r#"e ->     e "*" e |     e "+" e | <R> e "!" e | Num;"#],
-            607 => vec![r#"e ->     e "*" e | <R> e "!" e |     e "+" e | Num;"#],
-            608 => vec![r#"e -> <R> e "!" e |     e "*" e |     e "+" e | Num;"#],
+            606 => vec![r#"[TOKENS0] e ->     e "*" e |     e "+" e | <R> e "!" e | Num;"#],
+            607 => vec![r#"[TOKENS0] e ->     e "*" e | <R> e "!" e |     e "+" e | Num;"#],
+            608 => vec![r#"[TOKENS0] e -> <R> e "!" e |     e "*" e |     e "+" e | Num;"#],
             // ----- postfix op:
-            609 => vec![r#"e -> e "*" e | e "+" e | e "!"   | Num;"#],
-            610 => vec![r#"e -> e "*" e | e "!"   | e "+" e | Num;"#],
-            611 => vec![r#"e -> e "!"   | e "*" e | e "+" e | Num;"#],
+            609 => vec![r#"[TOKENS0] e -> e "*" e | e "+" e | e "!"   | Num;"#],
+            610 => vec![r#"[TOKENS0] e -> e "*" e | e "!"   | e "+" e | Num;"#],
+            611 => vec![r#"[TOKENS0] e -> e "!"   | e "*" e | e "+" e | Num;"#],
             // ----- same priority:
-            612 => vec![r#"e -> e "!" e |     e "*" e |     e "+" e | Num;"#],
-            613 => vec![r#"e -> e "*" e |     e "+" e | <P> e "!" e | Num;"#],
-            614 => vec![r#"e -> e "*" e | <P> e "!" e |     e "+" e | Num;"#],
+            612 => vec![r#"[TOKENS0] e -> e "!" e |     e "*" e |     e "+" e | Num;"#],
+            613 => vec![r#"[TOKENS0] e -> e "*" e |     e "+" e | <P> e "!" e | Num;"#],
+            614 => vec![r#"[TOKENS0] e -> e "*" e | <P> e "!" e |     e "+" e | Num;"#],
             // ----- postfix & prefix ops:
-            630 => vec![r#"e ->     e "+" |     "-" e | Num;"#],
-            631 => vec![r#"e ->     e "+" | <R> "-" e | Num;"#],
-            632 => vec![r#"e -> <R> e "+" |     "-" e | Num;"#],
+            630 => vec![r#"[TOKENS0] e ->     e "+" |     "!" e | Num;"#],
+            631 => vec![r#"[TOKENS0] e ->     e "+" | <R> "!" e | Num;"#],
+            632 => vec![r#"[TOKENS0] e -> <R> e "+" |     "!" e | Num;"#],
             // ----- <L> rrec
             633 => vec![r#"e -> e "*" e | <L> "!" e | e "+" e | Num;"#],
-            634 => vec![r#"e -> e "+" | <L> "-" e | Num;"#],
+            634 => vec![r#"e -> e "+" | <L> "!" e | Num;"#],
 
             // Existing tests in wrapper_source.rs:
             //
@@ -247,7 +248,10 @@ impl TestRules {
             // -----------------------------------------------------------------------------
             _ => return None
         };
-        let text = specs.join("\n");
+        let mut text = specs.join("\n");
+        if text.starts_with("[TOKENS0] ") {
+            text = format!("{}\n{}", r#"token Mul = "*", Add = "+", Op = "!", Num, Id;"#, &text[10..]);
+        }
         match RtsGen::new().parse(text.clone()) {
             Ok(mut rts) => {
                 self.manual_transform(&mut rts);
