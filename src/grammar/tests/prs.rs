@@ -120,13 +120,15 @@ where
         let fail1 = result != expected.into_iter().map(|s| s.to_string()).to_vec();
         let fail2 = prs.flags[..num_vars] != expected_flags;
         let fail3 = prs.parent[..num_vars] != expected_parent;
-        if  fail1 || fail2 || fail3 {
+        let fail4 = !prs.log.has_no_errors();
+        if  fail1 || fail2 || fail3 || fail4 {
             errors += 1;
             if !show_answer_only {
                 let msg = format!("## ERROR ## test {test_id}: ");
                 if fail1 { println!("{msg}rules don't match"); }
                 if fail2 { println!("{msg}flags don't match"); }
                 if fail3 { println!("{msg}parents don't match"); }
+                if fail4 { println!("{msg}errors in log"); }
             }
         }
     }
