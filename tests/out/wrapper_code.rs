@@ -148,6 +148,69 @@ pub(crate) mod code_502_2 {
     #[derive(Debug, PartialEq)] pub struct SynF();
 }
 
+// precedence group:
+
+pub(crate) mod code_603_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_604_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_605_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_606_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_607_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_608_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_609_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_610_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_611_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_612_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_613_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_614_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_630_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_631_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+pub(crate) mod code_632_1 {
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE();
+}
+
 pub(crate) mod code_prs_33_1 {
     // ------------------------------------------------------------
     // wrapper source for rule PRS(33) #1, start A
