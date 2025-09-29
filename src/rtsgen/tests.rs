@@ -97,8 +97,8 @@ fn simple() {
         ),
         (
             vec![r#"token A, B = "B", C, D;"#,
-                 r#"a -> A | B | C;"#],
-            vec![r#"a => |(A, "B", C);"#]
+                 r#"a -> A | B | C "B";"#],
+            vec![r#"a => |(A, "B", &(C, "B"));"#]
         ),
         /* template:
         (
@@ -169,20 +169,20 @@ fn catch_errors() {
             vec![r#"esc -> "\u{123456789abcdef}";"#],
             vec!["'123456789abcdef' isn't a valid hexadecimal value"],
         ),
-        (   // 4: nonterminal already defined
+        (   // 3: nonterminal already defined
             vec![r#"a -> "a"; a -> "b";"#],
             vec!["nonterminal 'a' is defined multiple times"],
         ),
-        (   // 5: bad integer
+        (   // 4: bad integer
             vec![r#"a -> T(1000000) | NT(2000000);"#],
             vec!["T(1000000) can't be parsed: number too large",
                  "NT(2000000) can't be parsed: number too large"],
         ),
-        (   // 6: re-declaration of token
+        (   // 5: re-declaration of token
             vec![r#"token A, B = "B", C, D;"#,
-                 r#"token C = "C";"#,
+                 r#"token C = "C", B2 = "B";"#,
                  r#"a -> A | B | C;"#],
-            vec!["in token declarations: token 'C' has already been declared"]
+            vec!["token 'C' already declared", "token value \"B\" already used"]
         ),
         /* template:
         (   //

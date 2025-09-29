@@ -295,24 +295,6 @@ impl RtsGenListener for RGListener<'_> {
                 }
             }
         };
-        /*
-        let (terminal, value_maybe) = match ctx {
-            // decl_terminal -> Terminal "=" TerminalCst
-            CtxDeclTerminal::DeclTerminal1 { terminal, terminalcst } => {
-                (terminal, Some(terminalcst[1..terminalcst.len() - 1].to_string()))
-            }
-            // decl_terminal -> Terminal
-            CtxDeclTerminal::DeclTerminal2 { terminal } => {
-                (terminal, None)
-            }
-        };
-        let (is_new, _tok) = self.get_or_create_t(terminal.clone());
-        if is_new == IsNew::Yes {
-            self.tokens.push((terminal, value_maybe));
-        } else {
-            self.log.add_error(format!("in token declarations: token '{terminal}' has already been declared"));
-        }
-        */
         SynDeclTerminal()
     }
 
