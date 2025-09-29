@@ -576,8 +576,8 @@ pub(crate) mod listener16 {
 
     const PARSER_NUM_T: usize = 3;
     const PARSER_NUM_NT: usize = 2;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("ADD", Some("+")), ("SUB", Some("-")), ("ZERO", Some("0"))];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E_1"];
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Not", Some("!")), ("Sub", Some("-")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1"];
     static ALT_VAR: [VarId; 4] = [0, 0, 1, 1];
     static ALTERNATIVES: [&[Symbol]; 4] = [&[Symbol::T(1), Symbol::NT(0)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(1)], &[Symbol::Empty]];
     static PARSING_TABLE: [AltId; 8] = [4, 0, 1, 5, 2, 4, 4, 3];
