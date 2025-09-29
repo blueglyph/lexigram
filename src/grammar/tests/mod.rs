@@ -124,11 +124,11 @@ impl TestRules {
 
             // 6xx = lrec: amb
             // -----------------------------------------------------------------------------
+            // note: [TOKENS0] inserts predfined tokens: token Mul = "*", Add = "+", Op = "!", Num, Id;
             600 => vec![r#"e -> e "+" e | Num;"#],
             // ----- swapping independent terms shouldn't have an impact:
-            // [TOKENS0] inserts predfined tokens: token Mul = "*", Add = "+", Op = "!", Num, Id;
-            601 => vec![r#"[TOKENS0] e -> e "*" e | e "+" e | Num | Id;"#],
-            602 => vec![r#"[TOKENS0] e -> Num | e "*" e | Id | e "+" e;"#],
+            601 => vec![r#"e -> e "*" e | e "+" e | Num | Id;"#],
+            602 => vec![r#"e -> Num | e "*" e | Id | e "+" e;"#],
             // ----- prefix op:
             603 => vec![r#"[TOKENS0] e -> e "*" e | e "+" e |   "!" e | Num;"#],
             604 => vec![r#"[TOKENS0] e -> e "*" e |   "!" e | e "+" e | Num;"#],
@@ -146,11 +146,10 @@ impl TestRules {
             613 => vec![r#"[TOKENS0] e -> e "*" e |     e "+" e | <P> e "!" e | Num;"#],
             614 => vec![r#"[TOKENS0] e -> e "*" e | <P> e "!" e |     e "+" e | Num;"#],
             // ----- postfix & prefix ops:
-            630 => vec![r#"[TOKENS0] e ->     e "+" |     "!" e | Num;"#],
-            631 => vec![r#"[TOKENS0] e ->     e "+" | <R> "!" e | Num;"#],
-            632 => vec![r#"[TOKENS0] e -> <R> e "+" |     "!" e | Num;"#],
-            // ----- <L> rrec
-            633 => vec![r#"e -> e "*" e | <L> "!" e | e "+" e | Num;"#],
+            630 => vec![r#"[TOKENS0] e -> e "*" e |     e "+" |     "!" e | Num;"#],
+            631 => vec![r#"[TOKENS0] e -> e "*" e |     e "+" | <R> "!" e | Num;"#],
+            632 => vec![r#"[TOKENS0] e -> e "*" e | <R> e "+" |     "!" e | Num;"#],
+            // ----- <L> rrec (only allowed when no ambiguity)
             634 => vec![r#"e -> e "+" | <L> "!" e | Num;"#],
 
             // Existing tests in wrapper_source.rs:
@@ -244,6 +243,7 @@ impl TestRules {
             1006 => vec![r#"a -> (<L=x> A | <L=y> B)*;"#],
             1007 => vec![r#"a -> <L> b; b -> b <L> | A;"#],
             1008 => vec![r#""#],                            // start is set to None
+            1009 => vec![r#"e -> e "*" e | <L> "!" e | e "+" e | Num;"#],
 
             // -----------------------------------------------------------------------------
             _ => return None

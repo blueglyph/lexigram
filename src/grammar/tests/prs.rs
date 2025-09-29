@@ -337,20 +337,23 @@ fn prs_remove_recursion() {
         ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
         // ----- postfix & prefix ops:
         (630, vec![
-            // e -> e "+" | "-" e | Num
-            r#"e -> "-" e | Num e_1"#,                          // right_rec | parent_left_rec
-            r#"e_1 -> "+" e_1 | ε"#,                            // child_left_rec
-        ], vec![514, 4], vec![None, Some(0)]),
+            // e -> e "*" e | e "+" | "!" e | Num
+            r#"e -> e_2 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> <G> "*" e_2 e_1 | <G> "+" e_1 | ε"#,      // child_left_rec
+            r#"e_2 -> "!" e | Num"#,                            // right_rec
+        ], vec![1536, 4, 2], vec![None, Some(0), Some(0)]),
         (631, vec![
-            // e -> e "+" | <R> "-" e | Num
-            r#"e -> <R> "-" e | Num e_1"#,                      // right_rec | parent_left_rec
-            r#"e_1 -> "+" e_1 | ε"#,                            // child_left_rec
-        ], vec![514, 4], vec![None, Some(0)]),
+            // e -> e "*" e | e "+" | <R> "!" e | Num
+            r#"e -> e_2 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> <G> "*" e_2 e_1 | <G> "+" e_1 | ε"#,      // child_left_rec
+            r#"e_2 -> <R> "!" e | Num"#,                        // right_rec
+        ], vec![1536, 4, 2], vec![None, Some(0), Some(0)]),
         (632, vec![
-            // e -> <R> e "+" | "-" e | Num
-            r#"e -> "-" e | Num e_1"#,                          // right_rec | parent_left_rec
-            r#"e_1 -> <R> "+" e_1 | ε"#,                        // child_left_rec
-        ], vec![514, 4], vec![None, Some(0)]),
+            // e -> e "*" e | <R> e "+" | "!" e | Num
+            r#"e -> e_2 e_1"#,                                  // parent_left_rec | parent_amb
+            r#"e_1 -> <G> "*" e_2 e_1 | <R,G> "+" e_1 | ε"#,    // child_left_rec
+            r#"e_2 -> "!" e | Num"#,                            // right_rec
+        ], vec![1536, 4, 2], vec![None, Some(0), Some(0)]),
 
         /* template:
         (1, vec![
@@ -497,17 +500,9 @@ fn prs_ll1_from() {
             r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
             r#"e_4 -> Num | Id"#,                               //
         ], vec![1536, 4, 512, 4, 0], vec![None, Some(0), Some(0), Some(2), Some(0)]),
-        (633, vec![
-            // e -> e "*" e | <L=e> "!" e | e "+" e | Num
-            r#"e -> e_4 e_1"#,                                  // L-form | parent_left_rec | parent_amb
-            r#"e_1 -> "*" e_4 e_1 | "+" e_2 e_1 | ε"#,          // child_left_rec
-            r#"e_2 -> e_4 e_3"#,                                // parent_left_rec
-            r#"e_3 -> <G> "*" e_4 e_3 | ε"#,                    // child_left_rec
-            r#"e_4 -> "!" e_2 | Num"#,                          // right_rec
-        ], vec![1664, 4, 512, 4, 2], vec![None, Some(0), Some(0), Some(2), Some(0)]),
         (634, vec![
-            // e -> e "+" | <L=e> "-" e | Num
-            r#"e -> "-" e | Num e_1"#,                          // right_rec | L-form | parent_left_rec
+            // e -> e "+" | <L=e> "!" e | Num
+            r#"e -> "!" e | Num e_1"#,                          // right_rec | L-form | parent_left_rec
             r#"e_1 -> "+" e_1 | ε"#,                            // child_left_rec
         ], vec![642, 4], vec![None, Some(0)]),
         (800, vec![
@@ -675,6 +670,7 @@ fn prs_ll1_from() {
     test_prs_transforms(
         tests,
         |prs| {
+            if VERBOSE { prs.symbol_table.as_ref().unwrap().dump("Symbol table"); }
             ProdRuleSet::<LL1>::build_from(prs)
         },
         VERBOSE, SHOW_ANSWER_ONLY, true);
@@ -792,13 +788,13 @@ fn prs_calc_first() {
         (603, 0, hashmap![
             "Mul" => "Mul",
             "Add" => "Add",
-            "Not" => "Not",
+            "Op" => "Op",
             "Num" => "Num",
-            "e" => "Not, Num",
+            "e" => "Op, Num",
             "e_1" => "Mul, Add, ε",
-            "e_2" => "Not, Num",
+            "e_2" => "Op, Num",
             "e_3" => "Mul, ε",
-            "e_4" => "Not, Num",
+            "e_4" => "Op, Num",
             "ε" => "ε",
         ]),
         (860, 0, hashmap![
@@ -1164,6 +1160,11 @@ fn prs_grammar_notes() {
             vec!["start NT symbol not defined",
                  "no nonterminal in grammar"],
         ),
+        (
+            1009,
+            vec![],
+            vec!["e has an illegal flag L-Form"],
+        ),
         /* template:
         (
             , 0,
@@ -1192,8 +1193,10 @@ fn prs_grammar_notes() {
             if VERBOSE {
                 println!("=>");
                 ll1.print_rules(false, false);
-                println!("Log:\n{}", ll1.log);
             }
+        }
+        if VERBOSE {
+            println!("Log:\n{}", ll1.log);
         }
         let msg = format!("test {test_id}/{ll_id:?}: ");
         assert_eq!(ll1.log.num_errors(), expected_errors.len(), "{msg}failed on # errors");
