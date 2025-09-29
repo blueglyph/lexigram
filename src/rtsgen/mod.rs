@@ -79,6 +79,7 @@ struct RGListener<'a> {
     reserved_nt: Vec<VarId>,
     symbol_table: Option<SymbolTable>,
     t: HashMap<String, TokenId>,
+    num_t: usize,
     /// terminal information; `(String, Option<String>)` = (token name, optional string if not variable)
     tokens: Vec<(String, Option<String>)>,
     curr: Option<GrTree>,
@@ -114,6 +115,7 @@ impl<'a> RGListener<'a> {
             reserved_nt: Vec::new(),
             symbol_table: None,
             t: HashMap::new(),
+            num_t: 0,
             tokens: Vec::new(),
             curr: None,
             curr_name: None,
@@ -148,7 +150,7 @@ impl<'a> RGListener<'a> {
         var
     }
 
-    /// Gets the terminal ID corresponding to the name, creating it if
+    /// Gets the terminal ID corresponding to the name or value, creating it if
     /// it doesn't exist.
     ///
     /// Returns
@@ -156,10 +158,11 @@ impl<'a> RGListener<'a> {
     /// * `TokenId` = the terminal ID
     fn get_or_create_t(&mut self, name: String) -> (IsNew, TokenId) {
         let mut is_new = IsNew::No;
-        let size = self.t.len();
         let tok = *self.t.entry(name).or_insert_with(|| {
             is_new = IsNew::Yes;
-            size.to_var_id("too many terminals") // VarId = TokenId
+            let tok = self.num_t.to_var_id("too many terminals"); // VarId = TokenId
+            self.num_t += 1;
+            tok
         });
         (is_new, tok)
     }
@@ -203,6 +206,7 @@ impl<'a> RGListener<'a> {
         }
 
         // builds symbol table
+        assert_eq!(self.tokens.len(), self.num_t);
         let mut symtab = SymbolTable::new();
         symtab.extend_nonterminals(nt_name);
         let mut t_name = vec![(String::new(), None); self.tokens.len()];
@@ -263,6 +267,35 @@ impl RtsGenListener for RGListener<'_> {
     }
 
     fn exit_decl_terminal(&mut self, ctx: CtxDeclTerminal) -> SynDeclTerminal {
+        match ctx {
+            // decl_terminal -> Terminal "=" TerminalCst
+            CtxDeclTerminal::DeclTerminal1 { terminal, terminalcst } => {
+                if self.t.contains_key(&terminal) {
+                    self.log.add_error(format!("token '{terminal}' already declared"));
+                } else if self.t.contains_key(&terminalcst) {
+                    self.log.add_error(format!("token value {terminalcst} already used"));
+                } else {
+                    let token = self.num_t.to_var_id("too many terminals");
+                    self.num_t += 1;
+                    self.tokens.push((terminal.clone(), Some(terminalcst[1..terminalcst.len() - 1].to_string())));
+                    self.t.insert(terminal, token);
+                    self.t.insert(terminalcst, token);
+                }
+
+            }
+            // decl_terminal -> Terminal
+            CtxDeclTerminal::DeclTerminal2 { terminal } => {
+                if self.t.contains_key(&terminal) {
+                    self.log.add_error(format!("token '{terminal}' already declared"));
+                } else {
+                    let token = self.num_t.to_var_id("too many terminals");
+                    self.num_t += 1;
+                    self.tokens.push((terminal.clone(), None));
+                    self.t.insert(terminal, token);
+                }
+            }
+        };
+        /*
         let (terminal, value_maybe) = match ctx {
             // decl_terminal -> Terminal "=" TerminalCst
             CtxDeclTerminal::DeclTerminal1 { terminal, terminalcst } => {
@@ -279,6 +312,7 @@ impl RtsGenListener for RGListener<'_> {
         } else {
             self.log.add_error(format!("in token declarations: token '{terminal}' has already been declared"));
         }
+        */
         SynDeclTerminal()
     }
 
