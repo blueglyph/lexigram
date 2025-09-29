@@ -266,7 +266,7 @@ fn rts_normalize() {
      ];
     const VERBOSE: bool = false;
     const VERBOSE_DETAILS: bool = false;
-    const SHOW_RESULTS_ONLY: bool = true;
+    const SHOW_RESULTS_ONLY: bool = false;
     let mut errors = 0;
     for (test_id, expected, expected_orig) in tests {
         let mut rules = TestRules(test_id).to_rts_general().unwrap();
