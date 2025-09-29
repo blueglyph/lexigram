@@ -131,7 +131,7 @@ pub(crate) mod code_401_1 {
 pub(crate) mod code_401_2 {
 }
 
-pub(crate) mod code_402_1 {
+pub(crate) mod code_862_1 {
     /// User-defined type for `expr`
     #[derive(Debug, PartialEq)] pub struct SynExpr(pub Vec<String>);
 }

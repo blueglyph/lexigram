@@ -3520,12 +3520,12 @@ pub(crate) mod rules_401_2 {
 
 // ================================================================================
 
-pub(crate) mod rules_402_1 {
+pub(crate) mod rules_862_1 {
     // ------------------------------------------------------------
-    // [wrapper source for rule 402 #1, start expr]
+    // [wrapper source for rule 862 #1, start expr]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_402_1::*;
+    use super::super::wrapper_code::code_862_1::*;
 
     #[derive(Debug)]
     pub enum CtxExpr {
@@ -3663,7 +3663,7 @@ pub(crate) mod rules_402_1 {
         }
     }
 
-    // [wrapper source for rule 402 #1, start expr]
+    // [wrapper source for rule 862 #1, start expr]
     // ------------------------------------------------------------
 
     #[cfg(test)]

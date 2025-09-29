@@ -110,7 +110,6 @@ impl TestRules {
             // -----------------------------------------------------------------------------
             400 => vec![r#"a -> <L> "?" a | "!";"#],
             401 => vec![r#"expr -> <L> Id "." expr | "(" Num ")";"#],
-            402 => vec![r#"expr -> <L> Num "^" expr | Num;"#],          // FIXME: no loop?
 
             // 5xx = lrec: simple
             // -----------------------------------------------------------------------------
@@ -211,6 +210,7 @@ impl TestRules {
             // 3xx/4xx and 7xx
             860 => vec![r#"a -> A B a | A C a | D;"#],
             861 => vec![r#"a -> A (B | C) a <L> | D;"#],
+            862 => vec![r#"expr -> <L> Num "^" expr | Num;"#],
 
             // 5xx and 7xx
             870 => vec![r#"a -> a A B | a A C | D;"#],

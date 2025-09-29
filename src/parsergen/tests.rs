@@ -16,25 +16,23 @@ mod gen_integration {
     #[derive(Debug, Clone, Copy, PartialEq)]
     pub(crate) enum T { RTS(u32), PRS(u32) }
 
-    fn get_source(rules_id: T, indent: usize, is_t_data: bool, include_alts: bool, name: String) -> String {
-        let rules = match rules_id {
-            RTS(rts_id) => {
-                if rts_id >= 10000 {
-                    let id = rts_id - 10000;
-                    TestRules(id).to_prs_general().expect(&format!("invalid test rule ID #{id}"))
-                } else {
-                    let rts = build_rts(rts_id);
-                    let mut rules = ProdRuleSet::build_from(rts);
-                    rules.set_start(0);
-                    if rules.get_symbol_table().is_none() {
-                        let mut symbol_table = SymbolTable::new();
-                        complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), is_t_data);
-                        rules.set_symbol_table(symbol_table);
-                    }
-                    rules
-                }
+    fn get_source(rules_id: T, tr_id: u32, indent: usize, is_t_data: bool, include_alts: bool, name: String) -> String {
+        let rules = match (tr_id, rules_id) {
+            (id, _) if id < 999 => {
+                TestRules(id).to_prs_general().expect(&format!("invalid test rule ID #{id}"))
             }
-            PRS(prs_id) => {
+            (_, RTS(rts_id)) => {
+                let rts = build_rts(rts_id);
+                let mut rules = ProdRuleSet::build_from(rts);
+                rules.set_start(0);
+                if rules.get_symbol_table().is_none() {
+                    let mut symbol_table = SymbolTable::new();
+                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), is_t_data);
+                    rules.set_symbol_table(symbol_table);
+                }
+                rules
+            }
+            (_, PRS(prs_id)) => {
                 build_prs(prs_id, is_t_data)
             }
         };
@@ -45,29 +43,29 @@ mod gen_integration {
         builder.gen_source_code(indent, false)
     }
 
-    fn get_test_data<'a>(id: u32) -> Option<(T, usize, bool, bool, &'a str, &'a str)> {
+    fn get_test_data<'a>(id: u32) -> Option<(T, u32, usize, bool, bool, &'a str, &'a str)> {
         match id {
-            //         rules   indent  t_data alts     tag name                                      listener name
-             1 => Some((PRS( 4), 4,    false, true,    "write_source_code_for_integration_listener1",  "Expr")),
-             2 => Some((PRS(51), 4,    false, true,    "write_source_code_for_integration_listener2",  "Expr")),
-             3 => Some((PRS(20), 4,    false, true,    "write_source_code_for_integration_listener3",  "Struct")),
-             4 => Some((PRS(30), 4,    false, true,    "write_source_code_for_integration_listener4",  "Struct")),
-             5 => Some((PRS(31), 4,    false, true,    "write_source_code_for_integration_listener5",  "Expr")),
-             6 => Some((PRS(32), 4,    false, true,    "write_source_code_for_integration_listener6",  "Expr")),
-             7 => Some((RTS(21), 4,    false, true,    "write_source_code_for_integration_listener7",  "Star")),
-             8 => Some((RTS(22), 4,    false, true,    "write_source_code_for_integration_listener8",  "Star")),
-             9 => Some((RTS(16), 4,    true,  true,    "write_source_code_for_integration_listener9",  "Plus")),
-            10 => Some((RTS(23), 4,    false, true,    "write_source_code_for_integration_listener10", "Plus")),
-            11 => Some((RTS(27), 4,    false, true,    "write_source_code_for_integration_listener11", "Plus")),
-            12 => Some((PRS(33), 4,    true,  true,    "write_source_code_for_integration_listener12", "LeftRec")),
-            13 => Some((PRS(36), 4,    false, true,    "write_source_code_for_integration_listener13", "Expr")),
-            14 => Some((PRS(63), 4,    false, false,   "write_source_code_for_integration_listener14", "Expr")),
-            15 => Some((PRS(53), 4,    false, true,    "write_source_code_for_integration_listener15", "Expr")),
-            16 => Some((PRS(58), 4,    false, true,    "write_source_code_for_integration_listener16", "Expr")),
-            17 => Some((RTS(42), 4,    false, true,    "write_source_code_for_integration_listener17", "Expr")),
-            18 => Some((RTS(43), 4,    false, true,    "write_source_code_for_integration_listener18", "Expr")),
-            19 => Some((RTS(44), 4,    false, true,    "write_source_code_for_integration_listener19", "Expr")),
-            20 => Some((RTS(10402), 4, false, true,    "write_source_code_for_integration_listener20", "Expr")),
+            //         rules             indent t_data alts     tag name                                      listener name
+             1 => Some((PRS( 4),    999,    4,  false, true,    "write_source_code_for_integration_listener1",  "Expr")),
+             2 => Some((PRS(51),    999,    4,  false, true,    "write_source_code_for_integration_listener2",  "Expr")),
+             3 => Some((PRS(20),    999,    4,  false, true,    "write_source_code_for_integration_listener3",  "Struct")),
+             4 => Some((PRS(30),    999,    4,  false, true,    "write_source_code_for_integration_listener4",  "Struct")),
+             5 => Some((PRS(31),    999,    4,  false, true,    "write_source_code_for_integration_listener5",  "Expr")),
+             6 => Some((PRS(32),    999,    4,  false, true,    "write_source_code_for_integration_listener6",  "Expr")),
+             7 => Some((RTS(21),    999,    4,  false, true,    "write_source_code_for_integration_listener7",  "Star")),
+             8 => Some((RTS(22),    999,    4,  false, true,    "write_source_code_for_integration_listener8",  "Star")),
+             9 => Some((RTS(16),    999,    4,  true,  true,    "write_source_code_for_integration_listener9",  "Plus")),
+            10 => Some((RTS(23),    999,    4,  false, true,    "write_source_code_for_integration_listener10", "Plus")),
+            11 => Some((RTS(27),    999,    4,  false, true,    "write_source_code_for_integration_listener11", "Plus")),
+            12 => Some((PRS(33),    999,    4,  true,  true,    "write_source_code_for_integration_listener12", "LeftRec")),
+            13 => Some((PRS(36),    999,    4,  false, true,    "write_source_code_for_integration_listener13", "Expr")),
+            14 => Some((PRS(63),    999,    4,  false, false,   "write_source_code_for_integration_listener14", "Expr")),
+            15 => Some((PRS(53),    999,    4,  false, true,    "write_source_code_for_integration_listener15", "Expr")),
+            16 => Some((PRS(58),    999,    4,  false, true,    "write_source_code_for_integration_listener16", "Expr")),
+            17 => Some((RTS(42),    999,    4,  false, true,    "write_source_code_for_integration_listener17", "Expr")),
+            18 => Some((RTS(43),    999,    4,  false, true,    "write_source_code_for_integration_listener18", "Expr")),
+            19 => Some((RTS(44),    999,    4,  false, true,    "write_source_code_for_integration_listener19", "Expr")),
+            20 => Some((RTS(0),     862,    4,  false, true,    "write_source_code_for_integration_listener20", "Expr")),
             _ => None
         }
     }
@@ -79,8 +77,8 @@ mod gen_integration {
 
     fn do_test(id: u32, action: Action, verbose: bool) -> Result<(), SourceTestError> {
         const FILENAME: &str = "tests/integration/parser_examples.rs";
-        if let Some((rule_id, indent, is_t_data, include_alts, tag, name)) = get_test_data(id) {
-            let source = get_source(rule_id, indent, is_t_data, include_alts, name.to_string());
+        if let Some((rule_id, tr_id, indent, is_t_data, include_alts, tag, name)) = get_test_data(id) {
+            let source = get_source(rule_id, tr_id, indent, is_t_data, include_alts, name.to_string());
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
                 println!("{s}// [{tag}]\n{source}{s}// [{tag}]");
@@ -1000,19 +998,6 @@ mod wrapper_source {
             //     self.stack.push(SynValue::Expr(val));
             // }
 
-            // expr -> <L=expr> Num "^" expr | Num
-            // NT flags:
-            //  - expr: right_rec | parent_left_fact | L-form (162)
-            //  - expr_1: child_left_fact (64)
-            // parents:
-            //  - expr_1 -> expr
-            (PRS(47), 402, true, 0, btreemap![
-            ], btreemap![
-                0 => symbols![],                        //  0: expr -> Num expr_1 | ►expr_1 Num! |
-                1 => symbols![nt 0, t 0],               //  1: expr_1 -> "^" expr | ●expr ◄1 "^" | expr Num
-                2 => symbols![nt 0, t 0],               //  2: expr_1 -> ε        | ◄2           | expr Num
-            ], Default, btreemap![0 => vec![1, 2]]),
-
             // --------------------------------------------------------------------------- left_rec [left_fact]
             // e -> f | e "." Id
             // f -> Id
@@ -1764,6 +1749,24 @@ mod wrapper_source {
                 2 => symbols![nt 0, nt 1, t 0],         //  2: A_1 -> B a A_1 | ●A_1 ◄2 a! ►B | A B a
                 3 => symbols![nt 0],                    //  3: A_1 -> ε       | ◄3            | A
             ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
+
+            // --------------------------------------------------------------------------- combinations
+
+
+            // --------------------------------------------------------------------------- left_rec + left_fact
+
+            // expr -> <L=expr> Num "^" expr | Num
+            // NT flags:
+            //  - expr: right_rec | parent_left_fact | L-form (162)
+            //  - expr_1: child_left_fact (64)
+            // parents:
+            //  - expr_1 -> expr
+            (PRS(47), 862, true, 0, btreemap![
+            ], btreemap![
+                0 => symbols![],                        //  0: expr -> Num expr_1 | ►expr_1 Num! |
+                1 => symbols![nt 0, t 0],               //  1: expr_1 -> "^" expr | ●expr ◄1 "^" | expr Num
+                2 => symbols![nt 0, t 0],               //  2: expr_1 -> ε        | ◄2           | expr Num
+            ], Default, btreemap![0 => vec![1, 2]]),
 
             /*
             (PRS(), false, 0, btreemap![], btreemap![], Default, btreemap![]),
