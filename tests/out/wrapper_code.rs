@@ -365,18 +365,6 @@ pub(crate) mod code_prs_54_1 {
     #[derive(Debug, PartialEq)] pub struct SynF();
 }
 
-pub(crate) mod code_prs_55_1 {
-    /// User-defined type for `E`
-    #[derive(Debug, PartialEq)]
-    pub struct SynE();
-}
-
-pub(crate) mod code_prs_66_1 {
-    /// User-defined type for `E`
-    #[derive(Debug, PartialEq)]
-    pub struct SynE();
-}
-
 pub(crate) mod code_rts_41_1 {
     /// User-defined type for `A`
     #[derive(Debug, PartialEq)]
