@@ -108,6 +108,15 @@ impl SymbolTable {
         self.t[token as usize].1 = name_maybe
     }
 
+    pub fn downsize_num_t(&mut self, num_t: usize) {
+        if num_t < self.t.len() {
+            for (name, _) in &mut self.t[num_t..] {
+                self.fixer_t.remove(name);
+            }
+            self.t.resize(num_t, (String::new(), None));
+        }
+    }
+
     // -------------------------------------------------------------------------
 
     fn add_nt(&mut self, unique_name: String) -> VarId {
@@ -338,5 +347,29 @@ mod tests {
         #[cfg(any())]
         assert!(!st.names.contains_key("A_2"));
         assert!(!st.fixer_nt.contains("A_2"));
+    }
+
+    #[test]
+    fn terminals() {
+        let mut st = SymbolTable::new();
+        let tnames = vec![("a", Some("aa")), ("b", Some("bb")), ("a", Some("A")), ("c", None), ("d", None)];
+        st.extend_terminals(tnames);
+        assert_eq!(st.get_num_t(), 5);
+        let result = st.get_terminals().map(|(s, v)| (s.as_str(), v.as_ref().map(|s| s.as_str()))).to_vec();
+        assert_eq!(result, vec![("a", Some("aa")), ("b", Some("bb")), ("a1", Some("A")), ("c", None), ("d", None)]);
+        for name in vec!["a1", "c", "d"] {
+            assert_eq!(st.fixer_t.contains(name), true);
+        }
+        st.downsize_num_t(2);
+        let result = st.get_terminals().map(|(s, v)| (s.as_str(), v.as_ref().map(|s| s.as_str()))).to_vec();
+        assert_eq!(result, vec![("a", Some("aa")), ("b", Some("bb"))]);
+        assert_eq!(st.get_num_t(), 2);
+        for name in vec!["a1", "c", "d"] {
+            assert_eq!(st.fixer_t.contains(name), false);
+        }
+        let extra_tnames = vec![("a", Some("A")), ("c", None), ("d", None)];
+        st.extend_terminals(extra_tnames);
+        let result = st.get_terminals().map(|(s, v)| (s.as_str(), v.as_ref().map(|s| s.as_str()))).to_vec();
+        assert_eq!(result, vec![("a", Some("aa")), ("b", Some("bb")), ("a1", Some("A")), ("c", None), ("d", None)]);
     }
 }

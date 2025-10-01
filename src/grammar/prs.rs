@@ -354,6 +354,7 @@ impl<T> ProdRuleSet<T> {
                 ).max().unwrap_or(0)
             ).max().unwrap_or(0)
         ).max().unwrap_or(0) as usize;
+        self.symbol_table.as_mut().map(|st| st.downsize_num_t(self.num_t));
         self.flags.resize(self.num_nt, 0);
         self.parent.resize(self.num_nt, None);
     }
