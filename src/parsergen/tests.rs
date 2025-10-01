@@ -1075,7 +1075,7 @@ mod wrapper_source {
             ], Default, btreemap![0 => vec![0]]),
 
             // e -> e "*" e | e "+" e | "!" e | Num
-            (PRS(0), 603, true, false, 0, btreemap![
+            (PRS(0), 603, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_4 e_1       | ►e_1 ◄0 ►e_4     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_4 e_1 | ●e_1 ◄1 ►e_4 "*" | e e
@@ -1088,7 +1088,7 @@ mod wrapper_source {
                 8 => symbols![t 3],                     //  8: e_4 -> Num         | ◄8 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | "!" e | e "+" e | Num
-            (PRS(0), 604, true, false, 0, btreemap![
+            (PRS(0), 604, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_4 e_1       | ►e_1 ◄0 ►e_4     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_4 e_1 | ●e_1 ◄1 ►e_4 "*" | e e
@@ -1101,7 +1101,7 @@ mod wrapper_source {
                 8 => symbols![t 3],                     //  8: e_4 -> Num         | ◄8 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> "!" e | e "*" e | e "+" e | Num
-            (PRS(0), 605, true, false, 0, btreemap![
+            (PRS(0), 605, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_4 e_1       | ►e_1 ◄0 ►e_4     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_4 e_1 | ●e_1 ◄1 ►e_4 "*" | e e
@@ -1114,7 +1114,7 @@ mod wrapper_source {
                 8 => symbols![t 3],                     //  8: e_4 -> Num         | ◄8 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | e "+" e | <R> e "!" e | Num
-            (PRS(0), 606, true, false, 0, btreemap![
+            (PRS(0), 606, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_4 e_1       | ►e_1 ◄0 ►e_4     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_4 e_1 | ●e_1 ◄1 ►e_4 "*" | e e
@@ -1127,7 +1127,7 @@ mod wrapper_source {
                 8 => symbols![t 3],                     //  8: e_4 -> Num         | ◄8 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | <R> e "!" e | e "+" e | Num
-            (PRS(0), 607, true, false, 0, btreemap![
+            (PRS(0), 607, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_4 e_1       | ►e_1 ◄0 ►e_4     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_4 e_1 | ●e_1 ◄1 ►e_4 "*" | e e
@@ -1141,7 +1141,7 @@ mod wrapper_source {
                 9 => symbols![t 3],                     //  9: e_4 -> Num         | ◄9 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> <R> e "!" e | e "*" e | e "+" e | Num
-            (PRS(0), 608, true, false, 0, btreemap![
+            (PRS(0), 608, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_6 e_1       | ►e_1 ◄0 ►e_6      | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "!" e_4 e_1 | ●e_1 ◄1 ►e_4 "!"  | e e
@@ -1158,7 +1158,7 @@ mod wrapper_source {
                 12 => symbols![t 3],                    // 12: e_6 -> Num         | ◄12 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | e "+" e | e "!" | Num
-            (PRS(0), 609, true, false, 0, btreemap![
+            (PRS(0), 609, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_4 e_1       | ►e_1 ◄0 ►e_4     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_4 e_1 | ●e_1 ◄1 ►e_4 "*" | e e
@@ -1171,7 +1171,7 @@ mod wrapper_source {
                 8 => symbols![t 3],                     //  8: e_4 -> Num         | ◄8 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | e "!" | e "+" e | Num
-            (PRS(0), 610, true, false, 0, btreemap![
+            (PRS(0), 610, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_4 e_1       | ►e_1 ◄0 ►e_4     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_4 e_1 | ●e_1 ◄1 ►e_4 "*" | e e
@@ -1185,7 +1185,7 @@ mod wrapper_source {
                 9 => symbols![t 3],                     //  9: e_4 -> Num         | ◄9 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "!" | e "*" e | e "+" e | Num
-            (PRS(0), 611, true, false, 0, btreemap![
+            (PRS(0), 611, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_6 e_1       | ►e_1 ◄0 ►e_6     | e
                 1 => symbols![nt 0],                    //  1: e_1 -> "!" e_1     | ●e_1 ◄1 "!"      | e
@@ -1202,7 +1202,7 @@ mod wrapper_source {
                 12 => symbols![t 3],                    // 12: e_6 -> Num         | ◄12 Num!         | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "!" e | e "*" e | e "+" e | Num
-            (PRS(0), 612, true, false, 0, btreemap![
+            (PRS(0), 612, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_6 e_1       | ►e_1 ◄0 ►e_6      | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "!" e_6 e_1 | ●e_1 ◄1 ►e_6 "!"  | e e
@@ -1219,7 +1219,7 @@ mod wrapper_source {
                 12 => symbols![t 3],                    // 12: e_6 -> Num         | ◄12 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | e "+" e | <P> e "!" e | Num
-            (PRS(0), 613, true, false, 0, btreemap![
+            (PRS(0), 613, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_4 e_1       | ►e_1 ◄0 ►e_4     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_4 e_1 | ●e_1 ◄1 ►e_4 "*" | e e
@@ -1232,7 +1232,7 @@ mod wrapper_source {
                 8 => symbols![t 3],                     //  8: e_4 -> Num         | ◄8 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | <P> e "!" e | e "+" e | Num
-            (PRS(0), 614, true, false, 0, btreemap![
+            (PRS(0), 614, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_4 e_1       | ►e_1 ◄0 ►e_4     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_4 e_1 | ●e_1 ◄1 ►e_4 "*" | e e
@@ -1246,7 +1246,7 @@ mod wrapper_source {
                 9 => symbols![t 3],                     //  9: e_4 -> Num         | ◄9 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | e "+" | "!" e | Num
-            (PRS(0), 630, true, false, 0, btreemap![
+            (PRS(0), 630, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_2 e_1       | ►e_1 ◄0 ►e_2     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_2 e_1 | ●e_1 ◄1 ►e_2 "*" | e e
@@ -1256,7 +1256,7 @@ mod wrapper_source {
                 5 => symbols![t 3],                     //  5: e_2 -> Num         | ◄5 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | e "+" | <R> "!" e | Num
-            (PRS(0), 631, true, false, 0, btreemap![
+            (PRS(0), 631, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_2 e_1       | ►e_1 ◄0 ►e_2     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_2 e_1 | ●e_1 ◄1 ►e_2 "*" | e e
@@ -1266,7 +1266,7 @@ mod wrapper_source {
                 5 => symbols![t 3],                     //  5: e_2 -> Num         | ◄5 Num!          | Num
             ], Default, btreemap![0 => vec![0]]),
             // e -> e "*" e | <R> e "+" | "!" e | Num
-            (PRS(0), 632, true, false, 0, btreemap![
+            (PRS(0), 632, true, true, 0, btreemap![
             ], btreemap![
                 0 => symbols![nt 0],                    //  0: e -> e_2 e_1       | ►e_1 ◄0 ►e_2     | e
                 1 => symbols![nt 0, nt 0],              //  1: e_1 -> "*" e_2 e_1 | ●e_1 ◄1 ►e_2 "*" | e e
@@ -1827,7 +1827,10 @@ mod wrapper_source {
         ];
 
         // those parsers don't require type definition in wrapper_code.rs (avoids an unused_imports warning):
-        let type_gen_exclusion = hashset!["rts_29_3", "rts_30_2", "rts_38_3"];
+        let type_gen_exclusion = hashset![
+            "rts_29_3", "rts_30_2", "rts_38_3",
+            "603_1", "604_1", "605_1", "606_1", "607_1", "608_1", "609_1", "610_1", "611_1", "612_1", "613_1", "614_1", "630_1", "631_1", "632_1",
+        ];
 
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
@@ -1841,7 +1844,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
+        const REPLACE_SOURCE: bool = false;
 
         // CAUTION! Empty the first btreemap if the NTs have changed
 
@@ -1850,10 +1853,9 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         let mut old_rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-// if !matches!(tr_id, 402 | 401) { continue }
+        // if !matches!(tr_id, 603..=632) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let old_rule_iter = old_rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
-            // let ll1 = rule_id.build_prs(test_id, start_nt, true);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();
             if ll1_maybe.is_none() { continue }
             let ll1 = ll1_maybe.unwrap();
@@ -1934,14 +1936,16 @@ mod wrapper_source {
                 }
                 println!("*/");
             }
-            let wrapper_src = builder.source_wrapper();
+            let mut src = vec![];
+            if test_source_parser {
+                src.push(builder.source_build_parser())
+            }
+            src.push(builder.source_wrapper());
             let builder_has_errors = builder.log.num_errors() > 0;
+            src.insert(0, builder.source_use());
             if VERBOSE && builder_has_errors {
                 println!("log:\n{}", builder.get_log().get_messages_str());
             }
-            let mut src = vec![builder.source_use()];
-            
-            src.push(wrapper_src);
             if VERBOSE_TYPE {
                 if builder_has_errors {
                     println!("builder couldn't generate the source");

@@ -4102,11 +4102,38 @@ pub(crate) mod rules_502_2 {
 // precedence group:
 
 pub(crate) mod rules_603_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 603 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_603_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
+    static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 2, 3, 3, 4, 4];
+    static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 25] = [10, 10, 0, 0, 10, 1, 2, 9, 9, 3, 10, 10, 4, 4, 10, 5, 6, 9, 9, 6, 10, 10, 7, 8, 10];
+    static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::NT(3), OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -4267,13 +4294,102 @@ pub(crate) mod rules_603_1 {
 
     // [wrapper source for rule 603 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> "!" e`
+                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_604_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 604 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_604_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
+    static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 2, 3, 3, 4, 4];
+    static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(2)], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 25] = [9, 9, 0, 0, 10, 1, 2, 9, 9, 3, 10, 10, 4, 4, 10, 5, 6, 9, 9, 6, 10, 10, 7, 8, 10];
+    static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::NT(3), OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -4434,13 +4550,102 @@ pub(crate) mod rules_604_1 {
 
     // [wrapper source for rule 604 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> "!" e`
+                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_605_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 605 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_605_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
+    static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 2, 3, 3, 4, 4];
+    static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(4)], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 25] = [9, 9, 0, 0, 10, 1, 2, 9, 9, 3, 10, 10, 4, 4, 10, 5, 6, 9, 9, 6, 10, 10, 7, 8, 10];
+    static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::NT(3), OpCode::Exit(4), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(5), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(6)], &[OpCode::Exit(7), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -4601,13 +4806,102 @@ pub(crate) mod rules_605_1 {
 
     // [wrapper source for rule 605 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> "!" e`
+                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_606_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 606 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_606_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
+    static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 1, 2, 3, 3, 4];
+    static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(0), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 25] = [10, 10, 10, 0, 10, 1, 2, 3, 9, 4, 10, 10, 10, 5, 10, 6, 7, 7, 9, 7, 10, 10, 10, 8, 10];
+    static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -4763,13 +5057,102 @@ pub(crate) mod rules_606_1 {
 
     // [wrapper source for rule 606 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> <R> e "!" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_607_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 607 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_607_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
+    static ALT_VAR: [VarId; 10] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4];
+    static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 25] = [10, 10, 10, 0, 11, 1, 3, 2, 10, 4, 11, 11, 11, 5, 11, 6, 8, 7, 10, 8, 11, 11, 11, 9, 11];
+    static OPCODES: [&[OpCode]; 10] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -4926,13 +5309,102 @@ pub(crate) mod rules_607_1 {
 
     // [wrapper source for rule 607 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> <R> e "!" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_608_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 608 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_608_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 7;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4", "e_5", "e_6"];
+    static ALT_VAR: [VarId; 13] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 6];
+    static ALTERNATIVES: [&[Symbol]; 13] = [&[Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(5)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(5)], &[Symbol::Empty], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 35] = [13, 13, 13, 0, 14, 2, 3, 1, 13, 4, 14, 14, 14, 5, 14, 7, 8, 6, 13, 8, 14, 14, 14, 9, 14, 11, 11, 10, 13, 11, 14, 14, 14, 12, 14];
+    static OPCODES: [&[OpCode]; 13] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -5092,13 +5564,102 @@ pub(crate) mod rules_608_1 {
 
     // [wrapper source for rule 608 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> <R> e "!" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    // `e -> e "*" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_609_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 609 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_609_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
+    static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 1, 2, 3, 3, 4];
+    static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 25] = [9, 9, 9, 0, 10, 1, 2, 3, 9, 4, 10, 10, 10, 5, 10, 6, 7, 7, 9, 7, 10, 10, 10, 8, 10];
+    static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::T(2)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -5253,13 +5814,102 @@ pub(crate) mod rules_609_1 {
 
     // [wrapper source for rule 609 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_suffix_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> e "!"`
+                    CtxE::E3 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_610_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 610 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_610_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
+    static ALT_VAR: [VarId; 10] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4];
+    static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 25] = [10, 10, 10, 0, 11, 1, 3, 2, 10, 4, 11, 11, 11, 5, 11, 6, 8, 7, 10, 8, 11, 11, 11, 9, 11];
+    static OPCODES: [&[OpCode]; 10] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::T(2)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -5415,13 +6065,102 @@ pub(crate) mod rules_610_1 {
 
     // [wrapper source for rule 610 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_suffix_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "!"`
+                    CtxE::E2 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    // `e -> e "+" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_611_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 611 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_611_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 7;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4", "e_5", "e_6"];
+    static ALT_VAR: [VarId; 13] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 6];
+    static ALTERNATIVES: [&[Symbol]; 13] = [&[Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(5)], &[Symbol::T(2), Symbol::NT(5)], &[Symbol::Empty], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 35] = [13, 13, 13, 0, 14, 2, 3, 1, 13, 4, 14, 14, 14, 5, 14, 7, 8, 6, 13, 8, 14, 14, 14, 9, 14, 11, 11, 10, 13, 11, 14, 14, 14, 12, 14];
+    static OPCODES: [&[OpCode]; 13] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::T(2)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -5580,13 +6319,102 @@ pub(crate) mod rules_611_1 {
 
     // [wrapper source for rule 611 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_suffix_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "!"`
+                    CtxE::E1 { e: SynE(ls) } => ls_suffix_op("!", ls),
+                    // `e -> e "*" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_612_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 612 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_612_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 7;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4", "e_5", "e_6"];
+    static ALT_VAR: [VarId; 13] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4, 5, 5, 6];
+    static ALTERNATIVES: [&[Symbol]; 13] = [&[Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::NT(6), Symbol::NT(5)], &[Symbol::T(2), Symbol::NT(6), Symbol::NT(5)], &[Symbol::Empty], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 35] = [13, 13, 13, 0, 14, 2, 3, 1, 13, 4, 14, 14, 14, 5, 14, 7, 8, 6, 13, 8, 14, 14, 14, 9, 14, 11, 11, 10, 13, 11, 14, 14, 14, 12, 14];
+    static OPCODES: [&[OpCode]; 13] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(6)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(6), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(6)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(6), OpCode::T(2)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(8)], &[OpCode::NT(5), OpCode::Exit(9), OpCode::NT(6)], &[OpCode::Loop(5), OpCode::Exit(10), OpCode::NT(6), OpCode::T(2)], &[OpCode::Exit(11)], &[OpCode::Exit(12), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -5746,13 +6574,102 @@ pub(crate) mod rules_612_1 {
 
     // [wrapper source for rule 612 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "!" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    // `e -> e "*" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_613_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 613 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_613_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
+    static ALT_VAR: [VarId; 9] = [0, 1, 1, 1, 1, 2, 3, 3, 4];
+    static ALTERNATIVES: [&[Symbol]; 9] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 25] = [9, 9, 9, 0, 10, 1, 2, 3, 9, 4, 10, 10, 10, 5, 10, 6, 7, 7, 9, 7, 10, 10, 10, 8, 10];
+    static OPCODES: [&[OpCode]; 9] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(7)], &[OpCode::Exit(8), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -5908,13 +6825,102 @@ pub(crate) mod rules_613_1 {
 
     // [wrapper source for rule 613 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> <P> e "!" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_614_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 614 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_614_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 5;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
+    static ALT_VAR: [VarId; 10] = [0, 1, 1, 1, 1, 2, 3, 3, 3, 4];
+    static ALTERNATIVES: [&[Symbol]; 10] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 25] = [10, 10, 10, 0, 11, 1, 3, 2, 10, 4, 11, 11, 11, 5, 11, 6, 8, 7, 10, 8, 11, 11, 11, 9, 11];
+    static OPCODES: [&[OpCode]; 10] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(4)], &[OpCode::NT(3), OpCode::Exit(5), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(6), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(8)], &[OpCode::Exit(9), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -6071,13 +7077,102 @@ pub(crate) mod rules_614_1 {
 
     // [wrapper source for rule 614 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> <P> e "!" e`
+                    CtxE::E2 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("!", lsleft, lsright),
+                    // `e -> e "+" e`
+                    CtxE::E3 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("+", lsleft, lsright),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_630_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 630 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_630_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 3;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2"];
+    static ALT_VAR: [VarId; 6] = [0, 1, 1, 1, 2, 2];
+    static ALTERNATIVES: [&[Symbol]; 6] = [&[Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 15] = [7, 7, 0, 0, 7, 1, 2, 6, 6, 3, 7, 7, 4, 5, 7];
+    static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(5), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -6234,13 +7329,102 @@ pub(crate) mod rules_630_1 {
 
     // [wrapper source for rule 630 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op, ls_suffix_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+"`
+                    CtxE::E2 { e: SynE(ls) } => ls_suffix_op("+", ls),
+                    // `e -> "!" e`
+                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_631_1 {
+    use super::precedence_type::SynE;
+
     // ------------------------------------------------------------
     // [wrapper source for rule 631 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_631_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 3;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2"];
+    static ALT_VAR: [VarId; 6] = [0, 1, 1, 1, 2, 2];
+    static ALTERNATIVES: [&[Symbol]; 6] = [&[Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 15] = [7, 7, 0, 0, 7, 1, 2, 6, 6, 3, 7, 7, 4, 5, 7];
+    static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(5), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -6397,13 +7581,102 @@ pub(crate) mod rules_631_1 {
 
     // [wrapper source for rule 631 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op, ls_suffix_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, TestApi, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> e "+"`
+                    CtxE::E2 { e: SynE(ls) } => ls_suffix_op("+", ls),
+                    // `e -> <R> "!" e`
+                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
 pub(crate) mod rules_632_1 {
+    use super::precedence_type::{SynE, TestApi};
+
     // ------------------------------------------------------------
     // [wrapper source for rule 632 #1, start e]
 
-    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_632_1::*;
+    use lexigram_lib::{CollectJoin, FixedSymTable, grammar::{AltId, Alternative, Symbol, VarId}, log::Logger, parser::{Call, ListenerWrapper, OpCode, Parser}};
+
+    const PARSER_NUM_T: usize = 4;
+    const PARSER_NUM_NT: usize = 3;
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Mul", Some("*")), ("Add", Some("+")), ("Op", Some("!")), ("Num", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2"];
+    static ALT_VAR: [VarId; 6] = [0, 1, 1, 1, 2, 2];
+    static ALTERNATIVES: [&[Symbol]; 6] = [&[Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::T(2), Symbol::NT(0)], &[Symbol::T(3)]];
+    static PARSING_TABLE: [AltId; 15] = [7, 7, 0, 0, 7, 1, 2, 6, 6, 3, 7, 7, 4, 5, 7];
+    static OPCODES: [&[OpCode]; 6] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(2)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::T(1)], &[OpCode::Exit(3)], &[OpCode::Exit(4), OpCode::NT(0), OpCode::T(2)], &[OpCode::Exit(5), OpCode::T(3)]];
+    static START_SYMBOL: VarId = 0;
+
+    pub fn build_parser() -> Parser<'static> {
+        let symbol_table = FixedSymTable::new(
+            SYMBOLS_T.into_iter().map(|(s, os)| (s.to_string(), os.map(|s| s.to_string()))).collect(),
+            SYMBOLS_NT.into_iter().map(|s| s.to_string()).collect()
+        );
+        Parser::new(
+            PARSER_NUM_NT, PARSER_NUM_T + 1,
+            &ALT_VAR,
+            ALTERNATIVES.into_iter().map(|s| Alternative::new(s.to_vec())).collect(),
+            OPCODES.into_iter().map(|strip| strip.to_vec()).collect(),
+            &PARSING_TABLE,
+            symbol_table,
+            START_SYMBOL
+        )
+    }
 
     #[derive(Debug)]
     pub enum CtxE {
@@ -6560,7 +7833,337 @@ pub(crate) mod rules_632_1 {
 
     // [wrapper source for rule 632 #1, start e]
     // ------------------------------------------------------------
+
+    pub mod listener {
+        use lexigram_lib::log::BufLog;
+        use lexigram_lib::parser::ParserError;
+        use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op, ls_suffix_op, LevelString};
+        use crate::out::wrapper_source::precedence_type::{get_stream, Tester};
+        use super::*;
+
+        pub struct EListener {
+            log: BufLog,
+            result: Option<String>,
+        }
+
+        impl TestListener for EListener {
+            fn get_mut_log(&mut self) -> &mut impl Logger {
+                &mut self.log
+            }
+
+            fn exit(&mut self, e: SynE) {
+                self.result = Some(e.0.1);
+            }
+
+            fn init_e(&mut self) {
+                self.result = None;
+            }
+
+            fn exit_e(&mut self, ctx: CtxE) -> SynE {
+                SynE(match ctx {
+                    // `e -> e "*" e`
+                    CtxE::E1 { e: [SynE(lsleft), SynE(lsright)] } => ls_binary_op("*", lsleft, lsright),
+                    // `e -> <R> e "+"`
+                    CtxE::E2 { e: SynE(ls) } => ls_suffix_op("+", ls),
+                    // `e -> "!" e`
+                    CtxE::E3 { e: SynE(ls) } => ls_prefix_op("!", ls),
+                    // `e -> Num`
+                    CtxE::E4 { num } => LevelString(0, num),
+                })
+            }
+        }
+
+        impl TestApi for Tester<Wrapper<EListener>> {
+            fn new() -> Self {
+                let parser = build_parser();
+                let symbols = Self::get_symbols(&parser);
+                Tester {
+                    parser: build_parser(),
+                    wrapper: Wrapper::new(EListener { log: BufLog::new(), result: None }, false),
+                    symbols
+                }
+            }
+
+            fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)> {
+                let stream = get_stream(input, &self.symbols);
+                let result = self.parser.parse_stream(&mut self.wrapper, stream);
+                let log = std::mem::take(&mut self.wrapper.listener.log);
+                match result {
+                    Ok(_) => Ok((self.wrapper.listener.result.take(), log)),
+                    Err(e) => Err((e, log)),
+                }
+            }
+        }
+    }
 }
+
+pub mod precedence_type {
+    use std::collections::HashMap;
+    use iter_index::IndexerIterator;
+    use lexigram_lib::dfa::TokenId;
+    use lexigram_lib::grammar::Symbol;
+    use lexigram_lib::lexer::CaretCol;
+    use lexigram_lib::log::BufLog;
+    use lexigram_lib::parser::{ListenerWrapper, Parser, ParserError, ParserToken};
+    use crate::out::wrapper_source::level_string::LevelString;
+
+    const TOK_NUM: TokenId = 3;
+    const TOK_ID: TokenId = 4;
+
+    /// User-defined type for `e`
+    #[derive(Debug, PartialEq)] pub struct SynE(pub LevelString);
+
+    pub fn get_stream(input: &str, symbols: &HashMap<String, TokenId>) -> impl Iterator<Item=ParserToken> {
+        const VERBOSE: bool = false;
+        input.chars().index_start::<CaretCol>(1).filter(|(_, c)| !c.is_ascii_whitespace())
+        // input.split_ascii_whitespace().index_start::<CaretCol>(1)
+            .map(|(i, w)| {
+                if let Some(s) = symbols.get(&w.to_string()) {
+                    (*s, w.to_string(), 1, i)
+                } else {
+                    // if w.chars().next().unwrap().is_ascii_digit() {
+                    if w.is_ascii_digit() {
+                        (TOK_NUM, w.to_string(), 1, i)
+                    } else {
+                        (TOK_ID, w.to_string(), 1, i)
+                    }
+                }
+            })
+            .inspect(|(tok, s, l, c)| { if VERBOSE { println!("STREAM: pos={l:3}:{c:3}, tok={tok}, s={s:?}"); } })
+    }
+
+    pub struct Tester<W: ListenerWrapper> {
+        pub parser: Parser<'static>,
+        pub wrapper: W,
+        pub symbols: HashMap<String, TokenId>
+    }
+
+    pub trait TestApi {
+        fn new() -> Self where Self: Sized;
+        fn get_symbols(parser: &Parser) -> HashMap<String, TokenId> where Self: Sized {
+            let table = parser.get_symbol_table().unwrap();
+            (0..table.get_num_t() as TokenId)
+                .map(|t| (Symbol::T(t).to_str(Some(table)), t))
+                .collect::<HashMap<_, _>>()
+        }
+        fn parse(&mut self, input: &str) -> Result<(Option<String>, BufLog), (ParserError, BufLog)>;
+    }
+}
+
+mod test_precedence {
+    use lexigram_lib::parser::ParserError;
+    use crate::out::wrapper_source::precedence_type::{TestApi, Tester};
+    #[allow(unused_imports)]
+    use super::{rules_603_1, rules_604_1, rules_605_1, rules_606_1, rules_607_1, rules_608_1, rules_609_1, rules_610_1,
+                rules_611_1, rules_612_1, rules_613_1, rules_614_1, rules_630_1, rules_631_1, rules_632_1};
+    // use super::{rules_631_1, rules_632_1};
+
+    #[test]
+    fn test() {
+        let listeners: Vec<(Box<dyn TestApi>, Vec<(&str, Result<Option<&str>, ParserError>)>)> = vec![
+            (   // 603: e -> e "*" e | e "+" e |   "!" e | Num
+                Box::new(Tester::<rules_603_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("!!2", Ok(Some("! (! 2)"))),
+                    ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
+                    ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
+                    ("2 * !3", Ok(Some("2 * (! 3)"))),
+                    ("!2 * 3", Ok(Some("! (2 * 3)"))),
+                    ("2 + !3", Ok(Some("2 + (! 3)"))),
+                    ("!2 + 3", Ok(Some("! (2 + 3)"))),
+
+                    ("2 * a", Err(ParserError::ExtraSymbol)),
+                ]),
+            (   // 604: e -> e "*" e |   "!" e | e "+" e | Num
+                Box::new(Tester::<rules_604_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
+                    ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
+                    ("2 * !3", Ok(Some("2 * (! 3)"))),
+                    ("!2 * 3", Ok(Some("! (2 * 3)"))),
+                    ("2 + !3", Ok(Some("2 + (! 3)"))),
+                    ("!2 + 3", Ok(Some("(! 2) + 3"))),
+                ]),
+            (   // 605: e ->   "!" e | e "*" e | e "+" e | Num
+                Box::new(Tester::<rules_605_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
+                    ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
+                    ("2 * !3", Ok(Some("2 * (! 3)"))),
+                    ("!2 * 3", Ok(Some("(! 2) * 3"))),
+                    ("2 + !3", Ok(Some("2 + (! 3)"))),
+                    ("!2 + 3", Ok(Some("(! 2) + 3"))),
+                ]),
+            (   // 606: e ->     e "*" e |     e "+" e | <R> e "!" e | Num
+                Box::new(Tester::<rules_606_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 ! 3 ! 4", Ok(Some("2 ! (3 ! 4)"))),
+                    ("2 * 3 + 4 ! 5", Ok(Some("((2 * 3) + 4) ! 5"))),
+                    ("1 ! 2 + 3 * 4", Ok(Some("1 ! (2 + (3 * 4))"))),
+                    ("1 * 2 ! 3 + 4", Ok(Some("(1 * 2) ! (3 + 4)"))),
+                    ("1 + 2 ! 3 * 4", Ok(Some("(1 + 2) ! (3 * 4)"))),
+                ]),
+            (   // 607: e ->     e "*" e | <R> e "!" e |     e "+" e | Num
+                Box::new(Tester::<rules_607_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 ! 3 ! 4", Ok(Some("2 ! (3 ! 4)"))),
+                    ("2 * 3 + 4 ! 5", Ok(Some("(2 * 3) + (4 ! 5)"))),
+                    ("1 ! 2 + 3 * 4", Ok(Some("(1 ! 2) + (3 * 4)"))),
+                    ("1 * 2 ! 3 + 4", Ok(Some("((1 * 2) ! 3) + 4"))),
+                    ("1 + 2 ! 3 * 4", Ok(Some("1 + (2 ! (3 * 4))"))),
+                ]),
+            (   // 608: e -> <R> e "!" e |     e "*" e |     e "+" e | Num
+                Box::new(Tester::<rules_608_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 ! 3 ! 4", Ok(Some("2 ! (3 ! 4)"))),
+                    ("2 * 3 + 4 ! 5", Ok(Some("(2 * 3) + (4 ! 5)"))),
+                    ("1 ! 2 + 3 * 4", Ok(Some("(1 ! 2) + (3 * 4)"))),
+                    ("1 * 2 ! 3 + 4", Ok(Some("(1 * (2 ! 3)) + 4"))),
+                    ("1 + 2 ! 3 * 4", Ok(Some("1 + ((2 ! 3) * 4)"))),
+                ]),
+            (   // 609: e -> e "*" e | e "+" e | e "!"   | Num
+                Box::new(Tester::<rules_609_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
+                    ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
+                    ("2 * 3!", Ok(Some("(2 * 3) !"))),
+                    ("2! * 3", Ok(Some("(2 !) * 3"))),
+                    ("2 + 3!", Ok(Some("(2 + 3) !"))),
+                    ("2! + 3", Ok(Some("(2 !) + 3"))),
+                ]),
+            (   // 610: e -> e "*" e | e "!"   | e "+" e | Num
+                Box::new(Tester::<rules_610_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
+                    ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
+                    ("2 * 3!", Ok(Some("(2 * 3) !"))),
+                    ("2! * 3", Ok(Some("(2 !) * 3"))),
+                    ("2 + 3!", Ok(Some("2 + (3 !)"))),
+                    ("2! + 3", Ok(Some("(2 !) + 3"))),
+                ]),
+            (   // 611: e -> e "!"   | e "*" e | e "+" e | Num
+                Box::new(Tester::<rules_611_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 * 3 + 4", Ok(Some("(2 * 3) + 4"))),
+                    ("2 + 3 * 4", Ok(Some("2 + (3 * 4)"))),
+                    ("2 * 3!", Ok(Some("2 * (3 !)"))),
+                    ("2! * 3", Ok(Some("(2 !) * 3"))),
+                    ("2 + 3!", Ok(Some("2 + (3 !)"))),
+                    ("2! + 3", Ok(Some("(2 !) + 3"))),
+                ]),
+            (   // 612: e -> e "!" e |     e "*" e |     e "+" e | Num
+                Box::new(Tester::<rules_612_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 ! 3 ! 4", Ok(Some("(2 ! 3) ! 4"))),
+                    ("2 * 3 + 4 ! 5", Ok(Some("(2 * 3) + (4 ! 5)"))),
+                    ("1 ! 2 + 3 * 4", Ok(Some("(1 ! 2) + (3 * 4)"))),
+                    ("1 * 2 ! 3 + 4", Ok(Some("(1 * (2 ! 3)) + 4"))),
+                    ("1 + 2 ! 3 * 4", Ok(Some("1 + ((2 ! 3) * 4)"))),
+                ]),
+            (   // 613: e -> e "*" e |     e "+" e | <P> e "!" e | Num
+                Box::new(Tester::<rules_613_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 ! 3 ! 4", Ok(Some("(2 ! 3) ! 4"))),
+                    ("2 * 3 + 4 ! 5", Ok(Some("((2 * 3) + 4) ! 5"))),
+                    ("1 ! 2 + 3 * 4", Ok(Some("(1 ! 2) + (3 * 4)"))),
+                    ("1 * 2 ! 3 + 4", Ok(Some("((1 * 2) ! 3) + 4"))),
+                    ("1 + 2 ! 3 * 4", Ok(Some("(1 + 2) ! (3 * 4)"))),
+                ]),
+            (   // 614: e -> e "*" e | <P> e "!" e |     e "+" e | Num
+                Box::new(Tester::<rules_614_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2 + 3 + 4", Ok(Some("(2 + 3) + 4"))),
+                    ("2 ! 3 ! 4", Ok(Some("(2 ! 3) ! 4"))),
+                    ("2 * 3 + 4 ! 5", Ok(Some("(2 * 3) + (4 ! 5)"))),
+                    ("1 ! 2 + 3 * 4", Ok(Some("(1 ! 2) + (3 * 4)"))),
+                    ("1 * 2 ! 3 + 4", Ok(Some("((1 * 2) ! 3) + 4"))),
+                    ("1 + 2 ! 3 * 4", Ok(Some("1 + ((2 ! 3) * 4)"))),
+                ]),
+            (   // 630: e -> e "*" e |     e "+" |     "!" e | Num
+                Box::new(Tester::<rules_630_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2++", Ok(Some("(2 +) +"))),
+                    ("!!2", Ok(Some("! (! 2)"))),
+                    ("2 * 3+", Ok(Some("(2 * 3) +"))),
+                    ("2+ * 4", Ok(Some("(2 +) * 4"))),
+                    ("2 * !3", Ok(Some("2 * (! 3)"))),
+                    ("!2 * 4", Ok(Some("! (2 * 4)"))),
+                    ("!2+", Ok(Some("! (2 +)"))),
+                ]),
+            (   // 631: e -> e "*" e |     e "+" | <R> "!" e | Num
+                Box::new(Tester::<rules_631_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2++", Ok(Some("(2 +) +"))),
+                    ("!!2", Ok(Some("! (! 2)"))),
+                    ("2 * 3+", Ok(Some("(2 * 3) +"))),
+                    ("2+ * 4", Ok(Some("(2 +) * 4"))),
+                    ("2 * !3", Ok(Some("2 * (! 3)"))),
+                    ("!2 * 4", Ok(Some("! (2 * 4)"))),
+                    ("!2+", Ok(Some("! (2 +)"))),
+                ]),
+            (   // 632: e -> e "*" e | <R> e "+" |     "!" e | Num
+                Box::new(Tester::<rules_632_1::Wrapper<_>>::new()),
+                vec![
+                    ("2 * 3 * 4", Ok(Some("(2 * 3) * 4"))),
+                    ("2++", Ok(Some("(2 +) +"))),
+                    ("!!2", Ok(Some("! (! 2)"))),
+                    ("2 * 3+", Ok(Some("(2 * 3) +"))),
+                    ("2+ * 4", Ok(Some("(2 +) * 4"))),
+                    ("2 * !3", Ok(Some("2 * (! 3)"))),
+                    ("!2 * 4", Ok(Some("! (2 * 4)"))),
+                    ("!2+", Ok(Some("! (2 +)"))),
+                ]),
+        ];
+        const VERBOSE: bool = false;
+
+        for (test_id, (mut tester, tests)) in listeners.into_iter().enumerate() {
+            if VERBOSE { println!("{:=<80}\nTest {test_id}", ""); }
+            for (input, expected) in tests {
+                if VERBOSE { println!("input: {input}"); }
+                let (result, log) = match tester.parse(input) {
+                    Ok((output, log)) => {
+                        if VERBOSE { println!("-> output: {output:?}"); }
+                        (Ok(output), log)
+                    }
+                    Err((error, log)) => {
+                        if VERBOSE { println!("-> error: {error:?}"); }
+                        (Err(error), log)
+                    }
+                };
+                if VERBOSE && !log.is_empty() { println!("Log:\n{log}"); }
+                assert_eq!(result, expected.map(|s_maybe| s_maybe.map(|s| s.to_string())));
+            }
+        }
+
+    }
+}
+
+// ================================================================================
 
 // Test 28: rules PRS(33) #1, start 0:
 /*
