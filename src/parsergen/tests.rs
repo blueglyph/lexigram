@@ -1360,41 +1360,6 @@ mod wrapper_source {
                 11 => symbols![t 4],                    // 11: e_4 -> Id          | ◄11 Id!          | Id
             ], Default, btreemap![0 => vec![0]]),
 
-            // E -> <R> E ^ E | E * E | - E | E + E | ID;
-            // NT flags:
-            //  - E: parent_left_rec | parent_amb (1536)
-            //  - E_1: child_left_rec (4)
-            //  - E_2: parent_left_rec (512)
-            //  - E_3: child_left_rec (4)
-            //  - E_4: parent_left_rec (512)
-            //  - E_5: child_left_rec (4)
-            //  - E_6: right_rec (2)
-            // parents:
-            //  - E_1 -> E
-            //  - E_2 -> E
-            //  - E_3 -> E_2
-            //  - E_4 -> E
-            //  - E_5 -> E_4
-            //  - E_6 -> E
-            (PRS(63), 999, true, false, 0, btreemap![ // todo: test
-                0 => "SynE".to_string(),
-            ], btreemap![
-                0 => symbols![nt 0],                    //  0: E -> E_6 E_1     | ►E_1 ◄0 ►E_6    | E
-                1 => symbols![nt 0, nt 0],              //  1: E_1 -> ^ E_4 E_1 | ●E_1 ◄1 ►E_4 ^  | E E
-                2 => symbols![nt 0, nt 0],              //  2: E_1 -> * E_4 E_1 | ●E_1 ◄2 ►E_4 *  | E E
-                3 => symbols![nt 0, nt 0],              //  3: E_1 -> + E_2 E_1 | ●E_1 ◄3 ►E_2 +  | E E
-                4 => symbols![nt 0],                    //  4: E_1 -> ε         | ◄4              | E
-                5 => symbols![nt 0],                    //  5: E_2 -> E_6 E_3   | ►E_3 ◄5 ►E_6    | E
-                6 => symbols![nt 0, nt 0],              //  6: E_3 -> ^ E_4 E_3 | ●E_3 ◄6 ►E_4 ^  | E E
-                7 => symbols![nt 0, nt 0],              //  7: E_3 -> * E_4 E_3 | ●E_3 ◄7 ►E_4 *  | E E
-                8 => symbols![nt 0],                    //  8: E_3 -> ε         | ◄8              | E
-                9 => symbols![nt 0],                    //  9: E_4 -> E_6 E_5   | ►E_5 ◄9 ►E_6    | E
-                10 => symbols![nt 0, nt 0],             // 10: E_5 -> ^ E_4 E_5 | ●E_5 ◄10 ►E_4 ^ | E E
-                11 => symbols![nt 0],                   // 11: E_5 -> ε         | ◄11             | E
-                12 => symbols![nt 0],                   // 12: E_6 -> - E_2     | ◄12 ►E_2 -      | E
-                13 => symbols![t 4],                    // 13: E_6 -> ID        | ◄13 ID!         | ID
-            ], Default, btreemap![0 => vec![0]]),
-
             // --------------------------------------------------------------------------- left_fact
             // a -> A | A B | A B C | A B D | E
             // NT flags:
