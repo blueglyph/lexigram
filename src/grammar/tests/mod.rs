@@ -152,6 +152,10 @@ impl TestRules {
             // ----- <L> rrec (only allowed when no ambiguity)
             634 => vec![r#"e -> e "+" | <L> "!" e | Num;"#],
 
+            640 => vec![r#"e -> "-" e |     e ("*" | "/" <P>) e |     e ("+" | "-" <P>) e | Id;"#],
+            641 => vec![r#"e -> "-" e | <R> e ("*" | "/" <P>) e | <R> e ("+" | "-" <P>) e | Id;"#],
+            642 => vec![r#"e -> "-" e | <R> e ("*" | "/" <P>) e |     e ("+" | "-" <P>) e | Id;"#],
+
             // Existing tests in wrapper_source.rs:
             //
             // PRS(58)  // E -> E + | - E | 0

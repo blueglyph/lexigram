@@ -196,7 +196,7 @@ mod listener {
                 vec![(" + ", true, true), (" = ", true, true)]
             ),
         ];
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const VERBOSE_WRAPPER: bool = false;
 
         let (lexer_tables, symbol_table) = make_lexer_tables(TXT_LEXI1);

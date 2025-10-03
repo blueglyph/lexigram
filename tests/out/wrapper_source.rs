@@ -11355,36 +11355,36 @@ pub(crate) mod rules_rts_41_1 {
 
 #[cfg(test)]
 // #[allow(unused)]
-pub(crate) mod rules_rts_42_1 {
+pub(crate) mod rules_640_1 {
     #![allow(unused_imports)]
 
     use crate::out::wrapper_source::level_string::LevelString;
 
     // ------------------------------------------------------------
-    // [wrapper source for rule RTS(42) #1, start E]
+    // [wrapper source for rule 640 #1, start e]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_rts_42_1::*;
+    use super::super::wrapper_code::code_640_1::*;
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> E "*" E`
+        /// `e -> e "*" e`
         E1 { e: [SynE; 2] },
-        /// `E -> E "/" <P> E`
+        /// `e -> e "/" <P> e`
         E2 { e: [SynE; 2] },
-        /// `E -> E "+" E`
+        /// `e -> e "+" e`
         E3 { e: [SynE; 2] },
-        /// `E -> E "-" <P> E`
+        /// `e -> e "-" <P> e`
         E4 { e: [SynE; 2] },
-        /// `E -> "-" E`
+        /// `e -> "-" e`
         E5 { e: SynE },
-        /// `E -> ID`
+        /// `e -> Id`
         E6 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `E`
+    // /// User-defined type for `e`
     // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
@@ -11426,26 +11426,26 @@ pub(crate) mod rules_rts_42_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_e(),                // E
-                        1 ..= 4 => {}                               // E_1, E_2, E_3, E_4
+                        0 => self.listener.init_e(),                // e
+                        1 ..= 4 => {}                               // e_1, e_2, e_3, e_4
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        1 |                                         // E_1 -> "*" E_4 E_1
-                        2 |                                         // E_1 -> "/" E_4 E_1
-                        3 |                                         // E_1 -> "+" E_2 E_1
-                        4 => self.exit_e1(alt_id),                  // E_1 -> "-" E_2 E_1
-                        7 => self.exit_e1(1),                       // E_3 -> "*" E_4 E_3 (duplicate of 1)
-                        8 => self.exit_e1(2),                       // E_3 -> "/" E_4 E_3 (duplicate of 2)
-                        10 |                                        // E_4 -> "-" E_4
-                        11 => self.exit_e4(alt_id),                 // E_4 -> ID
-                        0 => {}                                     // E -> E_4 E_1 (not used)
-                        5 => {}                                     // E_1 -> ε (not used)
-                        6 => {}                                     // E_2 -> E_4 E_3 (not used)
-                        9 => {}                                     // E_3 -> ε (not used)
+                        1 |                                         // e_1 -> "*" e_4 e_1
+                        2 |                                         // e_1 -> "/" e_4 e_1
+                        3 |                                         // e_1 -> "+" e_2 e_1
+                        4 => self.exit_e1(alt_id),                  // e_1 -> "-" e_2 e_1
+                        7 => self.exit_e1(1),                       // e_3 -> "*" e_4 e_3 (duplicate of 1)
+                        8 => self.exit_e1(2),                       // e_3 -> "/" e_4 e_3 (duplicate of 2)
+                        10 |                                        // e_4 -> "-" e_4
+                        11 => self.exit_e4(alt_id),                 // e_4 -> Id
+                        0 => {}                                     // e -> e_4 e_1 (not used)
+                        5 => {}                                     // e_1 -> ε (not used)
+                        6 => {}                                     // e_2 -> e_4 e_3 (not used)
+                        9 => {}                                     // e_3 -> ε (not used)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -11540,7 +11540,7 @@ pub(crate) mod rules_rts_42_1 {
         }
     }
 
-    // [wrapper source for rule RTS(42) #1, start E]
+    // [wrapper source for rule 640 #1, start e]
     // ------------------------------------------------------------
 
     /// User-defined type for `E`
@@ -11680,36 +11680,36 @@ pub(crate) mod rules_rts_42_1 {
 }
 
 #[cfg(test)]
-pub(crate) mod rules_rts_43_1 {
+pub(crate) mod rules_641_1 {
     #![allow(unused_imports)]
 
     use crate::out::wrapper_source::level_string::LevelString;
 
     // ------------------------------------------------------------
-    // [wrapper source for rule RTS(43) #1, start E]
+    // [wrapper source for rule 641 #1, start e]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_rts_43_1::*;
+    use super::super::wrapper_code::code_641_1::*;
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> <R> E "*" E`
+        /// `e -> <R> e "*" e`
         E1 { e: [SynE; 2] },
-        /// `E -> <R> E "/" <P> E`
+        /// `e -> <R> e "/" <P> e`
         E2 { e: [SynE; 2] },
-        /// `E -> <R> E "+" E`
+        /// `e -> <R> e "+" e`
         E3 { e: [SynE; 2] },
-        /// `E -> <R> E "-" <P> E`
+        /// `e -> <R> e "-" <P> e`
         E4 { e: [SynE; 2] },
-        /// `E -> "-" E`
+        /// `e -> "-" e`
         E5 { e: SynE },
-        /// `E -> ID`
+        /// `e -> Id`
         E6 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `E`
+    // /// User-defined type for `e`
     // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
@@ -11751,26 +11751,26 @@ pub(crate) mod rules_rts_43_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_e(),                // E
-                        1 ..= 4 => {}                               // E_1, E_2, E_3, E_4
+                        0 => self.listener.init_e(),                // e
+                        1 ..= 4 => {}                               // e_1, e_2, e_3, e_4
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        1 |                                         // E_1 -> <R> "*" E_2 E_1
-                        2 |                                         // E_1 -> <R> "/" E_2 E_1
-                        3 |                                         // E_1 -> <R> "+" E E_1
-                        4 => self.exit_e1(alt_id),                  // E_1 -> <R> "-" E E_1
-                        7 => self.exit_e1(1),                       // E_3 -> <R> "*" E_2 E_3 (duplicate of 1)
-                        8 => self.exit_e1(2),                       // E_3 -> <R> "/" E_2 E_3 (duplicate of 2)
-                        10 |                                        // E_4 -> "-" E_4
-                        11 => self.exit_e4(alt_id),                 // E_4 -> ID
-                        0 => {}                                     // E -> E_4 E_1 (not used)
-                        5 => {}                                     // E_1 -> ε (not used)
-                        6 => {}                                     // E_2 -> E_4 E_3 (not used)
-                        9 => {}                                     // E_3 -> ε (not used)
+                        1 |                                         // e_1 -> <R> "*" e_2 e_1
+                        2 |                                         // e_1 -> <R> "/" e_2 e_1
+                        3 |                                         // e_1 -> <R> "+" e e_1
+                        4 => self.exit_e1(alt_id),                  // e_1 -> <R> "-" e e_1
+                        7 => self.exit_e1(1),                       // e_3 -> <R> "*" e_2 e_3 (duplicate of 1)
+                        8 => self.exit_e1(2),                       // e_3 -> <R> "/" e_2 e_3 (duplicate of 2)
+                        10 |                                        // e_4 -> "-" e_4
+                        11 => self.exit_e4(alt_id),                 // e_4 -> Id
+                        0 => {}                                     // e -> e_4 e_1 (not used)
+                        5 => {}                                     // e_1 -> ε (not used)
+                        6 => {}                                     // e_2 -> e_4 e_3 (not used)
+                        9 => {}                                     // e_3 -> ε (not used)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -11865,7 +11865,7 @@ pub(crate) mod rules_rts_43_1 {
         }
     }
 
-    // [wrapper source for rule RTS(43) #1, start E]
+    // [wrapper source for rule 641 #1, start e]
     // ------------------------------------------------------------
 
     /// User-defined type for `E`
@@ -12005,36 +12005,36 @@ pub(crate) mod rules_rts_43_1 {
 }
 
 #[cfg(test)]
-pub(crate) mod rules_rts_44_1 {
+pub(crate) mod rules_642_1 {
     #![allow(unused_imports)]
 
     use crate::out::wrapper_source::level_string::LevelString;
 
     // ------------------------------------------------------------
-    // [wrapper source for rule RTS(44) #1, start E]
+    // [wrapper source for rule 642 #1, start e]
 
     use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
-    use super::super::wrapper_code::code_rts_44_1::*;
+    use super::super::wrapper_code::code_642_1::*;
 
     #[derive(Debug)]
     pub enum CtxE {
-        /// `E -> <R> E "*" E`
+        /// `e -> <R> e "*" e`
         E1 { e: [SynE; 2] },
-        /// `E -> <R> E "/" <P> E`
+        /// `e -> <R> e "/" <P> e`
         E2 { e: [SynE; 2] },
-        /// `E -> E "+" E`
+        /// `e -> e "+" e`
         E3 { e: [SynE; 2] },
-        /// `E -> E "-" <P> E`
+        /// `e -> e "-" <P> e`
         E4 { e: [SynE; 2] },
-        /// `E -> "-" E`
+        /// `e -> "-" e`
         E5 { e: SynE },
-        /// `E -> ID`
+        /// `e -> Id`
         E6 { id: String },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
 
-    // /// User-defined type for `E`
+    // /// User-defined type for `e`
     // #[derive(Debug, PartialEq)] pub struct SynE();
 
     #[derive(Debug)]
@@ -12076,26 +12076,26 @@ pub(crate) mod rules_rts_44_1 {
             match call {
                 Call::Enter => {
                     match nt {
-                        0 => self.listener.init_e(),                // E
-                        1 ..= 4 => {}                               // E_1, E_2, E_3, E_4
+                        0 => self.listener.init_e(),                // e
+                        1 ..= 4 => {}                               // e_1, e_2, e_3, e_4
                         _ => panic!("unexpected enter nonterminal id: {nt}")
                     }
                 }
                 Call::Loop => {}
                 Call::Exit => {
                     match alt_id {
-                        1 |                                         // E_1 -> <R> "*" E_2 E_1
-                        2 |                                         // E_1 -> <R> "/" E_2 E_1
-                        3 |                                         // E_1 -> "+" E_2 E_1
-                        4 => self.exit_e1(alt_id),                  // E_1 -> "-" E_2 E_1
-                        7 => self.exit_e1(1),                       // E_3 -> <R> "*" E_2 E_3 (duplicate of 1)
-                        8 => self.exit_e1(2),                       // E_3 -> <R> "/" E_2 E_3 (duplicate of 2)
-                        10 |                                        // E_4 -> "-" E_4
-                        11 => self.exit_e4(alt_id),                 // E_4 -> ID
-                        0 => {}                                     // E -> E_4 E_1 (not used)
-                        5 => {}                                     // E_1 -> ε (not used)
-                        6 => {}                                     // E_2 -> E_4 E_3 (not used)
-                        9 => {}                                     // E_3 -> ε (not used)
+                        1 |                                         // e_1 -> <R> "*" e_2 e_1
+                        2 |                                         // e_1 -> <R> "/" e_2 e_1
+                        3 |                                         // e_1 -> "+" e_2 e_1
+                        4 => self.exit_e1(alt_id),                  // e_1 -> "-" e_2 e_1
+                        7 => self.exit_e1(1),                       // e_3 -> <R> "*" e_2 e_3 (duplicate of 1)
+                        8 => self.exit_e1(2),                       // e_3 -> <R> "/" e_2 e_3 (duplicate of 2)
+                        10 |                                        // e_4 -> "-" e_4
+                        11 => self.exit_e4(alt_id),                 // e_4 -> Id
+                        0 => {}                                     // e -> e_4 e_1 (not used)
+                        5 => {}                                     // e_1 -> ε (not used)
+                        6 => {}                                     // e_2 -> e_4 e_3 (not used)
+                        9 => {}                                     // e_3 -> ε (not used)
                         _ => panic!("unexpected exit alternative id: {alt_id}")
                     }
                 }
@@ -12190,7 +12190,7 @@ pub(crate) mod rules_rts_44_1 {
         }
     }
 
-    // [wrapper source for rule RTS(44) #1, start E]
+    // [wrapper source for rule 642 #1, start e]
     // ------------------------------------------------------------
 
     /// User-defined type for `E`
