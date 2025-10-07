@@ -603,6 +603,7 @@ mod wrapper_source {
     use crate::parsergen::tests::wrapper_source::HasValue::{All, Default, Set};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
+    #[allow(dead_code)] // All not used for now
     #[derive(Clone)]
     enum HasValue { Set(Vec<Symbol>), All, Default }
 
@@ -1381,186 +1382,6 @@ mod wrapper_source {
                 6 => symbols![t 0, t 1],                //  6: a_2 -> ε     | ◄6      | A B
             ], Default, btreemap![0 => vec![1, 3, 4, 5, 6]]),
 
-            // --------------------------------------------------------------------------- misc
-            // A -> a | a b b | a c c
-            // NT flags:
-            //  - A: parent_left_fact (32)
-            //  - A_1: child_left_fact (64)
-            // parents:
-            //  - A_1 -> A
-            (PRS(35), 999, true, false, 0, btreemap![
-                0 => "SynA".to_string(),
-            ], btreemap![
-                0 => symbols![],                        //  0: A -> a A_1 | ►A_1 a!  |
-                1 => symbols![t 0, t 1, t 1],           //  1: A_1 -> b b | ◄1 b! b! | a b b
-                2 => symbols![t 0, t 2, t 2],           //  2: A_1 -> c c | ◄2 c! c! | a c c
-                3 => symbols![t 0],                     //  3: A_1 -> ε   | ◄3       | a
-            ], Default, btreemap![0 => vec![1, 2, 3]]),
-
-            // A -> (B c)* b | a
-            // B -> b
-            // NT flags:
-            //  - A: parent_+_or_* (2048)
-            //  - A_1: child_+_or_* (1)
-            // parents:
-            //  - A_1 -> A
-            (RTS(33), 999, true, false, 0, btreemap![
-                0 => "SynMyA".to_string(),
-                1 => "SynB".to_string(),
-                2 => "SynA1".to_string(),
-            ], btreemap![
-                0 => symbols![nt 2, t 1],               //  0: A -> A_1 b     | ◄0 b! ►A_1    | A_1 b
-                1 => symbols![t 0],                     //  1: A -> a         | ◄1 a!         | a
-                2 => symbols![t 1],                     //  2: B -> b         | ◄2 b!         | b
-                3 => symbols![nt 2, nt 1, t 2],         //  3: A_1 -> B c A_1 | ●A_1 ◄3 c! ►B | A_1 B c
-                4 => symbols![nt 2],                    //  4: A_1 -> ε       | ◄4            | A_1
-            ], All, btreemap![0 => vec![0, 1], 1 => vec![2]]),
-            // --------------------------------------------------------------------------- mix recursion
-
-            // ---------------------------------------------------------------------------
-            // NT flags:
-            //  - file: parent_+_or_* (2048)
-            //  - option: parent_+_or_* (2048)
-            //  - rule: parent_left_fact (32)
-            //  - actions: parent_+_or_* (2048)
-            //  - alt_items: parent_+_or_* (2048)
-            //  - alt_item: parent_+_or_* | plus (6144)
-            //  - repeat_item: parent_left_fact (32)
-            //  - item: right_rec | parent_left_fact (34)
-            //  - char_set: parent_+_or_* | plus (6144)
-            //  - char_set_one: parent_left_fact (32)
-            //  - file_1: child_+_or_* (1)
-            //  - option_1: child_+_or_* (1)
-            //  - actions_1: child_+_or_* (1)
-            //  - alt_items_1: child_+_or_* (1)
-            //  - alt_item_1: child_+_or_* | parent_left_fact | plus (4129)
-            //  - char_set_1: child_+_or_* | parent_left_fact | plus (4129)
-            //  - rule_1: child_left_fact (64)
-            //  - repeat_item_1: parent_left_fact | child_left_fact (96)
-            //  - item_1: child_left_fact (64)
-            //  - char_set_one_1: child_left_fact (64)
-            //  - alt_item_2: child_left_fact (64)
-            //  - char_set_2: child_left_fact (64)
-            //  - repeat_item_2: child_left_fact (64)
-            //  - repeat_item_3: child_left_fact (64)
-            // parents:
-            //  - file_1 -> file
-            //  - option_1 -> option
-            //  - actions_1 -> actions
-            //  - alt_items_1 -> alt_items
-            //  - alt_item_1 -> alt_item
-            //  - char_set_1 -> char_set
-            //  - rule_1 -> rule
-            //  - repeat_item_1 -> repeat_item
-            //  - item_1 -> item
-            //  - char_set_one_1 -> char_set_one
-            //  - alt_item_2 -> alt_item_1
-            //  - char_set_2 -> char_set_1
-            //  - repeat_item_2 -> repeat_item_1
-            //  - repeat_item_3 -> repeat_item_1
-            (RTS(100), 999, true, false, 0, btreemap![
-                0 => "SynFile".to_string(),
-                1 => "SynFileItem".to_string(),
-                2 => "SynHeader".to_string(),
-                3 => "SynDeclaration".to_string(),
-                4 => "SynOption".to_string(),
-                5 => "SynRule".to_string(),
-                6 => "SynActions".to_string(),
-                7 => "SynAction".to_string(),
-                8 => "SynMatch".to_string(),
-                9 => "SynAltItems".to_string(),
-                10 => "SynAltItem".to_string(),
-                11 => "SynRepeatItem".to_string(),
-                12 => "SynItem".to_string(),
-                13 => "SynCharSet".to_string(),
-                14 => "SynCharSetOne".to_string(),
-                15 => "SynFile1".to_string(),
-                16 => "SynOption1".to_string(),
-                17 => "SynActions1".to_string(),
-                18 => "SynAltItems1".to_string(),
-                19 => "SynAltItem1".to_string(),
-                20 => "SynCharSet1".to_string(),
-            ], btreemap![
-                0 => symbols![nt 2, nt 15],             //  0: file -> header file_1                  | ◄0 ►file_1 ►header            | header file_1
-                1 => symbols![nt 15],                   //  1: file -> file_1                         | ◄1 ►file_1                    | file_1
-                2 => symbols![nt 4],                    //  2: file_item -> option                    | ◄2 ►option                    | option
-                3 => symbols![nt 3],                    //  3: file_item -> declaration               | ◄3 ►declaration               | declaration
-                4 => symbols![nt 5],                    //  4: file_item -> rule                      | ◄4 ►rule                      | rule
-                5 => symbols![t 27],                    //  5: header -> lexicon Id ;                 | ◄5 ; Id! lexicon              | Id
-                6 => symbols![t 27],                    //  6: declaration -> mode Id ;               | ◄6 ; Id! mode                 | Id
-                7 => symbols![t 27, nt 16],             //  7: option -> channels { Id option_1 }     | ◄7 } ►option_1 Id! { channels | Id option_1
-                8 => symbols![t 27, nt 8],              //  8: rule -> fragment Id : match ;          | ◄8 ; ►match : Id! fragment    | Id match
-                9 => symbols![],                        //  9: rule -> Id : match rule_1              | ►rule_1 ►match : Id!          |
-                10 => symbols![nt 7, nt 17],            // 10: actions -> action actions_1            | ◄10 ►actions_1 ►action        | action actions_1
-                11 => symbols![t 27],                   // 11: action -> mode ( Id )                  | ◄11 ) Id! ( mode              | Id
-                12 => symbols![t 27],                   // 12: action -> push ( Id )                  | ◄12 ) Id! ( push              | Id
-                13 => symbols![],                       // 13: action -> pop                          | ◄13 pop                       |
-                14 => symbols![],                       // 14: action -> skip                         | ◄14 skip                      |
-                15 => symbols![],                       // 15: action -> more                         | ◄15 more                      |
-                16 => symbols![t 27],                   // 16: action -> type ( Id )                  | ◄16 ) Id! ( type              | Id
-                17 => symbols![t 27],                   // 17: action -> channel ( Id )               | ◄17 ) Id! ( channel           | Id
-                18 => symbols![nt 9],                   // 18: match -> alt_items                     | ◄18 ►alt_items                | alt_items
-                19 => symbols![nt 10, nt 18],           // 19: alt_items -> alt_item alt_items_1      | ◄19 ►alt_items_1 ►alt_item    | alt_item alt_items_1
-                20 => symbols![nt 19],                  // 20: alt_item -> alt_item_1                 | ◄20 ►alt_item_1               | alt_item_1
-                21 => symbols![],                       // 21: repeat_item -> item repeat_item_1      | ►repeat_item_1 ►item          |
-                22 => symbols![nt 9],                   // 22: item -> ( alt_items )                  | ◄22 ) ►alt_items (            | alt_items
-                23 => symbols![nt 12],                  // 23: item -> ~ item                         | ◄23 ►item ~                   | item
-                24 => symbols![t 27],                   // 24: item -> Id                             | ◄24 Id!                       | Id
-                25 => symbols![],                       // 25: item -> CharLit item_1                 | ►item_1 CharLit!              |
-                26 => symbols![t 29],                   // 26: item -> StrLit                         | ◄26 StrLit!                   | StrLit
-                27 => symbols![nt 13],                  // 27: item -> char_set                       | ◄27 ►char_set                 | char_set
-                28 => symbols![nt 20],                  // 28: char_set -> [ char_set_1 ]             | ◄28 ] ►char_set_1 [           | char_set_1
-                29 => symbols![],                       // 29: char_set -> .                          | ◄29 .                         |
-                30 => symbols![t 30],                   // 30: char_set -> FixedSet                   | ◄30 FixedSet!                 | FixedSet
-                31 => symbols![t 30],                   // 31: char_set_one -> FixedSet               | ◄31 FixedSet!                 | FixedSet
-                32 => symbols![],                       // 32: char_set_one -> SetChar char_set_one_1 | ►char_set_one_1 SetChar!      |
-                33 => symbols![nt 15, nt 1],            // 33: file_1 -> file_item file_1             | ●file_1 ◄33 ►file_item        | file_1 file_item
-                34 => symbols![nt 15],                  // 34: file_1 -> ε                            | ◄34                           | file_1
-                35 => symbols![nt 16, t 27],            // 35: option_1 -> , Id option_1              | ●option_1 ◄35 Id! ,           | option_1 Id
-                36 => symbols![nt 16],                  // 36: option_1 -> ε                          | ◄36                           | option_1
-                37 => symbols![nt 17, nt 7],            // 37: actions_1 -> , action actions_1        | ●actions_1 ◄37 ►action ,      | actions_1 action
-                38 => symbols![nt 17],                  // 38: actions_1 -> ε                         | ◄38                           | actions_1
-                39 => symbols![nt 18, nt 10],           // 39: alt_items_1 -> | alt_item alt_items_1  | ●alt_items_1 ◄39 ►alt_item |  | alt_items_1 alt_item
-                40 => symbols![nt 18],                  // 40: alt_items_1 -> ε                       | ◄40                           | alt_items_1
-                41 => symbols![],                       // 41: alt_item_1 -> repeat_item alt_item_2   | ►alt_item_2 ►repeat_item      |
-                42 => symbols![],                       // 42: char_set_1 -> char_set_one char_set_2  | ►char_set_2 ►char_set_one     |
-                43 => symbols![t 27, nt 8, nt 6],       // 43: rule_1 -> -> actions ;                 | ◄43 ; ►actions ->             | Id match actions
-                44 => symbols![t 27, nt 8],             // 44: rule_1 -> ;                            | ◄44 ;                         | Id match
-                45 => symbols![],                       // 45: repeat_item_1 -> + repeat_item_2       | ►repeat_item_2 +              |
-                46 => symbols![nt 12],                  // 46: repeat_item_1 -> ?                     | ◄46 ?                         | item
-                47 => symbols![],                       // 47: repeat_item_1 -> * repeat_item_3       | ►repeat_item_3 *              |
-                48 => symbols![nt 12],                  // 48: repeat_item_1 -> ε                     | ◄48                           | item
-                49 => symbols![t 28, t 28],             // 49: item_1 -> .. CharLit                   | ◄49 CharLit! ..               | CharLit CharLit
-                50 => symbols![t 28],                   // 50: item_1 -> ε                            | ◄50                           | CharLit
-                51 => symbols![t 33, t 33],             // 51: char_set_one_1 -> - SetChar            | ◄51 SetChar! -                | SetChar SetChar
-                52 => symbols![t 33],                   // 52: char_set_one_1 -> ε                    | ◄52                           | SetChar
-                53 => symbols![nt 19, nt 11],           // 53: alt_item_2 -> alt_item_1               | ●alt_item_1 ◄53               | alt_item_1 repeat_item
-                54 => symbols![nt 19, nt 11],           // 54: alt_item_2 -> ε                        | ◄54                           | alt_item_1 repeat_item
-                55 => symbols![nt 20, nt 14],           // 55: char_set_2 -> char_set_1               | ●char_set_1 ◄55               | char_set_1 char_set_one
-                56 => symbols![nt 20, nt 14],           // 56: char_set_2 -> ε                        | ◄56                           | char_set_1 char_set_one
-                57 => symbols![nt 12],                  // 57: repeat_item_2 -> ?                     | ◄57 ?                         | item
-                58 => symbols![nt 12],                  // 58: repeat_item_2 -> ε                     | ◄58                           | item
-                59 => symbols![nt 12],                  // 59: repeat_item_3 -> ?                     | ◄59 ?                         | item
-                60 => symbols![nt 12],                  // 60: repeat_item_3 -> ε                     | ◄60                           | item
-            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 43, 44], 6 => vec![10], 7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![46, 48, 57, 58, 59, 60], 12 => vec![22, 23, 24, 26, 27, 49, 50], 13 => vec![28, 29, 30], 14 => vec![31, 51, 52]]),
-
-            // A -> A B a | B
-            // B -> b
-            // NT flags:
-            //  - A: parent_left_rec (512)
-            //  - A_1: child_left_rec (4)
-            // parents:
-            //  - A_1 -> A
-            (PRS(46), 999, false, false, 0, btreemap![
-                0 => "SynA".to_string(),
-                1 => "SynB".to_string(),
-            ], btreemap![
-                0 => symbols![nt 1],                    //  0: A -> B A_1     | ►A_1 ◄0 ►B    | B
-                1 => symbols![t 1],                     //  1: B -> b         | ◄1 b!         | b
-                2 => symbols![nt 0, nt 1, t 0],         //  2: A_1 -> B a A_1 | ●A_1 ◄2 a! ►B | A B a
-                3 => symbols![nt 0],                    //  3: A_1 -> ε       | ◄3            | A
-            ], Default, btreemap![0 => vec![0], 1 => vec![1]]),
-
             // --------------------------------------------------------------------------- combinations
 
             // --------------------------------------------------------------------------- +_or_* and left_rec
@@ -1770,6 +1591,135 @@ mod wrapper_source {
                 7 => symbols![],                        //  7: A_3 -> A_1   | ●A_1 ◄7    |
             ], Set(symbols![]), btreemap![0 => vec![0]]),
 
+            // --------------------------------------------------------------------------- misc
+            // NT flags:
+            //  - file: parent_+_or_* (2048)
+            //  - option: parent_+_or_* (2048)
+            //  - rule: parent_left_fact (32)
+            //  - actions: parent_+_or_* (2048)
+            //  - alt_items: parent_+_or_* (2048)
+            //  - alt_item: parent_+_or_* | plus (6144)
+            //  - repeat_item: parent_left_fact (32)
+            //  - item: right_rec | parent_left_fact (34)
+            //  - char_set: parent_+_or_* | plus (6144)
+            //  - char_set_one: parent_left_fact (32)
+            //  - file_1: child_+_or_* (1)
+            //  - option_1: child_+_or_* (1)
+            //  - actions_1: child_+_or_* (1)
+            //  - alt_items_1: child_+_or_* (1)
+            //  - alt_item_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - char_set_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - rule_1: child_left_fact (64)
+            //  - repeat_item_1: parent_left_fact | child_left_fact (96)
+            //  - item_1: child_left_fact (64)
+            //  - char_set_one_1: child_left_fact (64)
+            //  - alt_item_2: child_left_fact (64)
+            //  - char_set_2: child_left_fact (64)
+            //  - repeat_item_2: child_left_fact (64)
+            //  - repeat_item_3: child_left_fact (64)
+            // parents:
+            //  - file_1 -> file
+            //  - option_1 -> option
+            //  - actions_1 -> actions
+            //  - alt_items_1 -> alt_items
+            //  - alt_item_1 -> alt_item
+            //  - char_set_1 -> char_set
+            //  - rule_1 -> rule
+            //  - repeat_item_1 -> repeat_item
+            //  - item_1 -> item
+            //  - char_set_one_1 -> char_set_one
+            //  - alt_item_2 -> alt_item_1
+            //  - char_set_2 -> char_set_1
+            //  - repeat_item_2 -> repeat_item_1
+            //  - repeat_item_3 -> repeat_item_1
+            (RTS(100), 901, true, false, 0, btreemap![
+                0 => "SynFile".to_string(),
+                1 => "SynFileItem".to_string(),
+                2 => "SynHeader".to_string(),
+                3 => "SynDeclaration".to_string(),
+                4 => "SynOption".to_string(),
+                5 => "SynRule".to_string(),
+                6 => "SynActions".to_string(),
+                7 => "SynAction".to_string(),
+                8 => "SynMatch".to_string(),
+                9 => "SynAltItems".to_string(),
+                10 => "SynAltItem".to_string(),
+                11 => "SynRepeatItem".to_string(),
+                12 => "SynItem".to_string(),
+                13 => "SynCharSet".to_string(),
+                14 => "SynCharSetOne".to_string(),
+                15 => "SynFile1".to_string(),
+                16 => "SynOption1".to_string(),
+                17 => "SynActions1".to_string(),
+                18 => "SynAltItems1".to_string(),
+                19 => "SynAltItem1".to_string(),
+                20 => "SynCharSet1".to_string(),
+            ], btreemap![
+                0 => symbols![nt 2, nt 15],             //  0: file -> header file_1                  | ◄0 ►file_1 ►header            | header file_1
+                1 => symbols![nt 15],                   //  1: file -> file_1                         | ◄1 ►file_1                    | file_1
+                2 => symbols![nt 4],                    //  2: file_item -> option                    | ◄2 ►option                    | option
+                3 => symbols![nt 3],                    //  3: file_item -> declaration               | ◄3 ►declaration               | declaration
+                4 => symbols![nt 5],                    //  4: file_item -> rule                      | ◄4 ►rule                      | rule
+                5 => symbols![t 27],                    //  5: header -> lexicon Id ;                 | ◄5 ; Id! lexicon              | Id
+                6 => symbols![t 27],                    //  6: declaration -> mode Id ;               | ◄6 ; Id! mode                 | Id
+                7 => symbols![t 27, nt 16],             //  7: option -> channels { Id option_1 }     | ◄7 } ►option_1 Id! { channels | Id option_1
+                8 => symbols![t 27, nt 8],              //  8: rule -> fragment Id : match ;          | ◄8 ; ►match : Id! fragment    | Id match
+                9 => symbols![],                        //  9: rule -> Id : match rule_1              | ►rule_1 ►match : Id!          |
+                10 => symbols![nt 7, nt 17],            // 10: actions -> action actions_1            | ◄10 ►actions_1 ►action        | action actions_1
+                11 => symbols![t 27],                   // 11: action -> mode ( Id )                  | ◄11 ) Id! ( mode              | Id
+                12 => symbols![t 27],                   // 12: action -> push ( Id )                  | ◄12 ) Id! ( push              | Id
+                13 => symbols![],                       // 13: action -> pop                          | ◄13 pop                       |
+                14 => symbols![],                       // 14: action -> skip                         | ◄14 skip                      |
+                15 => symbols![],                       // 15: action -> more                         | ◄15 more                      |
+                16 => symbols![t 27],                   // 16: action -> type ( Id )                  | ◄16 ) Id! ( type              | Id
+                17 => symbols![t 27],                   // 17: action -> channel ( Id )               | ◄17 ) Id! ( channel           | Id
+                18 => symbols![nt 9],                   // 18: match -> alt_items                     | ◄18 ►alt_items                | alt_items
+                19 => symbols![nt 10, nt 18],           // 19: alt_items -> alt_item alt_items_1      | ◄19 ►alt_items_1 ►alt_item    | alt_item alt_items_1
+                20 => symbols![nt 19],                  // 20: alt_item -> alt_item_1                 | ◄20 ►alt_item_1               | alt_item_1
+                21 => symbols![],                       // 21: repeat_item -> item repeat_item_1      | ►repeat_item_1 ►item          |
+                22 => symbols![nt 9],                   // 22: item -> ( alt_items )                  | ◄22 ) ►alt_items (            | alt_items
+                23 => symbols![nt 12],                  // 23: item -> ~ item                         | ◄23 ►item ~                   | item
+                24 => symbols![t 27],                   // 24: item -> Id                             | ◄24 Id!                       | Id
+                25 => symbols![],                       // 25: item -> CharLit item_1                 | ►item_1 CharLit!              |
+                26 => symbols![t 29],                   // 26: item -> StrLit                         | ◄26 StrLit!                   | StrLit
+                27 => symbols![nt 13],                  // 27: item -> char_set                       | ◄27 ►char_set                 | char_set
+                28 => symbols![nt 20],                  // 28: char_set -> [ char_set_1 ]             | ◄28 ] ►char_set_1 [           | char_set_1
+                29 => symbols![],                       // 29: char_set -> .                          | ◄29 .                         |
+                30 => symbols![t 30],                   // 30: char_set -> FixedSet                   | ◄30 FixedSet!                 | FixedSet
+                31 => symbols![t 30],                   // 31: char_set_one -> FixedSet               | ◄31 FixedSet!                 | FixedSet
+                32 => symbols![],                       // 32: char_set_one -> SetChar char_set_one_1 | ►char_set_one_1 SetChar!      |
+                33 => symbols![nt 15, nt 1],            // 33: file_1 -> file_item file_1             | ●file_1 ◄33 ►file_item        | file_1 file_item
+                34 => symbols![nt 15],                  // 34: file_1 -> ε                            | ◄34                           | file_1
+                35 => symbols![nt 16, t 27],            // 35: option_1 -> , Id option_1              | ●option_1 ◄35 Id! ,           | option_1 Id
+                36 => symbols![nt 16],                  // 36: option_1 -> ε                          | ◄36                           | option_1
+                37 => symbols![nt 17, nt 7],            // 37: actions_1 -> , action actions_1        | ●actions_1 ◄37 ►action ,      | actions_1 action
+                38 => symbols![nt 17],                  // 38: actions_1 -> ε                         | ◄38                           | actions_1
+                39 => symbols![nt 18, nt 10],           // 39: alt_items_1 -> | alt_item alt_items_1  | ●alt_items_1 ◄39 ►alt_item |  | alt_items_1 alt_item
+                40 => symbols![nt 18],                  // 40: alt_items_1 -> ε                       | ◄40                           | alt_items_1
+                41 => symbols![],                       // 41: alt_item_1 -> repeat_item alt_item_2   | ►alt_item_2 ►repeat_item      |
+                42 => symbols![],                       // 42: char_set_1 -> char_set_one char_set_2  | ►char_set_2 ►char_set_one     |
+                43 => symbols![t 27, nt 8, nt 6],       // 43: rule_1 -> -> actions ;                 | ◄43 ; ►actions ->             | Id match actions
+                44 => symbols![t 27, nt 8],             // 44: rule_1 -> ;                            | ◄44 ;                         | Id match
+                45 => symbols![],                       // 45: repeat_item_1 -> + repeat_item_2       | ►repeat_item_2 +              |
+                46 => symbols![nt 12],                  // 46: repeat_item_1 -> ?                     | ◄46 ?                         | item
+                47 => symbols![],                       // 47: repeat_item_1 -> * repeat_item_3       | ►repeat_item_3 *              |
+                48 => symbols![nt 12],                  // 48: repeat_item_1 -> ε                     | ◄48                           | item
+                49 => symbols![t 28, t 28],             // 49: item_1 -> .. CharLit                   | ◄49 CharLit! ..               | CharLit CharLit
+                50 => symbols![t 28],                   // 50: item_1 -> ε                            | ◄50                           | CharLit
+                51 => symbols![t 33, t 33],             // 51: char_set_one_1 -> - SetChar            | ◄51 SetChar! -                | SetChar SetChar
+                52 => symbols![t 33],                   // 52: char_set_one_1 -> ε                    | ◄52                           | SetChar
+                53 => symbols![nt 19, nt 11],           // 53: alt_item_2 -> alt_item_1               | ●alt_item_1 ◄53               | alt_item_1 repeat_item
+                54 => symbols![nt 19, nt 11],           // 54: alt_item_2 -> ε                        | ◄54                           | alt_item_1 repeat_item
+                55 => symbols![nt 20, nt 14],           // 55: char_set_2 -> char_set_1               | ●char_set_1 ◄55               | char_set_1 char_set_one
+                56 => symbols![nt 20, nt 14],           // 56: char_set_2 -> ε                        | ◄56                           | char_set_1 char_set_one
+                57 => symbols![nt 12],                  // 57: repeat_item_2 -> ?                     | ◄57 ?                         | item
+                58 => symbols![nt 12],                  // 58: repeat_item_2 -> ε                     | ◄58                           | item
+                59 => symbols![nt 12],                  // 59: repeat_item_3 -> ?                     | ◄59 ?                         | item
+                60 => symbols![nt 12],                  // 60: repeat_item_3 -> ε                     | ◄60                           | item
+            ], Default, btreemap![0 => vec![0, 1], 1 => vec![2, 3, 4], 2 => vec![5], 3 => vec![6], 4 => vec![7], 5 => vec![8, 43, 44], 6 => vec![10],
+                7 => vec![11, 12, 13, 14, 15, 16, 17], 8 => vec![18], 9 => vec![19], 10 => vec![20], 11 => vec![46, 48, 57, 58, 59, 60],
+                12 => vec![22, 23, 24, 26, 27, 49, 50], 13 => vec![28, 29, 30], 14 => vec![31, 51, 52]]),
+
             /*
             (PRS(), false, 0, btreemap![], btreemap![], Default, btreemap![]),
             (RTS(), false, 0, btreemap![], btreemap![], Default, btreemap![]),
@@ -1803,7 +1753,7 @@ mod wrapper_source {
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         let mut old_rule_id_iter = HashMap::<T, u32>::new();
         for (test_id, (rule_id, tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-        // if !matches!(tr_id, 603..=632) { continue }
+            // if !matches!(tr_id, 901) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let old_rule_iter = old_rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();

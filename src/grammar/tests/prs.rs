@@ -659,6 +659,57 @@ fn prs_ll1_from() {
             r#"a_1 -> A a_2 | ε"#,                              // child_left_rec | parent_left_fact
             r#"a_2 -> B a_1 | C a_1"#,                          // child_left_fact
         ], vec![512, 36, 64], vec![None, Some(0), Some(1)]),
+        (901, vec![
+            // file -> header? file_item*
+            // file_item -> option | declaration | rule
+            // header -> "lexicon" Id ";"
+            // declaration -> "mode" Id ";"
+            // option -> "channels" "{" Id ("," Id)* "}"
+            // rule -> "fragment" Id ":" match ";" | Id ":" match ("->" actions)? ";"
+            // actions -> action ("," action)*
+            // action -> "mode" "(" Id ")" | "push" "(" Id ")" | "pop" | "skip" | "more" | "type" "(" Id ")" | "channel" "(" Id ")"
+            // match -> alt_items
+            // alt_items -> alt_items "|" alt_item | alt_item
+            // alt_item -> repeat_item+
+            // repeat_item -> item "*" "?"? | item "+" "?"? | item "?"?
+            // item -> Id | CharLit (".." CharLit)? | StrLit | char_set | "(" alt_items ")" | "~" item
+            // char_set -> "[" char_set_one+ "]" | "." | FixedSet
+            // char_set_one -> SetChar "-" SetChar | SetChar | FixedSet
+            r#"file -> header file_1 | file_1"#,                                                                                        // parent_+_or_*
+            r#"file_item -> option | declaration | rule"#,                                                                              //
+            r#"header -> "lexicon" Id ";""#,                                                                                            //
+            r#"declaration -> "mode" Id ";""#,                                                                                          //
+            r#"option -> "channels" "{" Id option_1 "}""#,                                                                              // parent_+_or_*
+            r#"rule -> "fragment" Id ":" match ";" | Id ":" match rule_1"#,                                                             // parent_left_fact
+            r#"actions -> action actions_1"#,                                                                                           // parent_+_or_*
+            r#"action -> "mode" "(" Id ")" | "push" "(" Id ")" | "pop" | "skip" | "more" | "type" "(" Id ")" | "channel" "(" Id ")""#,  //
+            r#"match -> alt_items"#,                                                                                                    //
+            r#"alt_items -> alt_item alt_items_1"#,                                                                                     // parent_left_rec
+            r#"alt_item -> alt_item_1"#,                                                                                                // parent_+_or_* | plus
+            r#"repeat_item -> item repeat_item_1"#,                                                                                     // parent_left_fact
+            r#"item -> "(" alt_items ")" | "~" item | Id | CharLit item_1 | StrLit | char_set"#,                                        // right_rec | parent_left_fact
+            r#"char_set -> "[" char_set_1 "]" | "." | FixedSet"#,                                                                       // parent_+_or_* | plus
+            r#"char_set_one -> FixedSet | SetChar char_set_one_1"#,                                                                     // parent_left_fact
+            r#"file_1 -> file_item file_1 | ε"#,                                                                                        // child_+_or_*
+            r#"option_1 -> "," Id option_1 | ε"#,                                                                                       // child_+_or_*
+            r#"actions_1 -> "," action actions_1 | ε"#,                                                                                 // child_+_or_*
+            r#"alt_item_1 -> repeat_item alt_item_2"#,                                                                                  // child_+_or_* | parent_left_fact | plus
+            r#"char_set_1 -> char_set_one char_set_2"#,                                                                                 // child_+_or_* | parent_left_fact | plus
+            r#"alt_items_1 -> "|" alt_item alt_items_1 | ε"#,                                                                           // child_left_rec
+            r#"rule_1 -> "->" actions ";" | ";""#,                                                                                      // child_left_fact
+            r#"repeat_item_1 -> "+" repeat_item_2 | "?" | "*" repeat_item_3 | ε"#,                                                      // parent_left_fact | child_left_fact
+            r#"item_1 -> ".." CharLit | ε"#,                                                                                            // child_left_fact
+            r#"char_set_one_1 -> "-" SetChar | ε"#,                                                                                     // child_left_fact
+            r#"alt_item_2 -> alt_item_1 | ε"#,                                                                                          // child_left_fact
+            r#"char_set_2 -> char_set_1 | ε"#,                                                                                          // child_left_fact
+            r#"repeat_item_2 -> "?" | ε"#,                                                                                              // child_left_fact
+            r#"repeat_item_3 -> "?" | ε"#,                                                                                              // child_left_fact
+        ], vec![
+            2048, 0, 0, 0, 2048, 32, 2048, 0, 0, 512, 6144, 32, 34, 6144, 32, 1, 1, 1, 4129, 4129, 4, 64, 96, 64, 64, 64, 64, 64, 64
+        ], vec![
+            None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(4), Some(6),
+            Some(10), Some(13), Some(9), Some(5), Some(11), Some(12), Some(14), Some(18), Some(19), Some(22), Some(22)
+        ]),
         /* template:
         (1, vec![
         ], vec![], vec![]),
