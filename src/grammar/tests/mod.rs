@@ -174,27 +174,27 @@ impl TestRules {
             803 => vec![r#"a -> (A+)?;"#],
 
             // 1xx/2xx and 3xx/4xx rrec
-            810 => vec![r#"a -> A* a;"#],
-            811 => vec![r#"a -> A+ a;"#],
+            810 => vec![r#"a -> A* B a | C;"#],
+            811 => vec![r#"a -> A+ B a | C;"#],
 
             812 => vec![r#"a -> (A a)*;"#],  // ambiguous!
-            813 => vec![r#"a -> (A a)+;"#],
+            813 => vec![r#"a -> (A a)+;"#],  // ambiguous!
 
             // 1xx/2xx and 5xx lrec
-            820 => vec![r#"a -> a A* | B;"#],   // ambiguous!
-            821 => vec![r#"a -> a A+ | B;"#],   // ambiguous!
+            820 => vec![r#"a -> a A* C | B;"#], // (ambiguous if C is removed)
+            821 => vec![r#"a -> a A+ C | B;"#], // (ambiguous if C is removed)
 
             822 => vec![r#"a -> (a A)* | B;"#], // ambiguous!
-            823 => vec![r#"a -> (a A)+ | B;"#],
+            823 => vec![r#"a -> (a A)+ | B;"#], // ambiguous!
 
             // 1xx/2xx and 6xx amb
             830 => vec![r#"a -> (a A)* a | B;"#],   // ambiguous!
             831 => vec![r#"a -> (a A)+ a | B;"#],   // ambiguous!
-
             832 => vec![r#"a -> a (A a)* | B;"#],   // ambiguous!
             833 => vec![r#"a -> a (A a)+ | B;"#],   // ambiguous!
-
             834 => vec![r#"a -> (a A a)* | B;"#],   // ambiguous!
+
+            835 => vec![r#"a -> a "x" a | a "*" "[" Num+ "]" | "-" a | Id;"#],
 
             // 1xx/2xx and 7xx lfact
             840 => vec![r#"a -> (A B | A C)*;"#],

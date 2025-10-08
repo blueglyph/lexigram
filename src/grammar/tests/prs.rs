@@ -549,16 +549,16 @@ fn prs_ll1_from() {
             r#"a_2 -> a_1 | ε"#,                                // child_left_fact
         ], vec![6144, 4129, 64], vec![None, Some(0), Some(1)]),
         (820, vec![
-            // a -> a A* | B
+            // a -> a A* C | B
             r#"a -> B a_2"#,                                    // parent_left_rec | parent_+_or_*
             r#"a_1 -> A a_1 | ε"#,                              // child_+_or_*
-            r#"a_2 -> a_1 a_2 | ε"#,                            // child_left_rec
+            r#"a_2 -> a_1 C a_2 | ε"#,                          // child_left_rec
         ], vec![2560, 1, 4], vec![None, Some(0), Some(0)]),
         (821, vec![
-            // a -> a A+ | B
+            // a -> a A+ C | B
             r#"a -> B a_2"#,                                    // parent_left_rec | parent_+_or_* | plus
             r#"a_1 -> A a_3"#,                                  // child_+_or_* | parent_left_fact | plus
-            r#"a_2 -> a_1 a_2 | ε"#,                            // child_left_rec
+            r#"a_2 -> a_1 C a_2 | ε"#,                          // child_left_rec
             r#"a_3 -> a_1 | ε"#,                                // child_left_fact
         ], vec![6656, 4129, 4, 64], vec![None, Some(0), Some(0), Some(1)]),
         (822, vec![
@@ -669,7 +669,7 @@ fn prs_ll1_from() {
             // actions -> action ("," action)*
             // action -> "mode" "(" Id ")" | "push" "(" Id ")" | "pop" | "skip" | "more" | "type" "(" Id ")" | "channel" "(" Id ")"
             // match -> alt_items
-            // alt_items -> alt_items "|" alt_item | alt_item
+            // alt_items -> alt_item ("|" alt_item)*
             // alt_item -> repeat_item+
             // repeat_item -> item "*" "?"? | item "+" "?"? | item "?"?
             // item -> Id | CharLit (".." CharLit)? | StrLit | char_set | "(" alt_items ")" | "~" item
@@ -684,7 +684,7 @@ fn prs_ll1_from() {
             r#"actions -> action actions_1"#,                                                                                           // parent_+_or_*
             r#"action -> "mode" "(" Id ")" | "push" "(" Id ")" | "pop" | "skip" | "more" | "type" "(" Id ")" | "channel" "(" Id ")""#,  //
             r#"match -> alt_items"#,                                                                                                    //
-            r#"alt_items -> alt_item alt_items_1"#,                                                                                     // parent_left_rec
+            r#"alt_items -> alt_item alt_items_1"#,                                                                                     // parent_+_or_*
             r#"alt_item -> alt_item_1"#,                                                                                                // parent_+_or_* | plus
             r#"repeat_item -> item repeat_item_1"#,                                                                                     // parent_left_fact
             r#"item -> "(" alt_items ")" | "~" item | Id | CharLit item_1 | StrLit | char_set"#,                                        // right_rec | parent_left_fact
@@ -693,9 +693,9 @@ fn prs_ll1_from() {
             r#"file_1 -> file_item file_1 | ε"#,                                                                                        // child_+_or_*
             r#"option_1 -> "," Id option_1 | ε"#,                                                                                       // child_+_or_*
             r#"actions_1 -> "," action actions_1 | ε"#,                                                                                 // child_+_or_*
+            r#"alt_items_1 -> "|" alt_item alt_items_1 | ε"#,                                                                           // child_+_or_*
             r#"alt_item_1 -> repeat_item alt_item_2"#,                                                                                  // child_+_or_* | parent_left_fact | plus
             r#"char_set_1 -> char_set_one char_set_2"#,                                                                                 // child_+_or_* | parent_left_fact | plus
-            r#"alt_items_1 -> "|" alt_item alt_items_1 | ε"#,                                                                           // child_left_rec
             r#"rule_1 -> "->" actions ";" | ";""#,                                                                                      // child_left_fact
             r#"repeat_item_1 -> "+" repeat_item_2 | "?" | "*" repeat_item_3 | ε"#,                                                      // parent_left_fact | child_left_fact
             r#"item_1 -> ".." CharLit | ε"#,                                                                                            // child_left_fact
@@ -705,10 +705,10 @@ fn prs_ll1_from() {
             r#"repeat_item_2 -> "?" | ε"#,                                                                                              // child_left_fact
             r#"repeat_item_3 -> "?" | ε"#,                                                                                              // child_left_fact
         ], vec![
-            2048, 0, 0, 0, 2048, 32, 2048, 0, 0, 512, 6144, 32, 34, 6144, 32, 1, 1, 1, 4129, 4129, 4, 64, 96, 64, 64, 64, 64, 64, 64
+            2048, 0, 0, 0, 2048, 32, 2048, 0, 0, 2048, 6144, 32, 34, 6144, 32, 1, 1, 1, 1, 4129, 4129, 64, 96, 64, 64, 64, 64, 64, 64
         ], vec![
             None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, Some(0), Some(4), Some(6),
-            Some(10), Some(13), Some(9), Some(5), Some(11), Some(12), Some(14), Some(18), Some(19), Some(22), Some(22)
+            Some(9), Some(10), Some(13), Some(5), Some(11), Some(12), Some(14), Some(19), Some(20), Some(22), Some(22)
         ]),
         /* template:
         (1, vec![
@@ -1122,10 +1122,113 @@ fn prs_calc_table() {
               1,   2,   6,   6,   3,
               7,   7,   4,   5,   7,
         ]),
+        (800, 0, false, vec![
+            // - 0: a -> a_1
+            // - 1: a_1 -> A a_1
+            // - 2: a_1 -> ε
+            //
+            //     |  A   $
+            // ----+---------
+            // a   |  0   0
+            // a_1 |  1   2
+              0,   0,
+              1,   2,
+        ]),
+        (801, 0, false, vec![
+            // - 0: a -> a_1
+            // - 1: a_1 -> A a_1
+            // - 2: a_1 -> ε
+            //
+            //     |  A   $
+            // ----+---------
+            // a   |  0   0
+            // a_1 |  1   2
+              0,   0,
+              1,   2,
+        ]),
+        (802, 0, true, vec![]), // ambiguous grammars
+        (803, 0, false, vec![
+            // - 0: a -> a_1
+            // - 1: a -> ε
+            // - 2: a_1 -> A a_2
+            // - 3: a_2 -> a_1
+            // - 4: a_2 -> ε
+            //
+            //     |  A   $
+            // ----+---------
+            // a   |  0   1
+            // a_1 |  2   p
+            // a_2 |  3   4
+              0,   1,
+              2,   6,
+              3,   4,
+        ]),
+        (810, 0, false, vec![
+            // - 0: a -> a_1 B a
+            // - 1: a -> C
+            // - 2: a_1 -> A a_1
+            // - 3: a_1 -> ε
+            //
+            //     |  A   B   C   $
+            // ----+-----------------
+            // a   |  0   0   1   p
+            // a_1 |  2   3   .   .
+              0,   0,   1,   5,
+              2,   3,   4,   4,
+        ]),
+        (811, 0, false, vec![
+            // - 0: a -> a_1 B a
+            // - 1: a -> C
+            // - 2: a_1 -> A a_2
+            // - 3: a_2 -> a_1
+            // - 4: a_2 -> ε
+            //
+            //     |  A   B   C   $
+            // ----+-----------------
+            // a   |  0   .   1   p
+            // a_1 |  2   p   .   .
+            // a_2 |  3   4   .   .
+              0,   5,   1,   6,
+              2,   6,   5,   5,
+              3,   4,   5,   5,
+        ]),
         (812, 0, true, vec![]), // ambiguous grammars
-        (813, 0, true, vec![]),
-        (820, 0, true, vec![]),
-        (821, 0, true, vec![]),
+        (813, 0, true, vec![]), // ambiguous grammars
+        (820, 0, false, vec![
+            // - 0: a -> B a_2
+            // - 1: a_1 -> A a_1
+            // - 2: a_1 -> ε
+            // - 3: a_2 -> a_1 C a_2
+            // - 4: a_2 -> ε
+            //
+            //     |  A   C   B   $
+            // ----+-----------------
+            // a   |  .   .   0   p
+            // a_1 |  1   2   .   .
+            // a_2 |  3   3   .   4
+              5,   5,   0,   6,
+              1,   2,   5,   5,
+              3,   3,   5,   4,
+        ]),
+        (821, 0, false, vec![
+            // - 0: a -> B a_2
+            // - 1: a_1 -> A a_3
+            // - 2: a_2 -> a_1 C a_2
+            // - 3: a_2 -> ε
+            // - 4: a_3 -> a_1
+            // - 5: a_3 -> ε
+            //
+            //     |  A   C   B   $
+            // ----+-----------------
+            // a   |  .   .   0   p
+            // a_1 |  1   p   .   .
+            // a_2 |  2   .   .   3
+            // a_3 |  4   5   .   .
+              6,   6,   0,   7,
+              1,   7,   6,   6,
+              2,   6,   6,   3,
+              4,   5,   6,   6,
+        ]),
         (822, 0, true, vec![]),
         (823, 0, true, vec![]),
         (830, 0, true, vec![]),
@@ -1133,8 +1236,32 @@ fn prs_calc_table() {
         (832, 0, true, vec![]),
         (833, 0, true, vec![]),
         (834, 0, true, vec![]),
+        (835, 0, false, vec![
+            // - 0: a -> a_3 a_2
+            // - 1: a_1 -> Num a_4
+            // - 2: a_2 -> "x" a_3 a_2
+            // - 3: a_2 -> "*" "[" a_1 "]" a_2
+            // - 4: a_2 -> ε
+            // - 5: a_3 -> "-" a
+            // - 6: a_3 -> Id
+            // - 7: a_4 -> a_1
+            // - 8: a_4 -> ε
+            //
+            //     |  x   *   [  Num  ]   -  Id   $
+            // ----+---------------------------------
+            // a   |  p   p   .   .   .   0   0   p
+            // a_1 |  .   .   .   1   p   .   .   .
+            // a_2 |  2   3   .   .   .   .   .   4
+            // a_3 |  p   p   .   .   .   5   6   p
+            // a_4 |  .   .   .   7   8   .   .   .
+             10,  10,   9,   9,   9,   0,   0,  10,
+              9,   9,   9,   1,  10,   9,   9,   9,
+              2,   3,   9,   9,   9,   9,   9,   4,
+             10,  10,   9,   9,   9,   5,   6,  10,
+              9,   9,   9,   7,   8,   9,   9,   9,
+        ]),
         /* template:
-        (, 0, vec![]),
+        (, 0, false, vec![]),
         */
     ];
     const VERBOSE: bool = false;
@@ -1150,11 +1277,18 @@ fn prs_calc_table() {
         ll1.set_start(start);
         let parsing_table = ll1.make_parsing_table(true);
         let LLParsingTable { num_nt, num_t, alts, table, .. } = &parsing_table;
-        let result_is_ambiguous = ll1.log.get_warnings().any(|w| w.contains("calc_table: ambiguity"));
+        let ambig_warnings = ll1.log.get_warnings().filter(|w| w.contains("calc_table: ambiguity")).join("\n");
+        let result_is_ambiguous = !ambig_warnings.is_empty();
         if num_nt * num_t != table.len() {
             if VERBOSE { println!("{msg}: incorrect table size"); }
         }
         if VERBOSE || SHOW_ANSWER_ONLY {
+            if !SHOW_ANSWER_ONLY {
+                println!("table has {}ambiguities", if result_is_ambiguous { "" } else { "no " });
+                if result_is_ambiguous {
+                    println!("{ambig_warnings}");
+                }
+            }
             if SHOW_ANSWER_ONLY && result_is_ambiguous {
                 println!("        ({test_id}, {start}, true, vec![]),");
             } else {
