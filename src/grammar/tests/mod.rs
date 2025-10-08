@@ -156,6 +156,8 @@ impl TestRules {
             641 => vec![r#"e -> "-" e | <R> e ("*" | "/" <P>) e | <R> e ("+" | "-" <P>) e | Id;"#],
             642 => vec![r#"e -> "-" e | <R> e ("*" | "/" <P>) e |     e ("+" | "-" <P>) e | Id;"#],
 
+            650 => vec![r#"a -> a A a a | B;"#],
+
             // 7xx = lfact
             // -----------------------------------------------------------------------------
             700 => vec![r#"a -> A | A B;"#],
@@ -197,14 +199,11 @@ impl TestRules {
             835 => vec![r#"a -> a "x" a | a "*" "[" Num+ "]" | "-" a | Id;"#],
 
             // 1xx/2xx and 7xx lfact
-            840 => vec![r#"a -> (A B | A C)*;"#],
-            841 => vec![r#"a -> (A B | A C)+;"#],
+            840 => vec![r#"a -> (A B | A C)*;"#],   // TODO (not yet fully supported in parsergen)
+            841 => vec![r#"a -> (A B | A C)+;"#],   // TODO (not yet fully supported in parsergen)
 
             842 => vec![r#"a -> A* B* | A* C*;"#],  // TODO: is it possible to factorize this?
             843 => vec![r#"a -> A+ B+ | A+ C+;"#],  // TODO: is it possible to factorize this?
-
-            // 3xx and 6xx
-            850 => vec![r#"a -> a A a a | B;"#],
 
             // 3xx/4xx and 7xx
             860 => vec![r#"a -> A B a | A C a | D;"#],

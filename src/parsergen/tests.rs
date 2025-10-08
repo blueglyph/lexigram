@@ -1361,6 +1361,21 @@ mod wrapper_source {
                 11 => symbols![t 4],                    // 11: e_4 -> Id          | ◄11 Id!          | Id
             ], Default, btreemap![0 => vec![0]]),
 
+            // a -> a A a a | B
+            // NT flags:
+            //  - a: parent_left_rec | parent_amb (1536)
+            //  - a_1: child_left_rec (4)
+            // parents:
+            //  - a_1 -> a
+            //  - a_2 -> a
+            (RTS(0), 650, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 0],                    //  0: a -> a_2 a_1       | ►a_1 ◄0 ►a_2       | a
+                1 => symbols![nt 0, t 0, nt 0, nt 0],   //  1: a_1 -> A a a_2 a_1 | ●a_1 ◄1 ►a_2 ►a A! | a A a a
+                2 => symbols![nt 0],                    //  2: a_1 -> ε           | ◄2                 | a
+                3 => symbols![t 1],                     //  3: a_2 -> B           | ◄3 B!              | B
+            ], Default, btreemap![0 => vec![0]]),
+
             // --------------------------------------------------------------------------- left_fact
             // a -> A | A B | A B C | A B D | E
             // NT flags:
@@ -1383,6 +1398,38 @@ mod wrapper_source {
             ], Default, btreemap![0 => vec![1, 3, 4, 5, 6]]),
 
             // --------------------------------------------------------------------------- combinations
+
+            // --------------------------------------------------------------------------- +_or_* and right_rec
+            // a -> A* B a | C
+            // NT flags:
+            //  - a: right_rec | parent_+_or_* (2050)
+            //  - a_1: child_+_or_* (1)
+            // parents:
+            //  - a_1 -> a
+            (PRS(0), 810, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 1, t 1, nt 0],         //  0: a -> a_1 B a | ◄0 ►a B! ►a_1 | a_1 B a
+                1 => symbols![t 2],                     //  1: a -> C       | ◄1 C!         | C
+                2 => symbols![nt 1, t 0],               //  2: a_1 -> A a_1 | ●a_1 ◄2 A!    | a_1 A
+                3 => symbols![nt 1],                    //  3: a_1 -> ε     | ◄3            | a_1
+            ], Default, btreemap![0 => vec![0, 1]]),
+
+            // a -> A+ B a | C
+            // NT flags:
+            //  - a: right_rec | parent_+_or_* | plus (6146)
+            //  - a_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - a_2: child_left_fact (64)
+            // parents:
+            //  - a_1 -> a
+            //  - a_2 -> a_1
+            (PRS(0), 811, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 1, t 1, nt 0],         //  0: a -> a_1 B a | ◄0 ►a B! ►a_1 | a_1 B a
+                1 => symbols![t 2],                     //  1: a -> C       | ◄1 C!         | C
+                2 => symbols![],                        //  2: a_1 -> A a_2 | ►a_2 A!       |
+                3 => symbols![nt 1, t 0],               //  3: a_2 -> a_1   | ●a_1 ◄3       | a_1 A
+                4 => symbols![nt 1, t 0],               //  4: a_2 -> ε     | ◄4            | a_1 A
+            ], Default, btreemap![0 => vec![0, 1]]),
 
             // --------------------------------------------------------------------------- +_or_* and left_rec
             // a -> a A* C | B
@@ -1451,37 +1498,26 @@ mod wrapper_source {
                 8 => symbols![nt 1, t 3],               //  8: a_4 -> ε                   | ◄8                       | a_1 Num
             ], Default, btreemap![0 => vec![0]]),
 
-            // --------------------------------------------------------------------------- +_or_* and right_rec
-            // a -> A* B a | C
+            // --------------------------------------------------------------------------- +_or_* and left_fact
+            // a -> (A B | A C)*
             // NT flags:
-            //  - a: right_rec | parent_+_or_* (2050)
-            //  - a_1: child_+_or_* (1)
-            // parents:
-            //  - a_1 -> a
-            (PRS(0), 810, true, false, 0, btreemap![
-            ], btreemap![
-                0 => symbols![nt 1, t 1, nt 0],         //  0: a -> a_1 B a | ◄0 ►a B! ►a_1 | a_1 B a
-                1 => symbols![t 2],                     //  1: a -> C       | ◄1 C!         | C
-                2 => symbols![nt 1, t 0],               //  2: a_1 -> A a_1 | ●a_1 ◄2 A!    | a_1 A
-                3 => symbols![nt 1],                    //  3: a_1 -> ε     | ◄3            | a_1
-            ], Default, btreemap![0 => vec![0, 1]]),
-
-            // a -> A+ B a | C
-            // NT flags:
-            //  - a: right_rec | parent_+_or_* | plus (6146)
-            //  - a_1: child_+_or_* | parent_left_fact | plus (4129)
+            //  - a: parent_+_or_* (2048)
+            //  - a_1: child_+_or_* | parent_left_fact (33)
             //  - a_2: child_left_fact (64)
             // parents:
             //  - a_1 -> a
             //  - a_2 -> a_1
-            (PRS(0), 811, true, false, 0, btreemap![
+            // TODO (code generation not yet supported in parsergen)
+            (PRS(0), 840, false, false, 0, btreemap![
             ], btreemap![
-                0 => symbols![nt 1, t 1, nt 0],         //  0: a -> a_1 B a | ◄0 ►a B! ►a_1 | a_1 B a
-                1 => symbols![t 2],                     //  1: a -> C       | ◄1 C!         | C
-                2 => symbols![],                        //  2: a_1 -> A a_2 | ►a_2 A!       |
-                3 => symbols![nt 1, t 0],               //  3: a_2 -> a_1   | ●a_1 ◄3       | a_1 A
-                4 => symbols![nt 1, t 0],               //  4: a_2 -> ε     | ◄4            | a_1 A
-            ], Default, btreemap![0 => vec![0, 1]]),
+                0 => symbols![nt 1],                    //  0: a -> a_1     | ◄0 ►a_1    | a_1
+                1 => symbols![],                        //  1: a_1 -> A a_2 | ►a_2 A!    |
+                2 => symbols![nt 1],                    //  2: a_1 -> ε     | ◄2         | a_1
+                3 => symbols![nt 1, t 0, t 1],          //  3: a_2 -> B a_1 | ●a_1 ◄3 B! | a_1 A B
+                4 => symbols![nt 1, t 0, t 2],          //  4: a_2 -> C a_1 | ●a_1 ◄4 C! | a_1 A C
+            ], Default, btreemap![0 => vec![0]]),
+
+            // --------------------------------------------------------------------------- right_rec +
 
             // --------------------------------------------------------------------------- right_rec + left_fact
             // expr -> <L=expr> Num "^" expr | Num
@@ -1810,6 +1846,8 @@ mod wrapper_source {
                     })
                 .join("\n");
             let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
+            let ambig_warnings = builder.log.get_warnings().filter(|w| w.contains("calc_table: ambiguity")).join("\n");
+            let result_is_ambiguous = !ambig_warnings.is_empty();
             set_has_value(&mut builder, has_value.clone());
             if VERBOSE {
                 println!("before, NT with value: {}",
@@ -1879,6 +1917,9 @@ mod wrapper_source {
                 println!("log:\n{}", builder.get_log().get_messages_str());
             }
             if VERBOSE_TYPE {
+                if result_is_ambiguous {
+                    println!("parsing table has ambiguities:\n{ambig_warnings}")
+                }
                 if builder_has_errors {
                     println!("builder couldn't generate the source");
                 } else {
@@ -1915,7 +1956,7 @@ mod wrapper_source {
             } else {
                 None
             };
-            let err_msg = format!("test {test_id} {rule_id:?} #{rule_iter} failed");
+            let err_msg = format!("test {test_id} TestRules({tr_id}) #{rule_iter} failed");
             if TESTS_ALL {
                 if result_items != expected_items || result_alts != expected_alts || result_nt_type != nt_type {
                     num_errors += 1;
@@ -1936,10 +1977,13 @@ mod wrapper_source {
                     num_errors += 1;
                     num_src_errors += 1;
                 }
+                if result_is_ambiguous {
+                    println!("## ERROR: {err_msg}, parsing table had ambiguities:\n{ambig_warnings}");
+                }
             } else {
-                assert_eq!(result_items, expected_items, "{err_msg}");
-                assert_eq!(result_alts, expected_alts, "{err_msg}");
-                assert_eq!(result_nt_type, nt_type, "{err_msg}");
+                assert_eq!(result_items, expected_items, "{err_msg}, different items");
+                assert_eq!(result_alts, expected_alts, "{err_msg}, different alts");
+                assert_eq!(result_nt_type, nt_type, "{err_msg}, different NT types");
                 if !cfg!(miri) && TEST_SOURCE {
                     assert!(!builder_has_errors, "{} errors reported by source builder", builder.log.num_errors());
                     if REPLACE_SOURCE && expected_src.is_some() && &result_src != expected_src.as_ref().unwrap() && !builder_has_errors {
@@ -1947,6 +1991,7 @@ mod wrapper_source {
                     }
                     assert_eq!(Some(result_src), expected_src, "{err_msg}");
                 }
+                assert!(!result_is_ambiguous, "{err_msg}, parsing table had ambiguities:\n{ambig_warnings}");
             }
         }
         if TESTS_ALL {

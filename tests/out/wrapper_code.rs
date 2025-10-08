@@ -218,6 +218,11 @@ pub(crate) mod code_642_1 {
     // types defined near the test in wrapper_source.rs
 }
 
+pub(crate) mod code_650_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
 pub(crate) mod code_prs_33_1 {
     // ------------------------------------------------------------
     // wrapper source for rule PRS(33) #1, start A
@@ -387,17 +392,17 @@ pub(crate) mod code_prs_54_1 {
     #[derive(Debug, PartialEq)] pub struct SynF();
 }
 
-pub(crate) mod code_835_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)] pub struct SynA();
-}
-
 pub(crate) mod code_810_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
 }
 
 pub(crate) mod code_811_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
+pub(crate) mod code_835_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
 }
