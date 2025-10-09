@@ -16,6 +16,23 @@ pub(crate) mod code_102_1 {
     #[derive(Debug, PartialEq)] pub struct SynA();
 }
 
+pub(crate) mod code_103_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
+pub(crate) mod code_106_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+    /// User-defined type for `b`
+    #[derive(Debug, PartialEq)] pub struct SynB();
+}
+
+pub(crate) mod code_106_2 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
 pub(crate) mod code_108_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
@@ -45,11 +62,6 @@ pub(crate) mod code_211_1 {
     #[derive(Debug, PartialEq)] pub struct SynI();
 }
 
-pub(crate) mod code_103_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)] pub struct SynA();
-}
-
 pub(crate) mod code_201_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynMyA();
@@ -65,18 +77,6 @@ pub(crate) mod code_201_2 {
 pub(crate) mod code_201_3 {
     /// User-defined type for `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
     #[derive(Debug, PartialEq)] pub struct SynMyI();
-}
-
-pub(crate) mod code_106_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)] pub struct SynA();
-    /// User-defined type for `b`
-    #[derive(Debug, PartialEq)] pub struct SynB();
-}
-
-pub(crate) mod code_106_2 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)] pub struct SynA();
 }
 
 pub(crate) mod code_208_1 {
@@ -223,69 +223,6 @@ pub(crate) mod code_650_1 {
     #[derive(Debug, PartialEq)] pub struct SynA();
 }
 
-pub(crate) mod code_prs_33_1 {
-    // ------------------------------------------------------------
-    // wrapper source for rule PRS(33) #1, start A
-
-    /// User-defined type for `A`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-}
-
-pub(crate) mod code_prs_38_1 {
-    // ------------------------------------------------------------
-    // wrapper source for rule PRS(38) #1, start A
-
-    /// User-defined type for `A`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-}
-
-pub(crate) mod code_prs_39_1 {
-    // ------------------------------------------------------------
-    // wrapper source for rule PRS(39) #1, start A
-
-    /// User-defined type for `A`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-}
-
-pub(crate) mod code_prs_32_1 {
-    // ------------------------------------------------------------
-    // wrapper source for rule PRS(32) #1, start E
-
-    /// User-defined type for `E`
-    #[derive(Debug, PartialEq)]
-    pub struct SynE();
-
-    /// User-defined type for `F`
-    #[derive(Debug, PartialEq)]
-    pub struct SynF();
-}
-
-pub(crate) mod code_rts_38_1 {
-    // ------------------------------------------------------------
-    // wrapper source for rule RTS(38) #1, start A
-
-    /// User-defined type for `A`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-}
-
-pub(crate) mod code_rts_38_2 {
-    // ------------------------------------------------------------
-    // wrapper source for rule RTS(38) #2, start A
-
-    /// User-defined type for `A`
-    #[derive(Debug, PartialEq)]
-    pub struct SynA();
-}
-
-pub(crate) mod code_rts_38_3 {
-    // ------------------------------------------------------------
-    // wrapper source for rule RTS(38) #3, start A
-}
-
 pub(crate) mod code_820_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
@@ -299,19 +236,6 @@ pub(crate) mod code_821_1 {
 pub(crate) mod code_705_1 {
     /// User-defined type for `a`
     #[derive(Debug, PartialEq)] pub struct SynA();
-}
-
-pub(crate) mod code_rts_33_1 {
-    // ------------------------------------------------------------
-    // wrapper source for rule RTS(33) #1, start A
-
-    /// User-defined type for `A`
-    #[derive(Debug, PartialEq)]
-    pub struct SynMyA();
-
-    /// User-defined type for `B`
-    #[derive(Debug, PartialEq)]
-    pub struct SynB();
 }
 
 pub(crate) mod code_580_1 {
@@ -333,6 +257,35 @@ pub(crate) mod code_600_1 {
     #[derive(Debug, PartialEq)] pub struct SynE();
 }
 
+pub(crate) mod code_810_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
+pub(crate) mod code_811_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
+pub(crate) mod code_835_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
+pub(crate) mod code_862_1 {
+    /// User-defined type for `expr`
+    #[derive(Debug, PartialEq)] pub struct SynExpr(pub Vec<String>);
+}
+
+pub(crate) mod code_870_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
+
+pub(crate) mod code_871_1 {
+    /// User-defined type for `a`
+    #[derive(Debug, PartialEq)] pub struct SynA();
+}
 
 pub(crate) mod code_901_1 {
     #[derive(Debug, PartialEq)] pub struct SynFile();
@@ -364,58 +317,4 @@ pub(crate) mod code_901_1 {
     #[derive(Debug, PartialEq)] pub struct SynCharSet();
     /// User-defined type for `char_set_one`
     #[derive(Debug, PartialEq)] pub struct SynCharSetOne();
-}
-
-pub(crate) mod code_prs_51_1 {
-    /// User-defined type for `E`
-    #[derive(Debug, PartialEq)]
-    pub struct SynE();
-    /// User-defined type for `F`
-    #[derive(Debug, PartialEq)]
-    pub struct SynF();
-}
-
-pub(crate) mod code_prs_54_1 {
-    /// User-defined type for `E`
-    #[derive(Debug, PartialEq)] pub struct SynE();
-    /// User-defined type for `E1`
-    #[derive(Debug, PartialEq)] pub struct SynE1();
-    /// User-defined type for `E2`
-    #[derive(Debug, PartialEq)] pub struct SynE2();
-    /// User-defined type for `E3`
-    #[derive(Debug, PartialEq)] pub struct SynE3();
-    /// User-defined type for `E4`
-    #[derive(Debug, PartialEq)] pub struct SynE4();
-    /// User-defined type for `E5`
-    #[derive(Debug, PartialEq)] pub struct SynE5();
-    /// User-defined type for `F`
-    #[derive(Debug, PartialEq)] pub struct SynF();
-}
-
-pub(crate) mod code_810_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)] pub struct SynA();
-}
-
-pub(crate) mod code_811_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)] pub struct SynA();
-}
-
-pub(crate) mod code_835_1 {
-    /// User-defined type for `a`
-    #[derive(Debug, PartialEq)] pub struct SynA();
-}
-
-pub(crate) mod code_862_1 {
-    /// User-defined type for `expr`
-    #[derive(Debug, PartialEq)] pub struct SynExpr(pub Vec<String>);
-}
-
-pub(crate) mod code_prs_63_1 {
-    // types defined near the test in wrapper_source.rs
-}
-
-pub(crate) mod code_prs_65_1 {
-    // types defined near the test in wrapper_source.rs
 }

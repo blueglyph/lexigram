@@ -211,7 +211,8 @@ impl TestRules {
             862 => vec![r#"expr -> <L> Num "^" expr | Num;"#],
 
             // 5xx and 7xx
-            870 => vec![r#"a -> a A B | a A C | D;"#],
+            870 => vec![r#"a -> a A | B C | B D;"#],
+            871 => vec![r#"a -> a A B | a A C | D;"#],
 
             // 9xx = general examples
             // -----------------------------------------------------------------------------
