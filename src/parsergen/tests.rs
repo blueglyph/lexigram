@@ -611,9 +611,8 @@ mod wrapper_source {
     use std::collections::{BTreeMap, HashMap};
     use iter_index::IndexerIterator;
     use crate::grammar::{alt_to_rule_str, ruleflag, AltId, Symbol, VarId};
-    use crate::grammar::tests::{old_build_rts_prs::T, TestRules};
+    use crate::grammar::tests::TestRules;
     use crate::{btreemap, columns_to_str, indent_source, symbols, CollectJoin};
-    use crate::grammar::tests::old_build_rts_prs::T::RTS;
     use crate::parsergen::{print_flags, print_items, ParserGen};
     use crate::log::{LogReader, LogStatus};
     use crate::parsergen::tests::get_original_str;
@@ -1889,41 +1888,41 @@ mod wrapper_source {
     #[test]
     /// Tests [ParserGen::full_alt_str].
     fn expand_lfact() {
-        let tests: Vec<(T, u32, Vec<Option<&str>>)> = vec![
+        let tests: Vec<(u32, Vec<Option<&str>>)> = vec![
             // a -> A | B
-            (RTS(0), 2, vec![
+            (2, vec![
                 Some(r#"a -> A"#),                // 0: a -> A
                 Some(r#"a -> B"#),                // 1: a -> B
             ]),
             // a -> A B* C
-            (RTS(0), 102, vec![
+            (102, vec![
                 Some(r#"a -> A B* C"#),                       // 0: a -> A a_1 C
                 Some(r#"`B` item in `a -> A  ►► B ◄◄ * C`"#), // 1: a_1 -> B a_1
                 None,                                         // 2: a_1 -> ε
             ]),
             // a -> A B+ C
-            (RTS(0), 103, vec![
+            (103, vec![
                 Some(r#"a -> A B+ C"#),                       // 0: a -> A a_1 C
                 Some(r#"`B` item in `a -> A  ►► B ◄◄ + C`"#), // 1: a_1 -> B a_2
                 Some(r#"a -> B"#),                            // 2: a_2 -> a_1
                 Some(r#"a -> B"#),                            // 3: a_2 -> ε
             ]),
             // a -> A (<L=i> B)+ C
-            (RTS(0), 201, vec![
+            (201, vec![
                 Some(r#"a -> A (<L> B)+ C"#),                                // 0: a -> A i C
                 Some(r#"`<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`"#), // 1: i -> B a_1
                 Some(r#"a -> <L> B"#),                                       // 2: a_1 -> i
                 Some(r#"a -> <L> B"#),                                       // 3: a_1 -> ε
             ]),
             // a -> (<L=i> A B)*
-            (RTS(0), 202, vec![
+            (202, vec![
                 Some(r#"a -> (<L> A B)*"#),                                  // 0: a -> i
                 Some(r#"`<L> A B` iteration in `a -> ( ►► <L> A B ◄◄ )*`"#), // 1: i -> A B i
                 None,                                                        // 2: i -> ε
             ]),
             // a -> (<L=i> A (<L=j> b ",")* ";")* C
             // b -> B
-            (RTS(0), 208, vec![
+            (208, vec![
                 Some(r#"a -> (<L> A (<L> b ",")* ";")* C"#),                                                 // 0: a -> i C
                 Some(r#"`<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`"#), // 1: i -> A j ";" i
                 None,                                                                                        // 2: i -> ε
@@ -1933,7 +1932,7 @@ mod wrapper_source {
             ]),
             // a -> (<L=i> A (<L=j> b ",")+ ";")+ C
             // b -> B
-            (RTS(0), 209, vec![
+            (209, vec![
                 Some(r#"a -> (<L> A (<L> b ",")+ ";")+ C"#),                                                 // 0: a -> i C
                 Some(r#"`<L> A (<L> b ",")+ ";"` iteration in `a -> ( ►► <L> A (<L> b ",")+ ";" ◄◄ )+ C`"#), // 1: i -> A j ";" a_1
                 Some(r#"`<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )+ ";")+ C`"#),              // 2: j -> b "," a_2
@@ -1944,51 +1943,51 @@ mod wrapper_source {
                 Some(r#"a -> <L> b ",""#),                                                                   // 7: a_2 -> ε
             ]),
             // a -> (<L=i> A | B)*
-            (RTS(0), 250, vec![
+            (250, vec![
                 Some(r#"a -> (<L> A | B)*"#),                                // 0: a -> i
                 Some(r#"`<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)*`"#), // 1: i -> A i
                 Some(r#"`B` iteration in `a -> (<L> A |  ►► B ◄◄ )*`"#),     // 2: i -> B i
                 None,                                                        // 3: i -> ε
             ]),
             // expr -> Id "." expr | "(" Num ")"
-            (RTS(0), 301, vec![
+            (301, vec![
                 Some(r#"expr -> Id "." expr"#),   // 0: expr -> Id "." expr
                 Some(r#"expr -> "(" Num ")""#),   // 1: expr -> "(" Num ")"
             ]),
             // expr -> <L=expr> Id "." expr | "(" Num ")"
-            (RTS(0), 401, vec![
+            (401, vec![
                 Some(r#"expr -> <L> Id "." expr"#), // 0: expr -> Id "." expr
                 Some(r#"expr -> "(" Num ")""#),     // 1: expr -> "(" Num ")"
             ]),
             // a -> a "!" | "?"
-            (RTS(0), 500, vec![
+            (500, vec![
                 Some(r#"a -> "?""#),              // 0: a -> "?" a_1
                 Some(r#"a -> a "!""#),            // 1: a_1 -> "!" a_1
                 None,                             // 2: a_1 -> ε
             ]),
             // a -> a "b" | a "c" | "a"
-            (RTS(0), 501, vec![
+            (501, vec![
                 Some(r#"a -> "a""#),              // 0: a -> "a" a_1
                 Some(r#"a -> a "b""#),            // 1: a_1 -> "b" a_1
                 Some(r#"a -> a "c""#),            // 2: a_1 -> "c" a_1
                 None,                             // 3: a_1 -> ε
             ]),
             // e -> e "!" | "-" e | Num
-            (RTS(0), 580, vec![
+            (580, vec![
                 Some(r#"e -> "-" e"#),            // 0: e -> "-" e
                 Some(r#"e -> Num"#),              // 1: e -> Num e_1
                 Some(r#"e -> e "!""#),            // 2: e_1 -> "!" e_1
                 None,                             // 3: e_1 -> ε
             ]),
             // e -> e "!" | <L=e> "-" e | Num
-            (RTS(0), 581, vec![
+            (581, vec![
                 Some(r#"e -> <L> "-" e"#),        // 0: e -> "-" e
                 Some(r#"e -> Num"#),              // 1: e -> Num e_1
                 Some(r#"e -> e "!""#),            // 2: e_1 -> "!" e_1
                 None,                             // 3: e_1 -> ε
             ]),
             // e -> e "*" e | e "+" e | "!" e | Num
-            (RTS(0), 603, vec![
+            (603, vec![
                 None,                             // 0: e -> e_4 e_1
                 Some(r#"e -> e "*" e"#),          // 1: e_1 -> "*" e_4 e_1
                 Some(r#"e -> e "+" e"#),          // 2: e_1 -> "+" e_2 e_1
@@ -2000,7 +1999,7 @@ mod wrapper_source {
                 Some(r#"e -> Num"#),              // 8: e_4 -> Num
             ]),
             // e -> e "*" e | e "+" | "!" e | Num
-            (RTS(0), 630, vec![
+            (630, vec![
                 None,                             // 0: e -> e_2 e_1
                 Some(r#"e -> e "*" e"#),          // 1: e_1 -> "*" e_2 e_1
                 Some(r#"e -> e "+""#),            // 2: e_1 -> "+" e_1
@@ -2009,13 +2008,13 @@ mod wrapper_source {
                 Some(r#"e -> Num"#),              // 5: e_2 -> Num
             ]),
             // a -> A | A B
-            (RTS(0), 700, vec![
+            (700, vec![
                 None,                             // 0: a -> A a_1
                 Some(r#"a -> A B"#),              // 1: a_1 -> B
                 Some(r#"a -> A"#),                // 2: a_1 -> ε
             ]),
             // a -> A B C | B B C | B C | B B A
-            (RTS(0), 704, vec![
+            (704, vec![
                 Some(r#"a -> A B C"#),            // 0: a -> A B C
                 None,                             // 1: a -> B a_1
                 None,                             // 2: a_1 -> B a_2
@@ -2024,14 +2023,14 @@ mod wrapper_source {
                 Some(r#"a -> B B C"#),            // 5: a_2 -> C
             ]),
             // a -> A* B a | C
-            (RTS(0), 810, vec![
+            (810, vec![
                 Some(r#"a -> A* B a"#),                           // 0: a -> a_1 B a
                 Some(r#"a -> C"#),                                // 1: a -> C
                 Some(r#"`A` item in `a ->  ►► A ◄◄ * B a | C`"#), // 2: a_1 -> A a_1
                 None,                                             // 3: a_1 -> ε
             ]),
             // a -> A+ B a | C
-            (RTS(0), 811, vec![
+            (811, vec![
                 Some(r#"a -> A+ B a"#),                           // 0: a -> a_1 B a
                 Some(r#"a -> C"#),                                // 1: a -> C
                 Some(r#"`A` item in `a ->  ►► A ◄◄ + B a | C`"#), // 2: a_1 -> A a_2
@@ -2039,7 +2038,7 @@ mod wrapper_source {
                 Some(r#"a -> A"#),                                // 4: a_2 -> ε
             ]),
             // a -> a A* C | B
-            (RTS(0), 820, vec![
+            (820, vec![
                 Some(r#"a -> B"#),                                // 0: a -> B a_2
                 Some(r#"`A` item in `a -> a  ►► A ◄◄ * C | B`"#), // 1: a_1 -> A a_1
                 None,                                             // 2: a_1 -> ε
@@ -2047,7 +2046,7 @@ mod wrapper_source {
                 None,                                             // 4: a_2 -> ε
             ]),
             // a -> a A+ C | B
-            (RTS(0), 821, vec![
+            (821, vec![
                 Some(r#"a -> B"#),                                // 0: a -> B a_2
                 Some(r#"`A` item in `a -> a  ►► A ◄◄ + C | B`"#), // 1: a_1 -> A a_3
                 Some(r#"a -> a A+ C"#),                           // 2: a_2 -> a_1 C a_2
@@ -2056,7 +2055,7 @@ mod wrapper_source {
                 Some(r#"a -> A"#),                                // 5: a_3 -> ε
             ]),
             // a -> a A | B C | B D
-            (RTS(0), 870, vec![
+            (870, vec![
                 None,                             // 0: a -> B a_2
                 Some(r#"a -> a A"#),              // 1: a_1 -> A a_1
                 None,                             // 2: a_1 -> ε
@@ -2064,7 +2063,7 @@ mod wrapper_source {
                 Some(r#"a -> B D"#),              // 4: a_2 -> D a_1
             ]),
             // a -> a A B | a A C | D
-            (RTS(0), 871, vec![
+            (871, vec![
                 Some(r#"a -> D"#),                // 0: a -> D a_1
                 None,                             // 1: a_1 -> A a_2
                 None,                             // 2: a_1 -> ε
@@ -2072,26 +2071,22 @@ mod wrapper_source {
                 Some(r#"a -> a A C"#),            // 4: a_2 -> C a_1
             ]),
             /*
-            (RTS(0), 999, vec![
+            (999, vec![
             ]),
             */
         ];
         const VERBOSE: bool = false;
         const VERBOSE_SOLUTION: bool = false;
-        let mut rule_id_iter = HashMap::<T, u32>::new();
+        let mut rule_id_iter = HashMap::<u32, u32>::new();
         let mut errors = 0;
-        for (test_id, (rule_id, tr_id, expected_full)) in tests.into_iter().enumerate() {
-            let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
-            if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} / {tr_id} #{rule_iter}:", ""); }
+        for (test_id, (tr_id, expected_full)) in tests.into_iter().enumerate() {
+            let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
+            if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {tr_id} #{rule_iter}:", ""); }
 
             let expected_full = expected_full.into_iter()
                 .map(|opt| if let Some(s) = opt { format!("Some(r#\"{s}\"#)") } else { "None".to_string() })
                 .to_vec();
-            let ll1 = if tr_id == 999 {
-                rule_id.build_prs(test_id, 0, true)
-            } else {
-                TestRules(tr_id).to_prs_ll1().unwrap()
-            };
+            let ll1 = TestRules(tr_id).to_prs_ll1().unwrap();
             let original_str = get_original_str(&ll1, 12);
             let builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             let symtable = builder.get_symbol_table();
@@ -2106,7 +2101,7 @@ mod wrapper_source {
             }
             if VERBOSE_SOLUTION || VERBOSE {
                 println!("{original_str}");
-                println!("            ({rule_id:?}, {tr_id}, vec![", );
+                println!("            ({tr_id}, vec![", );
                 let cols = result_full.iter().enumerate()
                     .map(|(i, s_full)| {
                         let (v, prod) = &builder.parsing_table.alts[i];
