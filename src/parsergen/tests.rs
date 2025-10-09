@@ -2,6 +2,22 @@
 
 #![cfg(test)]
 
+use iter_index::IndexerIterator;
+use crate::grammar::{grtree_to_str, ProdRuleSet, Symbol, VarId};
+use crate::{CollectJoin, LL1};
+
+fn get_original_str(ll1: &ProdRuleSet<LL1>, indent: usize) -> String {
+    let symtab = ll1.get_symbol_table();
+    ll1.origin.trees.iter().index::<VarId>()
+        .filter_map(|(v, t)|
+            if !t.is_empty() {
+                Some(format!("{: <w$}// {} -> {}", "", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, symtab, false), w=indent))
+            } else {
+                None
+            })
+        .join("\n")
+}
+
 mod gen_integration {
     use crate::grammar::ProdRuleSet;
     use crate::grammar::tests::prs::complete_symbol_table;
@@ -594,12 +610,13 @@ mod parser_source {
 mod wrapper_source {
     use std::collections::{BTreeMap, HashMap};
     use iter_index::IndexerIterator;
-    use crate::grammar::{alt_to_rule_str, ruleflag, AltId, Symbol, VarId, grtree_to_str};
+    use crate::grammar::{alt_to_rule_str, ruleflag, AltId, Symbol, VarId};
     use crate::grammar::tests::{old_build_rts_prs::T, TestRules};
     use crate::{btreemap, columns_to_str, indent_source, symbols, CollectJoin};
     use crate::grammar::tests::old_build_rts_prs::T::RTS;
     use crate::parsergen::{print_flags, print_items, ParserGen};
     use crate::log::{LogReader, LogStatus};
+    use crate::parsergen::tests::get_original_str;
     use crate::parsergen::tests::wrapper_source::HasValue::{All, Default, Set};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
@@ -629,6 +646,7 @@ mod wrapper_source {
 
     #[test]
     #[allow(unused_doc_comments)]
+    /// Tests [ParserGen::source_build_parser], [ParserGen::source_wrapper], [ParserGen::source_use], and [ParserGen::make_item_ops].
     fn build_items() {
         let tests: Vec<(
             u32,                            // TestRules #
@@ -1720,14 +1738,7 @@ mod wrapper_source {
                     .map(|(i, (s1, s2))| format!("{i}:{s1}{}", if let Some(s2t) = s2 { format!("=\"{s2t}\"") } else { String::new() })).join(", "));
                 println!("LL1 <-> origin:\n{}", indent_source(vec![ll1.prs_alt_origins_str(true)], 4));
             }
-            let original_str = ll1.origin.trees.iter().index::<VarId>()
-                .filter_map(|(v, t)|
-                    if !t.is_empty() {
-                        Some(format!("            // {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, symtab, false)))
-                    } else {
-                        None
-                    })
-                .join("\n");
+            let original_str = get_original_str(&ll1, 12);
             let mut builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             let ambig_warnings = builder.log.get_warnings().filter(|w| w.contains("calc_table: ambiguity")).join("\n");
             let result_is_ambiguous = !ambig_warnings.is_empty();
@@ -1876,190 +1887,192 @@ mod wrapper_source {
     }
 
     #[test]
+    /// Tests [ParserGen::full_alt_str].
     fn expand_lfact() {
-        let tests: Vec<(T, Vec<Option<&str>>)> = vec![
-            // A -> a (<L=AIter1> (<L=AIter2> b)* c)* d
-            // NT flags:
-            //  - A: parent_+_or_* (2048)
-            //  - AIter2: child_+_or_* | L-form (129)
-            //  - AIter1: child_+_or_* | L-form | parent_+_or_* (2177)
-            // parents:
-            //  - AIter2 -> AIter1
-            //  - AIter1 -> A
-            (RTS(39), vec![
-                Some("A -> a (<L> (<L> b)* c)* d"),                                         // 0: A -> a AIter1 d
-                Some("`<L> b` iteration in `A -> a (<L> ( ►► <L> b ◄◄ )* c)* d`"),          // 1: AIter2 -> b AIter2
-                None,                                                                       // 2: AIter2 -> ε
-                Some("`<L> (<L> b)* c` iteration in `A -> a ( ►► <L> (<L> b)* c ◄◄ )* d`"), // 3: AIter1 -> AIter2 c AIter1
-                None,                                                                       // 4: AIter1 -> ε
+        let tests: Vec<(T, u32, Vec<Option<&str>>)> = vec![
+            // a -> A | B
+            (RTS(0), 2, vec![
+                Some(r#"a -> A"#),                // 0: a -> A
+                Some(r#"a -> B"#),                // 1: a -> B
             ]),
-            // A -> A (c)* b | c
-            // NT flags:
-            //  - A: parent_left_rec | parent_+_or_* (2560)
-            //  - A_1: child_+_or_* (1)
-            //  - A_2: child_left_rec (4)
-            // parents:
-            //  - A_1 -> A
-            //  - A_2 -> A
-            (RTS(26), vec![
-                Some("A -> a"),                                // 0: A -> a A_2
-                Some("`c` item in `A -> A  ►► c ◄◄ * b | a`"), // 1: A_1 -> c A_1
-                None,                                          // 2: A_1 -> ε
-                Some("A -> A c* b"),                           // 3: A_2 -> A_1 b A_2
-                None,                                          // 4: A_2 -> ε
+            // a -> A B* C
+            (RTS(0), 102, vec![
+                Some(r#"a -> A B* C"#),                       // 0: a -> A a_1 C
+                Some(r#"`B` item in `a -> A  ►► B ◄◄ * C`"#), // 1: a_1 -> B a_1
+                None,                                         // 2: a_1 -> ε
             ]),
-            // A -> A (c)+ b | c
-            // NT flags:
-            //  - A: parent_left_rec | parent_+_or_* | plus (6656)
-            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
-            //  - A_2: child_left_rec (4)
-            //  - A_3: child_left_fact (64)
-            // parents:
-            //  - A_1 -> A
-            //  - A_2 -> A
-            //  - A_3 -> A_1
-            (RTS(16), vec![
-                Some("A -> a"),                                // 0: A -> a A_2
-                Some("`c` item in `A -> A  ►► c ◄◄ + b | a`"), // 1: A_1 -> c A_3
-                Some("A -> A c+ b"),                           // 2: A_2 -> A_1 b A_2
-                None,                                          // 3: A_2 -> ε
-                Some("A -> c"),                                // 4: A_3 -> A_1
-                Some("A -> c"),                                // 5: A_3 -> ε
+            // a -> A B+ C
+            (RTS(0), 103, vec![
+                Some(r#"a -> A B+ C"#),                       // 0: a -> A a_1 C
+                Some(r#"`B` item in `a -> A  ►► B ◄◄ + C`"#), // 1: a_1 -> B a_2
+                Some(r#"a -> B"#),                            // 2: a_2 -> a_1
+                Some(r#"a -> B"#),                            // 3: a_2 -> ε
             ]),
-            // A -> (B c)* b | a
-            // B -> b
-            (RTS(33), vec![
-                Some("A -> (B c)* b"),                             // 0: A -> A_1 b
-                Some("A -> a"),                                    // 1: A -> a
-                Some("B -> b"),                                    // 2: B -> b
-                Some("`B c` item in `A -> ( ►► B c ◄◄ )* b | a`"), // 3: A_1 -> B c A_1
-                None,                                              // 4: A_1 -> ε
+            // a -> A (<L=i> B)+ C
+            (RTS(0), 201, vec![
+                Some(r#"a -> A (<L> B)+ C"#),                                // 0: a -> A i C
+                Some(r#"`<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`"#), // 1: i -> B a_1
+                Some(r#"a -> <L> B"#),                                       // 2: a_1 -> i
+                Some(r#"a -> <L> B"#),                                       // 3: a_1 -> ε
             ]),
-            // A -> a (a | c) (b <L>)* c
-            (RTS(32), vec![
-                None,                                                                                // 0: A -> a A_1
-                Some("`b <L>` iteration in `A -> a a ( ►► b <L> ◄◄ )* c | a c ( ►► b <L> ◄◄ )* c`"), // 1: AIter1 -> b AIter1
-                None,                                                                                // 2: AIter1 -> ε
-                Some("A -> a a (b <L>)* c"),                                                         // 3: A_1 -> a AIter1 c
-                Some("A -> a c (b <L>)* c"),                                                         // 4: A_1 -> c AIter1 c
+            // a -> (<L=i> A B)*
+            (RTS(0), 202, vec![
+                Some(r#"a -> (<L> A B)*"#),                                  // 0: a -> i
+                Some(r#"`<L> A B` iteration in `a -> ( ►► <L> A B ◄◄ )*`"#), // 1: i -> A B i
+                None,                                                        // 2: i -> ε
             ]),
-            // A -> a | a b | a b c | a b d | e
-            #[cfg(any())]
-            (PRS(28), vec![
-                ("A -> a | a b | a b c | a b d",    "A -> a | a b | a b c | a b d"), // A -> a A_1
-                ("A -> e",                          "A -> e"),                       // A -> e
-                ("A_1 -> b | b c | b d",            "A -> a b | a b c | a b d"),     // A_1 -> b A_2
-                ("A_1 -> ε",                        "A -> a"),                       // A_1 -> ε
-                ("A_2 -> c",                        "A -> a b c"),                   // A_2 -> c
-                ("A_2 -> d",                        "A -> a b d"),                   // A_2 -> d
-                ("A_2 -> ε",                        "A -> a b"),                     // A_2 -> ε
+            // a -> (<L=i> A (<L=j> b ",")* ";")* C
+            // b -> B
+            (RTS(0), 208, vec![
+                Some(r#"a -> (<L> A (<L> b ",")* ";")* C"#),                                                 // 0: a -> i C
+                Some(r#"`<L> A (<L> b ",")* ";"` iteration in `a -> ( ►► <L> A (<L> b ",")* ";" ◄◄ )* C`"#), // 1: i -> A j ";" i
+                None,                                                                                        // 2: i -> ε
+                Some(r#"`<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )* ";")* C`"#),              // 3: j -> b "," j
+                None,                                                                                        // 4: j -> ε
+                Some(r#"b -> B"#),                                                                           // 5: b -> B
             ]),
-            // E -> F | E . id ; F -> id
-            #[cfg(any())]
-            (PRS(31), vec![
-                ("E -> F E_1",                      "E -> F"),                           // 0: E -> F E_1
-                ("F -> id",                         "F -> id"),                          // 1: F -> id
-                ("E_1 -> . id E_1",                 "E -> E . id"),                      // 2: E_1 -> . id E_1
-                ("E_1 -> ε",                        "end of iterations in E -> E . id"), // 3: E_1 -> ε
+            // a -> (<L=i> A (<L=j> b ",")+ ";")+ C
+            // b -> B
+            (RTS(0), 209, vec![
+                Some(r#"a -> (<L> A (<L> b ",")+ ";")+ C"#),                                                 // 0: a -> i C
+                Some(r#"`<L> A (<L> b ",")+ ";"` iteration in `a -> ( ►► <L> A (<L> b ",")+ ";" ◄◄ )+ C`"#), // 1: i -> A j ";" a_1
+                Some(r#"`<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )+ ";")+ C`"#),              // 2: j -> b "," a_2
+                Some(r#"b -> B"#),                                                                           // 3: b -> B
+                Some(r#"a -> <L> A (<L> b ",")+ ";""#),                                                      // 4: a_1 -> i
+                Some(r#"a -> <L> A (<L> b ",")+ ";""#),                                                      // 5: a_1 -> ε
+                Some(r#"a -> <L> b ",""#),                                                                   // 6: a_2 -> j
+                Some(r#"a -> <L> b ",""#),                                                                   // 7: a_2 -> ε
             ]),
-            // A -> A a | b c | b d
-            #[cfg(any())]
-            (PRS(33), vec![
-                ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),                // 0: A -> b A_2
-                ("A_1 -> a A_1",                    "A -> A a"),                      // 1: A_1 -> a A_1
-                ("A_1 -> ε",                        "end of iterations in A -> A a"), // 2: A_1 -> ε
-                ("A_2 -> c A_1",                    "A -> b c"),                      // 3: A_2 -> c A_1
-                ("A_2 -> d A_1",                    "A -> b d"),                      // 4: A_2 -> d A_1
+            // a -> (<L=i> A | B)*
+            (RTS(0), 250, vec![
+                Some(r#"a -> (<L> A | B)*"#),                                // 0: a -> i
+                Some(r#"`<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)*`"#), // 1: i -> A i
+                Some(r#"`B` iteration in `a -> (<L> A |  ►► B ◄◄ )*`"#),     // 2: i -> B i
+                None,                                                        // 3: i -> ε
             ]),
-            // A -> A a | A b | b c | b d
-            #[cfg(any())]
-            (PRS(38), vec![
-                ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),                      // 0: A -> b A_2
-                ("A_1 -> a A_1",                    "A -> A a"),                            // 1: A_1 -> a A_1
-                ("A_1 -> b A_1",                    "A -> A b"),                            // 2: A_1 -> b A_1
-                ("A_1 -> ε",                        "end of iterations in A -> A a | A b"), // 3: A_1 -> ε
-                ("A_2 -> c A_1",                    "A -> b c"),                            // 4: A_2 -> c A_1
-                ("A_2 -> d A_1",                    "A -> b d"),                            // 5: A_2 -> d A_1
+            // expr -> Id "." expr | "(" Num ")"
+            (RTS(0), 301, vec![
+                Some(r#"expr -> Id "." expr"#),   // 0: expr -> Id "." expr
+                Some(r#"expr -> "(" Num ")""#),   // 1: expr -> "(" Num ")"
             ]),
-            // A -> A a b | A a c | b c | b d
-            // NT flags:
-            //  - A: parent_left_fact | parent_left_rec (544)
-            //  - A_1: child_left_rec | parent_left_fact (36)
-            //  - A_2: child_left_fact (64)
-            //  - A_3: child_left_fact (64)
-            // parents:
-            //  - A_1 -> A
-            //  - A_2 -> A
-            //  - A_3 -> A_1
-            #[cfg(any())]
-            (PRS(39), vec![
-                ("A -> b c A_1 | b d A_1",          "A -> b c | b d"),                          // 0: A -> b A_2
-                ("A_1 -> a b A_1 | a c A_1",        "A -> A a b | A a c"),                      // 1: A_1 -> a A_3
-                ("A_1 -> ε",                        "end of iterations in A -> A a b | A a c"), // 2: A_1 -> ε
-                ("A_2 -> c A_1",                    "A -> b c"),                                // 3: A_2 -> c A_1
-                ("A_2 -> d A_1",                    "A -> b d"),                                // 4: A_2 -> d A_1
-                ("A_3 -> b A_1",                    "A -> A a b"),                              // 5: A_3 -> b A_1
-                ("A_3 -> c A_1",                    "A -> A a c"),                              // 6: A_3 -> c A_1
+            // expr -> <L=expr> Id "." expr | "(" Num ")"
+            (RTS(0), 401, vec![
+                Some(r#"expr -> <L> Id "." expr"#), // 0: expr -> Id "." expr
+                Some(r#"expr -> "(" Num ")""#),     // 1: expr -> "(" Num ")"
             ]),
-            // A -> a [[b]+ [b]+]+ c [[b]+ [b]+]+ d
-            // NT flags:
-            //  - A: parent_+_or_* | plus (6144)
-            //  - A_1: child_+_or_* | parent_left_fact | plus (4129)
-            //  - A_2: child_+_or_* | parent_left_fact | plus (4129)
-            //  - A_3: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
-            //  - A_4: child_+_or_* | parent_left_fact | plus (4129)
-            //  - A_5: child_+_or_* | parent_left_fact | plus (4129)
-            //  - A_6: child_+_or_* | parent_left_fact | parent_+_or_* | plus (6177)
-            //  - A_7: child_left_fact (64)
-            //  - A_8: child_left_fact (64)
-            //  - A_9: child_left_fact (64)
-            //  - A_10: child_left_fact (64)
-            //  - A_11: child_left_fact (64)
-            //  - A_12: child_left_fact (64)
-            // parents:
-            //  - A_1 -> A_3
-            //  - A_2 -> A
-            //  - A_3 -> A
-            //  - A_4 -> A_6
-            //  - A_5 -> A
-            //  - A_6 -> A
-            //  - A_7 -> A_1
-            //  - A_8 -> A_2
-            //  - A_9 -> A_3
-            //  - A_10 -> A_4
-            //  - A_11 -> A_5
-            //  - A_12 -> A_6
-            (RTS(34), vec![
-                Some("A -> a (b+ b+)+ c (b+ b+)+ d"),                           // 0: A -> a A_3 c A_6 d
-                Some("`b` item in `A -> a ( ►► b ◄◄ + b+)+ c (b+ b+)+ d`"),     // 1: A_1 -> b A_7
-                Some("`b` item in `A -> a (b+  ►► b ◄◄ +)+ c (b+ b+)+ d`"),     // 2: A_2 -> b A_8
-                Some("`b+ b+` item in `A -> a ( ►► b+ b+ ◄◄ )+ c (b+ b+)+ d`"), // 3: A_3 -> A_1 A_2 A_9
-                Some("`b` item in `A -> a (b+ b+)+ c ( ►► b ◄◄ + b+)+ d`"),     // 4: A_4 -> b A_10
-                Some("`b` item in `A -> a (b+ b+)+ c (b+  ►► b ◄◄ +)+ d`"),     // 5: A_5 -> b A_11
-                Some("`b+ b+` item in `A -> a (b+ b+)+ c ( ►► b+ b+ ◄◄ )+ d`"), // 6: A_6 -> A_4 A_5 A_12
-                Some("A -> b"),                                                 // 7: A_7 -> A_1
-                Some("A -> b"),                                                 // 8: A_7 -> ε
-                Some("A -> b"),                                                 // 9: A_8 -> A_2
-                Some("A -> b"),                                                 // 10: A_8 -> ε
-                Some("A -> b+ b+"),                                             // 11: A_9 -> A_3
-                Some("A -> b+ b+"),                                             // 12: A_9 -> ε
-                Some("A -> b"),                                                 // 13: A_10 -> A_4
-                Some("A -> b"),                                                 // 14: A_10 -> ε
-                Some("A -> b"),                                                 // 15: A_11 -> A_5
-                Some("A -> b"),                                                 // 16: A_11 -> ε
-                Some("A -> b+ b+"),                                             // 17: A_12 -> A_6
-                Some("A -> b+ b+"),                                             // 18: A_12 -> ε
+            // a -> a "!" | "?"
+            (RTS(0), 500, vec![
+                Some(r#"a -> "?""#),              // 0: a -> "?" a_1
+                Some(r#"a -> a "!""#),            // 1: a_1 -> "!" a_1
+                None,                             // 2: a_1 -> ε
             ]),
-            // E -> E + | - E | 0
-            #[cfg(any())]
-            (PRS(58), vec![
-                ("E -> - E",                        "E -> - E"),                      // 0: E -> - E
-                ("E -> 0 E_1",                      "E -> 0"),                        // 1: E -> 0 E_1
-                ("E_1 -> + E_1",                    "E -> E +"),                      // 2: E_1 -> + E_1
-                ("E_1 -> ε",                        "end of iterations in E -> E +"), // 3: E_1 -> ε
+            // a -> a "b" | a "c" | "a"
+            (RTS(0), 501, vec![
+                Some(r#"a -> "a""#),              // 0: a -> "a" a_1
+                Some(r#"a -> a "b""#),            // 1: a_1 -> "b" a_1
+                Some(r#"a -> a "c""#),            // 2: a_1 -> "c" a_1
+                None,                             // 3: a_1 -> ε
+            ]),
+            // e -> e "!" | "-" e | Num
+            (RTS(0), 580, vec![
+                Some(r#"e -> "-" e"#),            // 0: e -> "-" e
+                Some(r#"e -> Num"#),              // 1: e -> Num e_1
+                Some(r#"e -> e "!""#),            // 2: e_1 -> "!" e_1
+                None,                             // 3: e_1 -> ε
+            ]),
+            // e -> e "!" | <L=e> "-" e | Num
+            (RTS(0), 581, vec![
+                Some(r#"e -> <L> "-" e"#),        // 0: e -> "-" e
+                Some(r#"e -> Num"#),              // 1: e -> Num e_1
+                Some(r#"e -> e "!""#),            // 2: e_1 -> "!" e_1
+                None,                             // 3: e_1 -> ε
+            ]),
+            // e -> e "*" e | e "+" e | "!" e | Num
+            (RTS(0), 603, vec![
+                None,                             // 0: e -> e_4 e_1
+                Some(r#"e -> e "*" e"#),          // 1: e_1 -> "*" e_4 e_1
+                Some(r#"e -> e "+" e"#),          // 2: e_1 -> "+" e_2 e_1
+                None,                             // 3: e_1 -> ε
+                None,                             // 4: e_2 -> e_4 e_3
+                Some(r#"e -> e "*" e"#),          // 5: e_3 -> "*" e_4 e_3
+                None,                             // 6: e_3 -> ε
+                Some(r#"e -> "!" e"#),            // 7: e_4 -> "!" e
+                Some(r#"e -> Num"#),              // 8: e_4 -> Num
+            ]),
+            // e -> e "*" e | e "+" | "!" e | Num
+            (RTS(0), 630, vec![
+                None,                             // 0: e -> e_2 e_1
+                Some(r#"e -> e "*" e"#),          // 1: e_1 -> "*" e_2 e_1
+                Some(r#"e -> e "+""#),            // 2: e_1 -> "+" e_1
+                None,                             // 3: e_1 -> ε
+                Some(r#"e -> "!" e"#),            // 4: e_2 -> "!" e
+                Some(r#"e -> Num"#),              // 5: e_2 -> Num
+            ]),
+            // a -> A | A B
+            (RTS(0), 700, vec![
+                None,                             // 0: a -> A a_1
+                Some(r#"a -> A B"#),              // 1: a_1 -> B
+                Some(r#"a -> A"#),                // 2: a_1 -> ε
+            ]),
+            // a -> A B C | B B C | B C | B B A
+            (RTS(0), 704, vec![
+                Some(r#"a -> A B C"#),            // 0: a -> A B C
+                None,                             // 1: a -> B a_1
+                None,                             // 2: a_1 -> B a_2
+                Some(r#"a -> B C"#),              // 3: a_1 -> C
+                Some(r#"a -> B B A"#),            // 4: a_2 -> A
+                Some(r#"a -> B B C"#),            // 5: a_2 -> C
+            ]),
+            // a -> A* B a | C
+            (RTS(0), 810, vec![
+                Some(r#"a -> A* B a"#),                           // 0: a -> a_1 B a
+                Some(r#"a -> C"#),                                // 1: a -> C
+                Some(r#"`A` item in `a ->  ►► A ◄◄ * B a | C`"#), // 2: a_1 -> A a_1
+                None,                                             // 3: a_1 -> ε
+            ]),
+            // a -> A+ B a | C
+            (RTS(0), 811, vec![
+                Some(r#"a -> A+ B a"#),                           // 0: a -> a_1 B a
+                Some(r#"a -> C"#),                                // 1: a -> C
+                Some(r#"`A` item in `a ->  ►► A ◄◄ + B a | C`"#), // 2: a_1 -> A a_2
+                Some(r#"a -> A"#),                                // 3: a_2 -> a_1
+                Some(r#"a -> A"#),                                // 4: a_2 -> ε
+            ]),
+            // a -> a A* C | B
+            (RTS(0), 820, vec![
+                Some(r#"a -> B"#),                                // 0: a -> B a_2
+                Some(r#"`A` item in `a -> a  ►► A ◄◄ * C | B`"#), // 1: a_1 -> A a_1
+                None,                                             // 2: a_1 -> ε
+                Some(r#"a -> a A* C"#),                           // 3: a_2 -> a_1 C a_2
+                None,                                             // 4: a_2 -> ε
+            ]),
+            // a -> a A+ C | B
+            (RTS(0), 821, vec![
+                Some(r#"a -> B"#),                                // 0: a -> B a_2
+                Some(r#"`A` item in `a -> a  ►► A ◄◄ + C | B`"#), // 1: a_1 -> A a_3
+                Some(r#"a -> a A+ C"#),                           // 2: a_2 -> a_1 C a_2
+                None,                                             // 3: a_2 -> ε
+                Some(r#"a -> A"#),                                // 4: a_3 -> a_1
+                Some(r#"a -> A"#),                                // 5: a_3 -> ε
+            ]),
+            // a -> a A | B C | B D
+            (RTS(0), 870, vec![
+                None,                             // 0: a -> B a_2
+                Some(r#"a -> a A"#),              // 1: a_1 -> A a_1
+                None,                             // 2: a_1 -> ε
+                Some(r#"a -> B C"#),              // 3: a_2 -> C a_1
+                Some(r#"a -> B D"#),              // 4: a_2 -> D a_1
+            ]),
+            // a -> a A B | a A C | D
+            (RTS(0), 871, vec![
+                Some(r#"a -> D"#),                // 0: a -> D a_1
+                None,                             // 1: a_1 -> A a_2
+                None,                             // 2: a_1 -> ε
+                Some(r#"a -> a A B"#),            // 3: a_2 -> B a_1
+                Some(r#"a -> a A C"#),            // 4: a_2 -> C a_1
             ]),
             /*
-            (PRS(), vec![
+            (RTS(0), 999, vec![
             ]),
             */
         ];
@@ -2067,20 +2080,33 @@ mod wrapper_source {
         const VERBOSE_SOLUTION: bool = false;
         let mut rule_id_iter = HashMap::<T, u32>::new();
         let mut errors = 0;
-        for (test_id, (rule_id, expected_full)) in tests.into_iter().enumerate() {
+        for (test_id, (rule_id, tr_id, expected_full)) in tests.into_iter().enumerate() {
             let rule_iter = rule_id_iter.entry(rule_id).and_modify(|x| *x += 1).or_insert(1);
-            if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} #{rule_iter}:", ""); }
+            if VERBOSE { println!("// {:=<80}\n// Test {test_id}: rules {rule_id:?} / {tr_id} #{rule_iter}:", ""); }
 
-            let expected_full = expected_full.into_iter().map(|opt| format!("{opt:?}")).to_vec();
-            let ll1 = rule_id.build_prs(test_id, 0, true);
+            let expected_full = expected_full.into_iter()
+                .map(|opt| if let Some(s) = opt { format!("Some(r#\"{s}\"#)") } else { "None".to_string() })
+                .to_vec();
+            let ll1 = if tr_id == 999 {
+                rule_id.build_prs(test_id, 0, true)
+            } else {
+                TestRules(tr_id).to_prs_ll1().unwrap()
+            };
+            let original_str = get_original_str(&ll1, 12);
             let builder = ParserGen::build_from_rules(ll1, "Test".to_string());
             let symtable = builder.get_symbol_table();
             let mut result_full = vec![];
             for (a_id, (_v, a)) in builder.parsing_table.alts.iter().index() {
-                result_full.push(format!("{:?}", a.get_origin().and_then(|_| Some(builder.full_alt_str(a_id, None, false)))));
+                result_full.push(
+                    format!("{}", if let Some(s) = a.get_origin().and_then(|_| Some(builder.full_alt_str(a_id, None, false))) {
+                        format!("Some(r#\"{s}\"#)")
+                    } else {
+                        "None".to_string()
+                    }));
             }
             if VERBOSE_SOLUTION || VERBOSE {
-                println!("            ({rule_id:?}, vec![", );
+                println!("{original_str}");
+                println!("            ({rule_id:?}, {tr_id}, vec![", );
                 let cols = result_full.iter().enumerate()
                     .map(|(i, s_full)| {
                         let (v, prod) = &builder.parsing_table.alts[i];

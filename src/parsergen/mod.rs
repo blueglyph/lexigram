@@ -446,6 +446,7 @@ impl ParserGen {
         }
     }
 
+    /// Representation of the original rule behind a context or a user variable
     fn full_alt_str(&self, a_id: AltId, emphasis: Option<VarId>, quote: bool) -> String {
         let (left, right) = self.full_alt_components(a_id, emphasis);
         if left.is_empty() {
