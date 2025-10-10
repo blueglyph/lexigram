@@ -253,10 +253,11 @@ mod gen_integration {
 pub mod opcodes {
     use crate::log::BuildFrom;
     use crate::grammar::{Symbol, VarId};
-    use crate::grammar::tests::old_build_rts_prs::T;
     use crate::{columns_to_str, strip, CollectJoin};
+    use crate::grammar::tests::TestRules;
     use crate::parser::{OpCode, Parser};
     use crate::parsergen::{ParserGen, ParserTables};
+    use crate::parsergen::tests::get_original_str;
 
     fn get_alts_str(parser: &Parser) -> Vec<String> {
         let pv = parser.get_alt_var();
@@ -292,280 +293,249 @@ pub mod opcodes {
         // non-terminal: ►A
         // exit:         ◄2 (alternative #2)
         // loop:         ●1 (alternative #1)
-        let tests: Vec<(T, VarId, Vec<Vec<OpCode>>)> = vec![
-            // basic rules -----------------------------------------------------------------
-            (T::PRS(9), 0, vec![
-                strip![exit 0, t 2, nt 1, t 0],         //  0: A -> a B c - ◄0 c ►B a
-                strip![exit 1, t 1],                    //  1: B -> b     - ◄1 b
-                strip![exit 2, t 3],                    //  2: B -> d     - ◄2 d
+        let tests: Vec<(u32, VarId, Vec<Vec<OpCode>>)> = vec![
+            // ----------------------------------------------------------------- basic rules
+            // a -> A b
+            // b -> B
+            (11, 0, vec![
+                strip![exit 0, nt 1, t 0],              //  0: a -> A b - ◄0 ►b A!
+                strip![exit 1, t 1],                    //  1: b -> B   - ◄1 B!
             ]),
-            // [A] + and * normalization ---------------------------------------------------
-            // (note that + normalization implies a [D] left factorization)
-            (T::RTS(9), 0, vec![                        // A -> var (id ,)+
-                strip![exit 0, nt 1, t 1],              //  0: A -> var A_1    - ◄0 ►A_1 var
-                strip![nt 2, t 3, t 2],                 //  1: A_1 -> id , A_2 - ►A_2 , id!
-                strip![loop 1, exit 2],                 //  2: A_2 -> A_1      - ●A_1 ◄2
-                strip![exit 3],                         //  3: A_2 -> ε        - ◄3
+            // a -> A | B
+            (2, 0, vec![
+                strip![exit 0, t 0],                    //  0: a -> A - ◄0 A!
+                strip![exit 1, t 1],                    //  1: a -> B - ◄1 B!
             ]),
-            (T::RTS(12), 0, vec![                       // A -> b (c d)*
-                strip![exit 0, nt 1, t 1],              //  0: A -> b A_1     - ◄0 ►A_1 b
-                strip![loop 1, exit 1, t 3, t 2],       //  1: A_1 -> c d A_1 - ●A_1 ◄1 d c
-                strip![exit 2],                         //  2: A_1 -> ε       - ◄2
+            // ----------------------------------------------------------------- +_or_*
+            // a -> A B* C
+            (102, 0, vec![
+                strip![exit 0, t 2, nt 1, t 0],         //  0: a -> A a_1 C - ◄0 C! ►a_1 A!
+                strip![loop 1, exit 1, t 1],            //  1: a_1 -> B a_1 - ●a_1 ◄1 B!
+                strip![exit 2],                         //  2: a_1 -> ε     - ◄2
             ]),
-            // [A + A] cascaded + normalizations -------------------------------------------
-            (T::RTS(17), 0, vec![                       // A -> a ( (b)+ c)+ d
-                strip![exit 0, t 3, nt 2, t 0],         //  0: A -> a A_2 d     - ◄0 d ►A_2 a
-                strip![nt 3, t 1],                      //  1: A_1 -> b A_3     - ►A_3 b
-                strip![nt 4, t 2, nt 1],                //  2: A_2 -> A_1 c A_4 - ►A_4 c ►A_1
-                strip![loop 1, exit 3],                 //  3: A_3 -> A_1       - ●A_1 ◄3
-                strip![exit 4],                         //  4: A_3 -> ε         - ◄4
-                strip![loop 2, exit 5],                 //  5: A_4 -> A_2       - ●A_2 ◄5
-                strip![exit 6],                         //  6: A_4 -> ε         - ◄6
+            // a -> A B+ C
+            (103, 0, vec![
+                strip![exit 0, t 2, nt 1, t 0],         //  0: a -> A a_1 C - ◄0 C! ►a_1 A!
+                strip![nt 2, t 1],                      //  1: a_1 -> B a_2 - ►a_2 B!
+                strip![loop 1, exit 2],                 //  2: a_2 -> a_1   - ●a_1 ◄2
+                strip![exit 3],                         //  3: a_2 -> ε     - ◄3
             ]),
-            // [B] right recursion ---------------------------------------------------------
-            (T::PRS(16), 0, vec![                       // A -> B A | b     B -> a
-                strip![exit 0, nt 0, nt 1],             //  0: A -> B A - ◄0 ►A ►B
-                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b
-                strip![exit 2, t 0],                    //  2: B -> a   - ◄2 a
+            // a -> (A (b ",")* ";")* C
+            // b -> B
+            (106, 0, vec![
+                strip![exit 0, t 3, nt 3],              //  0: a -> a_2 C         - ◄0 C! ►a_2
+                strip![exit 1, t 4],                    //  1: b -> B             - ◄1 B!
+                strip![loop 2, exit 2, t 1, nt 1],      //  2: a_1 -> b , a_1     - ●a_1 ◄2 , ►b
+                strip![exit 3],                         //  3: a_1 -> ε           - ◄3
+                strip![loop 3, exit 4, t 2, nt 2, t 0], //  4: a_2 -> A a_1 ; a_2 - ●a_2 ◄4 ; ►a_1 A!
+                strip![exit 5],                         //  5: a_2 -> ε           - ◄5
             ]),
-            (T::PRS(29), 0, vec![                       // A -> <L> B A | b     B -> a
-                strip![loop 0, exit 0, nt 1],           //  0: A -> B A - ●A ◄0 ►B
-                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b
-                strip![exit 2, t 0],                    //  2: B -> a   - ◄2 a
+            // a -> (A (b ",")+ ";")+ C
+            // b -> B
+            (107, 0, vec![
+                strip![exit 0, t 3, nt 3],              //  0: a -> a_2 C         - ◄0 C! ►a_2
+                strip![exit 1, t 4],                    //  1: b -> B             - ◄1 B!
+                strip![nt 4, t 1, nt 1],                //  2: a_1 -> b , a_3     - ►a_3 , ►b
+                strip![nt 5, t 2, nt 2, t 0],           //  3: a_2 -> A a_1 ; a_4 - ►a_4 ; ►a_1 A!
+                strip![loop 2, exit 4],                 //  4: a_3 -> a_1         - ●a_1 ◄4
+                strip![exit 5],                         //  5: a_3 -> ε           - ◄5
+                strip![loop 3, exit 6],                 //  6: a_4 -> a_2         - ●a_2 ◄6
+                strip![exit 7],                         //  7: a_4 -> ε           - ◄7
             ]),
-            (T::PRS(20), 0, vec![
-                strip![exit 0, nt 1, t 1, t 5, t 0],        //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
-                strip![exit 1, nt 1, t 4, t 5, t 3, t 5],   //  1: LIST -> id : id ; LIST     - ◄1 ►LIST ; id! : id!
-                strip![exit 2, t 2],                        //  2: LIST -> }                  - ◄2 }
+            // a -> (A | B)*
+            (150, 0, vec![
+                strip![exit 0, nt 1],                   //  0: a -> a_1     - ◄0 ►a_1
+                strip![loop 1, exit 1, t 0],            //  1: a_1 -> A a_1 - ●a_1 ◄1 A!
+                strip![loop 1, exit 2, t 1],            //  2: a_1 -> B a_1 - ●a_1 ◄2 B!
+                strip![exit 3],                         //  3: a_1 -> ε     - ◄3
             ]),
-            (T::PRS(30), 0, vec![
-                strip![exit 0, nt 1, t 1, t 5, t 0],        //  0: STRUCT -> struct id { LIST - ◄0 ►LIST { id! struct
-                strip![loop 1, exit 1, t 4, t 5, t 3, t 5], //  1: LIST -> id : id ; LIST     - ●LIST ◄1 ; id! : id!
-                strip![exit 2, t 2],                        //  2: LIST -> }                  - ◄2 }
+            // ----------------------------------------------------------------- +_or_* <L>
+            // a -> A (<L=i> B)* C
+            (200, 0, vec![
+                strip![exit 0, t 2, nt 1, t 0],         //  0: a -> A i C - ◄0 C! ►i A!
+                strip![loop 1, exit 1, t 1],            //  1: i -> B i   - ●i ◄1 B!
+                strip![exit 2],                         //  2: i -> ε     - ◄2
             ]),
-            // // A -> a A | b
-            // - NT flags:
-            //   - A: right_rec (2)
-            (T::RTS(35), 0, vec![
-                strip![exit 0, nt 0, t 0],              //  0: A -> a A - ◄0 ►A a!
-                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            // a -> A (<L=i> B)+ C
+            (201, 0, vec![
+                strip![exit 0, t 2, nt 1, t 0],         //  0: a -> A i C - ◄0 C! ►i A!
+                strip![nt 2, t 1],                      //  1: i -> B a_1 - ►a_1 B!
+                strip![loop 1, exit 2],                 //  2: a_1 -> i   - ●i ◄2
+                strip![exit 3],                         //  3: a_1 -> ε   - ◄3
             ]),
-            // A -> a A <L> | b
-            // - NT flags:
-            //   - A: right_rec | L-form (130)
-            (T::RTS(36), 0, vec![
-                strip![loop 0, exit 0, t 0],            //  0: A -> a A - ●A ◄0 a!
-                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            // ----------------------------------------------------------------- right_rec
+            // expr -> Num "^" expr | Num
+            (302, 0, vec![
+                strip![nt 1, t 0],                      //  0: expr -> Num expr_1 - ►expr_1 Num!
+                strip![exit 1, nt 0, t 1],              //  1: expr_1 -> ^ expr   - ◄1 ►expr ^
+                strip![exit 2],                         //  2: expr_1 -> ε        - ◄2
             ]),
-            // // A -> a A | b
-            (T::PRS(40), 0, vec![
-                strip![exit 0, nt 0, t 0],              //  0: A -> a A - ◄0 ►A a!
-                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            // ----------------------------------------------------------------- right_rec <L>
+            // expr -> <L> Num "^" expr | Num
+            (402, 0, vec![
+                strip![nt 1, t 0],                      //  0: expr -> Num expr_1 - ►expr_1 Num!
+                strip![loop 0, exit 1, t 1],            //  1: expr_1 -> ^ expr   - ●expr ◄1 ^
+                strip![exit 2],                         //  2: expr_1 -> ε        - ◄2
             ]),
-            // A -> a A <L> | b
-            (T::PRS(41), 0, vec![
-                strip![loop 0, exit 0, t 0],            //  0: A -> a A - ●A ◄0 a!
-                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            // ----------------------------------------------------------------- left_rec
+            // a -> a "b" | a "c" | "a"
+            (501, 0, vec![
+                strip![nt 1, exit 0, t 2],              //  0: a -> a a_1   - ►a_1 ◄0 a
+                strip![loop 1, exit 1, t 0],            //  1: a_1 -> b a_1 - ●a_1 ◄1 b
+                strip![loop 1, exit 2, t 1],            //  2: a_1 -> c a_1 - ●a_1 ◄2 c
+                strip![exit 3],                         //  3: a_1 -> ε     - ◄3
             ]),
-            // A -> a A <L> | b
-            (T::PRS(42), 0, vec![
-                strip![loop 0, exit 0, t 0],            //  0: A -> a A - ●A ◄0 a!
-                strip![exit 1, t 1],                    //  1: A -> b   - ◄1 b!
+            // ----------------------------------------------------------------- left_rec + right_rec
+            // e -> e "!" | "-" e | Num
+            (580, 0, vec![
+                strip![exit 0, nt 0, t 1],              //  0: e -> - e     - ◄0 ►e -
+                strip![nt 1, exit 1, t 2],              //  1: e -> Num e_1 - ►e_1 ◄1 Num!
+                strip![loop 1, exit 2, t 0],            //  2: e_1 -> ! e_1 - ●e_1 ◄2 !
+                strip![exit 3],                         //  3: e_1 -> ε     - ◄3
             ]),
-            // A -> B a A | B
-            // - 0: A -> B A_1
-            // - 1: B -> b
-            // - 2: A_1 -> a A
-            // - 3: A_1 -> ε
-            (T::PRS(44), 0, vec![
-                strip![nt 2, nt 1],                     //  0: A -> B A_1 - ►A_1 ►B
-                strip![exit 1, t 1],                    //  1: B -> b     - ◄1 b
-                strip![exit 2, nt 0, t 0],              //  2: A_1 -> a A - ◄2 ►A a
-                strip![exit 3],                         //  3: A_1 -> ε   - ◄3
+            // ----------------------------------------------------------------- left_rec + ambig
+            // e -> e "+" e | Num
+            (600, 0, vec![
+                strip![nt 1, exit 0, nt 2],             //  0: e -> e_2 e_1     - ►e_1 ◄0 ►e_2
+                strip![loop 1, exit 1, nt 2, t 0],      //  1: e_1 -> + e_2 e_1 - ●e_1 ◄1 ►e_2 +
+                strip![exit 2],                         //  2: e_1 -> ε         - ◄2
+                strip![exit 3, t 1],                    //  3: e_2 -> Num       - ◄3 Num!
             ]),
-            // A -> a A | B
-            // - 0: A -> a A
-            // - 1: A -> B
-            // - 2: B -> b
-            (T::PRS(45), 0, vec![
-                strip![exit 0, nt 0, t 0],              //  0: A -> a A - ◄0 ►A a
-                strip![exit 1, nt 1],                   //  1: A -> B   - ◄1 ►B
-                strip![exit 2, t 1],                    //  2: B -> b   - ◄2 b
+            // e -> e "*" e | e "+" e | "!" e | Num
+            (603, 0, vec![
+                strip![nt 1, exit 0, nt 4],             //  0: e -> e_4 e_1     - ►e_1 ◄0 ►e_4
+                strip![loop 1, exit 1, nt 4, t 0],      //  1: e_1 -> * e_4 e_1 - ●e_1 ◄1 ►e_4 *
+                strip![loop 1, exit 2, nt 2, t 1],      //  2: e_1 -> + e_2 e_1 - ●e_1 ◄2 ►e_2 +
+                strip![exit 3],                         //  3: e_1 -> ε         - ◄3
+                strip![nt 3, exit 4, nt 4],             //  4: e_2 -> e_4 e_3   - ►e_3 ◄4 ►e_4
+                strip![loop 3, exit 5, nt 4, t 0],      //  5: e_3 -> * e_4 e_3 - ●e_3 ◄5 ►e_4 *
+                strip![exit 6],                         //  6: e_3 -> ε         - ◄6
+                strip![exit 7, nt 0, t 2],              //  7: e_4 -> ! e       - ◄7 ►e !
+                strip![exit 8, t 3],                    //  8: e_4 -> Num       - ◄8 Num!
             ]),
-            // [C] left recursion ----------------------------------------------------------
-            (T::PRS(31), 0, vec![                       // E -> F | E . id;  F -> id
-                strip![nt 2, exit 0, nt 1],             //  0: E -> F E_1      - ►E_1 ◄0 ►F
-                strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
-                strip![loop 2, exit 2, t 1, t 0],       //  2: E_1 -> . id E_1 - ●E_1 ◄2 id! .
-                strip![exit 3],                         //  3: E_1 -> ε        - ◄3
+            // e -> e "*" e | e "+" e | e "!" | Num
+            (609, 0, vec![
+                strip![nt 1, exit 0, nt 4],             //  0: e -> e_4 e_1     - ►e_1 ◄0 ►e_4
+                strip![loop 1, exit 1, nt 4, t 0],      //  1: e_1 -> * e_4 e_1 - ●e_1 ◄1 ►e_4 *
+                strip![loop 1, exit 2, nt 2, t 1],      //  2: e_1 -> + e_2 e_1 - ●e_1 ◄2 ►e_2 +
+                strip![loop 1, exit 3, t 2],            //  3: e_1 -> ! e_1     - ●e_1 ◄3 !
+                strip![exit 4],                         //  4: e_1 -> ε         - ◄4
+                strip![nt 3, exit 5, nt 4],             //  5: e_2 -> e_4 e_3   - ►e_3 ◄5 ►e_4
+                strip![loop 3, exit 6, nt 4, t 0],      //  6: e_3 -> * e_4 e_3 - ●e_3 ◄6 ►e_4 *
+                strip![exit 7],                         //  7: e_3 -> ε         - ◄7
+                strip![exit 8, t 3],                    //  8: e_4 -> Num       - ◄8 Num!
             ]),
-            (T::PRS(36), 0, vec![                       // E -> F | num | E . id;  F -> id
-                strip![nt 2, exit 0, nt 1],             //  0: E -> F E_1      - ►E_1 ◄0 ►F
-                strip![nt 2, exit 1, t 2],              //  1: E -> num E_1    - ►E_1 ◄1 num!
-                strip![exit 2, t 1],                    //  2: F -> id         - ◄2 id!
-                strip![loop 2, exit 3, t 1, t 0],       //  3: E_1 -> . id E_1 - ●E_1 ◄3 id! .
-                strip![exit 4],                         //  4: E_1 -> ε        - ◄4
+            // ----------------------------------------------------------------- left_fact
+            // a -> A | A B
+            (700, 0, vec![
+                strip![nt 1, t 0],                      //  0: a -> A a_1 - ►a_1 A!
+                strip![exit 1, t 1],                    //  1: a_1 -> B   - ◄1 B!
+                strip![exit 2],                         //  2: a_1 -> ε   - ◄2
             ]),
-            (T::PRS(32), 0, vec![                       // E -> F | E . id | E . id ( );  F -> id
-                strip![nt 2, exit 0, nt 1],             //  0: E -> F E_1      - ►E_1 ◄0 ►F
-                strip![exit 1, t 1],                    //  1: F -> id         - ◄1 id!
-                strip![nt 3, t 1, t 0],                 //  2: E_1 -> . id E_2 - ►E_2 id! .
-                strip![exit 3],                         //  3: E_1 -> ε        - ◄3
-                strip![loop 2, exit 4, t 3, t 2],       //  4: E_2 -> ( ) E_1  - ●E_1 ◄4 ) (
-                strip![loop 2, exit 5],                 //  5: E_2 -> E_1      - ●E_1 ◄5
+            // a -> A B C | B B C | B C | B B A
+            (704, 0, vec![
+                strip![exit 0, t 2, t 1, t 0],          //  0: a -> A B C   - ◄0 C! B! A!
+                strip![nt 1, t 1],                      //  1: a -> B a_1   - ►a_1 B!
+                strip![nt 2, t 1],                      //  2: a_1 -> B a_2 - ►a_2 B!
+                strip![exit 3, t 2],                    //  3: a_1 -> C     - ◄3 C!
+                strip![exit 4, t 0],                    //  4: a_2 -> A     - ◄4 A!
+                strip![exit 5, t 2],                    //  5: a_2 -> C     - ◄5 C!
             ]),
-            (T::PRS(4), 0, vec![                        // E -> E + T | E - T | T
-                                                        // T -> T * F | T / F | F
-                                                        // F -> ( E ) | NUM | ID
-                strip![nt 3, exit 0, nt 1],             //  0: E -> T E_1     - ►E_1 ◄0 ►T
-                strip![nt 4, exit 1, nt 2],             //  1: T -> F T_1     - ►T_1 ◄1 ►F
-                strip![exit 2, t 5, nt 0, t 4],         //  2: F -> ( E )     - ◄2 ) ►E (
-                strip![exit 3, t 6],                    //  3: F -> N         - ◄3 N!
-                strip![exit 4, t 7],                    //  4: F -> I         - ◄4 I!
-                strip![loop 3, exit 5, nt 1, t 0],      //  5: E_1 -> - T E_1 - ●E_1 ◄5 ►T -
-                strip![loop 3, exit 6, nt 1, t 1],      //  6: E_1 -> + T E_1 - ●E_1 ◄6 ►T +
-                strip![exit 7],                         //  7: E_1 -> ε       - ◄7
-                strip![loop 4, exit 8, nt 2, t 2],      //  8: T_1 -> / F T_1 - ●T_1 ◄8 ►F /
-                strip![loop 4, exit 9, nt 2, t 3],      //  9: T_1 -> * F T_1 - ●T_1 ◄9 ►F *
-                strip![exit 10],                        // 10: T_1 -> ε       - ◄10
+            // ----------------------------------------------------------------- mix
+            // a -> A* B a | C
+            (810, 0, vec![
+                strip![exit 0, nt 0, t 1, nt 1],        //  0: a -> a_1 B a - ◄0 ►a B! ►a_1
+                strip![exit 1, t 2],                    //  1: a -> C       - ◄1 C!
+                strip![loop 1, exit 2, t 0],            //  2: a_1 -> A a_1 - ●a_1 ◄2 A!
+                strip![exit 3],                         //  3: a_1 -> ε     - ◄3
             ]),
-            // A -> A a c? | A b c? | d
-            // - NT flags:
-            //   - A: parent_left_rec (512)
-            //   - A_1: child_left_rec | parent_left_fact (36)
-            //   - A_2: child_left_fact (64)
-            //   - A_3: child_left_fact (64)
-            // - parents:
-            //   - A_1 -> A
-            //   - A_2 -> A_1
-            //   - A_3 -> A_1
-            (T::RTS(38), 0, vec![
-                strip![nt 1, exit 0, t 3],              //  0: A -> d A_1   - ►A_1 ◄0 d!
-                strip![nt 2, t 0],                      //  1: A_1 -> a A_2 - ►A_2 a!
-                strip![nt 3, t 1],                      //  2: A_1 -> b A_3 - ►A_3 b!
-                strip![exit 3],                         //  3: A_1 -> ε     - ◄3
-                strip![loop 1, exit 4, t 2],            //  4: A_2 -> c A_1 - ●A_1 ◄4 c!
-                strip![loop 1, exit 5],                 //  5: A_2 -> A_1   - ●A_1 ◄5
-                strip![loop 1, exit 6, t 2],            //  6: A_3 -> c A_1 - ●A_1 ◄6 c!
-                strip![loop 1, exit 7],                 //  7: A_3 -> A_1   - ●A_1 ◄7
+            // a -> A+ B a | C
+            (811, 0, vec![
+                strip![exit 0, nt 0, t 1, nt 1],        //  0: a -> a_1 B a - ◄0 ►a B! ►a_1
+                strip![exit 1, t 2],                    //  1: a -> C       - ◄1 C!
+                strip![nt 2, t 0],                      //  2: a_1 -> A a_2 - ►a_2 A!
+                strip![loop 1, exit 3],                 //  3: a_2 -> a_1   - ●a_1 ◄3
+                strip![exit 4],                         //  4: a_2 -> ε     - ◄4
             ]),
-            // [C/amb] left recursion and ambiguity ----------------------------------------
-
-            (T::PRS(8), 0, vec![
-                strip![nt 1, exit 0, nt 2],             //  0: A -> A_2 A_1     - ►A_1 ◄0 ►A_2
-                strip![loop 1, exit 1, nt 2, t 0],      //  1: A_1 -> a A_2 A_1 - ●A_1 ◄1 ►A_2 a
-                strip![exit 2],                         //  2: A_1 -> ε         - ◄2
-                strip![exit 3, t 1],                    //  3: A_2 -> b         - ◄3 b
+            // a -> a A* C | B
+            (820, 0, vec![
+                strip![nt 2, exit 0, t 2],              //  0: a -> B a_2       - ►a_2 ◄0 B!
+                strip![loop 1, exit 1, t 0],            //  1: a_1 -> A a_1     - ●a_1 ◄1 A!
+                strip![exit 2],                         //  2: a_1 -> ε         - ◄2
+                strip![loop 2, exit 3, t 1, nt 1],      //  3: a_2 -> a_1 C a_2 - ●a_2 ◄3 C! ►a_1
+                strip![exit 4],                         //  4: a_2 -> ε         - ◄4
             ]),
-            (T::PRS(51), 0, vec![
-                strip![nt 2, exit 0, nt 7],             //  0: E -> E_6 E_1     - ►E_1 ◄0 ►E_6
-                strip![exit 1, t 6, nt 0, t 5],         //  1: F -> ( E )       - ◄1 ) ►E (
-                strip![exit 2, t 7],                    //  2: F -> NUM         - ◄2 NUM!
-                strip![exit 3, t 8],                    //  3: F -> ID          - ◄3 ID!
-                strip![loop 2, exit 4, nt 7, t 2],      //  4: E_1 -> ^ E_6 E_1 - ●E_1 ◄4 ►E_6 ^
-                strip![loop 2, exit 5, t 9],            //  5: E_1 -> ' E_1     - ●E_1 ◄5 '
-                strip![loop 2, exit 6, nt 5, t 3],      //  6: E_1 -> * E_4 E_1 - ●E_1 ◄6 ►E_4 *
-                strip![loop 2, exit 7, nt 3, t 4],      //  7: E_1 -> + E_2 E_1 - ●E_1 ◄7 ►E_2 +
-                strip![exit 8],                         //  8: E_1 -> ε         - ◄8
-                strip![nt 4, exit 9, nt 7],             //  9: E_2 -> E_6 E_3   - ►E_3 ◄9 ►E_6
-                strip![loop 4, exit 10, nt 7, t 2],     // 10: E_3 -> ^ E_6 E_3 - ●E_3 ◄10 ►E_6 ^
-                strip![loop 4, exit 11, t 9],           // 11: E_3 -> ' E_3     - ●E_3 ◄11 '
-                strip![loop 4, exit 12, nt 5, t 3],     // 12: E_3 -> * E_4 E_3 - ●E_3 ◄12 ►E_4 *
-                strip![exit 13],                        // 13: E_3 -> ε         - ◄13
-                strip![nt 6, exit 14, nt 7],            // 14: E_4 -> E_6 E_5   - ►E_5 ◄14 ►E_6
-                strip![loop 6, exit 15, nt 7, t 2],     // 15: E_5 -> ^ E_6 E_5 - ●E_5 ◄15 ►E_6 ^
-                strip![loop 6, exit 16, t 9],           // 16: E_5 -> ' E_5     - ●E_5 ◄16 '
-                strip![exit 17],                        // 17: E_5 -> ε         - ◄17
-                strip![exit 18, nt 3, t 1],             // 18: E_6 -> - E_2     - ◄18 ►E_2 -
-                strip![exit 19, nt 7, t 0],             // 19: E_6 -> abs E_6   - ◄19 ►E_6 abs
-                strip![exit 20, nt 1],                  // 20: E_6 -> F         - ◄20 ►F
+            // a -> a A+ C | B
+            (821, 0, vec![
+                strip![nt 2, exit 0, t 2],              //  0: a -> B a_2       - ►a_2 ◄0 B!
+                strip![nt 3, t 0],                      //  1: a_1 -> A a_3     - ►a_3 A!
+                strip![loop 2, exit 2, t 1, nt 1],      //  2: a_2 -> a_1 C a_2 - ●a_2 ◄2 C! ►a_1
+                strip![exit 3],                         //  3: a_2 -> ε         - ◄3
+                strip![loop 1, exit 4],                 //  4: a_3 -> a_1       - ●a_1 ◄4
+                strip![exit 5],                         //  5: a_3 -> ε         - ◄5
             ]),
-
-            // [A + C] normalization + left recursion --------------------------------------
-            (T::RTS(26), 0, vec![                       // A -> A a* b | c
-                strip![nt 2, exit 0, t 0],              //  0: A -> a A_2       - ►A_2 ◄0 a
-                strip![loop 1, exit 1, t 2],            //  1: A_1 -> c A_1     - ●A_1 ◄1 c
-                strip![exit 2],                         //  2: A_1 -> ε         - ◄2
-                strip![loop 2, exit 3, t 1, nt 1],      //  3: A_2 -> A_1 b A_2 - ●A_2 ◄3 b ►A_1
-                strip![exit 4],                         //  4: A_2 -> ε         - ◄4
+            // a -> (A B | A C)*
+            (840, 0, vec![
+                strip![exit 0, nt 1],                   //  0: a -> a_1     - ◄0 ►a_1
+                strip![nt 2, t 0],                      //  1: a_1 -> A a_2 - ►a_2 A!
+                strip![exit 2],                         //  2: a_1 -> ε     - ◄2
+                strip![loop 1, exit 3, t 1],            //  3: a_2 -> B a_1 - ●a_1 ◄3 B!
+                strip![loop 1, exit 4, t 2],            //  4: a_2 -> C a_1 - ●a_1 ◄4 C!
             ]),
-            // [A + C + D] normalization + left factorization, left recursion --------------
-            (T::RTS(16), 0, vec![                       // A -> A a+ b | c
-                strip![nt 2, exit 0, t 0],              //  0: A -> a A_2       - ►A_2 ◄0 a
-                strip![nt 3, t 2],                      //  1: A_1 -> c A_3     - ►A_3 c
-                strip![loop 2, exit 2, t 1, nt 1],      //  2: A_2 -> A_1 b A_2 - ●A_2 ◄2 b ►A_1
-                strip![exit 3],                         //  3: A_2 -> ε         - ◄3
-                strip![loop 1, exit 4],                 //  4: A_3 -> A_1       - ●A_1 ◄4
-                strip![exit 5],                         //  5: A_3 -> ε         - ◄5
+            // a -> A B a | A C a | D
+            (860, 0, vec![
+                strip![nt 1, t 0],                      //  0: a -> A a_1 - ►a_1 A!
+                strip![exit 1, t 3],                    //  1: a -> D     - ◄1 D!
+                strip![exit 2, nt 0, t 1],              //  2: a_1 -> B a - ◄2 ►a B!
+                strip![exit 3, nt 0, t 2],              //  3: a_1 -> C a - ◄3 ►a C!
             ]),
-            // [D] left factorization -----------------------------------------------------
-            (T::PRS(28), 0, vec![                       // A -> a | a b | a b c | a b d | e
-                strip![nt 1, t 0],                      //  0: A -> a A_1   - ►A_1 a
-                strip![exit 1, t 4],                    //  1: A -> e       - ◄1 e
-                strip![nt 2, t 1],                      //  2: A_1 -> b A_2 - ►A_2 b
-                strip![exit 3],                         //  3: A_1 -> ε     - ◄3
-                strip![exit 4, t 2],                    //  4: A_2 -> c     - ◄4 c
-                strip![exit 5, t 3],                    //  5: A_2 -> d     - ◄5 d
-                strip![exit 6],                         //  6: A_2 -> ε     - ◄6
+            // a -> A B a <L> | A C a <L> | D
+            (861, 0, vec![
+                strip![nt 1, t 0],                      //  0: a -> A a_1 - ►a_1 A!
+                strip![exit 1, t 3],                    //  1: a -> D     - ◄1 D!
+                strip![loop 0, exit 2, t 1],            //  2: a_1 -> B a - ●a ◄2 B!
+                strip![loop 0, exit 3, t 2],            //  3: a_1 -> C a - ●a ◄3 C!
             ]),
-            (T::PRS(33), 0, vec![                       // A -> A a | b c | b d
-                strip![nt 2, t 1],                      //  0: A -> b A_2   - ►A_2 b
-                strip![loop 1, exit 1, t 0],            //  1: A_1 -> a A_1 - ●A_1 ◄1 a
-                strip![exit 2],                         //  2: A_1 -> ε     - ◄2
-                strip![nt 1, exit 3, t 2],              //  3: A_2 -> c A_1 - ►A_1 ◄3 c
-                strip![nt 1, exit 4, t 3],              //  4: A_2 -> d A_1 - ►A_1 ◄4 d
+            // a -> a A | B C | B D
+            (870, 0, vec![
+                strip![nt 2, t 1],                      //  0: a -> B a_2   - ►a_2 B!
+                strip![loop 1, exit 1, t 0],            //  1: a_1 -> A a_1 - ●a_1 ◄1 A!
+                strip![exit 2],                         //  2: a_1 -> ε     - ◄2
+                strip![nt 1, exit 3, t 2],              //  3: a_2 -> C a_1 - ►a_1 ◄3 C!
+                strip![nt 1, exit 4, t 3],              //  4: a_2 -> D a_1 - ►a_1 ◄4 D!
             ]),
-            // [B + C] left/right recursion -----------------------------------------------
-            // E -> E + | - E | 0
-            // - 0: E -> - E
-            // - 1: E -> 0 E_1
-            // - 2: E_1 -> + E_1
-            // - 3: E_1 -> ε
-            // - NT flags:
-            //   - E: right_rec | parent_left_rec (514)
-            //   - E_1: child_left_rec (4)
-            (T::PRS(58), 0, vec![
-                strip![exit 0, nt 0, t 1],              //  0: E -> - E     - ◄0 ►E -
-                strip![nt 1, exit 1, t 2],              //  1: E -> 0 E_1   - ►E_1 ◄1 0
-                strip![loop 1, exit 2, t 0],            //  2: E_1 -> + E_1 - ●E_1 ◄2 +
-                strip![exit 3],                         //  3: E_1 -> ε     - ◄3
+            // a -> a A B | a A C | D
+            (871, 0, vec![
+                strip![nt 1, exit 0, t 3],              //  0: a -> D a_1   - ►a_1 ◄0 D!
+                strip![nt 2, t 0],                      //  1: a_1 -> A a_2 - ►a_2 A!
+                strip![exit 2],                         //  2: a_1 -> ε     - ◄2
+                strip![loop 1, exit 3, t 1],            //  3: a_2 -> B a_1 - ●a_1 ◄3 B!
+                strip![loop 1, exit 4, t 2],            //  4: a_2 -> C a_1 - ●a_1 ◄4 C!
             ]),
-            // E -> E + | <L> - E | 0
-            // - 0: E -> - E
-            // - 1: E -> 0 E_1
-            // - 2: E_1 -> + E_1
-            // - 3: E_1 -> ε
-            // - NT flags:
-            //   - E: right_rec | L-form | parent_left_rec (642)
-            //   - E_1: child_left_rec (4)
-            (T::PRS(60), 0, vec![
-                strip![loop 0, exit 0, t 1],            //  0: E -> - E     - ●E ◄0 -
-                strip![nt 1, exit 1, t 2],              //  1: E -> 0 E_1   - ►E_1 ◄1 0
-                strip![loop 1, exit 2, t 0],            //  2: E_1 -> + E_1 - ●E_1 ◄2 +
-                strip![exit 3],                         //  3: E_1 -> ε     - ◄3
-            ]),
-            /*
-            (T::PRS(), 0, vec![
+            /* template:
+            (, 0, vec![
             ]),
             */
         ];
         const VERBOSE: bool = false;
         const TESTS_ALL: bool = false;
         let mut num_errors = 0;
-        for (test_id, (rule_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
-            if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {rule_id:?}, start {start_nt}:", ""); }
-            let ll1 = rule_id.build_prs(test_id, start_nt, false);
+        for (test_id, (tr_id, start_nt, expected_opcodes)) in tests.into_iter().enumerate() {
+            if VERBOSE { println!("{:=<80}\nTest {test_id}: rules {tr_id}, start {start_nt}:", ""); }
+            let ll1 = TestRules(tr_id).to_prs_ll1().unwrap();
             if VERBOSE {
-                print!("- ");
                 ll1.print_prs_summary();
             }
+            let original_str = get_original_str(&ll1, 12);
             let parser_tables = ParserTables::build_from(ParserGen::build_from_rules(ll1, "Test".to_string()));
             let parser = parser_tables.make_parser();
             if VERBOSE {
-                println!("Final alts and opcodes:");
+                println!("Final alts and opcodes:\n{original_str}");
+                println!("            ({tr_id}, {start_nt}, vec![");
                 print_opcodes(&parser);
+                println!("            ]),");
             }
-            let err_msg = format!("test {test_id} {rule_id:?}/{start_nt} failed");
+            let err_msg = format!("test {test_id} {tr_id}/{start_nt} failed");
             if TESTS_ALL {
                 if parser.get_opcodes() != &expected_opcodes {
                     num_errors += 1;
