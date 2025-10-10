@@ -78,9 +78,10 @@ mod gen_integration {
             14 => Some((PRS(63),    999,    4,  false, false,   "write_source_code_for_integration_listener14", "Expr")),
             15 => Some((PRS(53),    999,    4,  false, true,    "write_source_code_for_integration_listener15", "Expr")),
             16 => Some((PRS(58),    580,    4,  false, true,    "write_source_code_for_integration_listener16", "Expr")),
-            17 => Some((RTS(42),    999,    4,  false, true,    "write_source_code_for_integration_listener17", "Expr")),
-            18 => Some((RTS(43),    999,    4,  false, true,    "write_source_code_for_integration_listener18", "Expr")),
-            19 => Some((RTS(44),    999,    4,  false, true,    "write_source_code_for_integration_listener19", "Expr")),
+            // those parsers are also used in other tests:
+            17 => Some((RTS(42),    640,    4,  false, true,    "write_source_code_for_integration_listener17", "Expr")),
+            18 => Some((RTS(43),    641,    4,  false, true,    "write_source_code_for_integration_listener18", "Expr")),
+            19 => Some((RTS(44),    642,    4,  false, true,    "write_source_code_for_integration_listener19", "Expr")),
             20 => Some((RTS(0),     862,    4,  false, true,    "write_source_code_for_integration_listener20", "Expr")),
             _ => None
         }

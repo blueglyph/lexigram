@@ -495,7 +495,7 @@ mod listener13 {
 }
 
 #[allow(unused)]
-pub(crate) mod listener14 {
+mod listener14 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener14]
 
@@ -531,7 +531,7 @@ pub(crate) mod listener14 {
 }
 
 #[allow(unused)]
-pub(crate) mod listener15 {
+mod listener15 {
     // -------------------------------------------------------------------------
     // [write_source_code_for_integration_listener15]
 
@@ -613,12 +613,12 @@ pub(crate) mod listener17 {
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("MUL", Some("*")), ("DIV", Some("/")), ("ADD", Some("+")), ("SUB", Some("-")), ("ID", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E_1", "E_2", "E_3", "E_4"];
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Sub", Some("-")), ("Mul", Some("*")), ("Div", Some("/")), ("Add", Some("+")), ("Id", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 12] = [0, 1, 1, 1, 1, 1, 2, 3, 3, 3, 4, 4];
-    static ALTERNATIVES: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3), Symbol::NT(4)], &[Symbol::T(4)]];
-    static PARSING_TABLE: [AltId; 30] = [12, 12, 12, 0, 0, 13, 1, 2, 3, 4, 12, 5, 13, 13, 13, 6, 6, 13, 7, 8, 9, 9, 12, 9, 13, 13, 13, 10, 11, 13];
-    static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(4), OpCode::T(1)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(3)], &[OpCode::Exit(11), OpCode::T(4)]];
+    static ALTERNATIVES: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(4), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(4)], &[Symbol::T(4)]];
+    static PARSING_TABLE: [AltId; 30] = [0, 12, 12, 12, 0, 13, 4, 1, 2, 3, 12, 5, 6, 13, 13, 13, 6, 13, 9, 7, 8, 9, 12, 9, 10, 13, 13, 13, 11, 13];
+    static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(4), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(4), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(3)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(2), OpCode::T(0)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(4), OpCode::T(1)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(4), OpCode::T(2)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(11), OpCode::T(4)]];
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
@@ -650,12 +650,12 @@ pub(crate) mod listener18 {
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("MUL", Some("*")), ("DIV", Some("/")), ("ADD", Some("+")), ("SUB", Some("-")), ("ID", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E_1", "E_2", "E_3", "E_4"];
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Sub", Some("-")), ("Mul", Some("*")), ("Div", Some("/")), ("Add", Some("+")), ("Id", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 12] = [0, 1, 1, 1, 1, 1, 2, 3, 3, 3, 4, 4];
-    static ALTERNATIVES: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(0), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(0), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3), Symbol::NT(4)], &[Symbol::T(4)]];
-    static PARSING_TABLE: [AltId; 30] = [13, 13, 13, 0, 0, 13, 1, 2, 3, 4, 12, 5, 13, 13, 13, 6, 6, 13, 7, 8, 9, 9, 12, 9, 13, 13, 13, 10, 11, 13];
-    static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(0), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(0), OpCode::T(3)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(3)], &[OpCode::Exit(11), OpCode::T(4)]];
+    static ALTERNATIVES: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(0), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(0), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(4)], &[Symbol::T(4)]];
+    static PARSING_TABLE: [AltId; 30] = [0, 13, 13, 13, 0, 13, 4, 1, 2, 3, 12, 5, 6, 13, 13, 13, 6, 13, 9, 7, 8, 9, 12, 9, 10, 13, 13, 13, 11, 13];
+    static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(0), OpCode::T(3)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(0), OpCode::T(0)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(11), OpCode::T(4)]];
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
@@ -687,12 +687,12 @@ pub(crate) mod listener19 {
 
     const PARSER_NUM_T: usize = 5;
     const PARSER_NUM_NT: usize = 5;
-    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("MUL", Some("*")), ("DIV", Some("/")), ("ADD", Some("+")), ("SUB", Some("-")), ("ID", None)];
-    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["E", "E_1", "E_2", "E_3", "E_4"];
+    static SYMBOLS_T: [(&str, Option<&str>); PARSER_NUM_T] = [("Sub", Some("-")), ("Mul", Some("*")), ("Div", Some("/")), ("Add", Some("+")), ("Id", None)];
+    static SYMBOLS_NT: [&str; PARSER_NUM_NT] = ["e", "e_1", "e_2", "e_3", "e_4"];
     static ALT_VAR: [VarId; 12] = [0, 1, 1, 1, 1, 1, 2, 3, 3, 3, 4, 4];
-    static ALTERNATIVES: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(3), Symbol::NT(4)], &[Symbol::T(4)]];
-    static PARSING_TABLE: [AltId; 30] = [12, 12, 12, 0, 0, 13, 1, 2, 3, 4, 12, 5, 13, 13, 13, 6, 6, 13, 7, 8, 9, 9, 12, 9, 13, 13, 13, 10, 11, 13];
-    static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(2), OpCode::T(3)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(0)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(2), OpCode::T(1)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(3)], &[OpCode::Exit(11), OpCode::T(4)]];
+    static ALTERNATIVES: [&[Symbol]; 12] = [&[Symbol::NT(4), Symbol::NT(1)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(3), Symbol::NT(2), Symbol::NT(1)], &[Symbol::T(0), Symbol::NT(2), Symbol::NT(1)], &[Symbol::Empty], &[Symbol::NT(4), Symbol::NT(3)], &[Symbol::T(1), Symbol::NT(2), Symbol::NT(3)], &[Symbol::T(2), Symbol::NT(2), Symbol::NT(3)], &[Symbol::Empty], &[Symbol::T(0), Symbol::NT(4)], &[Symbol::T(4)]];
+    static PARSING_TABLE: [AltId; 30] = [0, 12, 12, 12, 0, 13, 4, 1, 2, 3, 12, 5, 6, 13, 13, 13, 6, 13, 9, 7, 8, 9, 12, 9, 10, 13, 13, 13, 11, 13];
+    static OPCODES: [&[OpCode]; 12] = [&[OpCode::NT(1), OpCode::Exit(0), OpCode::NT(4)], &[OpCode::Loop(1), OpCode::Exit(1), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(1), OpCode::Exit(2), OpCode::NT(2), OpCode::T(2)], &[OpCode::Loop(1), OpCode::Exit(3), OpCode::NT(2), OpCode::T(3)], &[OpCode::Loop(1), OpCode::Exit(4), OpCode::NT(2), OpCode::T(0)], &[OpCode::Exit(5)], &[OpCode::NT(3), OpCode::Exit(6), OpCode::NT(4)], &[OpCode::Loop(3), OpCode::Exit(7), OpCode::NT(2), OpCode::T(1)], &[OpCode::Loop(3), OpCode::Exit(8), OpCode::NT(2), OpCode::T(2)], &[OpCode::Exit(9)], &[OpCode::Exit(10), OpCode::NT(4), OpCode::T(0)], &[OpCode::Exit(11), OpCode::T(4)]];
     static START_SYMBOL: VarId = 0;
 
     pub fn build_parser() -> Parser<'static> {
