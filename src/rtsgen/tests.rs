@@ -121,7 +121,7 @@ fn simple() {
                 if VERBOSE {
                     println!("Rules:");
                     for (v, tree) in rts.get_trees_iter() {
-                        println!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(tree, None, None, symtab, false));
+                        println!("- NT[{v:2}] {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(tree, None, None, Some(v), symtab, false));
                     }
                     symtab.unwrap().dump("Symbol table:");
                     println!("Log:\n{}", rts.get_log());

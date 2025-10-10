@@ -88,7 +88,7 @@ where
         let rts = TestRules(test_id).to_rts_general().unwrap();
         let symtab = rts.get_symbol_table();
         let original_rules = rts.get_non_empty_nts()
-                .map(|(v, t)| format!("            // {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, symtab, false)))
+                .map(|(v, t)| format!("            // {} -> {}", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, Some(v), symtab, false)))
                 .join("\n");
         if verbose && !show_answer_only {
             if !comment_original_rules {

@@ -112,7 +112,7 @@ fn cleanup_tree() {
             let mut t = rules.trees[0].clone();
             let si1 = t.to_str_index(root, st);
             let output = grtree_cleanup(&mut t, root, del_empty_term);
-            let s2 = grtree_to_str(&t, root, None, st, false);
+            let s2 = grtree_to_str(&t, root, None, None, st, false);
             let si2 = t.to_str_index(root, st);
             if VERBOSE {
                 println!("  {s1}  =>  {s2}   {output:?}");
@@ -272,7 +272,7 @@ fn rts_normalize() {
         let mut rules = TestRules(test_id).to_rts_general().unwrap();
         let sym_tab = rules.get_symbol_table();
         let originals = rules.get_trees_iter()
-            .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false)))
+            .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, Some(v), sym_tab, false)))
             .to_vec();
         if SHOW_RESULTS_ONLY {
             println!("        ({test_id}, // {}", originals.iter().join("; "));
@@ -294,12 +294,12 @@ fn rts_normalize() {
             .map(|(id, _t)| (id, format!("{} -> {}", Symbol::NT(id).to_str(sym_tab), rules.to_str(id, None, None)))));
         let result_orig = rules.origin.trees.iter().index::<VarId>()
                 .filter(|(_, t)| !is_grtree_empty_symbol(&t))
-                .map(|(v, t)| (v, format!("{} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false))))
+                .map(|(v, t)| (v, format!("{} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, Some(v), sym_tab, false))))
             .collect::<BTreeMap<_, _>>();
         if VERBOSE {
             println!("- normalized:\n{}",
                      rules.get_trees_iter()
-                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false))).join("\n"));
+                         .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, Some(v), sym_tab, false))).join("\n"));
             println!("- normalized (detailed):\n{}",
                      rules.get_trees_iter()
                          .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), t.to_str_index(None, sym_tab) )).join("\n"));
@@ -313,7 +313,7 @@ fn rts_normalize() {
                 println!("- original tree partially normalized:\n{}",
                          rules.origin.trees.iter().index::<VarId>()
                              .filter(|(_, t)| !is_grtree_empty_symbol(&t))
-                             .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, sym_tab, false))).join("\n"));
+                             .map(|(v, t)| format!("  {} -> {}", Symbol::NT(v).to_str(sym_tab), grtree_to_str(t, None, None, Some(v), sym_tab, false))).join("\n"));
                 println!("  other format:\n{}",
                          rules.origin.trees.iter().index::<VarId>()
                              .filter(|(_, t)| !is_grtree_empty_symbol(&t))

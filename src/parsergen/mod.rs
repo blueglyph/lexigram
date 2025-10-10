@@ -369,7 +369,7 @@ impl ParserGen {
             Some(format!(
                 "{} -> {}",
                 Symbol::NT(o_v).to_str(symbol_table),
-                grtree_to_str(self.origin.get_tree(o_v).unwrap(), Some(o_id), None, symbol_table, false)
+                grtree_to_str(self.origin.get_tree(o_v).unwrap(), Some(o_id), None, Some(o_v), symbol_table, false)
             ))
         })
     }
@@ -419,7 +419,7 @@ impl ParserGen {
         if let Some(v_emph) = emphasis {
             let parent_nt = self.parsing_table.get_top_parent(v_emph);
             if let Some((t_emph, id_emph)) = self.origin.get(v_emph) {
-                return ((Symbol::NT(parent_nt).to_str(symtab)), grtree_to_str(t_emph, None, Some(id_emph), symtab, true));
+                return ((Symbol::NT(parent_nt).to_str(symtab)), grtree_to_str(t_emph, None, Some(id_emph), Some(parent_nt), symtab, true));
             } else {
                 return (Symbol::NT(parent_nt).to_str(symtab), format!("<VAR {v_emph} NOT FOUND>"));
             }
@@ -432,14 +432,14 @@ impl ParserGen {
                 (
                     String::new(),
                     format!("`{}` {} in `{} -> {}`",
-                            grtree_to_str(t, Some(id), None, symtab, true),
+                            grtree_to_str(t, Some(id), None, Some(vo), symtab, true),
                             if flags & ruleflag::L_FORM != 0 { "iteration" } else { "item" },
                             Symbol::NT(vo).to_str(symtab),
-                            grtree_to_str(t, None, Some(id), symtab, true))
+                            grtree_to_str(t, None, Some(id), Some(vo), symtab, true))
                 )
             } else {
                 let root = Some(id);
-                (Symbol::NT(vo).to_str(symtab), grtree_to_str(t, root, None, symtab, true))
+                (Symbol::NT(vo).to_str(symtab), grtree_to_str(t, root, None, Some(vo), symtab, true))
             }
         } else {
             (Symbol::NT(*v_a).to_str(symtab), format!("<alt {a_id} NOT FOUND>"))
@@ -1277,9 +1277,9 @@ impl ParserGen {
                             let type_name = self.get_info_type(&infos, &infos[0]);
                             let top_parent = self.parsing_table.get_top_parent(v);
                             src.push(format!("/// Computed `{}` array in `{} -> {}`",
-                                             grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true),
+                                             grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
                                              Symbol::NT(top_parent).to_str(self.get_symbol_table()),
-                                             grtree_to_str(t, None, Some(var_oid), self.get_symbol_table(), true),
+                                             grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
                             ));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct {nt_type}(pub Vec<{type_name}>);", ));
@@ -1287,9 +1287,9 @@ impl ParserGen {
                             // complex + * items; for ex. A -> (B b)+
                             let top_parent = self.parsing_table.get_top_parent(v);
                             src.push(format!("/// Computed `{}` array in `{} -> {}`",
-                                             grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true),
+                                             grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
                                              Symbol::NT(top_parent).to_str(self.get_symbol_table()),
-                                             grtree_to_str(t, None, Some(var_oid), self.get_symbol_table(), true),
+                                             grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true),
                             ));
                             src.push(format!("#[derive(Debug, PartialEq)]"));
                             src.push(format!("pub struct {nt_type}(pub Vec<Syn{nu}Item>);"));
@@ -1317,9 +1317,9 @@ impl ParserGen {
                         // + * item is only a terminal
                         let top_parent = self.parsing_table.get_top_parent(v);
                         src.push(format!("/// Computed `{}` array in `{} -> {}`",
-                                             grtree_to_str(t, Some(var_oid), None, self.get_symbol_table(), true),
-                                             Symbol::NT(top_parent).to_str(self.get_symbol_table()),
-                                             grtree_to_str(t, None, Some(var_oid), self.get_symbol_table(), true)));
+                                         grtree_to_str(t, Some(var_oid), None, Some(top_parent), self.get_symbol_table(), true),
+                                         Symbol::NT(top_parent).to_str(self.get_symbol_table()),
+                                         grtree_to_str(t, None, Some(var_oid), Some(top_parent), self.get_symbol_table(), true)));
                         src.push(format!("#[derive(Debug, PartialEq)]"));
                         src.push(format!("pub struct {nt_type}(pub Vec<String>);"));
                     }

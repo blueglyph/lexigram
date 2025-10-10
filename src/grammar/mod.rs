@@ -239,7 +239,7 @@ pub type GrTree = VecTree<GrNode>;
 /// Builds the string representation of the [`GrTree`], using the [`symbol table`](SymbolTable) if available
 /// and optionally starting at node `node`. If `emphasis` contains a node ID, this subpart of the tree
 /// is emphasized in the string.
-pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>, simplified: bool, ansi: bool)
+pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, nt: Option<VarId>, symbol_table: Option<&SymbolTable>, simplified: bool, ansi: bool)
                             -> String
 {
     fn pr_join(children: Vec<(u32, String)>, str: &str, pr: u32) -> (u32, String) {
@@ -274,7 +274,7 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
             0 => {
                 match node.deref() {
                     GrNode::Symbol(s) => (PR_ATOM, s.to_str_quote(symbol_table)),
-                    GrNode::LForm(var) => (PR_ATOM, if simplified { "<L>".to_string() } else { format!("<L={}>", Symbol::NT(*var).to_str(symbol_table)) }),
+                    GrNode::LForm(var) => (PR_ATOM, if simplified || nt == Some(*var) { "<L>".to_string() } else { format!("<L={}>", Symbol::NT(*var).to_str(symbol_table)) }),
                     GrNode::RAssoc => (PR_ATOM, "<R>".to_string()),
                     GrNode::PrecEq => (PR_ATOM, "<P>".to_string()),
                     s => panic!("{s:?} should have children"),
@@ -301,12 +301,12 @@ pub fn grtree_to_str_custom(tree: &GrTree, node: Option<usize>, emphasis: Option
     children.pop().unwrap().1
 }
 
-pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>, simplified: bool) -> String {
-    grtree_to_str_custom(tree, node, emphasis, symbol_table, simplified, false)
+pub fn grtree_to_str(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, var: Option<VarId>, symbol_table: Option<&SymbolTable>, simplified: bool) -> String {
+    grtree_to_str_custom(tree, node, emphasis, var, symbol_table, simplified, false)
 }
 
-pub fn grtree_to_str_ansi(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, symbol_table: Option<&SymbolTable>, simplified: bool) -> String {
-    grtree_to_str_custom(tree, node, emphasis, symbol_table, simplified, true)
+pub fn grtree_to_str_ansi(tree: &GrTree, node: Option<usize>, emphasis: Option<usize>, var: Option<VarId>, symbol_table: Option<&SymbolTable>, simplified: bool) -> String {
+    grtree_to_str_custom(tree, node, emphasis, var, symbol_table, simplified, true)
 }
 
 /// Cleans the empty symbols in a normalized tree. Removes empty terms if `del_empty_terms` is true.
@@ -695,7 +695,7 @@ impl<T> RuleTreeSet<T> {
     /// optionally starting at node `node`. If `emphasis` contains a node ID, this subpart of the
     /// tree is emphasized in the string.
     pub fn to_str(&self, var: VarId, node: Option<usize>, emphasis: Option<usize>) -> String {
-        grtree_to_str(&self.trees[var as usize], node, emphasis, self.get_symbol_table(), false)
+        grtree_to_str(&self.trees[var as usize], node, emphasis, Some(var), self.get_symbol_table(), false)
     }
 
     pub fn get_log_mut(&mut self) -> &mut BufLog {
@@ -930,8 +930,8 @@ impl RuleTreeSet<General> {
                                     None => {
                                         self.log.add_error(format!(
                                             "unexpected child of ?: {} (should be &, |, or symbol)",
-                                            grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table(), false)));
-                                        if VERBOSE { println!("ERROR: unexpected child of ?: {}", grtree_to_str(&new, Some(maybe_child), None, self.get_symbol_table(), false)); }
+                                            grtree_to_str(&new, Some(maybe_child), None, Some(var), self.get_symbol_table(), false)));
+                                        if VERBOSE { println!("ERROR: unexpected child of ?: {}", grtree_to_str(&new, Some(maybe_child), None, Some(var), self.get_symbol_table(), false)); }
                                         return;
                                     }
                                     // (is_empty, had_empty_term)
@@ -993,8 +993,8 @@ impl RuleTreeSet<General> {
                                 None => {
                                     self.log.add_error(format!(
                                         "unexpected child of {sym_char}: {} (should be &, |, or symbol)",
-                                        grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)));
-                                    if VERBOSE { println!("ERROR: unexpected child {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)); }
+                                        grtree_to_str(&new, Some(rep_child), None, Some(var), self.get_symbol_table(), false)));
+                                    if VERBOSE { println!("ERROR: unexpected child {}", grtree_to_str(&new, Some(rep_child), None, Some(var), self.get_symbol_table(), false)); }
                                     return;
                                 }
                                 // (is_empty, had_empty_term)
@@ -1018,7 +1018,7 @@ impl RuleTreeSet<General> {
                                 Some((false, false)) => true, // nothing special, processing below
                             };
                             if proceed {
-                                if VERBOSE { println!("=> {}", grtree_to_str(&new, Some(rep_child), None, self.get_symbol_table(), false)); }
+                                if VERBOSE { println!("=> {}", grtree_to_str(&new, Some(rep_child), None, Some(var), self.get_symbol_table(), false)); }
                                 let orig_rep = orig_new.add(None, if is_plus { gnode!(+) } else { gnode!(*) });
                                 let orig_rep_child = orig_new.add_from_tree(Some(orig_rep), &new, Some(rep_child));
                                 let (id, qvar) = self.normalize_plus_or_star(
@@ -1052,8 +1052,8 @@ impl RuleTreeSet<General> {
                     self.log.add_error(format!(
                         "unexpected root of {} -> {} (should be &, |, or symbol)",
                         Symbol::NT(var).to_str(self.get_symbol_table()),
-                        grtree_to_str(&new, None, None, self.get_symbol_table(), false)));
-                    if VERBOSE { println!("ERROR: unexpected root {}", grtree_to_str(&new, None, None, self.get_symbol_table(), false)); }
+                        grtree_to_str(&new, None, None, Some(var), self.get_symbol_table(), false)));
+                    if VERBOSE { println!("ERROR: unexpected root {}", grtree_to_str(&new, None, None, Some(var), self.get_symbol_table(), false)); }
                 }
                 // (is_empty, had_empty_term)
                 Some((true, _)) => {
@@ -1117,7 +1117,7 @@ impl RuleTreeSet<General> {
                     self.log.add_error(
                         format!("in {}, {}: conflicting <L={}> and <L={}>",
                                 Symbol::NT(var).to_str(symtab),
-                                grtree_to_str(orig_new, Some(orig_rep), None, symtab, false),
+                                grtree_to_str(orig_new, Some(orig_rep), None, Some(var), symtab, false),
                                 Symbol::NT(lform_nt.unwrap()).to_str(symtab), Symbol::NT(v).to_str(symtab)));
                 } else {
                     lform_nt = Some(v);
@@ -1254,7 +1254,7 @@ impl RuleTreeSet<General> {
                 self.log.add_error(
                     format!("in {}, {}: <L> points to the same nonterminal. It must be a new one, created for the loop.",
                             Symbol::NT(var).to_str(self.get_symbol_table()),
-                            grtree_to_str(orig_new, Some(orig_rep), None, self.get_symbol_table(), false)));
+                            grtree_to_str(orig_new, Some(orig_rep), None, Some(var), self.get_symbol_table(), false)));
             } else {
                 // self.nt_conversion.insert(v, MovedTo(qvar));
                 for mut node in qtree.iter_depth_simple_mut() {
@@ -1285,7 +1285,7 @@ impl RuleTreeSet<General> {
         });
         let id = new.add(None, gnode!(nt qvar));
         assert!(qvar as usize >= self.trees.len() || self.trees[qvar as usize].is_empty(), "overwriting tree {new_var}");
-        if VERBOSE { println!("qtree: NT[{qvar}] {} -> {}", Symbol::NT(qvar).to_str(self.get_symbol_table()), grtree_to_str(&qtree, None, None, self.get_symbol_table(), false) /*qtree.to_str(None, self.get_symbol_table())*/); }
+        if VERBOSE { println!("qtree: NT[{qvar}] {} -> {}", Symbol::NT(qvar).to_str(self.get_symbol_table()), grtree_to_str(&qtree, None, None, Some(qvar), self.get_symbol_table(), false) /*qtree.to_str(None, self.get_symbol_table())*/); }
         self.set_tree(qvar, qtree);
         exclude_nt.insert(qvar);
         self.flags.resize(rvar as usize, 0);
@@ -1295,7 +1295,7 @@ impl RuleTreeSet<General> {
         self.flags[var as usize] |= ruleflag::PARENT_REPEAT | plus_flag;
         self.parent[qvar as usize] = Some(var);
         if use_rtree {
-            if VERBOSE { println!("rtree: NT[{rvar}] {} -> {}", Symbol::NT(rvar).to_str(self.get_symbol_table()), grtree_to_str(&rtree, None, None, self.get_symbol_table(), false) /*qtree.to_str(None, self.get_symbol_table())*/); }
+            if VERBOSE { println!("rtree: NT[{rvar}] {} -> {}", Symbol::NT(rvar).to_str(self.get_symbol_table()), grtree_to_str(&rtree, None, None, Some(rvar), self.get_symbol_table(), false)); }
             self.set_tree(rvar, rtree);
             exclude_nt.insert(var);
             self.flags.resize(rvar as usize + 1, 0);

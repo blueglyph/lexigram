@@ -11,7 +11,7 @@ fn get_original_str(ll1: &ProdRuleSet<LL1>, indent: usize) -> String {
     ll1.origin.trees.iter().index::<VarId>()
         .filter_map(|(v, t)|
             if !t.is_empty() {
-                Some(format!("{: <w$}// {} -> {}", "", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, symtab, false), w=indent))
+                Some(format!("{: <w$}// {} -> {}", "", Symbol::NT(v).to_str(symtab), grtree_to_str(t, None, None, Some(v), symtab, false), w=indent))
             } else {
                 None
             })
@@ -954,7 +954,7 @@ mod wrapper_source {
             // }
 
             // --------------------------------------------------------------------------- right_rec <L>
-            // expr -> <L=expr> Id "." expr | "(" Num ")"
+            // expr -> <L> Id "." expr | "(" Num ")"
             // NT flags:
             //  - expr: right_rec | L-form (130)
             (401, true, false, 0, btreemap![
@@ -1512,10 +1512,8 @@ mod wrapper_source {
                 4 => symbols![nt 1, t 0, t 2],          //  4: a_2 -> C a_1 | ●a_1 ◄4 C! | a_1 A C
             ], Default, btreemap![0 => vec![0]]),
 
-            // --------------------------------------------------------------------------- right_rec +
-
             // --------------------------------------------------------------------------- right_rec + left_fact
-            // expr -> <L=expr> Num "^" expr | Num
+            // expr -> <L> Num "^" expr | Num
             // NT flags:
             //  - expr: right_rec | parent_left_fact | L-form (162)
             //  - expr_1: child_left_fact (64)

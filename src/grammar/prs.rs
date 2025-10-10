@@ -1109,7 +1109,7 @@ impl<T> ProdRuleSet<T> {
                     if let Some((vo, ido)) = alt.origin {
                         let tree = &self.origin.trees[vo as usize];
                         let emphasis = if tree.get_root() == Some(ido) { None } else { Some(ido) };
-                        let orig_rule = grtree_to_str_custom(tree, None, emphasis, self.get_symbol_table(), false, ansi);
+                        let orig_rule = grtree_to_str_custom(tree, None, emphasis, Some(vo), self.get_symbol_table(), false, ansi);
                         format!("{} -> {orig_rule}", Symbol::NT(vo).to_str(self.get_symbol_table()))
                     } else {
                         String::new()
@@ -1127,7 +1127,7 @@ impl<T> ProdRuleSet<T> {
                 "|".to_string(),
                 format!("{} -> {}",
                         Symbol::NT(v).to_str(self.get_symbol_table()),
-                        grtree_to_str_custom(&self.origin.trees[v as usize], None, Some(index), self.get_symbol_table(), false, ansi))
+                        grtree_to_str_custom(&self.origin.trees[v as usize], None, Some(index), None, self.get_symbol_table(), false, ansi))
 
             ]));
         columns_to_str(cols, None)
