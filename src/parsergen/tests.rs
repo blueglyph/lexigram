@@ -20,69 +20,30 @@ fn get_original_str(ll1: &ProdRuleSet<LL1>, indent: usize) -> String {
 
 mod gen_integration {
     use crate::grammar::ProdRuleSet;
-    use crate::grammar::tests::prs::complete_symbol_table;
-    use crate::{CollectJoin, SymbolTable, LL1};
-    use crate::grammar::tests::old_build_rts_prs::{build_prs, build_rts};
+    use crate::{CollectJoin, LL1};
     use crate::grammar::tests::TestRules;
     use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::ParserGen;
-    use crate::parsergen::tests::gen_integration::T::{PRS, RTS};
     use crate::test_tools::{get_tagged_source, replace_tagged_source};
 
-    #[derive(Debug, Clone, Copy, PartialEq)]
-    pub(crate) enum T { RTS(u32), PRS(u32) }
-
-    fn get_source(rules_id: T, tr_id: u32, indent: usize, is_t_data: bool, include_alts: bool, name: String) -> String {
-        let rules = match (tr_id, rules_id) {
-            (id, _) if id < 999 => {
-                TestRules(id).to_prs_general().expect(&format!("invalid test rule ID #{id}"))
-            }
-            (_, RTS(rts_id)) => {
-                let rts = build_rts(rts_id);
-                let mut rules = ProdRuleSet::build_from(rts);
-                rules.set_start(0);
-                if rules.get_symbol_table().is_none() {
-                    let mut symbol_table = SymbolTable::new();
-                    complete_symbol_table(&mut symbol_table, rules.get_num_t(), rules.get_num_nt(), is_t_data);
-                    rules.set_symbol_table(symbol_table);
-                }
-                rules
-            }
-            (_, PRS(prs_id)) => {
-                build_prs(prs_id, is_t_data)
-            }
-        };
-        assert_eq!(rules.get_log().num_errors(), 0, "building {rules_id:?} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
+    fn get_source(tr_id: u32, indent: usize, include_alts: bool, name: String) -> String {
+        let rules = TestRules(tr_id).to_prs_general().expect(&format!("invalid test rule ID #{tr_id}"));
+        assert_eq!(rules.get_log().num_errors(), 0, "building {tr_id} failed:\n- {}", rules.get_log().get_errors().join("\n- "));
         let ll1 = ProdRuleSet::<LL1>::build_from(rules);
         let mut builder = ParserGen::build_from_rules(ll1, name);
         builder.set_include_alts(include_alts);
         builder.gen_source_code(indent, false)
     }
 
-    fn get_test_data<'a>(id: u32) -> Option<(T, u32, usize, bool, bool, &'a str, &'a str)> {
+    fn get_test_data<'a>(id: u32) -> Option<(u32, usize, bool, &'a str, &'a str)> {
         match id {
-            //         rules             indent t_data alts     tag name                                      listener name
-             1 => Some((PRS( 4),    999,    4,  false, true,    "write_source_code_for_integration_listener1",  "Expr")),
-             2 => Some((PRS(51),    999,    4,  false, true,    "write_source_code_for_integration_listener2",  "Expr")),
-             3 => Some((PRS(20),    999,    4,  false, true,    "write_source_code_for_integration_listener3",  "Struct")),
-             4 => Some((PRS(30),    999,    4,  false, true,    "write_source_code_for_integration_listener4",  "Struct")),
-             5 => Some((PRS(31),    999,    4,  false, true,    "write_source_code_for_integration_listener5",  "Expr")),
-             6 => Some((PRS(32),    999,    4,  false, true,    "write_source_code_for_integration_listener6",  "Expr")),
-             7 => Some((RTS(21),    999,    4,  false, true,    "write_source_code_for_integration_listener7",  "Star")),
-             8 => Some((RTS(22),    999,    4,  false, true,    "write_source_code_for_integration_listener8",  "Star")),
-             9 => Some((RTS(16),    999,    4,  true,  true,    "write_source_code_for_integration_listener9",  "Plus")),
-            10 => Some((RTS(23),    999,    4,  false, true,    "write_source_code_for_integration_listener10", "Plus")),
-            11 => Some((RTS(27),    999,    4,  false, true,    "write_source_code_for_integration_listener11", "Plus")),
-            12 => Some((PRS(33),    999,    4,  true,  true,    "write_source_code_for_integration_listener12", "LeftRec")),
-            13 => Some((PRS(36),    999,    4,  false, true,    "write_source_code_for_integration_listener13", "Expr")),
-            14 => Some((PRS(63),    999,    4,  false, false,   "write_source_code_for_integration_listener14", "Expr")),
-            15 => Some((PRS(53),    999,    4,  false, true,    "write_source_code_for_integration_listener15", "Expr")),
-            16 => Some((PRS(58),    580,    4,  false, true,    "write_source_code_for_integration_listener16", "Expr")),
+            //          rules indent alts     tag name                                      listener name
             // those parsers are also used in other tests:
-            17 => Some((RTS(42),    640,    4,  false, true,    "write_source_code_for_integration_listener17", "Expr")),
-            18 => Some((RTS(43),    641,    4,  false, true,    "write_source_code_for_integration_listener18", "Expr")),
-            19 => Some((RTS(44),    642,    4,  false, true,    "write_source_code_for_integration_listener19", "Expr")),
-            20 => Some((RTS(0),     862,    4,  false, true,    "write_source_code_for_integration_listener20", "Expr")),
+            1 => Some((580,    4,  true,    "write_source_code_for_integration_listener1", "Expr")),
+            2 => Some((640,    4,  true,    "write_source_code_for_integration_listener2", "Expr")),
+            3 => Some((641,    4,  true,    "write_source_code_for_integration_listener3", "Expr")),
+            4 => Some((642,    4,  true,    "write_source_code_for_integration_listener4", "Expr")),
+            5 => Some((862,    4,  true,    "write_source_code_for_integration_listener5", "Expr")),
             _ => None
         }
     }
@@ -94,8 +55,8 @@ mod gen_integration {
 
     fn do_test(id: u32, action: Action, verbose: bool) -> Result<(), SourceTestError> {
         const FILENAME: &str = "tests/integration/parser_examples.rs";
-        if let Some((rule_id, tr_id, indent, is_t_data, include_alts, tag, name)) = get_test_data(id) {
-            let source = get_source(rule_id, tr_id, indent, is_t_data, include_alts, name.to_string());
+        if let Some((tr_id, indent, include_alts, tag, name)) = get_test_data(id) {
+            let source = get_source(tr_id, indent, include_alts, name.to_string());
             if verbose {
                 let s = String::from_utf8(vec![32; indent]).unwrap();
                 println!("{s}// [{tag}]\n{source}{s}// [{tag}]");
@@ -103,11 +64,11 @@ mod gen_integration {
             match action {
                 Action::VerifySource => {
                     let result = get_tagged_source(FILENAME, tag).ok_or_else(|| {
-                        println!("source not found for {id} / {rule_id:?} / {tag} ({name})");
+                        println!("source not found for {id} / {tr_id} / {tag} ({name})");
                         SourceTestError::SourceNotFound
                     })?;
                     if result != source {
-                        println!("source mismatch for {id} / {rule_id:?} / {tag} ({name})");
+                        println!("source mismatch for {id} / {tr_id} / {tag} ({name})");
                         return Err(SourceTestError::SourceDiffer);
                     }
                 }
@@ -188,66 +149,6 @@ mod gen_integration {
     #[test]
     fn write_source_code_for_integration_listener7() {
         do_test(7, Action::WriteSource, true).expect("couldn't write source #7");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener8() {
-        do_test(8, Action::WriteSource, true).expect("couldn't write source #8");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener9() {
-        do_test(9, Action::WriteSource, true).expect("couldn't write source #9");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener10() {
-        do_test(10, Action::WriteSource, true).expect("couldn't write source #10");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener11() {
-        do_test(11, Action::WriteSource, true).expect("couldn't write source #11");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener12() {
-        do_test(12, Action::WriteSource, true).expect("couldn't write source #12");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener13() {
-        do_test(13, Action::WriteSource, true).expect("couldn't write source #13");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener14() {
-        do_test(14, Action::WriteSource, true).expect("couldn't write source #14");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener15() {
-        do_test(15, Action::WriteSource, true).expect("couldn't write source #15");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener16() {
-        do_test(16, Action::WriteSource, true).expect("couldn't write source #16");
-    }
-
-    #[ignore]
-    #[test]
-    fn write_source_code_for_integration_listener20() {
-        do_test(20, Action::WriteSource, true).expect("couldn't write source #20");
     }
 }
 

@@ -4034,7 +4034,7 @@ pub(crate) mod rules_580_1 {
         use lexigram_lib::grammar::Symbol;
         use lexigram_lib::lexer::CaretCol;
         use lexigram_lib::log::{BufLog, LogStatus};
-        use crate::integration::parser_examples::listener16::build_parser;
+        use crate::integration::parser_examples::listener1::build_parser;
         use crate::out::wrapper_source::level_string::{ls_prefix_op, ls_suffix_op};
         use super::*;
 
@@ -4308,7 +4308,7 @@ pub(crate) mod rules_581_1 {
         use lexigram_lib::grammar::Symbol;
         use lexigram_lib::lexer::CaretCol;
         use lexigram_lib::log::{BufLog, LogStatus};
-        use crate::integration::parser_examples::listener16::build_parser;
+        use crate::integration::parser_examples::listener1::build_parser;
         use crate::out::wrapper_source::level_string::{ls_prefix_op, ls_suffix_op, LevelString};
         use super::*;
 
@@ -8829,7 +8829,7 @@ pub(crate) mod rules_640_1 {
         use lexigram_lib::grammar::Symbol;
         use lexigram_lib::lexer::CaretCol;
         use lexigram_lib::log::{BufLog, LogStatus};
-        use crate::integration::parser_examples::listener17::build_parser;
+        use crate::integration::parser_examples::listener2::build_parser;
         use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
         use super::*;
 
@@ -9154,7 +9154,7 @@ pub(crate) mod rules_641_1 {
         use lexigram_lib::grammar::Symbol;
         use lexigram_lib::lexer::CaretCol;
         use lexigram_lib::log::{BufLog, LogStatus};
-        use crate::integration::parser_examples::listener18::build_parser;
+        use crate::integration::parser_examples::listener3::build_parser;
         use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
         use super::*;
 
@@ -9479,7 +9479,7 @@ pub(crate) mod rules_642_1 {
         use lexigram_lib::grammar::Symbol;
         use lexigram_lib::lexer::CaretCol;
         use lexigram_lib::log::{BufLog, LogStatus};
-        use crate::integration::parser_examples::listener19::build_parser;
+        use crate::integration::parser_examples::listener4::build_parser;
         use crate::out::wrapper_source::level_string::{ls_binary_op, ls_prefix_op};
         use super::*;
 
@@ -10919,7 +10919,7 @@ pub(crate) mod rules_862_1 {
         use lexigram_lib::grammar::Symbol;
         use lexigram_lib::lexer::CaretCol;
         use lexigram_lib::log::BufLog;
-        use crate::integration::parser_examples::listener20::build_parser;
+        use crate::integration::parser_examples::listener5::build_parser;
         use super::*;
 
         struct ExprListener {
