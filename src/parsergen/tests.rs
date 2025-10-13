@@ -454,18 +454,16 @@ pub mod opcodes {
 }
 
 mod parser_source {
-    use crate::grammar::ProdRuleSet;
-    use crate::grammar::tests::old_build_rts_prs::build_prs;
-    use crate::{CollectJoin, LL1};
+    use crate::grammar::tests::TestRules;
     use crate::log::{BuildFrom, LogReader, LogStatus};
     use crate::parsergen::{ParserGen, ParserTables};
 
     #[test]
     fn alternatives() {
         for include_alts in [false, true] {
-            let rules = build_prs(9, true);
-            assert_eq!(rules.get_log().num_errors(), 0, "building PRS(9) failed:\n- {}", rules.get_log().get_errors().join("\n- "));
-            let ll1 = ProdRuleSet::<LL1>::build_from(rules);
+            // let rules = build_prs(9, true);
+            let ll1 = TestRules(900).to_prs_ll1().unwrap();
+            assert_eq!(ll1.get_log().num_errors(), 0, "building the LL(1) failed:\n{}", ll1.get_log());
             let mut builder = ParserGen::build_from_rules(ll1, "simple".to_string());
             builder.set_include_alts(include_alts);
             let src = builder.gen_source_code(0, false);

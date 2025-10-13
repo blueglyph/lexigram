@@ -1,6 +1,5 @@
 // Copyright (c) 2025 Redglyph (@gmail.com). All Rights Reserved.
 
-use crate::grammar::tests::old_build_rts_prs;
 use crate::log::BuildFrom;
 use super::*;
 
@@ -733,22 +732,6 @@ fn prs_ll1_from() {
             ProdRuleSet::<LL1>::build_from(prs)
         },
         VERBOSE, SHOW_ANSWER_ONLY, true);
-}
-
-#[test]
-#[should_panic]
-/// We test that the code compiles, but it must also panic because the `remove_ambiguity()`
-/// method isn't implemented yet for LR grammars.
-fn prs_lr_from() {
-    let mut test_id = 0;
-    loop {
-        let rules = old_build_rts_prs::build_prs(test_id, false);
-        if rules.prules.is_empty() {
-            break;
-        }
-        let _lr = ProdRuleSet::<LR>::build_from(rules);
-        test_id += 1;
-    }
 }
 
 fn test_first_or_follow<F>(tests: Vec<(u32, VarId, HashMap<&str, &str>)>, mut f: F, verbose: bool, show_answer_only: bool, show_rules: bool)
