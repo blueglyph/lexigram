@@ -623,6 +623,22 @@ mod wrapper_source {
                 2 => symbols![],                        //  2: a_1 -> ε       | ◄2            |
             ], Default, btreemap![0 => vec![0]]),
 
+            // --------------------------------------------------------------------------- norm+/* alternatives
+            // TODO: code generation not fully supported yet
+            // a -> (A | B)*
+            // NT flags:
+            //  - a: parent_+_or_* (2048)
+            //  - a_1: child_+_or_* (1)
+            // parents:
+            //  - a_1 -> a
+            (150, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 1],                    //  0: a -> a_1     | ◄0 ►a_1    | a_1
+                1 => symbols![nt 1, t 0],               //  1: a_1 -> A a_1 | ●a_1 ◄1 A! | a_1 A
+                2 => symbols![nt 1, t 1],               //  2: a_1 -> B a_1 | ●a_1 ◄2 B! | a_1 B
+                3 => symbols![nt 1],                    //  3: a_1 -> ε     | ◄3         | a_1
+            ], Default, btreemap![0 => vec![0]]),
+
             // --------------------------------------------------------------------------- +_or_* <L>
             // a -> A (<L=i> B)* C
             // NT flags:
@@ -785,8 +801,68 @@ mod wrapper_source {
                 4 => symbols![t 0, t 1, nt 1, t 1],     //  4: a_1 -> C i C | ◄4 C! ►i C! | A C i C
             ], Default, btreemap![0 => vec![3, 4]]),
 
-            // --------------------------------------------------------------------------- norm+/* alternatives
-            // TODO: code generation not fully supported yet
+            // --------------------------------------------------------------------------- norm+/* <L> alternatives
+            // a -> (<L=i> A | B)*
+            // NT flags:
+            //  - a: parent_+_or_* (2048)
+            //  - i: child_+_or_* | L-form (129)
+            // parents:
+            //  - i -> a
+            (250, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 1],                    //  0: a -> i   | ◄0 ►i    | i
+                1 => symbols![nt 1, t 0],               //  1: i -> A i | ●i ◄1 A! | i A
+                2 => symbols![nt 1, t 1],               //  2: i -> B i | ●i ◄2 B! | i B
+                3 => symbols![nt 1],                    //  3: i -> ε   | ◄3       | i
+            ], Default, btreemap![0 => vec![0]]),
+
+            // TODO: crashes in the code generation when a `+` is used with `|`
+            // a -> (<L=i> A | B)+
+            // NT flags:
+            //  - a: parent_+_or_* | plus (6144)
+            //  - i: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - a_1: child_left_fact (64)
+            //  - a_2: child_left_fact (64)
+            // parents:
+            //  - i -> a
+            //  - a_1 -> i
+            //  - a_2 -> i
+            (251, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![nt 1],                    //  0: a -> i     | ◄0 ►i   | i
+                1 => symbols![],                        //  1: i -> A a_1 | ►a_1 A! |
+                2 => symbols![],                        //  2: i -> B a_2 | ►a_2 B! |
+                3 => symbols![nt 1, t 0],               //  3: a_1 -> i   | ●i ◄3   | i A
+                4 => symbols![nt 1, t 0],               //  4: a_1 -> ε   | ◄4      | i A
+                5 => symbols![nt 1, t 1],               //  5: a_2 -> i   | ●i ◄5   | i B
+                6 => symbols![nt 1, t 1],               //  6: a_2 -> ε   | ◄6      | i B
+            ], Default, btreemap![0 => vec![0]]),
+
+            // a -> A (<L=i> B A | B A C | D)+ E
+            // NT flags:
+            //  - a: parent_+_or_* | plus (6144)
+            //  - i: child_+_or_* | parent_left_fact | L-form | plus (4257)
+            //  - a_1: parent_left_fact | child_left_fact (96)
+            //  - a_2: child_left_fact (64)
+            //  - a_3: child_left_fact (64)
+            // parents:
+            //  - i -> a
+            //  - a_1 -> i
+            //  - a_2 -> i
+            //  - a_3 -> a_1
+            (256, true, false, 0, btreemap![
+            ], btreemap![
+                0 => symbols![t 0, nt 1, t 4],            //  0: a -> A i E   | ◄0 E! ►i A! | A i E
+                1 => symbols![],                          //  1: i -> B A a_1 | ►a_1 A! B!  |
+                2 => symbols![],                          //  2: i -> D a_2   | ►a_2 D!     |
+                3 => symbols![],                          //  3: a_1 -> C a_3 | ►a_3 C!     |
+                4 => symbols![nt 1, t 1, t 0],            //  4: a_1 -> i     | ●i ◄4       | i B A
+                5 => symbols![nt 1, t 1, t 0],            //  5: a_1 -> ε     | ◄5          | i B A
+                6 => symbols![nt 1, t 3],                 //  6: a_2 -> i     | ●i ◄6       | i D
+                7 => symbols![nt 1, t 3],                 //  7: a_2 -> ε     | ◄7          | i D
+                8 => symbols![nt 1, t 1, t 0, t 2, nt 1], //  8: a_3 -> i     | ◄8 ►i       | i B A C i
+                9 => symbols![nt 1, t 1, t 0, t 2],       //  9: a_3 -> ε     | ◄9          | i B A C
+            ], Default, btreemap![0 => vec![0]]),
 
             // --------------------------------------------------------------------------- right_rec
             // expr -> Id "." expr | "(" Num ")"
@@ -1573,7 +1649,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -1582,7 +1658,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = false;
+        const REPLACE_SOURCE: bool = true;
 
         // CAUTION! Empty the first btreemap if the NTs have changed
 
@@ -1590,7 +1666,8 @@ mod wrapper_source {
         let mut num_src_errors = 0;
         let mut rule_id_iter = HashMap::<u32, u32>::new();
         for (test_id, (tr_id, test_source, test_source_parser, start_nt, nt_type, expected_items, has_value, expected_alts)) in tests.into_iter().enumerate() {
-            // if !matches!(tr_id, 901) { continue }
+            // if !matches!(tr_id, 150..200|250..300) { continue }
+            // if !matches!(tr_id, 201|250|251|256) { continue }
             let rule_iter = rule_id_iter.entry(tr_id).and_modify(|x| *x += 1).or_insert(1);
             let ll1_maybe = TestRules(tr_id).to_prs_ll1();
             if ll1_maybe.is_none() { continue }
