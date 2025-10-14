@@ -1649,7 +1649,7 @@ mod wrapper_source {
         const WRAPPER_FILENAME: &str = "tests/out/wrapper_source.rs";
 
         // print sources
-        const VERBOSE: bool = true;        // prints the `tests` values from the results (easier to set the other constants to false)
+        const VERBOSE: bool = false;        // prints the `tests` values from the results (easier to set the other constants to false)
         const VERBOSE_TYPE: bool = false;   // prints the code module skeleton (easier to set the other constants to false)
         const PRINT_SOURCE: bool = false;   // prints the wrapper module (easier to set the other constants to false)
 
@@ -1658,7 +1658,7 @@ mod wrapper_source {
         const TESTS_ALL: bool = true;       // do all tests before giving an error summary (can't compare sources)
 
         // CAUTION! Setting this to 'true' modifies the validation file with the current result
-        const REPLACE_SOURCE: bool = true;
+        const REPLACE_SOURCE: bool = false;
 
         // CAUTION! Empty the first btreemap if the NTs have changed
 
@@ -1849,15 +1849,15 @@ mod wrapper_source {
             (103, vec![
                 Some(r#"a -> A B+ C"#),                       // 0: a -> A a_1 C
                 Some(r#"`B` item in `a -> A  ►► B ◄◄ + C`"#), // 1: a_1 -> B a_2
-                Some(r#"a -> B"#),                            // 2: a_2 -> a_1
-                Some(r#"a -> B"#),                            // 3: a_2 -> ε
+                Some(r#"`B` item in `a -> A  ►► B ◄◄ + C`"#), // 2: a_2 -> a_1
+                Some(r#"`B` item in `a -> A  ►► B ◄◄ + C`"#), // 3: a_2 -> ε
             ]),
             // a -> A (<L=i> B)+ C
             (201, vec![
                 Some(r#"a -> A (<L> B)+ C"#),                                // 0: a -> A i C
                 Some(r#"`<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`"#), // 1: i -> B a_1
-                Some(r#"a -> <L> B"#),                                       // 2: a_1 -> i
-                Some(r#"a -> <L> B"#),                                       // 3: a_1 -> ε
+                Some(r#"`<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`"#), // 2: a_1 -> i
+                Some(r#"`<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`"#), // 3: a_1 -> ε
             ]),
             // a -> (<L=i> A B)*
             (202, vec![
@@ -1882,10 +1882,10 @@ mod wrapper_source {
                 Some(r#"`<L> A (<L> b ",")+ ";"` iteration in `a -> ( ►► <L> A (<L> b ",")+ ";" ◄◄ )+ C`"#), // 1: i -> A j ";" a_1
                 Some(r#"`<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )+ ";")+ C`"#),              // 2: j -> b "," a_2
                 Some(r#"b -> B"#),                                                                           // 3: b -> B
-                Some(r#"a -> <L> A (<L> b ",")+ ";""#),                                                      // 4: a_1 -> i
-                Some(r#"a -> <L> A (<L> b ",")+ ";""#),                                                      // 5: a_1 -> ε
-                Some(r#"a -> <L> b ",""#),                                                                   // 6: a_2 -> j
-                Some(r#"a -> <L> b ",""#),                                                                   // 7: a_2 -> ε
+                Some(r#"`<L> A (<L> b ",")+ ";"` iteration in `a -> ( ►► <L> A (<L> b ",")+ ";" ◄◄ )+ C`"#), // 4: a_1 -> i
+                Some(r#"`<L> A (<L> b ",")+ ";"` iteration in `a -> ( ►► <L> A (<L> b ",")+ ";" ◄◄ )+ C`"#), // 5: a_1 -> ε
+                Some(r#"`<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )+ ";")+ C`"#),              // 6: a_2 -> j
+                Some(r#"`<L> b ","` iteration in `a -> (<L> A ( ►► <L> b "," ◄◄ )+ ";")+ C`"#),              // 7: a_2 -> ε
             ]),
             // a -> (<L=i> A | B)*
             (250, vec![
@@ -1979,8 +1979,8 @@ mod wrapper_source {
                 Some(r#"a -> A+ B a"#),                           // 0: a -> a_1 B a
                 Some(r#"a -> C"#),                                // 1: a -> C
                 Some(r#"`A` item in `a ->  ►► A ◄◄ + B a | C`"#), // 2: a_1 -> A a_2
-                Some(r#"a -> A"#),                                // 3: a_2 -> a_1
-                Some(r#"a -> A"#),                                // 4: a_2 -> ε
+                Some(r#"`A` item in `a ->  ►► A ◄◄ + B a | C`"#), // 3: a_2 -> a_1
+                Some(r#"`A` item in `a ->  ►► A ◄◄ + B a | C`"#), // 4: a_2 -> ε
             ]),
             // a -> a A* C | B
             (820, vec![
@@ -1996,8 +1996,8 @@ mod wrapper_source {
                 Some(r#"`A` item in `a -> a  ►► A ◄◄ + C | B`"#), // 1: a_1 -> A a_3
                 Some(r#"a -> a A+ C"#),                           // 2: a_2 -> a_1 C a_2
                 None,                                             // 3: a_2 -> ε
-                Some(r#"a -> A"#),                                // 4: a_3 -> a_1
-                Some(r#"a -> A"#),                                // 5: a_3 -> ε
+                Some(r#"`A` item in `a -> a  ►► A ◄◄ + C | B`"#), // 4: a_3 -> a_1
+                Some(r#"`A` item in `a -> a  ►► A ◄◄ + C | B`"#), // 5: a_3 -> ε
             ]),
             // a -> a A | B C | B D
             (870, vec![

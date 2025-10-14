@@ -414,7 +414,10 @@ impl ParserGen {
     fn full_alt_components(&self, a_id: AltId, emphasis: Option<VarId>) -> (String, String) {
         const VERBOSE: bool = false;
         if VERBOSE { println!("full_alt_components(a_id = {a_id}):"); }
-        let (v_a, alt) = &self.parsing_table.alts[a_id as usize];
+        let &(mut v_a, ref alt) = &self.parsing_table.alts[a_id as usize];
+        while self.parsing_table.flags[v_a as usize] & ruleflag::CHILD_L_FACT != 0 {
+            v_a = *self.parsing_table.parent[v_a as usize].as_ref().unwrap();
+        }
         let symtab = self.get_symbol_table();
         if let Some(v_emph) = emphasis {
             let parent_nt = self.parsing_table.get_top_parent(v_emph);
@@ -426,8 +429,8 @@ impl ParserGen {
         }
         if let Some((vo, id)) = alt.get_origin() {
             let t = self.origin.get_tree(vo).unwrap();
-            let flags = self.parsing_table.flags[*v_a as usize];
-            if *v_a != vo && flags & ruleflag::CHILD_REPEAT != 0 {
+            let flags = self.parsing_table.flags[v_a as usize];
+            if v_a != vo && flags & ruleflag::CHILD_REPEAT != 0 {
                 // iteration in parent rule
                 (
                     String::new(),
@@ -442,7 +445,7 @@ impl ParserGen {
                 (Symbol::NT(vo).to_str(symtab), grtree_to_str(t, root, None, Some(vo), symtab, true))
             }
         } else {
-            (Symbol::NT(*v_a).to_str(symtab), format!("<alt {a_id} NOT FOUND>"))
+            (Symbol::NT(v_a).to_str(symtab), format!("<alt {a_id} NOT FOUND>"))
         }
     }
 
@@ -812,7 +815,7 @@ impl ParserGen {
     /// }
     /// ```
     fn get_type_info(&self) -> (Vec<(String, String, String)>, Vec<Option<(VarId, String)>>, Vec<Vec<ItemInfo>>, HashMap<VarId, Vec<ItemInfo>>) {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
 
         let pinfo = &self.parsing_table;
         let mut nt_upper_fixer = NameFixer::new();
@@ -1165,7 +1168,7 @@ impl ParserGen {
     }
 
     fn source_wrapper(&mut self) -> Vec<String> {
-        const VERBOSE: bool = true;
+        const VERBOSE: bool = false;
         const MATCH_COMMENTS_SHOW_DESCRIPTIVE_ALTS: bool = false;
 
         // DO NOT RETURN FROM THIS METHOD EXCEPT AT THE END

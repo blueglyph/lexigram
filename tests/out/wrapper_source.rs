@@ -1483,7 +1483,7 @@ pub(crate) mod rules_201_1 {
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `a -> <L> B`
+        /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
         I { plus_it: SynMyI, b: String, last_iteration: bool },
     }
 
@@ -1641,7 +1641,7 @@ pub(crate) mod rules_201_2 {
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `a -> <L> B`
+        /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
         I { b: String, last_iteration: bool },
     }
 
@@ -1787,7 +1787,7 @@ pub(crate) mod rules_201_3 {
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `a -> <L> B`
+        /// `<L> B` iteration in `a -> A ( ►► <L> B ◄◄ )+ C`
         I { plus_it: SynMyI, b: String, last_iteration: bool },
     }
 
@@ -3350,9 +3350,9 @@ pub(crate) mod rules_251_1 {
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `a -> <L> A`
+        /// `<L> A` iteration in `a -> ( ►► <L> A ◄◄  | B)+`
         I1 { plus_it: SynI, a: String, last_iteration: bool },
-        /// `a -> B`
+        /// `B` iteration in `a -> (<L> A |  ►► B ◄◄ )+`
         I2 { plus_it: SynI, b: String, last_iteration: bool },
     }
 
@@ -3523,11 +3523,11 @@ pub(crate) mod rules_256_1 {
     }
     #[derive(Debug)]
     pub enum CtxI {
-        /// `a -> <L> B A`
+        /// `<L> B A` iteration in `a -> A ( ►► <L> B A ◄◄  | B A C | D)+ E`
         I1 { plus_it: SynI, b: String, a: String, last_iteration: bool },
-        /// `a -> D`
+        /// `D` iteration in `a -> A (<L> B A | B A C |  ►► D ◄◄ )+ E`
         I2 { plus_it: SynI, d: String, last_iteration: bool },
-        /// `a -> B A C`
+        /// `B A C` iteration in `a -> A (<L> B A |  ►► B A C ◄◄  | D)+ E`
         I3 { plus_it: [SynI; 2], b: String, a: String, c: String, last_iteration: bool },
     }
 
