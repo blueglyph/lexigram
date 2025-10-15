@@ -463,20 +463,28 @@ impl ParserGen {
         const VERBOSE: bool = false;
         for (alt_id, (var_id, alt)) in self.parsing_table.alts.iter().index() {
             if VERBOSE {
-                println!("{}", alt.to_rule_str(*var_id, self.get_symbol_table(), 0));
+                println!("{alt_id}: {}", alt.to_rule_str(*var_id, self.get_symbol_table(), 0));
             }
             let flags = self.parsing_table.flags[*var_id as usize];
             let stack_sym = Symbol::NT(*var_id);
             let mut new = self.parsing_table.alts[alt_id as usize].1.iter().filter(|s| !s.is_empty()).rev().cloned().to_vec();
             if VERBOSE { println!("  - {}", new.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
             let mut opcode = Vec::<OpCode>::new();
-            let parent = self.parsing_table.parent[*var_id as usize];
+            let mut parent = self.parsing_table.parent[*var_id as usize];
             if flags & ruleflag::CHILD_L_FACT != 0 {
+                while self.nt_has_all_flags(parent.unwrap(), ruleflag::CHILD_L_FACT) {
+                    parent = self.parsing_table.parent[parent.unwrap() as usize];
+                }
                 let parent = parent.unwrap();
                 // replaces Enter by Loop when going back to left-factorization parent, typically when coupled with + or *
                 // (per construction, there can't be any alternative going back to the grandparent or further up in a left factorization, so
                 //  we don't check that)
                 let parent_r_form_right_rec = self.parsing_table.flags[parent as usize] & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
+                if VERBOSE {
+                    println!("  - child lfact, parent: {}, !parent_r_form_right_rec = !{parent_r_form_right_rec}, match = {}",
+                             Symbol::NT(parent).to_str(self.get_symbol_table()),
+                             new.get(0) == Some(&Symbol::NT(parent)));
+                }
                 if new.get(0) == Some(&Symbol::NT(parent)) && !parent_r_form_right_rec {
                     opcode.push(OpCode::Loop(parent));
                     new.remove(0);
@@ -498,7 +506,7 @@ impl ParserGen {
             }
             opcode.extend(new.into_iter().map(|s| OpCode::from(s)));
             let r_form_right_rec = flags & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0;
-            if VERBOSE { println!("  r_form_right_rec = {r_form_right_rec} = {} || {}",
+            if VERBOSE { println!("  - r_form_right_rec = {r_form_right_rec} = {} || {}",
                                   flags & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0,
                                   flags & ruleflag::CHILD_L_FACT != 0 && self.parsing_table.flags[parent.unwrap() as usize] & ruleflag::R_RECURSION != 0 && flags & ruleflag::L_FORM == 0); }
             if opcode.get(1).map(|op| op.matches(stack_sym)).unwrap_or(false) && !r_form_right_rec {
@@ -728,7 +736,11 @@ impl ParserGen {
                             }
                         }
                     }
-                    if VERBOSE { println!(" ==> [{}]", values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")); }
+                    if VERBOSE {
+                        println!(" ==> [{}] + [{}]",
+                                 items.get(&alt_id).map(|v| v.iter().map(|s| s.to_str(self.get_symbol_table())).join(" ")).unwrap_or(String::new()),
+                                 values.iter().map(|s| s.to_str(self.get_symbol_table())).join(" "));
+                    }
                     if let Some(OpCode::NT(nt)) = opcode.get(0) {
                         // Take the values except the last NT
                         let backup = if matches!(values.last(), Some(Symbol::NT(x)) if x == nt) {

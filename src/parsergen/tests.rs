@@ -852,16 +852,16 @@ mod wrapper_source {
             //  - a_3 -> a_1
             (256, true, false, 0, btreemap![
             ], btreemap![
-                0 => symbols![t 0, nt 1, t 4],            //  0: a -> A i E   | ◄0 E! ►i A! | A i E
-                1 => symbols![],                          //  1: i -> B A a_1 | ►a_1 A! B!  |
-                2 => symbols![],                          //  2: i -> D a_2   | ►a_2 D!     |
-                3 => symbols![],                          //  3: a_1 -> C a_3 | ►a_3 C!     |
-                4 => symbols![nt 1, t 1, t 0],            //  4: a_1 -> i     | ●i ◄4       | i B A
-                5 => symbols![nt 1, t 1, t 0],            //  5: a_1 -> ε     | ◄5          | i B A
-                6 => symbols![nt 1, t 3],                 //  6: a_2 -> i     | ●i ◄6       | i D
-                7 => symbols![nt 1, t 3],                 //  7: a_2 -> ε     | ◄7          | i D
-                8 => symbols![nt 1, t 1, t 0, t 2, nt 1], //  8: a_3 -> i     | ◄8 ►i       | i B A C i
-                9 => symbols![nt 1, t 1, t 0, t 2],       //  9: a_3 -> ε     | ◄9          | i B A C
+                0 => symbols![t 0, nt 1, t 4],          //  0: a -> A i E   | ◄0 E! ►i A! | A i E
+                1 => symbols![],                        //  1: i -> B A a_1 | ►a_1 A! B!  |
+                2 => symbols![],                        //  2: i -> D a_2   | ►a_2 D!     |
+                3 => symbols![],                        //  3: a_1 -> C a_3 | ►a_3 C!     |
+                4 => symbols![nt 1, t 1, t 0],          //  4: a_1 -> i     | ●i ◄4       | i B A
+                5 => symbols![nt 1, t 1, t 0],          //  5: a_1 -> ε     | ◄5          | i B A
+                6 => symbols![nt 1, t 3],               //  6: a_2 -> i     | ●i ◄6       | i D
+                7 => symbols![nt 1, t 3],               //  7: a_2 -> ε     | ◄7          | i D
+                8 => symbols![nt 1, t 1, t 0, t 2],     //  8: a_3 -> i     | ●i ◄8       | i B A C
+                9 => symbols![nt 1, t 1, t 0, t 2],     //  9: a_3 -> ε     | ◄9          | i B A C
             ], Default, btreemap![0 => vec![0]]),
 
             // --------------------------------------------------------------------------- right_rec
