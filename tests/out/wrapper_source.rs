@@ -1010,7 +1010,7 @@ pub(crate) mod rules_108_1 {
 // ================================================================================
 
 // TODO: code generation not fully supported yet
-#[cfg(any())]
+// #[cfg(any())]
 pub(crate) mod rules_150_1 {
 
     // ------------------------------------------------------------
@@ -1155,6 +1155,326 @@ pub(crate) mod rules_150_1 {
     }
 
     // [wrapper source for rule 150 #1, start a]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+
+// TODO: code generation not fully supported yet
+#[cfg(any())]
+pub(crate) mod rules_152_1 {
+
+    // ------------------------------------------------------------
+    // [wrapper source for rule 152 #1, start a]
+
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_152_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `a -> A (B | C D | E)* F`
+        A { a: String, star: SynA1, f: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `a`
+    // #[derive(Debug, PartialEq)] pub struct SynA();
+    /// Computed `(B | C D | E)*` array in `a -> A  ►► (B | C D | E)* ◄◄  F`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1(pub Vec<SynA1Item>);
+    /// `B` item in `a -> A ( ►► B ◄◄  | C D | E)* F`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1Item { pub c: String, pub d: String }
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA), A1(SynA1) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_a1(self) -> SynA1 {
+            if let SynValue::A1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _a: SynA) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // a
+                        1 => self.init_a1(),                        // a_1
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        0 => self.exit_a(),                         // a -> A a_1 F
+                        1 |                                         // a_1 -> B a_1
+                        2 |                                         // a_1 -> C D a_1
+                        4 => self.exit_a1(alt_id),                  // a_1 -> E a_1
+                        4 => {}                                     // a_1 -> ε
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(a);
+        }
+
+        fn exit_a(&mut self) {
+            let f = self.stack_t.pop().unwrap();
+            let star = self.stack.pop().unwrap().get_a1();
+            let a = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_a(CtxA::A { a, star, f });
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn init_a1(&mut self) {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+
+        fn exit_a1(&mut self, alt_id: AltId) {
+            let b = self.stack_t.pop().unwrap();
+            let mut star_it = self.stack.pop().unwrap().get_a1();
+            star_it.0.push(b);
+            self.stack.push(SynValue::A1(star_it));
+        }
+    }
+
+    // [wrapper source for rule 152 #1, start a]
+    // ------------------------------------------------------------
+}
+
+// ================================================================================
+
+// TODO: code generation not fully supported yet
+#[cfg(any())]
+pub(crate) mod rules_153_1 {
+
+    // ------------------------------------------------------------
+    // [wrapper source for rule 153 #1, start a]
+
+    use lexigram_lib::{CollectJoin, grammar::{AltId, VarId}, log::Logger, parser::{Call, ListenerWrapper}};
+    use super::super::wrapper_code::code_153_1::*;
+
+    #[derive(Debug)]
+    pub enum CtxA {
+        /// `a -> A (B | C D | E)+ F`
+        A { a: String, plus: SynA1, f: String },
+    }
+
+    // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
+
+    // /// User-defined type for `a`
+    // #[derive(Debug, PartialEq)] pub struct SynA();
+    /// Computed `(B | C D | E)+` array in `a -> A  ►► (B | C D | E)+ ◄◄  F`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1(pub Vec<SynA1Item>);
+    /// `B` item in `a -> A ( ►► B ◄◄  | C D | E)+ F`
+    #[derive(Debug, PartialEq)]
+    pub struct SynA1Item { pub c: String, pub d: String }
+
+    #[derive(Debug)]
+    enum SynValue { A(SynA), A1(SynA1) }
+
+    impl SynValue {
+        fn get_a(self) -> SynA {
+            if let SynValue::A(val) = self { val } else { panic!() }
+        }
+        fn get_a1(self) -> SynA1 {
+            if let SynValue::A1(val) = self { val } else { panic!() }
+        }
+    }
+
+    pub trait TestListener {
+        /// Checks if the listener requests an abort. This happens if an error is too difficult to recover from
+        /// and may corrupt the stack content. In that case, the parser immediately stops and returns `ParserError::AbortRequest`.
+        fn check_abort_request(&self) -> bool { false }
+        fn get_mut_log(&mut self) -> &mut impl Logger;
+        fn exit(&mut self, _a: SynA) {}
+        fn init_a(&mut self) {}
+        fn exit_a(&mut self, _ctx: CtxA) -> SynA;
+    }
+
+    pub struct Wrapper<T> {
+        verbose: bool,
+        listener: T,
+        stack: Vec<SynValue>,
+        max_stack: usize,
+        stack_t: Vec<String>,
+    }
+
+    impl<T: TestListener> ListenerWrapper for Wrapper<T> {
+        fn switch(&mut self, call: Call, nt: VarId, alt_id: AltId, t_data: Option<Vec<String>>) {
+            if self.verbose {
+                println!("switch: call={call:?}, nt={nt}, alt={alt_id}, t_data={t_data:?}");
+            }
+            if let Some(mut t_data) = t_data {
+                self.stack_t.append(&mut t_data);
+            }
+            match call {
+                Call::Enter => {
+                    match nt {
+                        0 => self.listener.init_a(),                // a
+                        1 => self.init_a1(),                        // a_1
+                        2 ..= 4 => {}                               // a_2, a_3, a_4
+                        _ => panic!("unexpected enter nonterminal id: {nt}")
+                    }
+                }
+                Call::Loop => {}
+                Call::Exit => {
+                    match alt_id {
+                        0 => self.exit_a(),                         // a -> A a_1 F
+                        4 |                                         // a_2 -> a_1
+                        5 |                                         // a_2 -> ε
+                        6 |                                         // a_3 -> a_1
+                        7 |                                         // a_3 -> ε
+                        8 |                                         // a_4 -> a_1
+                        9 => self.exit_a1(),                        // a_4 -> ε
+                     /* 1 */                                        // a_1 -> B a_2 (never called)
+                     /* 2 */                                        // a_1 -> C D a_3 (never called)
+                     /* 3 */                                        // a_1 -> E a_4 (never called)
+                        _ => panic!("unexpected exit alternative id: {alt_id}")
+                    }
+                }
+                Call::End => {
+                    self.exit();
+                }
+            }
+            self.max_stack = std::cmp::max(self.max_stack, self.stack.len());
+            if self.verbose {
+                println!("> stack_t:   {}", self.stack_t.join(", "));
+                println!("> stack:     {}", self.stack.iter().map(|it| format!("{it:?}")).join(", "));
+            }
+        }
+
+        fn check_abort_request(&self) -> bool {
+            self.listener.check_abort_request()
+        }
+
+        fn get_mut_log(&mut self) -> &mut impl Logger {
+            self.listener.get_mut_log()
+        }
+    }
+
+    impl<T: TestListener> Wrapper<T> {
+        pub fn new(listener: T, verbose: bool) -> Self {
+            Wrapper { verbose, listener, stack: Vec::new(), max_stack: 0, stack_t: Vec::new() }
+        }
+
+        pub fn get_listener(&self) -> &T {
+            &self.listener
+        }
+
+        pub fn get_listener_mut(&mut self) -> &mut T {
+            &mut self.listener
+        }
+
+        pub fn give_listener(self) -> T {
+            self.listener
+        }
+
+        pub fn set_verbose(&mut self, verbose: bool) {
+            self.verbose = verbose;
+        }
+
+        fn exit(&mut self) {
+            let a = self.stack.pop().unwrap().get_a();
+            self.listener.exit(a);
+        }
+
+        fn exit_a(&mut self) {
+            let f = self.stack_t.pop().unwrap();
+            let plus = self.stack.pop().unwrap().get_a1();
+            let a = self.stack_t.pop().unwrap();
+            let val = self.listener.exit_a(CtxA::A { a, plus, f });
+            self.stack.push(SynValue::A(val));
+        }
+
+        fn init_a1(&mut self) {
+            let val = SynA1(Vec::new());
+            self.stack.push(SynValue::A1(val));
+        }
+
+        fn exit_a1(&mut self) {
+            let b = self.stack_t.pop().unwrap();
+            let mut plus_it = self.stack.pop().unwrap().get_a1();
+            plus_it.0.push(b);
+            self.stack.push(SynValue::A1(plus_it));
+        }
+    }
+
+    // [wrapper source for rule 153 #1, start a]
     // ------------------------------------------------------------
 }
 
@@ -3528,7 +3848,7 @@ pub(crate) mod rules_256_1 {
         /// `D` iteration in `a -> A (<L> B A | B A C |  ►► D ◄◄ )+ E`
         I2 { plus_it: SynI, d: String, last_iteration: bool },
         /// `B A C` iteration in `a -> A (<L> B A |  ►► B A C ◄◄  | D)+ E`
-        I3 { plus_it: [SynI; 2], b: String, a: String, c: String, last_iteration: bool },
+        I3 { plus_it: SynI, b: String, a: String, c: String, last_iteration: bool },
     }
 
     // NT types and user-defined type templates (copy elsewhere and uncomment when necessary):
@@ -3679,12 +3999,11 @@ pub(crate) mod rules_256_1 {
                 }
                 8 | 9 => {
                     let last_iteration = alt_id == 9;
-                    let plus_it_2 = self.stack.pop().unwrap().get_i();
                     let c = self.stack_t.pop().unwrap();
                     let a = self.stack_t.pop().unwrap();
                     let b = self.stack_t.pop().unwrap();
-                    let plus_it_1 = self.stack.pop().unwrap().get_i();
-                    CtxI::I3 { plus_it: [plus_it_1, plus_it_2], b, a, c, last_iteration }
+                    let plus_it = self.stack.pop().unwrap().get_i();
+                    CtxI::I3 { plus_it, b, a, c, last_iteration }
                 }
                 _ => panic!("unexpected alt id {alt_id} in fn exit_i")
             };

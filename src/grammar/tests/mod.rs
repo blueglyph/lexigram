@@ -76,7 +76,10 @@ impl TestRules {
             // TODO (not yet fully supported in parsergen)
             150 => vec![r#"a -> (A | B)*;"#],
             151 => vec![r#"a -> (A | B)+;"#],
-            152 => vec![r#"a -> A ( (B C | D)+ E | F)+ G;"#],
+            152 => vec![r#"a -> A (B | C D | E)* F;"#],
+            153 => vec![r#"a -> A (B | C D | E)+ F;"#],
+            154 => vec![r#"a -> A ( (B C | D)+ E | F)+ G;"#],
+            157 => vec![r#"a -> (A | A B | C)+;"#],
 
             // 2xx = +* repetitions: with <L>
             // -----------------------------------------------------------------------------
@@ -101,6 +104,7 @@ impl TestRules {
             254 => vec![r#"a -> A (<L=i> (<L=j> B C | D)* E | F)* G;"#],
             255 => vec![r#"a -> A (<L=i> (<L=j> B C | D)+ E | F)+ G;"#],
             256 => vec![r#"a -> A (<L=i> B A | B A C | D)+ E;"#],
+            257 => vec![r#"a -> (A | A B | C)+;"#],
 
             // 3xx = rrec: simple
             // -----------------------------------------------------------------------------
